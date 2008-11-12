@@ -270,8 +270,8 @@ void QModemIndicators::resetModem()
     d->service->primaryAtChat()->chat( "AT+CCED=1,8" );
 
     // Ask the modem what indicators it supports.
-    d->service->primaryAtChat()->chat
-        ( "AT+CIND?", this, SLOT(cind(bool,QAtResult)) );
+    //d->service->primaryAtChat()->chat
+    //    ( "AT+CIND?", this, SLOT(cind(bool,QAtResult)) );
 }
 
 void QModemIndicators::csq( bool ok, const QAtResult& result )
@@ -280,11 +280,11 @@ void QModemIndicators::csq( bool ok, const QAtResult& result )
     QAtResultParser parser( result );
     if ( ok && parser.next( "+CSQ:" ) ) {
         setSignalQualityInternal( (int)parser.readNumeric(), 31 );
-    } else {
+    //} else {
         // Modem probably does not support AT+CSQ, so turn off polling
         // and then act as though the signal is fully present.
         d->pollForSignalQuality = false;
-        setSignalQualityInternal( 100, 100 );
+        //setSignalQualityInternal( 100, 100 );
     }
 }
 
@@ -326,33 +326,15 @@ void QModemIndicators::ciev( const QString& msg )
     uint posn = 6;
     uint ind = QAtUtils::parseNumber( msg, posn );
     uint value = QAtUtils::parseNumber( msg, posn );
-    if ( ind > 0 && ind <= (uint)(d->indicators.count()) ) {
-        QString name = d->indicators[ind - 1];
-        if ( name == "signal" && !d->signalQualityUnsolicited ) {
+        //QString name = d->indicators[ind - 1];
+
+        if ( ind == 1  ) {
 
             // Signal quality indication: (0-5).
             d->pollForSignalQuality = false;
             setSignalQualityInternal( value, 5 );
 
-        } else if ( name == "battchg" && !d->batteryChargeUnsolicited ) {
-
-            // Battery charge indication: (0-5).
-            if ( value >= 5 )
-                value = 100;
-            else if ( value == 0 )
-                value = 1;
-            else
-                value *= 20;
-            d->pollForBatteryCharge = false;
-            setBatteryChargeInternal( value, 100, PoweredByBattery );
-
-        } else if ( name == "smsfull" ) {
-
-            // "SMS message box is full" indication: (0-1).
-            setSmsMemoryFull( (SmsMemoryFullStatus)value );
-
-        }
-    }
+        } 
 }
 
 void QModemIndicators::cind( bool ok, const QAtResult& result )
@@ -445,7 +427,8 @@ void QModemIndicators::setBatteryChargeInternal
 
 void QModemIndicators::pollSignalQuality()
 {
-    if ( d->pollForSignalQuality ) {
+  return;  
+  if ( d->pollForSignalQuality ) {
         d->service->primaryAtChat()->chat
             ( "AT+CSQ", this, SLOT(csq(bool,QAtResult)) );
     }
