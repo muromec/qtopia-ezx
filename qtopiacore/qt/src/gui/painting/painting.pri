@@ -243,7 +243,7 @@ mac {
         }
         iwmmxt {
             iwmmxt_compiler.commands = $$QMAKE_CXX -c
-            iwmmxt_compiler.commands += -mcpu=iwmmxt
+            iwmmxt_compiler.commands += -march=iwmmxt  -mtune=iwmmxt
             iwmmxt_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             iwmmxt_compiler.dependency_type = TYPE_C
             iwmmxt_compiler.output = ${QMAKE_VAR_OBJECTS_DIR}${QMAKE_FILE_BASE}$${first(QMAKE_EXT_OBJ)}
