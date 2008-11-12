@@ -4344,7 +4344,10 @@ void QWSServerPrivate::_q_screenSaverTimeout()
     if (screensaverinterval) {
         if (screensavertime.elapsed() > *screensaverinterval*2) {
             // bogus (eg. unsuspend, system time changed)
-            _q_screenSaverWake(); // try again
+            
+            screensavertimer->start(5000);
+            screensavertime.start();
+
             return;
         }
         screenSave(screensaverinterval - screensaverintervals);
