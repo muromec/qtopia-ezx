@@ -115,8 +115,9 @@ bool PhonePowerManager::save(int level)
                 }
                 qLog(PowerManagement) << "Suspending device";
                 SystemSuspend *suspend = qtopiaTask<SystemSuspend>();
-                suspend->suspendSystem();
-                return true;
+                bool ok = suspend->suspendSystem();
+                qLog(PowerManagement) << "Suspend " << (ok ? "done" : "failed");
+                return ok;
             }
             break;
         default:
