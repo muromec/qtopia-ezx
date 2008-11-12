@@ -295,7 +295,11 @@ qint64 OggDecoder::readData(char *data, qint64 maxlen)
         int    current_section;
         len=(qint64)ov_read(&d->vf,output_data,OGG_BUFFER_SIZE,&current_section);
         //qWarning("oggdec: write out %d bytes",(int)len);
-        output_length=output_length+len;
+
+        if (len == 0)
+           emit playerStateChanged(d->state = QtopiaMedia::Stopped); 
+        else
+           output_length=output_length+len;
 
         if(output_length >= (int)maxlen) {
             output_pos = output_data+(int)maxlen;
