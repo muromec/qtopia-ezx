@@ -29,6 +29,11 @@
 #include <qphonecallmanager.h>
 #include <qnetworkregistration.h>
 #include <qcommservicemanager.h>
+#ifdef QT_QWS_EZX
+#include <QSerialPort>
+#include <QAtResult>
+#include <QString>
+#endif
 #endif
 
 class DialupImpl : public QtopiaNetworkInterface
@@ -81,6 +86,11 @@ private slots:
     void connectNotification( const QPhoneCall&, QPhoneCall::Notification, const QString& );
     void registrationStateChanged();
     void phoneCallStateChanged( const QPhoneCall& );
+#ifdef QT_QWS_EZX
+    void cgdcont ( bool ok, const QAtResult& result );
+    void gConnect( const QString& msg );
+
+#endif 
 private:
     QTelephony::RegistrationState regState;
     QCommServiceManager* commManager;
@@ -88,6 +98,13 @@ private:
     QPhoneCall dataCall;
     QNetworkRegistration *netReg;
     bool pppdProcessBlocked;
+#ifdef QT_QWS_EZX
+    QSerialPort *control;
+    QAtChat *controlChat;
+
+    int gprsv;
+#endif
+
 #endif
 private:
     QValueSpaceObject* netSpace;

@@ -35,6 +35,19 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#ifdef QT_QWS_EZX
+#define GPRSV_IOC       _IOWR('t', 160, int)
+#include <QSerialPort>
+#include <QSerialIODeviceMultiplexer>
+#include <QAtChat>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#endif
+
+
 #define PPPD_BINARY QString("/usr/sbin/pppd")
 static const QString pppScript = Qtopia::qtopiaDir()+"bin/ppp-network";
 
@@ -51,6 +64,9 @@ DialupImpl::DialupImpl( const QString& confFile)
 
     //update state of this interface after each script execution
     connect( &thread, SIGNAL(scriptDone()), this, SLOT(updateState()));
+#ifdef QT_QWS_EZX
+    control = NULL;
+#endif
 }
 
 DialupImpl::~DialupImpl()
@@ -59,6 +75,10 @@ DialupImpl::~DialupImpl()
     if (configIface)
         delete configIface;
     configIface = 0;
+#ifdef QT_QWS_EZX
+    if (control)
+          delete control;
+#endif
 }
 
 QtopiaNetworkInterface::Status DialupImpl::status()
@@ -289,6 +309,24 @@ bool DialupImpl::start( const QVariant /*options*/ )
         thread.addScriptToRun( pppScript, args );
     } else { //QtopiaNetwork::PhoneModem
 #ifdef QTOPIA_CELL
+#ifdef QT_QWS_EZX
+        control = QSerialPort::create( "/dev/mux6" );
+        controlChat = control->atchat();
+
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGACT=0");
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=0");
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=1");
+
+
+        controlChat->chat( "AT+CGDCONT=1,\"IP\",\"" + 
+          prop.value("Serial/APN").toString() +
+            "\",\"0.0.0.0\",0,0",
+          this,
+          SLOT(cgdcont(bool,QAtResult))
+
+          );
+
+#else
         const QString path = Qtopia::applicationFileName("Network", "chat");
         const QString connectF = path+"/connect-"+peerID;
         const QString disconnectF = path+"/disconnect-"+peerID;
@@ -329,6 +367,7 @@ bool DialupImpl::start( const QVariant /*options*/ )
         } else {
             qLog(Network) << "No call manager created";
         }
+#endif 
 #endif
     }
 
@@ -344,6 +383,101 @@ bool DialupImpl::start( const QVariant /*options*/ )
     delayedGatewayInstall = true;
     return true;
 }
+#ifdef QT_QWS_EZX
+void DialupImpl::gConnect( const QString& msg ) {
+  qLog(Network) << "AGGRH!" << msg;
+
+  if (msg.startsWith("G_CONNECT:")) {
+    qLog(Network) << "connect" << msg;
+
+    QStringList m = msg.split(",");
+
+    QString ip   = m[1].remove("\"");
+    QString dns1 = m[2].remove("\"");
+    QString dns2 = m[3].remove("\"");
+    
+    qLog(Network) << "IP " << ip;
+    qLog(Network) << "First  DNS " << dns1;
+    qLog(Network) << "Second DNS " << dns2;
+
+    // create interface
+    gprsv = ::open ("/dev/mux12", O_RDWR|O_NONBLOCK|O_NOCTTY ); 
+
+    int unit = 0;
+    int disc = 16;
+
+    ioctl( gprsv, TIOCSETD, &disc );
+    ioctl( gprsv, GPRSV_IOC, &unit );
+
+    pppIface = QString ("gprsv0");
+
+    QStringList args;
+    args << pppIface;
+    args << ip;
+    args << "dstaddr" << "10.122.122.122";
+    args << "netmask" << "255.255.255.255";
+    thread.addScriptToRun("/sbin/ifconfig",args);
+
+    /*args.clear();
+    args << "add" << "default" << pppIface;
+    thread.addScriptToRun("/sbin/route",args);*/
+
+    QFile resolv("/etc/ppp/resolv.conf");
+    if ( resolv.open(QIODevice::WriteOnly  | QIODevice::Text   )) {
+
+      QTextStream toresolv(&resolv);
+
+      toresolv << "nameserver " << dns1 << "\n";
+      toresolv << "nameserver " << dns2 << "\n";
+      toresolv.flush();
+
+      //delete &toresolv;
+      resolv.close();
+    } else {
+      qLog(Network) << "dns configure failed";
+    }
+    //delete &resolv;
+
+    ifaceStatus = QtopiaNetworkInterface::Up;
+    netSpace->setAttribute( "State", ifaceStatus );
+
+
+  } else if (msg.startsWith("G_NO_CARRIER:")) {
+    qLog(Network) << "connect failed";
+    stop();
+  } else {
+    qLog(Network) << msg << "waiting next";
+    controlChat->requestNextLine(this, SLOT(gConnect(QString) ) );
+  }
+
+
+}
+
+void DialupImpl::cgdcont ( bool ok, const QAtResult& result ) {
+  QtopiaNetworkProperties prop = configIface->getProperties();
+
+  if (ok) {
+    qLog(Network) << "cgdcont is ok. sending cgtact";
+
+    controlChat->requestNextLine(this, SLOT(gConnect(QString) ) );
+
+    controlChat->send( "AT+CGTACT=1,1,0,\"" +
+      prop.value("Properties/UserName").toString() +
+      "\",\"" +
+      prop.value("Properties/Password").toString() +
+      "\",\"0.0.0.0\",\"0.0.0.0\""//, // FIXME: dns1, dns2
+
+      );
+
+  } else {
+    qLog(Network) << "cgdcont failed";
+    stop();
+  }
+
+
+}
+
+#endif
 
 bool DialupImpl::stop()
 {
@@ -368,10 +502,14 @@ bool DialupImpl::stop()
         thread.addScriptToRun( pppScript, args );
     } else {
 #ifdef QTOPIA_CELL
+#ifdef QT_QWS_EZX
+        close(gprsv);
+#else
         qLog(Network) << "stopping data call on phone line";
         if ( ! dataCall.isNull() ) {
             dataCall.hangup();
         }
+#endif
 #endif
     }
 
@@ -385,8 +523,27 @@ bool DialupImpl::stop()
     netSpace->setAttribute( "NetDevice", QString() );
     ifaceStatus = QtopiaNetworkInterface::Down;
 #ifdef QTOPIA_CELL
-    if ( t & QtopiaNetwork::PhoneModem )  //internal phone device
+    if ( t & QtopiaNetwork::PhoneModem ) { //internal phone device
+#ifdef QT_QWS_EZX
+
+//        qLog(Network) << "stopping ezx gprs: at";
+
+        /*QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGACT=0");
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=0");
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"ATH");*/
+        qLog(Network) << "stopping ezx gprs: close device";
+
+        control->close();
+
+        qLog(Network) << "stopping ezx gprs: delete object";
+
+        
+        qLog(Network) << "stopping ezx gprs: ok";
+
+#else
         pppdProcessBlocked = true;
+#endif
+    }
 #endif
 
     status();
