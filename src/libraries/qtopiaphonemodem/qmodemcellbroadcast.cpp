@@ -98,6 +98,7 @@ void QModemCellBroadcast::setChannels( const QList<int>& list )
 
 void QModemCellBroadcast::sendChange()
 {
+    return;
     // If we can make the change immediately, then do so.
     if ( !removeBeforeChange() ) {
         sendAdd();
@@ -115,12 +116,14 @@ void QModemCellBroadcast::sendChange()
 
 void QModemCellBroadcast::sendAdd()
 {
+    return;
     d->service->secondaryAtChat()->chat
         ( command( 0, d->channels ), this, SLOT(cscb(bool,QAtResult)) );
 }
 
 void QModemCellBroadcast::sendRemove()
 {
+    return;
     QList<int> toBeRemoved = d->prevChannels;
     foreach ( int chan, d->channels ) {
         // Don't need to remove channels we are about to add back again.
