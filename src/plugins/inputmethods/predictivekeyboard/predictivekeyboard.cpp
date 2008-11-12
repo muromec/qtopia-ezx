@@ -26,10 +26,12 @@
 #include <QDesktopWidget>
 #include <QDebug>
 #include <qtopialog.h>
+#include <QTextCodec>
 
 PredictiveKeyboard::PredictiveKeyboard(QWidget* parent) 
 : QWSInputMethod(), mKeyboard(0), mActive(0)
 {
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
     // The predictivekeyboard frame is meaningless after the 
     // PredictiveKeyboard IM is destroyed, so keep control of it by never 
     // parenting PredictiveKeyboardWidget;  This should also help keep the 
@@ -127,8 +129,12 @@ QWidget* PredictiveKeyboard::widget(QWidget*)
 {
     if(!mKeyboard) {
         mKeyboard = new KeyboardWidget(createKeyboardConfig(), 0);
+        mKeyboard->addBoard(QStringList() << "ЙЦУКЕНГШЩЗХЪ" << "ФЫВАПРОЛДЖЭ" << "ЯЧСМИТЬБЮ,", KeyboardWidget::UpperCase);
+        mKeyboard->addBoard(QStringList() << "йцукенгшщзхъ" << "фывапролджэ" << "ячсмитьбю.", KeyboardWidget::LowerCase);
+
         mKeyboard->addBoard(QStringList() << "QWERTYUIOP" << "ASDFGHJKL" << "ZXCVBNM", KeyboardWidget::UpperCase);
         mKeyboard->addBoard(QStringList() << "qwertyuiop" << "asdfghjkl" << "zxcvbnm", KeyboardWidget::LowerCase);
+
         mKeyboard->addBoard(QStringList() << "12345" << "67890", KeyboardWidget::Numeric);
         mKeyboard->addBoard(QStringList() << "^#@!$()*&%" << "|,.;:'?\\`" << (QString("[]+=-/~\"_") + QChar(0x21b5)), KeyboardWidget::NonAlphabet);
 
