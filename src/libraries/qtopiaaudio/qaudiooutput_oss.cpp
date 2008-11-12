@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
+#include <dirent.h>
 
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
@@ -91,6 +93,44 @@ int MToS16AudioOutputFormatHandler::convert( short *output, const short *input, 
     return 2*length;
 }
 
+static inline int dsp_fd()
+{
+    struct dirent **namelist;
+    int n;
+    char dir[15];
+    char path[256];
+    char link[20];
+
+
+    int ret;
+
+    sprintf(dir,"/proc/%d/fd/",getpid());
+  
+    n = scandir(dir, &namelist, 0, alphasort);
+    if (n < 0)
+        perror("scandir");
+    else {
+        while(n--) {
+            sprintf(link,"/proc/%d/fd/%s",getpid(),namelist[n]->d_name);
+
+            ret = readlink (link, path,256);
+            if (ret >0) {
+              path[ret] = '\0';
+              if (! strcmp("/dev/dsp",path) )
+              {
+                printf("ok, %s - %s\n",namelist[n]->d_name,path);
+                return (atoi(namelist[n]->d_name));
+              }
+                
+              
+            } 
+            free(namelist[n]);
+        }
+        free(namelist);
+    }
+    return -1;
+}
+
 class QAudioOutputPrivate
 {
 public:
@@ -113,7 +153,10 @@ public:
     {
         // Open the device.
         if ( ( fd = ::open( "/dev/dsp", O_WRONLY ) ) < 0 ) {
-            if ( ( fd = ::open( "/dev/dsp1", O_WRONLY ) ) < 0 ) {
+            if ( hack()  ) {
+                qWarning("Internal bug workarround. Lost /dev/dsp file descriptor found");
+            } else {
+                
 	        qWarning("error opening audio devices /dev/dsp and /dev/dsp1, sending data to /dev/null instead" );
 	        fd = ::open( "/dev/null", O_WRONLY );
             }
@@ -141,6 +184,10 @@ public:
 
         return true;
     }
+    bool hack() {
+      fd = dsp_fd();
+      return (fd > -1);
+    }
 
     void close()
     {
@@ -158,7 +205,7 @@ public:
     {
     }
 
-    void write( const char *data, qint64 len )
+    int write( const char *data, qint64 len )
     {
         if ( fd != -1 ) {
             int convertedLen;
@@ -178,9 +225,8 @@ public:
                 if ( errno == EINTR || errno == EWOULDBLOCK )
                     continue;
                 perror( "write to audio device" );
-                ::close( fd );
-                fd = -1;
-                break;
+                close();
+                return -1;
             }
 
             if ( handler ) {
@@ -349,7 +395,11 @@ qint64 QAudioOutput::writeData( const char *data, qint64 len )
 {
     if ( !isOpen() )
         return len;
-    d->write( data, len );
+
+    if ( (d->write( data, len )) < 0 ) {
+        qDebug() << "reopening";
+        d->open(); 
+    }
     return len;
 }
 
