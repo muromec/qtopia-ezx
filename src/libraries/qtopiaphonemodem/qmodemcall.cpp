@@ -275,6 +275,7 @@ void QModemCall::hangup( QPhoneCall::Scope scope )
 
         // Reject an incoming call and set the busy state for the caller.
         provider()->atchat()->chat( provider()->setBusyCommand() );
+        setState( QPhoneCall::Connected   );
         setState( QPhoneCall::HangupLocal );
 
     }
