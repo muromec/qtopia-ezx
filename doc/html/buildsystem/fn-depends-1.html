@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>depends()</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">depends()<br /><span class="subtitle"></span>
+</h1>
+<a name="usage"></a>
+<h3>Usage</h3>
+<pre>    depends(libraries/qtopia)
+    depends(libraries/*,fake)</pre>
+<a name="description"></a>
+<h3>Description</h3>
+<p>Register a dependency. Use the same format that PROJECTS uses (ie. paths relative to the project root). Dependencies are searched for in the current project root first, then the Qtopia and Qtopia Sync Agent project roots followed by all other project roots. There is no support for depending on a particular project in a particular project root but such support may appear in the future.</p>
+<p><b>Note: This function must only be called from .pro files or from an implicit_deps.pr[if] file.</b></p>
+<p>You can pass a second argument <tt>fake</tt> to create a fake dependency. Fake dependencies affect the order of building without changing the actual dependency tree. For example, <tt>src/build/extra/extra.pro</tt> depends on everything but it's a fake dependency designed only to have it processed last.</p>
+<p><b>Note: In 4.3&#x2e;1 and later it is a fatal error to depend on a project that is disabled.</b></p>
+<p>A project is considered disabled if it is not listed in PROJECTS after projects.pri has been read. If a tree does not contain a projects.pri but does contain the dependency it is considered to be enabled. Since there may be times when a fatal error is not suitable you can set <a href="conf-disabled-deps-are-non-fatal-1.html">disabled_deps_are_non_fatal</a> to cause a non-fatal error. For example, the examples tree sets this since many projects depend on libraries that can be disabled.</p>
+<p>A non-fatal error causes a warning to be emitted when building the Makefile and the following message to be output when running make. It does not cause the build to be aborted.</p>
+<pre>    Some of the required modules (contains(PROJECTS,missing/project)) are not available.
+    Skipped.</pre>
+<p>See also <a href="functions.html">Functions (build system)</a>, <a href="over-dependencies-1.html">Dependencies</a>, <a href="fn-dep-1.html">dep</a>(), <a href="fn-idep-1.html">idep</a>(), <a href="var-projects-1.html">PROJECTS</a>, and <a href="conf-disabled-deps-are-non-fatal-1.html">disabled_deps_are_non_fatal</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

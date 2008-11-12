@@ -1,0 +1,24 @@
+#!/bin/sh
+
+TEST_PATH=`dirname $0`
+SEP_DEBUG_SUPPORT=no
+COMPILER=$1
+VERBOSE=$2
+
+echo "int main() { return 0; }" > objcopy_test.cpp
+if $TEST_PATH/which.test objcopy >/dev/null 2>&1 && $COMPILER -g -o objcopy_test objcopy_test.cpp >/dev/null 2>&1; then
+    objcopy --only-keep-debug objcopy_test objcopy_test.debug >/dev/null 2>&1 \
+        && objcopy --strip-debug objcopy_test >/dev/null 2>&1 \
+        && objcopy --add-gnu-debuglink=objcopy_test.debug objcopy_test >/dev/null 2>&1 \
+        && SEP_DEBUG_SUPPORT=yes 
+fi
+rm -f objcopy_test objcopy_test.debug objcopy_test.cpp
+
+# done
+if [ "$SEP_DEBUG_SUPPORT" != "yes" ]; then
+    [ "$VERBOSE" = "yes" ] && echo "Separate debug info support disabled."
+    exit 0
+else
+    [ "$VERBOSE" = "yes" ] && echo "Separate debug info support enabled."
+    exit 1
+fi

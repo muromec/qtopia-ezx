@@ -1,0 +1,66 @@
+<http://www.trolltech.com>
+
+
+    Greenphone(TM)Release Notes
+
+Qtopia(R) Greenphone SDK is a virtual machine created to run with VMware(R)
+Player.
+
+<http://www.vmware.com/products/player>  Please download and install the
+latest free VMware Player before continuing with the install.
+VMware Player is available at http://www.vmware.com/products/player
+
+
+      License information
+
+Please note that this .iso file contains additional software for use in
+conjunction with the Qtopia(R) Greenphone(TM).  This software is licensed
+under a variety of different licenses.
+
+
+        Qtopia Greenphone Community SDK Licensees
+
+If you are a Qtopia Greenphone Community SDK licensee, your use of the
+Qtopia software provided in binary format in this .iso file is licensed
+under the terms contained in the GNU General Public License version 2.
+
+
+        Qtopia Greenphone Professional Licensees
+
+If you are a Qtopia Greenphone SDK Professional licensee, your
+use of the Qtopia software provided in binary format in this .iso file
+is licensed under the terms contained in the “Qtopia(R) Greenphone(TM) SDK
+License Agreement” that accompanied your purchase of the Qtopia Greenphone.
+
+
+        Third Party Software and Licensing
+
+The additional software contained in this .iso file is licensed for use
+under a variety of licenses including the GNU Lesser General Public
+License (LGPL) or the GNU General Public License (GPL).  These license
+agreements are available at:
+http://qtextended.org/modules/devices/greenphone_3rdpartyisolicensing.php."
+
+
+      Documentation
+
+    * Getting Started <greenphone_gettingstarted.pdf> with your Greenphone
+    * User Guide <greenphone_userguide.pdf>
+    * Developer Quick Start <greenphone_quickstart.pdf> 
+
+More information on Greenphone updates, applications and downloads is
+available at http://www.qtextended.org <http://www.qtextended.org/>
+
+
+      Release Notes
+
+   Qtopia release notes are available at
+   http://doc.trolltech.com/qtopia!QPE_URL_VERSION!/release-index.html
+   and from Assistant inside the VmPlayer environment.
+
+
+      Build information
+
+This package contains Qtopia Greenphone Version: !QPE_VERSION! Build:
+!CHANGENO!
+

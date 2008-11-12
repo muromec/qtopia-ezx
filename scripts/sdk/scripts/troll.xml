@@ -1,0 +1,2303 @@
+<?xml version="1.0"?>
+<simulator>
+
+<!-- Phone simulator definition file for the "Trolltech Pseudo Phone" -->
+
+<!-- Note: dialing 199 will cause a dialback to simulate an incoming call -->
+<!-- Note: dialing 177 will cause a dialback to simulate an incoming call, and hangup after 5 seconds -->
+<!-- Note: dialing 166 will accept the incoming call and hanup up after 5 seconds-->
+
+<!-- Initialize state variables -->
+
+    <!-- Advice of charge -->
+    <set name="AOC" value="000000"/>
+
+    <!-- Battery Capacity
+    first value
+	0-powerd by battery
+	1-battery connected, powered by charger
+	2-no battery.
+
+    second value is percentage battery remaining.
+	0-exahsted
+	1-99-partial charge
+	100-fully charged.
+     -->
+    <set name="BC" value="0,100"/>
+
+    <!-- Signal Quality -->
+    <set name="SQ" value="99,99"/>
+
+    <!-- Manufacturer -->
+    <set name="GMI" value="TROLLTECH"/>
+
+    <!-- Model -->
+    <set name="GMM" value="PSEUDO PHONE"/>
+
+    <!-- Revision -->
+    <set name="GMR" value="REV1"/>
+
+    <!-- Serial number -->
+    <set name="GSN" value="1234567890"/>
+
+    <!-- SIM card id -->
+    <set name="IMI" value="9876543210"/>
+
+    <!-- Identifier for ATI command -->
+    <set name="ID" value="TROLLTECH PSEUDO PHONE"/>
+
+    <!-- Character set -->
+    <set name="SCS" value="IRA"/>
+
+    <!-- Type of address (local = 129, international = 145) -->
+    <set name="STA" value="129"/>
+
+    <!-- Service reporting control flag -->
+    <set name="CR" value="0"/>
+
+    <!-- Cellular result code control flag -->
+    <set name="CRC" value="0"/>
+
+    <!-- Extended error message string -->
+    <set name="ERR" value="EXTENDED ERROR STRING"/>
+
+    <!-- Subscriber number information -->
+    <set name="NUM" value=""/>
+
+    <!-- Network registration presentation flag -->
+    <set name="REG" value="1,0"/>
+
+    <!-- Mobile phone operator selection mode (0=auto, 1=manual) -->
+    <set name="OPMODE" value="0"/>
+
+    <!-- Name of mobile phone operator 1 -->
+    <set name="OP1" value="Trolltech Comm"/>
+
+    <!-- Name of mobile phone operator 2 -->
+    <set name="OP2" value="Phone Net"/>
+
+    <!-- Name of mobile phone operator 3 -->
+    <set name="OP3" value="Teleco Net"/>
+
+    <!-- Name of current mobile phone operator -->
+    <set name="OP" value="${OP1}"/>
+
+    <!-- Phone operator list -->
+    <set name="OPLIST" value="(2,${OP1},OP1,111)(1,${OP2},OP2,222),(1,${OP3},OP3,333)"/>
+
+    <!-- Calling line identification presentation flag -->
+    <set name="LIP" value="0"/>
+
+    <!-- Calling line identification restriction flag -->
+    <set name="LIR" value="0"/>
+    <set name="LIR_STATUS" value="3"/>
+
+    <!-- Originating line identification presentation flag -->
+    <set name="OLP" value="0"/>
+
+    <!-- Call waiting presentation mode -->
+    <set name="CWA_V" value="0"/>
+    <set name="CWA_D" value="0"/>
+    <set name="CWA_F" value="0"/>
+
+    <!-- Call forwarding -->
+    <set name="CF0C1" value="0"/>
+    <set name="CF0C2" value="0"/>
+    <set name="CF0C4" value="0"/>
+    <set name="CF0C8" value="0"/>
+    <set name="CF1C1" value="0"/>
+    <set name="CF1C2" value="0"/>
+    <set name="CF1C4" value="0"/>
+    <set name="CF1C8" value="0"/>
+
+    <!-- Unstructured service presentation mode -->
+    <set name="USD" value="0"/>
+
+    <!-- Supplementary service notification flags -->
+    <set name="SSN" value="0,0"/>
+
+    <!-- Phone activity status (ready = 0, ringing = 3, call active = 4) -->
+    <set name="PAS" value="0"/>
+
+    <!-- Phone functionality power consumption level (minimal = 0, full = 1) -->
+    <set name="FUN" value="0"/>
+
+    <!-- Mobile equipment control modes -->
+    <set name="MEC" value="0,0,0"/>
+
+    <!-- Mobile equipment event reporting modes -->
+    <set name="MER" value="0,0,0,0,0"/>
+
+    <!-- Ericsson-style call monitoring status values -->
+    <set name="ECAM" value="0"/>
+
+    <!-- SMS text vs PDU message format (1 = text, 0 = PDU) -->
+    <set name="CMGF" value="0"/>
+
+    <!-- Error reporting mode -->
+    <set name="MEE" value="0"/>
+
+    <!-- SMS message list -->
+    <set name="MSGLIST" value=""/>
+    <set name="MSGLISTCOPY" value=""/>
+    <set name="MSGMEM" value="SM"/>
+
+    <!-- Number of messages in the SMS message list -->
+    <set name="MSGCOUNT" value="0"/>
+
+    <!-- Identifier for the current call -->
+    <set name="CALLID" value="1"/>
+
+    <!-- Name of the PIN that is required (eg. "PIN") -->
+    <!-- For the moment DON'T set a pinname here. We don't want a PIN shipped with the release -->
+    <set name="PINNAME" value="READY"/>
+
+    <!-- Value of the PIN that is required -->
+    <set name="PINVALUE" value="1234"/>
+
+    <!-- pin protection status -->
+    <set name="SC" value="0"/>
+
+    <!-- Value of the PIN that is required -->
+    <set name="PSPINVALUE" value="4321"/>
+    <!-- phone to sim pin protection status -->
+    <set name="PS" value="0"/>
+
+    <!-- accessories, handsfree and car.  0 means not connected, 1 for connected -->
+    <set name="HANDSFREE" value="0"/> 
+
+    <set name="CARHANDSFREE" value="0"/>
+
+<!-- Broadcast a cell location -->
+
+<unsolicited delay="500">+CBM: 8807A200320111B8669A5D0641D9E1B47BDE68341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D168341A8D46A3D100</unsolicited>
+
+<!-- Registration -->
+
+<unsolicited delay="500" once="true">+CREG: 2</unsolicited>
+<unsolicited delay="5000" once="true">+CREG: 1</unsolicited>
+
+<!-- GSM 07.07: General commands -->
+
+<chat>
+    <!-- Get manufacturer identifier -->
+    <command>AT+CGMI</command>
+    <response>${GMI}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer identifier support check -->
+    <command>AT+CGMI=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer identifier, V.25ter version -->
+    <command>AT+GMI</command>
+    <response>${GMI}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer model -->
+    <command>AT+CGMM</command>
+    <response>${GMM}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer model, V.25ter version -->
+    <command>AT+GMM</command>
+    <response>${GMM}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer model support check -->
+    <command>AT+CGMM=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer revision -->
+    <command>AT+CGMR</command>
+    <response>${GMR}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer revision, V.25ter version -->
+    <command>AT+GMR</command>
+    <response>${GMR}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get manufacturer revision support check -->
+    <command>AT+CGMR=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Get serial number -->
+    <command>AT+CGSN</command>
+    <response>${GSN}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get serial number support check -->
+    <command>AT+CGSN=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Get serial number, V.25ter version -->
+    <command>AT+GSN</command>
+    <response>${GSN}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get SIM id -->
+    <command>AT+CIMI</command>
+    <response>${IMI}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Get SIM id support check -->
+    <command>AT+CIMI=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query current character set -->
+    <command>AT+CSCS?</command>
+    <response>+CSCS: ${SCS}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query all supported character sets -->
+    <command>AT+CSCS=?</command>
+    <response>+CSCS: (GSM, IRA, 8859-1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set character set -->
+    <command>AT+CSCS=*</command>
+    <response>OK</response>
+    <set name="SCS" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query current wireless network (GSM = 12) -->
+    <command>AT+WS46?</command>
+    <response>12\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query all supported wireless network types -->
+    <command>AT+WS46=?</command>
+    <response>(12)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Select GSM wireless network -->
+    <command>AT+WS46=12</command>
+    <response>OK</response>
+</chat>
+
+<!-- GSM 07.07: Call control commands and methods -->
+
+<chat>
+    <!-- Query current type of address (local = 129, international = 145) -->
+    <command>AT+CSTA?</command>
+    <response>${STA}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported address types -->
+    <command>AT+CSTA=?</command>
+    <response>(129, 145)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set type of address to local -->
+    <command>AT+CSTA=129</command>
+    <response>OK</response>
+    <set name="STA" value="129"/>
+</chat>
+
+<chat>
+    <!-- Set type of address to international -->
+    <command>AT+CSTA=145</command>
+    <response>OK</response>
+    <set name="STA" value="145"/>
+</chat>
+
+<!-- erricson accessories commands, handsfree(1) and car handsfree(2)
+    Others not implemented are
+    rs232 cord(3)
+    ir device(4)
+    intelligent charger(6)
+    simple charger(7)
+    external handset(12)
+    internal ir device(13)
+    audio player(15)
+    chatboard(50
+--> 
+
+<chat>
+    <!-- set handsfree -->
+    <command>AT*EACS=1,*,*</command>
+    <response>*EACS: 65535\nOK</response>
+    <set name="HANDSFREE" value="*"/>
+</chat>
+
+<chat>
+    <!-- set car handsfree -->
+    <command>AT*EACS=2,*,*</command>
+    <response>*EACS: 65535\nOK</response>
+    <set name="CARHANDSFREE" value="*"/>
+</chat>
+
+
+<chat>
+    <!-- set handsfree -->
+    <command>AT*EACS=1,*</command>
+    <response>*EACS: 65535\nOK</response>
+    <set name="HANDSFREE" value="*"/>
+</chat>
+
+<chat>
+    <!-- set car handsfree -->
+    <command>AT*EACS=2,*</command>
+    <response>*EACS: 65535\nOK</response>
+    <set name="CARHANDSFREE" value="*"/>
+</chat>
+
+<chat>
+    <!-- commands for accessories -->
+    <command>AT*EACS?</command>
+    <response>*EACS: 1,${HANDSFREE},65535\n*EACS: 2,${CARHANDSFREE},65535\nOK</response>
+</chat>
+
+<chat>
+    <!-- commands for accessories -->
+    <command>AT*EACS=?</command>
+    <response>*EACS: (1,2)(${HANDSFREE},${CARHANDSFREE})\nOK</response>
+</chat>
+
+<!-- Appropriate unsolicited command would be
+    +EACS: 1,${HANDSFREE},65535
+-->
+
+<state name="dialback">
+    <unsolicited switch="incoming">RING\n+CLIP: "1234567",129</unsolicited>
+</state>
+
+<chat>
+    <!-- Dialing "199" will cause the simulator to dial back
+         in 5 seconds to simulate an incoming call -->
+    <command>ATD199;</command>
+    <response>NO CARRIER</response>
+    <switch name="199dialback"/>
+</chat>
+
+<chat>
+    <!-- Dialing "199" will cause the simulator to dial back
+         in 5 seconds to simulate an incoming call -->
+    <command>ATD199i;</command>
+    <response>NO CARRIER</response>
+    <switch name="199dialback"/>
+</chat>
+
+<state name="199dialback">
+    <unsolicited delay="2000" switch="incoming">RING\n+CLIP: "1234567",129</unsolicited>
+</state>
+
+<chat>
+    <!-- Dialing "1993" will cause the simulator to dial back
+         in 30 seconds to simulate an incoming call -->
+    <command>ATD1993;</command>
+    <response>NO CARRIER</response>
+    <switch name="1993dialback"/>
+</chat>
+
+<chat>
+    <!-- Dialing "1993" will cause the simulator to dial back
+         in 30 seconds to simulate an incoming call -->
+    <command>ATD1993i;</command>
+    <response>NO CARRIER</response>
+    <switch name="1993dialback"/>
+</chat>
+
+<state name="1993dialback">
+    <unsolicited delay="30000" switch="incoming">RING\n+CLIP: "1234567",129</unsolicited>
+</state>
+
+<state name="incoming">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+	<newcall name="CALLID"/>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <!-- Keep ringing every 2 seconds until the call is answered,
+         or until 4 rings have been delivered.  After 4 rings,
+	 indicate that the call has been missed -->
+    <unsolicited delay="2000" switch="incoming1">RING</unsolicited>
+</state>
+
+<state name="incoming1">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+	<newcall name="CALLID"/>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="incoming2">RING</unsolicited>
+</state>
+
+<state name="incoming2">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+	<newcall name="CALLID"/>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="incoming3">RING</unsolicited>
+</state>
+
+<state name="incoming3">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+	<newcall name="CALLID"/>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="default">*ECAV: ${CALLID},0</unsolicited>
+</state>
+
+<!-- ////////////////////////////////////////////////////// -->
+
+<chat>
+    <!-- Dialing "177" will cause the simulator to dial back
+         in 2 seconds to simulate an incoming call and then hangup after 5 seconds -->
+    <command>ATD177;</command>
+    <response>OK\nNO CARRIER</response>
+    <switch name="177dialback"/>
+</chat>
+
+<chat>
+    <!-- Dialing "177" will cause the simulator to dial back
+         in 2 seconds to simulate an incoming call and then hangup after 5 seconds -->
+    <command>ATD177i;</command>
+    <response>OK\nNO CARRIER</response>
+    <switch name="177dialback"/>
+</chat>
+
+<state name="177dialback">
+    <unsolicited delay="2000" switch="177incoming">RING\n+CLIP: "1234567",129</unsolicited>
+</state>
+
+<state name="177incoming">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <!-- Keep ringing every 2 seconds until the call is answered,
+         or until 4 rings have been delivered.  After 4 rings,
+	 indicate that the call has been missed -->
+    <unsolicited delay="2000" switch="177incoming1">RING</unsolicited>
+</state>
+
+<state name="177incoming1">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="177incoming2">RING</unsolicited>
+</state>
+
+<state name="177incoming2">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="177incoming3">RING</unsolicited>
+</state>
+
+<state name="177incoming3">
+    <chat>
+	<!-- Answer incoming call -->
+	<command>ATA</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer>ACCEPT</peer>
+    </chat>
+
+    <chat>
+	<!-- Reject an incoming call -->
+	<command>AT+CHLD=0</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+    </chat>
+
+    <unsolicited delay="2000" switch="default">*ECAV: 1,0</unsolicited>
+</state>
+
+<!-- ////////////////////////////////////////////////////// -->
+
+    <!-- Dialing "166" will cause the simulator to accept the call
+         and then hangup after 4 seconds -->
+<chat>
+    <command>ATD166;</command>
+    <response>OK</response>
+    <switch name="166hangupsoon"/>
+</chat>
+<chat>
+    <command>ATD166i;</command>
+    <response>OK</response>
+    <switch name="166hangupsoon"/>
+</chat>
+<state name="166hangupsoon">
+    <unsolicited delay="1000" switch="166hangupsoon2">*ECAV: 1,3</unsolicited>
+</state>
+<state name="166hangupsoon2">
+    <unsolicited delay="4000" switch="default">NO CARRIER</unsolicited>
+</state>
+
+<!-- ////////////////////////////////////////////////////// -->
+
+
+<chat>
+    <!-- Dial a number -->
+    <command>ATD*</command>
+    <response>OK</response>
+    <peerconnect/>
+    <switch name="dialing"/>
+    <newcall name="CALLID"/>
+</chat>
+
+<state name="dialing">
+    <unsolicited delay="3000" switch="default">*ECAV: ${CALLID},3</unsolicited>
+
+    <chat>
+	<command>ATH</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+	<forgetcall id="${CALLID}"/>
+    </chat>
+</state>
+
+<state name="dialing-peer">
+    <chat>
+	<command>ATH</command>
+	<response>OK</response>
+	<switch name="default"/>
+	<peer hangup="true">HANGUP</peer>
+	<forgetcall id="${CALLID}"/>
+    </chat>
+</state>
+
+<chat>
+    <!-- Hangup call -->
+    <command>AT+CHUP</command>
+    <response>OK</response>
+    <peer hangup="true">HANGUP</peer>
+    <forgetcall id="${CALLID}"/>
+</chat>
+
+<chat>
+    <!-- Hangup call, form 2 -->
+    <command>AT+CHUP=?</command>
+    <response>OK</response>
+    <forgetcall id="${CALLID}"/>
+</chat>
+
+<chat>
+    <!-- Hangup call, form 3 -->
+    <command>ATH</command>
+    <response>OK</response>
+    <peer hangup="true">HANGUP</peer>
+    <forgetcall id="${CALLID}"/>
+</chat>
+
+<chat>
+    <!-- Query bearer service type (autobauding = 0) -->
+    <command>AT+CBST?</command>
+    <response>+CBST: 0\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported bearer service types -->
+    <command>AT+CBST=?</command>
+    <response>+CBST: (0),(0),(0)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set bearer service type -->
+    <command>AT+CBST=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query radio link protocol -->
+    <command>AT+CRLP?</command>
+    <response>+CRLP: 61,61,48,6\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported radio link protocols -->
+    <command>AT+CRLP=?</command>
+    <response>+CRLP: (61),(61),(48),(6)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set radio link protocol -->
+    <command>AT+CRLP=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query service reporting control -->
+    <command>AT+CR?</command>
+    <response>+CR: ${CR}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported service reporting controls -->
+    <command>AT+CR=?</command>
+    <response>+CR: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Disable service reporting control -->
+    <command>AT+CR=0</command>
+    <response>OK</response>
+    <set name="CR" value="0"/>
+</chat>
+
+<chat>
+    <!-- Enable service reporting control -->
+    <command>AT+CR=1</command>
+    <response>OK</response>
+    <set name="CR" value="1"/>
+</chat>
+
+<chat>
+    <!-- Extended error report -->
+    <command>AT+CEER</command>
+    <response>+CEER: ${ERR}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query extended celluar result code status -->
+    <command>AT+CRC?</command>
+    <response>+CRC: ${CRC}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported cellular result code status values -->
+    <command>AT+CRC=?</command>
+    <response>+CRC: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Disable extended cellular result codes -->
+    <command>AT+CRC=0</command>
+    <response>OK</response>
+    <set name="CRC" value="0"/>
+</chat>
+
+<chat>
+    <!-- Enable extended cellular result codes -->
+    <command>AT+CRC=1</command>
+    <response>OK</response>
+    <set name="CRC" value="1"/>
+</chat>
+
+<chat>
+    <!-- Query Ericsson-style call monitoring status -->
+    <command>AT*ECAM?</command>
+    <response>*ECAM: ${ECAM}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported call monitoring status values -->
+    <command>AT*ECAM=?</command>
+    <response>*ECAM: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Disable call monitoring -->
+    <command>AT*ECAM=0</command>
+    <response>OK</response>
+    <set name="ECAM" value="0"/>
+</chat>
+
+<chat>
+    <!-- Enable call monitoring -->
+    <command>AT*ECAM=1</command>
+    <response>OK</response>
+    <set name="ECAM" value="1"/>
+</chat>
+
+<!-- GSM 07.07: Network service related commands -->
+
+<chat>
+    <!-- Query subscriber number -->
+    <command>AT+CNUM</command>
+    <response>${NUM}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Determine if subscriber number queries are supported -->
+    <command>AT+CNUM=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query network registration result code presentation -->
+    <command>AT+CREG?</command>
+    <response>+CREG: ${REG},1\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported network registration result code presentation types -->
+    <command>AT+CREG=?</command>
+    <response>+CREG: (0,1,2)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set network registration result code presentation -->
+    <command>AT+CREG=*</command>
+    <response>OK</response>
+    <set name="REG" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query current operator selection -->
+    <command>AT+COPS?</command>
+    <response delay="500">+COPS: ${OPMODE},0,"${OP}"\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported operators, always reports -->
+    <command>AT+COPS=?</command>
+    <response delay="2000">+COPS: ${OPLIST}(0,"Maybe Forbidden Net","MFN","3")(3,Competitor Net,COMNET,4)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Use long name for operators -->
+    <command>AT+COPS=3,0</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Set automatic operator selection -->
+    <command>AT+COPS=0*</command>
+    <response>OK</response>
+    <set name="OPMODE" value="0"/>
+    <set name="OP" value="${OP1}"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=1,0,"${OP1}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP1}"/>
+    <set name="OPLIST" value="(2,${OP1},OP1,111)(1,${OP2},OP2,222),(1,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=1,0,"${OP2}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP2}"/>
+    <set name="OPLIST" value="(1,${OP1},OP1,111)(2,${OP2},OP2,222),(1,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=1,0,"${OP3}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP3}"/>
+    <set name="OPLIST" value="(1,${OP1},OP1,111)(1,${OP2},OP2,222),(2,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=4,0,"${OP1}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP1}"/>
+    <set name="OPLIST" value="(2,${OP1},OP1,111)(1,${OP2},OP2,222),(1,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=4,0,"${OP2}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP2}"/>
+    <set name="OPLIST" value="(1,${OP1},OP1,111)(2,${OP2},OP2,222),(1,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Set manual operator selection -->
+    <command>AT+COPS=4,0,"${OP3}"</command>
+    <response>OK</response>
+    <set name="OPMODE" value="1"/>
+    <set name="OP" value="${OP3}"/>
+    <set name="OPLIST" value="(1,${OP1},OP1,111)(1,${OP2},OP2,222),(2,${OP3},OP3,333)"/>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK=?</command>
+    <response>+CLCK: PS(8),SC(8)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="SC",2</command>
+    <response>+CLCK: ${SC}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="SC",0,"${PINVALUE}"</command>
+    <response>OK</response>
+    <set name="SC" value="0"/>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="SC",1,"${PINVALUE}"</command>
+    <response>OK</response>
+    <set name="SC" value="1"/>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="SC",*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="PS",2</command>
+    <response>+CLCK: ${PS}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="PS",0,"${PSPINVALUE}"</command>
+    <response>OK</response>
+    <set name="PS" value="0"/>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="PS",1,"${PSPINVALUE}"</command>
+    <response>OK</response>
+    <set name="PS" value="1"/>
+</chat>
+
+<chat>
+    <!-- Query available facility locks -->
+    <command>AT+CLCK="PS",*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Set facility lock (we just ignore this) -->
+    <!-- AT+CLCK="SC",2,"${PINVALUE}"
+	return status of require pin at power on -->
+    <!-- AT+CLCK="SC",*,"${PINVALUE}"
+	set require pin at startup to ${*}, (either 0, or 1,
+	     -->
+    <command>AT+CLCK=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Change SIMCARD PIN (success) -->
+    <command>AT+CPWD="SC","${PINVALUE}","*"</command>
+    <response>OK</response>
+    <set name="PINVALUE" value="${*}"/>
+</chat>
+
+<chat>
+    <!-- Change SIMCARD PIN (success) -->
+    <command>AT+CPWD="PS","${PSPINVALUE}","*"</command>
+    <response>OK</response>
+    <set name="PSPINVALUE" value="${*}"/>
+</chat>
+
+
+<chat>
+    <!-- Change password (not supported here) -->
+    <command>AT+CPWD*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Query calling line identifier presentation mode -->
+    <command>AT+CLIP?</command>
+    <response>+CLIP: ${LIP},1\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported calling line identifier presentation modes -->
+    <command>AT+CLIP=?</command>
+    <response>+CLIP: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set calling line identifier presentation mode -->
+    <command>AT+CLIP=*</command>
+    <response>OK</response>
+    <set name="LIP" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query calling line identication restriction mode -->
+    <command>AT+CLIR?</command>
+    <response>+CLIR: ${LIR},${LIR_STATUS}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported calling line identication restriction modes -->
+    <command>AT+CLIR=?</command>
+    <response>+CLIR: (0,1,2)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set calling line identication restriction mode -->
+    <command>AT+CLIR=*</command>
+    <response>OK</response>
+    <set name="LIR" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query originating line identifier presentation mode -->
+    <command>AT+COLP?</command>
+    <response>+COLP: ${OLP},1\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported originating line identifier presentation modes -->
+    <command>AT+COLP=?</command>
+    <response>+COLP: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set originating line identifier presentation mode -->
+    <command>AT+COLP=*</command>
+    <response>OK</response>
+    <set name="OLP" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query closed user group status (not supported yet) -->
+    <command>AT+CCUG?</command>
+    <response>+CCUG: 0,0,0\nOK</response>
+</chat>
+
+<chat>
+    <!-- Control closed user group status (not supported yet) -->
+    <command>AT+CCUG*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query supported call forwarding reasons -->
+    <command>AT+CCFC=?</command>
+    <response>+CCFC: (0,1,4,5)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (voice, unconditional) -->
+    <command>AT+CCFC=0,3,*,,1</command>
+    <response>OK</response>
+    <set name="CF0C1" value="1"/>
+    <set name="CF0C1N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (voice, when busy) -->
+    <command>AT+CCFC=1,3,*,,1</command>
+    <response>OK</response>
+    <set name="CF1C1" value="1"/>
+    <set name="CF1C1N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (data, unconditional) -->
+    <command>AT+CCFC=0,3,*,,2</command>
+    <response>OK</response>
+    <set name="CF0C2" value="1"/>
+    <set name="CF0C2N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (data, when busy) -->
+    <command>AT+CCFC=1,3,*,,2</command>
+    <response>OK</response>
+    <set name="CF1C2" value="1"/>
+    <set name="CF1C2N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (fax, unconditional) -->
+    <command>AT+CCFC=0,3,*,,4</command>
+    <response>OK</response>
+    <set name="CF0C4" value="1"/>
+    <set name="CF0C4N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (fax, when busy) -->
+    <command>AT+CCFC=1,3,*,,4</command>
+    <response>OK</response>
+    <set name="CF1C4" value="1"/>
+    <set name="CF1C4N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (sms, unconditional) -->
+    <command>AT+CCFC=0,3,*,,8</command>
+    <response>OK</response>
+    <set name="CF0C8" value="1"/>
+    <set name="CF0C8N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Set call forwarding number (sms, when busy) -->
+    <command>AT+CCFC=1,3,*,,8</command>
+    <response>OK</response>
+    <set name="CF1C8" value="1"/>
+    <set name="CF1C8N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable all call forwarding -->
+    <command>AT+CCFC=4,0</command>
+    <response>OK</response>
+    <set name="CF0C1" value="0"/>
+    <set name="CF0C2" value="0"/>
+    <set name="CF0C4" value="0"/>
+    <set name="CF0C8" value="0"/>
+    <set name="CF1C1" value="0"/>
+    <set name="CF1C2" value="0"/>
+    <set name="CF1C4" value="0"/>
+    <set name="CF1C8" value="0"/>
+</chat>
+
+<chat>
+    <!-- Disable all call forwarding (conditional) -->
+    <command>AT+CCFC=5,0</command>
+    <response>OK</response>
+    <set name="CF1C1" value="0"/>
+    <set name="CF1C2" value="0"/>
+    <set name="CF1C4" value="0"/>
+    <set name="CF1C8" value="0"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all -->
+    <command>AT+CCFC=0,4</command>
+    <response>OK</response>
+    <set name="CF0C1" value="0"/>
+    <set name="CF0C2" value="0"/>
+    <set name="CF0C4" value="0"/>
+    <set name="CF0C8" value="0"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all voice -->
+    <command>AT+CCFC=0,4,*,,1</command>
+    <response>OK</response>
+    <set name="CF0C1" value="0"/>
+    <set name="CF0C1N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all data -->
+    <command>AT+CCFC=0,4,*,,2</command>
+    <response>OK</response>
+    <set name="CF0C2" value="0"/>
+    <set name="CF0C2N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all fax -->
+    <command>AT+CCFC=0,4,*,,4</command>
+    <response>OK</response>
+    <set name="CF0C4" value="0"/>
+    <set name="CF0C4N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all sms -->
+    <command>AT+CCFC=0,4,*,,8</command>
+    <response>OK</response>
+    <set name="CF0C8" value="0"/>
+    <set name="CF0C8N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, when busy -->
+    <command>AT+CCFC=1,4</command>
+    <response>OK</response>
+    <set name="CF1C1" value="0"/>
+    <set name="CF1C2" value="0"/>
+    <set name="CF1C4" value="0"/>
+    <set name="CF1C8" value="0"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all voice -->
+    <command>AT+CCFC=1,4,*,,1</command>
+    <response>OK</response>
+    <set name="CF1C1" value="0"/>
+    <set name="CF1C1N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all data -->
+    <command>AT+CCFC=1,4,*,,2</command>
+    <response>OK</response>
+    <set name="CF1C2" value="0"/>
+    <set name="CF1C2N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all fax -->
+    <command>AT+CCFC=1,4,*,,4</command>
+    <response>OK</response>
+    <set name="CF1C4" value="0"/>
+    <set name="CF1C4N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Disable forwarding, all sms -->
+    <command>AT+CCFC=1,4,*,,8</command>
+    <response>OK</response>
+    <set name="CF1C8" value="0"/>
+    <set name="CF1C8N" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query call forwarding number (unconditional) -->
+    <command>AT+CCFC=0,2</command>
+    <response>+CCFC: ${CF0C1},1,${CF0C1N}\n+CCFC: ${CF0C2},2,${CF0C2N}\n+CCFC: ${CF0C4},4,${CF0C4N}\n+CCFC: ${CF0C8},8,${CF0C8N}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query call forwarding number (when busy) -->
+    <command>AT+CCFC=1,2</command>
+    <response>+CCFC: ${CF1C1},1,${CF1C1N}\n+CCFC: ${CF1C2},2,${CF1C2N}\n+CCFC: ${CF1C4},4,${CF1C4N}\n+CCFC: ${CF1C8},8,${CF1C8N}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query call waiting presentation mode -->
+    <command>AT+CCWA?</command>
+    <response>+CCWA: 1\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query call waiting -->
+    <command>AT+CCWA=1,2</command>
+    <response>+CCWA: ${CWA_V},1\n+CCWA: ${CWA_D},2\n+CCWA: ${CWA_F},4\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported call waiting presentation modes -->
+    <command>AT+CCWA=?</command>
+    <response>+CCWA: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Enable call waiting presentation mode -->
+    <command>AT+CCWA=1</command>
+    <response>OK</response>
+</chat>
+
+<!-- Disable call waiting -->
+<chat><command>AT+CCWA=1,0,1</command><response>OK</response>
+    <set name="CWA_V" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,2</command><response>OK</response>
+    <set name="CWA_D" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,3</command><response>OK</response>
+    <set name="CWA_V" value="0"/>
+    <set name="CWA_D" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,4</command><response>OK</response>
+    <set name="CWA_F" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,5</command><response>OK</response>
+    <set name="CWA_V" value="0"/>
+    <set name="CWA_F" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,6</command><response>OK</response>
+    <set name="CWA_D" value="0"/>
+    <set name="CWA_F" value="0"/>
+</chat>
+<chat><command>AT+CCWA=1,0,7</command><response>OK</response>
+    <set name="CWA_V" value="0"/>
+    <set name="CWA_D" value="0"/>
+    <set name="CWA_F" value="0"/>
+</chat>
+<!-- Enable call waiting -->
+<chat><command>AT+CCWA=1,1,1</command><response>OK</response>
+    <set name="CWA_V" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,2</command><response>OK</response>
+    <set name="CWA_D" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,3</command><response>OK</response>
+    <set name="CWA_V" value="1"/>
+    <set name="CWA_D" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,4</command><response>OK</response>
+    <set name="CWA_F" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,5</command><response>OK</response>
+    <set name="CWA_V" value="1"/>
+    <set name="CWA_F" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,6</command><response>OK</response>
+    <set name="CWA_D" value="1"/>
+    <set name="CWA_F" value="1"/>
+</chat>
+<chat><command>AT+CCWA=1,1,7</command><response>OK</response>
+    <set name="CWA_V" value="1"/>
+    <set name="CWA_D" value="1"/>
+    <set name="CWA_F" value="1"/>
+</chat>
+
+<chat>
+    <!-- Call hold control (put current on hold, no other calls) -->
+    <command>AT+CHLD=2</command>
+    <response>OK</response>
+    <set name="CALLID" value="0"/>
+</chat>
+
+<chat>
+    <!-- Call hold control (put current on hold, activate another) -->
+    <command>AT+CHLD=2*</command>
+    <response>OK</response>
+    <set name="CALLID" value="*"/>
+</chat>
+
+<chat>
+    <!-- Call hold control (hangup background call) -->
+    <command>AT+CHLD=1*</command>
+    <response>OK</response>
+    <forgetcall id="*"/>
+</chat>
+
+<chat>
+    <!-- Call hold control (not supported yet) -->
+    <command>AT+CHLD=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Call transfer (not supported yet) -->
+    <command>AT+CTFR=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query unstructured supplementary service presentation mode -->
+    <command>AT+CUSD?</command>
+    <response>+CUSD: 0\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported unstructured supplementary presentation modes -->
+    <command>AT+CUSD=?</command>
+    <response>+CUSD: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Enable unstructured supplementary service presentation mode -->
+    <command>AT+CUSD=1*</command>
+    <response>OK</response>
+    <set name="USD" value="1"/>
+</chat>
+
+<chat>
+    <!-- Disable unstructured supplementary service presentation mode -->
+    <command>AT+CUSD=0*</command>
+    <response>OK</response>
+    <set name="USD" value="0"/>
+</chat>
+
+<chat>
+    <!-- Advice of charge -->
+    <command>AT+CAOC</command>
+    <response>+CAOC: ${AOC}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query support for advice of charge command -->
+    <command>AT+CAOC=?</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query supplementary service notifications -->
+    <command>AT+CSSN?</command>
+    <response>+CSSN: ${SSN}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query support for supplementary service notifications -->
+    <command>AT+CSSN=?</command>
+    <response>+CSSN: (0,1),(0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set supplementary service notification flags -->
+    <command>AT+CSSN=*</command>
+    <response>OK</response>
+    <set name="SSN" value="*"/>
+</chat>
+
+<chat>
+    <!-- Query phone activity status -->
+    <command>AT+CPAS</command>
+    <response>+CPAS: ${PAS}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported phone activity status values -->
+    <command>AT+CPAS=?</command>
+    <response>+CPAS: (0-5)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query phone functionality setting -->
+    <command>AT+CFUN?</command>
+    <response>+CFUN: ${FUN}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported phone functionality settings -->
+    <command>AT+CFUN=?</command>
+    <response>+CFUN: (0-4)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set phone functionality -->
+    <command>AT+CFUN=*</command>
+    <response>OK</response>
+    <set name="FUN" value="*"/>
+</chat>
+
+<chat>
+    <!-- Check for which PIN is required -->
+    <command>AT+CPIN?</command>
+    <response>+CPIN: ${PINNAME}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Enter PIN (success) -->
+    <command>AT+CPIN="${PINVALUE}"</command>
+    <response>+CPIN: READY\nOK</response>
+    <set name="PINNAME" value="READY"/>
+</chat>
+
+<chat>
+    <!-- Change PIN (success) -->
+    <!-- Meaningless command... can't work out use in hardware, use CPWD instead -->
+    <!-- first is puck instead. -->
+    <command>AT+CPIN="12345678","*"</command>
+    <response>+CPIN: READY\nOK</response>
+    <set name="PINVALUE" value="${*}"/>
+    <set name="PINNAME" value="READY"/>
+</chat>
+
+<chat>
+    <!-- Enter PIN (failure) -->
+    <command>AT+CPIN*</command>
+    <response>+CPIN: SIM PUK\nERROR</response>
+    <set name="PINNAME" value="SIM PUK"/>
+</chat>
+
+<chat>
+    <!-- Query battery charge -->
+    <command>AT+CBC</command>
+    <response>+CBC: ${BC}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported battery charge values -->
+    <command>AT+CBC=?</command>
+    <response>+CBC: (0,1,2,3),(1-100)\nOK</response>
+</chat>
+
+<chat>
+    <command>AT+CCED=1,8</command>
+    <response>OK\n+CSQ: ${SQ}</response>
+</chat>
+
+<chat>
+    <!-- Query signal quality (default reported as "not detectable") -->
+    <command>AT+CSQ</command>
+    <response>+CSQ: ${SQ}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported signal quality values -->
+    <command>AT+CSQ=?</command>
+    <response>+CSQ: (0-31,99),(0-7,99)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query mobile equipment control mode -->
+    <command>AT+CMEC?</command>
+    <response>+CMEC: ${MEC}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported mobile equipment control modes -->
+    <command>AT+CMEC=?</command>
+    <response>+CMEC: (0-2),(0-2),(0-2)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set mobile equipment control mode -->
+    <command>AT+CMEC=*</command>
+    <response>OK</response>
+    <set name="MEC" value="*"/>
+</chat>
+
+<chat>
+    <!-- Keypad control (ignored in this version) -->
+    <command>AT+CKPD=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Display control (ignored in this version) -->
+    <command>AT+CDIS*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Indicator control (ignored in this version) -->
+    <command>AT+CIND*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query mobile equipment event reporting mode -->
+    <command>AT+CMER?</command>
+    <response>+CMER: ${MER}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query supported mobile equipment event reporting modes -->
+    <command>AT+CMER=?</command>
+    <response>+CMER: (0-3),(0-2),(0-2),(0-2),(0-1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set mobile equipment event reporting mode -->
+    <command>AT+CMER=*</command>
+    <response>OK</response>
+    <set name="MER" value="*"/>
+</chat>
+
+<chat>
+    <!-- Clock (always ignored) -->
+    <command>AT+CCLK*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Alarm (always ignored) -->
+    <command>AT+CALA*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Generic SIM access (not supported yet) -->
+    <command>AT+CSIM*</command>
+    <response>ERROR</response>
+</chat>
+
+<!-- GSM 07.07: Phone book storage -->
+
+<!--
+<set name="PB" value="SM"/>
+-->
+
+<chat>
+    <!-- Query available phonebook memory storage areas -->
+    <command>AT+CPBS=?</command>
+    <response>+CPBS: ("SM","FD")\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query current phonebook memory storage area (always SIM and empty) -->
+    <command>AT+CPBS?</command>
+    <response>+CPBS: "${PB}",0,100\nOK</response>
+</chat>
+
+<chat>
+    <!-- Select phonebook memory storage (Fixed Dialing) -->
+    <command>AT+CPBS="FD"</command>
+    <set name="PB" value="FD"/>
+    <switch name="phonebookFD"/>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Select phonebook memory storage (SIM) -->
+    <command>AT+CPBS="SM"</command>
+    <set name="PB" value="SM"/>
+    <switch name="phonebookSM"/>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Select phonebook memory storage (other) -->
+    <command>AT+CPBS=*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Query used phone book indices -->
+    <command>AT+CPBR=?</command>
+    <response>+CPBR: (1-2),32,16\nOK</response>
+</chat>
+
+<set name="PB_SM_1" value="&quot;12345&quot;,129,&quot;Friend One&quot;"/>
+<set name="PB_SM_2" value="&quot;67890&quot;,129,&quot;Friend Two&quot;"/>
+<set name="PB_FD_1" value="&quot;12345&quot;,129,&quot;Home&quot;"/>
+<set name="PB_FD_2" value="&quot;112&quot;,129,&quot;Emergency&quot;"/>
+
+<state name="phonebookSM">
+    <chat>
+	<!-- Read phone book entries -->
+	<command>AT+CPBR=1,2</command>
+	<response>+CPBR: 1,${PB_SM_1}\n+CPBR: 2,${PB_SM_2}\nOK</response>
+    </chat>
+
+    <!-- Write phone book entries -->
+    <chat>
+	<command>AT+CPBW=1,*</command>
+	<set name="PB_SM_1" value="*"/>
+	<response>OK</response>
+    </chat>
+    <chat>
+	<command>AT+CPBW=2,*</command>
+	<set name="PB_SM_2" value="*"/>
+	<response>OK</response>
+    </chat>
+</state>
+
+<state name="phonebookFD">
+    <chat>
+	<!-- Read phone book entries -->
+	<command>AT+CPBR=1,2</command>
+	<response>+CPBR: 1,${PB_FD_1}\n+CPBR: 2,${PB_FD_2}\nOK</response>
+    </chat>
+
+    <!-- Write phone book entries -->
+    <chat>
+	<command>AT+CPBW=1,*</command>
+	<set name="PB_FD_1" value="*"/>
+	<response>OK</response>
+    </chat>
+    <chat>
+	<command>AT+CPBW=2,*</command>
+	<set name="PB_FD_2" value="*"/>
+	<response>OK</response>
+    </chat>
+</state>
+
+<chat>
+    <!-- Query the maximum string length values -->
+    <command>AT+CPBF=?</command>
+    <response>+CPBF: 32,16\nOK</response>
+</chat>
+
+<chat>
+    <!-- Find phone book entries (always empty) -->
+    <command>AT+CPBF=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Query available phone book indices -->
+    <command>AT+CPBW=?</command>
+    <response>+CPBW: (1-2),32,(129,145),16\nOK</response>
+</chat>
+
+<!-- GSM 07.05: SMS related commands -->
+
+<chat>
+    <!-- Query SMS message format -->
+    <command>AT+CMGF?</command>
+    <response>+CMGF: ${CMGF}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query SMS message format values -->
+    <command>AT+CMGF=?</command>
+    <response>+CMGF: (0,1)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set SMS message format to PDU -->
+    <command>AT+CMGF=0</command>
+    <response>OK</response>
+    <set name="CMGF" value="0"/>
+</chat>
+
+<chat>
+    <!-- Set SMS message format to text -->
+    <command>AT+CMGF=1</command>
+    <response>OK</response>
+    <set name="CMGF" value="1"/>
+</chat>
+
+<chat>
+    <!-- Send an SMS message -->
+    <command>AT+CMGS=*</command>
+    <response eol="false">&gt; </response>
+    <switch name="smsread"/>
+</chat>
+
+<state name="smsread">
+    <!-- Read an SMS PDU sent by the client (which is assumed
+	 to start with an empty service centre address).  Messages
+	 sent to "199" are reflected back into the incoming queue -->
+    <chat>
+	<command>00110003A191F9*</command>
+	<response>OK\n+CMTI: "ME",1</response>
+	<switch name="default"/>
+	<set name="MSGLIST" value="+CMGL: 1,0,,999\n00110003A191F9${*}\n"/>
+	<set name="MSGCOUNT" value="1"/>
+    </chat>
+    <chat>
+	<!-- messages with the user data header bit set -->
+	<command>00510003A191F9*</command>
+	<response>OK\n+CMTI: "ME",1</response>
+	<switch name="default"/>
+	<set name="MSGLIST" value="+CMGL: 1,0,,999\n00510003A191F9${*}\n"/>
+	<set name="MSGCOUNT" value="1"/>
+    </chat>
+
+    <chat>
+	<command wildcard="true">00*</command>
+	<response>OK</response>
+	<switch name="default"/>
+    </chat>
+</state>
+
+<chat>
+    <!-- Request the number of messages in the incoming broadcast queue -->
+    <command>AT+CPMS="BM"</command>
+    <response>+CPMS: 0,99,${MSGCOUNT},99,${MSGCOUNT},99\nOK</response>
+    <set name="MSGLISTCOPY" value=""/>
+    <set name="MSGMEM" value="BM"/>
+</chat>
+
+<chat>
+    <!-- Request the number of messages in the incoming SIM queue -->
+    <command>AT+CPMS="SM"</command>
+    <response>+CPMS: 0,99,${MSGCOUNT},99,${MSGCOUNT},99\nOK</response>
+    <set name="MSGLISTCOPY" value=""/>
+    <set name="MSGMEM" value="SM"/>
+</chat>
+
+<chat>
+    <!-- Request the number of messages in the incoming ordinary queue -->
+    <command>AT+CPMS="ME"</command>
+    <response>+CPMS: ${MSGCOUNT},99,${MSGCOUNT},99,${MSGCOUNT},99\nOK</response>
+    <set name="MSGLISTCOPY" value="${MSGLIST}"/>
+    <set name="MSGMEM" value="ME"/>
+</chat>
+
+<chat>
+    <!-- Enable new message indications -->
+    <command>AT+CNMI=*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- List the messages in an SMS message store -->
+    <command>AT+CMGL*</command>
+    <!-- response>${MSGLISTCOPY}OK</response> -->
+    <listSMS/>  
+</chat>
+
+<chat>
+    <!-- Delete a particular message from an SMS message store -->
+    <command>AT+CMGD=*</command>
+    <!-- <response>OK</response> -->
+    <!-- <set name="MSGLIST" value=""/> -->
+    <!-- <set name="MSGCOUNT" value="0"/> -->
+    <deleteSMS/>
+</chat>
+
+<!-- GSM 07.07: Mobile equipment errors -->
+
+<chat>
+    <!-- Query mobile equipment error reporting mode -->
+    <command>AT+CMEE?</command>
+    <response>+CMEE: ${MEE}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Query available mobile equipment error reporting modes -->
+    <command>AT+CMEE=?</command>
+    <response>+CMEE: (0-2)\nOK</response>
+</chat>
+
+<chat>
+    <!-- Set mobile equipment error reporting mode (ignored) -->
+    <command>AT+CMEE=?</command>
+    <response>OK</response>
+    <set name="MEE" value="*"/>
+</chat>
+
+<!-- GSM 07.07: Voice-related commands -->
+
+<chat>
+    <!-- Select operation class (ignored) -->
+    <command>AT+FCLASS*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Buffer threshold (not supported yet) -->
+    <command>AT+VBT*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Calling number ID presentation (use AT+CLIP instead) -->
+    <command>AT+VCID*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Receive gain selector (not supported yet) -->
+    <command>AT+VGR*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Transmit gain selector (not supported yet) -->
+    <command>AT+VGT*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Initialize voice parameters (not supported yet) -->
+    <command>AT+VGT*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Control inactivity timer (not supported yet) -->
+    <command>AT+VIT*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Line selection (not supported yet) -->
+    <command>AT+VLS*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Receive data state (not supported yet) -->
+    <command>AT+VRX*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Select compression method (not supported yet) -->
+    <command>AT+VSM*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- DTMF tone generation (ignored) -->
+    <command>AT+VTS*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- DTMF tone duration (not supported by GSM phones) -->
+    <command>AT+VTD*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Transmit data state (not supported yet) -->
+    <command>AT+VTX*</command>
+    <response>ERROR</response>
+</chat>
+
+<!-- Modem compatibility commands for phones that support data services -->
+
+<chat>
+    <!-- Select tone dialing (ignored by GSM phones) -->
+    <command>ATT</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Select pulse dialing (ignored by GSM phones) -->
+    <command>ATP</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Answer modem call (we don't support modem calls yet) -->
+    <command>ATA</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Hangup modem call, with options -->
+    <command>ATH*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Return to online state (we don't support modem calls yet) -->
+    <command>ATO*</command>
+    <response>ERROR</response>
+</chat>
+
+<chat>
+    <!-- Set modem option -->
+    <command>ATS*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Set speaker loudness -->
+    <command>ATL*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Set speaker mode -->
+    <command>ATM*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Modem identifier -->
+    <command>ATI</command>
+    <response>${ID}\nOK</response>
+</chat>
+
+<chat>
+    <!-- Control data compression options -->
+    <command>AT+DS*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Control extended modem reporting codes -->
+    <command>AT+DR*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Circuit 109 behaviour -->
+    <command>AT&amp;C*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Circuit 108 behaviour -->
+    <command>AT&amp;D*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Set to factory defaults -->
+    <command>AT&amp;F*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Country of installation -->
+    <command>AT+GCI</command>
+    <response>TROLLVILLE\nOK</response>
+</chat>
+
+<chat>
+    <!-- Global object identification (ignored) -->
+    <command>AT+GOI</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Character framing (ignored) -->
+    <command>AT+ICF*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Local flow control (ignored) -->
+    <command>AT+IFC*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Local rate reporting (ignored) -->
+    <command>AT+ILRR*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- DTE rate (ignored) -->
+    <command>AT+IPR*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Command echo (ignored) -->
+    <command>ATE*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Result code suppression (ignored) -->
+    <command>ATQ*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Result code response format (ignored) -->
+    <command>ATV*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Result code selection and progress monitoring (ignored) -->
+    <command>ATX*</command>
+    <response>OK</response>
+</chat>
+
+<chat>
+    <!-- Reset to default configuration -->
+    <command>ATZ*</command>
+    <response>OK</response>
+</chat>
+
+<!-- List of all supported commands -->
+
+<chat>
+    <command>AT*</command>
+    <alias>AT+GCAP</alias>
+    <response>+CGMI
++CGMM
++CGMR
++CGSN
++CSCS
++WS46
++CSTA
++CHUP
++CBST
++CRLP
++CR
++CEER
++CRC
++CNUM
++CREG
++COPS
++CLCK
++CPWD
++CLIP
++CLIR
++COLP
++CCUG
++CCFC
++CCWA
++CHLD
++CTFR
++CUSD
++CAOC
++CSSN
++CPAS
++CFUN
++CPIN
++CBC
++CSQ
++CMEC
++CKPD
++CDIS
++CIND
++CMER
++CCLK
++CALA
++CSIM
++CPBS
++CPBR
++CPBF
++CPBW
++CMEE
++CMGF
++CMGS
++DR
++DS
++GCAP
++GCI
++GMI
++GMM
++GMR
++GOI
++GSN
++ICF
++IFC
++ILRR
++IPR
++FCLASS
++VBT
++VCID
++VGR
++VGT
++VIP
++VIT
++VLS
++VRX
++VSM
++VTS
++VTD
++VTX
+*ECAM
+A
+D
+E
+H
+I
+L
+M
+O
+P
+Q
+S0
+S3
+S4
+S5
+S6
+S7
+S8
+S10
+T
+V
+X
+Z
+&amp;C
+&amp;D
+&amp;F
+*
+OK</response>
+</chat>
+
+<!-- SIM toolkit application definition -->
+
+<toolkit>
+
+<label name="mainmenu"/>
+
+<mainmenu title="Main">
+    <item id="1" name="News" goto="news"/>
+    <item id="2" name="Sports" goto="sports"/>
+    <item id="3" name="Time" goto="time"/>
+    <item id="4" name="Sticks Game" goto="sticks"/>
+</mainmenu>
+
+<label name="news"/>
+
+<displaytext>Police today arrested a man on suspicion
+of making phone calls while intoxicated.  Witnesses claimed
+that they heard the man exclaim "I washent dwinkn!" as
+officers escorted him away.</displaytext>
+
+<goto name="mainmenu"/>
+
+<label name="sports"/>
+
+<menu title="Sports" default="1" back="mainmenu">
+    <item id="1" name="Chess" goto="chess"/>
+    <item id="2" name="Finger Painting" goto="finger painting"/>
+    <item id="3" name="Snakes and Ladders" goto="snakes and ladders"/>
+    <item id="4" name="Return to main menu" goto="mainmenu"/>
+</menu>
+
+<label name="chess"/>
+    <displaytext>Kasparov 3, Deep Blue 4</displaytext>
+    <goto name="sports"/>
+
+<label name="finger painting"/>
+    <displaytext>Little Johnny 4, Little Sally 6</displaytext>
+    <goto name="sports"/>
+
+<label name="snakes and ladders"/>
+    <displaytext autoclear="true">Little Johnny 0, Little Sally 2</displaytext>
+    <goto name="sports"/>
+
+<label name="time"/>
+
+<setupcall number="1194"/>
+<goto name="mainmenu"/>
+
+<label name="sticks"/>
+
+<getkey type="digit" help="showhelp">There are 21 sticks left.  How many
+do you take (1, 2, or 3)?</getkey>
+<gosub name="respond"/>
+
+<getkey type="digit">There are 17 sticks left.  How many do you
+take (1, 2, or 3)?</getkey>
+<gosub name="respond"/>
+
+<getkey type="digit">There are 13 sticks left.  How many do you
+take (1, 2, or 3)?</getkey>
+<gosub name="respond"/>
+
+<getkey type="digit">There are 9 sticks left.  How many do you
+take (1, 2, or 3)?</getkey>
+<gosub name="respond"/>
+
+<getkey type="digit">There are 5 sticks left.  How many do you
+take (1, 2, or 3)?</getkey>
+<gosub name="respond"/>
+
+<play tone="negative beep" interval="1000"/>
+<getkey type="digit">There is only 1 stick left.  You lose.
+Play again? (1 = yes, 0 = no)</getkey>
+<ifeq var="input" value="1" goto="sticks"/>
+<goto name="mainmenu"/>
+
+<label name="showhelp"/>
+
+<displaytext>Starting with 21 sticks, players pick up 1, 2, or
+3 sticks at a time.  The loser is the player who has to pick up
+the last stick.</displaytext>
+<goto name="sticks"/>
+
+<label name="respond"/>
+
+<ifne var="input" value="1" goto="check2"/>
+<displaytext autoclear="true">I take 3 sticks.</displaytext>
+<return/>
+
+<label name="check2"/>
+<ifne var="input" value="2" goto="check3"/>
+<displaytext autoclear="true">I take 2 sticks.</displaytext>
+<return/>
+
+<label name="check3"/>
+<ifne var="input" value="3" goto="invalid"/>
+<displaytext autoclear="true">I take 1 stick.</displaytext>
+<return/>
+
+<label name="invalid"/>
+<getkey type="digit">Must be 1, 2, or 3.  How many sticks do
+you take?</getkey>
+<goto name="respond"/>
+
+</toolkit>
+
+</simulator>

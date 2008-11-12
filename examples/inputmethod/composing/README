@@ -1,0 +1,9 @@
+This is a very simple example of how to write a composing input method.
+It allows you to press 'shift' after a letter is entered to change its case.
+
+The input method is defined in composeim.h and composeim.cpp
+
+The plugin code is in composeimpl.h and composeimpl.cpp
+
+See inputmethods.html for a detailed explanation of creating a Composing
+Input Method.

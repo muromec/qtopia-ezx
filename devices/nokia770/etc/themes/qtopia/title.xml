@@ -1,0 +1,52 @@
+<page name="title" base="themes/qtopia" rect="0,0,0x9.5%">
+    <image rect="0,0,0x0" src="titlebar-gradient" tile="yes" scale="vertical" color="Highlight" alpha="192">
+      <image rect="0,0,1x0" src="titlebar-endcap" color="Highlight" scale="vertical"/>
+      <image rect="-1,0,1x0" src="titlebar-endcap" color="Highlight" scale="vertical"/>
+	<exclusive>
+	    <group>
+          <level name="battery" rect="2.27%,19.04%,15%x52.38%" src="battery-big.svg" count="6" min="0" max="100" scale="yes" delay="1000" loop="0" play="expr:@/Hardware/Accessories/QPowerSource/DefaultBattery/Charging == true">
+            expr:@/Hardware/Accessories/QPowerSource/DefaultBattery/Charge
+          </level>
+            <level name="signal" rect="-17.27%,19.04%,15%x52.38%" scale="yes" src="signal-big.svg" count="6" min="0" max="100">
+                        expr:@/Hardware/Accessories/QSignalSource/DefaultSignal/SignalStrength
+		    </level>
+            <widget name="inputmethod" rect="-30.27%,0,-18%,0" transient="no" active="expr:@/UI/IMVisible"/>
+		<image rect="33.41%,14.29%,-33.97%,80.95%" src="statusbar.svg" scale="yes">
+		    <status name="alarm" rect="3,17.65%,9x9" imageon="bell_on" on="expr:@/UI/DailyAlarm"/>
+		    <status name="lock" rect="14,17.65%,12%x52.94%" imageon="lock_on" scale="yes" on="expr:@/UI/KeyLock"/>
+		    <status name="calldivert" rect="25,3,9x9" imageon="calldivert" on="expr:@/Telephony/Status/CallDivert"/>
+		    <status name="smsfull" rect="-58,17.65%,9x9" imageon="smsfull" on="expr:@/Telephony/Status/SMSMemoryFull"/>
+            <status name="roaming" rect="-47,17.65%,9x9" imageon="roaming" on="expr:@/Telephony/Status/Roaming"/>
+            <status name="messages" rect="-36,17.65%,9x9" imageon="mailalert" on="expr:@/Communications/Messages/NewMessages > 0"/>
+		    <status name="call_active" rect="-25,1,5x12" imageon="incall" on="expr:@/Communications/Calls/ActiveCalls > 0"/>
+		    <status name="voip_active" rect="-14,1,5x12" imageon="voipactive" on="expr:@/Telephony/Status/VoIP/Present &amp;&amp; @/Telephony/Status/VoIP/Registered"/>
+		</image>
+	    </group>
+	    <group name="caption" transient="yes" active="expr:@/UI/ActiveWindow/Caption != false">
+		<text rect="2.27%,0,-56.82%,95.24%" name="caption" size="6" outline="Highlight" bold="yes" color="HighlightedText" align="left,vcenter" elided="right" transient="yes">
+		    expr:@/UI/ActiveWindow/Caption 
+		</text>
+        <image rect="-56.82%,14.29%,-14.77%,80.95%" src="statusbar.svg" scale="yes">
+		    <status name="roaming" rect="8%,21.43%,18%x64.29%" imageon="roaming" on="expr:@/Telephony/Status/Roaming"/>
+            <status name="messages" rect="26.67%,21.43%,18%x64.29%" imageon="mailalert" on="expr:@/Communications/Messages/NewMessages > 0"/>
+		    <status name="call_active" rect="28,1,5x12" imageon="incall" on="expr:@/Communications/Calls/ActiveCalls > 0"/>
+		    <text name="time" rect="-60%,0,-8%,85.71%" size="6" align="right,vcenter" color="#000000" bold="yes">
+			expr:@/UI/DisplayTime/Time
+		    </text>
+		</image>
+		<exclusive>
+		    <group>
+			<level name="battery" rect="-12%,12.5%,4.5%x70%" src="battery-small.svg" scale="yes" count="6" min="0" max="100" delay="1000" loop="0" play="expr:@/Hardware/Accessories/QPowerSource/DefaultBattery/Charging == true">
+			    expr:@/Hardware/Accessories/QPowerSource/DefaultBattery/Charge
+			</level>
+<!--			<image rect="-6.81%,9.52%,1.7%x76.2%" scale="yes" src="plusminus"/>-->
+			<level name="signal" rect="-6%,12.5%,4.5%x70%" src="signal-small.svg" scale="yes" count="6" min="0" max="100">
+			    expr:@/Hardware/Accessories/QSignalSource/DefaultSignal/SignalStrength
+			</level>
+		    </group>
+		    <widget name="inputmethod" rect="-12%,4.76%,12%x90.48%" transient="yes" active="expr:@/UI/IMVisible"/>
+		</exclusive>
+	    </group>
+	</exclusive>
+    </image>
+</page>

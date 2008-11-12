@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Project Trees</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Project Trees<br /><span class="subtitle"></span>
+</h1>
+<a name="files"></a>
+<h3>Files</h3>
+<a name="tree-config-pri"></a>
+<h4>tree_config.pri</h4>
+<p>This file should setup any additional project keywords for the project tree.</p>
+<a name="projects-pri"></a>
+<h4>projects.pri</h4>
+<p>In order to support dependencies you need a projects.pri that lists the projects to build. The paths in this file are relative to the top of the tree.</p>
+<a name="features-implicit-deps-prf"></a>
+<h4>features/implicit_deps.prf</h4>
+<p>Implicit dependencies must be defined in this file or they will not work.</p>
+<a name="features"></a>
+<h4>features</h4>
+<p>This directory is added to the list of feature directories that qmake searches in. You can override or extend existing features as well as creating your own.</p>
+<a name="limitations"></a>
+<h3>Limitations</h3>
+<a name="build-order"></a>
+<h4>Build Order</h4>
+<p>Project trees are processed in order and while projects can have dependencies across trees this does not affect the tree building order.</p>
+<p>A special exception exists to allow singleexec builds to succeed. In a singleexec build the server is always built last so that it can include apps, libs and plugins built in external trees.</p>
+<a name="libraries"></a>
+<h4>Libraries</h4>
+<p>Libraries outside the Qtopia tree are not automatically put into <tt>&lt;build&gt;/lib</tt>. You can either specify that the library should be placed here or specify that dependants should look in the directory the library is built in.</p>
+<p>Build the library into <tt>&lt;build&gt;/lib</tt>:</p>
+<pre>    DESTDIR=$$QPEDIR/lib</pre>
+<p>Specify that dependants should look where the library is built:</p>
+<pre>    idep(LIBS+=-L$$PWD -l$$TARGET)</pre>
+<a name="headers"></a>
+<h4>Headers</h4>
+<p>When configure prints <tt>Running qmake...</tt> it sets up the include directory. External trees can also install headers into the include directory but this does not happen until the projects are processed as part of building. That makes it important that dependencies are specified correctly. It also means that projects in other trees might not be able to use the includes due to the <a href="#build-order">Build Order</a> limitation noted above.</p>
+<p>See also <a href="overviews.html">Overviews</a> and <a href="atask-create-a-new-project-tree-1.html">Create a new project tree</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

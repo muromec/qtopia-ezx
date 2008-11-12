@@ -1,0 +1,21 @@
+-xplatform c3200 -arch arm -no-qvfb
+-reduce-exports=yes
+-displaysize 240x320
+-font dejavu_sans_condensed:10,11,13,15,16,17,18,19,28,36:50,75
+-eval 'if ( &$helix_visref() ) { opt("qtopiamedia") = 1; opt("mediaengines") = "helix"; }'
+-helix-system-id linux-2.2-libc6-armv5te-cross-gcc3.3-iwmmxt-vfp
+-prefix /opt/Qtopia
+-no-sxe -no-drm
+-no-ssl
+-no-bluetooth
+-no-dbus
+-voip
+-infrared
+-force-quicklaunch
+-extra-qtopiacore-config "-qt-libjpeg"
+-extra-qtopiacore-config "-qt-libmng"
+-extra-qtopiacore-config "-qt-libpng"
+-extra-qtopiacore-config "-qt-zlib"
+-extra-qtopiacore-config "-depths 8,16,32"
+-extra-qtopiacore-config "-qt-gfx-transformed"
+-extra-qt-config -no-glib 

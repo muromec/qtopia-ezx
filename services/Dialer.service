@@ -1,0 +1,10 @@
+[Translation]
+File=QtopiaServices
+Context=Dialer
+[Service]
+Actions="dialVoiceMail()"
+Icon=Dialer
+Name[]=Dialer
+[dialVoiceMail()]
+Name[]="Call Voicemail"
+Icon = phone/voicemail

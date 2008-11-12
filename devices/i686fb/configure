@@ -1,0 +1,15 @@
+-edition phone -xplatform i686fb -arch i386 -no-qvfb
+-displaysize 240x320
+-eval 'if ( &$helix_visref() ) { opt("qtopiamedia") = 1; opt("mediaengines") = "helix"; }'
+-helix-system-id linux-2.2-libc6-gcc32-i686-i686fb
+-no-sxe -no-drm -no-ssl
+-no-infrared
+-no-bluetooth
+-extra-qtopiacore-config "-qt-gfx-transformed"
+-extra-qtopiacore-config "-qt-libjpeg"
+-extra-qtopiacore-config "-qt-libmng"
+-extra-qtopiacore-config "-qt-libpng"
+-extra-qtopiacore-config "-qt-zlib"
+-extra-qt-config -no-glib 
+-debug
+-extra-qt-config -no-glib 

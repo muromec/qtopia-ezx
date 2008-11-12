@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Image, prefix and SDK location</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Image, prefix and SDK location<br /><span class="subtitle"></span>
+</h1>
+<a name="history"></a>
+<h2>History</h2>
+<p>Qtopia versions prior to 4.2 used <tt>-prefix</tt> in the same way that Qt uses it. It carried a double meaning, specifying both the image and the prefix (which is hardcoded into libQtCore.so). To work around the fact that you don't usualy want these locations to be the same on an embedded system, you could override the image location by running <tt>make install PREFIX=/somewhere/else</tt>.</p>
+<p>When building an SDK, you also had to override PREFIX so that the binaries would end up in the correct location. A significant drawback to this approach is that the build tree must have a longer path than the SDK location (because the binaries are patched to use the SDK location).</p>
+<a name="the-qtopia-4-2-0-solution"></a>
+<h2>The Qtopia 4.2&#x2e;0 solution</h2>
+<p>To reduce confusion and to enable a smoother install process, the three locations are now specified explicitly to configure. The switches are -image, -prefix and -sdk. Specifying -image will give the same behaviour as -prefix in prior versions because the prefix location defaults to the image location.</p>
+<p>If the -sdk parameter is not passed (or you pass -sdk <tt>&lt;build&gt;</tt>) then make sdk does not work. This is because you cannot change the location an SDK will be installed to and you cannot install an SDK to the build tree. You can use the build tree in the same way that you would use an SDK. When you do pass -sdk to configure, <tt>make sdk</tt> is implcitly run when you run <tt>make install</tt> because the host binaries have <tt>SDK/qtopiacore/host/lib</tt> added to their RPATH and they will fail to find their libraries if the SDK has not been created. It is still possible to override the image location when you run make install. You must now run <tt>make install IMAGE=/somewhere/else</tt>. This facility remains becase it is required by <tt>make packages</tt>.</p>
+<a name="qtopia-4-2-5-relocating-the-sdk"></a>
+<h2>Qtopia 4.2&#x2e;5, relocating the SDK</h2>
+<p>Qtopia 4.2&#x2e;5 added the ability to relocate the SDK. This is still not available if you do not pass the -sdk parameter (or if you pass -sdk <tt>&lt;build&gt;</tt>). Details can be found in <a href="over-creating-and-using-binary-sdks-1.html#installing-into-a-sandbox">Installing into a sandbox</a>.</p>
+<a name="summing-it-up"></a>
+<h2>Summing it up</h2>
+<p>For reference, the following table lists the locations for the SDK, IMAGE and PREFIX in a variety of situations.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>command</th><th>SDK</th><th>IMAGE</th><th>PREFIX</th></tr></thead>
+<tr valign="top" class="odd"><td colspan="4"><b>Qtopia 4.1</b></td></tr>
+<tr valign="top" class="even"><td><tt>configure</tt></td><td>&lt;build&gt;</td><td>&lt;build&gt;/image/opt/Qtopia</td><td>/opt/Qtopia</td></tr>
+<tr valign="top" class="odd"><td><tt>configure -prefix /Qtopia</tt></td><td>&lt;build&gt;</td><td>/Qtopia</td><td>/Qtopia</td></tr>
+<tr valign="top" class="even"><td><tt>make install PREFIX=/foo</tt></td><td><i>unchanged</i></td><td>/foo</td><td><i>unchanged</i></td></tr>
+<tr valign="top" class="odd"><td><tt>make sdk PREFIX=/bar</tt></td><td>/bar</td><td><i>unchanged</i></td><td><i>unchanged</i></td></tr>
+<tr valign="top" class="even"><td colspan="4"><b>Qtopia 4.2</b></td></tr>
+<tr valign="top" class="odd"><td><tt>configure</tt></td><td>&lt;build&gt;</td><td>&lt;build&gt;/image</td><td><i>IMAGE</i> (&lt;build&gt;/image)</td></tr>
+<tr valign="top" class="even"><td><tt>configure -prefix /Qtopia</tt></td><td>&lt;build&gt;</td><td>&lt;build&gt;/image</td><td>/Qtopia</td></tr>
+<tr valign="top" class="odd"><td><tt>configure -image /Qtopia</tt></td><td>&lt;build&gt;</td><td>/Qtopia</td><td><i>IMAGE</i> (/Qtopia)</td></tr>
+<tr valign="top" class="even"><td><tt>configure -sdk /sdk -image /image -prefix /prefix</tt></td><td>/sdk</td><td>/image</td><td>/prefix</td></tr>
+<tr valign="top" class="odd"><td><tt>make install IMAGE=/foo</tt></td><td><i>unchanged</i></td><td>/foo</td><td><i>unchanged</i></td></tr>
+<tr valign="top" class="even"><td colspan="4"><b>Qtopia 4.2&#x2e;5</b></td></tr>
+<tr valign="top" class="odd"><td><tt>configure -sdk /sdk -image /image -prefix /prefix</tt></td><td>/sdk</td><td>/image</td><td>/prefix</td></tr>
+<tr valign="top" class="even"><td><tt>make sdk SDKSANDBOX=/foo</tt></td><td>/foo/sdk</td><td><i>unchanged</i></td><td><i>unchanged</i></td></tr>
+</table></p>
+<p>See also <a href="overviews.html">Overviews</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

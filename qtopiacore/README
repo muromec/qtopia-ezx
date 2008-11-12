@@ -1,0 +1,4 @@
+A directory or symlink called 'qt' must exist here.
+It contains the Qtopia Core source code that Qtopia Platform uses.
+
+The file qconfig-qpe.h disables features of Qtopia Core that Qtopia Platform does not use.

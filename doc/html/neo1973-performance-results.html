@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Neo 1973 Performance Test Results</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Neo 1973 Performance Test Results<br /><span class="subtitle"></span>
+</h1>
+<a name="introduction"></a>
+<h2>Introduction</h2>
+<p>This page contains performance statistics for current and past releases of Qtopia, measured using the Neo-1973. Some data is gathered automatically after each change to Qtopia, while other data is gathered manually.</p>
+<a name="device-specs"></a>
+<h2>Device specs</h2>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Type</th><th>Value</th></tr></thead>
+<tr valign="top" class="odd"><td><b>Vendor</b></td><td>FIC</td></tr>
+<tr valign="top" class="even"><td><b>Model</b></td><td>Neo1973(phase 1)</td></tr>
+<tr valign="top" class="odd"><td><b>Kernel</b></td><td>Linux kernel 2.6&#x2e;22.5-moko11</td></tr>
+<tr valign="top" class="even"><td><b>CPU</b></td><td>Samsung s3c2410 (ARM) 266 Mhz</td></tr>
+<tr valign="top" class="odd"><td><b>Memory</b></td><td>128MB RAM &amp; 64MB Flash</td></tr>
+<tr valign="top" class="even"><td><b>Display</b></td><td>480x640 LCD color screen</td></tr>
+<tr valign="top" class="odd"><td><b>Input</b></td><td>Touch-screen only</td></tr>
+<tr valign="top" class="even"><td><b>Features</b></td><td>Micro-SD(TM) card slot, Bluetooth(R), Mini-USB port</td></tr>
+</table></p>
+<a name="test-results"></a>
+<h2>Test Results</h2>
+<a name="linux-boot-time"></a>
+<h3>Linux Boot Time</h3>
+<p>This is the time between hitting the power button and when Qtopia (qpe) is launched. During this time, the Linux kernel and system services start.</p>
+<p><table width="60%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Version</th><th>Time (seconds)</th></tr></thead>
+<tr valign="top" class="odd"><td>Qtopia 4.3&#x2e;0</td><td>77</td></tr>
+<tr valign="top" class="even"><td>Qtopia 4.3&#x2e;1</td><td>72</td></tr>
+<tr valign="top" class="odd"><td>Qtopia 4.4</td><td>TBD</td></tr>
+</table></p>
+<p>The root filesystem is controlled by the device manufacturer (and/or Open Source community) and as such is not within the scope of the Qtopia product development.</p>
+<a name="linux-qtopia-startup-time"></a>
+<h3>Linux + Qtopia Startup Time</h3>
+<p><i>In this context, the &quot;Qtopia startup time&quot; refers to the amount of time taken for a device to reach Qtopia's homescreen from the time the power button is pressed. This time can be further split into &quot;Linux&quot; and &quot;Qtopia&quot; times. The &quot;Linux&quot; startup time heavily depends on the root filesystem of the device, which can be very different between different devices and different configurations on the same device.</i></p>
+<p><table width="60%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Version</th><th>Time (seconds)</th></tr></thead>
+<tr valign="top" class="odd"><td>Qtopia 4.3&#x2e;0 (change 206444, 25/10/07)</td><td>107</td></tr>
+<tr valign="top" class="even"><td>Qtopia 4.3&#x2e;1 (change 214297, 22/01/08)</td><td>98</td></tr>
+<tr valign="top" class="odd"><td>Qtopia 4.4</td><td>TBD</td></tr>
+</table></p>
+<a name="qtopia-startup-time"></a>
+<h3>Qtopia Startup Time</h3>
+<p>This measurement is the amount of time between Linux and system services fully loading, and Qtopia fully loading. It is equal to the difference of the previous two figures.</p>
+<p><table width="60%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Version</th><th>Time (seconds)</th></tr></thead>
+<tr valign="top" class="odd"><td>Qtopia 4.3&#x2e;0</td><td>30</td></tr>
+<tr valign="top" class="even"><td>Qtopia 4.3&#x2e;1</td><td>26</td></tr>
+<tr valign="top" class="odd"><td>Qtopia 4.4</td><td>TBD</td></tr>
+</table></p>
+<a name="application-startup"></a>
+<h3>Application Startup</h3>
+<p><i>Note: in this context, the &quot;application startup time&quot; refers to the amount of time taken for an application to appear on the screen and respond to user input, after the user requests the application to launch itself.</i></p>
+<p>The below table shows the average warm startup times for each group of applications. Please note that any change of 5% or less could easily be due to variance in the data. Figures are rounded.</p>
+<p><table width="80%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Measured Value</th><th>4.3&#x2e;0</th><th>4.3&#x2e;1</th><th>4.4</th></tr></thead>
+<tr valign="top" class="odd"><td><b>PIM</b></td><td>1.1</td><td>1.0</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td><b>Messaging</b></td><td>1.2</td><td>1.1</td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td><b>Telephony</b></td><td>TBD</td><td>TBD</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td><b>Media</b></td><td>1.7</td><td>1.0</td><td>TBD</td></tr>
+</table></p>
+<a name="ram-usage"></a>
+<h3>RAM usage</h3>
+<p>To be determined.</p>
+<a name="ui-performance"></a>
+<h3>UI Performance</h3>
+<p>To be determined.</p>
+<a name="binary-sizes"></a>
+<h3>Binary Sizes</h3>
+<p>To be determined.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

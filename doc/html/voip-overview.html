@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>VoIP Overview</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">VoIP Overview<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><ul><li><a href="#qtopia-voip-overview">Qtopia VoIP Overview</a></li>
+<ul><li><a href="#qtopia-voip-reference-implementation">Qtopia VoIP Reference Implementation</a></li>
+<li><a href="#qtopia-voip-applications">Qtopia VoIP Applications</a></li>
+<ul><li><a href="#call-history">Call History</a></li>
+<li><a href="#settings">Settings</a></li>
+<li><a href="#quick-dial">Quick Dial</a></li>
+<li><a href="#contacts">Contacts</a></li>
+</ul>
+</ul>
+</ul>
+<a name="qtopia-voip-overview"></a>
+<h2>Qtopia VoIP Overview</h2>
+<p>This document provides an overview of the Qtopia VoIP infrastructure, as implemented by the reference <tt>sipagent</tt> implementation.</p>
+<p>The Qtopia telephony infrastructure is designed to support any number of telephony services, of which <tt>sipagent</tt> may be just one. The companion <a href="syscust-voip.html">VoIP Integration Guide</a> describes how to add additional VoIP implementations to Qtopia.</p>
+<p>An overview of the VoIP Architecture is provided in the following diagram:</p>
+<p align="center"><img src="images/voipIntegration.png" /></p><p>All telephony operations in Qtopia are accessed using the <a href="phonelibrary.html">Qtopia Phone Library</a>. The phone library in turn sends QCop messages to the phone server, which asks the back end telephony services to perform the requested operations. All of the QCop infrastructure is provided for the VoIP systems integrator.</p>
+<p>In the diagram above, two telephony services are shown: the AT-based modem handler for GSM cellular networks, and a vendor-specific SIP stack to provide VoIP functionality. Also shown is a vendor-specific settings program that is used to configure the parameters of the SIP stack.</p>
+<p>See the <a href="syscust-voip.html">VoIP Integration Guide</a> for more information on adding a new VoIP telephony service to Qtopia.</p>
+<p>The <a href="phonelibrary.html">Qtopia Phone Library</a> provides a rich set of API's for supporting VoIP telephony operations, including call management, network registration, presence, and configuration.</p>
+<a name="qtopia-voip-reference-implementation"></a>
+<h3>Qtopia VoIP Reference Implementation</h3>
+<p>The reference implementation of VoIP that comes with Qtopia is known as <tt>sipagent</tt>. It provides simple SIP functionality using the open source <tt>libdissipate2</tt> library from the <a href="http://www.wirlab.net/kphone/">KPhone</a> project. The key features are:</p>
+<ul>
+<li>Supports the Session Initiated Protocol (SIP).</li>
+<li>Supports the Real-Time Protocol (RTP) for voice media traffic, using the PCMU, PCMA, and GSM codecs at an 8 kHz sampling rate.</li>
+<li>Provides basic call management functionality for initiating outgoing calls and terminating incoming calls.</li>
+<li>Provides simple support for two presence states: available and unavailable.</li>
+</ul>
+<p><b>Note:</b> Currently due to licensing inconsistencies <tt>libdissipate2</tt> cannot be shipped with Qtopia.</p>
+<p>The reference implementation is intended to be a guide as to how a SIP stack can be integrated with Qtopia rather than an implementation intended for use in commercial deployments.</p>
+<p>The <tt>sipsettings</tt> program is also distributed with <tt>sipagent</tt> to demonstrate how to write a settings program for a VoIP stack. Since every VoIP stack has its own unique configuration settings, it isn't possible to provide a general-purpose settings program as with the more standardized GSM networks. VoIP stack vendors can choose to use <tt>sipsettings</tt> as a base for their own settings program, or write their own from scratch.</p>
+<a name="qtopia-voip-applications"></a>
+<h3>Qtopia VoIP Applications</h3>
+<p>Qtopia VoIP is integrated with the following applications:</p>
+<ul>
+<li>Call History</li>
+<li>Settings</li>
+<li>Quick Dial</li>
+<li>Contacts</li>
+</ul>
+<a name="call-history"></a>
+<h4>Call History</h4>
+<p>Call History is a Qtopia module providing the history of all calls received, missed and dialled. VoIP call details are displayed and calls can be initiated from the Call History screen.</p>
+<a name="settings"></a>
+<h4>Settings</h4>
+<p>Qtopia provides a basic settings application for VoIP. However, integration of a settings application and design of the settings GUI is largely the responsibility of the vendor. The following describes commonly supported functionality:</p>
+<ul>
+<li>User profile management - save/edit/view user profile</li>
+<li>Preferences management - manage the SIP, audio call preferences</li>
+<li>Initiating registration of the SIP client to presence server</li>
+</ul>
+<p>The screen displays comprising the <tt>sipsettings</tt> application are described in the following table:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Display Name</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>Identity</td><td>Allows the user to set<ul>
+<li>user and host parts of a SIP URL</li>
+<li>full name</li>
+<li>SIP server password</li>
+<li>auto-register option.</li>
+</ul>
+</td></tr>
+<tr valign="top" class="even"><td>Proxy</td><td>Allows the user to set<ul>
+<li>host and port parts of a SIP proxy</li>
+<li>user name for the SIP proxy</li>
+</ul>
+</td></tr>
+<tr valign="top" class="odd"><td>Advanced</td><td>Allows the user to set:<ul>
+<li>expiry time of registration</li>
+<li>expiry time of presence subscription</li>
+<li>preferred audio codec</li>
+</ul>
+</td></tr>
+</table></p>
+<p>In addition, the user can register to or unregister from the network, and change their presence availability using menu options.</p>
+<p>A third-party VoIP stack would typically provide a similar settings application.</p>
+<a name="quick-dial"></a>
+<h4>Quick Dial</h4>
+<p>Quick Dial component is a Qtopia module that provides a dialing facility from the Home screen and is integrated with the Qtopia phone edition. VoIP identifiers are taken as input Call History matches are presented and the VoIP call is initiated.</p>
+<a name="contacts"></a>
+<h4>Contacts</h4>
+<p>The Contacts application stores, edits, and displays the VoIP identifier and status of a contact. It interacts with the VoIP framework for:</p>
+<ol type="1">
+<li>VoIP Contact additions/deletions/edits</li>
+<li>Getting updates on VoIP status of contacts (available/unavailable)</li>
+</ol>
+<p>The Contact application receives updates from VoIP server regarding VoIP user status (online/offline) and is responsible for keeping it up-to-date in its database. It uses the <a href="qpresence.html">QPresence</a> telephony interface for this purpose.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

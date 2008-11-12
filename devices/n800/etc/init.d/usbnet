@@ -1,0 +1,40 @@
+#! /bin/sh
+#
+# Startup script for USBnet (networking, instead of USB Mass Storage behaviour)
+# Author: Michael Mlivoncic
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+NAME=usbnet
+DESC="USB Networking for Nokia 770"
+INITFILE=/etc/init.d/$NAME
+
+case "$1" in
+start)
+        USBNET="`lsmod | grep g_ether`"
+        if [ "$USBNET" = "" ]
+        then
+           echo "entering Ethernet via USB mode (g_ether)..."
+           insmod /mnt/initfs/lib/modules/current/g_ether.ko
+           echo "waiting, then starting up the usb0.."
+           sleep 1
+           /sbin/ifup usb0
+        else
+          echo "already in Ethernet-via-USB mode..."
+          echo "try ping 192.168.2.15"
+        fi
+        ;;
+stop)
+         echo "switching back to USB Mass Storage mode..."
+         echo "removing module g_ether"
+         /sbin/ifdown usb0
+         sleep 2
+         rmmod g_ether
+        ;;
+*)
+        printf "Usage: $INITFILE {start|stop}\n" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
+

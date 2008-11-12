@@ -1,0 +1,38 @@
+<html>
+<head><title>Input Methods Help</title></head>
+<body>
+<!--#if expr="$USERGUIDE"-->
+<h3>Input Methods Help</h3>
+<!--#endif-->
+<!--#if expr="$TOUCH"-->
+<p>Input is via <a href="handwriting.html">Handwriting</a>. Simply write letters on the display,
+or use one of the <a href="handwriting-fsim.html">special strokes</a> for other input.</p>
+<!--#endif-->
+<!--#if expr="$FINGER"-->
+<p>Input is via <a href="help-predictive-keyboard.html">the predictive keyboard</a>. Type letters by pressing them, and accept the current word by pressing on it or quickly stroking the keyboard left-to-right.  Backspace by stroking right-to-left.  Access capital letters, numbers, and symbols by stroking the board up or down.</p>
+<!--#endif-->
+<!--#if expr="$KEYPAD"-->
+<p>Input is via the keypad. Press the key corresponding to the
+letter you wish to type (eg. press 3 for "D", "E", or "F").
+<!--#include file="device-keys.html"-->
+<p><!--#echo var="key-punc"--> for punctuation.
+<p><!--#echo var="key-space"--> for a space.
+<p>Press-and-hold digits to enter the digit.
+<p><!--#echo var="key-casetoggle"--> to change between:
+<ul>
+<li><img src=":image/pkim/abc-uc"> </img> upper case, and
+<li><img src=":image/pkim/abc-lc"> </img> lower case.
+</ul>
+<p><!--#echo var="key-mode-change"--> to change input mode between:
+<ul>
+<li><img src=":image/pkim/dict-lc"> </img> your primary input language.  In this mode "example" would be entered as 3926753 (one number per letter).
+<li><img src=":image/pkim/abc-lc"> </img> character by character. "example" would be entered with 33992675553.
+<li><img src=":image/pkim/ext-lc"> </img> international character by character.
+<li><img src=":image/pkim/phone"> </img> numeric, and
+<li>your other selected <a href=language.html>input languages</a> (icon differs for each language),
+</ul>
+<p><!--#echo var="key-alternatives"--> to choose between possible letters or words.
+<p><!--#echo var="key-symbol-picker"--> to select a special character.
+<!--#endif-->
+</body>
+</html>

@@ -1,0 +1,70 @@
+#!/usr/bin/python
+
+import sys
+import os.path
+import os
+
+class Converter:
+    def __init__(self, directory):
+        self.qtopia_bin = directory + "/bin/"
+        self.qtopia_services = directory+"/services"
+        self.dbus_services = directory+"/dbus/session/services/"
+        self.qtopia_apps = directory + "/apps"
+        self.applications = {}
+
+    def find_executable(self, root, file):
+        f = open(root+"/"+file, 'r')
+        for line in f:
+            line = line.strip('\n')
+            if line.find('Exec=') != -1:
+                return line.rsplit('=', 1)[1]
+
+    def convert(self):
+        print "Converting directory %s to %s" % (self.qtopia_services, self.dbus_services)
+
+        for root, dirs, files in os.walk(self.qtopia_apps):
+            for file in files:
+                if file.endswith('.desktop'):
+                    v = self.find_executable(root, file)
+                    if v != None:
+                        self.applications[v] = ['com.trolltech.qtopia.QPE.Application.'+v]
+
+        files = os.listdir(self.qtopia_services)
+        for file in files:
+            if os.path.isdir(self.qtopia_services + "/" + file):
+                subdir = self.qtopia_services + "/" + file
+                subfiles = os.listdir(subdir)
+                if len(subfiles) > 1:
+                    print "WARNING: Service %s contains multiple starters" % file
+                for subfile in subfiles:
+                    if not os.path.isdir(subdir + "/" + subfile):
+                        if subfile not in self.applications.keys():
+                            self.applications[subfile] = ['com.trolltech.qtopia.QPE.Application.'+subfile]
+                        self.applications[subfile].append('com.trolltech.qtopia.' + file)
+                        break
+
+        if not os.path.exists(self.dbus_services):
+            os.makedirs(self.dbus_services)
+
+        for app in self.applications.keys():
+            num = 0
+            # DBUS currently does not handle more than 1 Name per service file
+            for interface in self.applications[app]:
+                f = open(self.dbus_services + app + str(num) + ".service", 'w')
+                f.write('[D-BUS Service]\n')
+
+                f.write('Name=')
+                f.write(interface)
+                f.write('\n')
+                f.write('Exec=' + self.qtopia_bin + 'qtopia-dbus-launcher ' + app + '\n')
+#                f.write('Exec=' + self.qtopia_bin + app + '\n')
+                num+=1
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "Must provide the installation directory..."
+        print "I will then convert <install dir>/services to DBUS"
+        print "and put it into <install dir>/dbus/session/services"
+    else:
+        v = Converter(sys.argv[1])
+        v.convert()

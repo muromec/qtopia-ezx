@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Deciding what to build</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Deciding what to build<br /><span class="subtitle"></span>
+</h1>
+<p>The file projects.pri includes other files to setup the PROJECTS and THEMES variables. These variables control what is built.</p>
+<p>These files are included from <tt>&lt;source&gt;/src</tt>.</p>
+<ul>
+<li>general.pri<p>Projects and themes that are in all Qtopia source packages.</p>
+</li>
+<li>commercial.pri<p>Projects and themes that are only in commercial Qtopia source packages.</p>
+</li>
+<li>custom.pri<p>Overrides/additions for Qtopia.</p>
+</li>
+</ul>
+<p>These files are included from <tt>&lt;build&gt;/src</tt>.</p>
+<ul>
+<li>local.pri<p>Overrides/additions specific to a build.</p>
+</li>
+</ul>
+<p>It is not recommended to modify general.pri and commercial.pri. Instead you should use custom.pri and local.pri. The intent is for organization changes (that is, changes that will be part of a redistributed source package) to go into custom.pri and changes for individual developers to go into local.pri.</p>
+<p>If you are adding projects, it is recommended to use <tt>*=</tt> to avoid the possibilty of duplicate entries. Duplicate entries can cause problems when you try to build.</p>
+<pre>    PROJECTS+=myproj
+    PROJECTS*=myproj # no duplicate
+    PROJECTS+=myproj # duplicate</pre>
+<p>You can remove a project with <tt>-=</tt>. Note that qmake does not consider it an error to remove a non-existant value so check for spelling errors if a project you removed is still building.</p>
+<pre>    PROJECTS-=myproj</pre>
+<p>You can make use of the CONFIG values that are set based on edition and configuration when adding projects. For example, a pda-specific application could be added with:</p>
+<pre>    pda:PROJECTS*=myproj</pre>
+<p>You might want to enable a project only if another project is enabled. You can check for the presence of a project with qmake's contains function.</p>
+<pre>    contains(PROJECTS,applications/mygreatapp):PROJECTS*=plugins/mygreatapp/time</pre>
+<p>Note that device profiles can override the project selection using a different file.</p>
+<p>See also <a href="tasks.html">Tasks</a>, <a href="var-projects-1.html">PROJECTS</a>, <a href="var-themes-1.html">THEMES</a>, and <a href="over-device-profiles-1.html">Device Profiles</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,1 @@
+Qt DBUS library built outside Qt so that we can access the symbols from Qtopia.

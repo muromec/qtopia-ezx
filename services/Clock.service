@@ -1,0 +1,7 @@
+[Translation]
+File=QtopiaServices
+Context=Clock
+[Service]
+Actions = "showClock()"
+Icon = Clock
+Name[]=Show Clock

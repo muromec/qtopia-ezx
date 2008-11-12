@@ -1,0 +1,22 @@
+#!/bin/sh
+
+. /opt/Qtopia/SDK/scripts/functions
+
+QPEVER=`version`
+
+export QTOPIA_PHONE_DEVICE="sim:127.0.0.1"
+#export QTOPIA_PHONE_DUMMY=1
+. /opt/Qtopia/SDK/scripts/devel-x86.sh
+# phonesim -gui $HOME/scripts/troll.xml &
+# phonesim_target $HOMEx/scripts/troll.xml &
+home-runqvfb &
+runphonesim &
+sleep 2
+
+if [ "$1" = "greenphone" ] ; then
+  export QTOPIA_PHONE_DEVICE=sim:`phoneip`
+  export QTOPIA_PHONE_VENDOR=greenphone
+  gph -net
+fi
+
+/opt/Qtopia/SDK/scripts/runqpe-x86 2>&1 |logger -t 'x86'

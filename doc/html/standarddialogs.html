@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>StandardDialogs Namespace Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">StandardDialogs Namespace Reference</h1>
+<p>The StandardDialogs namespace contains methods to disable Qtopia's standard dialog popups. <a href="#details">More...</a></p>
+<pre>    #include &lt;StandardDialogs&gt;</pre><ul>
+</ul>
+<a name="functions"></a>
+<h3>Functions</h3>
+<ul>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disableDefaultCrashDialog">disableDefaultCrashDialog</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disablePowerAlertDialog">disablePowerAlertDialog</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disablePreloadCrashDialog">disablePreloadCrashDialog</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disableShutdownDialog">disableShutdownDialog</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disableTerminationHandlerDialog">disableTerminationHandlerDialog</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddialogs.html#disableVolumeDialog">disableVolumeDialog</a></b> ()</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The StandardDialogs namespace contains methods to disable Qtopia's standard dialog popups.</p>
+<p>The core Qtopia sub-systems often generate information that needs to be displayed to the user. To ease customizability, all the simple dialogs and notifications in Qtopia are collectively managed in one place - the <tt>StandardDialogs</tt> server task.</p>
+<p>To customize one of these dialogs, an integrator needs only to implement their own version and disable Qtopia's default behaviour through one of the methods available in the StandardDialogs namespace.</p>
+<p>The documentation for each of the following methods lists both what the dialog it disables is, as well as the system behaviour to which it responds. The intent is to make the task of replicating each very simple.</p>
+<hr />
+<h2>Function Documentation</h2>
+<h3 class="fn"><a name="disableDefaultCrashDialog"></a>void StandardDialogs::disableDefaultCrashDialog ()</h3>
+<p>The default crash handler dialog appears whenever an unfiltered application crash occurs. An application crash may be filtered by the <a href="applicationterminationhandler.html">ApplicationTerminationHandler</a> interface. The default implementation is a standard <a href="qmessagebox.html">QMessageBox</a> alerting the user to the name of the crashed application.</p>
+<p>The dialog appears whenever the <a href="applicationlauncher.html#applicationTerminated">ApplicationLauncher::applicationTerminated</a>() signal is emitted with the filtered parameter set to false.</p>
+<p>Invoking this method will disable the default crash dialog.</p>
+<h3 class="fn"><a name="disablePowerAlertDialog"></a>void StandardDialogs::disablePowerAlertDialog ()</h3>
+<p>The power alert dialog appears whenever the device battery runs low. The default implementation is a standard <a href="qmessagebox.html">QMessageBox</a> and an audible sound alerting the user to the low power situation.</p>
+<p>The dialog appears when the battery level is very low or critical. The dialog will be redisplayed every five minutes, when very low, or every minute, when critical, until the power state improves or the device is placed on a charger. The default implementation uses the <a href="qpowerstatus.html">QPowerStatus</a> to determine this information.</p>
+<p>The period at which the power alert dialog redisplays can be configured by setting the <tt>PowerAlertDialog/DisplayPeriod</tt> and <tt>PowerAlertDialog/CriticalDisplayPeriod</tt> values to the period in seconds in the <tt>Trolltech/HardwareAccessories</tt> configuration file. If not specified the default values of 300 seconds (5 minutes) and 60 seconds are used for <tt>PowerAlertDialog/DisplayPeriod</tt> and <tt>PowerAlertDialog/CriticalDisplayPeriod</tt> respectively. Setting <tt>PowerAlertDialog/DisplayPeriod</tt> to 0 disables the power alert dialog.</p>
+<p>Invoking this method will disable the power alert dialog.</p>
+<h3 class="fn"><a name="disablePreloadCrashDialog"></a>void StandardDialogs::disablePreloadCrashDialog ()</h3>
+<p>The preload crash dialog appears whenever a preloaded application crashes. The default implementation is a standard <a href="qmessagebox.html">QMessageBox</a> alerting the user to the name of the crashed application, and informing them that it has been removed from the preload list.</p>
+<p>The dialog appears whenever the <a href="startupapplications.html#preloadCrashed">StartupApplications::preloadCrashed</a>() signal is emitted.</p>
+<p>Invoking this method will diable the preload crash dialog.</p>
+<h3 class="fn"><a name="disableShutdownDialog"></a>void StandardDialogs::disableShutdownDialog ()</h3>
+<p>The shutdown dialog allows users to terminate Qtopia, restart Qtopia, shutdown the system or reboot the system. The default implementation is a simple dialog allowing the user to select from one of these four options.</p>
+<p>The shutdown dialog appears in response to the <a href="qtopiaserverapplication.html#shutdownRequested">QtopiaServerApplication::shutdownRequested</a>() signal. Once the user has selected their desired option, the dialog invokes the <a href="qtopiaserverapplication.html#shutdown">QtopiaServerApplication::shutdown</a>() method and closes.</p>
+<p>Invoking this method will disable the shutdown dialog.</p>
+<h3 class="fn"><a name="disableTerminationHandlerDialog"></a>void StandardDialogs::disableTerminationHandlerDialog ()</h3>
+<p>Applications can install custom termination messages using the <a href="qterminationhandler.html">QTerminationHandler</a> class. The default implementation displays a standard <a href="qmessagebox.html">QMessageBox</a> alerting th euser to the termination and the specified reason.</p>
+<p>The dialog appears whenever the <a href="qterminationhandlerprovider.html">QTerminationHandlerProvider</a> class emits the <a href="qterminationhandlerprovider.html#applicationTerminated">QTerminationHandlerProvider::applicationTerminated</a>() signal.</p>
+<p>Invoking this method will disable the default termination handler dialog.</p>
+<h3 class="fn"><a name="disableVolumeDialog"></a>void StandardDialogs::disableVolumeDialog ()</h3>
+<p>The volume dialog provides users the feedback on volume changes.</p>
+<p>The volume dialog appears in response to the MediaServicesTask::volumeChanged() signal.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

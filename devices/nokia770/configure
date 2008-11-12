@@ -1,0 +1,8 @@
+-edition phone -xplatform nokia -arch arm -no-qvfb
+-reduce-exports=yes
+-prefix /opt/Qtopia
+-qtopiamedia -mediaengines cruxus
+-no-sxe -no-drm -no-ssl
+-extra-qtopiacore-config "-depths 8,16,32" 
+-release
+-extra-qt-config -no-glib 

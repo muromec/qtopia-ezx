@@ -1,0 +1,22 @@
+#!/bin/sh
+#[ "$VERBOSE" = 1 ] && set -x
+test=page_size
+dest="$QPEDIR/config.tests/$test"
+source="$QTOPIA_DEPOT_PATH/config.tests/$test"
+mkdir -p "$dest"
+cd "$dest"
+cat >.qmake.cache <<END
+include($QPEDIR/src/config.pri)
+END
+$QMAKE -spec "$XPLATFORM_ABSOLUTE" -o $dest/Makefile $source/$test.pro || exit 2
+$MAKECMD clean >/dev/null 2>&1
+ok=1
+$MAKECMD 2>&1 || ok=0
+if [ "$ok" = 0 ]; then
+    $QMAKE -spec "$XPLATFORM_ABSOLUTE" -o $dest/Makefile $source/$test.pro CONFIG+=kernel || exit 2
+    $MAKECMD clean >/dev/null 2>&1
+    $MAKECMD 2>&1 || exit 2
+fi
+$MAKECMD preprocessor
+cat preprocessor.out
+exit 0

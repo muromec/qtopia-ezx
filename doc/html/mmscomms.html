@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>MmsComms Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">MmsComms Class Reference</h1>
+<p>The MmsComms class is the base class for MMS communications. <a href="#details">More...</a></p>
+<pre>    #include &lt;MmsComms&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
+<ul>
+<li><a href="mmscomms-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"/><b><a href="mmscomms.html#MmsComms">MmsComms</a></b> ( QMailAccount * <i>acc</i>, QObject * <i>parent</i> = 0 )</li>
+<li><div class="fn"/>virtual <b><a href="mmscomms.html#dtor.MmsComms">~MmsComms</a></b> ()</li>
+<li><div class="fn"/>virtual void <b><a href="mmscomms.html#clearRequests">clearRequests</a></b> () = 0</li>
+<li><div class="fn"/>virtual bool <b><a href="mmscomms.html#isActive">isActive</a></b> () const = 0</li>
+<li><div class="fn"/>QString <b><a href="mmscomms.html#networkConfig">networkConfig</a></b> () const</li>
+<li><div class="fn"/>virtual void <b><a href="mmscomms.html#retrieveMessage">retrieveMessage</a></b> ( const QUrl &amp; <i>url</i> ) = 0</li>
+<li><div class="fn"/>virtual void <b><a href="mmscomms.html#sendMessage">sendMessage</a></b> ( MMSMessage &amp; <i>msg</i>, const QByteArray &amp; <i>encoded</i> ) = 0</li>
+</ul>
+<ul>
+<li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"/>void <b><a href="mmscomms.html#deliveryInd">deliveryInd</a></b> ( const MMSMessage &amp; <i>msg</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#error">error</a></b> ( int <i>code</i>, const QString &amp; <i>msg</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#notificationInd">notificationInd</a></b> ( const MMSMessage &amp; <i>msg</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#retrieveConf">retrieveConf</a></b> ( const MMSMessage &amp; <i>msg</i>, int <i>size</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#sendConf">sendConf</a></b> ( const MMSMessage &amp; <i>msg</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#statusChange">statusChange</a></b> ( const QString &amp; <i>status</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#transferSize">transferSize</a></b> ( int <i>size</i> )</li>
+<li><div class="fn"/>void <b><a href="mmscomms.html#transfersComplete">transfersComplete</a></b> ()</li>
+</ul>
+<ul>
+<li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"/>1 public type inherited from <a href="qobject.html#public-variables">QObject</a></li>
+<li><div class="fn"/>4 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"/>7 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+<li><div class="fn"/>2 protected variables inherited from <a href="qobject.html#protected-variables">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The MmsComms class is the base class for MMS communications.</p>
+<p>The MmsComms class is the base class for MMS communications. Usually MMS communications via WAP is implemented by deriving from this class and implementing the pure virtual functions and emitting the signals when appropriate.</p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="MmsComms"></a>MmsComms::MmsComms ( QMailAccount * <i>acc</i>, <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
+<p>Constructs a <a href="mmscomms.html">MmsComms</a>, associated with account <i>acc</i> and having parent object <i>parent</i>.</p>
+<h3 class="fn"><a name="dtor.MmsComms"></a>MmsComms::~MmsComms ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>Destroys this <a href="mmscomms.html">MmsComms</a>.</p>
+<h3 class="fn"><a name="clearRequests"></a>void MmsComms::clearRequests ()&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
+<p>Clear any requests that are pending or in progress.</p>
+<h3 class="fn"><a name="deliveryInd"></a>void MmsComms::deliveryInd ( const MMSMessage &amp; <i>msg</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted when an m-delivery-ind MMS message <i>msg</i> arrives via WAP PUSH.</p>
+<h3 class="fn"><a name="error"></a>void MmsComms::error ( int <i>code</i>, const <a href="qstring.html">QString</a> &amp; <i>msg</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted when a fatal error occurs during the communication process, e.g&#x2e; connection refused. The code <i>code</i> should reflect the error seen by the underlying network protocol being used. The error message <i>msg</i> must be a suitable for displaying to the user and refect the meaning of <i>code</i>.</p>
+<h3 class="fn"><a name="isActive"></a>bool MmsComms::isActive () const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
+<p>Return true if there are requests pending or in progress, otherwise false.</p>
+<h3 class="fn"><a name="networkConfig"></a><a href="qstring.html">QString</a> MmsComms::networkConfig () const</h3>
+<p>Returns the default WAP networking account.</p>
+<h3 class="fn"><a name="notificationInd"></a>void MmsComms::notificationInd ( const MMSMessage &amp; <i>msg</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted when an m-notification-ind MMS message <i>msg</i> arrives via WAP PUSH.</p>
+<h3 class="fn"><a name="retrieveConf"></a>void MmsComms::retrieveConf ( const MMSMessage &amp; <i>msg</i>, int <i>size</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted in response to a <a href="mmscomms.html#retrieveMessage">retrieveMessage</a>(), unless an error occurrs. The MMS message <i>msg</i> contains the message as decoded by <a href="mmscomms.html#retrieveMessage">retrieveMessage</a>() which has a encoded size of <i>size</i>.</p>
+<p>See also <a href="mmscomms.html#error">error</a>().</p>
+<h3 class="fn"><a name="retrieveMessage"></a>void MmsComms::retrieveMessage ( const <a href="qurl.html">QUrl</a> &amp; <i>url</i> )&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
+<p>Connect to the MMSC and GET an MMS message from URL <i>url</i>. If a connection to a WAP gateway is necessary, it should be done also. The QMailAccount details can be accessed via the <i>account</i> variable.</p>
+<p>See also <a href="mmscomms.html#retrieveConf">retrieveConf</a>().</p>
+<h3 class="fn"><a name="sendConf"></a>void MmsComms::sendConf ( const MMSMessage &amp; <i>msg</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted in response to a <a href="mmscomms.html#sendMessage">sendMessage</a>(), unless an error occurs. The MMS message <i>msg</i> contains the confirmation details and the message content as received by <a href="mmscomms.html#sendMessage">sendMessage</a>() .</p>
+<p>See also <a href="mmscomms.html#error">error</a>().</p>
+<h3 class="fn"><a name="sendMessage"></a>void MmsComms::sendMessage ( MMSMessage &amp; <i>msg</i>, const <a href="qbytearray.html">QByteArray</a> &amp; <i>encoded</i> )&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
+<p>Connect to the MMSC and POST the specified MMS message <i>msg</i>, the encoded content of which is contained in <i>encoded</i>. If a connection to a WAP gateway is necessary, it should be done also. The QMailAccount details can be accessed via the <i>account</i> variable.</p>
+<p>See also <a href="mmscomms.html#sendConf">sendConf</a>().</p>
+<h3 class="fn"><a name="statusChange"></a>void MmsComms::statusChange ( const <a href="qstring.html">QString</a> &amp; <i>status</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal can be emitted when the status of a transfer changes, e.g&#x2e; connected to server, transferring data. The status <i>status</i> could be used to provide user feed back eg: a status bar.</p>
+<p>See also <a href="mmscomms.html#error">error</a>().</p>
+<h3 class="fn"><a name="transferSize"></a>void MmsComms::transferSize ( int <i>size</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted during data transfers so that the user can see how much data has been transferred. <i>size</i> denotes the amount of data transferred in bytes.</p>
+<h3 class="fn"><a name="transfersComplete"></a>void MmsComms::transfersComplete ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal must be emitted when all pending or current transfers have completed.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

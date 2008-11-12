@@ -1,0 +1,13 @@
+#!/bin/sh
+test=error
+dest="$QPEDIR/config.tests/$test"
+source="$QTOPIA_DEPOT_PATH/config.tests/$test"
+mkdir -p "$dest"
+cd "$dest"
+cat >.qmake.cache <<END
+include($QPEDIR/src/config.pri)
+END
+$QMAKE -spec "$XPLATFORM_ABSOLUTE" -o $dest/Makefile $source/$test.pro || exit 2
+$MAKECMD clean >/dev/null 2>&1
+$MAKECMD 2>&1 || exit 1
+exit 0

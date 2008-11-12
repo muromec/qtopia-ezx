@@ -1,0 +1,6 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/QtopiaSql/QSQLITE">
+<file alias="mailfolders">resources/mailfolders.sqlite.sql</file>
+<file alias="mailmessages">resources/mailmessages.sqlite.sql</file>
+</qresource>
+</RCC>

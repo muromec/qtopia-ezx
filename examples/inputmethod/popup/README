@@ -1,0 +1,18 @@
+This is a very simple example of how to write a popup input method.
+It provids a set of buttons to produce hex diget key events, along
+with return and backspace.  It can be thought of as a very simple
+virtual keyboard.
+
+The input method is defined in popupim.h and popupim.cpp
+
+The plugin code for a InputMethodInterface is in popupimpl.h and
+popupimpl.cpp
+
+The plugin code for a ExtInputMethodInterface is in popupextimpl.h and
+popupextimpl.cpp
+
+main.cpp is a stub that allows testing of the input method in isoloation
+from the qpe server.
+
+See inputmethods.html for a detailed explanation of creating a Popup
+Input Method.

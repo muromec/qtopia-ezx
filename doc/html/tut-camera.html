@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Tutorial: Extending the Camera Device Model</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Tutorial: Extending the Camera Device Model<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><a name="introduction"></a>
+<h2>Introduction</h2>
+<p>This small tutorial covers the case where you want your camera device to use the example camera application provided with Qtopia.</p>
+<a name="the-camera-extension-mechanism"></a>
+<h2>The camera extension mechanism</h2>
+<p>Simply put, the <tt>camera::VideoCaptureDevice</tt> interface class provides a basic API for capture devices as used in the camera application.</p>
+<p>Ideally we have two cases:</p>
+<ol type="1">
+<li>For <a href="qtopia-dependencies.html#video4linux">Video4Linux</a> 1 type device drivers, see <tt>v4l1videocapturedevice.cpp</tt> in the camera application source tree.</li>
+<li>For <a href="qtopia-dependencies.html#video4linux">Video4Linux</a> 2 type device drivers, see <tt>v4l2videocapturedevice.cpp</tt> in the camera application source tree.</li>
+</ol>
+<a name="custom-drivers"></a>
+<h2>Custom drivers</h2>
+<p>It might be the case that your camera driver will not conform fully to either <a href="qtopia-dependencies.html#video4linux">Video4Linux</a> specifications. An example of such a device is the camera on the Trolltech Greenphone. Although it's driver supports some of <a href="qtopia-dependencies.html#video4linux">Video4Linux</a> 1 API, the support differs sufficiently to warrant a separate implemetation.</p>
+<p>In a case like this you will have to subclass from <tt>camera::VideoCaptureDevice</tt> and implement all virtual functions yourself. Of course, reading the above two source files should make this clear, however here is a code fragment from the greenphones implementation where the <tt>getCameraImage()</tt> function needs to implement the greenphones idiosyncrasies. (This code will be in the greenphones device profile directory.)</p>
+<pre>    void OmegaCamera::getCameraImage( QImage&amp; img, bool copy )
+    {
+        Q_UNUSED(copy);
+
+        if ( fd == -1 ) {
+            if ( img.isNull() ) {
+                img = QImage(height, width, QImage::Format_RGB16);
+            }
+            return;
+        }
+
+        currentFrame = ++currentFrame % mbuf.frames;
+
+        unsigned char*  buf = frames + mbuf.offsets[currentFrame];
+        quint16 *dest;
+        for (int x = height  - 1; x &gt;= 0; --x)
+        {
+            dest = m_imageBuf + x;
+
+            for (int y = 0; y &lt; width; y+=2)
+            {
+                int u = buf[0];
+                int v = buf[2];
+                yuv2rgb(buf[1], u, v, dest);
+                dest += height;
+                yuv2rgb(buf[3], u, v, dest);
+                dest += height;
+                buf += 4;
+            }
+
+         }
+        img = QImage((uchar*) m_imageBuf, height, width, QImage::Format_RGB16);
+
+    }</pre>
+<p>Here is the implementation from <tt>v4l1videocapturedevice.cpp</tt>:</p>
+<pre>    void V4L1VideoCaptureDevice::getCameraImage( QImage&amp; img, bool copy )
+    {
+        if ( fd == -1 ) {
+            if ( img.isNull() ) {
+                img = QImage(width, height, QImage::Format_RGB32);
+            }
+            return;
+        }
+
+        <span class="comment">// Start capturing the next frame (we alternate between 0 and 1).</span>
+        int frame = currentFrame;
+        struct video_mmap capture;
+        if ( mbuf.frames &gt; 1 ) {
+            currentFrame = !currentFrame;
+            capture.frame = currentFrame;
+            capture.width = width;
+            capture.height = height;
+            capture.format = VIDEO_PALETTE_RGB32;
+            ioctl( fd, VIDIOCMCAPTURE, &amp;capture );
+        }
+
+        <span class="comment">// Wait for the current frame to complete.</span>
+        ioctl( fd, VIDIOCSYNC, &amp;frame );
+
+        <span class="comment">// Create an image that refers directly to the kernel's</span>
+        <span class="comment">// frame buffer, to avoid having to copy the data.</span>
+        if ( !copy ) {
+            img = QImage( frames + mbuf.offsets[frame], width, height,
+                          QImage::Format_RGB32 );
+        } else {
+            img = QImage( width, height, QImage::Format_RGB32 );
+            memcpy( img.bits(), frames + mbuf.offsets[frame], width * height * 4 );
+        }
+
+        <span class="comment">// Queue up another frame if the device only supports one at a time.</span>
+        if ( mbuf.frames &lt;= 1 ) {
+            capture.frame = currentFrame;
+            capture.width = width;
+            capture.height = height;
+            capture.format = VIDEO_PALETTE_RGB32;
+            ioctl( fd, VIDIOCMCAPTURE, &amp;capture );
+        }
+    }</pre>
+<p>As one can see by comparison to <tt>v4l1videocapturedevice.cpp</tt> it differs substantially in that we need to do color space conversion from YUV to RGB in addition some ioctls are not implemented by the Greenphones driver.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

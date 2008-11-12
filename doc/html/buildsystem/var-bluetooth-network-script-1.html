@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>BLUETOOTH_NETWORK_SCRIPT</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">BLUETOOTH_NETWORK_SCRIPT<br /><span class="subtitle"></span>
+</h1>
+<a name="usage"></a>
+<h3>Usage</h3>
+<pre>    BLUETOOTH_NETWORK_SCRIPT=SuSE10.2
+    BLUETOOTH_NETWORK_SCRIPT=$$PWD/btdun-network</pre>
+<a name="description"></a>
+<h3>Description</h3>
+<p>The Bluetooth DUN network plugin installs a helper script to control the network interface. There are several reference scripts available and this variable lets you pick one to install (usage case 1). It also lets you choose a device-specific script if the included scripts are not suitable (usage case 2). The reference scripts are in <tt>src/plugins/network/bluetooth</tt>.</p>
+<p><b>Note:</b> This variable is only useful when set in <tt>&lt;device&gt;/config.pri</tt>.</p>
+<p>See also <a href="variables.html">Variables</a>, <a href="over-device-profiles-1.html">Device Profiles</a>, <a href="var-bluetoothpan-network-script-1.html">BLUETOOTHPAN_NETWORK_SCRIPT</a>, <a href="var-dialing-network-script-1.html">DIALING_NETWORK_SCRIPT</a>, and <a href="var-lan-network-script-1.html">LAN_NETWORK_SCRIPT</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

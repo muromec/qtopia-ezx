@@ -1,0 +1,3 @@
+message(QT_PREFIX=$$[QT_INSTALL_PREFIX])
+message(QT_LIBS=$$[QT_INSTALL_LIBS])
+message(QT_BINS=$$[QT_INSTALL_BINS])

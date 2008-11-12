@@ -1,0 +1,27 @@
+support for zylonite device (Marvell)
+
+- backlight, see custom.cpp, system integrator needs to 
+             implement backlight.sh <brightness level>
+
+- Battery Status and Charging Management, see server/apmbattery.cpp
+             This is commented out since no apm support but can be used as
+             reference for implementation, ideally though you should not use polling.
+
+- removable media handling, see Storage.conf
+             /etc/udev/scripts/mount.sh is run on insert or remove of SD card
+             it sends message to Qtopia of change.
+
+- handling handfree, see server/zylonitehardware.cpp 
+             (this is where you would do this)
+
+- handling system volume, see server/zylonitevolumeservice.cpp
+             (this is where you would do this)
+
+- handling suspend/resume, see server/zylonitesuspend.cpp
+             (this is where you would do this)
+
+- handling key inputs, see src/plugins/qtopiacore/kbddrivers/zylonite/*
+
+- handling touchscreen inputs, see src/plugins/qtopiacore/mousedrivers/zylonite/*
+
+- Ordering servertasks start and stop, see etc/Task.cfg

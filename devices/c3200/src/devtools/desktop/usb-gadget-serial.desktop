@@ -1,0 +1,9 @@
+[Translation]
+File=QtopiaApplications
+Context=UsbGadget
+[Desktop Entry]
+Comment[]=Start usb serial gadget
+Exec=usb-gadget-serial.sh
+Icon=devtools/devtools
+Type=ConsoleApplication
+Name[]=Start usb serial gadget

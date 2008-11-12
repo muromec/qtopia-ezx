@@ -1,0 +1,9 @@
+[Translation]
+File=QtopiaApplications
+Context=UsbGadget
+[Desktop Entry]
+Comment[]=Start usb ethernet gadget
+Exec=usb-gadget-ether.sh
+Icon=devtools/devtools
+Type=ConsoleApplication
+Name[]=Start usb ethernet gadget

@@ -1,0 +1,64 @@
+--- qscreen_qws.cpp.orig	2007-03-09 06:38:33.000000000 +1000
++++ qtopiacore/qt/src/gui/embedded/qscreen_qws.cpp	2006-11-28 14:23:01.000000000 +1000
+@@ -27,6 +27,33 @@
+ #include <qdebug.h>
+ 
+ // #define QT_USE_MEMCPY_DUFF
++#include <sys/types.h>
++#include <sys/ioctl.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <signal.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <linux/fb.h>
++
++#define OMAP_IOW(num, dtype)    _IOW('O', num, dtype)
++#define OMAPFB_UPDATE_WINDOW    OMAP_IOW(47, struct omapfb_update_window)
++#define OMAPFB_UPDATE_WINDOW_OLD    OMAP_IOW(41, struct omapfb_update_window_old)
++
++struct omapfb_update_window_old {
++       __u32 x, y;
++       __u32 width, height;
++//       __u32 format;
++};
++
++struct omapfb_update_window {
++  __u32 x, y;
++  __u32 width, height;
++  __u32 format;
++};
++
++
+ 
+ #ifndef QT_NO_QWS_CURSOR
+ bool qt_sw_cursor=false;
+@@ -1170,6 +1199,27 @@
+     }
+ #endif // QT_EXPERIMENTAL_REGIONS
+     setDirty(r.boundingRect());
++    
++   struct omapfb_update_window_old update;
++    
++   update.x = r.boundingRect().x();
++   update.y = r.boundingRect().y();
++   update.width = r.boundingRect().width();
++   update.height = r.boundingRect().height();
++//  update.format = 0/*OMAPFB_COLOR_RGB565*/;
++    
++   QString dev="/dev/fb0";
++        
++   int infd = open( dev.toLatin1().constData(), O_RDWR);
++   if (infd > 0) {
++     if (ioctl( infd, OMAPFB_UPDATE_WINDOW_OLD, &update) < 0) {
++       perror("ioctl(OMAPFB_UPDATE_WINDOW)");
++     }
++     close(infd);
++   } else {
++     qWarning("NOPT!@");
++   }
++     
+ }
+ 
+ struct blit_data {

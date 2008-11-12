@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>HomeScreenWidgets Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">HomeScreenWidgets Class Reference</h1>
+<p>The HomeScreenWidgets class is a factory for homescreen widgets. <a href="#details">More...</a></p>
+<pre>    #include &lt;HomeScreenWidgets&gt;</pre><ul>
+<li><a href="homescreenwidgets-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="static-public-members"></a>
+<h3>Static Public Members</h3>
+<ul>
+<li><div class="fn"/>QWidget * <b><a href="homescreenwidgets.html#create">create</a></b> ( const QString &amp; <i>name</i>, QWidget * <i>parent</i> = 0 )</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The HomeScreenWidgets class is a factory for homescreen widgets.</p>
+<p>The HomescreenWidgets class is used as a factory for creating homescreen widgets that have registered. Homescreen widgets are registered with the HSWIDGET macro, which takes the name of the widget and the method used to create the widget. Typically this will be the name of the widget class and the constructor of the class, for example:</p>
+<pre>    HSWIDGET(WorldmapHSWidget, WorldmapHSWidget)</pre>
+<p>This class is part of the Qtopia server and cannot be used by other Qtopia applications.</p>
+<p>See also <a href="analogclockhswidget.html">AnalogClockHSWidget</a>, <a href="appointmentshswidget.html">AppointmentsHSWidget</a>, <a href="launcherhswidget.html">LauncherHSWidget</a>, and <a href="worldmaphswidget.html">WorldmapHSWidget</a>.</p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="create"></a><a href="qwidget.html">QWidget</a> * HomeScreenWidgets::create ( const <a href="qstring.html">QString</a> &amp; <i>name</i>, <a href="qwidget.html">QWidget</a> * <i>parent</i> = 0 )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<p>Creates the homescreen widget with <i>name</i> (case insensitive) and attaches it to <i>parent</i>. If no widget has been registered with <i>name</i> then 0 is returned.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

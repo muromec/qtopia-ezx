@@ -1,0 +1,10 @@
+#!/bin/sh
+pkgconfig=pkg-config
+if [ -n "$PKG_CONFIG_PREFIX" ]; then
+    # This lets the device profile override the prefix value in the .pc file
+    pkgconfig="pkg-config --define-variable=prefix=$PKG_CONFIG_PREFIX"
+fi
+$pkgconfig gstreamer-0.10 || exit 1
+echo GSTREAMER_CFLAGS=`$pkgconfig gstreamer-0.10 --cflags`
+echo GSTREAMER_LIBS=`$pkgconfig gstreamer-0.10 --libs`
+exit 0

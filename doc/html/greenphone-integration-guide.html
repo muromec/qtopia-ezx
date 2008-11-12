@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Greenphone Integration Guide</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Greenphone Integration Guide<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><ul><li><a href="#system-boot-and-shutdown-sequences">System Boot and Shutdown Sequences</a></li>
+<ul><li><a href="#boot-sequence">Boot Sequence</a></li>
+<li><a href="#shutdown-sequence">Shutdown Sequence</a></li>
+</ul>
+</ul>
+<a name="system-boot-and-shutdown-sequences"></a>
+<h2>System Boot and Shutdown Sequences</h2>
+<a name="boot-sequence"></a>
+<h3>Boot Sequence</h3>
+<p>The following table lists the stages of the Greenphone boot process. It contains a description of the actions performed during each stage of the boot process and an image of what the user should see on the LCD screen during each stage.</p>
+<p><table width="100%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Boot Stage</th><th colspan="2">Description</th></tr>
+<tr valign="top" class="qt-style"><th>Power on</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="odd"><td></td><td>Hardware reset condition.</td><td><img src="images//ig_black_screen.gif" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Initial Program Loader (IPL)</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="even"><td></td><td>Immediately after system reset the System CPU executes code from the IPL area of the Disc-on-Chip device. The IPL partially initializes the Disc-on-Chip device and loads the Secondary Program Loader (SPL) into RAM and executes it.</td><td><img src="images//ig_black_screen.gif" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Secondary Program Loader (SPL)</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="odd"><td></td><td>The SPL provides two facilities:<ol type="1">
+<li>low-level flash interface</li>
+<li>loading and executing the Linux kernel.</li>
+</ol>
+<p>After control is passed from the IPL to the SPL, the SPL initializes the hardware necessary to perform its functions including the:</p>
+<ul>
+<li>Disc-on-Chip</li>
+<li>LCD screen</li>
+<li>USB interface</li>
+<li>serial console</li>
+</ul>
+<p>The bootloader splash screen is displayed and the SPL loads and executes either the flash application or the Linux kernel.</p>
+<p>While the SPL is running the LCD contains the image to the right which is the first image displayed on the Greenphone LCD screen.</p>
+</td><td><img src="images//ig_bootloader_splash.gif" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Linux Kernel</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="even"><td></td><td>The kernel initializes all hardware with built-in drivers and displays the kernel splash screen on the LCD screen.<p>The internal initial RAM disc is mounted and the Disc-on-Chip driver module is loaded. The initial RAM disc is unmounted. The kernel startup sequence continues until <tt>/sbin/init</tt> is executed in User Space and control of the boot sequence is passed over to it.</p>
+</td><td><img src="images//ig_kernel_splash.gif" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Init</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="odd"><td></td><td colspan="2">The <tt>/sbin/init</tt> process controls the User Space startup sequence which is defined in the <tt>/etc/inittab</tt> file as follows:</td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.modules boot</tt><p>Loads all modules required early in the boot process. This currently includes the following</p>
+<ul>
+<li>Filesystem support: <tt>fat</tt>, <tt>nls_cp437</tt>, <tt>nls_iso8859-1</tt>, <tt>nls_utf8</tt></li>
+<li>TAT Table access: <tt>docparatable</tt></li>
+<li>Power management and battery charger: <tt>omega_pmu</tt>, <tt>omega_power</tt>, <tt>omega_poweroff</tt></li>
+</ul>
+</td><td><img src="images//ig_loading_boot_modules.png" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.filesystems</tt><p>Linux provides an interface into the kernel via the <tt>proc</tt> virtual filesystem. This <tt>proc</tt> virtual filesystem is mounted on <tt>/proc</tt>.</p>
+<p>The Greenphone uses temporary filesystems for storing data that does not need to be retained over reboots. Temporary filesystems are mounted and populated at this stage. The temporary filesystems used by the Greenphone include:</p>
+<ul>
+<li>tmpfs mounted on <tt>/dev</tt> and populated with the contents of <tt>/dev.tar.gz</tt></li>
+<li>tmpfs mounted on <tt>/var</tt> and populated with the contents of <tt>/var.tar.gz</tt></li>
+</ul>
+</td><td><img src="images//ig_mounting_virtual_filesystems.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.filesystems</tt><p>The Greenphone contains writable file systems, which can get corrupted if the device is not shutdown correctly. All writable filesystems on the device are checked for errors and automatically repaired, if possible.</p>
+</td><td><img src="images//ig_checking_filesystems.png" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.filesystems</tt><p>The internal storage of the Greenphone is divided into four block devices. The first block device <tt>/dev/tffsa</tt> is partitioned in two and contains the read-only root filesystem and Qtopia image. The third block device, <tt>/dev/tffsc</tt>, is used to store system configuration data. The remaining two block devices, <tt>/dev/tffsb</tt> and <tt>/dev/tffsd</tt> are used for storing user documents, user settings and installed 3rd party software.</p>
+<p>These block devices are mounted at the following paths:</p>
+<ul>
+<li><tt>/dev/tffsa1</tt> on <tt>/</tt></li>
+<li><tt>/dev/tffsa2</tt> on <tt>/opt/Qtopia</tt></li>
+<li><tt>/dev/tffsb</tt> on <tt>/home</tt></li>
+<li><tt>/dev/tffsc</tt> on <tt>/etc</tt></li>
+<li><tt>/dev/tffsd</tt> on <tt>/mnt/documents</tt></li>
+</ul>
+</td><td><img src="images//ig_mounting_filesystems.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.gadget boot</tt><p>The USB client interface on the Greenphone can be configured as either a network interface or a serial device. The USB client interface is configured as the device specified in <tt>/etc/gadget</tt>.</p>
+</td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.modules</tt><p>The remaining kernel modules are loaded at this stage. This includes drivers for:</p>
+<ul>
+<li>Networking</li>
+<li>Multimedia</li>
+<li>Miscellaneous drivers</li>
+<li>SD Card</li>
+<li>Bluetooth</li>
+</ul>
+</td><td><img src="images//ig_loading_modules.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.updateqtopia</tt><p>The Greenphone supports updating the Qtopia via an image on a miniSD card. If a miniSD card is present it is mounted and checked for a valid image.</p>
+</td><td><img src="images//ig_checking_for_qtopia_update.png" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.usbnet</tt><p>If the USB client interface is configured as a network interface the interface is started.</p>
+<p>The Greenphone uses <tt>inetd</tt> to start networking servers on demand. The following services are available on the Greenphone:</p>
+<ul>
+<li>telnet</li>
+<li>ssh</li>
+<li>samba</li>
+</ul>
+</td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.sysinit</tt><p>Miscellaneous initialization including:</p>
+<ul>
+<li>setting the system clock</li>
+<li>bringing up the loopback interface</li>
+<li>setting the hostname</li>
+</ul>
+</td><td><img src="images//ig_initializing_system.png" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.lids first_boot</tt><p>Qtopia builds with SXE enabled benefit from kernel level Mandatory Access Controls (MACs). The Greenphone uses the LIDS security framework to implement MACs. If the kernel has LIDS support and an SXE enabled Qtopia is detected, once only initialization is performed.</p>
+</td><td><img src="images//ig_generating_lids_rules.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.bootcharger</tt><p>An animated battery charging screen is displayed if it is detected that the user plugged in the wall charger or USB cable to initiate the boot sequence. The battery charging screen is displayed until the user presses and holds the <tt>Hangup</tt> key for one to continue loading Qtopia or unplugs the cable to power off the Greenphone.</p>
+</td><td><img src="images//ig_qtopia_charging.gif" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.lids start</tt><p>Qtopia builds with SXE enabled benefit from kernel level Mandatory Access Controls (MACs). The Greenphone uses the LIDS security framework to implement MACs. If the kernel has LIDS support and an SXE enabled Qtopia is detected, LIDS is initialized and enabled.</p>
+</td><td><img src="images//ig_starting_lids.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/rc.d/rc.services start</tt><p>Qtopia depends on some underlying services for certain functionality. These services include:</p>
+<ul>
+<li>D-Bus</li>
+<li>BlueZ</li>
+</ul>
+</td><td><img src="images//ig_starting_services.png" /></td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.modules debug</tt><p>Additional kernel modules that are useful for debugging are loaded at this stage. This includes drivers for:</p>
+<ul>
+<li>NFS</li>
+<li>loop block device</li>
+</ul>
+</td><td><img src="images//ig_loading_debug_modules.png" /></td></tr>
+<tr valign="top" class="even"><td></td><td><tt>/etc/inittab</tt><p>The following services are started directly from the <tt>/sbin/init</tt> process and are automatically respawned if they terminate:</p>
+<ul>
+<li>syslogd</li>
+<li>klogd</li>
+<li>atd</li>
+</ul>
+</td></tr>
+<tr valign="top" class="odd"><td></td><td><tt>/etc/rc.d/rc.qtopia respawn</tt><p>The final stage of the startup process is to start Qtopia.</p>
+</td><td><img src="images//ig_starting_qtopia.png" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Qtopia</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="even"><td></td><td>Qtopia displays the HomeScreen once it has finished loading.</td><td><img src="images//ig_qtopia_homescreen.png" /></td></tr>
+</table></p>
+<a name="shutdown-sequence"></a>
+<h3>Shutdown Sequence</h3>
+<p>The following table lists the stages of the Greenphone shutdown process. The table contains a description of what actions are performed during each stage of the shutdown process and an image of what the user should see on the LCD screen during each stage.</p>
+<p><table width="100%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Shutdown Stage</th><th colspan="2">Description</th></tr>
+<tr valign="top" class="qt-style"><th>Qtopia</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="odd"><td></td><td><i>User initiated shutdown:</i> The user selects 'Shutdown' or 'Reboot' from the shutdown dialog. Qtopia executes the <tt>shutdown</tt> program with the appropriate arguments.<p><i>System initiated shutdown:</i> Qtopia will automatically shutdown if it detects a critical power condition.</p>
+</td><td><img src="images//ig_qtopia_shutdown_dialog.png" /></td></tr>
+<thead><tr valign="top" class="qt-style"><th>Init</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="even"><td></td><td colspan="2">The <tt>/sbin/init</tt> process controls the User Space shutdown sequence which is defined in the <tt>/etc/inittab</tt> file as follows:<ul>
+<li><tt>/etc/rc.d/rc.lids stop</tt>: If LIDS was enabled at boot, the system switches LIDS into the SHUTDOWN state.</li>
+<li><tt>/etc/rc.d/rc.services stop</tt>: All services are stopped.</li>
+<li><tt>/etc/rc.d/rc.sdcard</tt>: The miniSD card is unmounted.</li>
+<li><tt>/sbin/init</tt>: All remaining running processes are signaled to terminate, and then forcibly killed.</li>
+<li><tt>/sbin/init</tt>: All filesystems are unmounted or re-mounted read only.</li>
+<li><tt>/sbin/init</tt>: The kernel is signaled to power off or reboot the device.</li>
+</ul>
+<p><img src="images//ig_stopping_lids.gif" /> <img src="images//ig_stopping_services.gif" /> <img src="images//ig_shutting_down_system.gif" /></p>
+<p>During system-initiated shutdown a banner is displayed at the top of the screen indicating the cause of the shutdown. For example the following images are displayed during system shutdown caused by a low battery.</p>
+<p><img src="images//ig_stopping_lids_lp.gif" /> <img src="images//ig_stopping_services_lp.gif" /> <img src="images//ig_shutting_down_system_lp.gif" /></p>
+</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Power off/Reboot</th><th colspan="2"></th></tr></thead>
+<tr valign="top" class="odd"><td></td><td>The system is powered-off or reset.</td><td><img src="images//ig_black_screen.gif" /></td></tr>
+</table></p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

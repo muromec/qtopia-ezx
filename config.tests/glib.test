@@ -1,0 +1,10 @@
+#!/bin/sh
+pkgconfig=pkg-config
+if [ -n "$PKG_CONFIG_PREFIX" ]; then
+    # This lets the device profile override the prefix value in the .pc file
+    pkgconfig="pkg-config --define-variable=prefix=$PKG_CONFIG_PREFIX"
+fi
+$pkgconfig gthread-2.0 || exit 1
+echo GLIB_CFLAGS=`$pkgconfig gthread-2.0 --cflags`
+echo GLIB_LIBS=`$pkgconfig gthread-2.0 --libs`
+exit 0

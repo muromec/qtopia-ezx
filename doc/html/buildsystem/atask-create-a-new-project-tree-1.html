@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Create a new project tree</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Create a new project tree<br /><span class="subtitle"></span>
+</h1>
+<p>There is an example project tree located in examples/externaltree. To use this example properly you will need to copy it outside of the Qtopia directory.</p>
+<p>To create a new project keyword <tt>myapp</tt> that makes a Qtopia quicklaunchable application put this into tree_config.pri.</p>
+<pre>    keyword.myapp.equiv=qtopia app
+    keyword.myapp.commands+=\
+        &quot;CONFIG+=myapp&quot;\
+        &quot;CONFIG+=qtopia_main&quot;
+    PROJECT_KEYWORDS*=myapp</pre>
+<p>There is a library that all <tt>myapp</tt> apps should depend on implicitly. Put this in <tt>features/implicit_deps.prf</tt>.</p>
+<pre>    myapp:depends(src/libraries/mylib)</pre>
+<p>The dependency means we need a <tt>projects.pri</tt>.</p>
+<pre>    PROJECTS=\
+        src/libraries/mylib\
+        src/applications/myapp</pre>
+<p>To build all of the projects we need this in <tt>projecst.pro</tt>.</p>
+<pre>    qtopia_project(subdirs)
+    SUBDIRS=$$PROJECTS</pre>
+<p>To enable building part of the tree we have stub projects like this.</p>
+<pre>    qtopia_project(subdirs)</pre>
+<p>The projects to build come from <tt>projects.pri</tt>.</p>
+<p>There are test cases for mylib. They are placed under <tt>mylib/tests</tt> and a special <tt>tests.pro</tt> ensures they are all executed.</p>
+<pre>    qtopia_project(subdirs)
+    CONFIG+=build_all_dirs</pre>
+<p>See also <a href="advancedtasks.html">Advanced Tasks</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

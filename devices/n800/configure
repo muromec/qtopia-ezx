@@ -1,0 +1,22 @@
+-edition phone -xplatform nokia -arch arm -no-qvfb
+-reduce-exports=yes
+-qtopiamedia
+-mediaengines cruxus
+-sound-system alsa
+-helix-system-id linux-2.6-libc6-arm11-cross-gcc4
+-prefix /opt/Qtopia
+-no-sxe 
+-no-drm 
+-no-infrared
+-no-sxe
+-no-modem
+-extra-qtopiacore-config "-qt-mouse-tslib" 
+-extra-qtopiacore-config "-depths 8,16,32"
+-D QT_QWS_NOKIA
+-release
+-extra-qt-config -no-glib 
+-no-test
+-dbus
+-bluetooth
+
+

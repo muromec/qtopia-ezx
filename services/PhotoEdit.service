@@ -1,0 +1,7 @@
+[Translation]
+File=QtopiaServices
+Context=Photo Edit
+[Service]
+Actions = "editImage(QDSActionRequest)"
+Icon=PhotoEdit
+Name[]=Photo Edit

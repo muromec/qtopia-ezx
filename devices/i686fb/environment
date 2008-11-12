@@ -1,0 +1,6 @@
+#!/bin/sh
+TOOLCHAIN=/opt/toolchains/i686/gcc-3.4.3-glibc-2.3.4/i686-linux
+USE_TB=1
+TB_CC_PREFIX=i686-linux-
+TB_CC_VER=auto
+TB_SYS=x86:i686

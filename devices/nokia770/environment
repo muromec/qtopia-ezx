@@ -1,0 +1,6 @@
+#!/bin/sh
+TOOLCHAIN=/scratchbox/compilers/cs2005q3.2-glibc-arm
+USE_TB=0
+TB_CC_PREFIX=arm-linux-gnueabi-
+TB_CC_VER=auto
+TB_SYS=arm:nokia

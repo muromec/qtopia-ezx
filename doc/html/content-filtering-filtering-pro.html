@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>filtering.pro Example File (content/filtering/filtering.pro)</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">filtering.pro Example File<br /><span class="small-subtitle">content/filtering/filtering.pro</span>
+</h1>
+<pre>    qtopia_project(qtopia app)
+    TARGET=filtering
+    CONFIG+=no_tr
+
+    # Input
+    HEADERS += filterdemo.h
+    SOURCES += filterdemo.cpp main.cpp
+
+    desktop.files=filtering.desktop
+    desktop.path=/apps/Applications
+    desktop.trtarget=filtering-nct
+    desktop.hint=nct desktop
+    INSTALLS+=desktop
+
+    pics.files=pics/*
+    pics.path=/pics/filtering
+    pics.hint=pics
+    INSTALLS+=pics
+
+    help.source=help
+    help.files=filtering.html
+    help.hint=help
+    INSTALLS+=help
+
+    # SXE permissions required
+    pkg.domain=trusted
+    pkg.name=filtering
+    pkg.desc=This is a command line tool used to demonstrate database access and filtering
+    pkg.version=1.0.0-1
+    pkg.maintainer=Trolltech (www.trolltech.com)
+    pkg.license=GPL</pre>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,90 @@
+
+qtAddLibrary(QtDBus)
+
+isEmpty(QMAKE_QDBUSXML2CPP) {
+    win32:QMAKE_QDBUSXML2CPP = $$[QT_INSTALL_BINS]\qdbusxml2cpp.exe
+    else:QMAKE_QDBUSXML2CPP = $$[QT_INSTALL_BINS]/qdbusxml2cpp
+}
+
+for(DBUS_ADAPTOR, $$list($$unique(DBUS_ADAPTORS))) {
+
+    !contains(DBUS_ADAPTOR, .*\w\.xml$) {
+        warning("Invalid D-BUS adaptor: '$${DBUS_ADAPTOR}', please use 'com.mydomain.myinterface.xml' instead.")
+        next()
+    }
+
+    DBUS_ADAPTOR_LIST += $${DBUS_ADAPTOR}
+}
+
+dbus_adaptor_header.commands = $$QMAKE_QDBUSXML2CPP -a ${QMAKE_FILE_OUT}: ${QMAKE_FILE_IN}
+dbus_adaptor_header.output_function = dbus_adaptor_header_output
+dbus_adaptor_header.name = DBUSXML2CPP ADAPTOR HEADER ${QMAKE_FILE_IN}
+dbus_adaptor_header.variable_out = DBUS_ADAPTOR_HEADERS
+dbus_adaptor_header.input = DBUS_ADAPTOR_LIST
+
+defineReplace(dbus_adaptor_header_output) {
+    return("$$lower($$section($$list($$basename(1)),.,-2,-2))_adaptor.h")
+}
+
+dbus_adaptor_source.commands = $$QMAKE_QDBUSXML2CPP -i ${QMAKE_FILE_OUT_BASE}.h -a :${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+dbus_adaptor_source.output_function = dbus_adaptor_source_output
+dbus_adaptor_source.name = DBUSXML2CPP ADAPTOR SOURCE ${QMAKE_FILE_IN}
+dbus_adaptor_source.variable_out = SOURCES
+dbus_adaptor_source.input = DBUS_ADAPTOR_LIST
+
+load(moc)
+dbus_adaptor_moc.commands = $$moc_header.commands
+dbus_adaptor_moc.output = $$moc_header.output
+dbus_adaptor_moc.depends = $$dbus_adaptor_header.output
+dbus_adaptor_moc.input = DBUS_ADAPTOR_HEADERS
+dbus_adaptor_moc.variable_out = GENERATED_SOURCES
+dbus_adaptor_moc.name = $$moc_header.name
+
+defineReplace(dbus_adaptor_source_output) {
+    return("$$lower($$section($$list($$basename(1)),.,-2,-2))_adaptor.cpp")
+}
+
+QMAKE_EXTRA_COMPILERS += dbus_adaptor_header dbus_adaptor_source dbus_adaptor_moc
+
+
+for(DBUS_INTERFACE, $$list($$unique(DBUS_INTERFACES))) {
+
+    !contains(DBUS_INTERFACE, .*\w\.xml$) {
+        warning("Invalid D-BUS interface : '$${DBUS_INTERFACE}', please use 'com.mydomain.myinterface.xml' instead.")
+        next()
+    }
+
+    DBUS_INTERFACE_LIST += $${DBUS_INTERFACE}
+}
+
+dbus_interface_header.commands = $$QMAKE_QDBUSXML2CPP -p ${QMAKE_FILE_OUT}: ${QMAKE_FILE_IN}
+dbus_interface_header.output_function = dbus_interface_header_output
+dbus_interface_header.name = DBUSXML2CPP INTERFACE HEADER ${QMAKE_FILE_IN}
+dbus_interface_header.variable_out = DBUS_INTERFACE_HEADERS
+dbus_interface_header.input = DBUS_INTERFACE_LIST
+
+defineReplace(dbus_interface_header_output) {
+    return("$$lower($$section($$list($$basename(1)),.,-2,-2))_interface.h")
+}
+
+dbus_interface_source.commands = $$QMAKE_QDBUSXML2CPP -i ${QMAKE_FILE_OUT_BASE}.h -p :${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+dbus_interface_source.output_function = dbus_interface_source_output
+dbus_interface_source.name = DBUSXML2CPP INTERFACE SOURCE ${QMAKE_FILE_IN}
+dbus_interface_source.variable_out = SOURCES
+dbus_interface_source.input = DBUS_INTERFACE_LIST
+
+dbus_interface_moc.commands = $$moc_header.commands
+dbus_interface_moc.output = $$moc_header.output
+dbus_interface_moc.depends = $$dbus_interface_header.output
+dbus_interface_moc.input = DBUS_INTERFACE_HEADERS
+dbus_interface_moc.variable_out = GENERATED_SOURCES
+dbus_interface_moc.name = $$moc_header.name
+
+defineReplace(dbus_interface_source_output) {
+    return("$$lower($$section($$list($$basename(1)),.,-2,-2))_interface.cpp")
+}
+
+QMAKE_EXTRA_COMPILERS += dbus_interface_header dbus_interface_source dbus_interface_moc
+
+
+

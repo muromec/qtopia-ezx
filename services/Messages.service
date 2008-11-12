@@ -1,0 +1,11 @@
+[Translation]
+File=QtopiaServices
+Context=Email
+[Service]
+Actions = "viewNewMessages(bool);viewMessageId(QString)"
+Icon = email
+Name[]=Messages
+[viewNewMessages(bool)]
+Icon = phone/sms
+[viewMessageId(QString)]
+Icon = phone/sms

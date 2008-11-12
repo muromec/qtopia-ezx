@@ -1,0 +1,2 @@
+Example device configuration. TO change from using the Greenphone's tool chain edit the TOOLCHAIN value in the environment file in this directory. 
+See also http://doc.trolltech.com/qtopia/tut-deviceexample.html

@@ -1,0 +1,9 @@
+[Translation]
+File=QtopiaApplications
+Context=UsbGadget
+[Desktop Entry]
+Comment[]=Stop usb gadget
+Exec=usb-gadget-unload.sh
+Icon=devtools/devtools
+Type=ConsoleApplication
+Name[]=Stop usb gadget

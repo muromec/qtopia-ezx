@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Multimedia: Audio Management</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Multimedia: Audio Management<br><small>Functional Description</small></h1><p>
+<h2>Features</h2>
+<ul><li><a href="#QTOPIA-61">Policy Management</a>
+<li><a href="#QTOPIA-67">Sound Priority Levels</a>
+</ul><h3><a name=QTOPIA-61>Policy Management (QTOPIA-61)</a></h3>
+<p>Many embedded devices provide "hardwired" audio paths for various audio use cases.  Typical use cases are:
+<ul>
+	<li>Handset mode, audio out from handset ear speaker, audio in to modem microphone</li>
+	<li>Speakerphone mode, audio out from handset loud speaker, audio in to modem microphone</li>
+	<li>Headset mode, audio in/out from the headset</li>
+	<li>Bluetooth Headset mode, audio in/out from the Bluetooth wireless headset</li>
+	<li>Voice note recording mode, audio in from main microphone</li>
+	<li>Multimedia playback mode, audio out to main loud speaker</li>
+</ul>
+
+
+<p>A flexible model for modeling hardware audio device topology is provided.   The state of the audio system can be queried and modified.  The audio state model is generally well-suited to hardware assisted audio paths (for example, when on a phone call, no software intervention is required to route audio data from the microphone to the GSM modem).  However, software audio paths are also possible, (e.g. software intervention might be required to play  sound to a Bluetooth headset).  This framework also provides audio policy management by prioritizing audio profiles.  E.g. ring tones and phone call modes take precedence over multimedia playback, etc.</p>
+
+<p>The system is generally independent of the multimedia engine being used, although the use of software based audio routing might require specific implementation(s) for a given multimedia engine (e.g. Helix.)</p>
+<h3><a name=QTOPIA-67>Sound Priority Levels (QTOPIA-67)</a></h3>
+<p>Audio Management framework allows multiple audio playback domains, each with an associated priority level.  The configuration and priority levels are obtained from a platform specific audio configuration plugin.  This allows the system integrator to specify audio priorities, e.g. Multimedia, RingTone, PhoneCall &amp; Alarm.  Alarm would have a higher priority than Multimedia but lower than RingTone.
+<hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div>

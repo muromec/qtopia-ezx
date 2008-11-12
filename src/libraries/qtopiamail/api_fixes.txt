@@ -1,0 +1,133 @@
+Global
+DS Check capitalization, e.g. SMS -> Sms, RFC -> Rfc
+- Consider attachment life cycle
+MV - Private data class for all public classes
+MV - Change all incorrect usage of QString to QByteArray, including clients of QMailMessage::fromRfc822
+    Also, part properties (ASCII by definiion)
+MV - Do we (or should we) support multi-part message parts?  For example:
+        msg - "multipart/alternative"
+            part[0] - "text/plain"
+            part[1] - "multipart/related"
+                part[0] - "html"
+                part[1] - "image/jpeg"
+
+base64stream.h
+AW - make private
+
+common.h
+AW - go away
+
+longstream.h
+AW - make private (still need to resolve direct use in QtMail)
+
+longstring.h
+MV - make private and adjust QMailMessage where necessary.
+MV - change fromRfc822 to fromRfc822File
+
+qmailmessage.h
+MVDS - move enums to class definition
+MJ - check type() vs. messageType() and remove type()
+MV - remove fileName()
+MV - Do we need MessageType and EmailStatusFlag?
+    We do now that they are separated, which is logically more sensible
+DS remove MessageType Default and add Uknown and check for bad consequenses of type Unknown, or perhaps have no Unknown state
+        Note: due to the strange use of MessageType in the GenericViewer, I had to add 'None'.  I also needed 'Any', for QMailViewerFactory purposes.
+        Is the GenericViewer use reasonable, and if so, should be change it to something more conventional?
+MV - make fromRFC822() static
+MV - *Rfc822*() -> *Rfc2822*()
+MV - remove checkPath functionality
+AW - isValid() -> remove in favour of QMailId::isValid()
+AW - remove setId(int val);
+MV - move setPhoneRecipients() code to phoneRecipients() and remove setPhoneRecipients()
+        Note: this function is only used by emailhandler to detect SMS-ness - I think the code should move there, or possibly change that logic to use some other criterion...
+MV - Remove the setPhoneRecipients()/setMailRecipients above and use QMailAddress with to(), cc(), bcc() where necessary
+MV - move saveMail() functionality to mailmessagesql.cpp
+MV - make encodeMail() private and have toRfc822() call when necessary.  Check usage carefully!
+MV - remove encodeMail(QTextStream...) in favour of toRfc822(QTextStream) if possible - check carefully.
+AW - MailID -> QMailId
+MV - remove fromName(), fromEmail(), parseEmailAddress() and create QMailAddress
+MV - setDateTime() and setDateString() should be changed to use QMailTimeStamp
+MV - remove messageId() and setMessageId()
+MV - add bool testStatus()
+        Note: appears to be implemented incorrectly - does client code currently depend on brokenness?
+            Meta-note: this function now removed in favour of QFlags<> status implementation
+MV - add setStatus(QFlags<>) and setStatus(enum, bool)
+            MV - add extra overload to make this work...
+MV - unfinished() -> hasRecipients()
+- Consider removing fromAccount() setFromAccount() at some point in the future.
+- Consider removing fromMailBox() setFromMailBox() at some point in the future.
+- Consider removing serverUid() setServerUid() at some point in the future.
+MV - comment out setHtmlBody() until we actually implement it.
+MJ remove redundant "message" from messagePartCount() et al.
+MV - multipartRelated(), setMultipartRelated() -> setMultipart(enum Multipart)
+        Client code needs review - makes assumptions about multipart/mixed
+MJ - remove header and extra header distinction, somewhat
+MV - parseDate(QString in) formattedDateTimeString() move to QMailTimeStamp 
+MV - Try to move public static members to private
+AW - dirty(), setDirty() become private and dealt with internally (work in progress...)
+        Note: the situation here is confusing - there are two uses of setDirty: 1. that the files storing the mail or its parts have been modified; 2. that the mail's status has 
+        been changed.  The first use will be gone when setAttachmentInstalled() and validateFile() are removed.  The second use is not used internally, it is set only by qtmail 
+        application client code, and cleared when the email folder is updated.  Perhaps this can be replaced by a direct comparison of status values past and present?
+AW - remove setAttachmentInstalled() 
+AW - remove validateFile() and fix all usage.
+MV - move displayName() to somewhere else
+
+MJ MailMessagePart -> QMailMessagePart
+MJ bool operator==() should be const
+MV - remove contentDisposition(), setContentDisposition()
+MV - move prettyName() to displayName() - should use tr()
+MJ - remove linkFile(), setLinkFile() and use thereof
+- Allow access to part data without exposing files.\, i.e. no more storedFilename()
+MV - rename decodedBody() to body()
+MV - move data members to QMailMessagePrivate class
+
+qmailstore.h
+AW - Option -> RetrieveOption
+AW - query() return QMailIdList ordered list. Consider QContentSet optimization strategy.
+AW - QMailMessage(QMailId) constr.
+AW - Make private data classes.
+AW - CompareOp -> Operand  ( moved into Key classes. Doesn't feel right here.)
+
+qmailfolderkey.h
+AW - QMailFolderKey(const Property& p, const QVariant& value, const QMailStore::CompareOp& op=Equals) replaces other constr.
+AW - review use of operator|() const return.  (Works as expected)
+
+qmailfolder.h
+AW - parentFolderId() -> parentId()
+AW - QMailFolder(const QString& name = QString()...) -> remove QString() default parameter
+- Add static QMailId QMailFolder::rootId()
+AW - add QMailFolder::setParent() with big nasty "don't create cycles"
+
+qmailid.h
+AW - QMailId register as type Q_DECLARE_USER_METATYPE or similar
+AW - QMailId(const quint64& id) private.  db code as friend
+AW - remove QMailId(const QString& s)
+AW - operator quint64() const private.  db code as friend
+AW - add operator<() and operator==()
+
+qmailmessagekey.k
+AW - As per qmailfolderkey.h
+
+qmailcomposer.h
+MV - QMailComposerInterface::id() -> QMailComposerInterface::key()
+MV - setMailMessage( QMailMessage& mail ) maybe const QMailMessage
+MV - setMailMessage() -> setMessage(), mailMessage() -> message()
+
+qmailcomposerplugin.h
+MV - supports() -> isSupported()
+MV - id() -> key()
+
+qmailviewer.h
+MV - remove setPlainTextMode(), print()
+MV - setMailMessage() -> setMessage()
+- should there be a setResource(QString, QContent)?
+
+qmailviewerplugin.h
+MV - id() -> key()
+MV - supports() -> isSupported()
+
+qtmail_common.h
+MJ - Go away
+MJ - vCardPrefix() - explore setting mimetype in message instead
+MJ - sslCertsPath() - move to qtmail
+

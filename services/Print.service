@@ -1,0 +1,6 @@
+[Translation]
+File=QtopiaServices
+Context=QtopiaPrinting
+[Service]
+Actions="print(QString);print(QString,QString);printHtml(QString)"
+Name[]=Qtopia Printing Service

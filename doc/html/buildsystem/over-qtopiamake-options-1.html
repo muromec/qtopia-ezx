@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>qtopiamake Options</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">qtopiamake Options<br /><span class="subtitle"></span>
+</h1>
+<p>The authorative source of the available qtopiamake options is the script itself. Here is the output of <tt>qtopiamake -help</tt> as it was when the documentation was built.</p>
+<a name="qtopiamake-help"></a>
+<h3>qtopiamake -help</h3>
+<pre>    Usage:  qtopiamake [-release] [-debug] [-silent]
+                       [project.pro] [qmake statements]
+
+    Create Makefiles for the project tree in the current directory. A deep
+    clean will not be performed. See the -clean option if you want to
+    perform a deep clean.  You can specify the toplevel .pro file to use or
+    qtopiamake will select one automatically. You can pass qmake statements
+    to be evaluated before the .pro file.
+
+    Note that this is the default action of qtopiamake. You can pass one of
+    the flags indicated below to perform a different action.
+
+    Usage:  qtopiamake -project
+
+    Create a .pro based on the contents of the current directory.
+    This is equivalent to qmake -project but the .pro file is suitable for
+    the Qtopia build system. Note that unless you use QtopiaApplication or
+    the QTOPIA_MAIN macros the project will be a Qtopia Core project by
+    default.
+
+    Usage:  qtopiamake [-release] [-debug] [-silent]
+                       [-no-clean] -projectroots &lt;directory&gt; [directory] ...
+
+    Create Makefiles for the indicated project trees. If configure was run
+    with -clean this will deep clean each tree. If configure was run with
+    -no-clean or -no-clean is passed to qtopiamake a deep clean will not be
+    done.
+
+    Usage:  qtopiamake -clean &lt;dir&gt;
+
+    Perform a deep clean of a project tree.
+
+    Usage:  qtopiamake [-release] [-debug] [-silent]
+                       -multi-build &lt;id:dir&gt; [id:dir] ...
+
+    Build a project tree against multiple versions of Qtopia.
+    For every id:dir pair, multi-build/&lt;id&gt; will be created and
+    &lt;dir&gt;/bin/qtopiamake will be run. This lets you build against multiple
+    configurations and even multiple versions of Qtopia. Note that you need
+    to run qtopiamake again whenever you add new files so that they can be
+    symlinked into multi-build/&lt;id&gt;.</pre>
+<p>See also <a href="overviews.html">Overviews</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

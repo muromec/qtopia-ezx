@@ -1,0 +1,9 @@
+[Translation]
+File=QtopiaApplications
+Context=UsbGadget
+[Desktop Entry]
+Comment[]=Start usb storage gadget
+Exec=usb-gadget-storage.sh
+Icon=devtools/devtools
+Type=ConsoleApplication
+Name[]=Start usb storage gadget

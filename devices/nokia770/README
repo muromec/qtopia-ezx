@@ -1,0 +1,12 @@
+This document describes how to setup the toolchain for use with the n770 device configuration profile for the Nokia n770 device.
+Qtopia uses the cs2005q3.2 scratchbox toolchain.
+
+1) Install the scratchbox SDK for maemo. You can download it from here: http://www.scratchbox.org/download/scratchbox-apophis/.
+
+2) Copy the libts files from the n770 device and place then in: /scratchbox/compilers/cs2005q3.2-glibc-arm/arm-none-linux-gnueabi/sys-include
+
+3) run ./configure -device nokia770
+
+4) copy or scp image/ to your device and put it in /opt/Qtopia
+
+

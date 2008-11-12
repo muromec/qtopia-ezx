@@ -1,0 +1,16 @@
+-xplatform sharp -arch arm -no-qvfb
+-reduce-exports=yes
+-eval 'if ( &$helix_visref() ) { opt("qtopiamedia") = 1; opt("mediaengines") = "helix"; }'
+-helix-system-id linux-2.2-libc6-xscale-cross-gcc32
+-prefix /opt/Qtopia
+-sound-system oss
+-displaysize '480-640'
+-no-sxe -no-drm -no-ssl
+-extra-qtopiacore-config "-plugin-gfx-transformed" 
+-extra-qtopiacore-config "-qt-mouse-linuxtp" 
+-extra-qtopiacore-config "-qt-mouse-tslib" 
+-extra-qtopiacore-config "-depths 8,16,32" 
+-extra-qtopiacore-config "-qt-kbd-sl5000" 
+-D QT_QWS_KERNELKEYMAP
+-release
+-extra-qt-config -no-glib 

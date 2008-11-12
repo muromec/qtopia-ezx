@@ -1,0 +1,12 @@
+desktop {
+    # Disable use of the network and script libraries of Qt
+    QT-=network
+    QT-=script
+}
+embedded {
+    # Disable use of the script and svg libraries of Qtopia Core
+    QT-=script
+    QT-=svg
+}
+export(QT)
+load(last_minute_config)

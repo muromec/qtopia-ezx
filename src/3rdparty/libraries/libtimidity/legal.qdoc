@@ -1,0 +1,31 @@
+/*!
+\page legal-libtimidity.html
+\title libtimidity
+\ingroup qtopia3rdparty
+\legalese
+The code used here comes from a fork of the original project.
+
+\code
+libTiMidity -- MIDI to WAVE converter library
+Copyright (C) 1995 Tuukka Toivonen <toivonen@clinet.fi>
+Copyright (C) 2004 Konstantin Korikov <lostclus@ua.fm>
+
+The included source from TiMidity, is licensed under the terms of the GNU LGPL.
+Note that it may be available under additional licenses from other sources.
+\endcode
+
+Note that the original author relaxed the licensing when they abandoned the project,
+with the following grant:
+
+\code
+If you'd like to continue hacking on TiMidity, feel free. I'm hereby
+extending the TiMidity license agreement: you can now select the most
+convenient license for your needs from (1) the GNU GPL, (2) the GNU
+LGPL, or (3) the Perl Artistic License.
+\endcode
+
+Source file notices have been modified accordingly.
+
+See also \l{http://sca.uwaterloo.ca/www.cgs.fi/tt/timidity/}
+\endlegalese
+*/

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- /home/test1/tmp/qtopia/qtopia-opensource-4.3.4/src/qtopiadesktop/libraries/qtopiadesktop/qtopiadesktoplog.cpp -->
+<head>
+  <title>&lt;qtopiadesktoplog.h&gt; - &lt;qtopiadesktoplog.h&gt;</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Index</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">Classes</font></a>&nbsp;&middot; <a href="headers.html"><font color="#004faf">Headers</font></a>&nbsp;&middot; <a href="overviews.html"><font color="#004faf">Overviews</font></a> </td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">&lt;qtopiadesktoplog.h&gt; - &lt;qtopiadesktoplog.h&gt;<br /><span class="subtitle"></span>
+</h1>
+<p>The &lt;qtopiadesktoplog.h&gt; header contains the category definitions used in Qtopia Sync Agent. <a href="#details">More...</a></p>
+<ul>
+</ul>
+<a name="Functions"></a>
+<h3>Functions</h3>
+<ul>
+<li><div class="fn"/>bool <b><a href="qtopiadesktoplog-h.html#qtopiadesktopLogEnabled">qtopiadesktopLogEnabled</a></b> ( const char * <i>category</i> )</li>
+</ul>
+<a name="Macros"></a>
+<h3>Macros</h3>
+<ul>
+<li><div class="fn"/><b><a href="qtopiadesktoplog-h.html#QDLOG_OPTION">QDLOG_OPTION</a></b> (  <i>CATEGORY</i> )</li>
+</ul>
+<p>The &lt;qtopiadesktoplog.h&gt; header contains the category definitions used in Qtopia Sync Agent.</p>
+<pre></pre>
+<p>See also <a href="qlog-h.html">&lt;qlog.h&gt;</a>.</p>
+<hr />
+<h2>Function Documentation</h2>
+<h3 class="fn"><a name="qtopiadesktopLogEnabled"></a>bool qtopiadesktopLogEnabled ( const char * <i>category</i> )</h3>
+<p>This function returns true if <i>category</i> has been enabled.</p>
+<pre>        DesktopSettings settings( &quot;Log&quot; );
+        QVariant v = settings.value( category );
+        if ( v.isNull() ) {
+            v = DesktopSettings::debugMode()?1:0;
+            if ( category == &quot;TRACE&quot; )
+                v = 0;
+            settings.setValue( category, v );
+        }
+        bool ret = v.toBool();
+        (*cache)[QString(category)] = ret;
+        <span class="comment">//qDebug() &lt;&lt; &quot;category&quot; &lt;&lt; category &lt;&lt; ret;</span>
+        return ret;</pre>
+<hr />
+<h2>Macro Documentation</h2>
+<h3 class="fn"><a name="QDLOG_OPTION"></a>QDLOG_OPTION (  <i>CATEGORY</i> )</h3>
+<p>Register a category for conditional logging. This enables <a href="debug-qtopia.html">qLog</a>(<i>CATEGORY</i>) but the log messages are not displayed unless <i>CATEGORY</i> is enabled. This macro uses the <a href="qtopiadesktoplog-h.html#qtopiadesktopLogEnabled">qtopiadesktopLogEnabled</a>() function to check if <i>CATEGORY</i> is enabled.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Sync Agent Documentation</td>
+</tr></table></div></address></body>
+</html>

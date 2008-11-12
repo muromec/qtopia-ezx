@@ -1,0 +1,44 @@
+
+# Extra functions appended to /opt/Qtopia/SDK/scripts/functions for SDK
+
+greenphone_devnode()
+{
+  # prints devnode of greenphone usb network interface
+  for i in `ls -d /sys/class/net/{eth,usb}* 2>/dev/null`;
+  do
+    USB_INTERFACE=`ls -l $i/device 2>/dev/null | awk '{print $NF }'`
+    USB_DEVICE=`dirname $i/$USB_INTERFACE`
+    if [ -r $USB_DEVICE/idVendor ] && [ -r $USB_DEVICE/idProduct ] ; then
+      USB_VENDOR=`cat $USB_DEVICE/idVendor`
+      USB_PRODUCT=`cat $USB_DEVICE/idProduct`
+      if [ $USB_VENDOR = 6666 ] && [ $USB_PRODUCT = 0001 ] ; then
+        basename $i 
+      fi
+    fi
+  done
+}
+
+host_devnode()
+{
+	route -n | awk 'BEGIN{FS=" "}{print $4, $8}' | grep UG | awk 'BEGIN{FS=" "}{print $2}'
+}
+
+hostip()
+{
+  if [ -n "$HOSTDEVNODE" ] ; then
+    # prints host ip address
+    /sbin/ifconfig eth0|grep inet[^6]|awk 'BEGIN{FS=":"}{print $2}'|awk '{print $1}'
+  fi
+}
+
+phoneip()
+{
+    # prints greenphone ip address
+    sudo ping -I $DEVNODE -b 255.255.255.255 -n -c 1 2>/dev/null |grep "64 bytes"|awk '{print $4}'|sed -e 's/://g'
+}
+
+
+export DEVNODE=`greenphone_devnode`
+export HOSTDEVNODE=`host_devnode`
+export HOSTIP=`hostip`
+export PHONEIP=`phoneip`

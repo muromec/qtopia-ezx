@@ -1,0 +1,12 @@
+[Translation]
+File=QtopiaServices
+Context=qpe
+[Service]
+Actions = "multitask();showRunningTasks()"
+Name[]=System
+[multitask()]
+Icon=home
+Name[]="Multitask"
+[showRunningTasks()]
+Icon=home
+Name[]="Show Running Tasks"

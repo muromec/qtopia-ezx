@@ -1,0 +1,1 @@
+myapp:depends(src/libraries/mylib)

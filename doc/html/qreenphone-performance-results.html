@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Greenphone Performance Test Results</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Greenphone Performance Test Results<br /><span class="subtitle"></span>
+</h1>
+<a name="introduction"></a>
+<h2>Introduction</h2>
+<p>This page contains performance statistics for current and past releases of Qtopia, measured using the Greenphone. Some data is gathered automatically after each change to Qtopia, while other data is gathered manually.</p>
+<a name="device-specs"></a>
+<h2>Device specs</h2>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Type</th><th>Value</th></tr></thead>
+<tr valign="top" class="odd"><td><b>Vendor</b></td><td>Trolltech</td></tr>
+<tr valign="top" class="even"><td><b>Model</b></td><td>Greenphone</td></tr>
+<tr valign="top" class="odd"><td><b>Kernel</b></td><td>Linux kernel 2.4&#x2e;19</td></tr>
+<tr valign="top" class="even"><td><b>CPU</b></td><td>Intel(R) XScale(R) 312 MHz PXA270</td></tr>
+<tr valign="top" class="odd"><td><b>Baseband</b></td><td>processor Broadcom(R) BCM2121 GSM/GPRS baseband processor</td></tr>
+<tr valign="top" class="even"><td><b>Memory</b></td><td>64MB RAM &amp; 128MB Flash</td></tr>
+<tr valign="top" class="odd"><td><b>Display</b></td><td>QVGA(R) LCD color screen</td></tr>
+<tr valign="top" class="even"><td><b>Input</b></td><td>Touch-screen and keypad UI</td></tr>
+<tr valign="top" class="odd"><td><b>Features</b></td><td>Mini-SD(TM) card slot, Bluetooth(R) equipped, Mini-USB port</td></tr>
+</table></p>
+<a name="test-results"></a>
+<h2>Test Results</h2>
+<a name="linux-boot-time"></a>
+<h3>Linux Boot Time</h3>
+<p>This is the time between hitting the power button and when Qtopia (qpe) is launched. During this time, the Linux kernel and system services start.</p>
+<p><table width="60%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Version</th><th>Time (seconds)</th></tr></thead>
+<tr valign="top" class="odd"><td>Qtopia 4.3</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Qtopia 4.4</td><td>TBD</td></tr>
+</table></p>
+<a name="linux-qtopia-startup-time"></a>
+<h3>Linux + Qtopia Startup Time</h3>
+<p><i>In this context, the &quot;Qtopia startup time&quot; refers to the amount of time taken for a device to reach Qtopia's homescreen from the time the power button is pressed. This time can be further split into &quot;Linux&quot; and &quot;Qtopia&quot; times. The &quot;Linux&quot; startup time heavily depends on the root filesystem of the device, which can be very different between different devices and different configurations on the same device.</i></p>
+<p>Within the 4.2 series, from 4.2&#x2e;0 to (unreleased) 4.2&#x2e;5, startup time has decreased by approximately 15%, from ~70 seconds to ~60 seconds.</p>
+<p>From 4.2&#x2e;5 through 4.3&#x2e;x, Qtopia startup time has remained stable around the 60 second mark.</p>
+<p><table width="60%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Version</th><th>Time (seconds)</th></tr></thead>
+<tr valign="top" class="odd"><td>4.2&#x2e;0</td><td>70</td></tr>
+<tr valign="top" class="even"><td>4.2&#x2e;5</td><td>60 (-15 %)</td></tr>
+<tr valign="top" class="odd"><td>4.3&#x2e;0</td><td>60 (0%)</td></tr>
+<tr valign="top" class="even"><td>4.3&#x2e;1</td><td>60 (0%)</td></tr>
+<tr valign="top" class="odd"><td>4.4</td><td>TBD</td></tr>
+</table></p>
+<a name="qtopia-startup-time"></a>
+<h3>Qtopia Startup Time</h3>
+<a name="application-startup"></a>
+<h3>Application Startup</h3>
+<p><i>Note: in this context, the &quot;application startup time&quot; refers to the amount of time taken for an application to appear on the screen and respond to user input, after the user requests the application to launch itself.</i></p>
+<p>From 4.2&#x2e;5 through 4.3&#x2e;0, application startup time mostly decreased moderately due to improvements in the libraries. A few applications increased due to added functionality, and a few applications greatly decreased due to targeted efforts from developers. Mediaplayer suffered a significant performance regression between 4.2&#x2e;5 and 4.3&#x2e;0&#x2e;</p>
+<p>From 4.3&#x2e;0 through 4.3&#x2e;1, a few applications (including mediaplayer, bluetooth and games) have undergone targetted performance improvements. Mediaplayer, the only significant regression from 4.2 to 4.3, has become faster than it was in 4.2&#x2e;</p>
+<p>The below table shows the average warm startup times for each group of applications. Please note that any change of 5% or less could easily be due to variance in the data. Figures are rounded.</p>
+<p><table width="80%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Measured Value</th><th>4.2&#x2e;5</th><th>4.3&#x2e;0</th><th>4.3&#x2e;1</th><th>4.4</th></tr></thead>
+<tr valign="top" class="odd"><td><b>PIM</b></td><td>0.99</td><td>0.95 (-4%)</td><td>0.91 (-4%)</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td><b>Messaging</b></td><td>1.80</td><td>1.45 (-20%)</td><td>1.45 (0%)</td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td><b>Telephony</b></td><td>2.62</td><td>0.63 (-76%)</td><td>0.68 (+7%)</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td><b>Media</b></td><td>1.60</td><td>2.36 (+48%)</td><td>1.03 (-57%)</td><td>TBD</td></tr>
+</table></p>
+<a name="ram-usage"></a>
+<h3>RAM usage</h3>
+<p>The below table shows the effective memory usage of Qtopia on the Greenphone through a few releases. All sizes are in kilobytes. &quot;6 apps&quot; refers to having six core applications running simultaneously using Qtopia's multitasking feature. These figures are taken after Qtopia and the applications have actively been used.</p>
+<p>The <b>All six</b> test refers to having all six tested applications running simultaneously using Qtopia's multitasking mechanism.</p>
+<p><table width="80%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Measured Value</th><th>4.2&#x2e;5</th><th>4.3&#x2e;1</th><th>4.4</th></tr></thead>
+<tr valign="top" class="odd"><td><b>homescreen</b></td><td>22060</td><td>25068 (+13%)</td><td>26300 (+5%)</td></tr>
+<tr valign="top" class="even"><td><b>Contacts</b></td><td>24304</td><td>28304 (+16%)</td><td>29096 (+3%)</td></tr>
+<tr valign="top" class="odd"><td><b>Messages</b></td><td>24324</td><td>27200 (+12%)</td><td>28548 (+5%)</td></tr>
+<tr valign="top" class="even"><td><b>Calendar</b></td><td>24468</td><td>27604 (+13%)</td><td>29596 (+7%)</td></tr>
+<tr valign="top" class="odd"><td><b>Tasks</b></td><td>24116</td><td>27224 (+13%)</td><td>28652 (+5%)</td></tr>
+<tr valign="top" class="even"><td><b>Calculator</b></td><td>24080</td><td>28564 (+18%)</td><td>28112 (-2%)</td></tr>
+<tr valign="top" class="odd"><td><b>Clock</b></td><td>23772</td><td>26816 (+13%)</td><td>27952 (+4%)</td></tr>
+<tr valign="top" class="even"><td><b>All six</b></td><td>34004</td><td>38680 (+14%)</td><td>39832 (+3%)</td></tr>
+</table></p>
+<a name="ui-performance"></a>
+<h3>UI Performance</h3>
+<p>The following table presents key UI performance indicators.</p>
+<p><table width="80%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>ID</th><th>Function</th><th>Performance Indicator</th><th>Details</th><th>Target</th><th>2.1&#x2e;0</th><th>2.2&#x2e;0</th><th>4.1&#x2e;0</th><th>4.1&#x2e;2</th><th>4.4</th></tr></thead>
+<tr valign="top" class="odd"><td>Perf_001</td><td>Menu</td><td>Display a Menu</td><td>In standby display status, confirm the time taken to display the main menu.</td><td>500ms</td><td>126ms</td><td>&lt;500ms</td><td></td><td>&lt;500ms</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_002</td><td>Menu</td><td>Close a Menu</td><td>In the Menu screen, after ending a call the time taken to return to the home screen.</td><td>500ms</td><td>112ms</td><td>&lt;500ms</td><td></td><td>&lt;500ms</td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_003</td><td>Menu</td><td>Display a submenu from the main menu</td><td>From the Main Menu, confirm the time taken to display the Applications sub menu.</td><td>500ms</td><td>113 ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_004</td><td>Menu</td><td>Display a submenu from the main menu</td><td>From the Main Menu, confirm the time taken to display the Settings sub menu.</td><td>500ms</td><td>113 ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_005</td><td>Documents</td><td>Display the Documents list</td><td>From the Main Menu, confirm the time taken to display the Documents list.</td><td>500ms</td><td>113 ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>&lt;500ms</td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_006</td><td>Phonebook</td><td>Display Phonebook</td><td>From the Home screen, confirm the time taken to open the phonebook.</td><td>500ms</td><td>1355ms</td><td>1752ms</td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_007</td><td>Phonebook</td><td>Phonebook search time</td><td>Confirm the time between pressing the search menu in Phonebook and presentation of the search result. Note: Phonebook must be filled with 700 entries each consisting of a 26-digit phone number, phone numbers must be the same except for the last 3 digits.</td><td>500ms</td><td>5962ms</td><td></td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_008</td><td>Phonebook</td><td>Add Contact</td><td>Time from submitting a contact to returning to the home screen</td><td>3000ms</td><td>2633ms</td><td></td><td>2040ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_009</td><td>Call History</td><td>Display Call History</td><td>Time taken to display Call History from the home screen</td><td>500ms</td><td></td><td>&lt;500ms</td><td>&lt;500ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_010</td><td>Dialer</td><td>Dialer input and display</td><td>In the home screen confirm the time between inputting 1 digit and when it is displayed</td><td>300ms</td><td>86ms</td><td>&lt;300ms</td><td>&lt;300ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_011</td><td>Messaging</td><td>Display Inbox</td><td>Time taken from selecting the inbox to the messages being displayed</td><td>700ms</td><td>300ms</td><td>&lt;300ms</td><td>&lt;300ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_012</td><td>Messaging</td><td>Closing</td><td>Confirm the time elapsed between mail list display and closing using end key. Close after receiving 100 messages and opening all messages.</td><td>700ms</td><td>266ms</td><td>&lt;700ms</td><td>&lt;700ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_013</td><td>Messaging</td><td>Closing</td><td>Confirm the time elapsed between mail list display and returning to the folder selection screen using the clear key. Close after receiving 100 messages and opening all messages.</td><td>700ms</td><td>100ms</td><td>&lt;700ms</td><td>&lt;700ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_014</td><td>Messaging</td><td>Select Compose New</td><td>Measure the time elapsed between selecting compose new message when the startup is completed.</td><td>700ms</td><td>133ms</td><td>&lt;700ms</td><td>&lt;700ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_015</td><td>Messaging</td><td>From message creation screen to message menu screen</td><td>Confirm the time elapsed between message creation screen and returning to the messaging menu screen using the clear key.</td><td>700ms</td><td>200ms</td><td>&lt;700ms</td><td>&lt;700ms</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_016</td><td>Messaging</td><td>Delete All (300 messages)</td><td>When there are 300 messages, confirm the time elapsed between requesting delete all and the display of the message list screen.</td><td>3000ms</td><td>11833ms</td><td>N/A</td><td>N/A</td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_017</td><td>Input Methods</td><td>Text Input</td><td>Confirm the response to text input in Notes. Note: Input &quot;akasatana&quot; continuously. Measure the time elapsed between the key input and its display.</td><td>200ms</td><td>&lt;100ms</td><td>&lt;200ms</td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_018</td><td>Input Methods</td><td>Text Input</td><td>Confirm the response to text input of the first letter in Messages. Note: Input &quot;akasatana&quot; continuously. Measure the time elapsed between the key input and its display.</td><td>300ms</td><td>&lt;300ms</td><td>&lt;300ms</td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_019</td><td>Image Viewer</td><td>Still image display time</td><td>Confirm the time elapsed between selecting a still image file saved in handset memory and the still image display (VGA (image captured by camera))</td><td>VGA: 1500ms</td><td>600ms</td><td></td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_020</td><td>Media Player</td><td>Video display performance: Frame rate</td><td>Confirm the frame refresh speed of video portion during replaying a video file.</td><td>30fps</td><td>30fps</td><td></td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="odd"><td>Perf_021</td><td>Image Viewer</td><td>Still image display time</td><td>Confirm the time elapsed between selecting a still image file saved in handset memory and the still image display (VGA(100K))</td><td>VGA(100K): 1500ms</td><td>600ms</td><td></td><td></td><td></td><td>TBD</td></tr>
+<tr valign="top" class="even"><td>Perf_022</td><td>Image Viewer</td><td>Still image display time</td><td>Confirm the processing time to delete a file saved in handset memory from Still Image Display screen (between selecting to delete 1 item and file list display). (VGA(100K))</td><td>VGA(100K): 3000ms</td><td>300ms</td><td></td><td></td><td></td><td>TBD</td></tr>
+</table></p>
+<a name="binary-sizes"></a>
+<h3>Binary Sizes</h3>
+<p>Only uncompressed filesystem sizes are currently calculated.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

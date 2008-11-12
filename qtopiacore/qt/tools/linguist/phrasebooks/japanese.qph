@@ -1,0 +1,851 @@
+<!DOCTYPE QPH><QPH>
+<phrase>
+    <source>About</source>
+    <target>ã«ã¤ãã¦</target>
+</phrase>
+<phrase>
+    <source>access key</source>
+    <target>ã¢ã¯ã»ã¹ã­ã¼</target>
+</phrase>
+<phrase>
+    <source>accessibility</source>
+    <target>ã¦ã¼ã¶ã¼è£å©</target>
+</phrase>
+<phrase>
+    <source>action handle</source>
+    <target>ã¢ã¯ã·ã§ã³ãã³ãã«</target>
+</phrase>
+<phrase>
+    <source>active</source>
+    <target>ã¢ã¯ãã£ã</target>
+</phrase>
+<phrase>
+    <source>active end</source>
+    <target>ã¢ã¯ãã£ãã¨ã³ã</target>
+</phrase>
+<phrase>
+    <source>active object</source>
+    <target>ã¢ã¯ãã£ããªãã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>active window</source>
+    <target>ã¢ã¯ãã£ãã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>adornment</source>
+    <target>è£é£¾</target>
+</phrase>
+<phrase>
+    <source>Always on Top</source>
+    <target>å¸¸ã«æåã«è¡¨ç¤º</target>
+</phrase>
+<phrase>
+    <source>anchor point</source>
+    <target>ã¢ã³ã«ã¼ãã¤ã³ã</target>
+</phrase>
+<phrase>
+    <source>Apply</source>
+    <target>é©ç¨</target>
+</phrase>
+<phrase>
+    <source>auto-exit</source>
+    <target>èªåçµäº</target>
+</phrase>
+<phrase>
+    <source>automatic link</source>
+    <target>ãªã¼ããªã³ã¯</target>
+</phrase>
+<phrase>
+    <source>automatic scrolling</source>
+    <target>ãªã¼ãã¹ã¯ã­ã¼ã«</target>
+</phrase>
+<phrase>
+    <source>auto-repeat</source>
+    <target>èªåç¹°ãè¿ã</target>
+</phrase>
+<phrase>
+    <source>autoscroll</source>
+    <target>èªåã¹ã¯ã­ã¼ã«</target>
+</phrase>
+<phrase>
+    <source>Back</source>
+    <target>æ»ã</target>
+</phrase>
+<phrase>
+    <source>barrel button</source>
+    <target>ä¸¸ãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>Browse</source>
+    <target>åç§</target>
+</phrase>
+<phrase>
+    <source>Cancel</source>
+    <target>ã­ã£ã³ã»ã«</target>
+</phrase>
+<phrase>
+    <source>cascading menu</source>
+    <target>ã«ã¹ã±ã¼ãã¡ãã¥ã¼</target>
+</phrase>
+<phrase>
+    <source>check box</source>
+    <target>ãã§ãã¯ããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>check mark</source>
+    <target>ãã§ãã¯ãã¼ã¯</target>
+</phrase>
+<phrase>
+    <source>child window</source>
+    <target>å­ã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>choose</source>
+    <target>é¸æ</target>
+</phrase>
+<phrase>
+    <source>click</source>
+    <target>ã¯ãªãã¯</target>
+</phrase>
+<phrase>
+    <source>Clipboard</source>
+    <target>ã¯ãªãããã¼ã</target>
+</phrase>
+<phrase>
+    <source>Close</source>
+    <target>éãã</target>
+</phrase>
+<phrase>
+    <source>Close button</source>
+    <target>éãããã¿ã³</target>
+</phrase>
+<phrase>
+    <source>collapse</source>
+    <target>éè¡¨ç¤º</target>
+    <definition>ã»ã«ãªã©</definition>
+</phrase>
+<phrase>
+    <source>collapse</source>
+    <target>æãããã¿</target>
+    <definition>XML</definition>
+</phrase>
+<phrase>
+    <source>column heading</source>
+    <target>åè¦åºã</target>
+</phrase>
+<phrase>
+    <source>combo box</source>
+    <target>ã³ã³ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>command button</source>
+    <target>ã³ãã³ããã¿ã³</target>
+</phrase>
+<phrase>
+    <source>container</source>
+    <target>ã³ã³ãã</target>
+</phrase>
+<phrase>
+    <source>context-sensitive Help</source>
+    <target>æèä¾å­ã®ãã«ã</target>
+</phrase>
+<phrase>
+    <source>contextual</source>
+    <target>æèã®</target>
+</phrase>
+<phrase>
+    <source>control</source>
+    <target>ã³ã³ãã­ã¼ã«</target>
+</phrase>
+<phrase>
+    <source>Copy</source>
+    <target>ã³ãã¼</target>
+</phrase>
+<phrase>
+    <source>Copy here</source>
+    <target>ããã«ã³ãã¼</target>
+</phrase>
+<phrase>
+    <source>Create Shortcut</source>
+    <target>ã·ã§ã¼ãã«ãããä½æ</target>
+</phrase>
+<phrase>
+    <source>Create Shortcut Here</source>
+    <target>ã·ã§ã¼ãã«ãããããã«ä½æ</target>
+</phrase>
+<phrase>
+    <source>Cut</source>
+    <target>åãåã</target>
+</phrase>
+<phrase>
+    <source>default</source>
+    <target>æ¢å®</target>
+</phrase>
+<phrase>
+    <source>default button</source>
+    <target>æ¢å®ã®ãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>Delete</source>
+    <target>åé¤</target>
+</phrase>
+<phrase>
+    <source>desktop</source>
+    <target>ãã¹ã¯ããã</target>
+</phrase>
+<phrase>
+    <source>destination</source>
+    <target>ã³ãã¼å</target>
+    <definition>ãã¡ã¤ã«ãªã©</definition>
+</phrase>
+<phrase>
+    <source>destination</source>
+    <target>éä¿¡å</target>
+    <definition>FAXããããã¯ã¼ã¯ãªã©</definition>
+</phrase>
+<phrase>
+    <source>destination</source>
+    <target>å¤æå</target>
+    <definition>æå­ã³ã¼ãããã¡ã¤ã«å½¢å¼ãªã©</definition>
+</phrase>
+<phrase>
+    <source>destination</source>
+    <target>åºåå</target>
+    <definition>ã­ã°ããã¡ã¤ã«ãªã©</definition>
+</phrase>
+<phrase>
+    <source>dialog box</source>
+    <target>ãã¤ã¢ã­ã°ããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>disability</source>
+    <target>éå®³</target>
+</phrase>
+<phrase>
+    <source>disjoint selection</source>
+    <target>é¢ããè¤æ°é ç®ãé¸æ</target>
+</phrase>
+<phrase>
+    <source>dock</source>
+    <target>ããã¯</target>
+</phrase>
+<phrase>
+    <source>document</source>
+    <target>ãã­ã¥ã¡ã³ã</target>
+</phrase>
+<phrase>
+    <source>double-click</source>
+    <target>ããã«ã¯ãªãã¯</target>
+</phrase>
+<phrase>
+    <source>double-tap</source>
+    <target>ããã«ã¿ãã</target>
+</phrase>
+<phrase>
+    <source>drag</source>
+    <target>ãã©ãã°</target>
+</phrase>
+<phrase>
+    <source>drag-and-drop</source>
+    <target>ãã©ãã°ã¢ã³ããã­ãã</target>
+</phrase>
+<phrase>
+    <source>drop-down combo box</source>
+    <target>ãã­ãããã¦ã³ã³ã³ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>drop-down list box</source>
+    <target>ãã­ãããã¦ã³ãªã¹ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>drop-down menu</source>
+    <target>ãã­ãããã¦ã³ã¡ãã¥ã¼</target>
+</phrase>
+<phrase>
+    <source>Edit</source>
+    <target>ç·¨é</target>
+</phrase>
+<phrase>
+    <source>Edit menu</source>
+    <target>ç·¨éã¡ãã¥ã¼</target>
+</phrase>
+<phrase>
+    <source>ellipsis</source>
+    <target>çç¥</target>
+</phrase>
+<phrase>
+    <source>embedded object</source>
+    <target>åãè¾¼ã¿ãªãã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>Exit</source>
+    <target>çµäº</target>
+</phrase>
+<phrase>
+    <source>expand</source>
+    <target>å±éãã</target>
+</phrase>
+<phrase>
+    <source>Explore</source>
+    <target>ã¨ã¯ã¹ãã­ã¼ã©</target>
+</phrase>
+<phrase>
+    <source>extended selection</source>
+    <target>æ¡å¼µé¸æ</target>
+    <definition>F8</definition>
+</phrase>
+<phrase>
+    <source>extended selection list box</source>
+    <target>æ¡å¼µé¸æãªã¹ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>file</source>
+    <target>ãã¡ã¤ã«</target>
+</phrase>
+<phrase>
+    <source>File</source>
+    <target>ãã¡ã¤ã«</target>
+</phrase>
+<phrase>
+    <source>Find</source>
+    <target>æ¤ç´¢</target>
+</phrase>
+<phrase>
+    <source>Find Next</source>
+    <target>æ¬¡ãæ¤ç´¢</target>
+</phrase>
+<phrase>
+    <source>Find What</source>
+    <target>æ¤ç´¢ããæå­å</target>
+</phrase>
+<phrase>
+    <source>folder</source>
+    <target>ãã©ã«ã</target>
+</phrase>
+<phrase>
+    <source>font</source>
+    <target>ãã©ã³ã</target>
+</phrase>
+<phrase>
+    <source>font size</source>
+    <target>ãã©ã³ããµã¤ãº</target>
+</phrase>
+<phrase>
+    <source>font style</source>
+    <target>ãã©ã³ãã¹ã¿ã¤ã«</target>
+</phrase>
+<phrase>
+    <source>function key</source>
+    <target>ãã¡ã³ã¯ã·ã§ã³ã­ã¼</target>
+</phrase>
+<phrase>
+    <source>gesture</source>
+    <target>ã¸ã§ã¹ãã£ã¼</target>
+</phrase>
+<phrase>
+    <source>glyph</source>
+    <target>æ¨è­</target>
+</phrase>
+<phrase>
+    <source>group box</source>
+    <target>ã°ã«ã¼ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>handle</source>
+    <target>ãã³ãã«</target>
+</phrase>
+<phrase>
+    <source>Help</source>
+    <target>ãã«ã</target>
+</phrase>
+<phrase>
+    <source>Hide</source>
+    <target>éè¡¨ç¤º</target>
+</phrase>
+<phrase>
+    <source>hold</source>
+    <target>ä¿ç</target>
+</phrase>
+<phrase>
+    <source>hot spot</source>
+    <target>ãããã¹ããã</target>
+</phrase>
+<phrase>
+    <source>hot zone</source>
+    <target>ãããã¾ã¼ã³</target>
+</phrase>
+<phrase>
+    <source>icon</source>
+    <target>ã¢ã¤ã³ã³</target>
+</phrase>
+<phrase>
+    <source>inactive</source>
+    <target>éã¢ã¯ãã£ã</target>
+</phrase>
+<phrase>
+    <source>inactive window</source>
+    <target>éã¢ã¯ãã£ãã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>ink</source>
+    <target>ã¤ã³ã¯</target>
+</phrase>
+<phrase>
+    <source>ink edit</source>
+    <target>ã¤ã³ã¯ã¨ãã£ãã</target>
+</phrase>
+<phrase>
+    <source>input focus</source>
+    <target>å¥åãã©ã¼ã«ã¹</target>
+</phrase>
+<phrase>
+    <source>Insert</source>
+    <target>æ¿å¥</target>
+</phrase>
+<phrase>
+    <source>Insert Object</source>
+    <target>ãªãã¸ã§ã¯ãã®æ¿å¥</target>
+</phrase>
+<phrase>
+    <source>insertion point</source>
+    <target>æ¿å¥ä½ç½®</target>
+</phrase>
+<phrase>
+    <source>italic</source>
+    <target>æä½</target>
+</phrase>
+<phrase>
+    <source>label</source>
+    <target>ã©ãã«</target>
+</phrase>
+<phrase>
+    <source>landscape</source>
+    <target>æ¨ª</target>
+</phrase>
+<phrase>
+    <source>lens</source>
+    <target>ã¬ã³ãº</target>
+</phrase>
+<phrase>
+    <source>link</source>
+    <target>ãªã³ã¯</target>
+</phrase>
+<phrase>
+    <source>Link Here</source>
+    <target>ããã«ãªã³ã¯</target>
+</phrase>
+<phrase>
+    <source>list box</source>
+    <target>ãªã¹ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>list view</source>
+    <target>ä¸è¦§ã®è¡¨ç¤º</target>
+</phrase>
+<phrase>
+    <source>manual link</source>
+    <target>æåãªã³ã¯</target>
+</phrase>
+<phrase>
+    <source>Maximize</source>
+    <target>æå¤§å</target>
+</phrase>
+<phrase>
+    <source>maximize button</source>
+    <target>æå¤§åãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>MDI</source>
+    <target>MDI</target>
+</phrase>
+<phrase>
+    <source>menu</source>
+    <target>ã¡ãã¥ã¼</target>
+</phrase>
+<phrase>
+    <source>menu bar</source>
+    <target>ã¡ãã¥ã¼ãã¼</target>
+</phrase>
+<phrase>
+    <source>menu button</source>
+    <target>ã¡ãã¥ã¼ãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>menu item</source>
+    <target>ã¡ãã¥ã¼é ç®</target>
+</phrase>
+<phrase>
+    <source>menu title</source>
+    <target>ã¡ãã¥ã¼ã¿ã¤ãã«</target>
+</phrase>
+<phrase>
+    <source>message box</source>
+    <target>ã¡ãã»ã¼ã¸ããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>Minimize</source>
+    <target>æå°å</target>
+</phrase>
+<phrase>
+    <source>minimize button</source>
+    <target>æå°åãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>modal</source>
+    <target>ã¢ã¼ãã«</target>
+</phrase>
+<phrase>
+    <source>mode</source>
+    <target>ã¢ã¼ã</target>
+</phrase>
+<phrase>
+    <source>modeless</source>
+    <target>ã¢ã¼ãã¬ã¹</target>
+</phrase>
+<phrase>
+    <source>modifier key</source>
+    <target>ä¿®é£¾ã­ã¼</target>
+</phrase>
+<phrase>
+    <source>mouse</source>
+    <target>ãã¦ã¹</target>
+</phrase>
+<phrase>
+    <source>Move</source>
+    <target>ç§»å</target>
+</phrase>
+<phrase>
+    <source>Move Here</source>
+    <target>ããã«ç§»å</target>
+</phrase>
+<phrase>
+    <source>Multiple Document Interface</source>
+    <target>ãã«ããã­ã¥ã¡ã³ãã¤ã³ã¿ã¼ãã§ã¤ã¹</target>
+</phrase>
+<phrase>
+    <source>multiple selection list box</source>
+    <target>è¤æ°é¸æãªã¹ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>My Computer</source>
+    <target>ãã¤ã³ã³ãã¥ã¼ã¿</target>
+</phrase>
+<phrase>
+    <source>Network Neighborhood</source>
+    <target>ãããã¯ã¼ã¯ã³ã³ãã¥ã¼ã¿</target>
+</phrase>
+<phrase>
+    <source>New</source>
+    <target>æ°è¦</target>
+</phrase>
+<phrase>
+    <source>Next</source>
+    <target>æ¬¡ã¸</target>
+</phrase>
+<phrase>
+    <source>object</source>
+    <target>ãªãã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>OK</source>
+    <target>OK</target>
+</phrase>
+<phrase>
+    <source>OLE</source>
+    <target>OLE</target>
+</phrase>
+<phrase>
+    <source>OLE drag and drop</source>
+    <target>OLEãã©ãã°ã¢ã³ããã­ãã</target>
+</phrase>
+<phrase>
+    <source>OLE embedded object</source>
+    <target>OLE åãè¾¼ã¿ãªãã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>OLE linked object</source>
+    <target>OLE ãªã³ã¯ãªãã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>OLE nondefault drag and drop</source>
+    <target>OLE ãã³ããã©ã«ããã©ãã°ã¢ã³ããã­ãã</target>
+</phrase>
+<phrase>
+    <source>Open</source>
+    <target>éã</target>
+</phrase>
+<phrase>
+    <source>Open With</source>
+    <target>ã¢ããªã±ã¼ã·ã§ã³ããéã</target>
+</phrase>
+<phrase>
+    <source>option button</source>
+    <target>ãªãã·ã§ã³ãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>option-set</source>
+    <target>ãªãã·ã§ã³ã»ãã</target>
+</phrase>
+<phrase>
+    <source>package</source>
+    <target>ããã±ã¼ã¸</target>
+</phrase>
+<phrase>
+    <source>Page Setup</source>
+    <target>ãã¼ã¸è¨­å®</target>
+</phrase>
+<phrase>
+    <source>palette window</source>
+    <target>ãã¬ããã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>pane</source>
+    <target>ãã¤ã³</target>
+</phrase>
+<phrase>
+    <source>parent window</source>
+    <target>è¦ªã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>password</source>
+    <target>ãã¹ã¯ã¼ã</target>
+</phrase>
+<phrase>
+    <source>Paste</source>
+    <target>è²¼ãä»ã</target>
+</phrase>
+<phrase>
+    <source>Paste Link</source>
+    <target>ãªã³ã¯è²¼ãä»ã</target>
+</phrase>
+<phrase>
+    <source>Paste Shortcut</source>
+    <target>ã·ã§ã¼ãã«ããã®è²¼ãä»ã</target>
+</phrase>
+<phrase>
+    <source>Paste Special</source>
+    <target>å½¢å¼ãé¸æãã¦è²¼ãä»ã</target>
+</phrase>
+<phrase>
+    <source>path</source>
+    <target>ãã¹</target>
+</phrase>
+<phrase>
+    <source>Pause</source>
+    <target>ä¸æåæ­¢</target>
+</phrase>
+<phrase>
+    <source>pen</source>
+    <target>ãã³</target>
+</phrase>
+<phrase>
+    <source>Play</source>
+    <target>åç</target>
+</phrase>
+<phrase>
+    <source>Plug and Play</source>
+    <target>ãã©ã°ã¢ã³ããã¬ã¤</target>
+</phrase>
+<phrase>
+    <source>point</source>
+    <target>ãã¤ã³ã</target>
+</phrase>
+<phrase>
+    <source>pointer</source>
+    <target>ãã¤ã³ã¿</target>
+</phrase>
+<phrase>
+    <source>pop-up menu</source>
+    <target>ãããã¢ããã¡ãã¥ã¼</target>
+</phrase>
+<phrase>
+    <source>pop-up window</source>
+    <target>ãããã¢ããã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>portrait</source>
+    <target>ç¸¦</target>
+</phrase>
+<phrase>
+    <source>press</source>
+    <target>æ¼ã</target>
+</phrase>
+<phrase>
+    <source>primary container</source>
+    <target>ãã©ã¤ããªã³ã³ãã</target>
+</phrase>
+<phrase>
+    <source>primary window</source>
+    <target>ãã©ã¤ããªã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>Print</source>
+    <target>å°å·</target>
+</phrase>
+<phrase>
+    <source>printer</source>
+    <target>ããªã³ã¿</target>
+</phrase>
+<phrase>
+    <source>progress indicator</source>
+    <target>é²è¡ç¶æ³ã¤ã³ã¸ã±ã¼ã¿</target>
+</phrase>
+<phrase>
+    <source>project</source>
+    <target>ãã­ã¸ã§ã¯ã</target>
+</phrase>
+<phrase>
+    <source>Properties</source>
+    <target>ãã­ããã£</target>
+</phrase>
+<phrase>
+    <source>property inspector</source>
+    <target>ãã­ããã£ã¤ã³ã¹ãã¯ã¿ã¼</target>
+</phrase>
+<phrase>
+    <source>property page</source>
+    <target>ãã­ããã£ãã¼ã¸</target>
+</phrase>
+<phrase>
+    <source>property sheet</source>
+    <target>ãã­ããã£ã·ã¼ã</target>
+</phrase>
+<phrase>
+    <source>property sheet control</source>
+    <target>ãã­ããã£ã·ã¼ãã³ã³ãã­ã¼ã«</target>
+</phrase>
+<phrase>
+    <source>Quick View</source>
+    <target>ã¯ã¤ãã¯ãã¥ã¼ã¢</target>
+</phrase>
+<phrase>
+    <source>read-only</source>
+    <target>èª­ã¿åãå°ç¨</target>
+</phrase>
+<phrase>
+    <source>recognition</source>
+    <target>èªè­</target>
+</phrase>
+<phrase>
+    <source>Recycle Bin</source>
+    <target>ãã¿ç®±</target>
+</phrase>
+<phrase>
+    <source>Redo</source>
+    <target>ããç´ã</target>
+</phrase>
+<phrase>
+    <source>region selection</source>
+    <target>ç¯å²é¸æ</target>
+</phrase>
+<phrase>
+    <source>registry</source>
+    <target>ã¬ã¸ã¹ããª</target>
+</phrase>
+<phrase>
+    <source>Repeat</source>
+    <target>ç¹°ãè¿ã</target>
+</phrase>
+<phrase>
+    <source>Replace</source>
+    <target>ç½®æ</target>
+</phrase>
+<phrase>
+    <source>Restore</source>
+    <target>åã«æ»ã</target>
+</phrase>
+<phrase>
+    <source>Restore button</source>
+    <target>ãªã¹ãã¢ãã¿ã³</target>
+</phrase>
+<phrase>
+    <source>Resume</source>
+    <target>åé</target>
+</phrase>
+<phrase>
+    <source>Retry</source>
+    <target>åè©¦è¡</target>
+</phrase>
+<phrase>
+    <source>rich-text box</source>
+    <target>ãªãããã­ã¹ãããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>Run</source>
+    <target>ãã¡ã¤ã«åãæå®ãã¦å®è¡</target>
+</phrase>
+<phrase>
+    <source>Save</source>
+    <target>ä¿å­</target>
+</phrase>
+<phrase>
+    <source>Save as</source>
+    <target>ååãä»ãã¦ä¿å­</target>
+</phrase>
+<phrase>
+    <source>scroll</source>
+    <target>ã¹ã¯ã­ã¼ã«</target>
+</phrase>
+<phrase>
+    <source>scroll arrow</source>
+    <target>ã¹ã¯ã­ã¼ã«ç¢å°</target>
+</phrase>
+<phrase>
+    <source>scroll bar</source>
+    <target>ã¹ã¯ã­ã¼ã«ãã¼</target>
+</phrase>
+<phrase>
+    <source>scroll box</source>
+    <target>ã¹ã¯ã­ã¼ã«ããã¯ã¹</target>
+</phrase>
+<phrase>
+    <source>secondary window</source>
+    <target>ã»ã«ã³ããªã¦ã£ã³ãã¦</target>
+</phrase>
+<phrase>
+    <source>select</source>
+    <target>é¸æ</target>
+</phrase>
+<phrase>
+    <source>Select All</source>
+    <target>ãã¹ã¦ãé¸æ</target>
+</phrase>
+<phrase>
+    <source>selection</source>
+    <target>é¸æããé¨å</target>
+</phrase>
+<phrase>
+    <source>selection handle</source>
+    <target>ã»ã¬ã¯ã·ã§ã³ãã³ãã«</target>
+</phrase>
+<phrase>
+    <source>Send To</source>
+    <target>éã</target>
+</phrase>
+<phrase>
+    <source>separator</source>
+    <target>ã»ãã¬ã¼ã¿</target>
+</phrase>
+<phrase>
+    <source>Settings</source>
+    <target>è¨­å®</target>
+</phrase>
+<phrase>
+    <source>Setup</source>
+    <target>è¨­å®</target>
+</phrase>
+<phrase>
+    <source>shortcut</source>
+    <target>ã·ã§ã¼ãã«ãã</target>
+</phrase>
+<phrase>
+    <source>shortcut button</source>
+    <target>ã·ã§ã¼ãã«ãããã¿ã³</target>
+</phrase>
+<phrase>
+    <source>shortcut icon</source>
+    <target>ã·ã§ã¼ãã«ããã¢ã¤ã³ã³</target>
+</phrase>
+<phrase>
+    <source>shortcut key</source>
+    <target>ã·ã§ã¼ãã«ããã

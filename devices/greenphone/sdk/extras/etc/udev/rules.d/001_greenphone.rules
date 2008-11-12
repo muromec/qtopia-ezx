@@ -1,0 +1,2 @@
+KERNEL=="eth*", SYSFS{product}=="Greenphone", NAME="eth4"
+

@@ -1,0 +1,9 @@
+The Qtopia Greenphone Software Development Kit is licensed for use.  It is
+not sold, and its use is subject to the terms and conditions contained in
+the license agreement agreed to between you and Trolltech ASA at the time
+you placed the order for the Qtopia Greenphone Software
+Development Kit.  If you have not agreed to the license terms contained in
+the license agreement presented to you by Trolltech ASA you are prohibited
+from using this product and the accompanying Greenphone device.
+
+Copyright 2006  All rights reserved.  Trolltech ASA

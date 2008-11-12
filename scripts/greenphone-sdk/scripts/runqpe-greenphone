@@ -1,0 +1,56 @@
+#!/bin/sh
+# This script is no longer capable of running Qtopia 1.x or 2.x. Please use the runqpe scripts in those packages.
+
+if [ -z "$QPEDIR" -a -d $PWD/src/tools/qt/qvfb ];then
+    QPEDIR=$PWD
+fi
+
+if [ ! -f $QPEDIR/config.cache ]; then
+    echo "ERROR: Could not find \"$QPEDIR/config.cache\". You must configure Qtopia before you can run it!"
+    exit 1
+fi
+
+PREFIX="$(grep '^opt\.prefix\.value=' $QPEDIR/config.cache | sed 's/^opt\.prefix\.value=//')"
+
+# make sure binaries can be found (not requried for Qtopia!)
+export PATH=$PREFIX/bin:$PATH
+#export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
+
+# set an alternate value for HOME (to keep different Qtopia versions' files separate)
+if [ ! -z "$QPEHOME" ]; then
+    export HOME=$QPEHOME
+fi
+
+# Qtopia 4 should not require this (so test without it)
+unset QPEDIR
+
+# This should not be needed
+unset SXE_DISCOVERY_MODE
+
+# If you want to force all SXE tests to be logged but to succeed (eg. when creating new policies)
+# you must configure Qtopia with the -sxe-discovery switch and then set SXE_DISCOVERY_MODE to 1.
+#export SXE_DISCOVERY_MODE=1
+
+cd $PREFIX
+
+ulimit -Sd 100000          # max data size of a program is 100 MB
+ulimit -Ss 4000            # max stack size of a program is 4 MB
+ulimit -Sm 100000          # max resident set size is 100 MB
+
+if [ "$1" = "-exec" ]; then
+    shift
+    echo exec $@
+    exec $@
+elif [ "$1" = "-gdb" ]; then
+    gdb qpe
+elif [ "$1" = "-profile" ]; then
+    LD_PRELOAD=$PREFIX/lib/gprof-helper.so qpe
+elif [ "$1" = "-callgrind" ]; then
+    callgrind qpe
+elif [ "$1" = "-valgrind" ]; then
+    valgrind --tool=memcheck qpe
+elif [ "$1" = "-strace" ]; then
+    strace qpe
+else
+    exec qpe "$@"
+fi

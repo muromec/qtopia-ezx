@@ -1,0 +1,7 @@
+[Translation]
+File=QtopiaServices
+Context=Contacts
+[Service]
+Actions = "activateLink(QDSActionRequest);editPersonal();addContact(QContact);addAndEditContact(QContact);removeContact(QContact);requestLinks(QDSActionRequest);updateContact(QContact);showContact(QtopiaID);setContactImage(QString);setContactImage(QDSActionRequest);addPhoneNumberToContact(QString);createNewContact(QString)"
+Icon = service/Contacts/AddressBook
+Name[]=Contacts

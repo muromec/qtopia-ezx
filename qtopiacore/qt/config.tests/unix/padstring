@@ -1,0 +1,18 @@
+#!/bin/sh
+
+LEN="$1"
+STR="$2"
+PAD="$3"
+STRLEN=`echo $STR | wc -c`
+RES="$STR"
+    
+EXTRALEN=`expr $LEN - $STRLEN`
+while [ "$EXTRALEN" -gt 32 ]; do
+   RES="$RES$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD$PAD"
+   EXTRALEN=`expr $EXTRALEN - 32`
+done
+while [ "$EXTRALEN" -gt 0 ]; do
+   RES="$RES$PAD"
+   EXTRALEN=`expr $EXTRALEN - 1`
+done
+echo $RES #return

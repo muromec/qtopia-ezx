@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>GsmKeyActions Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">GsmKeyActions Class Reference</h1>
+<p>The GsmKeyActions class handles special GSM actions for requesting and controlling supplementary services. <a href="#details">More...</a></p>
+<pre>    #include &lt;GsmKeyActions&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
+<ul>
+<li><a href="gsmkeyactions-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"/><b><a href="gsmkeyactions.html#GsmKeyActions">GsmKeyActions</a></b> ( QObject * <i>parent</i> = 0 )</li>
+<li><div class="fn"/>virtual <b><a href="gsmkeyactions.html#dtor.GsmKeyActions">~GsmKeyActions</a></b> ()</li>
+<li><div class="fn"/>bool <b><a href="gsmkeyactions.html#isGsmNumber">isGsmNumber</a></b> ( const QString &amp; <i>number</i> )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyactions.html#setDialer">setDialer</a></b> ( QAbstractDialerScreen * <i>dialer</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
+<li><div class="fn"/>1 public type inherited from <a href="qobject.html#public-variables">QObject</a></li>
+<li><div class="fn"/>4 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"/>7 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+<li><div class="fn"/>2 protected variables inherited from <a href="qobject.html#protected-variables">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The GsmKeyActions class handles special GSM actions for requesting and controlling supplementary services.</p>
+<p>The GsmKeyActions class handles special GSM actions for requesting and controlling supplementary services. The following actions are supported:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<tr valign="top" class="odd"><td><tt>*#06#</tt></td><td>Display the IMEI serial number of the phone.</td></tr>
+<tr valign="top" class="even"><td><tt>[*]*03*ZZ*OLD_PASSWORD*NEW_PASSWORD*NEW_PASSWORD#</tt></td><td>Change the password for supplementary service <tt>ZZ</tt>.</td></tr>
+<tr valign="top" class="odd"><td><tt>**04*OLD_PIN*NEW_PIN*NEW_PIN#</tt></td><td>Change the <tt>SIM PIN</tt> to a new value.</td></tr>
+<tr valign="top" class="even"><td><tt>**042*OLD_PIN*NEW_PIN*NEW_PIN#</tt></td><td>Change the <tt>SIM PIN2</tt> to a new value.</td></tr>
+<tr valign="top" class="odd"><td><tt>**05*PIN_UNBLOCKING_KEY*NEW_PIN*NEW_PIN#</tt></td><td>Unblock the <tt>SIM PIN</tt> and change it to a new value.</td></tr>
+<tr valign="top" class="even"><td><tt>**052*PIN_UNBLOCKING_KEY*NEW_PIN*NEW_PIN#</tt></td><td>Unblock the <tt>SIM PIN2</tt> and change it to a new value.</td></tr>
+<tr valign="top" class="odd"><td><tt>*#30#</tt></td><td>Query the state of the caller id presentation (CLIP) service.</td></tr>
+<tr valign="top" class="even"><td><tt>*#31#</tt></td><td>Query the state of the caller id restriction (CLIR) service.</td></tr>
+<tr valign="top" class="odd"><td><tt>*31#number</tt></td><td>Dial <tt>number</tt> with caller id explicitly enabled.</td></tr>
+<tr valign="top" class="even"><td><tt>#31#number</tt></td><td>Dial <tt>number</tt> with caller id explicitly disabled.</td></tr>
+<tr valign="top" class="odd"><td><tt>*#76#</tt></td><td>Query the state of the connected id presentation (COLP) service.</td></tr>
+</table></p>
+<p>Supplementary service actions that are not recognized are sent to the network for processing.</p>
+<p>This class is part of the Qtopia server and cannot be used by other Qtopia applications.</p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="GsmKeyActions"></a>GsmKeyActions::GsmKeyActions ( <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
+<p>Create a GSM key action handler and attach it to <i>parent</i>.</p>
+<h3 class="fn"><a name="dtor.GsmKeyActions"></a>GsmKeyActions::~GsmKeyActions ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>Destroy this GSM key action handler.</p>
+<h3 class="fn"><a name="isGsmNumber"></a>bool GsmKeyActions::isGsmNumber ( const <a href="qstring.html">QString</a> &amp; <i>number</i> )</h3>
+<p>Returns true if <i>number</i> is obviously a number that should be dialed via a GSM network without giving the user the option to choose GSM vs VoIP; otherwise returns false.</p>
+<h3 class="fn"><a name="setDialer"></a>void GsmKeyActions::setDialer ( <a href="qabstractdialerscreen.html">QAbstractDialerScreen</a> * <i>dialer</i> )</h3>
+<p>Set the <i>dialer</i> that will be used to accept digits from the user so that key filtering can be applied to it.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,10 @@
+#!/bin/sh
+pkgconfig=pkg-config
+if [ -n "$PKG_CONFIG_PREFIX" ]; then
+    # This lets the device profile override the prefix value in the .pc file
+    pkgconfig="pkg-config --define-variable=prefix=$PKG_CONFIG_PREFIX"
+fi
+$pkgconfig --modversion dbus-1 || exit 1
+$pkgconfig --cflags dbus-1
+$pkgconfig --libs dbus-1
+exit 0

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>StandardDeviceFeatures Namespace Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">StandardDeviceFeatures Namespace Reference</h1>
+<p>The StandardDeviceFeatures namespace contains methods to disable Qtopia's standard device feature handling. <a href="#details">More...</a></p>
+<pre>    #include &lt;StandardDeviceFeatures&gt;</pre><ul>
+</ul>
+<a name="functions"></a>
+<h3>Functions</h3>
+<ul>
+<li><div class="fn"/>void <b><a href="standarddevicefeatures.html#disableCameraMonitor">disableCameraMonitor</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddevicefeatures.html#disableClamshellMonitor">disableClamshellMonitor</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddevicefeatures.html#disableInputFeatures">disableInputFeatures</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="standarddevicefeatures.html#disableUITimeValues">disableUITimeValues</a></b> ()</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The StandardDeviceFeatures namespace contains methods to disable Qtopia's standard device feature handling.</p>
+<p>The core Qtopia sub-systems rely on various device specific status information being maintained in the value space. To ease customizability, all the simple hardware device monitoring in Qtopia are collectively managed in one place - the <tt>StandardDeviceFeatures</tt> server task.</p>
+<p>To customize hardware device monitoring, an integrator needs only to implement their own version and disable Qtopia's default behaviour through one of the methods available in the StandardDeviceFeatures namespace.</p>
+<p>The documentation for each of the following methods lists both what device it monitors, as well as the expected result when the device state changes. The intent is to make the task of replicating each very simple.</p>
+<hr />
+<h2>Function Documentation</h2>
+<h3 class="fn"><a name="disableCameraMonitor"></a>void StandardDeviceFeatures::disableCameraMonitor ()</h3>
+<p>The camera monitor detects when camera are available on the device and advertises them using the <a href="qtopiafeatures.html">QtopiaFeatures</a> API as the &quot;Camera&quot; feature.</p>
+<p>Invoking this method will disable the default camera monitoring.</p>
+<h3 class="fn"><a name="disableClamshellMonitor"></a>void StandardDeviceFeatures::disableClamshellMonitor ()</h3>
+<p>The clamshell monitor is responsible monitoring when a clamshell style phone (flip phone) is opened or closed and updating the value space. The value that must be maintained is:</p>
+<p><i>/Hardware/Device/ClamshellOpen</i> - true if the clamshell is in an open state.</p>
+<p>The default clamshell monitoring uses <a href="qt.html#Key-enum">Qt::Key_Flip</a> press events to indicate a closed state and <a href="qt.html#Key-enum">Qt::Key_Flip</a> release events to indicate an open state.</p>
+<p>Invoking this method will disable the default clamshell monitoring.</p>
+<h3 class="fn"><a name="disableInputFeatures"></a>void StandardDeviceFeatures::disableInputFeatures ()</h3>
+<p>The <a href="qtopiafeatures.html">QtopiaFeatures</a> class allows applications to query certain properties about the Qtopia configuration. Based on the configured input modes, the following features are set automatically:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Feature</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td><tt>Touchscreen</tt></td><td>The primary input for the device is via a touchscreen. That is, <tt>Qtopia::mousePreferred() == true</tt>.</td></tr>
+<tr valign="top" class="even"><td><tt>Calibrate</tt></td><td>The touch screen device requires calibration. This is set if <tt>Touchscreen</tt> is set.</td></tr>
+<tr valign="top" class="odd"><td><tt>KeyPad</tt></td><td>The primary input for the device is via a keypad. That is, <tt>Qtopia::mousePreferred() == false</tt>.</td></tr>
+</table></p>
+<p>.</p>
+<p>The device integrator can override these default features by setting the <tt>Device/Input</tt> value in Qtopia's defaultbuttons configuration file. The value should be a comma separated list of the features to set. If <i>any</i> features are specified in this manner, the automatic features above are not set.</p>
+<p>Invoking this method will disable the setting of features automatically.</p>
+<h3 class="fn"><a name="disableUITimeValues"></a>void StandardDeviceFeatures::disableUITimeValues ()</h3>
+<p>The current system date and time is kept updated in the following value space keys:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Key</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td><tt>/UI/DisplayTime/Time</tt></td><td>The current time with minute resolution (eg &quot;22:13&quot;).</td></tr>
+<tr valign="top" class="even"><td><tt>/UI/DisplayTime/Date</tt></td><td>The current date in expanded form (eg. &quot;31 Aug 06&quot;).</td></tr>
+<tr valign="top" class="odd"><td><tt>/UI/DisplayTime/BriefDate</tt></td><td>The current date in reduced form (eg. &quot;31/08/06&quot;).</td></tr>
+</table></p>
+<p>While it is possible, and correct, for applications to source this information directly through the <a href="qtime.html">QTime</a> and <a href="qdate.html">QDate</a> APIs, these values can be used for displaying the time in title bars or other incidental locations. By doing so, these time or date displays will remain in sync with one another.</p>
+<p>Invoking this method will disable the creation and updating of the listed value space keys.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

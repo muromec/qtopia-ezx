@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Tutorial: Writing Qtopia Phone Applications</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Tutorial: Writing Qtopia Phone Applications<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><ul><li><a href="#introduction">Introduction</a></li>
+<li><a href="#user-interface-changes">User Interface Changes</a></li>
+<li><a href="#keypad-navigation">Keypad Navigation</a></li>
+<li><a href="#the-soft-menu-bar">The Soft Menu Bar</a></li>
+<li><a href="#menus">Menus</a></li>
+<li><a href="#input-methods">Input Methods</a></li>
+</ul>
+<a name="introduction"></a>
+<h2>Introduction</h2>
+<p>Qtopia Phone Edition is tuned for use on a mobile phone. All Qt and Qtopia widgets have been modified for use with a small set of keys as follows:</p>
+<ul>
+<li>context key - used to display a context menu, or perform a specific task based on the current context.</li>
+<li>select key - used to select a widget for editing or an item from a list, etc.</li>
+<li>back key - used to cancel the current operation, or go back to the previous screen.</li>
+<li>arrow keys</li>
+<li>keypad - used for numeric and text input (via <a href="inputmethods-description.html">Input Methods</a>).</li>
+</ul>
+<a name="user-interface-changes"></a>
+<h2>User Interface Changes</h2>
+<p>Applications originally written for PDAs may require some interface changes. More specifically:</p>
+<ul>
+<li>the user interface should not include a menu bar or tool bars</li>
+<li>for keypad-based phones, the user interface should be navigable using only the keys specified above.</li>
+</ul>
+<p>In addition, phones usually have lower resolution screens, but higher visibility requirements than PDAs. This often requires changes to the user interface to permit usage of larger fonts on less-available screen real-estate.</p>
+<a name="keypad-navigation"></a>
+<h2>Keypad Navigation</h2>
+<p>To navigate using only the keys specified above, widgets have two focus states:</p>
+<ul>
+<li>Navigation focus</li>
+<li>Edit focus</li>
+</ul>
+<p>Navigation focus allows navigation between widgets using the arrow keys (<i>Up</i> and <i>Down</i> move between widgets on a tab, while <i>Left</i> and <i>Right</i> move between tabs). When a widget first gains focus it will be in navigation focus state. In this state, the widget should ignore all key events, except <tt>Qt::Key_Select</tt>, which can either:</p>
+<ul>
+<li>edit/activate the widget if sensible, for example, pressing select on a <tt>QCheckBox</tt> will check/uncheck the box</li>
+<li>enter the editing state so that further editing can be performed.</li>
+</ul>
+<p>When in the edit focus state, <tt>Qt::Key_Select</tt> is usually used to end editing (confirming the changes) and <tt>Qt::Key_Back</tt> is used to cancel editing.</p>
+<p>The focus state of a widget can be set using:</p>
+<pre>    QWidget::setEditFocus(bool)</pre>
+<p>and accessed using:</p>
+<pre>    bool QWidget::hasEditFocus().</pre>
+<p>In practice, it is usually unnecessary to manually set edit focus.</p>
+<a name="the-soft-menu-bar"></a>
+<h2>The Soft Menu Bar</h2>
+<p>Some phones have soft keys with different meanings in different contexts. On these phones the Qtopia phone edition server displays a Soft Menu Bar at the bottom of the screen. This bar displays the actions that the corresponding button on the phone will perform. The label to be displayed in the context bar is set using the <a href="qsoftmenubar.html">QSoftMenuBar</a> class.</p>
+<p>For example, to set the <tt>Qt::Key_Select</tt> label of a widget to the standard EndEdit label when it is in edit focus state:</p>
+<pre>    QSoftMenuBar::setLabel(widget, Qt::Key_Select, QSoftMenuBar::EndEdit, QSoftMenuBar::EditFocus);</pre>
+<p>It is also possible to set custom labels using:</p>
+<pre>    QSoftMenuBar::setLabel(QWidget *, int key, const QString &amp;pixmap, const QString &amp;text, FocusState state);</pre>
+<p>In this case the pixmap name and a short text label are specified. Both pixmap and text should always be provided, as the user can decide whether the soft menu bar will display text or icons via the <tt>Appearance</tt> settings application.</p>
+<a name="menus"></a>
+<h2>Menus</h2>
+<p>The <tt>Qt::Key_Menu</tt> (or <tt>Qt::Key_Context1</tt> if <tt>Qt::Key_Menu</tt> is not available) button displays a menu of possible actions for the current application state. You can bind a <a href="qmenu.html">QMenu</a> to the menu button using:</p>
+<pre>    QSoftMenuBar::addMenuTo(QWidget *w, QMenu *menu, int state);</pre>
+<p>When the <tt>Menu</tt> button is pressed, the menu for the currently focused widget will be displayed. It follows the same rules as <a href="qsoftmenubar.html">QSoftMenuBar</a>, so if the current focus widget does not claim the <tt>Menu</tt> key or have a menu, then the menu or label of an ancestor will be active.</p>
+<p>You can also get the menu for any widget using the <a href="qsoftmenubar.html#menuFor">QSoftMenuBar::menuFor</a>() function. This will return the menu already associated with the widget if available, otherwise it will create a new menu.</p>
+<pre>    QMenu *menu = QSoftMenuBar::menuFor(this);
+    menu-&gt;addAction(tr(&quot;Open&quot;), this, SLOT(open()));</pre>
+<a name="input-methods"></a>
+<h2>Input Methods</h2>
+<p>Input methods provide functionality for text input on a phone. Text is generated by the user using, for example, the normal phone keys. Since this can be very limited, hints are used to improve its usability. An input method type hint is generated whenever a widget gets focus. The hint can be either:</p>
+<ol type="1">
+<li>specifically set using <tt>QtopiaApplication::setInputMethodHint()</tt>.</li>
+<li>automatically set (for example, for a <a href="qlineedit.html">QLineEdit</a> with a <a href="qintvalidator.html">QIntValidator</a>, the hint is automatically set to <i>Number</i>).</li>
+<li>null hint.</li>
+</ol>
+<p>The hints are presented as text (for future extensibility) to the Input Methods and they respond as follows:</p>
+<ul>
+<li>int - the phone number keys input corresponding digits.</li>
+<li>phone - &quot;*&quot; and &quot;#&quot; also work, and conventions are honored, such as press-and-hold the &quot;0&quot; key for &quot;+&quot;, and the &quot;*&quot; key for &quot;p&quot;.</li>
+<li>words - the standard key text associations are used, and a dictionary-lookup is used to guess the desired letter.</li>
+<li>text - the standard key text associations are used, with multiple presses by the user used to choose the desired letter.</li>
+<li><i>null hint</i> - no method is used - keys are passed unchanged.</li>
+</ul>
+<p>See also <a href="inputmethods-description.html">Input Methods Documentation</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

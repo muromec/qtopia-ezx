@@ -1,0 +1,4 @@
+#!/bin/sh
+TOOLCHAIN=/usr/local/gcc-4.1.1
+USE_TB=1
+TB_CC_VER=auto

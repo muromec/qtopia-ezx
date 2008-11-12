@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Messaging: Email</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Messaging: Email<br><small>Functional Description</small></h1><p><p />
+<p />
+<a href="fd-Messaging.html">Messaging</a> provides support for Email retrieval and sending. Support for retrieval via the
+POP3 and IMAP4 protocols and support for sending via the SMTP protocol is provided. Additionally
+support for encrypted and authenticated communications is provided via the SSL and TLS protocols.
+<p />
+
+<h2>Features</h2>
+<ul><li><a href="#QTOPIA-505">Attachments</a>
+<li><a href="#QTOPIA-506">Email Properties</a>
+<li><a href="#QTOPIA-507">Encrypted and Authenticated Connections</a>
+<li><a href="#QTOPIA-504">Receiving an Email</a>
+<li><a href="#QTOPIA-8219">Reply to an email message</a>
+<li><a href="#QTOPIA-503">Sending an Email</a>
+</ul><h3><a name=QTOPIA-505>Attachments (QTOPIA-505)</a></h3>
+<p>When composing the user can add attachments to the email being composed.  Attachments can comprise any document known to the system, and they can be freely added to, or removed from, the list of attachments.
+<h3><a name=QTOPIA-506>Email Properties (QTOPIA-506)</a></h3>
+<p>All email properties supported by RFC2822 are exposed via the messaging library.
+
+<p>The Messaging application supports:</p>
+<ul>
+	<li>Message timestamp</li>
+	<li>Sender name and address</li>
+	<li>To, CC and BCC address lists</li>
+	<li>Subject line</li>
+	<li>Message body</li>
+	<li>Attachments</li>
+</ul>
+
+
+<p>Encoding is used to support the use of non-ASCII character sets in composing and viewing email messages.</p>
+<h3><a name=QTOPIA-507>Encrypted and Authenticated Connections (QTOPIA-507)</a></h3>
+<p><ul>
+	<li>Encrypted: it is possible to send and receive mail via encrypted SSL/TLS connections.</li>
+	<li>Authenticated: POP or IMAP authentication is always attempted. SMTP authentication is supported.</li>
+</ul>
+
+<h3><a name=QTOPIA-504>Receiving an Email (QTOPIA-504)</a></h3>
+<p>Once a user has created a valid incoming account they can connect to a mail server and download email from their email account to the device. 
+
+<p>Messages larger than a preset size can be skipped during mail retrieval; the threshold can be set by the user.  A skipped message can be later downloaded or deleted without downloading, at the user's discretion.</p>
+
+<p>For IMAP accounts, the user may specify the top-level mail folder from which to receive messages.</p>
+<h3><a name=QTOPIA-8219>Reply to an email message (QTOPIA-8219)</a></h3>
+<p>The email viewer allows the user to:
+
+<ul>
+	<li>Reply to an email, which adds only the sender to the reply</li>
+	<li>Reply to all, which adds the sender and all To and CC recipients to the reply</li>
+</ul>
+
+<h3><a name=QTOPIA-503>Sending an Email (QTOPIA-503)</a></h3>
+<p>It is possible for a user to compose and after creating a valid outgoing account send an email.
+<hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div>

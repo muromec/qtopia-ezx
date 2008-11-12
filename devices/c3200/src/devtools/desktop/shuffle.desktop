@@ -1,0 +1,9 @@
+[Translation]
+File=QtopiaApplications
+Context=MusicShuffle
+[Desktop Entry]
+Comment[]=Music Shuffle
+Exec=shuffle.sh
+Icon=devtools/devtools
+Type=ConsoleApplication
+Name[]=Music Shuffle

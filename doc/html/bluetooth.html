@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Bluetooth Support</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Bluetooth Support<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><ul><li><a href="#introduction">Introduction</a></li>
+<ul><li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#hardware-requirements">Hardware Requirements</a></li>
+<li><a href="#software-requirements">Software Requirements</a></li>
+<li><a href="#qtopia-configuration">Qtopia Configuration</a></li>
+</ul>
+<li><a href="#integration">Integration</a></li>
+<li><a href="#functionality">Functionality</a></li>
+<ul><li><a href="#device-configuration">Device Configuration</a></li>
+<li><a href="#gap">GAP</a></li>
+<li><a href="#sdap">SDAP</a></li>
+<li><a href="#object-push-profile-opp">Object Push Profile (OPP)</a></li>
+<li><a href="#dial-up-networking-profile-dun">Dial Up Networking Profile (DUN)</a></li>
+<li><a href="#headset-profile-hsag">Headset Profile (HSAG)</a></li>
+<li><a href="#handsfree-profile-hfag">Handsfree Profile (HFAG)</a></li>
+<li><a href="#linux-btsco-kernel-module">Linux btsco kernel module</a></li>
+<li><a href="#service-management-framework">Service Management Framework</a></li>
+</ul>
+</ul>
+<a name="introduction"></a>
+<h2>Introduction</h2>
+<p>Qtopia supports Bluetooth communications hardware and software profiles by relying on BlueZ, the official Linux Bluetooth stack. Qtopia provides implementations of Bluetooth profiles; settings applications for device and profile configuration; and advanced framework classes that enable implementation of custom profiles.</p>
+<a name="troubleshooting"></a>
+<h3>Troubleshooting</h3>
+<p>It is important to note that Qtopia make use of a PCM SCO connection since that connection type uses the least amount of power. This means that Qtopia does not process any audio data related to the Bluetooth connection.</p>
+<p>Before using Qtopia's Bluetooth support it is highly recommended that the BlueZ tools be used to test the Bluetooth connection. As a minimum the follow should be run to check the device adaptor :</p>
+<pre>    dbus-send --system --dest=org.bluez --type=method_call \
+        --print-reply '/org/bluez' org.bluez.Manager.DefaultAdapter'</pre>
+<p>The result should be something like: string &quot;/org/bluez/hci0&quot;</p>
+<p>A Bluetooth connection requires a process called 'pairing' to be completed. This process typically involves</p>
+<ul>
+<li>the user pressing a button on the Bluetooth device to activate it</li>
+<li>the user providing the PIN required by the remote device</li>
+</ul>
+<a name="hardware-requirements"></a>
+<h3>Hardware Requirements</h3>
+<p>Qtopia does not directly support any hardware, instead it relies on the BlueZ Bluetooth stack. Thus for any hardware to be supported by Qtopia, it must be supported by BlueZ. For more information, please visit the BlueZ website at http://www.bluez.org.</p>
+<a name="software-requirements"></a>
+<h3>Software Requirements</h3>
+<p>Qtopia 4.3 requires BlueZ Bluetooth framework Version 3.19. This means both the bluez-libs-3.19 and bluez-utils-3.19 must be installed on your system. For more information about installing BlueZ, please refer to the BlueZ website at http://www.bluez.org.</p>
+<p>Note that bluez-utils needs to be compiled with XML support as Qtopia uses its XML service record description feature. Versions 3.27 and earlier of bluez-utils require the expat or GLib libraries to enable this feature, and later versions use GLib only.</p>
+<p>BlueZ uses the DBUS communications protocol to expose a rich and complex API. Qtopia uses this API to manage Bluetooth devices. Thus Qtopia requires DBUS to be configured and running in order to successfully communicate with hcid. Qtopia does not link to the BlueZ libraries, however correct version of the bluez-lib package must be installed as it is used by bluez-utils.</p>
+<p>Qtopia requires:</p>
+<ul>
+<li>the BlueZ hcid daemon to be running. In addition, depending on your BlueZ configuration, the sdpd daemon should be running as well.</li>
+<li>the Headset and Audio services to be disabled in Bluez. This can be done via configuring Bluez with with<pre>    --disable-audio</pre>
+<p>or via setting AutoStart=false in the audio.service file used by Bluez.</p>
+</li>
+</ul>
+<a name="qtopia-configuration"></a>
+<h3>Qtopia Configuration</h3>
+<p>Qtopia has several configure options which relate to Bluetoth support. These options are documented in the table below:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Option</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>-bluetooth</td><td>Turns Bluetooth Support on. This option also implies -dbus.</td></tr>
+<tr valign="top" class="even"><td>-dbus</td><td>Bluetooth support requires DBUS. This turns on DBUS support. By default, configure searches for DBUS installation hierarchy under /usr. Thus the libdbus-1.so will be found in /usr/lib/libdbus-1.so. If a useable version of the DBUS library is not found, the DBUS and Bluetooth support will be disabled. Use -dbuspath option to manually specify where DBUS library resides.</td></tr>
+<tr valign="top" class="odd"><td>-dbuspath</td><td><b>This option is optional.</b> If your DBUS installation is not in /usr, this specifies the DBUS installation path.</td></tr>
+</table></p>
+<a name="integration"></a>
+<h2>Integration</h2>
+<p>Qtopia Bluetooth currently supports GAP, SDAP and OPP, DUN, Headset and Handsfree profiles. The GAP and SDAP profiles are implemented largely by the BlueZ <tt>hcid</tt> and <tt>sdpd</tt> daemons.</p>
+<p>The Headset and Handsfree profiles require that a <a href="qaudiostateplugin.html">QAudioStatePlugin</a> be provide that suits the device.</p>
+<p>The current BlueZ architecture uses the language-independent DBUS layer to communicate with its clients. Qtopia uses the Qt DBUS bindings to communicate with the BlueZ <tt>hcid</tt> daemon. Most notifications from the <tt>hcid</tt> daemon are exposed through the <a href="qbluetoothlocaldevice.html">QBluetoothLocalDevice</a> API.</p>
+<p>Qtopia also communicates with the BlueZ <tt>sdpd</tt> daemon by using the <tt>sdptool</tt> utility. Qtopia compiles its own custom version of this tool.</p>
+<a name="functionality"></a>
+<h2>Functionality</h2>
+<a name="device-configuration"></a>
+<h3>Device Configuration</h3>
+<p>Each Bluetooth device or local Bluetooth host adapter has an associated Bluetooth address that is stored as a six byte array and is commonly represented as six hexadecimal bytes separated by colons. For example: <tt>FF:FF:FF:FF:FF:FF</tt>.</p>
+<p>BlueZ and Qtopia support multiple local Bluetooth host adapters, however the most common case is to use a single adapter.</p>
+<p>The local host adapter can be controlled through the <a href="qbluetoothlocaldevice.html">QBluetoothLocalDevice</a> class where the adapter can be switched on/off and device visibility can be controlled. Visibility is controlled by two variables:</p>
+<ol type="1">
+<li><tt>page scan</tt> - controls whether remote devices can connect to the local device.</li>
+<li><tt>inquiry scan</tt> - controls whether remote devices can discover the local device.</li>
+</ol>
+<p>This indicates that the <i>discoverable</i> state is controlled by setting the <tt>inquiry scan</tt> appropriately.</p>
+<a name="gap"></a>
+<h3>GAP</h3>
+<p>Qtopia fully supports Bluetooth GAP which handles the discovery and establishment of connections between Bluetooth devices. GAP defines how secure connections are established between two devices by a mechanism referred to as <i>pairing</i> and also defines the basic user interface paradigm that must be used by all Bluetooth devices.</p>
+<p>Qtopia Bluetooth API allows its clients to discover remote devices and various relevant attributes, such as device name, device manufacturer, Bluetooth protocol version supported, etc. Additionally, establishment of trust relationships by pairing remote devices is also supported.</p>
+<p>The functionality used to implement this profile is accessible through the <a href="qbluetoothlocaldevice.html">QBluetoothLocalDevice</a> class.</p>
+<a name="sdap"></a>
+<h3>SDAP</h3>
+<p>SDAP describes how an application should use the Service Discovery Protocol (SDP) to discover services on a remote device. Using the Qtopia Bluetooth API, clients can enable any application to discover services running on a remote device.</p>
+<p>Two discovery modes are supported:</p>
+<ol type="1">
+<li>searching - searching for a specific service or services</li>
+<li>browsing - searching for any services accessible from the public browse group.</li>
+</ol>
+<a name="object-push-profile-opp"></a>
+<h3>Object Push Profile (OPP)</h3>
+<p>Qtopia fully supports the Bluetooth Object Push Profile in both client and server modes. This functionality can be found in the <a href="qobexpushclient.html">QObexPushClient</a> and <a href="qobexpushservice.html">QObexPushService</a> classes respectively. Qtopia depends on the 3rdparty <a href="legal-openobex.html">OpenOBEX</a> library for all OBEX services, including OPP.</p>
+<p>The user can send and receive files over Bluetooth. If a file is received, the user can monitor the progress of the file transfer, and choose to accept or discard the file received. If a business card is received, the user has the option of saving it in his or her address book or discarding.</p>
+<p>The user should also see the BluetoothPush service documentation.</p>
+<a name="dial-up-networking-profile-dun"></a>
+<h3>Dial Up Networking Profile (DUN)</h3>
+<p>Qtopia supports the Dial-Up Networking profile. Using DUN users can use their Qtopia based Mobile phone to establish a ppp connection to the ISP supported by their provider. The connection is based on the industry standard PPP protocol. Qtopia provides both a service and client implementations of the DUN profile, so Qtopia Phone users can use other phones to establish a DUN connection over Bluetooth as well.</p>
+<a name="headset-profile-hsag"></a>
+<h3>Headset Profile (HSAG)</h3>
+<p>Qtopia provides a reference implementation of the Headset Audio Gateway profile. This profile allows the use of Bluetooth devices that support the Headset (HS) profile by Qtopia based devices. Headset profile is used to provide wireless handsfree audio communication between a headset and a handset.</p>
+<p>Qtopia provides only reference support for the Headset Audio Gateway profile, as frequently such support is hardware and device dependent.</p>
+<a name="handsfree-profile-hfag"></a>
+<h3>Handsfree Profile (HFAG)</h3>
+<p>Qtopia provides a reference implementation of the Handsfree Audio Gateway profile (HFAG) This profile allows the user of Bluetooth devices that support the Handsfree (HF) profile by Qtopia based devices. Handsfree profile is frequently found in Bluetooth based car hands-free kits, and also in Bluetooth headsets. Handsfree profile is in principle very similar to the Headset profile, but provides many more capabilities, including direct dialing, last number redial, three-way calling, and other more advanced features.</p>
+<p>Qtopia provides only a reference implementation for the Handsfree Audio Gateway profile. Handsfree profile requires the audio gateway to route all audio to the handsfree device. The profile also requires the audio stream to be able to be switched between several audio devices mid-stream. Such support is frequently device and hardware dependent.</p>
+<p>For more details, please see the next section.</p>
+<p><b>Note</b>: Users of Qtopia Platform Edition must install the <tt>atinterface</tt> project (under <tt>src/tools/atinterface</tt>) in order to use the reference implementation of the Handsfree Audio Gateway profile. (The <tt>atinterface</tt> project is included by default in Qtopia Phone Edition.)</p>
+<a name="linux-btsco-kernel-module"></a>
+<h3>Linux btsco kernel module</h3>
+<p>The Handsfree and Headset profiles depend on the Linux btsco kernel module being installed. This module works by creating an ALSA sound card device. The device can then be used by ALSA aware applications. All audio data is then sent over a Bluetooth connection to the remote device.</p>
+<p>For more information please see README document in src/3rdparty/patches/btsco</p>
+<a name="service-management-framework"></a>
+<h3>Service Management Framework</h3>
+<p>Qtopia provides a framework for creating and managing Bluetooth services. A Bluetooth service can be created and registered within this framework by subclassing the <a href="qbluetoothabstractservice.html">QBluetoothAbstractService</a> class. The framework allows registered services to be controlled by external sources through IPC messages. For example, Qtopia's Bluetooth Settings application allows end users to enable or disable registered services, and also modify the security settings of registered services.</p>
+<p>The service management framework stores various settings for each known service in the <tt>BluetoothServices.conf</tt> configuration file. This configuration file can be modified to provide default settings for registered services. As an example, a default configuration file is provided at <tt>etc/default/Trolltech/BluetoothServices.conf</tt>. This file sets the default security for the OBEX Object Push Service to 0, as Object Push services do not generally require authentication or encryption.</p>
+<p>The service management framework is implemented through the service manager in <tt>src/server/bluetoothservicemanager.h</tt>.</p>
+<p>For more information, see the <a href="bluetooth-servicemanager.html">Bluetooth Service Management Framework</a> page.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,10 @@
+qtopia_project(qtopiacore)
+QTOPIACORE_CONFIG=app
+qt=host
+dir=src/tools/$$TARGET
+depends(libraries/qt/qt3support)
+depends(libraries/qt/sql)
+depends(libraries/qt/network)
+depends(libraries/qt/xml)
+depends(libraries/qt/gui)
+depends(libraries/qt/corelib)

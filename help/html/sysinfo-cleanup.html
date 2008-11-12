@@ -1,0 +1,19 @@
+<!--#if expr="$UNPORTED"-->
+<html>
+<head><title>Cleanup Wizard</title></head>
+<body>
+<!--#if expr="$USERGUIDE"-->
+<h3>Cleanup Wizard</h3>
+<!--#endif-->
+
+<p> This wizard allows the cleanup of unwanted documents, old messages and events.
+<ul>
+<li><b>Documents</b> can be filtered by type and size. After selecting the filter criteria the wizard will perform a search in all connected storage locations. The matching documents are presented in a list and can be selected and unselected respectively.</li>
+<li><b>Message</b> cleanup will delete all messages which are older than the specified date and exceed the given size.</li>
+<li><b>Event</b> cleanup expects a date as input. Any <i>finished</i> event older than the given date will be deleted. Recurrent events are not affected.</li>
+</ul>
+<i><b>Note:<b> If no date is selected the message and event cleanup will do nothing.</i>
+</p>
+</body>
+</html>
+<!--#endif-->

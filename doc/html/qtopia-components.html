@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qtopia Components</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Qtopia Components<br /><span class="subtitle"></span>
+</h1>
+<a name="top"></a><a name="introduction"></a>
+<h2>Introduction</h2>
+<p>This document describes the various Qtopia components in more detail and shows their availability in Qtopia source packages.</p>
+<a name="source-code-availability-matrix"></a>
+<h2>Source Code Availability Matrix</h2>
+<p>In the following table:</p>
+<ul>
+<li>Platform indicates Qtopia Platform SDK Professional and OEM Kit</li>
+<li>Phone indicates Qtopia Phone Edition SDK Professional and OEM Kit (applies also for Greenphone)</li>
+<li>Opensource indicates Qtopia Opensource SDK (applies also for Greenphone)</li>
+</ul>
+<p><table width="100%" align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>applications</td><td>contacts</td><td>The Contacts application allows the user to create contacts for storing information such as name, phone numbers, addresses and other personal information.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>bluetooth</td><td>The Bluetooth FTP Client application allows files to be transferred to other bluetooth-enabled devices.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>calculator</td><td>The Calculator application provides the ability to perform fast and simple numerical calculations useful to everyday situations.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>camera</td><td>The Camera application allows the user to take photos using an integrated camera. In addition to this the user is able to quickly view recent photos, browse all photos, edit photos, take photos for contacts, send photos, and adjust camera settings.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>clock</td><td>The Clock application provides three functions: - Displaying the current date and time. - Providing a stopwatch. - Allowing a daily alarm to be set and enabled/disabled.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>calendar</td><td>The Calendar application allows a user to plan their schedule. This includes the scheduling of timed events such as meetings, day events such as birthdays, and multi-day events such as workshops. The application also provides the facility to set alarms for events and to specify a pattern of repetition for events. The default view shows the current day in one hour intervals.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>helpbrowser</td><td>The Help Browser application displays help pages. The user is able to browse through system help pages or application specific help pages. The user is able to view help pages in rich text and navigate using hyperlinks. The user is able to jump backwards and forwards through the browser page history.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>mediaplayer</td><td>In addition to being a stand alone player the Qtopia Media Player acts as a media server and plays all sounds.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>voice notes</td><td>The Voice Notes application allows the user to create and replay voice recordings on devices with an integrated microphone.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>pictures</td><td>The Pictures application allows the user to manage an image collection. A variety of image file formats are supported and the user is able to browse through their collection, view slide shows, view images close-up, adjust orientation, adjust brightness, and perform cropping. Once an image has been edited the user has the option of saving the new image by either creating a new image or overwriting the old image.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>messages</td><td>The Messages application allows the user to send and receive messages. Email addresses and URLs in mail messages are displayed in blue and underlined and selecting an email address provides an option to either compose a message or adding the address to your Contacts.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>system info</td><td>The System Info application displays system information about the device such as how much space is left and the software version.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>notes</td><td>The Notes applications allow the user to edit short pieces of text that can then be attached to emails. The application can be used to add, edit and delete notes.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>tasks</td><td>The Tasks application is used to create and maintain a list of prioritized tasks. Tasks can be added, edited, deleted, viewed and beamed. Completed tasks are indicated by a check mark in the display.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>games</td><td>fifteen</td><td>Game objective: Slide the pieces around until they're in order from left to right, top to bottom.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>minesweep</td><td>Game objective: quickly mark all the squares that do not contain mines.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qasteroids</td><td>Game objective: destroy oncoming asteroids while avoiding collisions.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>snake</td><td>Game objective: make the snake grow longer by eating mice.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>libraries</td><td>handwriting</td><td>Library to support stroke recognition and the Handwriting settings application.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopia</td><td>Main Qtopia library providing many of the basic building blocks for Qtopia applications.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiaaudio</td><td>Library to support a variety of audio and streaming formats.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiabase</td><td>Basic support classes that depend only on Qt.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacomm</td><td>Library to support communications, including Internet, Bluetooth, OBEX, Infrared, and serial</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacomm/bluetooth</td><td>Library to provide Qtopia support for the Bluetooth wireless communication protocol.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacomm/ir</td><td>Library to provide Qtopia support for the Infrared communications.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacomm/network</td><td>Library to provide Qtopia support for a variety of IP-based communications protocols.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacomm/obex</td><td>Library to provide Qtopia support for the OBEX communication protocol.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacomm/serial</td><td>Library to support telephone features such as split serial port, AT chat handling and multiplexing.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacomm/vpn</td><td>Library to provide Qtopia support for communication over Virtual Private Networks.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/corelib</td><td>Library providing Qtopia Core's core non-GUI classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/gui</td><td>Library providing Qtopia Core's GUI framework classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/network</td><td>Library providing Qtopia Core's networking classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/opengl</td><td>Library providing Qtopia Core's OpenGL support classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/script</td><td>Library providing Qt Script support.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/sql</td><td>Library providing Qtopia Core's Structured Query Language interface classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/svg</td><td>Library providing support for the Scalable Vector Graphics image format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/tools/moc</td><td>The Qt Meta-Object Compiler, required to compile all code using Qtopia Core's C++ extensions (such as the Signals and Slots paradigm).</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/tools/rcc</td><td>Tool used to embed resources into a Qt/Qtopia application during the build process.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/tools/uic</td><td>Qtopia Core's User Interface Compiler - a tool that reads an XML format user interface definition (.ui) file as generated by Qt Designer and creates a corresponding C++ header file.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/xml</td><td>Library providing Qtopia Core's XML handling classes.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiamail</td><td>Library to support e-mail functionality using POP3, IMAP4 and SMTP protocols.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiamedia</td><td>Library to support the integration of the Helix DNA multimedia codec library.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiaphone</td><td>Library to support all Qtopia phone-specific functionality.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiaphonemodem</td><td>Library to support GSM-specific phone functionality.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiapim</td><td>Library to support Personal Information Management (PIM) functionality.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiaprinting</td><td>Library to support remote printing from within Qtopia.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiasecurity</td><td>Library to support Qtopia Safe Execution Environment (SXE).</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiasmil</td><td>Library to support viewing of SMIL presentations contained in MMS messages.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>plugins</td><td>audiohardware/desktop</td><td>Provide simulated audio routing functionality in desktop Qtopia builds.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>codecs/wavplay</td><td>Cruxus codec that provides WAV support.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>codecs/wavrecord</td><td>Simple .wav file encoder.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>composers/email</td><td>Composer module for creating email messages</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>composers/generic</td><td>Composer module for creating SMS and similar textual messages</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>composers/mms</td><td>Composer module for creating MMS messages</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>content/exif</td><td>Reading EXIF tags from content files.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>content/id3</td><td>Reading ID3 tags from media files.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>content/threegpp</td><td>Reads User Data Box information for conforming 3gpp files and discerns between video/3gpp and audio/3gpp.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>drmagent/bscidrmagent</td><td>A DRM plugin (used by the content subsystem) supporting the Beep Science DRM Agent.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>inputmethods/dockedkeyboard</td><td>On-screen keyboard that docks below the Qtopia context bar.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>inputmethods/keyboard</td><td>Floating on-screen keyboard.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>inputmethods/pinyin</td><td>Simple, keypad-based Chinese input method example.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>inputmethods/predictivekeyboard</td><td>Floating on-screen keyboard.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>mediaengines/cruxus</td><td>Simple, stand-alone mediaengine plugin.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>mediaengines/gstreamer</td><td>Mediaengine plugin that wraps the <a href="legal-gstreamer.html">GStreamer</a> media library.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>mediaengines/helix</td><td>Mediaengine plugins that wraps the Real Networks Helix media library.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>multiplexers/wavecom</td><td>Wavecom multiplexer plug-in.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>network/bluetooth</td><td>Networking with remote bluetooth devices.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>network/dialing</td><td>Dialing plug-in.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>network/lan</td><td>Local Area Network plug-in.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>phonevendors/ericsson</td><td>Ericsson support plug-in.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>phonevendors/wavecom</td><td>Wavecom support plug-in.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore</td><td>Stub project for building the Qtopia Core plugins that are used by Qtopia.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/iconengines/qtopiaiconengine</td><td>Qtopia Core icon engine plugin supporting icons in pixmap format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/iconengines/qtopiapiciconengine</td><td>Qtopia Core icon engine plugin supporting icons in <a href="qpicture.html">QPicture</a> format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiacore/iconengines/qtopiasvgiconengine</td><td>Qtopia Core icon engine plugin supporting icons in Scalable Vector Graphics format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qtopiacore/imageformats/picture</td><td>Plugin providing support for reading of images in <a href="qpicture.html">QPicture</a> format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopiaprinting/bluetooth</td><td>Support for communicating with remote Bluetooth printers.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>viewers/generic</td><td>Viewer module for displaying static content, such as Email, SMS and MMS messages.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>viewers/smil</td><td>Viewer module for displaying SMIL multimedia content.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="even"><td>settings</td><td>appearance</td><td>Allows the user to select a color scheme, theme, font and background image.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>beaming</td><td>Beaming settings dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>btsettings</td><td>Bluetooth settings.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>callforwarding</td><td>Settings for call forwarding.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>drmbrowser</td><td>Browse DRM rights for protected content files.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>handwriting</td><td>Settings for handwriting recognition.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>homescreen</td><td>Homescreen settings dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>language</td><td>Language settings.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>light-and-power</td><td>Light and Power settings dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>logging</td><td>Configure and view system logging output.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>network</td><td>Network configuration utility.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>packagemanager</td><td>Settings to ensure safe download and installation of programs for Qtopia.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>phonenetworks</td><td>Phone Network selection.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>phonesettings</td><td>Telephony settings dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>ringprofile</td><td>Ring profile settings.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>security</td><td>Manage PINs and/or passcodes for controlling access to device.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>serverwidgets</td><td>Change server widgets between standard Qtopia widgets and several demo widget sets.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>speeddial</td><td>Speed dial settings dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>systemtime</td><td>Date/time setting dialog.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>words</td><td>Manage word lists used by the Phone Key Input Method for predictive input.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>worldtime</td><td>Time zone manager.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>tools</td><td>atinterface</td><td>Modem emulator implementation.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>content_installer</td><td>Installs content data from .desktop files into the prefix SQL database. Runs at &quot;make install&quot; time.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>dbmigrate</td><td>Plug-in that can be used to ensure a SQL database schema is up to date. Loaded by the server at startup to verify the system databases, and when removeable media is inserted.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>dbmigrateservice</td><td>Provides a QDS and command line interface for invoking the dbmigrate plug-in to verify and upgrade databases.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>device_updater</td><td>Tools for updating Qtopia system components.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>device_updater/plugin</td><td>Tools for updating Qtopia system components.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>mediaserver</td><td>Qtopia Media Server: services requests made via the Qtopia Media API to play multimedia content.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>phonebounce</td><td>Tool allowing a Qtopia device to emulate a GSM modem.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>phonesim</td><td>Phone simulator for modem testing, compiled to run on host architecture.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>phonesim/lib</td><td>Core parts of the Phone simulator.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>phonesim_target</td><td>Phone simulator for modem testing, compiled to run on target architecture.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>pngscale</td><td>PNG resizing utility</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>printserver</td><td>Print server manages print jobs and dispatches print jobs to printer plugins.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qcop</td><td>Command-line interface to QCop channels and messages.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qdawggen</td><td>Generate a .qdawg file from a plaintext file. Used at &quot;make install&quot; time.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qdsync/app</td><td>Synchronization application stub.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qdsync/base</td><td>Synchronization communication plugin.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qdsync/common</td><td>Common functionality for Synchronization plugins.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qdsync/pim</td><td>Synchronization PIM plugin.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>qss</td><td>Qtopia Core Sound Server</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>qtopia-dbus-launcher</td><td>Utility for launching DBUS service.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>quicklauncher</td><td>Run in the background by the Qtopia Server to speed up launching of the next application by performing startup tasks common to all Qtopia applications. The quicklauncher causes runtime linking to occur and constructs a <a href="qtopiaapplication.html">QtopiaApplication</a> object so that when an application is launched it can be visible to the user sooner.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>rlimiter</td><td>Tool for applying resource limits to sandboxed executables.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>startupflags</td><td>Tool allowing the user to control certain aspects of Qtopia startup behaviour.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>svgtopicture</td><td>Utility to convert SVG files into PIC format.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>sxe_installer</td><td>Installs applications or projects so that they are bound by SXE policy, only used to generate safe execution images in conjuntion with make install</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>sxe_policy_runner</td><td>Binary to do a &quot;run-parts&quot; on the sxe_qtopia scripts directory</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>sxemonitor</td><td>Responds to security policy breaches</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>sysmessages</td><td>Dispatches system related messages</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>vsexplorer</td><td>A development helper tool to explore the Qtopia Value Space.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>3rdparty</td><td>applications/dbus</td><td>Utility for creating qtopia-dbus-daemon script. Used at &quot;make install&quot; time.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>applications/<a href="legal-micro-httpd.html">micro_httpd</a></td><td>Tiny http server, used by the device_updater tool. <a href="legal-micro-httpd.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>applications/sqlite</td><td>Command line tool for viewing and editing <a href="legal-sqlite.html">SQLite</a> databases on development platform. <a href="legal-sqlite.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>applications/target_sqlite</td><td>Command line tool for viewing and editing <a href="legal-sqlite.html">SQLite</a> databases on target device. License information.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/alsa</td><td>Stub library used to link against the system/toolchain ALSA library.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/crypt</td><td>Stub library used to link to the system/toolchain crypt library.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/dbus</td><td>Stub library used to link against the system/toolchain DBUS library. <a href="legal-dbus.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/dlmalloc</td><td>Third-party malloc library. <a href="legal-dlmalloc.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/drmagent</td><td>Stub library used to link against the system/toolchain DRM Agent library. <a href="legal-drmagent.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/g711</td><td>u-law, A-law and linear PCM conversions. <a href="legal-g711.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/gsm</td><td>Third-party library for the GSM audio codec. <a href="legal-gsm.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/gstreamer</td><td>Stub library used to link against the system/toolchain <a href="legal-gstreamer.html">GStreamer</a> library. License information.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/helix</td><td>Real Networks Helix DNA media library. Must be obtained separately from Qtopia source packages. <a href="legal-helix.html">License information</a>.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/inputmatch</td><td>Library to support handwriting recognition by turning strokes into character guesses. <a href="legal-inputmatch.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/libtimidity</td><td>Library for playing MIDI files. <a href="legal-libtimidity.html">License information</a>.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/md5</td><td>MD5 wrapper providing a single MD5 hashing function. <a href="legal-md5.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/openobex</td><td><a href="legal-openobex.html">OpenOBEX</a> - Free implementation of the Object Exchange protocol. <a href="legal-openobex.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/pthread</td><td>Stub library used to link against the system/toolchain pthread library.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/qtdbus</td><td>Qt DBUS library built outside Qt so that we can access the symbols from Qtopia.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/sqlite</td><td>Library supporting <a href="legal-sqlite.html">SQLite</a> databases. Uses source code from Qt, but built by Qtopia so that we can access the symbols. <a href="legal-sqlite.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/tar</td><td>Library supporting creation and extraction of .tar archive files. <a href="legal-tar.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/tremor</td><td>Library for playing OGG Vorbis files. <a href="legal-tremor.html">License information</a>.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>libraries/vobject</td><td>Third-party VCARD support classes. <a href="legal-vobject.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>libraries/zlib</td><td>Stub library used to link against the system/toolchain zlib library. <a href="legal-zlib.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>plugins/codecs/libtimidity</td><td>Cruxus codec that provides MIDI support (uses libtimidity). <a href="legal-libtimidity.html">License information</a>.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>plugins/codecs/tremor</td><td>Cruxus codec that provides OGG Vorbis support (uses tremor). <a href="legal-tremor.html">License information</a>.</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>plugins/inputmethods/pkim</td><td>Phone Keys Input Method - Primary Input method plug-in which handles predictive or multi-tap keypress and full-screen handwriting recognition. <a href="legal-pkim.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>tools/atd</td><td>Light-weight AT daemon. <a href="legal-atd.html">License information</a>.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="odd"><td>desktop tools</td><td>Qtopia Sync Agent</td><td>Desktop tool allowing synchronisation between Qtopia and Microsoft Outlook.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<thead><tr valign="top" class="qt-style"><th>Group</th><th>Component</th><th>Description</th><th>opensource</th><th>platform</th><th>phone</th></tr></thead>
+<tr valign="top" class="even"><td>devices</td><td>c3200</td><td>Device configuration profile providing support for Zaurus C3200 using angstrom dist.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>example</td><td>Example device configuration. TO change from using the Greenphone's tool chain edit the TOOLCHAIN value in the environment file in this directory. See also http://doc.trolltech.com/qtopia/tut-deviceexample.html</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>ficgta01</td><td>Support for s3c2410 based fic gta01 devices, including the Neo1973 (Openmoko).</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>greenphone</td><td>Device configuration profile for the Trolltech Greenphone.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>gcc411</td><td>Example device configuration profile using GCC 4.1&#x2e;1&#x2e;</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>i686fb</td><td>Device configuration profile for i686 devices. This profile supports running Qtopia within a VMware Player instance.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>min_voip</td><td>Example device configuration profile for a minimal VoIP implementation of Qtopia, see also the provided README.pdf.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>omap730</td><td>Support for OMAP730 devices.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>n800</td><td>Device configuration profile providing support for the n800 device.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>nokia770</td><td>Device configuration profile providing support for the nokia770 device.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>zaurusclamshell</td><td>Device configuration profile providing support for Zaurus Clamshell</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="odd"><td>''</td><td>zylonite_eabi</td><td>Device configuration profile for the Marvell Zylonite reference board.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr valign="top" class="even"><td>''</td><td>default</td><td>This is a container for default files.</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+</table></p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

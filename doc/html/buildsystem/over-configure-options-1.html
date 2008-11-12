@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>configure Options</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">configure Options<br /><span class="subtitle"></span>
+</h1>
+<p>The authorative source of the available configure options (and defaults) is the script itself. Here is the output of <tt>configure -help</tt> as it was when the documentation was built.</p>
+<p>Note that some configure options will change the default value of other options. You can run <tt>configure -some -options -help</tt> to see the effect of this.</p>
+<p>For suitable values to pass to <tt>-extra-qt-config</tt> see <a href="over-configure-options-qt-1.html">configure Options (Qt)</a>.</p>
+<p>For suitable values to pass to <tt>-extra-qtopiacore-config</tt> see <a href="over-configure-options-qtopia-core-1.html">configure Options (Qtopia Core)</a>.</p>
+<a name="configure-help"></a>
+<h3>configure -help</h3>
+<pre>    Usage:  configure [options]
+
+    The defaults (*) are usually acceptable. A plus (+) denotes a default
+    value that needs to be evaluated. If the evaluation succeeds, the
+    feature is included. Here is a short explanation of each option:
+
+        -help ..................  Print help and usage information.
+        -verbose ...............  Print out extra information while configuring.
+
+        -silent ................  Hide compiler commandlines.
+      * -no-silent .............  Show compiler commandlines.
+
+      * -release ...............  Create a release build.
+        -debug .................  Create a debug build.
+
+        -separate-debug-info ...  Separate debug info into a .debug file.
+      * -no-separate-debug-info   Do not separate debug info into a .debug file.
+
+      * -clean .................  Clean the build tree.
+        -no-clean ..............  Do not clean the build tree.
+
+        -profile ...............  Create a build with profiling.
+      * -no-profile ............  Create a build without profiling.
+
+        -reduce-exports arg ....  Reduce symbol exports in Qt/Qtopia Core/Qtopia
+                                  (requires GCC 4).
+                                  Available: auto, yes, no
+                                  Default: auto
+
+        -little-endian .........  Force target build to use little endian (LSB
+                                  first).
+        -big-endian ............  Force target build to use big endian (MSB first).
+
+        -I dir .................  Add an explicit include path.
+        -L dir .................  Add Add an explicit library path.
+        -l lib .................  Add Add an explicit library.
+        -R dir .................  Add an explicit dynamic library runtime search
+                                  path.
+        -D def .................  Add an explicit define to the build. Use -D
+                                  FOO=bar to give it a value.
+
+            The -I, -L, -l, -R and -D flags apply when building Qtopia and Qtopia
+            Core. If you need to pass these flags to Qt you should use
+            -extra-qt-config 'flags'.
+
+      + -rpath .................  Set an automatic RPATH (so LD_LIBRARY_PATH is not
+                                  required to run Qtopia). Note that this requires
+                                  QMAKE_RPATH to be set in your selected mkspec.
+        -no-rpath ..............  Do not set an automatic RPATH.
+
+      * -posix-locks ...........  Use POSIX file locking.
+        -flock-locks ...........  Use flock() for file locking.
+
+      + -strict-warnings .......  Use strict compiler warning flags.
+        -no-strict-warnings ....  Do not use strict compiler warning flags.
+
+        -error .................  Treat warnings as errors when compiling Qtopia
+                                  (except for code in src/3rdparty).
+      * -no-error ..............  Do not treat warnings as errors.
+
+        -device device .........  Build using a device profile.
+                                  Available: c3200, example, ficgta01, gcc411,
+                                  greenphone, i686fb, min_voip, n800, nokia770,
+                                  omap730, zaurusclamshell, zylonite_eabi
+
+            Using -device may cause many defaults to change.
+
+        -edition edn ...........  Build Qtopia &lt;edn&gt; Edition.
+                                  Available: platform, phone
+                                  Default: phone
+        -qtopiasyncagent .......  Build Qtopia Sync Agent.
+
+        -platform host .........  The host platform that you are compiling on. If
+                                  not specified, configure will attempt to
+                                  autodetect the host.
+        -xplatform target ......  The target platform that you are compiling for. If
+                                  not specified, configure will attempt to
+                                  autodetect the target based on the host.
+      + -arch architecture .....  The CPU family you are building for.
+                                  Available: alpha, arm, boundschecker, generic,
+                                  i386, ia64, macosx, mips, parisc, powerpc, s390,
+                                  sparc, windows, x86_64
+        -defaultbuttons arg ....  Use &lt;arg&gt; (if you pass a complete path) or
+                                  $QTOPIA_DEPOT_PATH/etc/defaultbuttons-&lt;arg&gt;.conf
+                                  (if you do not pass a complete path).
+        -sdk dir ...............  Set the SDK location to &lt;dir&gt;. Note that you
+                                  cannot run 'make sdk' with -sdk
+                                  /home/test1/tmp/qtopia/qtopia-opensource-4.3.4.
+                                  Default: /home/test1/tmp/qtopia/qtopia-opensource-
+                                  4.3.4
+        -image dir .............  Set the Qtopia install location to &lt;dir&gt;.
+                                  Default: /home/test1/tmp/qtopia/qtopia-opensource-
+                                  4.3.4/image
+        -prefix dir ............  Set the runtime location of Qtopia to &lt;dir&gt;.
+                                  Default: /home/test1/tmp/qtopia/qtopia-opensource-
+                                  4.3.4/image
+        -dimage dir ............  Set the Qtopia Sync Agent install location to
+                                  &lt;dir&gt;.
+                                  Default: /home/test1/tmp/qtopia/qtopia-opensource-
+                                  4.3.4/dimage
+        -dprefix dir ...........  Set the runtime location of Qtopia Sync Agent to
+                                  &lt;dir&gt;.
+
+      * -qvfb ..................  Enable QVfb support.
+        -no-qvfb ...............  Disable QVfb support.
+
+        -launch-method method ..  Launch applications using the selected method.
+                                  Please see the documentation for a description of
+                                  each launch method.
+                                  Available: normal, quicklaunch
+                                  Default: quicklaunch
+      + -setproc-method method .  Select the method used by quicklauncher to change
+                                  the process title.
+                                  Available: prctl, argv0, none
+                                  Default: argv0
+
+            The prctl method uses the prctl() system call. This is available to
+            Linux 2.6.9 and later.
+
+            The argv0 method overwrites argv[0]. This is the traditional approach
+            used by Qtopia. It makes assumptions about the layout in memory or argv
+            and char **environ.
+
+            The none method is provided for systems that cannot use prctl() and
+            break on the argv0 method.
+
+        -force-quicklaunch .....  Force apps using QTOPIA_MAIN to be quicklaunched.
+                                  This results in larger binaries but faster
+                                  launching.
+      * -no-force-quicklaunch ..  Do not force apps using QTOPIA_MAIN to be
+                                  quicklaunched.
+
+        -singleexec ............  Qtopia is compiled into a single binary that
+                                  contains all the libraries, plug-ins and
+                                  applications. This implies -no-sxe.
+      * -shared ................  Qtopia is compiled as a collection of libraries,
+                                  plug-ins and applications.
+
+        -languages lang,lang ...  Resources (translations, dictionary files, icons)
+                                  are updated/installed for the specified languages.
+                                  Available: en_US
+                                  Default: en_US
+        -iconsize size .........  Non-scalable icons are installed at the requested
+                                  size. Can be a single number (for square icons) or
+                                  WxH. Images will be scaled from one of the
+                                  available sizes.
+                                  Available: 14, 16, 22
+                                  Default: 22
+        -svg-format ext ........  Specify the format to convert SVG files to at
+                                  install time. Converting to the pic (QPicture)
+                                  format allows for faster image loading.
+                                  Available: svg, pic
+                                  Default: pic
+        -image-extension-order    An image may exist with multiple extensions but
+         ext,ext                  only 1 of these will be installed. This list
+                                  determines the priority of extensions. An image
+                                  with multiple extensions, none of which appear in
+                                  this list will have the first (as determined by
+                                  perl's glob(&quot;$file.*&quot;);) extension chosen.
+                                  Available: png, gif, xpm
+                                  Default: png,gif,xpm
+
+            You cannot force extensions other than .svg to have the highest
+            priority with -image-extension-order.
+
+        -displaysize WxH[-WxH] .  Resources (images) suitable for the requested size
+                                  are installed. Size can be a single width and
+                                  height or a minimum and maximum width and height.
+                                  Default: 160-240
+
+      * -auto-i18n-fonts .......  Allow automatic installation of i18n fonts based
+                                  on the configured language.
+        -no-auto-i18n-fonts ....  Do not automatically install i18n fonts.
+
+        -font fontspec .........  Install font &lt;fontspec&gt; (defined as
+                                  &quot;family:sizes:styles&quot; OR a truetype font file (eg.
+                                  qtopiadejavu.ttf). Pass -font multiple times to
+                                  install multiple fonts.
+                                  Default: &quot;dejavu_sans_condensed:*:*&quot;
+
+            family is the name of the font.
+
+            sizes is a list or range. For example, '80,100,120', '80-120', '*'.
+            Note that .qpf2 files are named with pixel height so 8-12 is more
+            likely.
+
+            styles is a list of weights. For example: '50,50i,80', '*'.
+
+            Unless you have changed the Qtopia Core configuration, fonts must be
+            truetype, .qpf or .qpf2 files.format and are searched for in
+            /home/test1/tmp/qtopia/qtopia-opensource-4.3.4/qtopiacore/qt/dist/embed
+            ded/lib/fonts and
+            /home/test1/tmp/qtopia/qtopia-opensource-4.3.4/dist/fonts. One
+            .qpf/.qpf2 file is installed for each combination of family, size,
+            style and rotation. Note that fonts may not be available in all styles
+            and sizes.
+
+        -make makecmd ..........  Use &lt;makecmd&gt; when building.
+                                  Default: make
+        -build dir .............  Add directory &lt;dir&gt; to the Qtopia build system.
+                                  For example, -build /path/to/myapp will add
+                                  /path/to/myapp to the build system.
+
+      + -ssl ...................  Enable the use of OpenSSL. This lets qtmail
+                                  connect over SSL and use SMTP authentication. It
+                                  also allows communication with Google services.
+        -no-ssl ................  Disable the use of OpenSSL.
+
+        -ssl-ciphers              Use additional ciphers when building OpenSSL.
+         cipher,cipher            WARNING: These ciphers are patented and should
+                                  only be enabled if a suitable licensing agreement
+                                  is in place.
+                                  Available: dsa, idea, mdc2, rc5
+
+      * -sxe ...................  Enable the Safe Execution Environment so that
+                                  native third party applications can run safely.
+        -no-sxe ................  Disable the Safe Execution Environment.
+
+        -sxe-discovery .........  Turn on support for SXE discovery mode so that new
+                                  policy rules can be tested. To utilise SXE
+                                  discovery mode you must set the SXE_DISCOVERY_MODE
+                                  environment variable to 1. WARNING: This option
+                                  creates a security hole and should only be used
+                                  when creating new policy rules.
+      * -no-sxe-discovery ......  Turn off support for SXE discovery mode.
+
+        -sxe-soft-kill .........  Turn on support for SXE soft kill so that
+                                  processes can be sent a signal other than 9 when
+                                  being killed. To utilise SXE soft kill you must
+                                  set the SXE_SOFT_KILL environment variable to the
+                                  number of the signal to send. To see the available
+                                  signals run kill -l. WARNING: This option creates
+                                  a security hole and should only be used when
+                                  debugging SXE violations.
+      * -no-sxe-soft-kill ......  Turn off support for SXE soft kill.
+
+      + -bluetooth .............  Enable Bluetooth.
+        -no-bluetooth ..........  Disable Bluetooth.
+
+      * -infrared ..............  Enable Infrared.
+        -no-infrared ...........  Disable Infrared.
+
+      + -dbus ..................  Enable DBUS support.
+        -no-dbus ...............  Disable DBUS support.
+
+      + -drm ...................  Enable support for DRM (Using the Beep Science DRM
+                                  Agent v2.4).
+        -no-drm ................  Disable support for DRM.
+
+      + -sound-system ss .......  Select the sound system to use. You might need to
+                                  force OSS if your toolchain has ALSA but your
+                                  kernel does not.
+                                  Available: alsa, oss
+                                  Default: alsa
+
+      + -v4l2 ..................  Enable support for V4L2 (Video for Linux version
+                                  2).
+        -no-v4l2 ...............  Disable support for V4L2. Video for Linux version
+                                  1 will be used instead. You might need to force
+                                  this if your toolchain has V4L2 but your kernel
+                                  does not.
+
+      * -telephony .............  Enable Telephony components (UI, Modem, VoIP).
+        -no-telephony ..........  Disable Telephony components.
+
+      * -modem .................  Enable Modem communication (requires Telephony).
+        -no-modem ..............  Disable Modem communication.
+
+        -phonevendors             Build and install phonevendor plugins (reqires
+         plugin,plugin            Modem).
+                                  Available: ericsson, wavecom
+        -multiplexers             Build and install multiplexer plugins (reqires
+         plugin,plugin            Modem).
+                                  Available: wavecom
+
+        -voip ..................  Enable VoIP (Voice over IP) communication. Note
+                                  that the reference SIP agent will not build in
+                                  singleexec mode. (requires Telephony)
+      * -no-voip ...............  Disable VoIP communication.
+
+            Modem and VoIP communication are not exclusive or mandatory. You can
+            enable one, both or none. You must enable telephony to enable Modem or
+            VoIP.
+
+        -vpn ...................  Enable VPN (Virtual Private Network) support.
+      * -no-vpn ................  Disable VPN.
+
+        -qtopiamedia ...........  Enable the Qtopia Media API.
+      * -no-qtopiamedia ........  Disable the Qtopia Media API.
+
+      + -mediaengines             Select the audio/video engines to use with the
+         engine,engine            Qtopia Media API.The order of the engines is
+                                  significant
+                                  Available: cruxus, gstreamer
+                                  Default: cruxus
+
+      * -libamr ................  Enable libamr.
+        -no-libamr .............  Disable libamr.
+
+        -test ..................  Enable the test framework which provides automated
+                                  GUI testing functionality. WARNING: This option
+                                  creates a security hole and should only be used
+                                  when automated testing is going to be used.
+      * -no-test ...............  Disable the test framework.
+
+      * -enable-samples ........  Enable server widget samples.
+        -no-samples ............  Disable server widget samples.
+
+        -build-examples ........  Build the example code.
+      * -no-examples ...........  Do not build the example code.
+
+      * -gif ...................  Enable GIF support.
+        -no-gif ................  Disable GIF support.
+
+        -glib ..................  Enable Glib support in Qtopia Core (uses glib-2.0
+                                  from pkg-config).
+      * -no-glib ...............  Disable Glib support in Qtopia Core.
+
+      * -qtopia-sqlite .........  Use sqlite3 from Qtopia.
+        -system-sqlite .........  Use sqlite3 from the system.
+
+        -extra-qtopiacore-config  Add something to the Qtopia Core configure
+         &quot;-option arg&quot;            commandline.
+        -extra-qt-config &quot;-option Add something to the Qt configure commandline.
+         arg&quot;</pre>
+<p>See also <a href="overviews.html">Overviews</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

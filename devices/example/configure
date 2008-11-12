@@ -1,0 +1,3 @@
+-edition phone  -prefix /opt/Qtopia -xplatform example -arch arm -no-qvfb
+-no-drm
+-release -displaysize 240x320

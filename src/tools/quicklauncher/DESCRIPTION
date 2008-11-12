@@ -1,0 +1,4 @@
+Run in the background by the Qtopia Server to speed up launching of the next application
+by performing startup tasks common to all Qtopia applications.
+The quicklauncher causes runtime linking to occur and constructs a QtopiaApplication
+object so that when an application is launched it can be visible to the user sooner.

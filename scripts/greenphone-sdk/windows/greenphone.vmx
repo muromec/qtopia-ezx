@@ -1,0 +1,66 @@
+#!/usr/bin/vmware
+config.version = "8"
+virtualHW.version = "4"
+scsi0.present = "TRUE"
+scsi0.virtualDev = "buslogic"
+memsize = "512"
+MemAllowAutoScaleDown = "FALSE"
+scsi0:0.present = "TRUE"
+scsi0:0.fileName = "toolchain.vmdk"
+ide1:0.present = "TRUE"
+ide1:0.fileName = "qtopia.iso"
+ide1:0.deviceType = "cdrom-image"
+floppy0.fileName = "A:"
+ethernet0.present = "TRUE"
+ethernet0.connectionType = "nat"
+usb.present = "TRUE"
+sound.present = "TRUE"
+sound.virtualDev = "es1371"
+sound.fileName = "-1"
+sound.autodetect = "TRUE"
+displayName = "Greenphone"
+guestOS = "other26xlinux"
+nvram = "greenphone.nvram"
+
+ide0:0.present = "TRUE"
+ide0:0.fileName = "rootfs.vmdk"
+
+ide0:0.redo = ""
+ethernet0.addressType = "generated"
+uuid.location = "56 4d 89 f4 2c 6b 24 e0-8e 79 9e 51 a6 83 b3 8e"
+uuid.bios = "56 4d 89 f4 2c 6b 24 e0-8e 79 9e 51 a6 83 b3 8e"
+ide1:0.autodetect = "TRUE"
+ethernet0.generatedAddress = "00:0c:29:83:b3:8e"
+ethernet0.generatedAddressOffset = "0"
+tools.syncTime = "FALSE"
+
+scsi0:1.present = "TRUE"
+scsi0:1.fileName = "qtopia.vmdk"
+scsi0:2.present = "TRUE"
+scsi0:2.fileName = "home.vmdk"
+scsi0:3.present = "TRUE"
+scsi0:3.fileName = "qtopiasrc.vmdk"
+
+scsi0:0.redo = ""
+scsi0:1.redo = ""
+scsi0:2.redo = ""
+scsi0:3.redo = ""
+
+floppy0.present = "FALSE"
+
+uuid.action = "create"
+
+checkpoint.vmState = ""
+
+ide0:1.present = "FALSE"
+ide0:1.fileName = "auto detect"
+ide0:1.redo = ""
+ide0:1.deviceType = "cdrom-raw"
+
+usb.autoConnect.device0 = ""
+
+tools.upgrade.policy = "manual"
+
+extendedConfigFile = "greenphone.vmxf"
+
+ide0:1.autodetect = "TRUE"

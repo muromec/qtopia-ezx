@@ -1,0 +1,23 @@
+-xplatform greenphone -arch arm -no-qvfb
+-reduce-exports=yes
+-displaysize 240x320
+-font dejavu_sans_condensed:10,12,13,16,28:50
+-font dejavu_sans_condensed:13,14,15,16,20,21,23,32,36:75
+-eval 'if ( &$helix_visref() ) { opt("qtopiamedia") = 1; opt("mediaengines") = "helix"; }'
+-helix-system-id linux-2.2-libc6-xscale-cross-gcc32
+-prefix /opt/Qtopia
+-no-drm
+-no-infrared
+-no-test
+-dbus
+-bluetooth
+-extra-qtopiacore-config "-qt-libjpeg"
+-extra-qtopiacore-config "-qt-libmng"
+-extra-qtopiacore-config "-qt-libpng"
+-extra-qtopiacore-config "-qt-zlib"
+-extra-qtopiacore-config "-qt-mouse-linuxtp"
+-extra-qt-config -no-glib 
+-extra-qtopiacore-config "-D QT_QWS_SCREEN_COORDINATES"
+-release
+-no-rpath
+-L/opt/toolchains/greenphone/gcc-4.1.1-glibc-2.3.6/arm-linux/arm-linux/usr/local/lib/bscidrm2.4

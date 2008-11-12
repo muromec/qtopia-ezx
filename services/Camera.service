@@ -1,0 +1,7 @@
+[Translation]
+File=QtopiaServices
+Context=Camera
+[Service]
+Actions = "getImage(QDSActionRequest);shutter()"
+Icon = Camera/camera
+Name[]=Camera

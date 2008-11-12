@@ -1,0 +1,14 @@
+
+!staticlib:!static:!contains(TEMPLATE, subdirs):!isEmpty(QMAKE_SEPARATE_DEBUG_INFO) {
+    QMAKE_POST_LINK = $$QMAKE_SEPARATE_DEBUG_INFO $$QMAKE_POST_LINK
+    silent:QMAKE_POST_LINK = @echo creating $@.debug && $$QMAKE_POST_LINK
+
+    isEmpty(DESTDIR) {
+        target.targets += "`basename $(TARGET)`.debug"
+        QMAKE_DISTCLEAN += "`basename $(TARGET)`.debug"
+    } else {
+        target.targets += "$(DESTDIR)/`basename $(TARGET)`.debug"
+        QMAKE_DISTCLEAN += "$(DESTDIR)/`basename $(TARGET)`.debug"
+    }
+}
+

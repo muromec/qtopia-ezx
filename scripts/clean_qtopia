@@ -1,0 +1,44 @@
+#!/bin/sh
+# get the paths
+if [ -f "$(dirname $0)/../src/build/bin/getpaths.sh" ]; then . "$(dirname $0)/../src/build/bingetpaths.sh"; else echo "Could not find getpaths.sh"; exit 1; fi
+
+win32=0
+image=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+	"-f")
+	    rmargs="-f"
+	    ;;
+	"-win32")
+	    win32=1
+	    ;;
+	"-image")
+	    image=1
+	    ;;
+	*)
+	    break
+	    ;;
+    esac
+    shift
+done
+
+cd $QPEDIR
+$QPEDIR/bin/qtopiamake -clean $QPEDIR
+
+if [ $image = 1 ]; then
+    if [ -e $QPEDIR/src/Makefile ]; then
+	image=`sed -n -e 's/^PREFIX?=\(.*\).*/\1/p' $QPEDIR/src/Makefile`
+	dimage=`sed -n -e 's/^DPREFIX?=\(.*\).*/\1/p' $QPEDIR/src/Makefile`
+    fi
+    for img in $image $dimage; do
+	if [ -e $img ]; then
+	    echo "Removing $img"
+	    rm -rf $img
+	fi
+    done
+fi
+
+[ -d include ] && rm -r $rmargs include
+
+exit 0
+

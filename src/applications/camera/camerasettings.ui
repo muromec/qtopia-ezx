@@ -1,0 +1,329 @@
+<ui version="4.0" stdsetdef="1" >
+  <author></author>
+  <comment></comment>
+  <exportmacro></exportmacro>
+  <class>CameraSettings</class>
+  <widget class="QDialog" name="CameraSettings" >
+    <property name="objectName" >
+      <string notr="true" >CameraSettings</string>
+    </property>
+    <property name="geometry" >
+      <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>324</width>
+        <height>465</height>
+      </rect>
+    </property>
+    <property name="windowTitle" >
+      <string>Settings</string>
+    </property>
+    <layout class="QVBoxLayout" >
+      <property name="margin" >
+        <number>11</number>
+      </property>
+      <property name="spacing" >
+        <number>6</number>
+      </property>
+      <item>
+        <widget class="QStorageDeviceSelector" name="location" >
+          <property name="objectName" >
+            <string notr="true" >location</string>
+          </property>
+        </widget>
+      </item>
+      <item>
+        <widget class="QGroupBox" name="photo" >
+          <property name="objectName" >
+            <string notr="true" >photo</string>
+          </property>
+          <property name="title" >
+            <string>Photo</string>
+          </property>
+          <layout class="QVBoxLayout" >
+            <property name="margin" >
+              <number>4</number>
+            </property>
+            <property name="spacing" >
+              <number>2</number>
+            </property>
+            <item>
+              <layout class="QHBoxLayout" >
+                <property name="margin" >
+                  <number>0</number>
+                </property>
+                <property name="spacing" >
+                  <number>6</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="TextLabel1" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel1</string>
+                    </property>
+                    <property name="text" >
+                      <string>Size</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QComboBox" name="photo_size" >
+                    <property name="objectName" >
+                      <string notr="true" >photo_size</string>
+                    </property>
+                    <property name="sizePolicy" >
+                      <sizepolicy>
+                        <hsizetype>7</hsizetype>
+                        <vsizetype>0</vsizetype>
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                      </sizepolicy>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
+            </item>
+            <item>
+              <layout class="QHBoxLayout" >
+                <property name="margin" >
+                  <number>0</number>
+                </property>
+                <property name="spacing" >
+                  <number>6</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="TextLabel2" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel2</string>
+                    </property>
+                    <property name="text" >
+                      <string>Quality</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QSlider" name="photo_quality" >
+                    <property name="objectName" >
+                      <string notr="true" >photo_quality</string>
+                    </property>
+                    <property name="minimum" >
+                      <number>0</number>
+                    </property>
+                    <property name="maximum" >
+                      <number>100</number>
+                    </property>
+                    <property name="value" >
+                      <number>75</number>
+                    </property>
+                    <property name="orientation" >
+                      <enum>Qt::Horizontal</enum>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QLabel" name="photo_quality_n" >
+                    <property name="objectName" >
+                      <string notr="true" >photo_quality_n</string>
+                    </property>
+                    <property name="text" >
+                      <string>75</string>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
+            </item>
+          </layout>
+        </widget>
+      </item>
+      <item>
+        <widget class="QGroupBox" name="video" >
+          <property name="objectName" >
+            <string notr="true" >video</string>
+          </property>
+          <property name="title" >
+            <string>Video</string>
+          </property>
+          <layout class="QVBoxLayout" >
+            <property name="margin" >
+              <number>4</number>
+            </property>
+            <property name="spacing" >
+              <number>2</number>
+            </property>
+            <item>
+              <layout class="QHBoxLayout" >
+                <property name="margin" >
+                  <number>0</number>
+                </property>
+                <property name="spacing" >
+                  <number>6</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="TextLabel1_2" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel1_2</string>
+                    </property>
+                    <property name="text" >
+                      <string>Size</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QComboBox" name="video_size" >
+                    <property name="objectName" >
+                      <string notr="true" >video_size</string>
+                    </property>
+                    <property name="sizePolicy" >
+                      <sizepolicy>
+                        <hsizetype>7</hsizetype>
+                        <vsizetype>0</vsizetype>
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                      </sizepolicy>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
+            </item>
+            <item>
+              <layout class="QHBoxLayout" >
+                <property name="margin" >
+                  <number>0</number>
+                </property>
+                <property name="spacing" >
+                  <number>6</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="TextLabel2_2" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel2_2</string>
+                    </property>
+                    <property name="text" >
+                      <string>Quality</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QSlider" name="video_quality" >
+                    <property name="objectName" >
+                      <string notr="true" >video_quality</string>
+                    </property>
+                    <property name="minimum" >
+                      <number>0</number>
+                    </property>
+                    <property name="maximum" >
+                      <number>100</number>
+                    </property>
+                    <property name="value" >
+                      <number>75</number>
+                    </property>
+                    <property name="orientation" >
+                      <enum>Qt::Horizontal</enum>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QLabel" name="video_quality_n" >
+                    <property name="objectName" >
+                      <string notr="true" >video_quality_n</string>
+                    </property>
+                    <property name="text" >
+                      <string>75</string>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
+            </item>
+            <item>
+              <layout class="QHBoxLayout" >
+                <property name="margin" >
+                  <number>0</number>
+                </property>
+                <property name="spacing" >
+                  <number>6</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="TextLabel4" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel4</string>
+                    </property>
+                    <property name="text" >
+                      <string>Frame rate</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QSlider" name="video_framerate" >
+                    <property name="objectName" >
+                      <string notr="true" >video_framerate</string>
+                    </property>
+                    <property name="minimum" >
+                      <number>1</number>
+                    </property>
+                    <property name="maximum" >
+                      <number>60</number>
+                    </property>
+                    <property name="value" >
+                      <number>5</number>
+                    </property>
+                    <property name="orientation" >
+                      <enum>Qt::Horizontal</enum>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QLabel" name="TextLabel6" >
+                    <property name="objectName" >
+                      <string notr="true" >TextLabel6</string>
+                    </property>
+                    <property name="text" >
+                      <string>5</string>
+                    </property>
+                  </widget>
+                </item>
+              </layout>
+            </item>
+          </layout>
+        </widget>
+      </item>
+      <item>
+        <spacer name="Spacer1" >
+          <property name="sizeHint" >
+            <size>
+              <width>20</width>
+              <height>20</height>
+            </size>
+          </property>
+          <property name="sizeType" >
+            <enum>Expanding</enum>
+          </property>
+          <property name="orientation" >
+            <enum>Vertical</enum>
+          </property>
+        </spacer>
+      </item>
+    </layout>
+  </widget>
+  <pixmapfunction></pixmapfunction>
+  <customwidgets>
+    <customwidget>
+      <class>QStorageDeviceSelector</class>
+      <extends></extends>
+      <header location="global" >qtopia/qstoragedeviceselector.h</header>
+      <sizehint>
+        <width>-1</width>
+        <height>-1</height>
+      </sizehint>
+      <container>0</container>
+      <sizepolicy>
+        <hordata>5</hordata>
+        <verdata>5</verdata>
+      </sizepolicy>
+      <pixmap>image0</pixmap>
+    </customwidget>
+  </customwidgets>
+  <images>
+    <image name="image0" >
+      <data format="XPM.GZ" length="646" >789c6dd2c10ac2300c00d07bbf2234b7229d1be245fc04c5a3201e4615f430059d0711ff5ddb2e6bb236ec90eed134cb5a19d8ef36602af5ecdbfeeac05dda0798d3abebde87e3faa374d3807fa0d633a52d38d8de6f679fe33fc776e196f53cd010188256a3600a292882096246517815ca99884606e18044a3a40d91824820924265a7923a2e8bcd05f33db1173e002913175f2a6be6d3294871a2d95fa00e8a94ee017b69d339d90df1e77c57ea072ede6758</data>
+    </image>
+  </images>
+</ui>

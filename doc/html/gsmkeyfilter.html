@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>GsmKeyFilter Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped Classes</font></a>&nbsp;&middot; <a href="annotated.html"><font color="#004faf">Annotated</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">GsmKeyFilter Class Reference</h1>
+<p>The GsmKeyFilter class filters key sequences looking for GSM control actions. <a href="#details">More...</a></p>
+<pre>    #include &lt;GsmKeyFilter&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
+<ul>
+<li><a href="gsmkeyfilter-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-types"></a>
+<h3>Public Types</h3>
+<ul>
+<li><div class="fn"/>enum <b><a href="gsmkeyfilter.html#Flag-enum">Flag</a></b> { Send, Immediate, OnCall, Incoming, BeforeDial, TestOnly }</li>
+<li><div class="fn"/>flags <b><a href="gsmkeyfilter.html#Flag-enum">Flags</a></b></li>
+<li><div class="fn"/>enum <b><a href="gsmkeyfilter.html#ServiceAction-enum">ServiceAction</a></b> { Activate, Deactivate, Interrogate, Registration, Erasure }</li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"/><b><a href="gsmkeyfilter.html#GsmKeyFilter">GsmKeyFilter</a></b> ( QObject * <i>parent</i> = 0 )</li>
+<li><div class="fn"/><b><a href="gsmkeyfilter.html#dtor.GsmKeyFilter">~GsmKeyFilter</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#addAction">addAction</a></b> ( const QString &amp; <i>digits</i>, QObject * <i>target</i>, const char * <i>slot</i>, GsmKeyFilter::Flags <i>flags</i> = GsmKeyFilter::Immediate )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#addAction-2">addAction</a></b> ( const QRegExp &amp; <i>regex</i>, QObject * <i>target</i>, const char * <i>slot</i>, GsmKeyFilter::Flags <i>flags</i> = GsmKeyFilter::Immediate )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#addService">addService</a></b> ( const QString &amp; <i>code</i>, QObject * <i>target</i>, const char * <i>slot</i>, GsmKeyFilter::Flags <i>flags</i> = GsmKeyFilter::Send )</li>
+<li><div class="fn"/>bool <b><a href="gsmkeyfilter.html#filter">filter</a></b> ( const QString &amp; <i>digits</i>, Flags <i>flags</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#activate">activate</a></b> ( int <i>call</i> )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#deflect">deflect</a></b> ( const QString &amp; <i>number</i> )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#join">join</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#release">release</a></b> ( int <i>call</i> )</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#releaseActive">releaseActive</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#releaseAllAcceptIncoming">releaseAllAcceptIncoming</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#releaseHeld">releaseHeld</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#setBusy">setBusy</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#swap">swap</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="gsmkeyfilter.html#transfer">transfer</a></b> ()</li>
+</ul>
+<ul>
+<li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"/>1 public type inherited from <a href="qobject.html#public-variables">QObject</a></li>
+<li><div class="fn"/>4 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"/>7 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+<li><div class="fn"/>2 protected variables inherited from <a href="qobject.html#protected-variables">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The GsmKeyFilter class filters key sequences looking for GSM control actions.</p>
+<p>The GsmKeyFilter class filters key sequences looking for GSM control actions. The following standard control actions are recognized by this class:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<tr valign="top" class="odd"><td><tt>0 SEND</tt></td><td>Set the busy state for a waiting call, or release the held calls.</td></tr>
+<tr valign="top" class="even"><td><tt>1 SEND</tt></td><td>Release the active calls.</td></tr>
+<tr valign="top" class="odd"><td><tt>1n SEND</tt></td><td>Release only call <tt>n</tt>.</td></tr>
+<tr valign="top" class="even"><td><tt>2 SEND</tt></td><td>Swap the active and held calls.</td></tr>
+<tr valign="top" class="odd"><td><tt>2n SEND</tt></td><td>Activate only call <tt>n</tt>, putting all others on hold.</td></tr>
+<tr valign="top" class="even"><td><tt>3 SEND</tt></td><td>Join the active and held calls into a multi-party conversation.</td></tr>
+<tr valign="top" class="odd"><td><tt>4 SEND</tt></td><td>Join the active and held calls into a multi-party conversation and then detach the local user (i.e&#x2e; transfer).</td></tr>
+<tr valign="top" class="even"><td><tt>4*n SEND</tt></td><td>Deflect the waiting call to the number <tt>n</tt>.</td></tr>
+</table></p>
+<p>Additional actions can be added with <a href="gsmkeyfilter.html#addAction">addAction</a>().</p>
+<p>This class is part of the Qtopia server and cannot be used by other Qtopia applications.</p>
+<hr />
+<h2>Member Type Documentation</h2>
+<h3 class="flags"><a name="Flag-enum"></a>enum GsmKeyFilter::Flag<br />flags GsmKeyFilter::Flags</h3>
+<p>Flags that modify the filtering of keys for GSM control actions.</p>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Send</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;0 )</tt></td><td valign="top">The GSM <tt>SEND</tt> function has been selected. Usually this is the call button on the keypad.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Immediate</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;1 )</tt></td><td valign="top">The action should be taken immediately when the last character is matched. This is for sequences such as <tt>*#06#</tt> which must activate when the final <tt>#</tt> is pressed.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::OnCall</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;2 )</tt></td><td valign="top">The digits were entered when there was an active or held call.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Incoming</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;3 )</tt></td><td valign="top">The digits were entered when there was an incoming call that has not yet been accepted.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::BeforeDial</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;4 )</tt></td><td valign="top">The digits were encountered just before the dial attempt was made. The digits may have originated from a dialer or from a contact. This provides a last chance to intercept a string of digits before regular dialing occurs.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::TestOnly</tt></td><td align="center" valign="top"><tt>( 1&lt;&lt;5 )</tt></td><td valign="top">Test to see if the filter would suceed, but do not apply.</td></tr>
+</table></p>
+<p>The Flags type is a typedef for <a href="qflags.html">QFlags</a>&lt;Flag&gt;. It stores an OR combination of Flag values.</p>
+<h3 class="fn"><a name="ServiceAction-enum"></a>enum GsmKeyFilter::ServiceAction</h3>
+<p>Action types for supplementary services.</p>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Activate</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">Request to activate a supplementary service.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Deactivate</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">Request to deactivate a supplementary service.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Interrogate</tt></td><td align="center" valign="top"><tt>2</tt></td><td valign="top">Interrogate the current state of a supplementary service.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Registration</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">Register for a supplementary service.</td></tr>
+<tr><td valign="top"><tt>GsmKeyFilter::Erasure</tt></td><td align="center" valign="top"><tt>4</tt></td><td valign="top">Erase a supplementary service.</td></tr>
+</table></p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="GsmKeyFilter"></a>GsmKeyFilter::GsmKeyFilter ( <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
+<p>Construct a GSM key filter and attach it to <i>parent</i>.</p>
+<h3 class="fn"><a name="dtor.GsmKeyFilter"></a>GsmKeyFilter::~GsmKeyFilter ()</h3>
+<p>Destroy this GSM key filter.</p>
+<h3 class="fn"><a name="activate"></a>void GsmKeyFilter::activate ( int <i>call</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>2X SEND</tt> key sequence is encountered while on a call, where <tt>X</tt> is the <i>call</i> identifier. This will activate the indicated call, putting other calls on hold.</p>
+<h3 class="fn"><a name="addAction"></a>void GsmKeyFilter::addAction ( const <a href="qstring.html">QString</a> &amp; <i>digits</i>, <a href="qobject.html">QObject</a> * <i>target</i>, const char * <i>slot</i>, <a href="gsmkeyfilter.html#Flag-enum">GsmKeyFilter::Flags</a> <i>flags</i> = GsmKeyFilter::Immediate )</h3>
+<p>Add <i>digits</i> as an action which will cause <i>slot</i> to be invoked on <i>target</i> when the specified string of <i>digits</i> is entered.</p>
+<p>The <i>flags</i> modifies when the action will be accepted or ignored. For example, setting <tt>Send</tt> will require that the <tt>SEND</tt> key be pressed to terminate the sequence; setting <tt>Incoming</tt> will require that there be an incoming call.</p>
+<p>The prototype for <i>slot</i> should be <tt>action()</tt> or <tt>action(QString)</tt> where <tt>action</tt> is the name of the slot. The digit sequence entered will be passed to the slot if it has a <a href="qstring.html">QString</a> argument.</p>
+<p>Actions are matched in the order in which they were added.</p>
+<h3 class="fn"><a name="addAction-2"></a>void GsmKeyFilter::addAction ( const <a href="qregexp.html">QRegExp</a> &amp; <i>regex</i>, <a href="qobject.html">QObject</a> * <i>target</i>, const char * <i>slot</i>, <a href="gsmkeyfilter.html#Flag-enum">GsmKeyFilter::Flags</a> <i>flags</i> = GsmKeyFilter::Immediate )</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
+<p>Add <i>regex</i> as an action which will cause <i>slot</i> to be invoked on <i>target</i> when a string of digits is entered which matches <i>regex</i>.</p>
+<p>The <i>flags</i> modifies when the action will be accepted or ignored. For example, setting <tt>Send</tt> will require that the <tt>SEND</tt> key be pressed to terminate the sequence; setting <tt>Incoming</tt> will require that there be an incoming call. All specified flags must be present.</p>
+<p>The prototype for <i>slot</i> should be <tt>action()</tt> or <tt>action(QString)</tt> where <tt>action</tt> is the name of the slot. The digit sequence entered will be passed to the slot if it has a <a href="qstring.html">QString</a> argument.</p>
+<p>If <i>regex</i> includes a capture specification between parentheses, then only that part of the digit string will be passed to the slot. For example, <tt>4*([0-9]+)</tt> indicates that only the digits after the <tt>4*</tt> prefix should be passed to the slot.</p>
+<p>Actions are matched in the order in which they were added.</p>
+<h3 class="fn"><a name="addService"></a>void GsmKeyFilter::addService ( const <a href="qstring.html">QString</a> &amp; <i>code</i>, <a href="qobject.html">QObject</a> * <i>target</i>, const char * <i>slot</i>, <a href="gsmkeyfilter.html#Flag-enum">GsmKeyFilter::Flags</a> <i>flags</i> = GsmKeyFilter::Send )</h3>
+<p>Add action filters for the supplementary service associated with <i>code</i> and call <i>slot</i> on <i>target</i> when the action is encountered.</p>
+<p>The prototype for <i>slot</i> should be <tt>action(GsmKeyFilter::ServiceAction, QStringList)</tt> where <tt>action</tt> is the name of the slot. The first parameter will be the type of action to be taken, and the second parameter will be the list of <tt>*</tt>-separated parameters that were supplied to the action, starting with the service code.</p>
+<p>The <i>flags</i> modifies when the action will be accepted or ignored. For example, setting <tt>Send</tt> will require that the <tt>SEND</tt> key be pressed to terminate the sequence; setting <tt>Incoming</tt> will require that there be an incoming call. All specified flags must be present.</p>
+<h3 class="fn"><a name="deflect"></a>void GsmKeyFilter::deflect ( const <a href="qstring.html">QString</a> &amp; <i>number</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>4*NUM SEND</tt> key sequence is encountered when there was an incoming call, which indicates that the incoming call should be deflected to <tt>NUM</tt>. The <tt>NUM</tt> value is supplied in the <i>number</i> parameter to the signal.</p>
+<h3 class="fn"><a name="filter"></a>bool GsmKeyFilter::filter ( const <a href="qstring.html">QString</a> &amp; <i>digits</i>, <a href="gsmkeyfilter.html#Flag-enum">Flags</a> <i>flags</i> )</h3>
+<p>Filter the supplied string of <i>digits</i> to determine if it corresponds to a GSM control action. The <i>flags</i> indicate the context within which <i>digits</i> should be interpreted.</p>
+<p>Returns false if the digit sequence is not recognized by the filter. The filter will be called again when there are more digits (or less if a backspace was encountered).</p>
+<p>Returns true if the digit sequence was recognized and acted upon. The caller should clear the digit buffer.</p>
+<h3 class="fn"><a name="join"></a>void GsmKeyFilter::join ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>3 SEND</tt> key sequence is encountered while on a call, which indicates that the active and held calls should be joined together into a single multi-party call.</p>
+<h3 class="fn"><a name="release"></a>void GsmKeyFilter::release ( int <i>call</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>1X SEND</tt> key sequence is encountered while on a call, where <tt>X</tt> is the <i>call</i> identifier. This will release the indicated call.</p>
+<h3 class="fn"><a name="releaseActive"></a>void GsmKeyFilter::releaseActive ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>1 SEND</tt> key sequence is encountered while on a call. This will release the active calls, and accept the waiting call if there is one.</p>
+<h3 class="fn"><a name="releaseAllAcceptIncoming"></a>void GsmKeyFilter::releaseAllAcceptIncoming ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>1 SEND</tt> key sequence is encountered when there is an incoming call but no active calls. This will accept the incoming call.</p>
+<h3 class="fn"><a name="releaseHeld"></a>void GsmKeyFilter::releaseHeld ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>0 SEND</tt> key sequence is encountered while on a call and there is no incoming waiting call. This will release the held calls, if any.</p>
+<h3 class="fn"><a name="setBusy"></a>void GsmKeyFilter::setBusy ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>0 SEND</tt> key sequence is encountered when there is an incoming waiting call.</p>
+<h3 class="fn"><a name="swap"></a>void GsmKeyFilter::swap ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>2 SEND</tt> key sequence is encountered while on a call, which indicates that the active and held calls should be swapped. If there is only an active call, it should be put on hold. If there is only a held call, then it should be activated. If there is a waiting call, it will be accepted.</p>
+<h3 class="fn"><a name="transfer"></a>void GsmKeyFilter::transfer ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>Signal that is emitted when the <tt>4 SEND</tt> key sequence is encountered while on a call, which indicates that the active and held calls should be joined together into a single multi-party call, and then the local user should be detached.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="center"><a href="trademarks.html">Trademarks</a></td>
+<td align="right"><div align="right">Qtopia 4.3.4</div></td>
+</tr></table></div></address></body>
+</html>

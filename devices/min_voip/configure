@@ -1,0 +1,27 @@
+-xplatform min_voip -arch arm -no-qvfb
+-displaysize 320x240
+-edition phone
+-no-modem
+-voip
+-no-qtopiamedia
+-no-drm
+-no-sxe
+-prefix /opt/Qtopia
+-no-dbus
+-no-bluetooth
+-no-infrared
+-iconsize 22
+-font "dejavu_sans_condensed:16:50"
+-languages "en_US"
+-extra-qtopiacore-config "-no-freetype"
+-extra-qtopiacore-config "-qt-libjpeg"
+-extra-qtopiacore-config "-qt-libmng"
+-extra-qtopiacore-config "-qt-libpng"
+-extra-qtopiacore-config "-qt-zlib"
+-extra-qtopiacore-config "-no-accessibility"
+-release
+-silent
+-no-samples
+-no-test
+-extra-qt-config '-no-accessibility -system-sqlite -no-qt3support -no-openssl -no-nis -no-cups -no-iconv -no-qdbus -no-opengl -no-glib'
+-extra-qtopiacore-config '-no-accessibility -no-openssl -no-nis -no-cups -no-iconv -no-opengl -no-glib'

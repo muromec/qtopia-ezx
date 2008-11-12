@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Add a custom compiler</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">Add a custom compiler<br /><span class="subtitle"></span>
+</h1>
+<p>Compilers operate on a number of files one by one or all at once.</p>
+<p>Here's an example to compile some flex (lex) and bison (yacc) files. These examples are useful because qmake's builtin support for these compilers is limited. Note that this solution can only support 1 flex and 1 bison source file per project.</p>
+<pre>    FLEX_SOURCES=lexer.l
+    BISON_SOURCES=parser.y
+
+    flex.commands=flex -o${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    flex.output=$$OUT_PWD/${QMAKE_FILE_BASE}.c
+    flex.input=FLEX_SOURCES
+    flex.variable_out=SOURCES
+    flex.name=flex ${QMAKE_FILE_IN}
+    # qmake can't parse lexer.l to see this dependency
+    flex.depends=parser.h
+    QMAKE_EXTRA_COMPILERS+=flex
+
+    bisonsource.commands=bison -d -o${QMAKE_FILE_OUT} ${QMAKE_FILE_IN}
+    bisonsource.output=$$OUT_PWD/${QMAKE_FILE_BASE}.c
+    bisonsource.input=BISON_SOURCES
+    bisonsource.variable_out=SOURCES
+    bisonsource.name=bisonsource ${QMAKE_FILE_IN}
+    QMAKE_EXTRA_COMPILERS+=bisonsource
+
+    # This dummy entry is required so that qmake handles the header correctly
+    bisonheader.commands=@true
+    bisonheader.output=$$OUT_PWD/${QMAKE_FILE_BASE}.h
+    bisonheader.input=BISON_SOURCES
+    bisonheader.variable_out=HEADERS
+    bisonheader.name=bisonheader ${QMAKE_FILE_IN}
+    # this dependency is needed so that files that depend on parser.h are processed after bison is run
+    bisonheader.depends=parser.c
+    QMAKE_EXTRA_COMPILERS+=bisonheader</pre>
+<p>See also <a href="advancedtasks.html">Advanced Tasks</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

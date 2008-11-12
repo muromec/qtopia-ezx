@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>qtopia_project()</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><img src="images/qpelogo.png" align="left" width="32" height="32" border="0" /></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="../index.html"><font color="#004faf">Qtopia Home</font></a>&nbsp;&middot; <a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="reference.html"><font color="#004faf">Reference</font></a>&nbsp;&middot; <a href="userguide.html"><font color="#004faf">User Guide</font></a>&nbsp;&middot; <a href="internals.html"><font color="#004faf">Internals</font></a></td>
+<td align="right" valign="top"><img src="images/codeless.png" align="right" border="0" /></td></tr></table><h1 class="title">qtopia_project()<br /><span class="subtitle"></span>
+</h1>
+<a name="usage"></a>
+<h3>Usage</h3>
+<pre>    qtopia_project(keyword ... keyword)</pre>
+<a name="description"></a>
+<h3>Description</h3>
+<p>All projects should have one of the following:</p>
+<ul>
+<li>app<p>This is an <a href="over-applications-1.html">application</a>.</p>
+</li>
+<li>lib<p>This is a <a href="over-libraries-1.html">library</a>.</p>
+</li>
+<li>plugin<p>This is a <a href="over-plugins-1.html">plugin</a>.</p>
+</li>
+<li>subdirs<p>This project lists other projects to build. Such projects generally set <a href="var-subdirs-1.html">SUBDIRS</a> unless they are merely stubs, building the <a href="var-projects-1.html">PROJECTS</a> underneath them (see <a href="over-project-trees-1.html">Project Trees</a> for more information).</p>
+</li>
+<li>stub<p>This project does not build anything.</p>
+</li>
+<li>theme<p>This is a theme (alias for stub).</p>
+</li>
+</ul>
+<p>These keywords specify the Qt version to use:</p>
+<ul>
+<li>external<p>This is a non-Qt/Qtopia Core project.</p>
+</li>
+<li>embedded<p>This is a Qtopia Core project.</p>
+</li>
+<li>desktop<p>This is a Qt project.</p>
+</li>
+</ul>
+<p>These keywords are useful for external projects:</p>
+<ul>
+<li>qtopia<p>This is a Qtopia project.</p>
+</li>
+<li>qtopiadesktop<p>This is a Qtopia Sync Agent project.</p>
+</li>
+</ul>
+<p>Qtopia and Qtopia Sync Agent projects may wish to use:</p>
+<ul>
+<li>core<p>Don't depend on the usual libs (ie. libqtopia/libqtopiadesktop).</p>
+</li>
+</ul>
+<p>The src/plugins/designer root has the following keywords:</p>
+<ul>
+<li>designer<p>Make a designer plugin (use both <tt>designer</tt> and <tt>plugin</tt>).</p>
+</li>
+</ul>
+<p>Note that designer plugins are not tested and probably do not work.</p>
+<p>There are some internal types in use.</p>
+<ul>
+<li>qtopiacore<p>This is a stub project used to control building of Qt and Qtopia Core projects.</p>
+</li>
+</ul>
+<p>See also <a href="functions.html">Functions (build system)</a>.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td align="left">Copyright &copy; 2008 Trolltech</td>
+<td align="right">Qtopia Build System Documentation</td>
+</tr></table></div></address></body>
+</html>

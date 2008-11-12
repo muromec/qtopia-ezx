@@ -1,0 +1,28 @@
+Not a real doc, just getting this down.
+
+Would use a graphic, but all Open Source drawing programs have extremely poor usability.
+
+Server                                 Client
+-- serverSyncRequest() --------------------->
+-- serverIdentity() ------------------------>
+-- serverVersion() ------------------------->
+<------------------------ clientIdentity() --
+<------------------------- clientVersion() --
+-- serverSyncAnchors() --------------------->
+<--------------------- clientSyncAnchors() --
+
+-- requestTwoWaySync() --------------------->
+    or
+-- requestSlowSync() ----------------------->
+
+<------------------------- [ClientChanges] --
+
+<----------------------------- clientEnd() --
+
+-- [ServerChanges] ------------------------->
+
+-- serverEnd() ----------------------------->
+<----------------------------- clientEnd() --
+
+ClientChanges == clientCreateRecord(), clientRemoveRecord(), clientReplaceRecord()
+ServerChanges == serverCreateRecord(), serverRemoveRecord(), serverReplaceRecord()

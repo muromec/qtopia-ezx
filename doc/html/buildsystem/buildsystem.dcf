@@ -1,0 +1,403 @@
+<!DOCTYPE DCF>
+<DCF ref="index.html" icon="buildsystem.png" imagedir="../../gif" title="Qtopia Build System Documentation">
+<section ref="classes.html" title="Classes"/>
+<section ref="overviews.html" title="Overviews">
+    <section ref="atask-add-a-custom-compiler-1.html" title="Add a custom compiler">
+        <keyword ref="atask-add-a-custom-compiler-1.html">Add a custom compiler</keyword>
+    </section>
+    <section ref="task-add-a-global-option-1.html" title="Add a global option">
+        <keyword ref="task-add-a-global-option-1.html">Add a global option</keyword>
+    </section>
+    <section ref="advancedtasks.html" title="Advanced Tasks">
+        <keyword ref="advancedtasks.html">Advanced Tasks</keyword>
+    </section>
+    <section ref="var-all-translations-1.html" title="ALL_TRANSLATIONS">
+        <keyword ref="var-all-translations-1.html">ALL_TRANSLATIONS</keyword>
+    </section>
+    <section ref="over-applications-1.html" title="Applications">
+        <keyword ref="over-applications-1.html">Applications</keyword>
+    </section>
+    <section ref="defines.html" title="Automatic DEFINES">
+        <keyword ref="defines.html">Automatic DEFINES</keyword>
+    </section>
+    <section ref="var-available-languages-1.html" title="AVAILABLE_LANGUAGES">
+        <keyword ref="var-available-languages-1.html">AVAILABLE_LANGUAGES</keyword>
+    </section>
+    <section ref="basics.html" title="Basics">
+        <keyword ref="basics.html">Basics</keyword>
+    </section>
+    <section ref="var-bluetooth-network-script-1.html" title="BLUETOOTH_NETWORK_SCRIPT">
+        <keyword ref="var-bluetooth-network-script-1.html">BLUETOOTH_NETWORK_SCRIPT</keyword>
+    </section>
+    <section ref="var-bluetoothpan-network-script-1.html" title="BLUETOOTHPAN_NETWORK_SCRIPT">
+        <keyword ref="var-bluetoothpan-network-script-1.html">BLUETOOTHPAN_NETWORK_SCRIPT</keyword>
+    </section>
+    <section ref="chlog-4-1-4-1.html" title="Build system changes for 4.1&#x2e;4">
+        <keyword ref="chlog-4-1-4-1.html">Build system changes for 4.1&#x2e;4</keyword>
+    </section>
+    <section ref="chlog-4-1-7-1.html" title="Build system changes for 4.1&#x2e;7">
+        <keyword ref="chlog-4-1-7-1.html">Build system changes for 4.1&#x2e;7</keyword>
+    </section>
+    <section ref="chlog-4-2-0-1.html" title="Build system changes for 4.2&#x2e;0">
+        <keyword ref="chlog-4-2-0-1.html">Build system changes for 4.2&#x2e;0</keyword>
+    </section>
+    <section ref="chlog-4-2-1-1.html" title="Build system changes for 4.2&#x2e;1">
+        <keyword ref="chlog-4-2-1-1.html">Build system changes for 4.2&#x2e;1</keyword>
+    </section>
+    <section ref="chlog-4-2-2-1.html" title="Build system changes for 4.2&#x2e;2">
+        <keyword ref="chlog-4-2-2-1.html">Build system changes for 4.2&#x2e;2</keyword>
+    </section>
+    <section ref="chlog-4-2-3-1.html" title="Build system changes for 4.2&#x2e;3">
+        <keyword ref="chlog-4-2-3-1.html">Build system changes for 4.2&#x2e;3</keyword>
+    </section>
+    <section ref="chlog-4-2-5-1.html" title="Build system changes for 4.2&#x2e;5">
+        <keyword ref="chlog-4-2-5-1.html">Build system changes for 4.2&#x2e;5</keyword>
+    </section>
+    <section ref="chlog-4-3-0-1.html" title="Build system changes for 4.3&#x2e;0">
+        <keyword ref="chlog-4-3-0-1.html">Build system changes for 4.3&#x2e;0</keyword>
+    </section>
+    <section ref="chlog-4-3-1-1.html" title="Build system changes for 4.3&#x2e;1">
+        <keyword ref="chlog-4-3-1-1.html">Build system changes for 4.3&#x2e;1</keyword>
+    </section>
+    <section ref="chlog-4-3-2-1.html" title="Build system changes for 4.3&#x2e;2">
+        <keyword ref="chlog-4-3-2-1.html">Build system changes for 4.3&#x2e;2</keyword>
+    </section>
+    <section ref="conf-build-all-dirs-1.html" title="build_all_dirs">
+        <keyword ref="conf-build-all-dirs-1.html">build_all_dirs</keyword>
+    </section>
+    <section ref="def-builder-1.html" title="BUILDER">
+        <keyword ref="def-builder-1.html">BUILDER</keyword>
+    </section>
+    <section ref="classes.html" title="Classes">
+        <keyword ref="classes.html">Classes</keyword>
+    </section>
+    <section ref="var-config-1.html" title="CONFIG">
+        <keyword ref="var-config-1.html">CONFIG</keyword>
+    </section>
+    <section ref="config.html" title="CONFIG Values">
+        <keyword ref="config.html">CONFIG Values</keyword>
+    </section>
+    <section ref="over-configure-options-1.html" title="configure Options">
+        <keyword ref="over-configure-options-1.html">configure Options</keyword>
+    </section>
+    <section ref="over-configure-options-qt-1.html" title="configure Options (Qt)">
+        <keyword ref="over-configure-options-qt-1.html">configure Options (Qt)</keyword>
+    </section>
+    <section ref="over-configure-options-qtopia-core-1.html" title="configure Options (Qtopia Core)">
+        <keyword ref="over-configure-options-qtopia-core-1.html">configure Options (Qtopia Core)</keyword>
+    </section>
+    <section ref="task-create-a-launcher-folder-1.html" title="Create a launcher folder">
+        <keyword ref="task-create-a-launcher-folder-1.html">Create a launcher folder</keyword>
+    </section>
+    <section ref="task-create-a-new-project-file-1.html" title="Create a new project file">
+        <keyword ref="task-create-a-new-project-file-1.html">Create a new project file</keyword>
+    </section>
+    <section ref="atask-create-a-new-project-tree-1.html" title="Create a new project tree">
+        <keyword ref="atask-create-a-new-project-tree-1.html">Create a new project tree</keyword>
+    </section>
+    <section ref="task-create-a-new-service-1.html" title="Create a new service">
+        <keyword ref="task-create-a-new-service-1.html">Create a new service</keyword>
+    </section>
+    <section ref="over-creating-and-using-binary-sdks-1.html" title="Creating and using binary SDKs">
+        <keyword ref="over-creating-and-using-binary-sdks-1.html">Creating and using binary SDKs</keyword>
+    </section>
+    <section ref="task-deciding-what-to-build-1.html" title="Deciding what to build">
+        <keyword ref="task-deciding-what-to-build-1.html">Deciding what to build</keyword>
+    </section>
+    <section ref="var-defines-1.html" title="DEFINES">
+        <keyword ref="var-defines-1.html">DEFINES</keyword>
+    </section>
+    <section ref="fn-dep-1.html" title="dep()">
+        <keyword ref="fn-dep-1.html">dep()</keyword>
+    </section>
+    <section ref="over-dependencies-1.html" title="Dependencies">
+        <keyword ref="over-dependencies-1.html">Dependencies</keyword>
+    </section>
+    <section ref="fn-depends-1.html" title="depends()">
+        <keyword ref="fn-depends-1.html">depends()</keyword>
+    </section>
+    <section ref="over-depot-hopping-1.html" title="Depot Hopping">
+        <keyword ref="over-depot-hopping-1.html">Depot Hopping</keyword>
+    </section>
+    <section ref="over-device-profiles-1.html" title="Device Profiles">
+        <keyword ref="over-device-profiles-1.html">Device Profiles</keyword>
+    </section>
+    <section ref="var-dialing-network-script-1.html" title="DIALING_NETWORK_SCRIPT">
+        <keyword ref="var-dialing-network-script-1.html">DIALING_NETWORK_SCRIPT</keyword>
+    </section>
+    <section ref="conf-disabled-deps-are-non-fatal-1.html" title="disabled_deps_are_non_fatal">
+        <keyword ref="conf-disabled-deps-are-non-fatal-1.html">disabled_deps_are_non_fatal</keyword>
+    </section>
+    <section ref="examples.html" title="Examples">
+        <keyword ref="examples.html">Examples</keyword>
+    </section>
+    <section ref="over-export-macros-1.html" title="Export Macros">
+        <keyword ref="over-export-macros-1.html">Export Macros</keyword>
+    </section>
+    <section ref="var-extra-ts-files-1.html" title="EXTRA_TS_FILES">
+        <keyword ref="var-extra-ts-files-1.html">EXTRA_TS_FILES</keyword>
+    </section>
+    <section ref="var-forms-1.html" title="FORMS">
+        <keyword ref="var-forms-1.html">FORMS</keyword>
+    </section>
+    <section ref="functions.html" title="Functions (build system)">
+        <keyword ref="functions.html">Functions (build system)</keyword>
+    </section>
+    <section ref="atask-generate-sources-1.html" title="Generate sources">
+        <keyword ref="atask-generate-sources-1.html">Generate sources</keyword>
+    </section>
+    <section ref="hint-background-1.html" title="hint=background">
+        <keyword ref="hint-background-1.html">hint=background</keyword>
+    </section>
+    <section ref="hint-content-1.html" title="hint=content">
+        <keyword ref="hint-content-1.html">hint=content</keyword>
+    </section>
+    <section ref="hint-dawg-1.html" title="hint=dawg">
+        <keyword ref="hint-dawg-1.html">hint=dawg</keyword>
+    </section>
+    <section ref="hint-desktop-1.html" title="hint=desktop">
+        <keyword ref="hint-desktop-1.html">hint=desktop</keyword>
+    </section>
+    <section ref="hint-extra-ts-1.html" title="hint=extra_ts">
+        <keyword ref="hint-extra-ts-1.html">hint=extra_ts</keyword>
+    </section>
+    <section ref="hint-headers-1.html" title="hint=headers">
+        <keyword ref="hint-headers-1.html">hint=headers</keyword>
+    </section>
+    <section ref="hint-help-1.html" title="hint=help">
+        <keyword ref="hint-help-1.html">hint=help</keyword>
+    </section>
+    <section ref="hint-nct-1.html" title="hint=nct">
+        <keyword ref="hint-nct-1.html">hint=nct</keyword>
+    </section>
+    <section ref="hint-non-qt-headers-1.html" title="hint=non_qt_headers">
+        <keyword ref="hint-non-qt-headers-1.html">hint=non_qt_headers</keyword>
+    </section>
+    <section ref="hint-pics-1.html" title="hint=pics">
+        <keyword ref="hint-pics-1.html">hint=pics</keyword>
+    </section>
+    <section ref="hint-script-1.html" title="hint=script">
+        <keyword ref="hint-script-1.html">hint=script</keyword>
+    </section>
+    <section ref="hint-sdk-1.html" title="hint=sdk">
+        <keyword ref="hint-sdk-1.html">hint=sdk</keyword>
+    </section>
+    <section ref="hint-sxe-1.html" title="hint=sxe">
+        <keyword ref="hint-sxe-1.html">hint=sxe</keyword>
+    </section>
+    <section ref="hint-themecfg-1.html" title="hint=themecfg">
+        <keyword ref="hint-themecfg-1.html">hint=themecfg</keyword>
+    </section>
+    <section ref="fn-idep-1.html" title="idep()">
+        <keyword ref="fn-idep-1.html">idep()</keyword>
+    </section>
+    <section ref="over-image-prefix-and-sdk-location-1.html" title="Image, prefix and SDK location">
+        <keyword ref="over-image-prefix-and-sdk-location-1.html">Image, prefix and SDK location</keyword>
+    </section>
+    <section ref="var-includepath-1.html" title="INCLUDEPATH">
+        <keyword ref="var-includepath-1.html">INCLUDEPATH</keyword>
+    </section>
+    <section ref="installhints.html" title="Install Hints">
+        <keyword ref="installhints.html">Install Hints</keyword>
+    </section>
+    <section ref="over-installpic-algorithm-1.html" title="installpic Algorithm">
+        <keyword ref="over-installpic-algorithm-1.html">installpic Algorithm</keyword>
+    </section>
+    <section ref="var-installs-1.html" title="INSTALLS">
+        <keyword ref="var-installs-1.html">INSTALLS</keyword>
+    </section>
+    <section ref="over-internationalization-build-system-1.html" title="Internationalization (build system)">
+        <keyword ref="over-internationalization-build-system-1.html">Internationalization (build system)</keyword>
+    </section>
+    <section ref="var-lan-network-script-1.html" title="LAN_NETWORK_SCRIPT">
+        <keyword ref="var-lan-network-script-1.html">LAN_NETWORK_SCRIPT</keyword>
+    </section>
+    <section ref="var-languages-1.html" title="LANGUAGES">
+        <keyword ref="var-languages-1.html">LANGUAGES</keyword>
+    </section>
+    <section ref="over-libraries-1.html" title="Libraries">
+        <keyword ref="over-libraries-1.html">Libraries</keyword>
+    </section>
+    <section ref="fn-license-1.html" title="license()">
+        <keyword ref="fn-license-1.html">license()</keyword>
+    </section>
+    <section ref="conf-link-test-1.html" title="link_test">
+        <keyword ref="conf-link-test-1.html">link_test</keyword>
+    </section>
+    <section ref="conf-no-auto-translatables-1.html" title="no_auto_translatables">
+        <keyword ref="conf-no-auto-translatables-1.html">no_auto_translatables</keyword>
+    </section>
+    <section ref="conf-no-general-pri-1.html" title="no_general_pri">
+        <keyword ref="conf-no-general-pri-1.html">no_general_pri</keyword>
+    </section>
+    <section ref="conf-no-install-1.html" title="no_install">
+        <keyword ref="conf-no-install-1.html">no_install</keyword>
+    </section>
+    <section ref="conf-no-link-test-1.html" title="no_link_test">
+        <keyword ref="conf-no-link-test-1.html">no_link_test</keyword>
+    </section>
+    <section ref="conf-no-pkg-1.html" title="no_pkg">
+        <keyword ref="conf-no-pkg-1.html">no_pkg</keyword>
+    </section>
+    <section ref="conf-no-quicklaunch-1.html" title="no_quicklaunch">
+        <keyword ref="conf-no-quicklaunch-1.html">no_quicklaunch</keyword>
+    </section>
+    <section ref="conf-no-singleexec-1.html" title="no_singleexec">
+        <keyword ref="conf-no-singleexec-1.html">no_singleexec</keyword>
+    </section>
+    <section ref="conf-no-sxe-test-1.html" title="no_sxe_test">
+        <keyword ref="conf-no-sxe-test-1.html">no_sxe_test</keyword>
+    </section>
+    <section ref="conf-no-target-1.html" title="no_target">
+        <keyword ref="conf-no-target-1.html">no_target</keyword>
+    </section>
+    <section ref="conf-no-target-sxe-1.html" title="no_target_sxe">
+        <keyword ref="conf-no-target-sxe-1.html">no_target_sxe</keyword>
+    </section>
+    <section ref="conf-no-tr-1.html" title="no_tr">
+        <keyword ref="conf-no-tr-1.html">no_tr</keyword>
+    </section>
+    <section ref="over-non-code-translatables-1.html" title="Non-code Translatables">
+        <keyword ref="over-non-code-translatables-1.html">Non-code Translatables</keyword>
+    </section>
+    <section ref="optsystem.html" title="Opt System">
+        <keyword ref="optsystem.html">Opt System</keyword>
+    </section>
+    <section ref="atask-override-commands-1.html" title="Override Commands">
+        <keyword ref="atask-override-commands-1.html">Override Commands</keyword>
+    </section>
+    <section ref="overviews.html" title="Overviews">
+        <keyword ref="overviews.html">Overviews</keyword>
+    </section>
+    <section ref="var-packages-1.html" title="PACKAGES">
+        <keyword ref="var-packages-1.html">PACKAGES</keyword>
+    </section>
+    <section ref="over-packages-overview-1.html" title="Packages (overview)">
+        <keyword ref="over-packages-overview-1.html">Packages (overview)</keyword>
+    </section>
+    <section ref="var-plugin-type-1.html" title="plugin_type">
+        <keyword ref="var-plugin-type-1.html">plugin_type</keyword>
+    </section>
+    <section ref="over-plugins-1.html" title="Plugins">
+        <keyword ref="over-plugins-1.html">Plugins</keyword>
+    </section>
+    <section ref="var-prefix-1.html" title="PREFIX">
+        <keyword ref="var-prefix-1.html">PREFIX</keyword>
+    </section>
+    <section ref="processingorder.html" title="Processing Order">
+        <keyword ref="processingorder.html">Processing Order</keyword>
+    </section>
+    <section ref="over-project-files-1.html" title="Project Files">
+        <keyword ref="over-project-files-1.html">Project Files</keyword>
+    </section>
+    <section ref="over-project-trees-1.html" title="Project Trees">
+        <keyword ref="over-project-trees-1.html">Project Trees</keyword>
+    </section>
+    <section ref="var-projects-1.html" title="PROJECTS">
+        <keyword ref="var-projects-1.html">PROJECTS</keyword>
+    </section>
+    <section ref="fn-qt-inc-1.html" title="qt_inc()">
+        <keyword ref="fn-qt-inc-1.html">qt_inc()</keyword>
+    </section>
+    <section ref="index.html" title="Qtopia Build System Documentation">
+        <keyword ref="index.html">Qtopia Build System Documentation</keyword>
+    </section>
+    <section ref="internals.html" title="Qtopia Build System Internals">
+        <keyword ref="internals.html">Qtopia Build System Internals</keyword>
+    </section>
+    <section ref="reference.html" title="Qtopia Build System Reference">
+        <keyword ref="reference.html">Qtopia Build System Reference</keyword>
+    </section>
+    <section ref="userguide.html" title="Qtopia Build System User Guide">
+        <keyword ref="userguide.html">Qtopia Build System User Guide</keyword>
+    </section>
+    <section ref="conf-qtopia-main-1.html" title="qtopia_main">
+        <keyword ref="conf-qtopia-main-1.html">qtopia_main</keyword>
+    </section>
+    <section ref="fn-qtopia-project-1.html" title="qtopia_project()">
+        <keyword ref="fn-qtopia-project-1.html">qtopia_project()</keyword>
+    </section>
+    <section ref="def-qtopia-target-1.html" title="QTOPIA_TARGET">
+        <keyword ref="def-qtopia-target-1.html">QTOPIA_TARGET</keyword>
+    </section>
+    <section ref="def-qtopia-trtarget-1.html" title="QTOPIA_TRTARGET">
+        <keyword ref="def-qtopia-trtarget-1.html">QTOPIA_TRTARGET</keyword>
+    </section>
+    <section ref="over-qtopiamake-options-1.html" title="qtopiamake Options">
+        <keyword ref="over-qtopiamake-options-1.html">qtopiamake Options</keyword>
+    </section>
+    <section ref="task-register-a-service-provider-1.html" title="Register a service provider">
+        <keyword ref="task-register-a-service-provider-1.html">Register a service provider</keyword>
+    </section>
+    <section ref="fn-resolve-include-1.html" title="resolve_include()">
+        <keyword ref="fn-resolve-include-1.html">resolve_include()</keyword>
+    </section>
+    <section ref="atask-run-commands-after-the-target-is-built-1.html" title="Run commands after the TARGET is built">
+        <keyword ref="atask-run-commands-after-the-target-is-built-1.html">Run commands after the TARGET is built</keyword>
+    </section>
+    <section ref="over-runqtopia-options-1.html" title="runqtopia Options">
+        <keyword ref="over-runqtopia-options-1.html">runqtopia Options</keyword>
+    </section>
+    <section ref="task-setting-up-headers-1.html" title="Setting up Headers">
+        <keyword ref="task-setting-up-headers-1.html">Setting up Headers</keyword>
+    </section>
+    <section ref="conf-singleexec-main-1.html" title="singleexec_main">
+        <keyword ref="conf-singleexec-main-1.html">singleexec_main</keyword>
+    </section>
+    <section ref="var-sources-1.html" title="SOURCES">
+        <keyword ref="var-sources-1.html">SOURCES</keyword>
+    </section>
+    <section ref="var-string-language-1.html" title="STRING_LANGUAGE">
+        <keyword ref="var-string-language-1.html">STRING_LANGUAGE</keyword>
+    </section>
+    <section ref="var-subdirs-1.html" title="SUBDIRS">
+        <keyword ref="var-subdirs-1.html">SUBDIRS</keyword>
+    </section>
+    <section ref="conf-syncqtopia-1.html" title="syncqtopia">
+        <keyword ref="conf-syncqtopia-1.html">syncqtopia</keyword>
+    </section>
+    <section ref="var-target-1.html" title="TARGET">
+        <keyword ref="var-target-1.html">TARGET</keyword>
+    </section>
+    <section ref="tasks.html" title="Tasks">
+        <keyword ref="tasks.html">Tasks</keyword>
+    </section>
+    <section ref="bas-terms-1.html" title="Terms">
+        <keyword ref="bas-terms-1.html">Terms</keyword>
+    </section>
+    <section ref="var-themes-1.html" title="THEMES">
+        <keyword ref="var-themes-1.html">THEMES</keyword>
+    </section>
+    <section ref="var-translatables-1.html" title="TRANSLATABLES">
+        <keyword ref="var-translatables-1.html">TRANSLATABLES</keyword>
+    </section>
+    <section ref="task-translating-categories-1.html" title="Translating Categories">
+        <keyword ref="task-translating-categories-1.html">Translating Categories</keyword>
+    </section>
+    <section ref="task-translating-themes-1.html" title="Translating Themes">
+        <keyword ref="task-translating-themes-1.html">Translating Themes</keyword>
+    </section>
+    <section ref="var-translations-1.html" title="TRANSLATIONS">
+        <keyword ref="var-translations-1.html">TRANSLATIONS</keyword>
+    </section>
+    <section ref="var-trtarget-1.html" title="TRTARGET">
+        <keyword ref="var-trtarget-1.html">TRTARGET</keyword>
+    </section>
+    <section ref="atask-use-install-rules-at-other-times-1.html" title="Use install rules at other times">
+        <keyword ref="atask-use-install-rules-at-other-times-1.html">Use install rules at other times</keyword>
+    </section>
+    <section ref="variables.html" title="Variables">
+        <keyword ref="variables.html">Variables</keyword>
+    </section>
+    <section ref="var-vpath-1.html" title="VPATH">
+        <keyword ref="var-vpath-1.html">VPATH</keyword>
+    </section>
+    <section ref="bas-what-is-the-build-system-1.html" title="What is the build system?">
+        <keyword ref="bas-what-is-the-build-system-1.html">What is the build system?</keyword>
+    </section>
+    <section ref="changes.html" title="What's new?">
+        <keyword ref="changes.html">What's new?</keyword>
+    </section>
+</section>
+<section ref="examples.html" title="Tutorial &amp; Examples"/>
+</DCF>

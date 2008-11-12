@@ -1,0 +1,10 @@
+[Translation]
+File=QtopiaServices
+Context=Ringtone
+[Service]
+Actions="startMessageRingtone();stopMessageRingtone();startRingtone(QString);stopRingtone(QString)"
+Name[]=Ringtone
+[startMessageRingtone()]
+[stopMessageRingtone()]
+[startRingtone(QString)]
+[stopRingtone(QString)]
