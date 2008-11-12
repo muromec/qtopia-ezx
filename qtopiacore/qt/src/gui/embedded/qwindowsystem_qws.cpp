@@ -4321,8 +4321,15 @@ void QWSServerPrivate::screenSave(int level)
             // for some reason, the saver don't want us to change to the
             // next level, so we'll stay at this level for another interval
             if (screensaverinterval && *screensaverinterval) {
-                screensavertimer->start(*screensaverinterval);
-                screensavertime.start();
+                if (level == 2) {
+                    screensavertimer->start(5000);
+                    screensavertime.start();
+                }
+                else
+                {
+                    screensavertimer->start(*screensaverinterval);
+                    screensavertime.start();
+                }
             }
         }
     } else {
