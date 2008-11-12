@@ -196,6 +196,7 @@ public:
             handler = NULL;
         }
         if ( fd != -1 ) {
+            ::ioctl( fd, SNDCTL_DSP_RESET, 0 );
             ::close( fd );
             fd = -1;
         }
