@@ -1766,6 +1766,9 @@ void QPDUMessage::setAddress(const QString &strin, bool SCAddress)
         // Need an extra byte for SCAddress fields.
         if ( SCAddress )
             len++;
+        else
+            len*=2;
+
 
         // Output the length of the encoded address.
         appendOctet(len);

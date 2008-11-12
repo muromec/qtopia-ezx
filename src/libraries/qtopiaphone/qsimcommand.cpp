@@ -21,7 +21,6 @@
 #include <qatutils.h>
 #include <qsmsmessage.h>
 #include <qgsmcodec.h>
-#include <qtopialog.h>
 
 
 class QSimMenuItemPrivate
