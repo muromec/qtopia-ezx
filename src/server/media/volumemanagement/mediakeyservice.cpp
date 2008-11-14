@@ -24,6 +24,10 @@
 #include <qevent.h>
 #include <QValueSpaceItem>
 
+#ifdef QT_QWS_EZX // see todo below
+#define Key_VolumeDown  Key_F31
+#define Key_VolumeUp    Key_F30
+#endif
 
 MediaKeyService::MediaKeyService(AudioVolumeManager* avm):
     m_increment(INCREMENT),
