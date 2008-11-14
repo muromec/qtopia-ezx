@@ -4141,8 +4141,9 @@ void QWSServer::setScreenSaverIntervals(int* ms)
     qwsServerPrivate->screensaverinterval = 0;
 
     qwsServerPrivate->screensavertimer->stop();
-    qt_screen->blank(false);
-    qwsServerPrivate->_q_screenSaverWake();
+    qwsServerPrivate->screensavertimer->start( *ms );
+    qwsServerPrivate->screensavertime.start();
+
 }
 
 /*!
