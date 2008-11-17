@@ -25,7 +25,6 @@
 #include <qmediacontrol.h>
 
 #include <QtCore>
-#include <QPhoneCallManager>
 
 class PlayerControl : public QObject
 {
@@ -55,7 +54,6 @@ public slots:
 
 private slots:
     void activate();
-    void callsChange ( const QList<QPhoneCall> & calls )  ;
 
 private:
     void setMediaContent( QMediaContent* content );
@@ -63,9 +61,7 @@ private:
     QMediaControlNotifier *m_notifier;
     QMediaContent *m_content;
     QMediaControl *m_control;
-    QPhoneCallManager *callMgr;
     State m_state;
-    State m_prevState;
     int m_volume;
     bool m_ismute;
 };

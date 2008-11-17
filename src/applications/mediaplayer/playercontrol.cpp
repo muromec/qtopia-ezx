@@ -19,7 +19,6 @@
 
 #include "playercontrol.h"
 #include <QtopiaApplication>
-#include <QPhoneCallManager>
 
 static const int VOLUME_MAX = 100;
 
@@ -28,11 +27,6 @@ PlayerControl::PlayerControl( QObject* parent )
 {
     m_notifier = new QMediaControlNotifier( QMediaControl::name(), this );
     connect( m_notifier, SIGNAL(valid()), this, SLOT(activate()) );
-
-    callMgr = new QPhoneCallManager();
-    connect(callMgr, SIGNAL(statesChanged ( const QList<QPhoneCall> &)),
-               this, SLOT(callsChange ( const QList<QPhoneCall> &  ) ));
-
 }
 
 PlayerControl::~PlayerControl()
@@ -40,46 +34,6 @@ PlayerControl::~PlayerControl()
     delete m_control;
     delete m_content;
 }
-
-void PlayerControl::callsChange ( const QList<QPhoneCall> & calls )  {
-
-  if (! calls.count() )
-    return;
-
-  bool callState = true;
-  bool callSwitch = false;
-
-  for (int i = 0; i < calls.size(); ++i) {
-    QPhoneCall::State s = calls.at(i).state();
-    if (s == QPhoneCall::Incoming || s == QPhoneCall::Dialing) {
-      qDebug() << "need stop"<< s;
-      callState  = false;
-      callSwitch = true;
-      break;
-    } else if (s == QPhoneCall::HangupLocal  || s == QPhoneCall::HangupRemote ||
-        s == QPhoneCall::Missed || s == QPhoneCall::NetworkFailure ||
-        s == QPhoneCall::OtherFailure || s == QPhoneCall::ServiceHangup ) {
-      qDebug() << "need resume"<< s; 
-      callState = true;
-      callSwitch = true;
-    } 
-      
-  }
-  if (! callSwitch)
-    return;
-  
-  if (callState) { // resume
-    if (m_prevState == Playing)
-      setState(m_prevState);
-  } else { // stop
-    if (m_state == Playing) {
-      m_prevState = m_state;
-      setState(Stopped);
-    }
-  }
-}
-
-
 
 void PlayerControl::open( const QString& url )
 {

@@ -58,5 +58,3 @@ pkg.desc=Qtopia media player.
 pkg.domain=trusted
 
 depends(libraries/qtopiamedia)
-depends(libraries/qtopiaphone) 
-
