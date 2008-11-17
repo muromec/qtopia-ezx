@@ -79,6 +79,7 @@ private:
     int tidStateUpdate;
     int logIndex;
     int trigger;
+    QString localIp;
 
 private slots:
     void updateState();

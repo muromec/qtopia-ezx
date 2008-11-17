@@ -45,6 +45,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+static const QString  pppUp   = Qtopia::qtopiaDir()+"etc/ppp/ip-up";
+static const QString  pppDown = Qtopia::qtopiaDir()+"etc/ppp/ip-down";
+
+#define EZX_IP "10.122.122.122"
+#define EZX_CONTROL "/dev/mux6"
+#define EZX_DATA    "/dev/mux12"
+
 #endif
 
 
@@ -310,11 +317,10 @@ bool DialupImpl::start( const QVariant /*options*/ )
     } else { //QtopiaNetwork::PhoneModem
 #ifdef QTOPIA_CELL
 #ifdef QT_QWS_EZX
-        control = QSerialPort::create( "/dev/mux6" );
+        control = QSerialPort::create( EZX_CONTROL );
         controlChat = control->atchat();
 
         QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGACT=0");
-        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=0");
         QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=1");
 
 
@@ -392,16 +398,16 @@ void DialupImpl::gConnect( const QString& msg ) {
 
     QStringList m = msg.split(",");
 
-    QString ip   = m[1].remove("\"");
+    localIp   = m[1].remove("\"");
     QString dns1 = m[2].remove("\"");
     QString dns2 = m[3].remove("\"");
     
-    qLog(Network) << "IP " << ip;
+    qLog(Network) << "IP " << localIp;
     qLog(Network) << "First  DNS " << dns1;
     qLog(Network) << "Second DNS " << dns2;
 
     // create interface
-    gprsv = ::open ("/dev/mux12", O_RDWR|O_NONBLOCK|O_NOCTTY ); 
+    gprsv = ::open (EZX_DATA, O_RDWR|O_NONBLOCK|O_NOCTTY );  // 
 
     int unit = 0;
     int disc = 16;
@@ -413,8 +419,8 @@ void DialupImpl::gConnect( const QString& msg ) {
 
     QStringList args;
     args << pppIface;
-    args << ip;
-    args << "dstaddr" << "10.122.122.122";
+    args << localIp;
+    args << "dstaddr" << EZX_IP;
     args << "netmask" << "255.255.255.255";
     thread.addScriptToRun("/sbin/ifconfig",args);
 
@@ -440,6 +446,17 @@ void DialupImpl::gConnect( const QString& msg ) {
 
     ifaceStatus = QtopiaNetworkInterface::Up;
     netSpace->setAttribute( "State", ifaceStatus );
+
+    // pppd emulation
+    QStringList up;
+    up << pppIface;
+    up << EZX_DATA; // FIXME: port name
+    up << "38400" ; // FIXME
+    up << localIp;
+    up << EZX_IP;
+
+    thread.addScriptToRun( pppUp, up ); 
+
 
 
   } else if (msg.startsWith("G_NO_CARRIER:")) {
@@ -504,6 +521,17 @@ bool DialupImpl::stop()
 #ifdef QTOPIA_CELL
 #ifdef QT_QWS_EZX
         close(gprsv);
+        QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=0");
+
+        QStringList down;
+        down << pppIface;
+        down << EZX_DATA; // FIXME: port name
+        down << "38400" ; // FIXME
+        down << localIp;
+        down << EZX_IP;
+
+        thread.addScriptToRun( pppDown, down ); 
+
 #else
         qLog(Network) << "stopping data call on phone line";
         if ( ! dataCall.isNull() ) {
