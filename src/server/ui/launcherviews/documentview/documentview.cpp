@@ -114,9 +114,9 @@ void DocumentLauncherView::init() {
 
     // due to string freeze, I cant' actually add this until 4.4
     // The code is kept here in case any willing adventurer sees fit to turn it on
-    /*a = new QAction( tr("Rescan System"), this );
+    a = new QAction( tr("Rescan System"), this );
     connect(a, SIGNAL(triggered()), this, SLOT(rescan()));
-    softMenu->addAction(a);*/
+    softMenu->addAction(a);
 
     typeLbl = new QLabel(this);
     layout()->addWidget(typeLbl);
