@@ -55,6 +55,8 @@ void AudioVolumeManager::setVolume(int volume)
 
 void AudioVolumeManager::increaseVolume(int increment)
 {
+    if ( m_domains.front() == "Phone") return; // fuking zero division
+
     QString provider = findProvider();
     if (!provider.isEmpty())
     {
@@ -65,6 +67,8 @@ void AudioVolumeManager::increaseVolume(int increment)
 
 void AudioVolumeManager::decreaseVolume(int decrement)
 {
+    if ( m_domains.front() == "Phone") return; // fuking zero division
+
     QString provider = findProvider();
     if (!provider.isEmpty())
     {
@@ -75,6 +79,8 @@ void AudioVolumeManager::decreaseVolume(int decrement)
 
 void AudioVolumeManager::setMuted(bool mute)
 {
+    if ( m_domains.front() == "Phone") return; // fuking zero division
+
     QString provider = findProvider();
     if (!provider.isEmpty())
     {
