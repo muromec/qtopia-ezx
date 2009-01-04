@@ -43,7 +43,7 @@ public:
 
     bool available() const;
 
-    QImage image() const { return m_image; }
+    QImage image() ;
     void setLive(int period=0);
     void setStill(const QImage&);
 

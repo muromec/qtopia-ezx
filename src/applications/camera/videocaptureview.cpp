@@ -248,4 +248,8 @@ void VideoCaptureView::doZoom()
 }
 
 
-
+QImage VideoCaptureView::image() 
+{ 
+  m_capture->getCameraImage(m_image);
+  return m_image; 
+}
