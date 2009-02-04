@@ -56,6 +56,7 @@ PROJECTS*=\
     3rdparty/libraries/dlmalloc\
     3rdparty/libraries/vobject\
     3rdparty/libraries/g711
+    
 
 build_qtopia_sqlite:PROJECTS*=\
     3rdparty/applications/sqlite
@@ -82,12 +83,14 @@ PROJECTS*=\
         applications/sysinfo \
         applications/textedit \
         applications/todo \
+        applications/gqsync \
         games/qasteroids \
         games/fifteen \
         games/snake \
         games/minesweep \
         settings/words \
         plugins/content/id3 \
+        3rdparty/plugins/content/vorbis \
         plugins/content/exif \
         plugins/content/threegpp \
         # Qtmail stuff
@@ -206,9 +209,8 @@ enable_qtopiamedia {
             3rdparty/plugins/codecs/libtimidity
         # MP3 support
         # Removed for now, due to licensing
-        #PROJECTS*=\
-        #    3rdparty/libraries/libmad\
-        #    3rdparty/plugins/codecs/libmad
+        PROJECTS*=\
+            3rdparty/plugins/codecs/libmad
         # OGG Vorbis support
         PROJECTS*=\
             3rdparty/libraries/tremor\
