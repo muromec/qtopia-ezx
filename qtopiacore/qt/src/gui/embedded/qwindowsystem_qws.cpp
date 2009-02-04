@@ -4306,6 +4306,10 @@ void QWSServerPrivate::screenSave(int level)
         }
         int *oldScreensaverinterval = screensaverinterval;
         if (saver->save(level)) {
+
+            if (level == 2) 
+              oldScreensaverinterval = --screensaverinterval;
+
             // only update screensaverinterval if it hasn't already changed
             if (oldScreensaverinterval == screensaverinterval) {
                 if (screensaverinterval && screensaverinterval[1]) {
