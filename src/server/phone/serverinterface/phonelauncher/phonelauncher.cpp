@@ -718,7 +718,7 @@ void PhoneLauncher::sysMessage(const QString& message, const QByteArray &data)
         stream >> key >> press;
         if ( key == Qt::Key_Call && press ) {
             callPressed();
-        } else if ( (key == Qt::Key_Hangup || key == Qt::Key_Flip) && press ) {
+        } else if ( (key == Qt::Key_Hangup) && press ) {
             hangupPressed();
         }
     }
