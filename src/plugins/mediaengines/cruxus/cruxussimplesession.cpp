@@ -158,7 +158,6 @@ void SimpleSession::suspend()
     pause();
 
     if (d->opened) {
-        d->source->close();
         d->sink->close();
         d->opened = false;
     }
@@ -168,7 +167,9 @@ void SimpleSession::resume()
 {
     qLog(Media) <<"SimpleSession::resume() "<<this;
 
-    start();
+    d->sink->open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+    d->coder->start();
+    d->opened = true;
 }
 
 void SimpleSession::seek(quint32 ms)
