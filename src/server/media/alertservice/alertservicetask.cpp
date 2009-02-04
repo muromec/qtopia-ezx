@@ -20,6 +20,7 @@
 #include "alertservicetask.h"
 #include <QSoundControl>
 #include "qtopiaserverapplication.h"
+#include <QSettings>
 
 /*!
     \service AlertService Alert
@@ -93,8 +94,11 @@ AlertServiceTask::AlertServiceTask()
 /*! \internal */
 void AlertServiceTask::soundAlert()
 {
+    QSettings* cfg = new QSettings ("Trolltech","RingTones");
+    QString file = cfg->value("Alarm/file",":sound/alarm.mp3").toString();
+
     QSoundControl *soundcontrol =
-        new QSoundControl(new QSound(":sound/alarm"));
+        new QSoundControl(new QSound(file));
     soundcontrol->setPriority(QSoundControl::RingTone);
     soundcontrol->sound()->play();
 
