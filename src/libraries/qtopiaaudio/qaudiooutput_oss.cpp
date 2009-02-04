@@ -35,6 +35,7 @@
 
 #include "qaudiooutput.h"
 
+int *qtopia_dsp; 
 
 /*!
     \class QAudioOutput
@@ -93,43 +94,7 @@ int MToS16AudioOutputFormatHandler::convert( short *output, const short *input, 
     return 2*length;
 }
 
-static inline int dsp_fd()
-{
-    struct dirent **namelist;
-    int n;
-    char dir[15];
-    char path[256];
-    char link[20];
 
-
-    int ret;
-
-    sprintf(dir,"/proc/%d/fd/",getpid());
-  
-    n = scandir(dir, &namelist, 0, alphasort);
-    if (n < 0)
-        perror("scandir");
-    else {
-        while(n--) {
-            sprintf(link,"/proc/%d/fd/%s",getpid(),namelist[n]->d_name);
-
-            ret = readlink (link, path,256);
-            if (ret >0) {
-              path[ret] = '\0';
-              if (! strcmp("/dev/dsp",path) )
-              {
-                printf("ok, %s - %s\n",namelist[n]->d_name,path);
-                return (atoi(namelist[n]->d_name));
-              }
-                
-              
-            } 
-            free(namelist[n]);
-        }
-        free(namelist);
-    }
-    return -1;
-}
 
 class QAudioOutputPrivate
 {
@@ -142,6 +107,7 @@ public:
         m_device = device;
         fd = -1;
         handler = NULL;
+        qtopia_dsp = &fd;
     }
 
     ~QAudioOutputPrivate()
@@ -151,15 +117,13 @@ public:
 
     bool open()
     {
+        if ( (fd >= 0) || (fd == -2) )
+          return true;
+
         // Open the device.
         if ( ( fd = ::open( "/dev/dsp", O_WRONLY ) ) < 0 ) {
-            if ( hack()  ) {
-                qWarning("Internal bug workarround. Lost /dev/dsp file descriptor found");
-            } else {
-                
 	        qWarning("error opening audio devices /dev/dsp and /dev/dsp1, sending data to /dev/null instead" );
 	        fd = ::open( "/dev/null", O_WRONLY );
-            }
         }
         fcntl( fd, F_SETFD, 1 );
 
@@ -184,10 +148,7 @@ public:
 
         return true;
     }
-    bool hack() {
-      fd = dsp_fd();
-      return (fd > -1);
-    }
+    
 
     void close()
     {
@@ -196,7 +157,7 @@ public:
             handler = NULL;
         }
         if ( fd != -1 ) {
-            ::ioctl( fd, SNDCTL_DSP_RESET, 0 );
+            //::ioctl( fd, SNDCTL_DSP_RESET, 0 );
             ::close( fd );
             fd = -1;
         }
@@ -208,7 +169,7 @@ public:
 
     int write( const char *data, qint64 len )
     {
-        if ( fd != -1 ) {
+        if ( fd >= 0 ) {
             int convertedLen;
             char *convertedData;
 
@@ -233,6 +194,7 @@ public:
             if ( handler ) {
                 delete[] convertedData;
             }
+            return 1;
         }
     }
 
