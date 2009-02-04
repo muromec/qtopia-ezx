@@ -24,6 +24,8 @@
 
 #include <qtopiaglobal.h>
 
+extern int *qtopia_dsp;
+
 class QAudioOutputPrivate;
 
 class QTOPIAAUDIO_EXPORT QAudioOutput : public QIODevice
