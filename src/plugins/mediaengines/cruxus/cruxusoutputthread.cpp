@@ -375,11 +375,11 @@ void OutputThread::disconnectFromInput(QMediaDevice* input)
 
 bool OutputThread::open(QIODevice::OpenMode mode)
 {
-    if (!d->opened)
-        d->opened = QIODevice::open(QIODevice::WriteOnly | QIODevice::Unbuffered);
+    if (! isOpen() ) 
+        QIODevice::open(QIODevice::WriteOnly | QIODevice::Unbuffered);
 
-    return d->opened;
-
+    return isOpen();
+ 
     Q_UNUSED(mode);
 }
 
