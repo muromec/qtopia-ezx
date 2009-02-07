@@ -32,7 +32,7 @@ class KeyboardWidget : public QWidget
 {
 Q_OBJECT
 public:
-    enum BoardType { NonAlphabet, Numeric, UpperCase, LowerCase }; 
+    enum BoardType { NonAlphabet, Numeric, UpperCase, LowerCase };
     static void instantiatePopupScreen();
 
     struct Config
@@ -48,6 +48,7 @@ public:
 
         int selectCircleDiameter;
         int selectCircleOffset;
+        qreal popupScaleFactor;
 
         int boardChangeTime;
 

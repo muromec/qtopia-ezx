@@ -32,7 +32,7 @@ template<class T> class DawgReduction;
 class WordPredict
 {
 public:
-    struct Config 
+    struct Config
     {
         int reallyNoMoveSensitivity;
         int moveSensitivity;
@@ -42,9 +42,9 @@ public:
     WordPredict(const Config &, int max, bool includePrefix = false);
     ~WordPredict();
 
-    void setLetter(char, const QPoint &);
+    void setLetter(QChar, const QPoint &);
 
-    void addLetter(char);
+    void addLetter(QChar);
     void addTouch(const QPoint &);
 
     QString prefixedWord() const;
@@ -57,7 +57,7 @@ public:
 
     QString movementDesc() const;
 private:
-    int distanceForPoint(const QPoint &pos, char c);
+    int distanceForPoint(const QPoint &pos, QChar c);
     qreal weightForWord(const Word &word);
     qreal incrWeightForWord(WPWord *w);
 
@@ -74,11 +74,11 @@ private:
                     Right = 0x0008,
                     Perfect = 0x0010 };
     Movement movement(const QPoint &, const QPoint &);
-    
+
     QList<Movement> m_mPoints;
     QList<QPoint> m_points;
-    QPoint m_layout[256];
-    int m_latestDfp[256];
+    QHash<QChar, QPoint> m_layout;
+    QHash<QChar, int> m_latestDfp;
     int m_max;
     QString m_prefixedWord;
 

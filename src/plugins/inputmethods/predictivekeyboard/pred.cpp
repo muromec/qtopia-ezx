@@ -40,8 +40,8 @@ public:
     ~DawgReduction();
 
     void reset();
-    void addPossibleCharacters(const QByteArray &);
-    
+    void addPossibleCharacters(const QString &);
+
     struct Word {
         Word() : frequency(0), isWord(false), node(0), isFresh(false), isValid(true) {}
         virtual ~Word() {}
@@ -61,8 +61,8 @@ public:
     WordList words() const;
 
 private:
-    void updateWords(const QByteArray &characters);
-    WordList updateWords(const T *, const QByteArray &characters);
+    void updateWords(const QString &characters);
+    WordList updateWords(const T *, const QString &characters);
 
     bool m_isEmpty;
     WordList m_words;
@@ -89,13 +89,13 @@ void DawgReduction<T>::reset()
 }
 
 template<class T>
-void DawgReduction<T>::addPossibleCharacters(const QByteArray &chars)
+void DawgReduction<T>::addPossibleCharacters(const QString &chars)
 {
     updateWords(chars);
 }
 
 template<class T>
-void DawgReduction<T>::updateWords(const QByteArray &characters)
+void DawgReduction<T>::updateWords(const QString &characters)
 {
     if(!m_isEmpty && m_words.isEmpty())
         return;
@@ -120,11 +120,11 @@ void DawgReduction<T>::updateWords(const QByteArray &characters)
 }
 
 template<class T>
-typename DawgReduction<T>::WordList DawgReduction<T>::updateWords(const T *w, const QByteArray &characters)
+typename DawgReduction<T>::WordList DawgReduction<T>::updateWords(const T *w, const QString &characters)
 {
     WordList rv;
     for(const QDawg::Node *n = w->node; n; n = n->next()) {
-        if(characters.contains(n->letter().toLower().toAscii())) {
+        if(characters.contains(n->letter().toLower())) {
             T *nw = new T(*w);
             nw->word.append(n->letter());
             nw->frequency = (n->value() & 0x00003FFF);
@@ -201,11 +201,11 @@ private:
     QList<qreal> m_weights;
 };
 
-class WPWord : public DawgReduction<WPWord>::Word 
+class WPWord : public DawgReduction<WPWord>::Word
 {
 public:
     WPWord() : weight(0.0f), distweight(0), correspond(1), maxcorrespond(1) {}
-    WPWord(const WPWord &o) : DawgReduction<WPWord>::Word(o), 
+    WPWord(const WPWord &o) : DawgReduction<WPWord>::Word(o),
                               weight(o.weight),
                               distweight(o.distweight),
                               correspond(o.correspond),
@@ -234,12 +234,12 @@ WordPredict::~WordPredict()
     reduction = 0;
 }
 
-void WordPredict::setLetter(char c, const QPoint &p)
+void WordPredict::setLetter(QChar c, const QPoint &p)
 {
-    m_layout[(int)c] = p;
+    m_layout[c] = p;
 }
 
-WordPredict::Movement 
+WordPredict::Movement
 WordPredict::movement(const QPoint &p1, const QPoint &p2)
 {
     Movement move = None;
@@ -247,15 +247,15 @@ WordPredict::movement(const QPoint &p1, const QPoint &p2)
         move = (Movement)(move | Right);
     } else if(p2.x() < (p1.x() - m_config.moveSensitivity)) {
         move = (Movement)(move | Left);
-    } 
+    }
 
     if(p2.y() > (p1.y() + m_config.moveSensitivity)) {
         move = (Movement)(move | Down);
     } else if(p2.y() < (p1.y() - m_config.moveSensitivity)) {
         move = (Movement)(move | Up);
-    } 
+    }
 
-    if(::abs(p2.x() - p1.x()) <= m_config.reallyNoMoveSensitivity && 
+    if(::abs(p2.x() - p1.x()) <= m_config.reallyNoMoveSensitivity &&
        ::abs(p2.y() - p1.y()) <= m_config.reallyNoMoveSensitivity) {
         Q_ASSERT(None == move);
         move = ReallyNone;
@@ -264,12 +264,12 @@ WordPredict::movement(const QPoint &p1, const QPoint &p2)
     return move;
 }
 
-void WordPredict::addLetter(char l)
+void WordPredict::addLetter(QChar l)
 {
-    m_points << m_layout[(int)l];
+    m_points << m_layout[l];
     m_mPoints << Perfect;
-    reduction->addPossibleCharacters(QByteArray(1, l));
-    m_latestDfp[(int)l] = 0;
+    reduction->addPossibleCharacters(l);
+    m_latestDfp[l] = 0;
 
     updateWords();
 }
@@ -277,18 +277,20 @@ void WordPredict::addLetter(char l)
 void WordPredict::addTouch(const QPoint &p)
 {
     Movement move = None;
-    if(!m_points.isEmpty()) 
+    if(!m_points.isEmpty())
         move = movement(m_points.last(), p);
 
     m_points << p;
     m_mPoints << move;
 
     QByteArray reduce;
-    for(const char *alpha = "abcdefghijklmnopqrstuvwxyz"; *alpha; ++alpha) {
-        int dist = distanceForPoint(p, *alpha);
-        m_latestDfp[(int)*alpha] = dist;
+    static const QString alphabet = "abcdefghijklmnopqrstuvwxyzабвгдеёжзиклмнопрстуфхцчшщъыьэюя";
+    for(int i=0; i<alphabet.length(); i++) {
+        QChar letter = alphabet[i];
+        int dist = distanceForPoint(p, letter);
+        m_latestDfp[letter] = dist;
         if(dist != -1)
-            reduce.append(*alpha);
+            reduce.append(letter);
     }
     reduction->addPossibleCharacters(reduce);
 
@@ -367,8 +369,8 @@ void WordPredict::updateWords()
     QStringList l_words = list.words();
     QList<qreal> l_weights = list.weights();
     QList<QPair<QString, qreal> > finalwords;
-    for(int ii = 0; ii < l_words.count(); ++ii) 
-        if(l_weights.at(ii) <= baseWordScore) 
+    for(int ii = 0; ii < l_words.count(); ++ii)
+        if(l_weights.at(ii) <= baseWordScore)
             finalwords << qMakePair(l_words.at(ii), l_weights.at(ii));
     qSort(finalwords.begin(), finalwords.end());
 
@@ -389,7 +391,7 @@ void WordPredict::updateWords()
     qWarning() << "Best word is" << m_word;
     qWarning() << "Best words are" << m_words;
     qWarning() << "Best word weights are" << m_weights;
-    qWarning() << "Best word freqs are" << l_freq;
+    //qWarning() << "Best word freqs are" << l_freq;
     QString xstr;
     QString ystr;
     for(int ii = 0; ii < m_points.count(); ++ii) {
@@ -437,9 +439,9 @@ QString WordPredict::movementDesc() const
 }
 
 #define EXCLUDE_DISTANCE 50
-int WordPredict::distanceForPoint(const QPoint &pos, char c)
+int WordPredict::distanceForPoint(const QPoint &pos, QChar c)
 {
-    QPoint center = m_layout[(int)c];
+    QPoint center = m_layout[c];
     if(center.isNull())
         return -1;
 
@@ -457,23 +459,23 @@ int WordPredict::distanceForPoint(const QPoint &pos, char c)
     return distance;
 }
 
-/* 
-   This is EXACTLY the same algorithm as weightForWord, but is evaluated 
+/*
+   This is EXACTLY the same algorithm as weightForWord, but is evaluated
    incrementally as a performance optimization.
    */
 qreal WordPredict::incrWeightForWord(WPWord *w)
 {
     if(!w->isFresh) {
-        
+
         w->isFresh = true;
         if(w->weight == -1)
             return w->weight;
 
         int len = w->word.length();
-        char c = w->word.at(len - 1).toLower().toLatin1();
-        QPoint cWordPoint = m_layout[(int)c];
+        QChar c = w->word.at(len - 1).toLower();
+        QPoint cWordPoint = m_layout[c];
 
-        int distweight = m_latestDfp[(int)c];
+        int distweight = m_latestDfp[c];
         if(distweight == -1) {
             w->weight = -1.0f;
             return w->weight;
@@ -482,7 +484,7 @@ qreal WordPredict::incrWeightForWord(WPWord *w)
 
         QPoint lastWordPoint;
         if(len > 1)
-            lastWordPoint = m_layout[(int)(w->word.at(len - 2).toLower().toLatin1())];
+            lastWordPoint = m_layout[(w->word.at(len - 2).toLower().unicode())];
 
         Movement expected = None;
         if(!lastWordPoint.isNull())
@@ -542,7 +544,7 @@ qreal WordPredict::incrWeightForWord(WPWord *w)
         w->correspond += correspond;
         w->maxcorrespond += maxcorrespond;
 
-        qreal correspondMul = 
+        qreal correspondMul =
             30.0f * ((((qreal)w->maxcorrespond / (qreal)w->correspond) - 1.0f) + 1.0f);
 
 #ifdef LOG_FREQUENCY
@@ -552,7 +554,7 @@ qreal WordPredict::incrWeightForWord(WPWord *w)
         logFrequency = 1.0/logFrequency;
 #endif
 
-        w->weight = (qreal)w->distweight * 
+        w->weight = (qreal)w->distweight *
 #ifndef POST_FREQUENCY
             (1.0f / w->frequency) *
 #endif
@@ -576,14 +578,14 @@ qreal WordPredict::weightForWord(const Word &word)
 
     QPoint lastWordPoint = QPoint();
     for(int ii = 0; ii < m_points.count(); ++ii) {
-        char c = word.word.at(ii).toLower().toLatin1();
+        QChar c = word.word.at(ii).toLower();
 
         if(lastWordPoint.isNull()) {
             wordMovement << None;
-            QPoint cwordpoint = m_layout[(int)c];
+            QPoint cwordpoint = m_layout[c];
             lastWordPoint = cwordpoint;
         } else {
-            QPoint cwordpoint = m_layout[(int)c];
+            QPoint cwordpoint = m_layout[c];
             wordMovement << movement(lastWordPoint, cwordpoint);
             lastWordPoint = cwordpoint;
         }
@@ -642,7 +644,7 @@ qreal WordPredict::weightForWord(const Word &word)
         }
 
     }
-    qreal correspondMul = 
+    qreal correspondMul =
         30.0f * ((((qreal)maxcorrespond / (qreal)correspond) - 1.0f) + 1.0f);
 
 #ifdef LOG_FREQUENCY
@@ -652,7 +654,7 @@ qreal WordPredict::weightForWord(const Word &word)
     logFrequency = 1.0/logFrequency;
 #endif
 
-    return (qreal)weight * 
+    return (qreal)weight *
 #ifndef POST_FREQUENCY
            (1.0f / word.frequency) *
 #endif
@@ -660,7 +662,7 @@ qreal WordPredict::weightForWord(const Word &word)
 #ifdef LOG_FREQUENCY
            * logFrequency
 #endif
-           
+
            ;
 }
 

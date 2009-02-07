@@ -28,13 +28,13 @@
 #include <qtopialog.h>
 #include <QTextCodec>
 
-PredictiveKeyboard::PredictiveKeyboard(QWidget* parent) 
+PredictiveKeyboard::PredictiveKeyboard(QWidget* parent)
 : QWSInputMethod(), mKeyboard(0), mActive(0)
 {
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
-    // The predictivekeyboard frame is meaningless after the 
-    // PredictiveKeyboard IM is destroyed, so keep control of it by never 
-    // parenting PredictiveKeyboardWidget;  This should also help keep the 
+    // The predictivekeyboard frame is meaningless after the
+    // PredictiveKeyboard IM is destroyed, so keep control of it by never
+    // parenting PredictiveKeyboardWidget;  This should also help keep the
     // predictivekeyboard on top of other widgets.
     Q_UNUSED(parent);
 
@@ -65,6 +65,7 @@ static KeyboardWidget::Config createKeyboardConfig()
     config.minimumStrokeDirectionRatio = 2.0f;
     config.selectCircleDiameter = swidth / 4;
     config.selectCircleOffset = -swidth / 4;
+    config.popupScaleFactor = 1.0f;
     config.boardChangeTime = 400;
     config.keySize.setWidth(QApplication::desktop()->width());
     config.keySize.setHeight(config.keySize.height() / 4);
@@ -80,23 +81,25 @@ static KeyboardWidget::Config createKeyboardConfig()
     QSettings cfg("Trolltech", "PredictiveKeyboard");
     cfg.beginGroup("Settings");
 
-    config.minimumStrokeMotionPerPeriod = 
+    config.minimumStrokeMotionPerPeriod =
         cfg.value("MinimumStrokeMotionPerPeriod", 50).toInt();
-    config.strokeMotionPeriod = 
+    config.strokeMotionPeriod =
         cfg.value("StrokeMotionPeriod", 200).toInt();
-    config.maximumClickStutter = 
+    config.maximumClickStutter =
         cfg.value("MaximumClickStutter", config.maximumClickStutter).toInt();
-    config.maximumClickTime = 
+    config.maximumClickTime =
         cfg.value("MaximumClickTime", 400).toInt();
-    config.minimumStrokeLength = 
+    config.minimumStrokeLength =
         cfg.value("MinimumStrokeLength", 0.3f).toInt();
-    config.minimumStrokeDirectionRatio = 
+    config.minimumStrokeDirectionRatio =
         cfg.value("MinimumStrokeDirectionRatio", 2.0f).toDouble();
-    config.selectCircleDiameter = 
+    config.selectCircleDiameter =
         cfg.value("SelectCircleDiameter", config.selectCircleDiameter).toInt();
-    config.selectCircleOffset = 
+    config.selectCircleOffset =
         cfg.value("SelectCircleOffset", config.selectCircleOffset).toInt();
-    config.boardChangeTime = 
+    config.popupScaleFactor =
+        cfg.value("PopupScaleFactor", config.popupScaleFactor).toDouble();
+    config.boardChangeTime =
         cfg.value("BoardChangeTime", 400).toInt();
     config.keySize.setWidth(cfg.value("KeySizeWidth", config.keySize.width()).toInt());
     if(!cfg.contains("KeySizeHeight")) {
@@ -104,21 +107,21 @@ static KeyboardWidget::Config createKeyboardConfig()
     } else {
         config.keySize.setHeight(cfg.value("KeySizeHeight", config.keySize.height()).toInt());
     }
-    config.keyMargin = 
+    config.keyMargin =
         cfg.value("KeyMargin", config.keyMargin).toInt();
-    config.bottomMargin = 
+    config.bottomMargin =
         cfg.value("BottomMargin", config.bottomMargin).toInt();
-    config.maxGuesses = 
+    config.maxGuesses =
         cfg.value("MaxGuesses", 5).toInt();
-    config.optionWordSpacing = 
+    config.optionWordSpacing =
         cfg.value("OptionWordSpacing", config.optionWordSpacing).toInt();
-    config.optionsWindowHeight = 
+    config.optionsWindowHeight =
         cfg.value("OptionsWindowHeight", -1).toInt();
-    config.reallyNoMoveSensitivity = 
+    config.reallyNoMoveSensitivity =
         cfg.value("ReallyNoMoveSensitivity", config.reallyNoMoveSensitivity).toInt();
-    config.moveSensitivity = 
+    config.moveSensitivity =
         cfg.value("MoveSensitivity", config.moveSensitivity).toInt();
-    config.excludeDistance = 
+    config.excludeDistance =
         cfg.value("ExcludeDistance", config.excludeDistance).toInt();
 
     return config;
@@ -170,7 +173,7 @@ void PredictiveKeyboard::queryResponse ( int property, const QVariant & result )
 
 void PredictiveKeyboard::resetState()
 {
-    if(mKeyboard) 
+    if(mKeyboard)
         mKeyboard->reset();
 };
 
@@ -199,29 +202,29 @@ void PredictiveKeyboard::updateHandler(int type)
 };
 
 
-void PredictiveKeyboard::erase() 
+void PredictiveKeyboard::erase()
 {
     // TODO: Find out how to do this properly.  Sending a key event seems to
     // have fewer unexpected consequences, but doesn't seem consistent with
     // the QIMEvents that represent all the rest of the output.
     // Sending the commit string works most of the time.
-    
+
 //    QWSInputMethod::sendCommitString (QString(), -1, 1); // TODO - fix case where no text to left of cursor (currently deletes character on right)
 
     // 8 for unicode is from pkim. It doesn't match any source I could find.
-    QWSServer::sendKeyEvent (8, Qt::Key_Backspace, 0, true, false); 
-    QWSServer::sendKeyEvent (8, Qt::Key_Backspace, 0, false, false); 
+    QWSServer::sendKeyEvent (8, Qt::Key_Backspace, 0, true, false);
+    QWSServer::sendKeyEvent (8, Qt::Key_Backspace, 0, false, false);
 }
 
-void PredictiveKeyboard::submitWord(QString word) 
+void PredictiveKeyboard::submitWord(QString word)
 {
     QWSInputMethod::sendCommitString (word);
 }
 
-void PredictiveKeyboard::preedit(QString text) 
+void PredictiveKeyboard::preedit(QString text)
 {
     Q_UNUSED(text);
-//  TODO: Get rid of the preedit flicker (on mousepress).  
+//  TODO: Get rid of the preedit flicker (on mousepress).
 //  Until then, no preedit will look better.
     QWSInputMethod::sendPreeditString (text, text.length());
 }
@@ -237,7 +240,7 @@ bool PredictiveKeyboard::filter ( int unicode, int keycode, int modifiers, bool 
 
     if (isPress && !mKeyboard->hasText())
         return false;
-    
+
     //Handle backspace
     if(keycode == Qt::Key_Back) {
         if(!isPress){

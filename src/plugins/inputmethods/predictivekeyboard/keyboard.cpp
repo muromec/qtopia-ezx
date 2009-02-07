@@ -67,12 +67,15 @@ public:
 
     QSize size() const;
 
+    QFont font() const;
+
     bool isAlphabet() const;
     bool isNumeric() const;
     KeyboardWidget::BoardType type() const;
 
 private:
     QSize m_size;
+    QFont m_font;
     QStringList m_lines;
     QString m_characters;
     QHash<QChar, QRect> m_rects;
@@ -83,7 +86,7 @@ private:
 Board::Board(const QStringList &lines,
              const QSize &boardSize,
              KeyboardWidget::BoardType isAlphabet)
-: m_size(boardSize), m_lines(lines), m_isAlphabet(isAlphabet)
+: m_size(boardSize), m_font(QApplication::font()), m_lines(lines), m_isAlphabet(isAlphabet)
 {
     int maxline = -1;
     int maxline_len = 0;
@@ -101,6 +104,12 @@ Board::Board(const QStringList &lines,
 
     int width = m_size.width() / maxline_len;
     int height = m_size.height() / lines.count();
+
+    int max_fontwidth = width*7/8; // leave some inline space
+    m_font.setPixelSize((height*3)/4); // leave some interline space
+    while (QFontMetrics(m_font).width('W')>max_fontwidth) // fit font's width (FIXME: 'W' is considered the widest)
+      m_font.setPixelSize(m_font.pixelSize()-1);
+
 
     for(int ii = 0; ii < m_lines.count(); ++ii) {
         const QString &line = m_lines.at(ii);
@@ -132,6 +141,11 @@ QRect Board::rect(const QChar &c) const
 QSize Board::size() const
 {
     return m_size;
+}
+
+QFont Board::font() const
+{
+  return m_font;
 }
 
 bool Board::isAlphabet() const
@@ -783,7 +797,7 @@ class PopupWindow : public QWidget
 {
 Q_OBJECT
 public:
-    PopupWindow(int raise, QWidget * = 0);
+    PopupWindow(int raise, qreal scaleFactor, QWidget * = 0);
 
     void setChar(const QChar &, const QPoint &, Board *board);
     bool charOk() const;
@@ -810,15 +824,16 @@ private:
     Board *m_board;
 
     int m_offset;
+    qreal m_scaleFactor;
     bool m_dismissing;
     qreal m_dismissValue;
     QPoint m_point;
 };
 
-PopupWindow::PopupWindow(int raise, QWidget *parent)
+PopupWindow::PopupWindow(int raise, qreal scaleFactor, QWidget *parent)
 : QWidget(parent, (Qt::WindowFlags)(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint)),
   m_ignore(false), m_timeline(300), m_showtimeline(300), m_board(0),
-  m_offset(raise), m_dismissing(false)
+  m_offset(raise), m_scaleFactor(scaleFactor), m_dismissing(false)
 {
     setAttribute(Qt::WA_DeleteOnClose);
 #ifdef Q_WS_QWS
@@ -975,7 +990,8 @@ void PopupWindow::paintEvent(QPaintEvent *)
     QPoint widgetPosTrans = pos() - (m_point + QPoint(0, m_offset));
     QPoint widgetCenter = rect().center() - widgetPosTrans;
 
-    QPoint transform = widgetCenter - boardCenter;
+    QPoint transform = widgetCenter/m_scaleFactor - boardCenter;
+    p.scale(m_scaleFactor, m_scaleFactor); // Scale the popup
 
     QFont mainFont = QApplication::font();
     QFont bigFont = mainFont;
@@ -1119,7 +1135,7 @@ void KeyboardWidget::addBoard(const QStringList &chars, BoardType type)
 
         QString chars = board->characters();
         for(int ii = 0; ii < chars.length(); ++ii) {
-            m_predict->setLetter(chars.at(ii).toLower().toLatin1(), board->rect(chars.at(ii)).center());
+            m_predict->setLetter(chars.at(ii).toLower(), board->rect(chars.at(ii)).center());
         }
 
     }
@@ -1143,6 +1159,7 @@ void KeyboardWidget::paintEvent(QPaintEvent *)
             }
         }
         Board *board = m_boards.at(m_currentBoard);
+        p.setFont(board->font());
 
         QString str = board->characters();
         for(int ii = 0; ii < str.length(); ++ii) {
@@ -1159,6 +1176,7 @@ void KeyboardWidget::paintEvent(QPaintEvent *)
                 p.translate(0, m_boardRect.height());
             }
             Board *board = m_boards.at(m_oldBoard);
+            p.setFont(board->font());
             QString str = board->characters();
             for(int ii = 0; ii < str.length(); ++ii) {
                 QChar c = str.at(ii);
@@ -1539,7 +1557,7 @@ void KeyboardWidget::pressAndHoldChar(const QChar &c)
 
         m_occuranceHistory << occurance;
 
-        m_predict->addLetter(c.toLower().toLatin1());
+        m_predict->addLetter(c.toLower());
 
         updateWords();
     }
@@ -1728,7 +1746,7 @@ void KeyboardWidget::pressAndHold()
     if(!m_charWindow) {
         m_pressAndHoldChar = closestCharacter(m_mouseMovePoint);
 
-        m_charWindow = new PopupWindow(m_config.selectCircleOffset, 0);
+        m_charWindow = new PopupWindow(m_config.selectCircleOffset, m_config.popupScaleFactor, 0);
         m_charWindow->setFixedSize(m_config.selectCircleDiameter,
                                    m_config.selectCircleDiameter);
         m_charWindow->setChar(m_pressAndHoldChar, windowPosForChar(), m_boards.at(m_currentBoard));
@@ -1890,7 +1908,7 @@ void KeyboardWidget::resetToHistory()
 
         if(!localNotWord) {
             if(o.type == KeyOccurance::CharSelect) {
-                m_predict->addLetter(o.explicitChar.toLower().toLatin1());
+                m_predict->addLetter(o.explicitChar.toLower());
             } else if(o.type == KeyOccurance::MousePress) {
                 if(!localNotWord) {
                     m_predict->addTouch(toBoardPoint(o.widPoint));
@@ -2002,7 +2020,7 @@ void KeyboardWidget::setHint(const QString& hint)
 
     // update microfocus
     //qwsServer->sendIMQuery ( Qt::ImMicroFocus );
- 
+
     if (h.contains("propernouns")) { // no tr
         qLog(Input) << "PredictiveKeyboard::setHint(" << h << ") - setting autocapitalisation";
         // TODO: Set autocapitalisation
