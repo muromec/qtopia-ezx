@@ -1,0 +1,6 @@
+[submodule "devices/ezx"]
+	path = devices/ezx
+	url = git://github.com/muromec/qtopia-ezx-device.git
+[submodule "src/applications/gqsync"]
+	path = src/applications/gqsync
+	url = git://github.com/muromec/gqsync.git
