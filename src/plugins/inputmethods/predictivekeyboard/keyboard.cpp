@@ -55,7 +55,8 @@
 class Board
 {
 public:
-    Board(const QStringList &,
+    Board(const QString &l_name,
+          const QStringList &,
           const QSize &,
           KeyboardWidget::BoardType alphabet);
 
@@ -71,6 +72,8 @@ public:
 
     bool isAlphabet() const;
     bool isNumeric() const;
+
+    QString layoutName() const;
     KeyboardWidget::BoardType type() const;
 
 private:
@@ -78,15 +81,17 @@ private:
     QFont m_font;
     QStringList m_lines;
     QString m_characters;
+    QString m_layoutName;
     QHash<QChar, QRect> m_rects;
     KeyboardWidget::BoardType m_isAlphabet;
 };
 
 
-Board::Board(const QStringList &lines,
+Board::Board(const QString &l_name,
+             const QStringList &lines,
              const QSize &boardSize,
              KeyboardWidget::BoardType isAlphabet)
-: m_size(boardSize), m_font(QApplication::font()), m_lines(lines), m_isAlphabet(isAlphabet)
+: m_size(boardSize), m_font(QApplication::font()), m_lines(lines), m_layoutName(l_name.toLower()), m_isAlphabet(isAlphabet)
 {
     int maxline = -1;
     int maxline_len = 0;
@@ -162,6 +167,11 @@ bool Board::isNumeric() const
 KeyboardWidget::BoardType Board::type() const
 {
     return m_isAlphabet;
+}
+
+QString Board::layoutName() const
+{
+  return m_layoutName;
 }
 
 QString Board::characters() const
@@ -1125,9 +1135,9 @@ QSize KeyboardWidget::sizeHint() const
     return QSize(m_config.keySize.width(), m_config.keySize.height());
 }
 
-void KeyboardWidget::addBoard(const QStringList &chars, BoardType type)
+void KeyboardWidget::addBoard(const QString &l_name, const QStringList &chars, BoardType type)
 {
-    Board *board = new Board(chars, m_boardSize, type);
+    Board *board = new Board(l_name, chars, m_boardSize, type);
     m_boards << board;
 
     if(NonAlphabet != type && !m_alphabetSet) {
@@ -1704,8 +1714,8 @@ void KeyboardWidget::stroke(Stroke s)
             m_currentBoard--;
             if(m_currentBoard < 0)
                 m_currentBoard = m_boards.count() - 1;
-            if(!m_boards.at(m_oldBoard)->isAlphabet() ||
-               !m_boards.at(m_currentBoard)->isAlphabet()) {
+            if(m_boards.at(m_oldBoard)->layoutName() !=
+               m_boards.at(m_currentBoard)->layoutName()) {
                 m_boardChangeTimeline.start();
                 m_boardUp = true;
             } else {
@@ -1716,8 +1726,8 @@ void KeyboardWidget::stroke(Stroke s)
         case StrokeDown:
             m_oldBoard = m_currentBoard;
             m_currentBoard = (m_currentBoard + 1) % m_boards.count();
-            if(!m_boards.at(m_oldBoard)->isAlphabet() ||
-               !m_boards.at(m_currentBoard)->isAlphabet()) {
+            if(m_boards.at(m_oldBoard)->layoutName() !=
+               m_boards.at(m_currentBoard)->layoutName()) {
                 m_boardChangeTimeline.start();
                 m_boardChangeTimeline.start();
                 m_boardUp = false;

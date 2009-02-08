@@ -76,7 +76,7 @@ public:
 
     void setSelectionHeight(int);
 
-    void addBoard(const QStringList &, BoardType);
+    void addBoard(const QString &, const QStringList &, BoardType);
 
     void autoCapitalizeNextWord(bool);
 
