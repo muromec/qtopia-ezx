@@ -236,7 +236,10 @@ WordPredict::~WordPredict()
 
 void WordPredict::setLetter(QChar c, const QPoint &p)
 {
+    if (!c.isLetter()) // useless junk, dispose it!
+      return;
     m_layout[c] = p;
+    m_alphabet += c;
 }
 
 WordPredict::Movement
@@ -284,9 +287,8 @@ void WordPredict::addTouch(const QPoint &p)
     m_mPoints << move;
 
     QString reduce;
-    static const QString alphabet = "abcdefghijklmnopqrstuvwxyzабвгдеёжзиклмнопрстуфхцчшщъыьэюя";
-    for(int i=0; i<alphabet.length(); i++) {
-        QChar letter = alphabet[i];
+    for(int i=0; i<m_alphabet.length(); i++) {
+        QChar letter = m_alphabet[i];
         int dist = distanceForPoint(p, letter);
         m_latestDfp[letter] = dist;
         if(dist != -1)

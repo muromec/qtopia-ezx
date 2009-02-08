@@ -1057,18 +1057,20 @@ KeyboardWidget::KeyboardWidget(const Config &config,
   m_pressAndHold(false),m_animate_accept(true), m_charWindow(0),
   m_boardChangeTimeline(config.boardChangeTime),
   m_ignoreMouse(false), m_ignore(false), optionsWindowTimer(0),
-  m_notWord(false), m_alphabetSet(false),
+  m_notWord(false),
   m_predict(0), m_autoCap(false), m_autoCapitaliseEveryWord(false),
   m_preeditSpace(false), m_dontAddPreeditSpace(false)
 {
     setAttribute(Qt::WA_InputMethodTransparent, true);
 
+    /*
     WordPredict::Config wconfig;
     wconfig.reallyNoMoveSensitivity = m_config.reallyNoMoveSensitivity;
     wconfig.moveSensitivity = m_config.moveSensitivity;
     wconfig.excludeDistance = m_config.excludeDistance;
 
     m_predict = new WordPredict(wconfig, m_config.maxGuesses);
+    */
 
     setFixedSize(m_config.keySize.width(), m_config.keySize.height());
 
@@ -1091,7 +1093,7 @@ KeyboardWidget::KeyboardWidget(const Config &config,
 
 KeyboardWidget::~KeyboardWidget()
 {
-    delete m_predict;
+    qDeleteAll(m_predictors);
 }
 
 void KeyboardWidget::autoCapitalizeNextWord(bool autocap)
@@ -1140,18 +1142,36 @@ void KeyboardWidget::addBoard(const QString &l_name, const QStringList &chars, B
     Board *board = new Board(l_name, chars, m_boardSize, type);
     m_boards << board;
 
-    if(NonAlphabet != type && !m_alphabetSet) {
-        m_alphabetSet = true;
+    if(NonAlphabet != type && !m_predictors.count(l_name)) {
+        WordPredict::Config wconfig;
+        wconfig.reallyNoMoveSensitivity = m_config.reallyNoMoveSensitivity;
+        wconfig.moveSensitivity = m_config.moveSensitivity;
+        wconfig.excludeDistance = m_config.excludeDistance;
+
+        WordPredict *wp = new WordPredict(wconfig, m_config.maxGuesses);
 
         QString chars = board->characters();
         for(int ii = 0; ii < chars.length(); ++ii) {
-            m_predict->setLetter(chars.at(ii).toLower(), board->rect(chars.at(ii)).center());
+            wp->setLetter(chars.at(ii).toLower(), board->rect(chars.at(ii)).center());
         }
-
+        m_predictors[l_name] = wp;
     }
 
     if(LowerCase == type)
-        m_currentBoard = m_boards.count() - 1;
+        setBoard(m_boards.count() - 1);
+}
+
+void KeyboardWidget::setBoard(int newBoard)
+{
+    m_currentBoard = newBoard;
+    m_predict = m_predictors[m_boards.at(m_currentBoard)->layoutName()];
+    if (m_predict)
+      m_predict->reset();
+}
+
+void KeyboardWidget::setDefaultLayout(const QString &l_name)
+{
+  m_defaultLayout = l_name;
 }
 
 void KeyboardWidget::paintEvent(QPaintEvent *)
@@ -1525,7 +1545,8 @@ void KeyboardWidget::mouseClick(const QPoint &p)
     occurance.board = m_currentBoard;
     m_occuranceHistory << occurance;
 
-    m_predict->addTouch(point);
+    if (m_predict)
+      m_predict->addTouch(point);
 
     updateWords();
 }
@@ -1548,12 +1569,17 @@ void KeyboardWidget::pressAndHoldChar(const QChar &c)
         }
     }
 
-    if(c == QChar(0x21b5)) {// Magic number - return key
+    if(c == QChar(0x21b5) || c.isNumber()) {// Magic number - return key.
+                                            // Numbers aren't that magic, though they don't need completion too.
         //m_preeditSpace = false;
         m_dontAddPreeditSpace = true;
-        acceptWord();
+        if (hasText())
+          acceptWord();
+        if (c==QChar(0x21b5))
+          emit commit("\n");
+        else
+          emit commit(c);
         m_dontAddPreeditSpace = false;
-        emit commit("\n");
         clear();
     }
     else {
@@ -1567,7 +1593,8 @@ void KeyboardWidget::pressAndHoldChar(const QChar &c)
 
         m_occuranceHistory << occurance;
 
-        m_predict->addLetter(c.toLower());
+        if (m_predict)
+          m_predict->addLetter(c.toLower());
 
         updateWords();
     }
@@ -1586,7 +1613,7 @@ void KeyboardWidget::updateWords()
 {
     m_words = QStringList();
 
-    if(!m_notWord)
+    if(!m_notWord && m_predict)
         m_words = m_predict->words();
 
     if(m_words.isEmpty())
@@ -1611,7 +1638,7 @@ void KeyboardWidget::updateWords()
         emit commit(QString());
     } else {
 #ifdef PREFIX_PREEDIT
-        if(!m_notWord && !m_predict->prefixedWord().isEmpty())
+        if(!m_notWord && m_predict && !m_predict->prefixedWord().isEmpty())
             emit preedit(m_predict->prefixedWord());
         else
 #endif
@@ -1666,8 +1693,11 @@ void KeyboardWidget::setBoardByType(BoardType newBoardType)
 
     for(int i = 0; i < m_boards.count(); i++) {
         if (m_boards.at(i)->type() == newBoardType) {
-            newBoard = i;
-            break;
+            if (newBoard==-1 || // Select at least any
+                (newBoard!=-1 && m_boards.at(newBoard)->layoutName()!=m_boards.at(m_currentBoard)->layoutName() &&
+                  m_boards.at(i)->layoutName()==m_defaultLayout) || // Prefer default layout to any
+                m_boards.at(i)->layoutName()==m_boards.at(m_currentBoard)->layoutName()) // We don't need to change current layout name
+              newBoard = i;
         }
     }
 
@@ -1684,7 +1714,7 @@ void KeyboardWidget::setBoardByType(BoardType newBoardType)
     if(isVisible()) {
         // animate
         m_oldBoard = m_currentBoard;
-        m_currentBoard = newBoard;
+        setBoard(newBoard);
         if(m_currentBoard < 0)
             m_currentBoard = m_boards.count() - 1;
         if(!m_boards.at(m_oldBoard)->isAlphabet() ||
@@ -1700,7 +1730,7 @@ void KeyboardWidget::setBoardByType(BoardType newBoardType)
     } else {
         //not visible, so just change the board
         m_oldBoard = m_currentBoard;
-        m_currentBoard = newBoard;
+        setBoard(newBoard);
         update();
     }
 }
@@ -1711,9 +1741,10 @@ void KeyboardWidget::stroke(Stroke s)
     switch(s) {
         case StrokeUp:
             m_oldBoard = m_currentBoard;
-            m_currentBoard--;
-            if(m_currentBoard < 0)
-                m_currentBoard = m_boards.count() - 1;
+            int newBoard = m_currentBoard-1;
+            if(newBoard < 0)
+                newBoard = m_boards.count() - 1;
+            setBoard(newBoard);
             if(m_boards.at(m_oldBoard)->layoutName() !=
                m_boards.at(m_currentBoard)->layoutName()) {
                 m_boardChangeTimeline.start();
@@ -1725,7 +1756,7 @@ void KeyboardWidget::stroke(Stroke s)
 
         case StrokeDown:
             m_oldBoard = m_currentBoard;
-            m_currentBoard = (m_currentBoard + 1) % m_boards.count();
+            setBoard((m_currentBoard + 1) % m_boards.count());
             if(m_boards.at(m_oldBoard)->layoutName() !=
                m_boards.at(m_currentBoard)->layoutName()) {
                 m_boardChangeTimeline.start();
@@ -1899,7 +1930,8 @@ void KeyboardWidget::positionTimeOut()
 
 void KeyboardWidget::clear()
 {
-    m_predict->reset();
+    if (m_predict)
+      m_predict->reset();
     m_words.clear();
     m_notWord = false;
     m_occuranceHistory.clear();
@@ -1907,6 +1939,9 @@ void KeyboardWidget::clear()
 
 void KeyboardWidget::resetToHistory()
 {
+    if (!m_predict) // Only predictor's state is changed here
+      return;
+
     m_predict->reset();
 
     bool localNotWord = false;

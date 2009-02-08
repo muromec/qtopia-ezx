@@ -132,6 +132,7 @@ QWidget* PredictiveKeyboard::widget(QWidget*)
 {
     if(!mKeyboard) {
         mKeyboard = new KeyboardWidget(createKeyboardConfig(), 0);
+        //TODO: load layouts from config
         mKeyboard->addBoard("russian", QStringList() << "ЙЦУКЕНГШЩЗХЪ" << "ФЫВАПРОЛДЖЭ" << "ЯЧСМИТЬБЮ,", KeyboardWidget::UpperCase);
         mKeyboard->addBoard("russian", QStringList() << "йцукенгшщзхъ" << "фывапролджэ" << (QString("ячсмитьбю.") + QChar(0x21b5)), KeyboardWidget::LowerCase);
 
@@ -140,6 +141,8 @@ QWidget* PredictiveKeyboard::widget(QWidget*)
 
         mKeyboard->addBoard("numeric", QStringList() << "12345" << "67890", KeyboardWidget::Numeric);
         mKeyboard->addBoard("symbol",  QStringList() << "^#@!$()*&%" << "|,.;:'?\\`" << (QString("[]+=-/~\"_") + QChar(0x21b5)), KeyboardWidget::NonAlphabet);
+
+        mKeyboard->setDefaultLayout("russian");
 
         QObject::connect(mKeyboard, SIGNAL(preedit(QString)), this, SLOT(preedit(QString)));
         QObject::connect(mKeyboard, SIGNAL(commit(QString)), this, SLOT(submitWord(QString)));

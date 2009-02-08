@@ -22,6 +22,7 @@
 
 #include <QWidget>
 #include <QTimeLine>
+#include <QHash>
 class PopupWindow;
 class OptionsWindow;
 class Board;
@@ -77,6 +78,7 @@ public:
     void setSelectionHeight(int);
 
     void addBoard(const QString &, const QStringList &, BoardType);
+    void setDefaultLayout(const QString &l_name);
 
     void autoCapitalizeNextWord(bool);
 
@@ -146,6 +148,7 @@ private:
     QSize m_boardSize;
     QRect m_boardRect;
     QPoint toBoardPoint(const QPoint &) const;
+    void setBoard(int newBoard);
 
     enum Motion { Left = 0x01, Right = 0x02, Up = 0x04, Down = 0x08 };
     Motion m_possibleMotion;
@@ -164,6 +167,7 @@ private:
     QTimeLine m_boardChangeTimeline;
     int m_oldBoard;
     bool m_boardUp;
+    QString m_defaultLayout;
 
     bool m_specialDelete;
 
@@ -175,8 +179,8 @@ private:
     QTimer* optionsWindowTimer;
 
     bool m_notWord;
-    bool m_alphabetSet;
     WordPredict *m_predict;
+    QHash<QString, WordPredict *> m_predictors;
     void updateWords();
     QString closestWord();
     bool m_autoCap;

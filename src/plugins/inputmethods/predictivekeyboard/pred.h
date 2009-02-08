@@ -81,6 +81,7 @@ private:
     QHash<QChar, int> m_latestDfp;
     int m_max;
     QString m_prefixedWord;
+    QString m_alphabet;
 
     DawgReduction<WPWord> *reduction;
 
