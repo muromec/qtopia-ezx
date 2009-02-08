@@ -283,7 +283,7 @@ void WordPredict::addTouch(const QPoint &p)
     m_points << p;
     m_mPoints << move;
 
-    QByteArray reduce;
+    QString reduce;
     static const QString alphabet = "abcdefghijklmnopqrstuvwxyzабвгдеёжзиклмнопрстуфхцчшщъыьэюя";
     for(int i=0; i<alphabet.length(); i++) {
         QChar letter = alphabet[i];
