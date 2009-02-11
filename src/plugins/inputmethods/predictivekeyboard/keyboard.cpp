@@ -1000,7 +1000,7 @@ void PopupWindow::paintEvent(QPaintEvent *)
     QPoint widgetPosTrans = pos() - (m_point + QPoint(0, m_offset));
     QPoint widgetCenter = rect().center() - widgetPosTrans;
 
-    QPoint transform = widgetCenter/m_scaleFactor - boardCenter;
+    QPointF transform = QPointF(widgetCenter)/m_scaleFactor - boardCenter;
     p.scale(m_scaleFactor, m_scaleFactor); // Scale the popup
 
     QFont mainFont = QApplication::font();
@@ -1009,10 +1009,10 @@ void PopupWindow::paintEvent(QPaintEvent *)
 
     for(int ii = 0; ii < characters.count(); ++ii) {
         const QChar &c = characters.at(ii);
-        QRect crect = m_board->rect(c).translated(transform.x(), transform.y());
-        if(rect().intersects(crect)) {
+        QRectF crect = QRectF(m_board->rect(c)).translated(transform.x(), transform.y());
+        QRectF r = rect();
+        if(r.intersects(crect)) {
             if(c == m_char) {
-                QRect r = rect();
                 r.moveCenter(crect.center());
                 p.setFont(bigFont);
                 p.drawText(r, c, Qt::AlignHCenter | Qt::AlignVCenter);
