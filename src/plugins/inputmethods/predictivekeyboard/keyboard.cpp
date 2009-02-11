@@ -1163,9 +1163,10 @@ void KeyboardWidget::addBoard(const QString &l_name, const QStringList &chars, B
 
 void KeyboardWidget::setBoard(int newBoard)
 {
+    bool layoutChanged = m_boards.at(m_currentBoard)->layoutName() != m_boards.at(newBoard)->layoutName();
     m_currentBoard = newBoard;
     m_predict = m_predictors[m_boards.at(m_currentBoard)->layoutName()];
-    if (m_predict)
+    if (m_predict && layoutChanged)
       m_predict->reset();
 }
 
