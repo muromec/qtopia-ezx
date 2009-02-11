@@ -601,22 +601,22 @@ void SelectedItem::keyPressEvent(QKeyEvent *event)
 
     switch( event->key() ) {
     case Qt::Key_Right:
-        if ( event->isAutoRepeat() && destItem )
+        if ( Qtopia::mousePreferred() || event->isAutoRepeat() && destItem )
             return;
         moveRequested(Right);
         break;
     case Qt::Key_Left:
-        if ( event->isAutoRepeat() && destItem )
+        if ( Qtopia::mousePreferred() || event->isAutoRepeat() && destItem )
             return;
         moveRequested(Left);
         break;
     case Qt::Key_Up:
-        if ( event->isAutoRepeat() && destItem )
+        if ( Qtopia::mousePreferred() || event->isAutoRepeat() && destItem )
             return;
         moveRequested(Up);
         break;
     case Qt::Key_Down:
-        if ( event->isAutoRepeat() && destItem )
+        if ( Qtopia::mousePreferred() || event->isAutoRepeat() && destItem )
             return;
         moveRequested(Down);
         break;
