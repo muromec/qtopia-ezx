@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,12 +43,17 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QSet>
 #include <QtCore/QPluginLoader>
 #include <QtCore/QLibrary>
 #include <QtCore/QLibraryInfo>
 #include <QtCore/qdebug.h>
+#include <QtCore/QMap>
+#include <QtCore/QSettings>
 #include <QtCore/QCoreApplication>
+
+QT_BEGIN_NAMESPACE
 
 static QStringList unique(const QStringList &lst)
 {
@@ -62,7 +61,7 @@ static QStringList unique(const QStringList &lst)
     return s.toList();
 }
 
-QStringList QDesignerPluginManager::defaultPluginPaths() const
+QStringList QDesignerPluginManager::defaultPluginPaths()
 {
     QStringList result;
 
@@ -86,15 +85,45 @@ QStringList QDesignerPluginManager::defaultPluginPaths() const
     return result;
 }
 
-QDesignerPluginManager::QDesignerPluginManager(QDesignerFormEditorInterface *core)
-    : QObject(core), m_core(core)
+// ---------------- QDesignerPluginManagerPrivate
+
+class QDesignerPluginManagerPrivate {
+    public:
+    QDesignerPluginManagerPrivate(QDesignerFormEditorInterface *core);
+
+    QDesignerFormEditorInterface *m_core;
+    QStringList m_pluginPaths;
+    QStringList m_registeredPlugins;
+    QStringList m_disabledPlugins;
+
+    typedef QMap<QString, QString> FailedPluginMap;
+    FailedPluginMap m_failedPlugins;
+
+    typedef QList<QDesignerCustomWidgetInterface*> CustomWidgetList;
+    CustomWidgetList m_customWidgets;
+
+    QStringList defaultPluginPaths() const;
+};
+
+QDesignerPluginManagerPrivate::QDesignerPluginManagerPrivate(QDesignerFormEditorInterface *core) :
+   m_core(core)
+{
+}
+
+
+// ---------------- QDesignerPluginManager
+// As of 4.4, the header will be distributed with the Eclipse plugin.
+
+QDesignerPluginManager::QDesignerPluginManager(QDesignerFormEditorInterface *core) :
+    QObject(core),
+    m_d(new QDesignerPluginManagerPrivate(core))
 {
     QSettings settings;
 
     settings.beginGroup(QLatin1String("PluginManager"));
 
-    m_pluginPaths = defaultPluginPaths();
-    m_disabledPlugins
+    m_d->m_pluginPaths = defaultPluginPaths();
+    m_d->m_disabledPlugins
         = unique(settings.value(QLatin1String("DisabledPlugins")).toStringList());
     updateRegisteredPlugins();
 
@@ -104,70 +133,83 @@ QDesignerPluginManager::QDesignerPluginManager(QDesignerFormEditorInterface *cor
 QDesignerPluginManager::~QDesignerPluginManager()
 {
     syncSettings();
+    delete m_d;
 }
 
 QDesignerFormEditorInterface *QDesignerPluginManager::core() const
 {
-    return m_core;
+    return m_d->m_core;
 }
 
 QStringList QDesignerPluginManager::findPlugins(const QString &path)
 {
-    QStringList result;
-
-    QDir dir(path);
+    const QDir dir(path);
     if (!dir.exists())
-        return result;
-    QStringList candidates = dir.entryList(QDir::Files | QDir::NoSymLinks);
-    foreach (QString plugin, candidates) {
-        if (!QLibrary::isLibrary(plugin))
-            continue;
-        result.append(dir.absoluteFilePath(plugin));
-    }
+        return QStringList();
 
+    const QFileInfoList infoList = dir.entryInfoList(QDir::Files);
+    if (infoList.empty())
+        return QStringList();
+
+    // Load symbolic links but make sure all file names are unique as not
+    // to fall for something like 'libplugin.so.1 -> libplugin.so'
+    QStringList result;
+    const QFileInfoList::const_iterator icend = infoList.constEnd();
+    for (QFileInfoList::const_iterator it = infoList.constBegin(); it != icend; ++it) {
+        QString fileName;
+        if (it->isSymLink()) {
+            const QFileInfo linkTarget = QFileInfo(it->symLinkTarget());
+            if (linkTarget.exists() && linkTarget.isFile())
+                fileName = linkTarget.absoluteFilePath();
+        } else {
+            fileName = it->absoluteFilePath();
+        }
+        if (!fileName.isEmpty() && QLibrary::isLibrary(fileName) && !result.contains(fileName))
+            result += fileName;
+    }
     return result;
 }
 
 void QDesignerPluginManager::setDisabledPlugins(const QStringList &disabled_plugins)
 {
-    m_disabledPlugins = disabled_plugins;
+    m_d->m_disabledPlugins = disabled_plugins;
     updateRegisteredPlugins();
 }
 
 void QDesignerPluginManager::setPluginPaths(const QStringList &plugin_paths)
 {
-    m_pluginPaths = plugin_paths;
+    m_d->m_pluginPaths = plugin_paths;
     updateRegisteredPlugins();
 }
 
 QStringList QDesignerPluginManager::disabledPlugins() const
 {
-    return m_disabledPlugins;
+    return m_d->m_disabledPlugins;
 }
 
 QStringList QDesignerPluginManager::failedPlugins() const
 {
-    return m_failedPlugins.keys();
+    return m_d->m_failedPlugins.keys();
 }
 
 QString QDesignerPluginManager::failureReason(const QString &pluginName) const
 {
-    return m_failedPlugins.value(pluginName);
+    return m_d->m_failedPlugins.value(pluginName);
 }
 
 QStringList QDesignerPluginManager::registeredPlugins() const
 {
-    return m_registeredPlugins;
+    return m_d->m_registeredPlugins;
 }
 
 QStringList QDesignerPluginManager::pluginPaths() const
 {
-    return m_pluginPaths;
+    return m_d->m_pluginPaths;
 }
 
 QObject *QDesignerPluginManager::instance(const QString &plugin) const
 {
-    if (m_disabledPlugins.contains(plugin))
+    if (m_d->m_disabledPlugins.contains(plugin))
         return 0;
 
     QPluginLoader loader(plugin);
@@ -176,17 +218,17 @@ QObject *QDesignerPluginManager::instance(const QString &plugin) const
 
 void QDesignerPluginManager::updateRegisteredPlugins()
 {
-    m_registeredPlugins.clear();
-    foreach (QString path,  m_pluginPaths)
+    m_d->m_registeredPlugins.clear();
+    foreach (QString path,  m_d->m_pluginPaths)
         registerPath(path);
 }
 
 bool QDesignerPluginManager::registerNewPlugins()
 {
-    const int before = m_registeredPlugins.size();
-    foreach (QString path,  m_pluginPaths)
+    const int before = m_d->m_registeredPlugins.size();
+    foreach (QString path,  m_d->m_pluginPaths)
         registerPath(path);
-    const bool newPluginsFound = m_registeredPlugins.size() > before;
+    const bool newPluginsFound = m_d->m_registeredPlugins.size() > before;
     if (newPluginsFound)
         ensureInitialized();
     return newPluginsFound;
@@ -202,49 +244,53 @@ void QDesignerPluginManager::registerPath(const QString &path)
 
 void QDesignerPluginManager::registerPlugin(const QString &plugin)
 {
-    if (m_disabledPlugins.contains(plugin))
+    if (m_d->m_disabledPlugins.contains(plugin))
         return;
-    if (m_registeredPlugins.contains(plugin))
+    if (m_d->m_registeredPlugins.contains(plugin))
         return;
 
     QPluginLoader loader(plugin);
     if (loader.isLoaded() || loader.load()) {
-        m_registeredPlugins += plugin;
-        FailedPluginMap::iterator fit = m_failedPlugins.find(plugin);
-        if (fit != m_failedPlugins.end())
-            m_failedPlugins.erase(fit);
+        m_d->m_registeredPlugins += plugin;
+        QDesignerPluginManagerPrivate::FailedPluginMap::iterator fit = m_d->m_failedPlugins.find(plugin);
+        if (fit != m_d->m_failedPlugins.end())
+            m_d->m_failedPlugins.erase(fit);
         return;
     }
 
     const QString errorMessage = loader.errorString();
-    m_failedPlugins.insert(plugin, errorMessage);
+    m_d->m_failedPlugins.insert(plugin, errorMessage);
 }
 
 bool QDesignerPluginManager::syncSettings()
 {
     QSettings settings;
     settings.beginGroup(QLatin1String("PluginManager"));
-    settings.setValue(QLatin1String("DisabledPlugins"), m_disabledPlugins);
+    settings.setValue(QLatin1String("DisabledPlugins"), m_d->m_disabledPlugins);
     settings.endGroup();
     return settings.status() == QSettings::NoError;
 }
 
 void QDesignerPluginManager::ensureInitialized()
 {
-    QStringList plugins = registeredPlugins();
+    m_d->m_customWidgets.clear();
+    // Complete list of plugins, static and dynamic
+    QObjectList pluginObjects = QPluginLoader::staticInstances();
 
-    m_customWidgets.clear();
-    foreach (QString plugin, plugins) {
-        QObject *o = instance(plugin);
+    const QStringList plugins = registeredPlugins();
+    foreach (const QString &plugin, plugins)
+        if (QObject *o = instance(plugin))
+            pluginObjects.push_back(o);
 
+    foreach(QObject *o, pluginObjects) {
         if (QDesignerCustomWidgetInterface *c = qobject_cast<QDesignerCustomWidgetInterface*>(o)) {
-            m_customWidgets.append(c);
+            m_d->m_customWidgets.append(c);
         } else if (QDesignerCustomWidgetCollectionInterface *coll = qobject_cast<QDesignerCustomWidgetCollectionInterface*>(o)) {
-            m_customWidgets += coll->customWidgets();
+            m_d->m_customWidgets += coll->customWidgets();
         }
     }
 
-    foreach (QDesignerCustomWidgetInterface *c, m_customWidgets) {
+    foreach (QDesignerCustomWidgetInterface *c, m_d->m_customWidgets) {
         if (!c->isInitialized()) {
             c->initialize(core());
         }
@@ -254,7 +300,7 @@ void QDesignerPluginManager::ensureInitialized()
 QList<QDesignerCustomWidgetInterface*> QDesignerPluginManager::registeredCustomWidgets() const
 {
     const_cast<QDesignerPluginManager*>(this)->ensureInitialized();
-    return m_customWidgets;
+    return m_d->m_customWidgets;
 }
 
 QList<QObject*> QDesignerPluginManager::instances() const
@@ -270,3 +316,4 @@ QList<QObject*> QDesignerPluginManager::instances() const
     return lst;
 }
 
+QT_END_NAMESPACE

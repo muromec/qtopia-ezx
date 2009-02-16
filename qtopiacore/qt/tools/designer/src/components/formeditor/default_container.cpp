@@ -1,174 +1,169 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "default_container.h"
-#include "qdesigner_stackedbox_p.h"
-#include "qdesigner_tabwidget_p.h"
-#include "qdesigner_toolbox_p.h"
+#include <QtCore/QDebug>
 
-using namespace qdesigner_internal;
+QT_BEGIN_NAMESPACE
 
-QDesignerContainer::QDesignerContainer(QWidget *widget, QObject *parent)
-    : QObject(parent),
-      m_widget(widget)
+template <class Container>
+static inline void setCurrentContainerIndex(int index, Container *container)
 {
+    const bool blocked = container->signalsBlocked();
+    container->blockSignals(true);
+    container->setCurrentIndex(index);
+    container->blockSignals(blocked);
 }
 
-QDesignerContainer::~QDesignerContainer()
-{
-}
-
-int QDesignerContainer::count() const
-{
-    if (QDesignerStackedWidget *stackedWidget = qobject_cast<QDesignerStackedWidget*>(m_widget)) {
-        return stackedWidget->count();
-    } else if (QDesignerTabWidget *tabWidget = qobject_cast<QDesignerTabWidget*>(m_widget)) {
-        return tabWidget->count();
-    } else if (QDesignerToolBox *toolBox = qobject_cast<QDesignerToolBox*>(m_widget)) {
-        return toolBox->count();
-    }
-
-    Q_ASSERT(0);
-    return 0;
-}
-
-QWidget *QDesignerContainer::widget(int index) const
-{
-    if (QDesignerStackedWidget *stackedWidget = qobject_cast<QDesignerStackedWidget*>(m_widget))
-        return stackedWidget->widget(index);
-    else if (QDesignerTabWidget *tabWidget = qobject_cast<QDesignerTabWidget*>(m_widget))
-        return tabWidget->widget(index);
-    else if (QDesignerToolBox *toolBox = qobject_cast<QDesignerToolBox*>(m_widget))
-        return toolBox->widget(index);
-
-    Q_ASSERT(0);
-    return 0;
-}
-
-int QDesignerContainer::currentIndex() const
-{
-    if (qobject_cast<QDesignerStackedWidget*>(m_widget))
-        return static_cast<QDesignerStackedWidget*>(m_widget)->currentIndex();
-    else if (qobject_cast<QDesignerTabWidget*>(m_widget))
-        return static_cast<QDesignerTabWidget*>(m_widget)->currentIndex();
-    else if (qobject_cast<QDesignerToolBox*>(m_widget))
-        return static_cast<QDesignerToolBox*>(m_widget)->currentIndex();
-
-    Q_ASSERT(0);
-    return -1;
-}
-
-void QDesignerContainer::setCurrentIndex(int index)
-{
-    bool blocked = m_widget->signalsBlocked();
-    m_widget->blockSignals(true);
-    if (qobject_cast<QDesignerStackedWidget*>(m_widget))
-        static_cast<QDesignerStackedWidget*>(m_widget)->setCurrentIndex(index);
-    else if (qobject_cast<QDesignerTabWidget*>(m_widget))
-        static_cast<QDesignerTabWidget*>(m_widget)->setCurrentIndex(index);
-    else if (qobject_cast<QDesignerToolBox*>(m_widget))
-        static_cast<QDesignerToolBox*>(m_widget)->setCurrentIndex(index);
-    else
-        Q_ASSERT(0);
-    m_widget->blockSignals(blocked);
-}
-
-void QDesignerContainer::addWidget(QWidget *widget)
+static inline void ensureNoParent(QWidget *widget)
 {
     if (widget->parentWidget())
         widget->setParent(0);
-
-    if (qobject_cast<QDesignerStackedWidget*>(m_widget))
-        static_cast<QDesignerStackedWidget*>(m_widget)->addWidget(widget);
-    else if (qobject_cast<QDesignerTabWidget*>(m_widget))
-        static_cast<QDesignerTabWidget*>(m_widget)->addTab(widget, QString::fromUtf8("Page"));
-    else if (qobject_cast<QDesignerToolBox*>(m_widget))
-        static_cast<QDesignerToolBox*>(m_widget)->addItem(widget, QString::fromUtf8("Page"));
-    else
-        Q_ASSERT(0);
 }
 
-void QDesignerContainer::insertWidget(int index, QWidget *widget)
-{
-    if (widget->parentWidget())
-        widget->setParent(0);
+static const char *PageLabel = "Page";
 
-    if (qobject_cast<QDesignerStackedWidget*>(m_widget))
-        static_cast<QDesignerStackedWidget*>(m_widget)->insertWidget(index, widget);
-    else if (qobject_cast<QDesignerTabWidget*>(m_widget))
-        static_cast<QDesignerTabWidget*>(m_widget)->insertTab(index, widget, QString::fromUtf8("Page"));
-    else if (qobject_cast<QDesignerToolBox*>(m_widget))
-        static_cast<QDesignerToolBox*>(m_widget)->insertItem(index, widget, QString::fromUtf8("Page"));
-    else
-        Q_ASSERT(0);
-}
+namespace qdesigner_internal {
 
-void QDesignerContainer::remove(int index)
-{
-    if (qobject_cast<QDesignerStackedWidget*>(m_widget))
-        static_cast<QDesignerStackedWidget*>(m_widget)->removeWidget(widget(index));
-    else if (qobject_cast<QDesignerTabWidget*>(m_widget))
-        static_cast<QDesignerTabWidget*>(m_widget)->removeTab(index);
-    else if (qobject_cast<QDesignerToolBox*>(m_widget))
-        static_cast<QDesignerToolBox*>(m_widget)->removeItem(index);
-    else
-        Q_ASSERT(0);
-}
-
-QDesignerContainerFactory::QDesignerContainerFactory(QExtensionManager *parent)
-    : QExtensionFactory(parent)
+// --------- QStackedWidgetContainer
+QStackedWidgetContainer::QStackedWidgetContainer(QStackedWidget *widget, QObject *parent) :
+    QObject(parent),
+    m_widget(widget)
 {
 }
 
-QObject *QDesignerContainerFactory::createExtension(QObject *object, const QString &iid, QObject *parent) const
+void QStackedWidgetContainer::setCurrentIndex(int index)
 {
-    if (iid != Q_TYPEID(QDesignerContainerExtension))
-        return 0;
-
-    if (qobject_cast<QDesignerStackedWidget*>(object)
-            || qobject_cast<QDesignerTabWidget*>(object)
-            || qobject_cast<QDesignerToolBox*>(object))
-        return new QDesignerContainer(static_cast<QWidget*>(object), parent);
-
-    return 0;
+    setCurrentContainerIndex(index, m_widget);
 }
+
+void QStackedWidgetContainer::addWidget(QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->addWidget(widget);
+}
+
+void QStackedWidgetContainer::insertWidget(int index, QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->insertWidget(index, widget);
+}
+
+void QStackedWidgetContainer::remove(int index)
+{
+    m_widget->removeWidget(widget(index));
+}
+
+// --------- QTabWidgetContainer
+QTabWidgetContainer::QTabWidgetContainer(QTabWidget *widget, QObject *parent) :
+    QObject(parent),
+    m_widget(widget)
+{
+}
+
+void QTabWidgetContainer::setCurrentIndex(int index)
+{
+    setCurrentContainerIndex(index, m_widget);
+}
+
+void QTabWidgetContainer::addWidget(QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->addTab(widget, QString::fromUtf8(PageLabel));
+}
+
+void QTabWidgetContainer::insertWidget(int index, QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->insertTab(index, widget, QString::fromUtf8(PageLabel));
+}
+
+void QTabWidgetContainer::remove(int index)
+{
+    m_widget->removeTab(index);
+}
+
+// ------------------- QToolBoxContainer
+QToolBoxContainer::QToolBoxContainer(QToolBox *widget, QObject *parent) :
+    QObject(parent),
+    m_widget(widget)
+{
+}
+
+void QToolBoxContainer::setCurrentIndex(int index)
+{
+    setCurrentContainerIndex(index, m_widget);
+}
+
+void QToolBoxContainer::addWidget(QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->addItem(widget, QString::fromUtf8(PageLabel));
+}
+
+void QToolBoxContainer::insertWidget(int index, QWidget *widget)
+{
+    ensureNoParent(widget);
+    m_widget->insertItem(index, widget, QString::fromUtf8(PageLabel));
+}
+
+void QToolBoxContainer::remove(int index)
+{
+    m_widget->removeItem(index);
+}
+
+// ------------------- QScrollAreaContainer
+// We pass on active=true only if there are no children yet.
+// If there are children, it is a legacy custom widget QScrollArea that has an internal,
+// unmanaged child, in which case we deactivate the extension (otherwise we crash).
+// The child will then not show up in the task menu
+
+QScrollAreaContainer::QScrollAreaContainer(QScrollArea *widget, QObject *parent) :
+    QObject(parent),
+    SingleChildContainer<QScrollArea>(widget, widget->widget() == 0)
+{
+}
+// ------------------- QDockWidgetContainer
+QDockWidgetContainer::QDockWidgetContainer(QDockWidget *widget, QObject *parent) :
+    QObject(parent),
+    SingleChildContainer<QDockWidget>(widget)
+{
+}
+
+}
+
+QT_END_NAMESPACE

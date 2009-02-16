@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,56 +42,124 @@
 //  W A R N I N G
 //  -------------
 //
-// This file is not part of the Qt API.  It exists for the convenience
-// of qapplication_qws.cpp and qgfxvnc_qws.cpp.  This header file may
-// change from version to version without notice, or even be removed.
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
 //
 // We mean it.
 //
 
-#include "qplatformdefs.h"
-#include "QtCore/qstring.h"
+#include "qsharedmemory.h"
 
-#if !defined(QT_NO_QWS_MULTIPROCESS)
+#ifdef QT_NO_SHAREDMEMORY
+# ifndef QT_NO_SYSTEMSEMAPHORE
+namespace QSharedMemoryPrivate
+{
+    int createUnixKeyFile(const QString &fileName);
+    QString makePlatformSafeKey(const QString &key,
+            const QString &prefix = QLatin1String("qipc_sharedmemory_"));
+}
+#endif
+#else
 
-class Q_CORE_EXPORT QSharedMemory {
+#include "qsystemsemaphore.h"
+#include "private/qobject_p.h"
+
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#else
+#include <sys/sem.h>
+#endif
+
+QT_BEGIN_NAMESPACE
+
+#ifndef QT_NO_SYSTEMSEMAPHORE
+/*!
+  Helper class
+  */
+class QSharedMemoryLocker
+{
+
 public:
+    inline QSharedMemoryLocker(QSharedMemory *sharedMemory) : q_sm(sharedMemory)
+    {
+        Q_ASSERT(q_sm);
+    }
 
-    QSharedMemory();
-    ~QSharedMemory();
+    inline ~QSharedMemoryLocker()
+    {
+        if (q_sm)
+            q_sm->unlock();
+    }
 
-    void setPermissions(mode_t mode);
-    int size() const;
-    void *address() { return shmBase; };
-
-    int id() const { return shmId; }
-
-    void detach();
-
-    bool create(int size);
-    bool attach(int id);
-
-    //bool create(int size, const QString &filename, char c = 'Q');
-    //bool attach(const QString &filename, char c = 'Q');
-// old API
-
-    QSharedMemory(int, const QString &, char c = 'Q');
-    void * base() { return address(); };
-
-    bool create();
-    void destroy();
-
-    bool attach();
+    inline bool lock()
+    {
+        if (q_sm && q_sm->lock())
+            return true;
+        q_sm = 0;
+        return false;
+    }
 
 private:
-    void *shmBase;
-    int shmSize;
-    QString shmFile;
-    char character;
-    int shmId;
-    key_t key;
+    QSharedMemory *q_sm;
+};
+#endif // QT_NO_SYSTEMSEMAPHORE
+
+class Q_AUTOTEST_EXPORT QSharedMemoryPrivate : public QObjectPrivate
+{
+    Q_DECLARE_PUBLIC(QSharedMemory)
+
+public:
+    QSharedMemoryPrivate();
+
+    void *memory;
+    int size;
+    QString key;
+    QSharedMemory::SharedMemoryError error;
+    QString errorString;
+#ifndef QT_NO_SYSTEMSEMAPHORE
+    QSystemSemaphore systemSemaphore;
+    bool lockedByMe;
+#endif
+
+    static int createUnixKeyFile(const QString &fileName);
+    static QString makePlatformSafeKey(const QString &key,
+            const QString &prefix = QLatin1String("qipc_sharedmemory_"));
+#ifdef Q_OS_WIN
+    HANDLE handle();
+#else
+    key_t handle();
+#endif
+    bool initKey();
+    bool cleanHandle();
+    bool create(int size);
+    bool attach(QSharedMemory::AccessMode mode);
+    bool detach();
+
+    void setErrorString(const QString &function);
+
+#ifndef QT_NO_SYSTEMSEMAPHORE
+    bool tryLocker(QSharedMemoryLocker *locker, const QString function) {
+        if (!locker->lock()) {
+            errorString = QSharedMemory::tr("%1: unable to lock").arg(function);
+            error = QSharedMemory::LockError;
+            return false;
+        }
+        return true;
+    }
+#endif // QT_NO_SYSTEMSEMAPHORE
+
+private:
+#ifdef Q_OS_WIN
+    HANDLE hand;
+#else
+    key_t unix_key;
+#endif
 };
 
-#endif // QT_NO_QWS_MULTIPROCESS
+QT_END_NAMESPACE
+
+#endif // QT_NO_SHAREDMEMORY
 
 #endif // QSHAREDMEMORY_P_H
+

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/drilldown.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/drilldown.qdoc -->
 <head>
-  <title>Qt 4.3: Drill Down Example</title>
+  <title>Qt 4.4: Drill Down Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Drill Down Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Drill Down Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -27,7 +27,7 @@
 <li><a href="sql-drilldown-drilldown-qrc.html">sql/drilldown/drilldown.qrc</a></li>
 </ul>
 <p>The Drill Down example shows how to read data from a database as well as submit changes, using the <a href="qsqlrelationaltablemodel.html">QSqlRelationalTableModel</a> and <a href="qdatawidgetmapper.html">QDataWidgetMapper</a> classes.</p>
-<p align="center"><img src="images/drilldown-example.png" alt="Screenshot of the Drill Down Example" /></p><p>When running the example application, a user can retrieve information about each of Trolltech's offices by clicking the corresponding image. The application pops up an information window displaying the data, and allows the users to alter the location description as well as the image. The main view will be updated when the users submit their changes.</p>
+<p align="center"><img src="images/drilldown-example.png" alt="Screenshot of the Drill Down Example" /></p><p>When running the example application, a user can retrieve information about each of Nokia's Qt Software offices by clicking the corresponding image. The application pops up an information window displaying the data, and allows the users to alter the location description as well as the image. The main view will be updated when the users submit their changes.</p>
 <p>The example consists of three classes:</p>
 <ul>
 <li><tt>ImageItem</tt> is a custom graphics item class used to display the office images.</li>
@@ -99,7 +99,7 @@
 <pre>     imageFileEditor = new QComboBox;
      imageFileEditor-&gt;setModel(offices-&gt;relationModel(1));
      imageFileEditor-&gt;setModelColumn(offices-&gt;relationModel(1)-&gt;fieldIndex(&quot;file&quot;));</pre>
-<p>In this example, the information about the offices are stored in a database table called &quot;trolltechoffices&quot;. When creating the model, we will use a foreign key to establish a relation between this table and a second data base table, &quot;images&quot;, containing the names of the available image files. We will get back to how this is done when reviewing the <tt>View</tt> class. The rationale for creating such a relation though, is that we want to ensure that the user only can choose between predefined image files.</p>
+<p>In this example, the information about the offices are stored in a database table called &quot;offices&quot;. When creating the model, we will use a foreign key to establish a relation between this table and a second data base table, &quot;images&quot;, containing the names of the available image files. We will get back to how this is done when reviewing the <tt>View</tt> class. The rationale for creating such a relation though, is that we want to ensure that the user only can choose between predefined image files.</p>
 <p>The model corresponding to the &quot;images&quot; database table, is available through the <a href="qsqlrelationaltablemodel.html">QSqlRelationalTableModel</a>'s <a href="qsqlrelationaltablemodel.html#relationModel">relationModel()</a> function, requiring the foreign key (in this case the &quot;imagefile&quot; column number) as argument. We use <a href="qcombobox.html">QComboBox</a>'s <a href="qcombobox.html#setModel">setModel()</a> function to make the combobox use the &quot;images&quot; model. And, since this model has two columns (&quot;locationid&quot; and &quot;file&quot;), we also specify which column we want to be visible using the <a href="qcombobox.html#modelColumn-prop">QComboBox::setModelColumn</a>() function.</p>
 <pre>     mapper = new QDataWidgetMapper(this);
      mapper-&gt;setModel(offices);
@@ -135,7 +135,7 @@
 
      setWindowFlags(Qt::Window);
      enableButtons(false);
-     setWindowTitle(tr(&quot;Trolltech Office: %1&quot;).arg(locationText-&gt;text()));
+     setWindowTitle(tr(&quot;Office: %1&quot;).arg(locationText-&gt;text()));
      resize(320, sizeHint().height());
  }</pre>
 <p>Finally, we connect the &quot;something's changed&quot; signals in the editors to our custom <tt>enableButtons()</tt> slot, enabling the users to either submit or revert their changes. We add all the widgets into a layout, store the location ID and the name of the displayed image file for future reference, and set the window title and initial size.</p>
@@ -211,7 +211,7 @@
 
  private slots:
      void updateImage(int id, const QString &amp;fileName);</pre>
-<p>The <a href="qgraphicsview.html">QGraphicsView</a> class is part of the <a href="graphicsview.html">The Graphics View Framework</a> which we will use to display the images of Trolltech's offices. To be able to respond to user interaction, i.e&#x2e;, showing the appropriate information window whenever the user clicks one of the office images, we reimplement <a href="qgraphicsview.html">QGraphicsView</a>'s <a href="qwidget.html#mouseReleaseEvent">mouseReleaseEvent()</a> function.</p>
+<p>The <a href="qgraphicsview.html">QGraphicsView</a> class is part of the <a href="graphicsview.html">The Graphics View Framework</a> which we will use to display the images of Nokia's Qt Software offices. To be able to respond to user interaction; i.e&#x2e;, showing the appropriate information window whenever the user clicks one of the office images, we reimplement <a href="qgraphicsview.html">QGraphicsView</a>'s <a href="qwidget.html#mouseReleaseEvent">mouseReleaseEvent()</a> function.</p>
 <p>Note that the constructor expects the names of two database tables: One containing the detailed information about the offices, and another containing the names of the available image files. We also provide a private <tt>updateImage()</tt> slot to catch <tt>InformationWindow</tt>'s <tt>imageChanged()</tt> signal that is emitted whenever the user changes a location's image.</p>
 <pre> private:
      void addItems();
@@ -248,9 +248,9 @@
 
      setMinimumSize(470, 620);
      setMaximumSize(470, 620);
-     setWindowTitle(tr(&quot;Trolltech World Wide&quot;));
+     setWindowTitle(tr(&quot;Offices World Wide&quot;));
  }</pre>
-<p>Then we create the contents of our view, i.e&#x2e;, the scene and its items. The location labels are regular <a href="qgraphicstextitem.html">QGraphicsTextItem</a> objects, and the &quot;Trolltech&quot; logo is represented by a <a href="qgraphicspixmapitem.html">QGraphicsPixmapItem</a> object. The images, on the other hand, are instances of the <tt>ImageItem</tt> class (derived from <a href="qgraphicspixmapitem.html">QGraphicsPixmapItem</a>). We will get back to this shortly when reviewing the <tt>addItems()</tt> function.</p>
+<p>Then we create the contents of our view, i.e&#x2e;, the scene and its items. The location labels are regular <a href="qgraphicstextitem.html">QGraphicsTextItem</a> objects, and the &quot;Qt&quot; logo is represented by a <a href="qgraphicspixmapitem.html">QGraphicsPixmapItem</a> object. The images, on the other hand, are instances of the <tt>ImageItem</tt> class (derived from <a href="qgraphicspixmapitem.html">QGraphicsPixmapItem</a>). We will get back to this shortly when reviewing the <tt>addItems()</tt> function.</p>
 <p>Finally, we set the main application widget's size constraints and window title.</p>
 <pre> void View::addItems()
  {
@@ -460,8 +460,8 @@
 <p>The <tt>adjust()</tt> function defines and applies a transformation matrix, ensuring that our image item appears with the preferred size regardless of the size of the source image. The <tt>id()</tt> function is trivial, and is simply provided to be able to identify the item. In the <tt>updateItemPosition()</tt> slot we call the <a href="qgraphicsitem.html#setZValue">QGraphicsItem::setZValue</a>() function, setting the elevation (i.e&#x2e;, the position) of the item.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

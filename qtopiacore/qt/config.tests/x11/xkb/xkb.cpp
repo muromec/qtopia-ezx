@@ -13,9 +13,9 @@ int main(int, char **)
     XkbQueryExtension(display, &opcode, &xkbEventBase, &xkbErrorBase, &xkblibMajor, &xkblibMinor);
 
     int keycode = 0;
-    uint state = 0;
+    unsigned int state = 0;
     KeySym keySym;
-    uint consumedModifiers;
+    unsigned int consumedModifiers;
     XkbLookupKeySym(display, keycode, state, &consumedModifiers, &keySym);
 
     XkbDescPtr xkbDesc = XkbGetMap(display, XkbAllClientInfoMask, XkbUseCoreKbd);

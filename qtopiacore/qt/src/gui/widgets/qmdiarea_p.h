@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,9 +57,13 @@
 #include <QList>
 #include <QRect>
 #include <QPoint>
+#include <QtGui/qapplication.h>
 #include <private/qmdisubwindow_p.h>
 #include <private/qabstractscrollarea_p.h>
 
+QT_BEGIN_NAMESPACE
+
+namespace QMdi {
 class Rearranger
 {
 public:
@@ -133,7 +131,9 @@ class MinOverlapPlacer : public Placer
     static void findMaxOverlappers(
         const QRect &domain, const QList<QRect> &source, QList<QRect> &result);
 };
+} // namespace QMdi
 
+class QMdiAreaTabBar;
 class QMdiAreaPrivate : public QAbstractScrollAreaPrivate
 {
     Q_DECLARE_PUBLIC(QMdiArea)
@@ -141,18 +141,28 @@ public:
     QMdiAreaPrivate();
 
     // Variables.
-    Rearranger *cascader;
-    Rearranger *regularTiler;
-    Rearranger *iconTiler;
-    Placer *placer;
-    QList<Rearranger *> pendingRearrangements;
+    QMdi::Rearranger *cascader;
+    QMdi::Rearranger *regularTiler;
+    QMdi::Rearranger *iconTiler;
+    QMdi::Placer *placer;
+#ifndef QT_NO_RUBBERBAND
+    QRubberBand *rubberBand;
+#endif
+    QMdiAreaTabBar *tabBar;
+    QList<QMdi::Rearranger *> pendingRearrangements;
     QList< QPointer<QMdiSubWindow> > pendingPlacements;
     QList< QPointer<QMdiSubWindow> > childWindows;
-    QList<int> indicesToStackedChildren;
+    QList<int> indicesToActivatedChildren;
     QPointer<QMdiSubWindow> active;
     QPointer<QMdiSubWindow> aboutToBecomeActive;
     QBrush background;
+    QMdiArea::WindowOrder activationOrder;
     QMdiArea::AreaOptions options;
+    QMdiArea::ViewMode viewMode;
+#ifndef QT_NO_TABWIDGET
+    QTabWidget::TabShape tabShape;
+    QTabWidget::TabPosition tabPosition;
+#endif
     bool ignoreGeometryChange;
     bool ignoreWindowStateChange;
     bool isActivated;
@@ -160,34 +170,47 @@ public:
     bool showActiveWindowMaximized;
     bool tileCalledFromResizeEvent;
     bool updatesDisabledByUs;
+    bool inViewModeChange;
     int indexToNextWindow;
     int indexToPreviousWindow;
+    int indexToHighlighted;
+    int indexToLastActiveTab;
     int resizeTimerId;
+    int tabToPreviousTimerId;
 
     // Slots.
     void _q_deactivateAllWindows(QMdiSubWindow *aboutToActivate = 0);
     void _q_processWindowStateChanged(Qt::WindowStates oldState, Qt::WindowStates newState);
+    void _q_currentTabChanged(int index);
 
     // Functions.
     void appendChild(QMdiSubWindow *child);
-    void place(Placer *placer, QMdiSubWindow *child);
-    void rearrange(Rearranger *rearranger);
+    void place(QMdi::Placer *placer, QMdiSubWindow *child);
+    void rearrange(QMdi::Rearranger *rearranger);
     void arrangeMinimizedSubWindows();
     void activateWindow(QMdiSubWindow *child);
     void activateCurrentWindow();
+    void activateHighlightedWindow();
     void emitWindowActivated(QMdiSubWindow *child);
     void resetActiveWindow(QMdiSubWindow *child = 0);
-    void updateActiveWindow(int removedIndex);
+    void updateActiveWindow(int removedIndex, bool activeRemoved);
     void updateScrollBars();
     void internalRaise(QMdiSubWindow *child) const;
     bool scrollBarsEnabled() const;
     bool lastWindowAboutToBeDestroyed() const;
     void setChildActivationEnabled(bool enable = true, bool onlyNextActivationEvent = false) const;
-
-    // Reimp
-    void scrollBarPolicyChanged(Qt::Orientation, Qt::ScrollBarPolicy);
+    QRect resizeToMinimumTileSize(const QSize &minSubWindowSize, int subWindowCount);
+    void scrollBarPolicyChanged(Qt::Orientation, Qt::ScrollBarPolicy); // reimp
+    QMdiSubWindow *nextVisibleSubWindow(int increaseFactor, QMdiArea::WindowOrder,
+                                        int removed = -1, int fromIndex = -1) const;
+    void highlightNextSubWindow(int increaseFactor);
     QList<QMdiSubWindow *> subWindowList(QMdiArea::WindowOrder, bool reversed = false) const;
     void disconnectSubWindow(QObject *subWindow);
+    void setViewMode(QMdiArea::ViewMode mode);
+#ifndef QT_NO_TABBAR
+    void updateTabBarGeometry();
+    void refreshTabBar();
+#endif
 
     inline void startResizeTimer()
     {
@@ -195,6 +218,14 @@ public:
         if (resizeTimerId > 0)
             q->killTimer(resizeTimerId);
         resizeTimerId = q->startTimer(200);
+    }
+
+    inline void startTabToPreviousTimer()
+    {
+        Q_Q(QMdiArea);
+        if (tabToPreviousTimerId > 0)
+            q->killTimer(tabToPreviousTimerId);
+        tabToPreviousTimerId = q->startTimer(QApplication::keyboardInputInterval());
     }
 
     inline bool windowStaysOnTop(QMdiSubWindow *subWindow) const
@@ -211,13 +242,33 @@ public:
         return subWindow->d_func()->isExplicitlyDeactivated;
     }
 
-    inline void setActive(QMdiSubWindow *subWindow, bool active = true) const
+    inline void setActive(QMdiSubWindow *subWindow, bool active = true, bool changeFocus = true) const
     {
         if (subWindow)
-            subWindow->d_func()->setActive(active);
+            subWindow->d_func()->setActive(active, changeFocus);
     }
+
+#ifndef QT_NO_RUBBERBAND
+    inline void showRubberBandFor(QMdiSubWindow *subWindow)
+    {
+        if (!subWindow || !rubberBand)
+            return;
+        rubberBand->setGeometry(subWindow->geometry());
+        rubberBand->raise();
+        rubberBand->show();
+    }
+
+    inline void hideRubberBand()
+    {
+        if (rubberBand && rubberBand->isVisible())
+            rubberBand->hide();
+        indexToHighlighted = -1;
+    }
+#endif // QT_NO_RUBBERBAND
 };
 
 #endif // QT_NO_MDIAREA
+
+QT_END_NAMESPACE
 
 #endif // QMDIAREA_P_H

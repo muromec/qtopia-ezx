@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/qmake-manual.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/qmake-manual.qdoc -->
 <head>
-  <title>Qt 4.3: Configuring qmake's Environment</title>
+  <title>Qt 4.4: Configuring qmake's Environment</title>
   <link rel="prev" href="qmake-function-reference.html" />
   <link rel="contents" href="qmake-manual.html" />
   <link href="classic.css" rel="stylesheet" type="text/css" />
@@ -12,9 +12,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="qmake-function-reference.html">qmake Function Reference</a>]
 [<a href="qmake-manual.html">Contents</a>]
 </p>
@@ -36,6 +36,7 @@
 <p>To retrieve this information back from qmake you can do:</p>
 <pre> qmake -query VARIABLE
  qmake -query #queries all current VARIABLE/VALUE pairs..</pre>
+<p><b>Note:</b> <tt>qmake -query</tt> will only list variables that you have previously set with <tt>qmake -set VARIABLE VALUE</tt>.</p>
 <p>This information will be saved into a <a href="qsettings.html">QSettings</a> object (meaning it will be stored in different places for different platforms). As <tt>VARIABLE</tt> is versioned as well, you can set one value in an older version of <tt>qmake</tt>, and newer versions will retrieve this value. However, if you set <tt>VARIABLE</tt> for a newer version of <tt>qmake</tt>, the older version will not use this value. You can however query a specific version of a variable if you prefix that version of <tt>qmake</tt> to <tt>VARIABLE</tt>, as in the following example:</p>
 <pre> qmake -query &quot;1.06a/VARIABLE&quot;</pre>
 <p><tt>qmake</tt> also has the notion of <tt>builtin</tt> properties, for example you can query the installation of Qt for this version of <tt>qmake</tt> with the <tt>QT_INSTALL_PREFIX</tt> property:</p>
@@ -117,6 +118,21 @@
 <p>The final step is to instruct <tt>qmake</tt> that this object is a target to be built:</p>
 <pre> QMAKE_EXTRA_TARGETS += mytarget mytarget2</pre>
 <p>This is all you need to do to actually build custom targets. Of course, you may want to tie one of these targets to the <a href="qmake-variable-reference.html#target">qmake build target</a>. To do this, you simply need to include your Makefile target in the list of <a href="qmake-variable-reference.html#pre-targetdeps">PRE_TARGETDEPS</a>.</p>
+<p>The following tables are an overview of the options available to you with the QMAKE_EXTRA_TARGETS variable.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Member</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>commands</td><td>The commands for generating the custom build target.</td></tr>
+<tr valign="top" class="even"><td>CONFIG</td><td>Specific configuration options for the custom build target. See the CONFIG table for details.</td></tr>
+<tr valign="top" class="odd"><td>depends</td><td>The existing build targets that the custom build target depends on.</td></tr>
+<tr valign="top" class="even"><td>recurse</td><td>Specifies which sub-targets should used when creating the rules in the Makefile to call in the sub-target specific Makefile. This is only used when <tt>recursive</tt> is set in the CONFIG.</td></tr>
+<tr valign="top" class="odd"><td>recurse_target</td><td>Specifies the target that should be built via the sub-target Makefile for the rule in the Makefile. This adds something like $(MAKE) -f Makefile.[subtarget] [recurse_target]. This is only used when <tt>recursive</tt> is set in the CONFIG.</td></tr>
+<tr valign="top" class="even"><td>target</td><td>The file being created by the custom build target.</td></tr>
+</table></p>
+<p>List of members specific to the CONFIG option:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Member</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>recursive</td><td>Indicates that rules should be created in the Makefile and thus call the relevant target inside the sub-target specific Makefile. This defaults to creating an entry for each of the sub-targets.</td></tr>
+</table></p>
 <p>For convenience, there is also a method of customizing projects for new compilers or preprocessors:</p>
 <pre> new_moc.output  = moc_${QMAKE_FILE_BASE}.cpp
  new_moc.commands = moc ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT}
@@ -125,14 +141,37 @@
  QMAKE_EXTRA_COMPILERS += new_moc</pre>
 <p>With the above definitions, you can use a drop-in replacement for moc if one is available. The commands is executed on all arguments given to the <tt>NEW_HEADERS</tt> variable (from the <tt>input</tt> member), and the result is written to the file defined by the <tt>output</tt> member; this file is added to the other source files in the project. Additionally, <tt>qmake</tt> will execute <tt>depend_command</tt> to generate dependency information, and place this information in the project as well.</p>
 <p>These commands can easily be placed into a cache file, allowing subsequent project files to add arguments to <tt>NEW_HEADERS</tt>.</p>
+<p>The following tables are an overview of the options available to you with the QMAKE_EXTRA_COMPILERS variable.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Member</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>commands</td><td>The commands used for for generating the output from the input.</td></tr>
+<tr valign="top" class="even"><td>CONFIG</td><td>Specific configuration options for the custom compiler. See the CONFIG table for details.</td></tr>
+<tr valign="top" class="odd"><td>depend_command</td><td>Specifies a command used to generate the list of dependencies for the output.</td></tr>
+<tr valign="top" class="even"><td>dependency_type</td><td>Specifies the type of file the output is, if it is a known type (such as TYPE_C, TYPE_UI, TYPE_QRC) then it is handled as one of those type of files.</td></tr>
+<tr valign="top" class="odd"><td>depends</td><td>Specifies the dependencies of the output file.</td></tr>
+<tr valign="top" class="even"><td>input</td><td>The variable that contains the files that should be processed with the custom compiler.</td></tr>
+<tr valign="top" class="odd"><td>name</td><td>A description of what the custom compiler is doing. This is only used in some backends.</td></tr>
+<tr valign="top" class="even"><td>output</td><td>The filename that is created from the custom compiler.</td></tr>
+<tr valign="top" class="odd"><td>output_function</td><td>Specifies a custom qmake function that is used to specify the filename to be created.</td></tr>
+<tr valign="top" class="even"><td>variables</td><td>Indicates that the variables specified here are replaced with $(QMAKE_COMP_VARNAME) when refered to in the pro file as $(VARNAME).</td></tr>
+<tr valign="top" class="odd"><td>variable_out</td><td>The variable that the files created from the output should be added to.</td></tr>
+</table></p>
+<p>List of members specific to the CONFIG option:</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Member</th><th>Description</th></tr></thead>
+<tr valign="top" class="odd"><td>combine</td><td>Indicates that all of the input files are combined into a single output file.</td></tr>
+<tr valign="top" class="even"><td>target_predeps</td><td>Indicates that the output should be added to the list of <a href="qmake-variable-reference.html#pre-targetdeps">PRE_TARGETDEPS</a>.</td></tr>
+<tr valign="top" class="odd"><td>explicit_dependencies</td><td>The dependencies for the output only get generated from the depends member and from nowhere else.</td></tr>
+<tr valign="top" class="even"><td>no_link</td><td>Indicates that the output should not be added to the list of objects to be linked in</td></tr>
+</table></p>
 <p>
 [Previous: <a href="qmake-function-reference.html">qmake Function Reference</a>]
 [<a href="qmake-manual.html">Contents</a>]
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

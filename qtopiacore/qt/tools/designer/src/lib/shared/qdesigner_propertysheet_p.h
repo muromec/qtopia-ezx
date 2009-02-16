@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -59,19 +53,32 @@
 #include "dynamicpropertysheet.h"
 #include <QtDesigner/propertysheet.h>
 #include <QtDesigner/default_extensionfactory.h>
+#include <QtDesigner/QExtensionManager>
+
 #include <QtCore/QVariant>
 #include <QtCore/QPair>
 
-#include <QPointer>
+#include <QtCore/QPointer>
+
+QT_BEGIN_NAMESPACE
 
 class QLayout;
+class QDesignerFormEditorInterface;
+class QDesignerPropertySheetPrivate;
+
+namespace qdesigner_internal
+{
+    class DesignerPixmapCache;
+    class DesignerIconCache;
+    class FormWindowBase;
+}
 
 class QDESIGNER_SHARED_EXPORT QDesignerPropertySheet: public QObject, public QDesignerPropertySheetExtension, public QDesignerDynamicPropertySheetExtension
 {
     Q_OBJECT
     Q_INTERFACES(QDesignerPropertySheetExtension QDesignerDynamicPropertySheetExtension)
 public:
-    QDesignerPropertySheet(QObject *object, QObject *parent = 0);
+    explicit QDesignerPropertySheet(QObject *object, QObject *parent = 0);
     virtual ~QDesignerPropertySheet();
 
     virtual int indexOf(const QString &name) const;
@@ -95,6 +102,7 @@ public:
     virtual void setProperty(int index, const QVariant &value);
 
     virtual bool isChanged(int index) const;
+
     virtual void setChanged(int index, bool changed);
 
     virtual bool dynamicPropertiesAllowed() const;
@@ -103,20 +111,36 @@ public:
     virtual bool isDynamicProperty(int index) const;
     virtual bool canAddDynamicProperty(const QString &propertyName) const;
 
-    void createFakeProperty(const QString &propertyName, const QVariant &value = QVariant());
+    bool isDefaultDynamicProperty(int index) const;
+
+    bool isResourceProperty(int index) const;
+    QVariant defaultResourceProperty(int index) const;
+
+    qdesigner_internal::DesignerPixmapCache *pixmapCache() const;
+    void setPixmapCache(qdesigner_internal::DesignerPixmapCache *cache);
+    qdesigner_internal::DesignerIconCache *iconCache() const;
+    void setIconCache(qdesigner_internal::DesignerIconCache *cache);
+    int createFakeProperty(const QString &propertyName, const QVariant &value = QVariant());
+
+    virtual bool isEnabled(int index) const;
+    QObject *object() const;
 
 protected:
     bool isAdditionalProperty(int index) const;
     bool isFakeProperty(int index) const;
-    QVariant resolvePropertyValue(const QVariant &value) const;
+    QVariant resolvePropertyValue(int index, const QVariant &value) const;
     QVariant metaProperty(int index) const;
     void setFakeProperty(int index, const QVariant &value);
+    void clearFakeProperties();
 
     bool isFakeLayoutProperty(int index) const;
     bool isDynamic(int index) const;
+    qdesigner_internal::FormWindowBase *formWindowBase() const;
+    QDesignerFormEditorInterface *core() const;
 
-public: // For MSVC 6
+public:
     enum PropertyType { PropertyNone,
+                        PropertyLayoutObjectName,
                         PropertyLayoutLeftMargin,
                         PropertyLayoutTopMargin,
                         PropertyLayoutRightMargin,
@@ -124,64 +148,49 @@ public: // For MSVC 6
                         PropertyLayoutSpacing,
                         PropertyLayoutHorizontalSpacing,
                         PropertyLayoutVerticalSpacing,
-                        PropertySizeConstraint,
+                        PropertyLayoutSizeConstraint,
+                        PropertyLayoutFieldGrowthPolicy,
+                        PropertyLayoutRowWrapPolicy,
+                        PropertyLayoutLabelAlignment,
+                        PropertyLayoutFormAlignment,
                         PropertyBuddy,
                         PropertyAccessibility,
                         PropertyGeometry,
-                        PropertyCheckable};
-
-protected:
-    enum ObjectType { ObjectNone, ObjectLabel, ObjectLayout, ObjectLayoutWidget, ObjectQ3GroupBox };
-    static ObjectType objectType(const QObject *o);
-    static  PropertyType propertyTypeFromName(const QString &name);
-    PropertyType propertyType(int index) const;
-
-    QObject *object() const;
-    const QMetaObject *m_meta;
-    const ObjectType m_objectType;
-
-    class Info
-    {
-    public:
-        Info();
-
-        QString group;
-        QVariant defaultValue;
-        uint changed: 1;
-        uint visible: 1;
-        uint attribute: 1;
-        uint reset: 1;
-        uint defaultDynamic: 1;
-        PropertyType propertyType;
+                        PropertyCheckable,
+                        PropertyWindowTitle,
+                        PropertyWindowIcon,
+                        PropertyWindowFilePath,
+                        PropertyWindowOpacity,
+                        PropertyWindowIconText,
+                        PropertyWindowModality,
+                     PropertyWindowModified
     };
 
-    Info &ensureInfo(int index);
+    enum ObjectType { ObjectNone, ObjectLabel, ObjectLayout, ObjectLayoutWidget, ObjectQ3GroupBox };
 
-    typedef QHash<int, Info> InfoHash;
-    InfoHash m_info;
-    QHash<int, QVariant> m_fakeProperties;
-    QHash<int, QVariant> m_addProperties;
-    QHash<QString, int> m_addIndex;
+    static ObjectType objectTypeFromObject(const QObject *o);
+    static PropertyType propertyTypeFromName(const QString &name);
+
+protected:
+    PropertyType propertyType(int index) const;
+    ObjectType objectType() const;
 
 private:
-    QString transformLayoutPropertyName(int index) const;
-    QLayout* layout(QDesignerPropertySheetExtension **layoutPropertySheet = 0) const;
-
-    const bool m_canHaveLayoutAttributes;
-
-    // Variables used for caching the layout, access via layout().
-    QPointer<QObject> m_object;
-    mutable QPointer<QLayout> m_lastLayout;
-    mutable QDesignerPropertySheetExtension *m_lastLayoutPropertySheet;
-    mutable bool m_LastLayoutByDesigner;
+    QDesignerPropertySheetPrivate *d;
 };
 
-class QDESIGNER_SHARED_EXPORT QDesignerPropertySheetFactory: public QExtensionFactory
+/* Abstract base class for factories that register a property sheet that implements
+ * both QDesignerPropertySheetExtension and QDesignerDynamicPropertySheetExtension
+ * by multiple inheritance. The factory maintains ownership of
+ * the extension and returns it for both id's. */
+
+class QDESIGNER_SHARED_EXPORT QDesignerAbstractPropertySheetFactory: public QExtensionFactory
 {
     Q_OBJECT
     Q_INTERFACES(QAbstractExtensionFactory)
 public:
-    QDesignerPropertySheetFactory(QExtensionManager *parent = 0);
+    explicit QDesignerAbstractPropertySheetFactory(QExtensionManager *parent = 0);
+    virtual ~QDesignerAbstractPropertySheetFactory();
 
     QObject *extension(QObject *object, const QString &iid) const;
 
@@ -189,8 +198,55 @@ private slots:
     void objectDestroyed(QObject *object);
 
 private:
-    mutable QMap<QObject*, QObject*> m_extensions;
-    mutable QHash<QObject*, bool> m_extended;
+    virtual QObject *createPropertySheet(QObject *qObject, QObject *parent) const = 0;
+
+    struct PropertySheetFactoryPrivate;
+    PropertySheetFactoryPrivate *m_impl;
 };
+
+/* Convenience factory template for property sheets that implement
+ * QDesignerPropertySheetExtension and QDesignerDynamicPropertySheetExtension
+ * by multiple inheritance. */
+
+template <class Object, class PropertySheet>
+class QDesignerPropertySheetFactory : public QDesignerAbstractPropertySheetFactory {
+public:
+    explicit QDesignerPropertySheetFactory(QExtensionManager *parent = 0);
+
+    static void registerExtension(QExtensionManager *mgr);
+
+private:
+    // Does a  qobject_cast on  the object.
+    virtual QObject *createPropertySheet(QObject *qObject, QObject *parent) const;
+};
+
+template <class Object, class PropertySheet>
+QDesignerPropertySheetFactory<Object, PropertySheet>::QDesignerPropertySheetFactory(QExtensionManager *parent) :
+    QDesignerAbstractPropertySheetFactory(parent)
+{
+}
+
+template <class Object, class PropertySheet>
+QObject *QDesignerPropertySheetFactory<Object, PropertySheet>::createPropertySheet(QObject *qObject, QObject *parent) const
+{
+    Object *object = qobject_cast<Object *>(qObject);
+    if (!object)
+        return 0;
+    return new PropertySheet(object, parent);
+}
+
+template <class Object, class PropertySheet>
+void QDesignerPropertySheetFactory<Object, PropertySheet>::registerExtension(QExtensionManager *mgr)
+{
+    QDesignerPropertySheetFactory *factory = new QDesignerPropertySheetFactory(mgr);
+    mgr->registerExtensions(factory, Q_TYPEID(QDesignerPropertySheetExtension));
+    mgr->registerExtensions(factory, Q_TYPEID(QDesignerDynamicPropertySheetExtension));
+}
+
+
+// Standard property sheet
+typedef QDesignerPropertySheetFactory<QObject, QDesignerPropertySheet> QDesignerDefaultPropertySheetFactory;
+
+QT_END_NAMESPACE
 
 #endif // QDESIGNER_PROPERTYSHEET_H

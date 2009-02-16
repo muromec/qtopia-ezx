@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include "qdir.h"
 #include "qvarlengtharray.h"
 #include "private/qcore_mac_p.h"
+
+QT_BEGIN_NAMESPACE
 
 static const CFStringRef hostNames[2] = { kCFPreferencesCurrentHost, kCFPreferencesAnyHost };
 static const int numHostNames = 2;
@@ -64,7 +60,7 @@ enum RotateShift { Macify = 1, Qtify = 2 };
 static QString rotateSlashesDotsAndMiddots(const QString &key, int shift)
 {
     static const int NumKnights = 3;
-    static char knightsOfTheRoundTable[NumKnights] = { '/', '.', '\xb7' };
+    static const char knightsOfTheRoundTable[NumKnights] = { '/', '.', '\xb7' };
     QString result = key;
 
     for (int i = 0; i < result.size(); ++i) {
@@ -112,6 +108,7 @@ static QCFType<CFPropertyListRef> macValue(const QVariant &value)
                                   CFIndex(ba.size()));
         }
         break;
+    // should be same as below (look for LIST)
     case QVariant::List:
     case QVariant::StringList:
     case QVariant::Polygon:
@@ -123,7 +120,8 @@ static QCFType<CFPropertyListRef> macValue(const QVariant &value)
                 QMap<QString, QVariant> is potentially a multimap,
                 whereas CFDictionary is a single-valued map. To allow
                 for multiple values with the same key, we store
-                each CFDictonary value as a CFArray.
+                multiple values in a CFArray. To avoid ambiguities,
+                we also wrap lists in a CFArray singleton.
             */
             QMap<QString, QVariant> map = value.toMap();
             QMap<QString, QVariant>::const_iterator i = map.constBegin();
@@ -142,8 +140,21 @@ static QCFType<CFPropertyListRef> macValue(const QVariant &value)
                     ++i;
                 } while (i != map.constEnd() && i.key() == key);
 
+                bool singleton = (values.count() == 1);
+                if (singleton) {
+                    switch (values.first().type()) {
+                    // should be same as above (look for LIST)
+                    case QVariant::List:
+                    case QVariant::StringList:
+                    case QVariant::Polygon:
+                        singleton = false;
+                    default:
+                        ;
+                    }
+                }
+
                 cfkeys[numUniqueKeys] = QCFString::toCFStringRef(key);
-                cfvalues[numUniqueKeys] = macList(values);
+                cfvalues[numUniqueKeys] = singleton ? macValue(values.first()) : macList(values);
                 ++numUniqueKeys;
             }
 
@@ -356,6 +367,7 @@ private:
 
 QMacSettingsPrivate::QMacSettingsPrivate(QSettings::Scope scope, const QString &organization,
                                          const QString &application)
+    : QSettingsPrivate(QSettings::NativeFormat, scope, organization, application)
 {
     QString javaPackageName;
     int curPos = 0;
@@ -495,8 +507,31 @@ void QMacSettingsPrivate::sync()
         for (int j = 0; j < numHostNames; ++j) {
             Boolean ok = CFPreferencesSynchronize(domains[i].applicationOrSuiteId,
                                                   domains[i].userName, hostNames[j]);
-            if (!ok)
+            // only report failures for the primary file (the one we write to)
+            if (!ok && i == 0 && hostNames[j] == hostName && status == QSettings::NoError) {
+#if 1
+                // work around what seems to be a bug in CFPreferences:
+                // don't report an error if there are no preferences for the application
+                QCFType<CFArrayRef> appIds = CFPreferencesCopyApplicationList(domains[i].userName,
+                                                                              hostNames[j]);
+
+                // iterate through all the applications and see if we're there
+                CFIndex size = CFArrayGetCount(appIds);
+                for (CFIndex k = 0; k < size; ++k) {
+                    const void *cfvalue = CFArrayGetValueAtIndex(appIds, k);
+                    if (CFGetTypeID(cfvalue) == CFStringGetTypeID()) {
+                        if (CFStringCompare(static_cast<CFStringRef>(cfvalue),
+                                            domains[i].applicationOrSuiteId,
+                                            kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+                            setStatus(QSettings::AccessError);
+                            break;
+                        }
+                    }
+                }
+#else
                 setStatus(QSettings::AccessError);
+#endif
+            }
         }
     }
 }
@@ -611,3 +646,5 @@ bool QConfFileSettingsPrivate::writePlistFile(const QString &fileName,
     SInt32 code;
     return CFURLWriteDataAndPropertiesToResource(urlFromFileName(fileName), xmlData, 0, &code);
 }
+
+QT_END_NAMESPACE

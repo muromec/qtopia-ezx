@@ -1,2 +1,3 @@
-CONFIG -= qt dylib mac_bundle
 SOURCES = mremap.cpp
+CONFIG -= qt dylib
+mac:CONFIG -= app_bundle

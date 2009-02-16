@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,12 +43,17 @@
 #include <qfileinfo.h>
 #include <qfontmetrics.h>
 #include <qbrush.h>
+#include <qimagereader.h>
+
+#ifndef QT_NO_CSSPARSER
+
+QT_BEGIN_NAMESPACE
 
 #include "qcssscanner.cpp"
 
 using namespace QCss;
 
-const char *Scanner::tokenName(TokenType t)
+const char *Scanner::tokenName(QCss::TokenType t)
 {
     switch (t) {
         case NONE: return "NONE";
@@ -97,7 +96,7 @@ const char *Scanner::tokenName(TokenType t)
 struct QCssKnownValue
 {
     const char *name;
-    int id;
+    quint64 id;
 };
 
 static const QCssKnownValue properties[NumProperties - 1] = {
@@ -150,6 +149,7 @@ static const QCssKnownValue properties[NumProperties - 1] = {
     { "font-family", FontFamily },
     { "font-size", FontSize },
     { "font-style", FontStyle },
+    { "font-variant", FontVariant },
     { "font-weight", FontWeight },
     { "height", Height },
     { "image", QtImage },
@@ -166,6 +166,16 @@ static const QCssKnownValue properties[NumProperties - 1] = {
     { "max-width", MaximumWidth },
     { "min-height", MinimumHeight },
     { "min-width", MinimumWidth },
+    { "outline", Outline },
+    { "outline-bottom-left-radius", OutlineBottomLeftRadius },
+    { "outline-bottom-right-radius", OutlineBottomRightRadius },
+    { "outline-color", OutlineColor },
+    { "outline-offset", OutlineOffset },
+    { "outline-radius", OutlineRadius },
+    { "outline-style", OutlineStyle },
+    { "outline-top-left-radius", OutlineTopLeftRadius },
+    { "outline-top-right-radius", OutlineTopRightRadius },
+    { "outline-width", OutlineWidth },
     { "padding", Padding },
     { "padding-bottom", PaddingBottom },
     { "padding-left", PaddingLeft },
@@ -183,6 +193,7 @@ static const QCssKnownValue properties[NumProperties - 1] = {
     { "text-align", TextAlignment },
     { "text-decoration", TextDecoration },
     { "text-indent", TextIndent },
+    { "text-transform", TextTransform },
     { "text-underline-style", TextUnderlineStyle },
     { "top", Top },
     { "vertical-align", VerticalAlignment },
@@ -191,6 +202,7 @@ static const QCssKnownValue properties[NumProperties - 1] = {
 };
 
 static const QCssKnownValue values[NumKnownValues - 1] = {
+    { "active", Value_Active },
     { "alternate-base", Value_AlternateBase },
     { "always", Value_Always },
     { "auto", Value_Auto },
@@ -205,6 +217,7 @@ static const QCssKnownValue values[NumKnownValues - 1] = {
     { "dark", Value_Dark },
     { "dashed", Value_Dashed },
     { "decimal", Value_Decimal },
+    { "disabled", Value_Disabled },
     { "disc", Value_Disc },
     { "dot-dash", Value_DotDash },
     { "dot-dot-dash", Value_DotDotDash },
@@ -222,6 +235,7 @@ static const QCssKnownValue values[NumKnownValues - 1] = {
     { "link", Value_Link },
     { "link-visited", Value_LinkVisited },
     { "lower-alpha", Value_LowerAlpha },
+    { "lowercase", Value_Lowercase },
     { "medium", Value_Medium },
     { "mid", Value_Mid },
     { "middle", Value_Middle },
@@ -231,14 +245,18 @@ static const QCssKnownValue values[NumKnownValues - 1] = {
     { "normal", Value_Normal },
     { "nowrap", Value_NoWrap },
     { "oblique", Value_Oblique },
+    { "off", Value_Off },
+    { "on", Value_On },
     { "outset", Value_Outset },
     { "overline", Value_Overline },
     { "pre", Value_Pre },
     { "pre-wrap", Value_PreWrap },
     { "ridge", Value_Ridge },
     { "right", Value_Right },
+    { "selected", Value_Selected },
     { "shadow", Value_Shadow },
     { "small" , Value_Small },
+    { "small-caps", Value_SmallCaps },
     { "solid", Value_Solid },
     { "square", Value_Square },
     { "sub", Value_Sub },
@@ -248,6 +266,7 @@ static const QCssKnownValue values[NumKnownValues - 1] = {
     { "transparent", Value_Transparent },
     { "underline", Value_Underline },
     { "upper-alpha", Value_UpperAlpha },
+    { "uppercase", Value_Uppercase },
     { "wave", Value_Wave },
     { "window", Value_Window },
     { "window-text", Value_WindowText },
@@ -256,17 +275,22 @@ static const QCssKnownValue values[NumKnownValues - 1] = {
 };
 
 static const QCssKnownValue pseudos[NumPseudos - 1] = {
+    { "active", PseudoClass_Active },
     { "adjoins-item", PseudoClass_Item },
+    { "alternate", PseudoClass_Alternate },
     { "bottom", PseudoClass_Bottom },
     { "checked", PseudoClass_Checked },
+    { "closable", PseudoClass_Closable },
     { "closed", PseudoClass_Closed },
     { "default", PseudoClass_Default },
     { "disabled", PseudoClass_Disabled },
+    { "edit-focus", PseudoClass_EditFocus },
     { "editable", PseudoClass_Editable },
     { "enabled", PseudoClass_Enabled },
     { "exclusive", PseudoClass_Exclusive },
     { "first", PseudoClass_First },
     { "flat", PseudoClass_Flat },
+    { "floatable", PseudoClass_Floatable },
     { "focus", PseudoClass_Focus },
     { "has-children", PseudoClass_Children },
     { "has-siblings", PseudoClass_Sibling },
@@ -275,7 +299,10 @@ static const QCssKnownValue pseudos[NumPseudos - 1] = {
     { "indeterminate" , PseudoClass_Indeterminate },
     { "last", PseudoClass_Last },
     { "left", PseudoClass_Left },
+    { "maximized", PseudoClass_Maximized },
     { "middle", PseudoClass_Middle },
+    { "minimized", PseudoClass_Minimized },
+    { "movable", PseudoClass_Movable },
     { "next-selected", PseudoClass_NextSelected },
     { "no-frame", PseudoClass_Frameless },
     { "non-exclusive", PseudoClass_NonExclusive },
@@ -291,6 +318,7 @@ static const QCssKnownValue pseudos[NumPseudos - 1] = {
     { "top", PseudoClass_Top },
     { "unchecked" , PseudoClass_Unchecked },
     { "vertical", PseudoClass_Vertical },
+    { "window", PseudoClass_Window }
 };
 
 static const QCssKnownValue origins[NumKnownOrigins - 1] = {
@@ -341,7 +369,7 @@ static bool operator<(const QCssKnownValue &prop, const QString &name)
     return QString::compare(QLatin1String(prop.name), name, Qt::CaseInsensitive) < 0;
 }
 
-static int findKnownValue(const QString &name, const QCssKnownValue *start, int numValues)
+static quint64 findKnownValue(const QString &name, const QCssKnownValue *start, int numValues)
 {
     const QCssKnownValue *end = &start[numValues - 1];
     const QCssKnownValue *prop = qBinaryFind(start, end, name);
@@ -360,21 +388,27 @@ ValueExtractor::ValueExtractor(const QVector<Declaration> &decls, const QPalette
 int ValueExtractor::lengthValue(const Value& v)
 {
     QString s = v.variant.toString();
-    QRegExp re(QLatin1String("(-?[\\d\\.]*)(px|em|ex)?"), Qt::CaseInsensitive);
-    if (re.indexIn(s) == -1)
-        return 0;
-    QString real = re.cap(1);
-    QString unit = re.cap(2);
+    s.reserve(s.length());
+    enum { None, Px, Ex, Em } unit = None;
+    if (s.endsWith(QLatin1String("px"), Qt::CaseInsensitive))
+        unit = Px;
+    else if (s.endsWith(QLatin1String("ex"), Qt::CaseInsensitive))
+        unit = Ex;
+    else if (s.endsWith(QLatin1String("em"), Qt::CaseInsensitive))
+        unit = Em;
+
+    if (unit != None)
+        s.chop(2);
 
     bool ok;
-    qreal number = real.toDouble(&ok);
+    qreal number = s.toDouble(&ok);
     if (!ok)
         return 0;
 
     QFontMetrics fm(f);
-    if (unit.compare(QLatin1String("ex"), Qt::CaseInsensitive) == 0)
+    if (unit == Ex)
         return qRound(fm.xHeight() * number);
-    else if (unit.compare(QLatin1String("em"), Qt::CaseInsensitive) == 0)
+    else if (unit == Em)
         return qRound(fm.height() * number);
 
     return qRound(number);
@@ -561,6 +595,40 @@ bool ValueExtractor::extractBorder(int *borders, QBrush *colors, BorderStyle *st
     return hit;
 }
 
+bool ValueExtractor::extractOutline(int *borders, QBrush *colors, BorderStyle *styles,
+                                   QSize *radii, int *offsets)
+{
+    extractFont();
+    bool hit = false;
+    for (int i = 0; i < declarations.count(); i++) {
+        const Declaration &decl = declarations.at(i);
+        switch (decl.propertyId) {
+        case OutlineWidth: lengthValues(decl, borders); break;
+        case OutlineColor: decl.brushValues(colors, pal); break;
+        case OutlineStyle:  decl.styleValues(styles); break;
+
+        case OutlineTopLeftRadius: radii[0] = sizeValue(decl); break;
+        case OutlineTopRightRadius: radii[1] = sizeValue(decl); break;
+        case OutlineBottomLeftRadius: radii[2] = sizeValue(decl); break;
+        case OutlineBottomRightRadius: radii[3] = sizeValue(decl); break;
+        case OutlineRadius: sizeValues(decl, radii); break;
+        case OutlineOffset: lengthValues(decl, offsets); break;
+
+        case Outline:
+            borderValue(decl, &borders[LeftEdge], &styles[LeftEdge], &colors[LeftEdge]);
+            borders[TopEdge] = borders[RightEdge] = borders[BottomEdge] = borders[LeftEdge];
+            styles[TopEdge] = styles[RightEdge] = styles[BottomEdge] = styles[LeftEdge];
+            colors[TopEdge] = colors[RightEdge] = colors[BottomEdge] = colors[LeftEdge];
+            break;
+
+        default: continue;
+        }
+        hit = true;
+    }
+
+    return hit;
+}
+
 static Qt::Alignment parseAlignment(const Value *values, int count)
 {
     Qt::Alignment a[2] = { 0, 0 };
@@ -612,12 +680,7 @@ static QColor parseColorValue(Value v, const QPalette &pal)
         return QColor();
     }
 
-    bool rgb = true;
-
-    // function name
-    if ((lst.at(0).compare(QLatin1String("rgb"), Qt::CaseInsensitive) != 0)
-        && (rgb = (lst.at(0).compare(QLatin1String("rgba"), Qt::CaseInsensitive) != 0)))
-        return QColor();
+    bool rgb = lst.at(0).startsWith(QLatin1String("rgb"));
 
     Parser p(lst.at(1));
     if (!p.testExpr())
@@ -627,23 +690,22 @@ static QColor parseColorValue(Value v, const QPalette &pal)
     if (!p.parseExpr(&colorDigits))
         return QColor();
 
-    if ((colorDigits.count() != (rgb ? 5 : 7))
-        || colorDigits.at(1).type != Value::TermOperatorComma
-        || colorDigits.at(3).type != Value::TermOperatorComma
-        || (!rgb && colorDigits.at(5).type != Value::TermOperatorComma))
-        return QColor();
-
-    for (int i = 0; i < (rgb ? 5 : 7); i += 2) {
+    for (int i = 0; i < qMin(colorDigits.count(), 7); i += 2) {
         if (colorDigits.at(i).type == Value::Percentage) {
             colorDigits[i].variant = colorDigits.at(i).variant.toDouble() * 255. / 100.;
             colorDigits[i].type = Value::Number;
+        } else if (colorDigits.at(i).type != Value::Number) {
+            return QColor();
         }
     }
 
-    return QColor(colorDigits.at(0).variant.toInt(),
-                  colorDigits.at(2).variant.toInt(),
-                  colorDigits.at(4).variant.toInt(),
-                  !rgb ? colorDigits.at(6).variant.toInt() : 255);
+    int v1 = colorDigits.at(0).variant.toInt();
+    int v2 = colorDigits.at(2).variant.toInt();
+    int v3 = colorDigits.at(4).variant.toInt();
+    int alpha = colorDigits.count() >= 7 ? colorDigits.at(6).variant.toInt() : 255;
+
+    return rgb ? QColor::fromRgb(v1, v2, v3, alpha)
+               : QColor::fromHsv(v1, v2, v3, alpha);
 }
 
 static QBrush parseBrushValue(Value v, const QPalette &pal)
@@ -817,6 +879,8 @@ static void parseShorthandBackgroundProperty(const QVector<Value> &values, QBrus
         } else if (v.type == Value::KnownIdentifier && v.variant.toInt() == Value_None) {
             *image = QString();
             continue;
+        } else if (v.type == Value::KnownIdentifier && v.variant.toInt() == Value_Transparent) {
+            *brush = QBrush(Qt::transparent);
         }
 
         Repeat repeatAttempt = static_cast<Repeat>(findKnownValue(v.variant.toString(),
@@ -1022,6 +1086,29 @@ static void parseShorthandFontProperty(const QVector<Value> &values, QFont *font
     }
 }
 
+static void setFontVariantFromValue(const Value &value, QFont *font)
+{
+    if (value.type == Value::KnownIdentifier) {
+        switch (value.variant.toInt()) {
+            case Value_Normal: font->setCapitalization(QFont::MixedCase); break;
+            case Value_SmallCaps: font->setCapitalization(QFont::SmallCaps); break;
+            default: break;
+        }
+    }
+}
+
+static void setTextTransformFromValue(const Value &value, QFont *font)
+{
+    if (value.type == Value::KnownIdentifier) {
+        switch (value.variant.toInt()) {
+            case Value_None: font->setCapitalization(QFont::MixedCase); break;
+            case Value_Uppercase: font->setCapitalization(QFont::AllUppercase); break;
+            case Value_Lowercase: font->setCapitalization(QFont::AllLowercase); break;
+            default: break;
+        }
+    }
+}
+
 bool ValueExtractor::extractFont(QFont *font, int *fontSizeAdjustment)
 {
     if (fontExtracted) {
@@ -1043,6 +1130,8 @@ bool ValueExtractor::extractFont(QFont *font, int *fontSizeAdjustment)
             case FontFamily: setFontFamilyFromValues(decl.values, font); break;
             case TextDecoration: setTextDecorationFromValues(decl.values, font); break;
             case Font: parseShorthandFontProperty(decl.values, font, fontSizeAdjustment); break;
+            case FontVariant: setFontVariantFromValue(val, font); break;
+            case TextTransform: setTextTransformFromValue(val, font); break;
             default: continue;
         }
         hit = true;
@@ -1087,8 +1176,15 @@ bool ValueExtractor::extractImage(QIcon *icon, Qt::Alignment *a, QSize *size)
         switch (decl.propertyId) {
         case QtImage:
             *icon = decl.iconValue();
-            if (decl.values.count() > 0 && decl.values.at(0).type == Value::Uri)
-                *size = QPixmap(decl.values.at(0).variant.toString()).size();
+            if (decl.values.count() > 0 && decl.values.at(0).type == Value::Uri) {
+                // try to pull just the size from the image...
+                QImageReader imageReader(decl.values.at(0).variant.toString());
+                if ((*size = imageReader.size()).isNull()) {
+                    // but we'll have to load the whole image if the
+                    // format doesn't support just reading the size
+                    *size = imageReader.read().size();
+                }
+            }
             break;
         case QtImageAlignment: *a = decl.alignmentValue();  break;
         default: continue;
@@ -1147,7 +1243,7 @@ bool Declaration::realValue(qreal *real, const char *unit) const
     return ok;
 }
 
-static bool intValue(const Value &v, int *i, const char *unit)
+static bool intValueHelper(const Value &v, int *i, const char *unit)
 {
     if (unit && v.type != Value::Length)
         return false;
@@ -1168,16 +1264,16 @@ bool Declaration::intValue(int *i, const char *unit) const
 {
     if (values.count() != 1)
         return false;
-    return ::intValue(values.first(), i, unit);
+    return intValueHelper(values.first(), i, unit);
 }
 
 QSize Declaration::sizeValue() const
 {
     int x[2] = { 0, 0 };
     if (values.count() > 0)
-        ::intValue(values.at(0), &x[0], "px");
+        intValueHelper(values.at(0), &x[0], "px");
     if (values.count() > 1)
-        ::intValue(values.at(1), &x[1], "px");
+        intValueHelper(values.at(1), &x[1], "px");
     else
         x[1] = x[0];
     return QSize(x[0], x[1]);
@@ -1325,14 +1421,41 @@ void Declaration::borderImageValue(QString *image, int *cuts,
 QIcon Declaration::iconValue() const
 {
     QIcon icon;
-    for (int i = 0; i < values.count(); i++) {
-        const Value &value = values.at(i);
+    for (int i = 0; i < values.count();) {
+        Value value = values.at(i++);
         if (value.type != Value::Uri)
-            continue;
+            break;
+        QString uri = value.variant.toString();
+        QIcon::Mode mode = QIcon::Normal;
+        QIcon::State state = QIcon::Off;
+        for (int j = 0; j < 2; j++) {
+            if (i != values.count() && values.at(i).type == Value::KnownIdentifier) {
+                switch (values.at(i).variant.toInt()) {
+                case Value_Disabled: mode = QIcon::Disabled; break;
+                case Value_Active: mode = QIcon::Active; break;
+                case Value_Selected: mode = QIcon::Selected; break;
+                case Value_Normal: mode = QIcon::Normal; break;
+                case Value_On: state = QIcon::On; break;
+                case Value_Off: state = QIcon::Off; break;
+                default: break;
+                }
+                ++i;
+            } else {
+                break;
+            }
+        }
+
+        // QIcon is soo broken
         if (icon.isNull())
-            icon = QIcon(value.variant.toString());
+            icon = QIcon(uri);
         else
-            icon.addPixmap(value.variant.toString());
+            icon.addPixmap(uri, mode, state);
+
+        if (i == values.count())
+            break;
+
+        if (values.at(i).type == Value::TermOperatorComma)
+            i++;
     }
     return icon;
 }
@@ -1361,12 +1484,12 @@ QString Selector::pseudoElement() const
     return QString();
 }
 
-int Selector::pseudoClass(int *negated) const
+quint64 Selector::pseudoClass(quint64 *negated) const
 {
     const BasicSelector& bs = basicSelectors.last();
     if (bs.pseudos.isEmpty())
         return PseudoClass_Unspecified;
-    int pc = PseudoClass_Unknown;
+    quint64 pc = PseudoClass_Unknown;
     for (int i = !pseudoElement().isEmpty(); i < bs.pseudos.count(); i++) {
         const Pseudo &pseudo = bs.pseudos.at(i);
         if (pseudo.type == PseudoClass_Unknown)
@@ -1557,7 +1680,7 @@ QVector<Declaration> StyleSelector::declarationsForNode(NodePtr node, const char
 
         if (!pseudoElement.isEmpty()) // skip rules with pseudo elements
             continue;
-        int pseudoClass = selector.pseudoClass();
+        quint64 pseudoClass = selector.pseudoClass();
         if (pseudoClass == PseudoClass_Enabled || pseudoClass == PseudoClass_Unspecified)
             decls += rules.at(i).declarations;
     }
@@ -1634,7 +1757,7 @@ void Scanner::scan(const QString &preprocessedInput, QVector<Symbol> *symbols)
     Symbol sym;
     int tok = scanner.lex();
     while (tok != -1) {
-        sym.token = static_cast<TokenType>(tok);
+        sym.token = static_cast<QCss::TokenType>(tok);
         sym.text = scanner.input;
         sym.start = scanner.lexemStart;
         sym.len = scanner.lexemLength;
@@ -1651,25 +1774,14 @@ QString Symbol::lexem() const
     for (int i = 0; i < len; ++i) {
         if (text.at(start + i) == QLatin1Char('\\') && i < len - 1)
             ++i;
-        result.inline_append(text.at(start + i));
+        result += text.at(start + i);
     }
     return result;
 }
 
-Parser::Parser(QString css, bool isFile)
+Parser::Parser(const QString &css, bool isFile)
 {
-    if (isFile) {
-        QFile file(css);
-        if (file.open(QFile::ReadOnly)) {
-            sourcePath = QFileInfo(css).absolutePath() + QLatin1String("/");
-            QTextStream stream(&file);
-            css = stream.readAll();
-        } else {
-            qWarning() << "QCss::Parser - Failed to load file " << css;
-            css.clear();
-        }
-    }
-    init(css);
+    init(css, isFile);
 }
 
 Parser::Parser()
@@ -1679,10 +1791,26 @@ Parser::Parser()
     hasEscapeSequences = false;
 }
 
-void Parser::init(const QString &css)
+void Parser::init(const QString &css, bool isFile)
 {
+    QString styleSheet = css;
+    if (isFile) {
+        QFile file(css);
+        if (file.open(QFile::ReadOnly)) {
+            sourcePath = QFileInfo(styleSheet).absolutePath() + QLatin1String("/");
+            QTextStream stream(&file);
+            styleSheet = stream.readAll();
+        } else {
+            qWarning() << "QCss::Parser - Failed to load file " << css;
+            styleSheet.clear();
+        }
+    } else {
+        sourcePath.clear();
+    }
+
+    hasEscapeSequences = false;
     symbols.resize(0);
-    Scanner::scan(Scanner::preprocess(css, &hasEscapeSequences), &symbols);
+    Scanner::scan(Scanner::preprocess(styleSheet, &hasEscapeSequences), &symbols);
     index = 0;
     errorIndex = -1;
     symbols.reserve(qMax(symbols.capacity(), symbols.size()));
@@ -1695,13 +1823,13 @@ bool Parser::parse(StyleSheet *styleSheet)
         if (!next(SEMICOLON)) return false;
     }
 
-    while (test(S) || test(CDO) || test(CDC));
+    while (test(S) || test(CDO) || test(CDC)) {}
 
     while (testImport()) {
         ImportRule rule;
         if (!parseImport(&rule)) return false;
         styleSheet->importRules.append(rule);
-        while (test(S) || test(CDO) || test(CDC));
+        while (test(S) || test(CDO) || test(CDC)) {}
     }
 
     do {
@@ -1722,7 +1850,7 @@ bool Parser::parse(StyleSheet *styleSheet)
         } else if (hasNext()) {
             return false;
         }
-        while (test(S) || test(CDO) || test(CDC));
+        while (test(S) || test(CDO) || test(CDC)) {}
     } while (hasNext());
     return true;
 }
@@ -2019,7 +2147,7 @@ bool Parser::parsePseudo(Pseudo *pseudo)
     pseudo->negated = test(EXCLAMATION_SYM);
     if (test(IDENT)) {
         pseudo->name = lexem();
-        pseudo->type = static_cast<PseudoClass>(findKnownValue(pseudo->name, pseudos, NumPseudos));
+        pseudo->type = static_cast<quint64>(findKnownValue(pseudo->name, pseudos, NumPseudos));
         return true;
     }
     if (!next(FUNCTION)) return false;
@@ -2232,14 +2360,14 @@ bool Parser::testSimpleSelector()
            || testPseudo();
 }
 
-bool Parser::next(TokenType t)
+bool Parser::next(QCss::TokenType t)
 {
     if (hasNext() && next() == t)
         return true;
     return recordError();
 }
 
-bool Parser::test(TokenType t)
+bool Parser::test(QCss::TokenType t)
 {
     if (index >= symbols.count())
         return false;
@@ -2260,7 +2388,7 @@ QString Parser::unquotedLexem() const
     return s;
 }
 
-QString Parser::lexemUntil(TokenType t)
+QString Parser::lexemUntil(QCss::TokenType t)
 {
     QString lexem;
     while (hasNext() && next() != t)
@@ -2268,7 +2396,7 @@ QString Parser::lexemUntil(TokenType t)
     return lexem;
 }
 
-bool Parser::until(TokenType target, TokenType target2)
+bool Parser::until(QCss::TokenType target, QCss::TokenType target2)
 {
     int braceCount = 0;
     int brackCount = 0;
@@ -2283,7 +2411,7 @@ bool Parser::until(TokenType target, TokenType target2)
         }
     }
     while (index < symbols.size()) {
-        TokenType t = symbols.at(index++).token;
+        QCss::TokenType t = symbols.at(index++).token;
         switch (t) {
         case LBRACE: ++braceCount; break;
         case RBRACE: --braceCount; break;
@@ -2308,7 +2436,7 @@ bool Parser::until(TokenType target, TokenType target2)
     return false;
 }
 
-bool Parser::testTokenAndEndsWith(TokenType t, const QLatin1String &str)
+bool Parser::testTokenAndEndsWith(QCss::TokenType t, const QLatin1String &str)
 {
     if (!test(t)) return false;
     if (!lexem().endsWith(str, Qt::CaseInsensitive)) {
@@ -2318,3 +2446,5 @@ bool Parser::testTokenAndEndsWith(TokenType t, const QLatin1String &str)
     return true;
 }
 
+QT_END_NAMESPACE
+#endif // QT_NO_CSSPARSER

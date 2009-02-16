@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,10 @@
 #include <qevent.h>
 #include <private/qcombobox_p.h>
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
+
+extern QObject *qt_fontdatabase_private();
 
 static QFontDatabase::WritingSystem writingSystemForFont(const QFont &font, bool *hasLatin)
 {
@@ -226,34 +224,46 @@ void QFontComboBoxPrivate::_q_updateModel()
 
     QFontDatabase fdb;
     QStringList list = fdb.families(system);
+    QStringList result;
 
-    if (filters != QFontComboBox::AllFonts) {
-        QStringList result;
-        for (int i = 0; i < list.size(); ++i) {
-            if ((filters & scalableMask) && (filters & scalableMask) != scalableMask) {
-                if (bool(filters & QFontComboBox::ScalableFonts) != fdb.isSmoothlyScalable(list.at(i)))
-                    continue;
-            }
-            if ((filters & spacingMask) && (filters & spacingMask) != spacingMask) {
-                if (bool(filters & QFontComboBox::MonospacedFonts) != fdb.isFixedPitch(list.at(i)))
-                    continue;
-            }
-            result += list.at(i);
-        }
-        list = result;
-    }
-    m->setStringList(list);
+    int offset = 0;
     QFontInfo fi(currentFont);
-    q->setCurrentIndex(m->stringList().indexOf(fi.family()));
+
+    for (int i = 0; i < list.size(); ++i) {
+        if ((filters & scalableMask) && (filters & scalableMask) != scalableMask) {
+            if (bool(filters & QFontComboBox::ScalableFonts) != fdb.isSmoothlyScalable(list.at(i)))
+                continue;
+        }
+        if ((filters & spacingMask) && (filters & spacingMask) != spacingMask) {
+            if (bool(filters & QFontComboBox::MonospacedFonts) != fdb.isFixedPitch(list.at(i)))
+                continue;
+        }
+        result += list.at(i);
+        if (list.at(i) == fi.family() || list.at(i).startsWith(fi.family() + QLatin1String(" [")))
+            offset = result.count() - 1;
+    }
+    list = result;
+
+    m->setStringList(list);
+    if (list.isEmpty()) {
+        if (currentFont != QFont()) {
+            currentFont = QFont();
+            emit q->currentFontChanged(currentFont);
+        }
+    } else {
+        q->setCurrentIndex(offset);
+    }
 }
 
 
 void QFontComboBoxPrivate::_q_currentChanged(const QString &text)
 {
     Q_Q(QFontComboBox);
-
-    currentFont = QFont(text);
-    emit q->currentFontChanged(currentFont);
+    QFont newFont(text);
+    if (currentFont != newFont) {
+        currentFont = newFont;
+        emit q->currentFontChanged(currentFont);
+    }
 }
 
 /*!
@@ -319,7 +329,6 @@ QFontComboBox::QFontComboBox(QWidget *parent)
             this, SLOT(_q_currentChanged(QString)));
 
     // qfontdatabase.cpp
-    extern QObject *qt_fontdatabase_private();
     connect(qt_fontdatabase_private(), SIGNAL(fontDatabaseChanged()),
             this, SLOT(_q_updateModel()));
 }
@@ -366,10 +375,10 @@ QFontDatabase::WritingSystem QFontComboBox::writingSystem() const
   This enum can be used to only show certain types of fonts in the font combo box.
 
   \value AllFonts Show all fonts
-  \value ScalableFonts Only show scalable fonts
-  \value NonScalableFonts Only show non scalable fonts
-  \value MonospacedFonts Only show monospaced fonts
-  \value ProportionalFonts Only show proportional fonts
+  \value ScalableFonts Show scalable fonts
+  \value NonScalableFonts Show non scalable fonts
+  \value MonospacedFonts Show monospaced fonts
+  \value ProportionalFonts Show proportional fonts
 */
 
 /*!
@@ -408,8 +417,11 @@ QFont QFontComboBox::currentFont() const
 void QFontComboBox::setCurrentFont(const QFont &font)
 {
     Q_D(QFontComboBox);
-    d->currentFont = font;
-    d->_q_updateModel();
+    if (font != d->currentFont) {
+        d->currentFont = font;
+        emit currentFontChanged(d->currentFont);
+        d->_q_updateModel();
+    }
 }
 
 /*!
@@ -444,6 +456,8 @@ QSize QFontComboBox::sizeHint() const
     sz.setWidth(fm.width(QLatin1Char('m'))*14);
     return sz;
 }
+
+QT_END_NAMESPACE
 
 #include "qfontcombobox.moc"
 #include "moc_qfontcombobox.cpp"

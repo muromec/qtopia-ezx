@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,8 +41,10 @@
 #include <QList>
 #include <QDebug>
 
+#include <qmath.h>
 #include <limits.h>
-#include <private/qmath_p.h>
+
+QT_BEGIN_NAMESPACE
 
 //#define DEBUG
 #ifdef DEBUG
@@ -1038,12 +1034,14 @@ bool QTessellatorPrivate::edgeInChain(Intersection i, int edge)
 
         Intersection i2 = i;
         i2.edge = l.next;
-        IntersectionLink l2 = intersections.value(i2);
 
+#ifndef QT_NO_DEBUG
+        IntersectionLink l2 = intersections.value(i2);
         Q_ASSERT(l2.next != -1);
         Q_ASSERT(l2.prev != -1);
         Q_ASSERT(l.next == i2.edge);
         Q_ASSERT(l2.prev == i.edge);
+#endif
         i = i2;
     }
     return false;
@@ -1330,7 +1328,7 @@ void QTessellator::tessellateConvex(const QPointF *points, int nPoints)
     Q27Dot5 cross = dLeft.x * dRight.y - dLeft.y * dRight.x;
 
     // flip direction if polygon is clockwise
-    if (cross < 0 || cross == 0 && dLeft.x > 0) {
+    if (cross < 0 || (cross == 0 && dLeft.x > 0)) {
         qSwap(left, right);
         dir = -1;
     }
@@ -1433,7 +1431,7 @@ void QTessellator::tessellateRect(const QPointF &a_, const QPointF &b_, qreal wi
         QPointF perp(pb.y() - pa.y(), pa.x() - pb.x());
         qreal length = qSqrt(perp.x() * perp.x() + perp.y() * perp.y());
 
-        if (qFuzzyCompare(length, static_cast<qreal>(0)))
+        if (qFuzzyCompare(length + 1, static_cast<qreal>(1)))
             return;
 
         // need the half of the width
@@ -1492,3 +1490,5 @@ void QTessellator::tessellateRect(const QPointF &a_, const QPointF &b_, qreal wi
         }
     }
 }
+
+QT_END_NAMESPACE

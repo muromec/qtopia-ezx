@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/cachedtable.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/cachedtable.qdoc -->
 <head>
-  <title>Qt 4.3: Cached Table Example</title>
+  <title>Qt 4.4: Cached Table Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Cached Table Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Cached Table Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -82,41 +82,41 @@
      query.exec(&quot;insert into person values(104, 'Roberto', 'Robitaille')&quot;);
      query.exec(&quot;insert into person values(105, 'Maria', 'Papadopoulos')&quot;);
 
-     query.exec(&quot;create table trolltechoffice (id int primary key,&quot;
+     query.exec(&quot;create table offices (id int primary key,&quot;
                                               &quot;imagefile int,&quot;
                                               &quot;location varchar(20),&quot;
                                               &quot;country varchar(20),&quot;
                                               &quot;description varchar(100))&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(0, 0, 'Oslo', 'Norway',&quot;
                 &quot;'Oslo is home to more than 500 000 citizens and has a &quot;
                 &quot;lot to offer.It has been called \&quot;The city with the big &quot;
                 &quot;heart\&quot; and this is a nickname we are happy to live up to.')&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(1, 1, 'Brisbane', 'Australia',&quot;
                 &quot;'Brisbane is the capital of Queensland, the Sunshine State, &quot;
                 &quot;where it is beautiful one day, perfect the next.  &quot;
                 &quot;Brisbane is Australia''s 3rd largest city, being home &quot;
                 &quot;to almost 2 million people.')&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(2, 2, 'Redwood City', 'US',&quot;
                 &quot;'You find Redwood City in the heart of the Bay Area &quot;
                 &quot;just north of Silicon Valley. The largest nearby city is &quot;
                 &quot;San Jose which is the third largest city in California &quot;
                 &quot;and the 10th largest in the US.')&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(3, 3, 'Berlin', 'Germany',&quot;
                 &quot;'Berlin, the capital of Germany is dynamic, cosmopolitan &quot;
                 &quot;and creative, allowing for every kind of lifestyle. &quot;
                 &quot;East meets West in the metropolis at the heart of a &quot;
                 &quot;changing Europe.')&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(4, 4, 'Munich', 'Germany',&quot;
                 &quot;'Several technology companies are represented in Munich, &quot;
                 &quot;and the city is often called the \&quot;Bavarian Silicon Valley\&quot;. &quot;
                 &quot;The exciting city is also filled with culture, &quot;
                 &quot;art and music. ')&quot;);
-     query.exec(&quot;insert into trolltechoffice &quot;
+     query.exec(&quot;insert into offices &quot;
                 &quot;values(5, 5, 'Beijing', 'China',&quot;
                 &quot;'Beijing as a capital city has more than 3000 years of &quot;
                 &quot;history. Today the city counts 12 million citizens, and &quot;
@@ -200,8 +200,8 @@
 </table></p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

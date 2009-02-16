@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,7 +39,9 @@
 #include "qtools_p.h"
 #include <string.h>
 
-QVectorData QVectorData::shared_null = { Q_ATOMIC_INIT(1), 0, 0, true, false };
+QT_BEGIN_NAMESPACE
+
+QVectorData QVectorData::shared_null = { Q_BASIC_ATOMIC_INITIALIZER(1), 0, 0, true, false };
 
 QVectorData *QVectorData::malloc(int sizeofTypedData, int size, int sizeofT, QVectorData *init)
 {
@@ -99,27 +95,20 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     Here's an example of a QVector that stores integers and a QVector
     that stores QString values:
 
-    \code
-        QVector<int> integerVector;
-        QVector<QString> stringVector;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 0
 
     QVector stores a vector (or array) of items. Typically, vectors
     are created with an initial size. For example, the following code
     constructs a QVector with 200 elements:
 
-    \code
-        QVector<QString> vector(200);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 1
 
     The elements are automatically initialized with a
     \l{default-constructed value}. If you want to initialize the
     vector with a different value, pass that value as the second
     argument to the constructor:
 
-    \code
-        QVector<QString> vector(200, "Pass");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 2
 
     You can also call fill() at any time to fill the vector with a
     value.
@@ -129,19 +118,11 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     non-const vectors, operator[]() returns a reference to the item
     that can be used on the left side of an assignment:
 
-    \code
-        if (vector[0] == "Liz")
-            vector[0] = "Elizabeth";
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 3
 
     For read-only access, an alternative syntax is to use at():
 
-    \code
-        for (int i = 0; i < vector.size(); ++i) {
-            if (vector.at(i) == "Alfonso")
-                cout << "Found Alfonso at position " << i << endl;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 4
 
     at() can be faster than operator[](), because it never causes a
     \l{deep copy} to occur.
@@ -159,11 +140,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     backward. Both return the index of the matching item if they found
     one; otherwise, they return -1. For example:
 
-    \code
-        int i = vector.indexOf("Harumi");
-        if (i != -1)
-            cout << "First occurrence of Harumi is at position " << i << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 5
 
     If you simply want to check whether a vector contains a
     particular value, use contains(). If you want to find out how
@@ -171,9 +148,9 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
 
     QVector provides these basic functions to add, move, and remove
     items: insert(), replace(), remove(), prepend(), append(). With
-    the exception of append(), these functions can be slow (\l{linear
-    time}) for large vectors, because they require moving many items
-    in the vector by one position in memory. If you want a container
+    the exception of append() and replace(), these functions can be slow
+    (\l{linear time}) for large vectors, because they require moving many
+    items in the vector by one position in memory. If you want a container
     class that provides fast insertion/removal in the middle, use
     QList or QLinkedList instead.
 
@@ -188,6 +165,9 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     preallocate a certain amount of memory. You can also call
     capacity() to find out how much memory QVector actually
     allocated.
+
+    Note that using non-const operators and functions can cause
+    QVector to do a deep copy of the data. This is due to \l{implicit sharing}.
 
     QVector's value type must be an \l{assignable data type}. This
     covers most data types that are commonly used, but the compiler
@@ -386,12 +366,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     can be used to access and modify the items in the vector.
 
     Example:
-    \code
-        QVector<int> vector(10);
-        int *data = vector.data();
-        for (int i = 0; i < 10; ++i)
-            data[i] = 2 * i;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 6
 
     The pointer remains valid as long as the vector isn't
     reallocated.
@@ -444,6 +419,9 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     \a i must be a valid index position in the vector (i.e., 0 <= \a i
     < size()).
 
+    Note that using non-const operators can cause QVector to do a deep
+    copy.
+
     \sa at(), value()
 */
 
@@ -459,13 +437,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     Inserts \a value at the end of the vector.
 
     Example:
-    \code
-        QVector<QString> vector(0);
-        vector.append("one");
-        vector.append("two");
-        vector.append("three");
-        // vector: ["one", "two", three"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 7
 
     This is the same as calling resize(size() + 1) and assigning \a
     value to the new last element in the vector.
@@ -482,13 +454,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     Inserts \a value at the beginning of the vector.
 
     Example:
-    \code
-        QVector<QString> vector;
-        vector.prepend("one");
-        vector.prepend("two");
-        vector.prepend("three");
-        // vector: ["three", "two", "one"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 8
 
     This is the same as vector.insert(0, \a value).
 
@@ -508,12 +474,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     value is appended to the vector.
 
     Example:
-    \code
-        QVector<QString> vector;
-        vector << "alpha" << "beta" << "delta";
-        vector.insert(2, "gamma");
-        // vector: ["alpha", "beta", "gamma", "delta"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 9
 
     For large vectors, this operation can be slow (\l{linear time}),
     because it requires moving all the items at indexes \a i and
@@ -532,12 +493,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     vector.
 
     Example:
-    \code
-        QVector<double> vector;
-        vector << 2.718 << 1.442 << 0.4342;
-        vector.insert(1, 3, 9.9);
-        // vector: [2.718, 9.9, 9.9, 9.9, 1.442, 0.4342]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 10
 */
 
 /*! \fn QVector::iterator QVector::insert(iterator before, const T &value)
@@ -591,14 +547,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     size beforehand.
 
     Example:
-    \code
-        QVector<QString> vector(3);
-        vector.fill("Yes");
-        // vector: ["Yes", "Yes", "Yes"]
-
-        vector.fill("oh", 5);
-        // vector: ["oh", "oh", "oh", "oh", "oh"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 11
 
     \sa resize()
 */
@@ -610,14 +559,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     Returns -1 if no item matched.
 
     Example:
-    \code
-        QVector<QString> vector;
-        vector << "A" << "B" << "C" << "B" << "A";
-        vector.indexOf("B");            // returns 1
-        vector.indexOf("B", 1);         // returns 1
-        vector.indexOf("B", 2);         // returns 3
-        vector.indexOf("X");            // returns -1
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 12
 
     This function requires the value type to have an implementation of
     \c operator==().
@@ -633,14 +575,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     last item. Returns -1 if no item matched.
 
     Example:
-    \code
-        QList<QString> vector;
-        vector << "A" << "B" << "C" << "B" << "A";
-        vector.lastIndexOf("B");        // returns 3
-        vector.lastIndexOf("B", 3);     // returns 3
-        vector.lastIndexOf("B", 2);     // returns 1
-        vector.lastIndexOf("X");        // returns -1
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 13
 
     This function requires the value type to have an implementation of
     \c operator==().
@@ -949,13 +884,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
 
     Example:
 
-    \code
-        QVector<double> vect;
-        vect << "red" << "green" << "blue" << "black";
-
-        QList<double> list = vect.toList();
-        // list: ["red", "green", "blue", "black"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 14
 
     \sa fromList(), QList::fromVector()
 */
@@ -966,13 +895,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
 
     Example:
 
-    \code
-        QStringList list;
-        list << "Sven" << "Kim" << "Ola";
-
-        QVector<QString> vect = QVector<QString>::fromList(list);
-        // vect: ["Sven", "Kim", "Ola"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 15
 
     \sa toList(), QList::toVector()
 */
@@ -984,14 +907,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
 
     Example:
 
-    \code
-        std::vector<double> stdvector;
-        vector.push_back(1.2);
-        vector.push_back(0.5);
-        vector.push_back(3.14);
-
-        QVector<double> vector = QVector<double>::fromStdVector(stdvector);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 16
 
     \sa toStdVector(), QList::fromStdList()
 */
@@ -1001,12 +917,7 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
     Returns a std::vector object with the data contained in this QVector.
     Example:
 
-    \code
-        QVector<double> vector;
-        vector << 1.2 << 0.5 << 3.14;
-
-        std::vector<double> stdvector = vector.toStdVector();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qvector.cpp 17
 
     \sa fromStdVector(), QList::toStdList()
 */
@@ -1030,3 +941,5 @@ int QVectorData::grow(int sizeofTypedData, int size, int sizeofT, bool excessive
 
     \sa \link datastreamformat.html Format of the QDataStream operators \endlink
 */
+
+QT_END_NAMESPACE

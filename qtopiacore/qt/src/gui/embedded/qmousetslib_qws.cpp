@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,12 +42,14 @@
 #include <tslib.h>
 #include <errno.h>
 
-#ifndef QT_QWS_TP_PRESSURE_THRESHOLD
-#define QT_QWS_TP_PRESSURE_THRESHOLD 1
-#endif
+QT_BEGIN_NAMESPACE
 
 #ifndef QT_QWS_TP_JITTER_LIMIT
 #define QT_QWS_TP_JITTER_LIMIT 3
+#endif
+
+#ifdef TSLIBMOUSEHANDLER_DEBUG
+#  include <QtCore/QDebug>
 #endif
 
 /*!
@@ -73,18 +66,16 @@
     addition to generating mouse events, for devices using the
     Universal Touch Screen Library.
 
-    To be able to compile this mouse handler, \l {Qtopia Core} must be
-    configured with the \c -qt-mouse-tslib option, see the \l {Pointer
-    Handling} documentation for details. In addition, the tslib
+    To be able to compile this mouse handler, \l{Qt for Embedded Linux}
+    must be configured with the \c -qt-mouse-tslib option, see the
+    \l{Pointer Handling} documentation for details. In addition, the tslib
     headers and library must be present in the build environment.  The
     tslib sources can be downloaded from \l
     {http://tslib.berlios.de/}.  Use the \c -L and \c -I options
     with \c configure to explicitly specify the location of the
     library and its headers:
 
-    \code
-        configure  -L <path to tslib library> -I <path to tslib headers>
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qmousetslib_qws.cpp 0
 
     In order to use this mouse handler, tslib must also be correctly
     installed on the target machine. This includes providing a \c
@@ -93,15 +84,12 @@
 
     The ts.conf file will usually contain the following two lines
 
-    \code
-        module_raw input
-        module linear
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qmousetslib_qws.cpp 1
 
-    To make \l {Qtopia Core} explicitly choose the tslib mouse
+    To make \l{Qt for Embedded Linux} explicitly choose the tslib mouse
     handler, set the QWS_MOUSE_PROTO environment variable.
 
-    \sa {Pointer Handling}, {Qtopia Core}
+    \sa {Pointer Handling}, {Qt for Embedded Linux}
 */
 
 class QWSTslibMouseHandlerPrivate : public QObject
@@ -131,7 +119,7 @@ private:
     bool calibrated;
     QString devName;
 
-    void open();
+    bool open();
     void close();
     inline bool get_sample(struct ts_sample *sample);
 
@@ -141,7 +129,7 @@ private slots:
 
 QWSTslibMouseHandlerPrivate::QWSTslibMouseHandlerPrivate(QWSTslibMouseHandler *h,
                                                          const QString &device)
-    : handler(h)
+    : handler(h), dev(0), mouseNotifier(0)
 {
     devName = device;
 
@@ -153,7 +141,9 @@ QWSTslibMouseHandlerPrivate::QWSTslibMouseHandlerPrivate(QWSTslibMouseHandler *h
     if (devName.isNull())
         devName = QLatin1String("/dev/ts");
 
-    open();
+    if (!open())
+        return;
+
     calibrated = true;
 
     int fd = ts_fd(dev);
@@ -167,14 +157,14 @@ QWSTslibMouseHandlerPrivate::~QWSTslibMouseHandlerPrivate()
     close();
 }
 
-void QWSTslibMouseHandlerPrivate::open()
+bool QWSTslibMouseHandlerPrivate::open()
 {
     dev = ts_open(devName.toLocal8Bit().constData(), 1);
     if (!dev) {
         qCritical("QWSTslibMouseHandlerPrivate: ts_open() failed"
                   " with error: '%s'", strerror(errno));
         qCritical("Please check your tslib installation!");
-        return;
+        return false;
     }
 
     if (ts_config(dev)) {
@@ -182,8 +172,10 @@ void QWSTslibMouseHandlerPrivate::open()
                   " with error: '%s'", strerror(errno));
         qCritical("Please check your tslib installation!");
         close();
-        return;
+        return false;
     }
+
+    return true;
 }
 
 void QWSTslibMouseHandlerPrivate::close()
@@ -194,7 +186,8 @@ void QWSTslibMouseHandlerPrivate::close()
 
 void QWSTslibMouseHandlerPrivate::suspend()
 {
-    mouseNotifier->setEnabled(false);
+    if (mouseNotifier)
+        mouseNotifier->setEnabled(false);
 }
 
 void QWSTslibMouseHandlerPrivate::resume()
@@ -203,7 +196,8 @@ void QWSTslibMouseHandlerPrivate::resume()
     wasPressed = false;
     lastdx = 0;
     lastdy = 0;
-    mouseNotifier->setEnabled(true);
+    if (mouseNotifier)
+        mouseNotifier->setEnabled(true);
 }
 
 bool QWSTslibMouseHandlerPrivate::get_sample(struct ts_sample *sample)
@@ -216,7 +210,7 @@ bool QWSTslibMouseHandlerPrivate::get_sample(struct ts_sample *sample)
 
 void QWSTslibMouseHandlerPrivate::readMouseData()
 {
-    if(!qt_screen)
+    if (!qt_screen)
         return;
 
     for(;;) {
@@ -226,13 +220,13 @@ void QWSTslibMouseHandlerPrivate::readMouseData()
         // Fast return if there's no events.
         if (!get_sample(&sample))
             return;
-        pressed = (sample.pressure >= QT_QWS_TP_PRESSURE_THRESHOLD);
+        pressed = (sample.pressure > 0);
 
         // Only return last sample unless there's a press/release event.
         while (pressed == wasPressed) {
             if (!get_sample(&sample))
                 break;
-            pressed = (sample.pressure >= QT_QWS_TP_PRESSURE_THRESHOLD);
+            pressed = (sample.pressure > 0);
         }
 
         // work around missing coordinates on mouse release in raw mode
@@ -272,10 +266,14 @@ void QWSTslibMouseHandlerPrivate::readMouseData()
         if (dy != 0)
             lastdy = dy;
 
-        // tslib should do all the translation and filtering, so we send a
-        // "raw" mouse event
-        handler->QWSMouseHandler::mouseChanged(QPoint(sample.x, sample.y),
-                                               pressed);
+        const QPoint p(sample.x, sample.y);
+        if (calibrated) {
+            // tslib should do all the translation and filtering, so we send a
+            // "raw" mouse event
+            handler->QWSMouseHandler::mouseChanged(p, pressed);
+        } else {
+            handler->sendFiltered(p, pressed);
+        }
     }
 }
 
@@ -351,5 +349,8 @@ void QWSTslibMouseHandler::calibrate(const QWSPointerCalibrationData *data)
     d->calibrate(data);
 }
 
+QT_END_NAMESPACE
+
 #include "qmousetslib_qws.moc"
+
 #endif //QT_NO_QWS_MOUSE_TSLIB

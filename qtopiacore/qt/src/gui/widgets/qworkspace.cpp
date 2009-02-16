@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -66,6 +60,8 @@
 #include <private/qwidget_p.h>
 #include <private/qwidgetresizehandler_p.h>
 #include <private/qlayoutengine_p.h>
+
+QT_BEGIN_NAMESPACE
 
 class QWorkspaceTitleBarPrivate;
 
@@ -267,7 +263,9 @@ signals:
 
 protected:
     bool event(QEvent *);
+#ifndef QT_NO_CONTEXTMENU
     void contextMenuEvent(QContextMenuEvent *);
+#endif
     void mousePressEvent(QMouseEvent *);
     void mouseDoubleClickEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -507,6 +505,7 @@ void QWorkspaceTitleBar::mousePressEvent(QMouseEvent *e)
     }
 }
 
+#ifndef QT_NO_CONTEXTMENU
 void QWorkspaceTitleBar::contextMenuEvent(QContextMenuEvent *e)
 {
     QStyleOptionTitleBar opt;
@@ -520,6 +519,7 @@ void QWorkspaceTitleBar::contextMenuEvent(QContextMenuEvent *e)
         e->ignore();
     }
 }
+#endif // QT_NO_CONTEXTMENU
 
 void QWorkspaceTitleBar::mouseReleaseEvent(QMouseEvent *e)
 {
@@ -662,7 +662,7 @@ bool QWorkspaceTitleBar::isTool() const
 }
 
 // from qwidget.cpp
-extern QString qt_setWindowTitle_helperHelper(const QString &, QWidget*);
+extern QString qt_setWindowTitle_helperHelper(const QString &, const QWidget*);
 
 void QWorkspaceTitleBar::paintEvent(QPaintEvent *)
 {
@@ -848,14 +848,7 @@ QSize QWorkspaceTitleBar::sizeHint() const
     Workspaces can be placed in any layout, but are typically given
     as the central widget in a QMainWindow:
 
-    \code
-    MainWindow::MainWindow()
-    {
-        workspace = new QWorkspace;
-        setCentralWidget(workspace);
-        ...
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qworkspace.cpp 0
 
     Child windows (MDI windows) are standard Qt widgets that are
     inserted into the workspace with addWindow(). As with top-level
@@ -889,7 +882,10 @@ QSize QWorkspaceTitleBar::sizeHint() const
     windows: cascade() and tile(). Both are slots so you can easily
     connect menu entries to them.
 
-    \img qworkspace-arrange.png
+    \table
+    \row \o \inlineimage mdi-cascade.png
+         \o \inlineimage mdi-tile.png
+    \endtable
 
     If you want your users to be able to work with child windows
     larger than the visible workspace area, set the scrollBarsEnabled
@@ -1090,15 +1086,15 @@ QWorkspacePrivate::init()
     popup->setObjectName(QLatin1String("qt_internal_mdi_popup"));
     toolPopup->setObjectName(QLatin1String("qt_internal_mdi_tool_popup"));
 
-    actions[QWorkspacePrivate::RestoreAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarNormalButton)),
+    actions[QWorkspacePrivate::RestoreAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarNormalButton, 0, q)),
                                                          QWorkspace::tr("&Restore"), q);
     actions[QWorkspacePrivate::MoveAct] = new QAction(QWorkspace::tr("&Move"), q);
     actions[QWorkspacePrivate::ResizeAct] = new QAction(QWorkspace::tr("&Size"), q);
-    actions[QWorkspacePrivate::MinimizeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarMinButton)),
+    actions[QWorkspacePrivate::MinimizeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarMinButton, 0, q)),
                                                           QWorkspace::tr("Mi&nimize"), q);
-    actions[QWorkspacePrivate::MaximizeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarMaxButton)),
+    actions[QWorkspacePrivate::MaximizeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarMaxButton, 0, q)),
                                                           QWorkspace::tr("Ma&ximize"), q);
-    actions[QWorkspacePrivate::CloseAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarCloseButton)),
+    actions[QWorkspacePrivate::CloseAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarCloseButton, 0, q)),
                                                           QWorkspace::tr("&Close")
 #ifndef QT_NO_SHORTCUT
                                                           +QLatin1Char('\t')+(QString)QKeySequence(Qt::CTRL+Qt::Key_F4)
@@ -1107,7 +1103,7 @@ QWorkspacePrivate::init()
     QObject::connect(actions[QWorkspacePrivate::CloseAct], SIGNAL(triggered()), q, SLOT(closeActiveWindow()));
     actions[QWorkspacePrivate::StaysOnTopAct] = new QAction(QWorkspace::tr("Stay on &Top"), q);
     actions[QWorkspacePrivate::StaysOnTopAct]->setChecked(true);
-    actions[QWorkspacePrivate::ShadeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarShadeButton)),
+    actions[QWorkspacePrivate::ShadeAct] = new QAction(QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarShadeButton, 0, q)),
                                                           QWorkspace::tr("Sh&ade"), q);
 
     QObject::connect(popup, SIGNAL(aboutToShow()), q, SLOT(_q_updateActions()));
@@ -2005,7 +2001,7 @@ void QWorkspacePrivate::showMaximizeControls()
                 int iconSize = maxcontrols->size().height();
                 maxtools->setPixmap(icon.pixmap(QSize(iconSize, iconSize)));
             } else {
-                QPixmap pm = q->style()->standardPixmap(QStyle::SP_TitleBarMenuButton);
+                QPixmap pm = q->style()->standardPixmap(QStyle::SP_TitleBarMenuButton, 0, q);
                 if (pm.isNull()) {
                     pm = QPixmap(14,14);
                     pm.fill(Qt::black);
@@ -2162,11 +2158,11 @@ void QWorkspacePrivate::_q_updateActions()
     }
     if (active->shademode) {
         actions[QWorkspacePrivate::ShadeAct]->setIcon(
-            QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarUnshadeButton)));
+            QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarUnshadeButton, 0, q)));
         actions[QWorkspacePrivate::ShadeAct]->setText(QWorkspace::tr("&Unshade"));
     } else {
         actions[QWorkspacePrivate::ShadeAct]->setIcon(
-            QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarShadeButton)));
+            QIcon(q->style()->standardPixmap(QStyle::SP_TitleBarShadeButton, 0, q)));
         actions[QWorkspacePrivate::ShadeAct]->setText(QWorkspace::tr("Sh&ade"));
     }
     actions[QWorkspacePrivate::StaysOnTopAct]->setEnabled(!active->shademode && canResize);
@@ -3373,7 +3369,10 @@ void QWorkspace::changeEvent(QEvent *ev)
     QWidget::changeEvent(ev);
 }
 
+QT_END_NAMESPACE
+
 #include "moc_qworkspace.cpp"
+
 #include "qworkspace.moc"
 
 #endif // QT_NO_WORKSPACE

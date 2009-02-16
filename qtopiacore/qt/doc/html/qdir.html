@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qdir.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qdir.cpp -->
 <head>
-  <title>Qt 4.3: QDir Class Reference</title>
+  <title>Qt 4.4: QDir Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QDir Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QDir Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QDir class provides access to directory structures and their contents. <a href="#details">More...</a></p>
 <pre> #include &lt;QDir&gt;</pre><p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
@@ -61,7 +61,7 @@
 <li><div class="fn"/>bool <b><a href="qdir.html#mkdir">mkdir</a></b> ( const QString &amp; <i>dirName</i> ) const</li>
 <li><div class="fn"/>bool <b><a href="qdir.html#mkpath">mkpath</a></b> ( const QString &amp; <i>dirPath</i> ) const</li>
 <li><div class="fn"/>QStringList <b><a href="qdir.html#nameFilters">nameFilters</a></b> () const</li>
-<li><div class="fn"/>QString <b><a href="qdir.html#path">path</a></b> () const</li>
+<li><div class="fn"/>QString <b><a href="qdir.html#pathx">path</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qdir.html#refresh">refresh</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qdir.html#relativeFilePath">relativeFilePath</a></b> ( const QString &amp; <i>fileName</i> ) const</li>
 <li><div class="fn"/>bool <b><a href="qdir.html#remove">remove</a></b> ( const QString &amp; <i>fileName</i> )</li>
@@ -119,13 +119,13 @@
 <p>Examples of absolute paths:</p>
 <pre> QDir(&quot;/home/user/Documents&quot;)
  QDir(&quot;C:/Documents and Settings&quot;)</pre>
-<p>On Windows, the second of the examples above will be translated to <tt>C:\My Documents</tt> when used to access files.</p>
+<p>On Windows, the second example above will be translated to <tt>C:\Documents and Settings</tt> when used to access files.</p>
 <p>Examples of relative paths:</p>
 <pre> QDir(&quot;images/landscape.png&quot;)</pre>
 <p>You can use the <a href="qdir.html#isRelative">isRelative</a>() or <a href="qdir.html#isAbsolute">isAbsolute</a>() functions to check if a QDir is using a relative or an absolute file path. Call <a href="qdir.html#makeAbsolute">makeAbsolute</a>() to convert a relative QDir to an absolute one.</p>
 <a name="navigation-and-directory-operations"></a>
 <h3>Navigation and Directory Operations</h3>
-<p>A directory's path can be obtained with the <a href="qdir.html#path">path</a>() function, and a new path set with the <a href="qdir.html#setPath">setPath</a>() function. The absolute path to a directory is found by calling <a href="qdir.html#absolutePath">absolutePath</a>().</p>
+<p>A directory's path can be obtained with the <a href="qdir.html#pathx">path</a>() function, and a new path set with the <a href="qdir.html#setPath">setPath</a>() function. The absolute path to a directory is found by calling <a href="qdir.html#absolutePath">absolutePath</a>().</p>
 <p>The name of a directory is found using the <a href="qdir.html#dirName">dirName</a>() function. This typically returns the last element in the absolute path that specifies the location of the directory. However, it can also return &quot;.&quot; if the QDir represents the current directory.</p>
 <pre> QDir(&quot;Documents/Letters/Applications&quot;).dirName() <span class="comment">// &quot;Applications&quot;</span>
  QDir().dirName()                                 <span class="comment">// &quot;.&quot;</span></pre>
@@ -166,19 +166,19 @@
 <a name="examples"></a>
 <h3>Examples</h3>
 <p>Check if a directory exists:</p>
-<pre>     QDir dir(&quot;example&quot;);
-     if (!dir.exists())
-         qWarning(&quot;Cannot find the example directory&quot;);</pre>
+<pre> QDir dir(&quot;example&quot;);
+ if (!dir.exists())
+     qWarning(&quot;Cannot find the example directory&quot;);</pre>
 <p>(We could also use the static convenience function <a href="qfile.html#exists">QFile::exists</a>().)</p>
 <p>Traversing directories and reading a file:</p>
-<pre>     QDir dir = QDir::root();                 <span class="comment">// &quot;/&quot;</span>
-     if (!dir.cd(&quot;tmp&quot;)) {                    <span class="comment">// &quot;/tmp&quot;</span>
-         qWarning(&quot;Cannot find the \&quot;/tmp\&quot; directory&quot;);
-     } else {
-         QFile file(dir.filePath(&quot;ex1.txt&quot;)); <span class="comment">// &quot;/tmp/ex1.txt&quot;</span>
-         if (!file.open(QIODevice::ReadWrite))
-             qWarning(&quot;Cannot create the file %s&quot;, file.name());
-     }</pre>
+<pre> QDir dir = QDir::root();                 <span class="comment">// &quot;/&quot;</span>
+ if (!dir.cd(&quot;tmp&quot;)) {                    <span class="comment">// &quot;/tmp&quot;</span>
+     qWarning(&quot;Cannot find the \&quot;/tmp\&quot; directory&quot;);
+ } else {
+     QFile file(dir.filePath(&quot;ex1.txt&quot;)); <span class="comment">// &quot;/tmp/ex1.txt&quot;</span>
+     if (!file.open(QIODevice::ReadWrite))
+         qWarning(&quot;Cannot create the file %s&quot;, file.name());
+ }</pre>
 <p>A program that lists all the files in the current directory (excluding symbolic links), sorted by size, smallest first:</p>
 <pre> #include &lt;QDir&gt;
  #include &lt;iostream&gt;
@@ -208,7 +208,7 @@
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
 <tr><td valign="top"><tt>QDir::Dirs</tt></td><td align="center" valign="top"><tt>0x001</tt></td><td valign="top">List directories that match the filters.</td></tr>
 <tr><td valign="top"><tt>QDir::AllDirs</tt></td><td align="center" valign="top"><tt>0x400</tt></td><td valign="top">List all directories; i.e&#x2e; don't apply the filters to directory names.</td></tr>
-<tr><td valign="top"><tt>QDir::Files</tt></td><td align="center" valign="top"><tt>0x002</tt></td><td valign="top">List files only.</td></tr>
+<tr><td valign="top"><tt>QDir::Files</tt></td><td align="center" valign="top"><tt>0x002</tt></td><td valign="top">List files.</td></tr>
 <tr><td valign="top"><tt>QDir::Drives</tt></td><td align="center" valign="top"><tt>0x004</tt></td><td valign="top">List disk drives (ignored under Unix).</td></tr>
 <tr><td valign="top"><tt>QDir::NoSymLinks</tt></td><td align="center" valign="top"><tt>0x008</tt></td><td valign="top">Do not list symbolic links (ignored by operating systems that don't support symbolic links).</td></tr>
 <tr><td valign="top"><tt>QDir::NoDotAndDotDot</tt></td><td align="center" valign="top"><tt>0x1000</tt></td><td valign="top">Do not list the special entries &quot;.&quot; and &quot;..&quot;&#x2e;</td></tr>
@@ -237,6 +237,7 @@
 <tr><td valign="top"><tt>QDir::Size</tt></td><td align="center" valign="top"><tt>0x02</tt></td><td valign="top">Sort by file size.</td></tr>
 <tr><td valign="top"><tt>QDir::Type</tt></td><td align="center" valign="top"><tt>0x80</tt></td><td valign="top">Sort by file type (extension).</td></tr>
 <tr><td valign="top"><tt>QDir::Unsorted</tt></td><td align="center" valign="top"><tt>0x03</tt></td><td valign="top">Do not sort.</td></tr>
+<tr><td valign="top"><tt>QDir::NoSort</tt></td><td align="center" valign="top"><tt>-1</tt></td><td valign="top">Not sorted by default.</td></tr>
 <tr><td valign="top"><tt>QDir::DirsFirst</tt></td><td align="center" valign="top"><tt>0x04</tt></td><td valign="top">Put the directories first, then the files.</td></tr>
 <tr><td valign="top"><tt>QDir::DirsLast</tt></td><td align="center" valign="top"><tt>0x20</tt></td><td valign="top">Put the files first, then the directories.</td></tr>
 <tr><td valign="top"><tt>QDir::Reversed</tt></td><td align="center" valign="top"><tt>0x08</tt></td><td valign="top">Reverse the sort order.</td></tr>
@@ -287,16 +288,16 @@
  QDir lsDir(ls);
  QString canonicalLs = lsDir.canonicalPath();
 <span class="comment"> // canonicalLS now equals &quot;/usr/bin/ls&quot;.</span></pre>
-<p>See also <a href="qdir.html#path">path</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), <a href="qdir.html#exists">exists</a>(), <a href="qdir.html#cleanPath">cleanPath</a>(), <a href="qdir.html#dirName">dirName</a>(), and <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>().</p>
+<p>See also <a href="qdir.html#pathx">path</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), <a href="qdir.html#exists">exists</a>(), <a href="qdir.html#cleanPath">cleanPath</a>(), <a href="qdir.html#dirName">dirName</a>(), and <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>().</p>
 <h3 class="fn"><a name="cd"></a>bool QDir::cd ( const <a href="qstring.html">QString</a> &amp; <i>dirName</i> )</h3>
 <p>Changes the <a href="qdir.html">QDir</a>'s directory to <i>dirName</i>.</p>
 <p>Returns true if the new directory exists and is readable; otherwise returns false. Note that the logical cd() operation is not performed if the new directory does not exist.</p>
 <p>Calling cd(&quot;..&quot;) is equivalent to calling <a href="qdir.html#cdUp">cdUp</a>().</p>
-<p>See also <a href="qdir.html#cdUp">cdUp</a>(), <a href="qdir.html#isReadable">isReadable</a>(), <a href="qdir.html#exists">exists</a>(), and <a href="qdir.html#path">path</a>().</p>
+<p>See also <a href="qdir.html#cdUp">cdUp</a>(), <a href="qdir.html#isReadable">isReadable</a>(), <a href="qdir.html#exists">exists</a>(), and <a href="qdir.html#pathx">path</a>().</p>
 <h3 class="fn"><a name="cdUp"></a>bool QDir::cdUp ()</h3>
 <p>Changes directory by moving one directory up from the <a href="qdir.html">QDir</a>'s current directory.</p>
 <p>Returns true if the new directory exists and is readable; otherwise returns false. Note that the logical cdUp() operation is not performed if the new directory does not exist.</p>
-<p>See also <a href="qdir.html#cd">cd</a>(), <a href="qdir.html#isReadable">isReadable</a>(), <a href="qdir.html#exists">exists</a>(), and <a href="qdir.html#path">path</a>().</p>
+<p>See also <a href="qdir.html#cd">cd</a>(), <a href="qdir.html#isReadable">isReadable</a>(), <a href="qdir.html#exists">exists</a>(), and <a href="qdir.html#pathx">path</a>().</p>
 <h3 class="fn"><a name="cleanPath"></a><a href="qstring.html">QString</a> QDir::cleanPath ( const <a href="qstring.html">QString</a> &amp; <i>path</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Removes all multiple directory separators &quot;/&quot; and resolves any &quot;.&quot;s or &quot;..&quot;s found in the path, <i>path</i>.</p>
 <p>Symbolic links are kept. This function does not return the canonical path, but rather the simplest version of the input. For example, &quot;./local&quot; becomes &quot;local&quot;, &quot;local/../bin&quot; becomes &quot;bin&quot; and &quot;/local/usr/../bin&quot; becomes &quot;/local/bin&quot;.</p>
@@ -307,7 +308,7 @@
 <p>See also <a href="qdir.html#operator-5b-5d">operator[]</a>() and <a href="qdir.html#entryList">entryList</a>().</p>
 <h3 class="fn"><a name="current"></a>QDir QDir::current ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the application's current directory.</p>
-<p>The directory is constructed using the absolute path of the current directory, ensuring that its <a href="qdir.html#path">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
+<p>The directory is constructed using the absolute path of the current directory, ensuring that its <a href="qdir.html#pathx">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
 <p>See also <a href="qdir.html#setCurrent">setCurrent</a>(), <a href="qdir.html#currentPath">currentPath</a>(), <a href="qdir.html#home">home</a>(), <a href="qdir.html#root">root</a>(), and <a href="qdir.html#temp">temp</a>().</p>
 <h3 class="fn"><a name="currentPath"></a><a href="qstring.html">QString</a> QDir::currentPath ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the absolute path of the application's current directory.</p>
@@ -315,7 +316,7 @@
 <h3 class="fn"><a name="dirName"></a><a href="qstring.html">QString</a> QDir::dirName () const</h3>
 <p>Returns the name of the directory; this is <i>not</i> the same as the path, e.g&#x2e; a directory with the name &quot;mail&quot;, might have the path &quot;/var/spool/mail&quot;. If the directory has no name (e.g&#x2e; it is the root directory) an empty string is returned.</p>
 <p>No check is made to ensure that a directory with this name actually exists; but see <a href="qdir.html#exists">exists</a>().</p>
-<p>See also <a href="qdir.html#path">path</a>(), <a href="qdir.html#filePath">filePath</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), and <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>().</p>
+<p>See also <a href="qdir.html#pathx">path</a>(), <a href="qdir.html#filePath">filePath</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), and <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>().</p>
 <h3 class="fn"><a name="drives"></a><a href="qfileinfo.html#QFileInfoList-typedef">QFileInfoList</a> QDir::drives ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns a list of the root directories on this system.</p>
 <p>On Windows this returns a list of <a href="qfileinfo.html">QFileInfo</a> objects containing &quot;C:/&quot;, &quot;D:/&quot;, etc. On other operating systems, it returns a list containing just one root directory (i.e&#x2e; &quot;/&quot;).</p>
@@ -356,13 +357,13 @@
 <p>Returns the value set by <a href="qdir.html#setFilter">setFilter</a>()</p>
 <p>See also <a href="qdir.html#setFilter">setFilter</a>().</p>
 <h3 class="fn"><a name="fromNativeSeparators"></a><a href="qstring.html">QString</a> QDir::fromNativeSeparators ( const <a href="qstring.html">QString</a> &amp; <i>pathName</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
-<p>Returns <i>pathName</i> using '/' as file separator. On Windows, for instance, fromNativeSeparators(&quot;c:\winnt\system32&quot;) returns &quot;c:/winnt/system32&quot;.</p>
+<p>Returns <i>pathName</i> using '/' as file separator. On Windows, for instance, fromNativeSeparators(&quot;<tt>c:\\winnt\\system32</tt>&quot;) returns &quot;c:/winnt/system32&quot;.</p>
 <p>The returned string may be the same as the argument on some operating systems, for example on Unix.</p>
 <p>This function was introduced in Qt 4.2.</p>
 <p>See also <a href="qdir.html#toNativeSeparators">toNativeSeparators</a>() and <a href="qdir.html#separator">separator</a>().</p>
 <h3 class="fn"><a name="home"></a>QDir QDir::home ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the user's home directory.</p>
-<p>The directory is constructed using the absolute path of the home directory, ensuring that its <a href="qdir.html#path">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
+<p>The directory is constructed using the absolute path of the home directory, ensuring that its <a href="qdir.html#pathx">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
 <p>See <a href="qdir.html#homePath">homePath</a>() for details.</p>
 <p>See also <a href="qdir.html#drives">drives</a>(), <a href="qdir.html#current">current</a>(), <a href="qdir.html#root">root</a>(), and <a href="qdir.html#temp">temp</a>().</p>
 <h3 class="fn"><a name="homePath"></a><a href="qstring.html">QString</a> QDir::homePath ()&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -426,7 +427,7 @@
 <h3 class="fn"><a name="nameFilters"></a><a href="qstringlist.html">QStringList</a> QDir::nameFilters () const</h3>
 <p>Returns the string list set by <a href="qdir.html#setNameFilters">setNameFilters</a>()</p>
 <p>See also <a href="qdir.html#setNameFilters">setNameFilters</a>().</p>
-<h3 class="fn"><a name="path"></a><a href="qstring.html">QString</a> QDir::path () const</h3>
+<h3 class="fn"><a name="pathx"></a><a href="qstring.html">QString</a> QDir::path () const</h3>
 <p>Returns the path. This may contain symbolic links, but never contains redundant &quot;.&quot;, &quot;..&quot; or multiple separators.</p>
 <p>The returned path can be either absolute or relative (see <a href="qdir.html#setPath">setPath</a>()).</p>
 <p>See also <a href="qdir.html#setPath">setPath</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), <a href="qdir.html#exists">exists</a>(), <a href="qdir.html#cleanPath">cleanPath</a>(), <a href="qdir.html#dirName">dirName</a>(), <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>(), <a href="qdir.html#toNativeSeparators">toNativeSeparators</a>(), and <a href="qdir.html#makeAbsolute">makeAbsolute</a>().</p>
@@ -458,7 +459,7 @@
 <p>See also <a href="qdir.html#mkpath">mkpath</a>().</p>
 <h3 class="fn"><a name="root"></a>QDir QDir::root ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the root directory.</p>
-<p>The directory is constructed using the absolute path of the root directory, ensuring that its <a href="qdir.html#path">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
+<p>The directory is constructed using the absolute path of the root directory, ensuring that its <a href="qdir.html#pathx">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
 <p>See <a href="qdir.html#rootPath">rootPath</a>() for details.</p>
 <p>See also <a href="qdir.html#drives">drives</a>(), <a href="qdir.html#current">current</a>(), <a href="qdir.html#home">home</a>(), and <a href="qdir.html#temp">temp</a>().</p>
 <h3 class="fn"><a name="rootPath"></a><a href="qstring.html">QString</a> QDir::rootPath ()&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -489,7 +490,7 @@
 <h3 class="fn"><a name="setPath"></a>void QDir::setPath ( const <a href="qstring.html">QString</a> &amp; <i>path</i> )</h3>
 <p>Sets the path of the directory to <i>path</i>. The path is cleaned of redundant &quot;.&quot;, &quot;..&quot; and of multiple separators. No check is made to see whether a directory with this path actually exists; but you can check for yourself using <a href="qdir.html#exists">exists</a>().</p>
 <p>The path can be either absolute or relative. Absolute paths begin with the directory separator &quot;/&quot; (optionally preceded by a drive specification under Windows). Relative file names begin with a directory name or a file name and specify a path relative to the current directory. An example of an absolute path is the string &quot;/tmp/quartz&quot;, a relative path might look like &quot;src/fatlib&quot;.</p>
-<p>See also <a href="qdir.html#path">path</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), <a href="qdir.html#exists">exists</a>(), <a href="qdir.html#cleanPath">cleanPath</a>(), <a href="qdir.html#dirName">dirName</a>(), <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>(), <a href="qdir.html#isRelative">isRelative</a>(), and <a href="qdir.html#makeAbsolute">makeAbsolute</a>().</p>
+<p>See also <a href="qdir.html#pathx">path</a>(), <a href="qdir.html#absolutePath">absolutePath</a>(), <a href="qdir.html#exists">exists</a>(), <a href="qdir.html#cleanPath">cleanPath</a>(), <a href="qdir.html#dirName">dirName</a>(), <a href="qdir.html#absoluteFilePath">absoluteFilePath</a>(), <a href="qdir.html#isRelative">isRelative</a>(), and <a href="qdir.html#makeAbsolute">makeAbsolute</a>().</p>
 <h3 class="fn"><a name="setSearchPaths"></a>void QDir::setSearchPaths ( const <a href="qstring.html">QString</a> &amp; <i>prefix</i>, const <a href="qstringlist.html">QStringList</a> &amp; <i>searchPaths</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Sets or replaces Qt's search paths for file names with the prefix <i>prefix</i> to <i>searchPaths</i>.</p>
 <p>To specify a prefix for a file name, prepend the prefix followed by a single colon (e.g&#x2e;, &quot;images:undo.png&quot;, &quot;xmldocs:books.xml&quot;). <i>prefix</i> can only contain letters or numbers (e.g&#x2e;, it cannot contain a colon, nor a slash).</p>
@@ -500,7 +501,7 @@
  QPixmap pixmap(&quot;icons:undo.png&quot;); <span class="comment">// will look for undo.png in QDir::homePath() + &quot;/images&quot;</span>
  QFile file(&quot;docs:design.odf&quot;); <span class="comment">// will look in the :/embeddedDocuments resource path</span></pre>
 <p>File name prefix must be at least 2 characters long to avoid conflicts with Windows drive letters.</p>
-<p>Search paths may contain paths to {The Qt Resource System}.</p>
+<p>Search paths may contain paths to <a href="resources.html">The Qt Resource System</a>.</p>
 <p>This function was introduced in Qt 4.3.</p>
 <p>See also <a href="qdir.html#searchPaths">searchPaths</a>().</p>
 <h3 class="fn"><a name="setSorting"></a>void QDir::setSorting ( <a href="qdir.html#SortFlag-enum">SortFlags</a> <i>sort</i> )</h3>
@@ -512,7 +513,7 @@
 <p>See also <a href="qdir.html#setSorting">setSorting</a>() and <a href="qdir.html#SortFlag-enum">SortFlag</a>.</p>
 <h3 class="fn"><a name="temp"></a>QDir QDir::temp ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the system's temporary directory.</p>
-<p>The directory is constructed using the absolute path of the temporary directory, ensuring that its <a href="qdir.html#path">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
+<p>The directory is constructed using the absolute path of the temporary directory, ensuring that its <a href="qdir.html#pathx">path</a>() will be the same as its <a href="qdir.html#absolutePath">absolutePath</a>().</p>
 <p>See <a href="qdir.html#tempPath">tempPath</a>() for details.</p>
 <p>See also <a href="qdir.html#drives">drives</a>(), <a href="qdir.html#current">current</a>(), <a href="qdir.html#home">home</a>(), and <a href="qdir.html#root">root</a>().</p>
 <h3 class="fn"><a name="tempPath"></a><a href="qstring.html">QString</a> QDir::tempPath ()&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -576,8 +577,8 @@
 <p>See also <a href="qdir.html#Q_CLEANUP_RESOURCE">Q_CLEANUP_RESOURCE</a>() and <a href="resources.html">The Qt Resource System</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

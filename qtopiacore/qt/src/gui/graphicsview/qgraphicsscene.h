@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,20 +49,24 @@
 
 QT_BEGIN_HEADER
 
+QT_BEGIN_NAMESPACE
+
 QT_MODULE(Gui)
 
 #if !defined(QT_NO_GRAPHICSVIEW) || (QT_EDITION & QT_MODULE_GRAPHICSVIEW) != QT_MODULE_GRAPHICSVIEW
 
 template<typename T> class QList;
 class QFocusEvent;
-class QKeyEvent;
+class QFont;
+class QFontMetrics;
+class QGraphicsEllipseItem;
 class QGraphicsItem;
 class QGraphicsItemGroup;
-class QGraphicsEllipseItem;
 class QGraphicsLineItem;
 class QGraphicsPathItem;
 class QGraphicsPixmapItem;
 class QGraphicsPolygonItem;
+class QGraphicsProxyWidget;
 class QGraphicsRectItem;
 class QGraphicsSceneContextMenuEvent;
 class QGraphicsSceneDragDropEvent;
@@ -79,7 +77,11 @@ class QGraphicsSceneMouseEvent;
 class QGraphicsSceneWheelEvent;
 class QGraphicsSimpleTextItem;
 class QGraphicsTextItem;
+class QGraphicsView;
+class QGraphicsWidget;
 class QHelpEvent;
+class QInputMethodEvent;
+class QKeyEvent;
 class QLineF;
 class QPainterPath;
 class QPixmap;
@@ -87,9 +89,8 @@ class QPointF;
 class QPolygonF;
 class QRectF;
 class QSizeF;
+class QStyle;
 class QStyleOptionGraphicsItem;
-class QInputMethodEvent;
-class QGraphicsView;
 
 class QGraphicsScenePrivate;
 class Q_GUI_EXPORT QGraphicsScene : public QObject
@@ -100,6 +101,9 @@ class Q_GUI_EXPORT QGraphicsScene : public QObject
     Q_PROPERTY(ItemIndexMethod itemIndexMethod READ itemIndexMethod WRITE setItemIndexMethod)
     Q_PROPERTY(QRectF sceneRect READ sceneRect WRITE setSceneRect)
     Q_PROPERTY(int bspTreeDepth READ bspTreeDepth WRITE setBspTreeDepth)
+    Q_PROPERTY(QPalette palette READ palette WRITE setPalette)
+    Q_PROPERTY(QFont font READ font WRITE setFont)
+
 public:
     enum ItemIndexMethod {
         BspTreeIndex,
@@ -155,7 +159,6 @@ public:
     QPainterPath selectionArea() const;
     void setSelectionArea(const QPainterPath &path);
     void setSelectionArea(const QPainterPath &path, Qt::ItemSelectionMode);
-    void clearSelection();
 
     QGraphicsItemGroup *createItemGroup(const QList<QGraphicsItem *> &items);
     void destroyItemGroup(QGraphicsItemGroup *group);
@@ -169,6 +172,7 @@ public:
     QGraphicsRectItem *addRect(const QRectF &rect, const QPen &pen = QPen(), const QBrush &brush = QBrush());
     QGraphicsTextItem *addText(const QString &text, const QFont &font = QFont());
     QGraphicsSimpleTextItem *addSimpleText(const QString &text, const QFont &font = QFont());
+    QGraphicsProxyWidget *addWidget(QWidget *widget, Qt::WindowFlags wFlags = 0);
     inline QGraphicsEllipseItem *addEllipse(qreal x, qreal y, qreal w, qreal h, const QPen &pen = QPen(), const QBrush &brush = QBrush())
     { return addEllipse(QRectF(x, y, w, h), pen, brush); }
     inline QGraphicsLineItem *addLine(qreal x1, qreal y1, qreal x2, qreal y2, const QPen &pen = QPen())
@@ -200,13 +204,28 @@ public:
     inline void invalidate(qreal x, qreal y, qreal w, qreal h, SceneLayers layers = AllLayers)
     { invalidate(QRectF(x, y, w, h), layers); }
 
+    QStyle *style() const;
+    void setStyle(QStyle *style);
+
+    QFont font() const;
+    void setFont(const QFont &font);
+
+    QPalette palette() const;
+    void setPalette(const QPalette &palette);
+
+    QGraphicsWidget *activeWindow() const;
+    void setActiveWindow(QGraphicsWidget *widget);
+
 public Q_SLOTS:
     void update(const QRectF &rect = QRectF());
     void invalidate(const QRectF &rect = QRectF(), SceneLayers layers = AllLayers);
     void advance();
+    void clearSelection();
+    void clear();
 
 protected:
     bool event(QEvent *event);
+    bool eventFilter(QObject *watched, QEvent *event);
     virtual void contextMenuEvent(QGraphicsSceneContextMenuEvent *event);
     virtual void dragEnterEvent(QGraphicsSceneDragDropEvent *event);
     virtual void dragMoveEvent(QGraphicsSceneDragDropEvent *event);
@@ -231,6 +250,9 @@ protected:
                            const QStyleOptionGraphicsItem options[],
                            QWidget *widget = 0);
 
+protected Q_SLOTS:
+    bool focusNextPrevChild(bool next);
+
 Q_SIGNALS:
     void changed(const QList<QRectF> &region);
     void sceneRectChanged(const QRectF &rect);
@@ -240,17 +262,22 @@ private:
     void itemUpdated(QGraphicsItem *item, const QRectF &rect);
 
     Q_DECLARE_PRIVATE(QGraphicsScene)
-    Q_PRIVATE_SLOT(d_func(), void _q_generateBspTree())
+    Q_DISABLE_COPY(QGraphicsScene)
+    Q_PRIVATE_SLOT(d_func(), void _q_updateIndex())
     Q_PRIVATE_SLOT(d_func(), void _q_emitUpdated())
     Q_PRIVATE_SLOT(d_func(), void _q_removeItemLater(QGraphicsItem *item))
     Q_PRIVATE_SLOT(d_func(), void _q_updateLater())
+    Q_PRIVATE_SLOT(d_func(), void _q_polishItems())
     friend class QGraphicsItem;
     friend class QGraphicsItemPrivate;
     friend class QGraphicsView;
     friend class QGraphicsViewPrivate;
+    friend class QGraphicsWidget;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QGraphicsScene::SceneLayers)
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

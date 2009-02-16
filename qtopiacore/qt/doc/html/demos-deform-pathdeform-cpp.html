@@ -3,56 +3,50 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-  <title>Qt 4.3: pathdeform.cpp Example File (demos/deform/pathdeform.cpp)</title>
+  <title>Qt 4.4: pathdeform.cpp Example File (demos/deform/pathdeform.cpp)</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">pathdeform.cpp Example File<br /><span class="small-subtitle">demos/deform/pathdeform.cpp</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">pathdeform.cpp Example File<br /><span class="small-subtitle">demos/deform/pathdeform.cpp</span>
 </h1>
 <pre><span class="comment"> /****************************************************************************
  **
- ** Copyright (C) 2005-2008 Trolltech ASA. All rights reserved.
+ ** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+ ** Contact: Qt Software Information (qt-info@nokia.com)
  **
  ** This file is part of the demonstration applications of the Qt Toolkit.
  **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
+ ** Commercial Usage
+ ** Licensees holding valid Qt Commercial licenses may use this file in
+ ** accordance with the Qt Commercial License Agreement provided with the
+ ** Software or, alternatively, in accordance with the terms contained in
+ ** a written agreement between you and Nokia.
  **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
  **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
+ ** GNU General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU
+ ** General Public License versions 2.0 or 3.0 as published by the Free
+ ** Software Foundation and appearing in the file LICENSE.GPL included in
+ ** the packaging of this file.  Please review the following information
+ ** to ensure GNU General Public Licensing requirements will be met:
+ ** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+ ** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+ ** exception, Nokia gives you certain additional rights. These rights
+ ** are described in the Nokia Qt GPL Exception version 1.3, included in
+ ** the file GPL_EXCEPTION.txt in this package.
  **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
+ ** Qt for Windows(R) Licensees
+ ** As a special exception, Nokia, as the sole copyright holder for Qt
+ ** Designer, grants users of the Qt/Eclipse Integration plug-in the
+ ** right for the Qt/Eclipse Integration to link to functionality
+ ** provided by Qt Designer and its related libraries.
  **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ ** If you are unsure which license is appropriate for your use, please
+ ** contact the sales department at qt-sales@nokia.com.
  **
  ****************************************************************************/</span>
 
@@ -66,25 +60,31 @@
  #include &lt;QLineEdit&gt;
  #include &lt;QPainter&gt;
  #include &lt;QSlider&gt;
+ #include &lt;QLabel&gt;
+ #include &lt;QDesktopWidget&gt;
+ #include &lt;qmath.h&gt;
 
- #include &lt;math.h&gt;
-
- PathDeformWidget::PathDeformWidget(QWidget *parent)
-     : QWidget(parent)
+ PathDeformControls::PathDeformControls(QWidget *parent, PathDeformRenderer* renderer, bool smallScreen)
+       : QWidget(parent)
  {
-     setWindowTitle(&quot;Vector Deformation&quot;);
+     m_renderer = renderer;
 
-     m_renderer = new PathDeformRenderer(this);
-     m_renderer-&gt;setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+     if (smallScreen)
+         layoutForSmallScreen();
+     else
+         layoutForDesktop();
+ }
 
-     QGroupBox *mainGroup = new QGroupBox(this);
-     mainGroup-&gt;setTitle(&quot;Vector Deformation&quot;);
+ void PathDeformControls::layoutForDesktop()
+ {
+     QGroupBox* mainGroup = new QGroupBox(this);
+     mainGroup-&gt;setTitle(&quot;Controls&quot;);
 
      QGroupBox *radiusGroup = new QGroupBox(mainGroup);
      radiusGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
      radiusGroup-&gt;setTitle(&quot;Lens Radius&quot;);
      QSlider *radiusSlider = new QSlider(Qt::Horizontal, radiusGroup);
-     radiusSlider-&gt;setRange(50, 150);
+     radiusSlider-&gt;setRange(15, 150);
      radiusSlider-&gt;setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
      QGroupBox *deformGroup = new QGroupBox(mainGroup);
@@ -112,7 +112,7 @@
 
      QPushButton *showSourceButton = new QPushButton(mainGroup);
      showSourceButton-&gt;setText(&quot;Show Source&quot;);
-<span class="comment"> //     showSourceButton-&gt;setCheckable(true);</span>
+
  #ifdef QT_OPENGL_SUPPORT
      QPushButton *enableOpenGLButton = new QPushButton(mainGroup);
      enableOpenGLButton-&gt;setText(&quot;Use OpenGL&quot;);
@@ -121,14 +121,11 @@
      if (!QGLFormat::hasOpenGL())
          enableOpenGLButton-&gt;hide();
  #endif
+
      QPushButton *whatsThisButton = new QPushButton(mainGroup);
      whatsThisButton-&gt;setText(&quot;What's This?&quot;);
      whatsThisButton-&gt;setCheckable(true);
 
-     <span class="comment">// Layouts</span>
-     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-     mainLayout-&gt;addWidget(m_renderer);
-     mainLayout-&gt;addWidget(mainGroup);
      mainGroup-&gt;setFixedWidth(180);
 
      QVBoxLayout *mainGroupLayout = new QVBoxLayout(mainGroup);
@@ -138,10 +135,10 @@
      mainGroupLayout-&gt;addWidget(textGroup);
      mainGroupLayout-&gt;addWidget(animateButton);
      mainGroupLayout-&gt;addStretch(1);
-     mainGroupLayout-&gt;addWidget(showSourceButton);
  #ifdef QT_OPENGL_SUPPORT
      mainGroupLayout-&gt;addWidget(enableOpenGLButton);
  #endif
+     mainGroupLayout-&gt;addWidget(showSourceButton);
      mainGroupLayout-&gt;addWidget(whatsThisButton);
 
      QVBoxLayout *radiusGroupLayout = new QVBoxLayout(radiusGroup);
@@ -156,31 +153,164 @@
      QVBoxLayout *textGroupLayout = new QVBoxLayout(textGroup);
      textGroupLayout-&gt;addWidget(textInput);
 
-     connect(textInput, SIGNAL(textChanged(QString)), m_renderer, SLOT(setText(QString)));
+     QVBoxLayout * mainLayout = new QVBoxLayout(this);
+     mainLayout-&gt;addWidget(mainGroup);
+     mainLayout-&gt;setMargin(0);
+
      connect(radiusSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setRadius(int)));
      connect(deformSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setIntensity(int)));
      connect(fontSizeSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setFontSize(int)));
      connect(animateButton, SIGNAL(clicked(bool)), m_renderer, SLOT(setAnimated(bool)));
-     connect(whatsThisButton, SIGNAL(clicked(bool)), m_renderer, SLOT(setDescriptionEnabled(bool)));
-     connect(showSourceButton, SIGNAL(clicked()), m_renderer, SLOT(showSource()));
  #ifdef QT_OPENGL_SUPPORT
      connect(enableOpenGLButton, SIGNAL(clicked(bool)), m_renderer, SLOT(enableOpenGL(bool)));
  #endif
+
+     connect(textInput, SIGNAL(textChanged(QString)), m_renderer, SLOT(setText(QString)));
      connect(m_renderer, SIGNAL(descriptionEnabledChanged(bool)),
              whatsThisButton, SLOT(setChecked(bool)));
+     connect(whatsThisButton, SIGNAL(clicked(bool)), m_renderer, SLOT(setDescriptionEnabled(bool)));
+     connect(showSourceButton, SIGNAL(clicked()), m_renderer, SLOT(showSource()));
 
      animateButton-&gt;animateClick();
      deformSlider-&gt;setValue(80);
-     radiusSlider-&gt;setValue(100);
      fontSizeSlider-&gt;setValue(120);
+     radiusSlider-&gt;setValue(100);
      textInput-&gt;setText(&quot;Qt&quot;);
+ }
+
+ void PathDeformControls::layoutForSmallScreen()
+ {
+     QGroupBox* mainGroup = new QGroupBox(this);
+     mainGroup-&gt;setTitle(&quot;Controls&quot;);
+
+     QLabel *radiusLabel = new QLabel(mainGroup);
+     radiusLabel-&gt;setText(&quot;Lens Radius:&quot;);
+     QSlider *radiusSlider = new QSlider(Qt::Horizontal, mainGroup);
+     radiusSlider-&gt;setRange(15, 150);
+     radiusSlider-&gt;setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+     QLabel *deformLabel = new QLabel(mainGroup);
+     deformLabel-&gt;setText(&quot;Deformation:&quot;);
+     QSlider *deformSlider = new QSlider(Qt::Horizontal, mainGroup);
+     deformSlider-&gt;setRange(-100, 100);
+     deformSlider-&gt;setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+     QLabel *fontSizeLabel = new QLabel(mainGroup);
+     fontSizeLabel-&gt;setText(&quot;Font Size:&quot;);
+     QSlider *fontSizeSlider = new QSlider(Qt::Horizontal, mainGroup);
+     fontSizeSlider-&gt;setRange(16, 200);
+     fontSizeSlider-&gt;setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
+     QPushButton *animateButton = new QPushButton(&quot;Animated&quot;, mainGroup);
+     animateButton-&gt;setCheckable(true);
+
+ #ifdef QT_OPENGL_SUPPORT
+     QPushButton *enableOpenGLButton = new QPushButton(mainGroup);
+     enableOpenGLButton-&gt;setText(&quot;Use OpenGL&quot;);
+     enableOpenGLButton-&gt;setCheckable(mainGroup);
+     enableOpenGLButton-&gt;setChecked(m_renderer-&gt;usesOpenGL());
+     if (!QGLFormat::hasOpenGL())
+         enableOpenGLButton-&gt;hide();
+ #endif
+
+     QPushButton *quitButton = new QPushButton(&quot;Quit&quot;, mainGroup);
+     QPushButton *okButton = new QPushButton(&quot;OK&quot;, mainGroup);
+
+     QGridLayout *mainGroupLayout = new QGridLayout(mainGroup);
+     mainGroupLayout-&gt;setMargin(0);
+     mainGroupLayout-&gt;addWidget(radiusLabel, 0, 0, Qt::AlignRight);
+     mainGroupLayout-&gt;addWidget(radiusSlider, 0, 1);
+     mainGroupLayout-&gt;addWidget(deformLabel, 1, 0, Qt::AlignRight);
+     mainGroupLayout-&gt;addWidget(deformSlider, 1, 1);
+     mainGroupLayout-&gt;addWidget(fontSizeLabel, 2, 0, Qt::AlignRight);
+     mainGroupLayout-&gt;addWidget(fontSizeSlider, 2, 1);
+     mainGroupLayout-&gt;addWidget(animateButton, 3,0, 1,2);
+ #ifdef QT_OPENGL_SUPPORT
+     mainGroupLayout-&gt;addWidget(enableOpenGLButton, 4,0, 1,2);
+ #endif
+
+     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+     mainLayout-&gt;addWidget(mainGroup);
+     mainLayout-&gt;addStretch(1);
+     mainLayout-&gt;addWidget(okButton);
+     mainLayout-&gt;addWidget(quitButton);
+
+     connect(quitButton, SIGNAL(clicked()), this, SLOT(emitQuitSignal()));
+     connect(okButton, SIGNAL(clicked()), this, SLOT(emitOkSignal()));
+     connect(radiusSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setRadius(int)));
+     connect(deformSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setIntensity(int)));
+     connect(fontSizeSlider, SIGNAL(valueChanged(int)), m_renderer, SLOT(setFontSize(int)));
+     connect(animateButton, SIGNAL(clicked(bool)), m_renderer, SLOT(setAnimated(bool)));
+ #ifdef QT_OPENGL_SUPPORT
+     connect(enableOpenGLButton, SIGNAL(clicked(bool)), m_renderer, SLOT(enableOpenGL(bool)));
+ #endif
+
+     animateButton-&gt;animateClick();
+     deformSlider-&gt;setValue(80);
+     fontSizeSlider-&gt;setValue(120);
+
+     QRect screen_size = QApplication::desktop()-&gt;screenGeometry();
+     radiusSlider-&gt;setValue(qMin(screen_size.width(), screen_size.height())/5);
+     m_renderer-&gt;setText(&quot;Qt&quot;);
+ }
+
+ void PathDeformControls::emitQuitSignal()
+ {   emit quitPressed();  }
+
+ void PathDeformControls::emitOkSignal()
+ {   emit okPressed();   }
+
+ PathDeformWidget::PathDeformWidget(QWidget *parent, bool smallScreen)
+     : QWidget(parent)
+ {
+     setWindowTitle(&quot;Vector Deformation&quot;);
+
+     m_renderer = new PathDeformRenderer(this, smallScreen);
+     m_renderer-&gt;setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+     <span class="comment">// Layouts</span>
+     QHBoxLayout *mainLayout = new QHBoxLayout(this);
+     mainLayout-&gt;addWidget(m_renderer);
+
+     m_controls = new PathDeformControls(0, m_renderer, smallScreen);
+     m_controls-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
+
+     if (!smallScreen)
+         mainLayout-&gt;addWidget(m_controls);
 
      m_renderer-&gt;loadSourceFile(&quot;:res/pathdeform.cpp&quot;);
      m_renderer-&gt;loadDescription(&quot;:res/pathdeform.html&quot;);
      m_renderer-&gt;setDescriptionEnabled(false);
+
+     connect(m_renderer, SIGNAL(clicked()), this, SLOT(showControls()));
+     connect(m_controls, SIGNAL(okPressed()), this, SLOT(hideControls()));
+     connect(m_controls, SIGNAL(quitPressed()), QApplication::instance(), SLOT(quit()));
  }
 
- static inline QRect circle_bounds(const QPointF &amp;center, double radius, double compensation)
+ void PathDeformWidget::showControls()
+ {
+     m_controls-&gt;showFullScreen();
+ }
+
+ void PathDeformWidget::hideControls()
+ {
+     m_controls-&gt;hide();
+ }
+
+ void PathDeformWidget::setStyle( QStyle * style )
+ {
+     QWidget::setStyle(style);
+     if (m_controls != 0)
+     {
+         m_controls-&gt;setStyle(style);
+
+         QList&lt;QWidget *&gt; widgets = qFindChildren&lt;QWidget *&gt;(m_controls);
+         foreach (QWidget *w, widgets)
+             w-&gt;setStyle(style);
+     }
+ }
+
+ static inline QRect circle_bounds(const QPointF &amp;center, qreal radius, qreal compensation)
  {
      return QRect(qRound(center.x() - radius - compensation),
                   qRound(center.y() - radius - compensation),
@@ -191,7 +321,7 @@
 
  const int LENS_EXTENT = 10;
 
- PathDeformRenderer::PathDeformRenderer(QWidget *widget)
+ PathDeformRenderer::PathDeformRenderer(QWidget *widget, bool smallScreen)
      : ArthurFrame(widget)
  {
      m_radius = 100;
@@ -202,6 +332,7 @@
      m_repaintTimer.start(25, this);
      m_repaintTracker.start();
      m_intensity = 100;
+     m_smallScreen = smallScreen;
 
 <span class="comment"> //     m_fpsTimer.start(1000, this);</span>
 <span class="comment"> //     m_fpsCounter = 0;</span>
@@ -256,7 +387,7 @@
 
  void PathDeformRenderer::generateLensPixmap()
  {
-     double rad = m_radius + LENS_EXTENT;
+     qreal rad = m_radius + LENS_EXTENT;
 
      QRect bounds = circle_bounds(QPointF(), rad, 0);
 
@@ -268,7 +399,7 @@
          painter.begin(&amp;m_lens_image);
      } else {
          m_lens_pixmap = QPixmap(bounds.size());
-         m_lens_pixmap.fill(QColor(0, 0, 0, 0));
+         m_lens_pixmap.fill(Qt::transparent);
          painter.begin(&amp;m_lens_pixmap);
      }
 
@@ -306,12 +437,12 @@
 
          if (QLineF(QPointF(0,0), m_direction).length() &gt; 1)
              m_direction *= 0.995;
-         double time = m_repaintTracker.restart();
+         qreal time = m_repaintTracker.restart();
 
          QRect rectBefore = circle_bounds(m_pos, m_radius, m_fontSize);
 
-         double dx = m_direction.x();
-         double dy = m_direction.y();
+         qreal dx = m_direction.x();
+         qreal dy = m_direction.y();
          if (time &gt; 0) {
              dx = dx * time * .1;
              dy = dy * time * .1;
@@ -363,6 +494,11 @@
      if (QLineF(m_pos, e-&gt;pos()).length() &lt;= m_radius)
          m_offset = m_pos - e-&gt;pos();
 
+     m_mousePress = e-&gt;pos();
+
+     <span class="comment">// If we're not running in small screen mode, always assume we're dragging</span>
+     m_mouseDrag = !m_smallScreen;
+
      mouseMoveEvent(e);
  }
 
@@ -372,26 +508,34 @@
          m_repaintTimer.start(10, this);
          m_repaintTracker.start();
      }
+
+     if (!m_mouseDrag &amp;&amp; m_smallScreen)
+         emit clicked();
  }
 
  void PathDeformRenderer::mouseMoveEvent(QMouseEvent *e)
  {
-     QRect rectBefore = circle_bounds(m_pos, m_radius, m_fontSize);
-     if (e-&gt;type() == QEvent::MouseMove) {
-         QLineF line(m_pos, e-&gt;pos() + m_offset);
-         line.setLength(line.length() * .1);
-         QPointF dir(line.dx(), line.dy());
-         m_direction = (m_direction + dir) / 2;
-     }
-     m_pos = e-&gt;pos() + m_offset;
+     if (!m_mouseDrag &amp;&amp; (QLineF(m_mousePress, e-&gt;pos()).length() &gt; 25.0) )
+         m_mouseDrag = true;
+
+     if (m_mouseDrag) {
+         QRect rectBefore = circle_bounds(m_pos, m_radius, m_fontSize);
+         if (e-&gt;type() == QEvent::MouseMove) {
+             QLineF line(m_pos, e-&gt;pos() + m_offset);
+             line.setLength(line.length() * .1);
+             QPointF dir(line.dx(), line.dy());
+             m_direction = (m_direction + dir) / 2;
+         }
+         m_pos = e-&gt;pos() + m_offset;
  #ifdef QT_OPENGL_SUPPORT
-     if (usesOpenGL()) {
-         update();
-     } else
+         if (usesOpenGL()) {
+             update();
+         } else
  #endif
-     {
-         QRect rectAfter = circle_bounds(m_pos, m_radius, m_fontSize);
-         update(rectBefore | rectAfter);
+         {
+             QRect rectAfter = circle_bounds(m_pos, m_radius, m_fontSize);
+             update(rectBefore | rectAfter);
+         }
      }
  }
 
@@ -400,17 +544,17 @@
      QPainterPath path;
      path.addPath(source);
 
-     double flip = m_intensity / 100.0;
+     qreal flip = m_intensity / qreal(100);
 
      for (int i=0; i&lt;path.elementCount(); ++i) {
          const QPainterPath::Element &amp;e = path.elementAt(i);
 
-         double x = e.x + offset.x();
-         double y = e.y + offset.y();
+         qreal x = e.x + offset.x();
+         qreal y = e.y + offset.y();
 
-         double dx = x - m_pos.x();
-         double dy = y - m_pos.y();
-         double len = m_radius - sqrt(dx * dx + dy * dy);
+         qreal dx = x - m_pos.x();
+         qreal dy = y - m_pos.y();
+         qreal len = m_radius - qSqrt(dx * dx + dy * dy);
 
          if (len &gt; 0) {
              path.setElementPositionAt(i,
@@ -472,7 +616,7 @@
 
  void PathDeformRenderer::setRadius(int radius)
  {
-     double max = qMax(m_radius, (double)radius);
+     qreal max = qMax(m_radius, (qreal)radius);
      m_radius = radius;
      generateLensPixmap();
      if (!m_animated || m_radius &lt; max) {
@@ -503,8 +647,8 @@
  }</pre>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

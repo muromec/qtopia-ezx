@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,7 +48,11 @@
 # include "qcoreapplication.h"
 #endif
 
+#if !defined(Q_OS_WINCE)
 #include <errno.h>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 static const int QFILE_WRITEBUFFER_SIZE = 16384;
 
@@ -97,21 +95,33 @@ QFilePrivate::~QFilePrivate()
 bool
 QFilePrivate::openExternalFile(int flags, int fd)
 {
+#ifdef QT_NO_FSFILEENGINE
+    Q_UNUSED(flags);
+    Q_UNUSED(fd);
+    return false;
+#else
     delete fileEngine;
     QFSFileEngine *fe = new QFSFileEngine;
     fe->setFileName(fileName);
     fileEngine = fe;
     return fe->open(QIODevice::OpenMode(flags), fd);
+#endif
 }
 
 bool
 QFilePrivate::openExternalFile(int flags, FILE *fh)
 {
+#ifdef QT_NO_FSFILEENGINE
+    Q_UNUSED(flags);
+    Q_UNUSED(fh);
+    return false;
+#else
     delete fileEngine;
     QFSFileEngine *fe = new QFSFileEngine;
     fe->setFileName(fileName);
     fileEngine = fe;
     return fe->open(QIODevice::OpenMode(flags), fh);
+#endif
 }
 
 inline bool QFilePrivate::ensureFlushed() const
@@ -189,10 +199,7 @@ QFilePrivate::setError(QFile::FileError err, int errNum)
 
     The following example reads a text file line by line:
 
-    \quotefromfile snippets/file/file.cpp
-    \skipto noStream_snippet
-    \skipto QFile
-    \printto /^\}/
+    \snippet doc/src/snippets/file/file.cpp 0
 
     The QIODevice::Text flag passed to open() tells Qt to convert
     Windows-style line terminators ("\\r\\n") into C++-style
@@ -204,9 +211,7 @@ QFilePrivate::setError(QFile::FileError err, int errNum)
     The next example uses QTextStream to read a text file
     line by line:
 
-    \skipto readTextStream_snippet
-    \skipto QFile
-    \printto /^\}/
+    \snippet doc/src/snippets/file/file.cpp 1
 
     QTextStream takes care of converting the 8-bit data stored on
     disk into a 16-bit Unicode QString. By default, it assumes that
@@ -218,9 +223,7 @@ QFilePrivate::setError(QFile::FileError err, int errNum)
     take a QTextStream on the left and various data types (including
     QString) on the right:
 
-    \skipto writeTextStream_snippet
-    \skipto QFile
-    \printto /^\}/
+    \snippet doc/src/snippets/file/file.cpp 2
 
     QDataStream is similar, in that you can use operator<<() to write
     data and operator>>() to read it back. See the class
@@ -243,9 +246,7 @@ QFilePrivate::setError(QFile::FileError err, int errNum)
     read() or readLine() repeatedly until no more data can be read. The next
     example uses QTextStream to read \c /proc/modules line by line:
 
-    \skipto readRegularEmptyFile_snippet
-    \skipto QFile
-    \printto /^\}/
+    \snippet doc/src/snippets/file/file.cpp 3
 
     \section1 Signals
 
@@ -253,6 +254,15 @@ QFilePrivate::setError(QFile::FileError err, int errNum)
     emit the aboutToClose(), bytesWritten(), or readyRead() signals. This
     implementation detail means that QFile is not suitable for reading and
     writing certain types of files, such as device files on Unix platforms.
+
+    \section1 Platform Specific Issues
+
+    File permissions are handled differently on Linux/Mac OS X and
+    Windows.  In a non \l{QIODevice::isWritable()}{writable}
+    directory on Linux, files cannot be created. This is not always
+    the case on Windows, where, for instance, the 'My Documents'
+    directory usually is not writable, but it is still possible to
+    create files in it.
 
     \sa QTextStream, QDataStream, QFileInfo, QDir, {The Qt Resource System}
 */
@@ -407,13 +417,7 @@ QString QFile::fileName() const
     \e{at the time of the open()} call.
 
     Example:
-    \code
-        QFile file;
-        QDir::setCurrent("/tmp");
-        file.setFileName("readme.txt");
-        QDir::setCurrent("/home");
-        file.open(QIODevice::ReadOnly);      // opens "/home/readme.txt" under Unix
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qfile.cpp 0
 
     Note that the directory separator "/" works for all operating
     systems supported by Qt.
@@ -466,9 +470,7 @@ QFile::encodeName(const QString &fileName)
     This is a typedef for a pointer to a function with the following
     signature:
 
-    \code
-        QByteArray myEncoderFunc(const QString &fileName);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qfile.cpp 1
 
     \sa setEncodingFunction(), encodeName()
 */
@@ -510,9 +512,7 @@ QFile::setEncodingFunction(EncoderFn f)
     This is a typedef for a pointer to a function with the following
     signature:
 
-    \code
-        QString myDecoderFunc(const QByteArray &localFileName);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qfile.cpp 2
 
     \sa setDecodingFunction()
 */
@@ -949,7 +949,7 @@ bool QFile::open(OpenMode mode)
         return false;
     }
     if (fileEngine()->open(mode)) {
-        setOpenMode(mode);
+        QIODevice::open(mode);
         if (mode & Append)
             seek(size());
         return true;
@@ -973,40 +973,37 @@ bool QFile::open(OpenMode mode)
     Returns true if successful; otherwise returns false.
 
     Example:
-    \code
-        #include <stdio.h>
-
-        void printError(const char* msg)
-        {
-            QFile file;
-            file.open(stderr, QIODevice::WriteOnly);
-            file.write(msg, qstrlen(msg));        // write to stderr
-            file.close();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qfile.cpp 3
 
     When a QFile is opened using this function, close() does not actually
     close the file, but only flushes it.
 
-    \warning If \a fh is \c stdin, \c stdout, or \c stderr, you may not be
-    able to seek(). See QIODevice::isSequentialAccess() for more
-    information.
+    \bold{Warning:}
+    \list 1
+        \o If \a fh is \c stdin, \c stdout, or \c stderr, you may not be able
+           to seek(). See QIODevice::isSequentialAccess() for more information.
+        \o Since this function opens the file without specifying the file name,
+           you cannot use this QFile with a QFileInfo.
+    \endlist
 
-    \bold{Note:} On Windows, you need to enable support for console applications
-    in order to use the stdin, stdout and stderr streams at the console. To do
-    this, add the following declaration to your application's project file:
-
-    \code
-    CONFIG += console
-    \endcode
-
-    \note On Windows, \a fh must be opened in binary mode (i.e., the mode
-    string must contain 'b', as in "rb" or "wb") when accessing files and
-    other random-access devices. Qt will translate the end-of-line characters
-    if you pass QIODevice::Text to \a mode. Sequential devices, such as stdin
-    and stdout, are unaffected by this limitation.
+    \note For Windows CE you may not be able to call seek() and resize().
+    Also, size() is set to \c 0.
 
     \sa close(), {qmake Variable Reference#CONFIG}{qmake Variable Reference}
+
+    \bold{Note for the Windows Platform}
+
+    \a fh must be opened in binary mode (i.e., the mode string must contain
+    'b', as in "rb" or "wb") when accessing files and other random-access
+    devices. Qt will translate the end-of-line characters if you pass
+    QIODevice::Text to \a mode. Sequential devices, such as stdin and stdout,
+    are unaffected by this limitation.
+
+    You need to enable support for console applications in order to use the
+    stdin, stdout and stderr streams at the console. To do this, add the
+    following declaration to your application's project file:
+
+    \snippet doc/src/snippets/code/src_corelib_io_qfile.cpp 4
 */
 bool QFile::open(FILE *fh, OpenMode mode)
 {
@@ -1023,7 +1020,7 @@ bool QFile::open(FILE *fh, OpenMode mode)
         return false;
     }
     if(d->openExternalFile(mode, fh)) {
-        setOpenMode(mode);
+        QIODevice::open(mode);
         if (mode & Append) {
             seek(size());
         } else {
@@ -1059,6 +1056,12 @@ bool QFile::open(FILE *fh, OpenMode mode)
     stderr), you may not be able to seek(). size() is set to \c
     LLONG_MAX (in \c <climits>).
 
+    \warning For Windows CE you may not be able to call seek(), setSize(), 
+    fileTime(). size() is set to \c 0.
+
+    \warning Since this function opens the file without specifying the file name,
+             you cannot use this QFile with a QFileInfo.
+
     \sa close()
 */
 bool QFile::open(int fd, OpenMode mode)
@@ -1076,7 +1079,7 @@ bool QFile::open(int fd, OpenMode mode)
         return false;
     }
     if(d->openExternalFile(mode, fd)) {
-        setOpenMode(mode);
+        QIODevice::open(mode);
         if (mode & Append)
             seek(size());
         return true;
@@ -1094,6 +1097,8 @@ bool QFile::open(int fd, OpenMode mode)
 
   If the file is not open, or there is an error, handle() returns -1.
 
+  This function is not supported on Windows CE.
+
   \sa QSocketNotifier
 */
 
@@ -1106,6 +1111,70 @@ QFile::handle() const
     if (QAbstractFileEngine *engine = fileEngine())
         return engine->handle();
     return -1;
+}
+
+/*!
+    \enum QFile::MemoryMapFlags
+    \since 4.4
+
+    This enum describes special options that may be used by the map()
+    function.
+
+    \value NoOptions        No options.
+*/
+
+/*!
+    \since 4.4
+    Maps \a size bytes of the file into memory starting at \a offset.  A file
+    should be open for a map to succeed but the file does not need to stay
+    open after the memory has been mapped.  When the QFile is destroyed
+    or a new file is opened with this object, any maps that have not been
+    unmapped will automatically be unmapped.
+
+    Any mapping options can be passed through \a flags.
+
+    Returns a pointer to the memory or 0 if there is an error.
+
+    \note On Windows CE 5.0 the file will be closed before mapping occurs.
+
+    \sa unmap(), QAbstractFileEngine::supportsExtension()
+ */
+uchar *QFile::map(qint64 offset, qint64 size, MemoryMapFlags flags)
+{
+    Q_D(QFile);
+    QAbstractFileEngine *engine = fileEngine();
+    if (engine
+        && engine->supportsExtension(QAbstractFileEngine::MapExtension)) {
+        unsetError();
+        uchar *address = engine->map(offset, size, flags);
+        if (address == 0)
+            d->setError(engine->error(), engine->errorString());
+        return address;
+    }
+    return 0;
+}
+
+/*!
+    \since 4.4
+    Unmaps the memory \a address.
+
+    Returns true if the unmap succeeds; false otherwise.
+
+    \sa map(), QAbstractFileEngine::supportsExtension()
+ */
+bool QFile::unmap(uchar *address)
+{
+    Q_D(QFile);
+    QAbstractFileEngine *engine = fileEngine();
+    if (engine
+        && engine->supportsExtension(QAbstractFileEngine::UnMapExtension)) {
+        unsetError();
+        bool success = engine->unmap(address);
+        if (!success)
+            d->setError(engine->error(), engine->errorString());
+        return success;
+    }
+    return false;
 }
 
 /*!
@@ -1239,8 +1308,9 @@ QFile::flush()
 {
     Q_D(QFile);
     if (!d->writeBuffer.isEmpty()) {
-        if (!_qfile_writeData(d->fileEngine ? d->fileEngine : fileEngine(),
-                              &d->writeBuffer)) {
+        qint64 size = d->writeBuffer.size();
+        if (_qfile_writeData(d->fileEngine ? d->fileEngine : fileEngine(),
+                             &d->writeBuffer) != size) {
             QFile::FileError err = fileEngine()->error();
             if(err == QFile::UnspecifiedError)
                 err = QFile::WriteError;
@@ -1542,3 +1612,5 @@ QFile::unsetError()
     Q_D(QFile);
     d->setError(QFile::NoError);
 }
+
+QT_END_NAMESPACE

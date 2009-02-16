@@ -8,10 +8,12 @@ HEADERS += \
         widgets/qabstractslider_p.h \
         widgets/qabstractspinbox.h \
         widgets/qabstractspinbox_p.h \
+        widgets/qcalendartextnavigator_p.h \
         widgets/qcalendarwidget.h \
         widgets/qcheckbox.h \
         widgets/qcombobox.h \
         widgets/qcombobox_p.h \
+        widgets/qcommandlinkbutton.h \
         widgets/qdatetimeedit.h \
         widgets/qdatetimeedit_p.h \
         widgets/qdial.h \
@@ -39,6 +41,7 @@ HEADERS += \
         widgets/qmenudata.h \
         widgets/qprogressbar.h \
         widgets/qpushbutton.h \
+        widgets/qpushbutton_p.h \
         widgets/qradiobutton.h \
         widgets/qrubberband.h \
         widgets/qscrollbar.h \
@@ -72,7 +75,10 @@ HEADERS += \
         widgets/qscrollarea.h \
         widgets/qworkspace.h \
         widgets/qwidgetanimator_p.h \
-        widgets/qtoolbararealayout_p.h
+        widgets/qtoolbararealayout_p.h \
+        widgets/qplaintextedit.h \
+        widgets/qplaintextedit_p.h \
+        widgets/qprintpreviewwidget.h
 
 SOURCES += \
         widgets/qabstractbutton.cpp \
@@ -81,6 +87,7 @@ SOURCES += \
         widgets/qcalendarwidget.cpp \
         widgets/qcheckbox.cpp \
         widgets/qcombobox.cpp \
+        widgets/qcommandlinkbutton.cpp \
         widgets/qdatetimeedit.cpp \
         widgets/qdial.cpp \
         widgets/qdialogbuttonbox.cpp \
@@ -129,7 +136,9 @@ SOURCES += \
         widgets/qscrollarea.cpp \
         widgets/qworkspace.cpp \
         widgets/qwidgetanimator.cpp \
-        widgets/qtoolbararealayout.cpp
+        widgets/qtoolbararealayout.cpp \
+        widgets/qplaintextedit.cpp \
+        widgets/qprintpreviewwidget.cpp
 
 
 !embedded:mac {
@@ -138,13 +147,10 @@ SOURCES += \
                widgets/qhiviewwidget_mac.cpp
 }
 
-wince-* {
-        SOURCES += widgets/ce/qcemainwindow.cpp
-        HEADERS += widgets/ce/qcemainwindow.h
-
-        SOURCES -= widgets/qsyntaxhighlighter.cpp \
-                   widgets/qsplashscreen.cpp
-
-        HEADERS -= widgets/qsyntaxhighlighter.h \
-                   widgets/qsplashscreen.h
+wince*: {
+    SOURCES += widgets/qmenu_wince.cpp
+    HEADERS += widgets/qmenu_wince_resource_p.h
+    RC_FILE = widgets/qmenu_wince.rc
+    !static: QMAKE_WRITE_DEFAULT_RC = 1
 }
+

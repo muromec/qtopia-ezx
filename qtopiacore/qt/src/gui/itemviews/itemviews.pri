@@ -37,7 +37,8 @@ HEADERS += \
     itemviews/qfileiconprovider.h \
     itemviews/qcolumnviewgrip_p.h \
     itemviews/qcolumnview.h  \
-    itemviews/qcolumnview_p.h
+    itemviews/qcolumnview_p.h \
+    itemviews/qstyleditemdelegate.h
 
 SOURCES += \
 	itemviews/qabstractitemview.cpp \
@@ -63,5 +64,6 @@ SOURCES += \
     itemviews/qdatawidgetmapper.cpp \
     itemviews/qfileiconprovider.cpp \
     itemviews/qcolumnview.cpp \
-    itemviews/qcolumnviewgrip.cpp
+    itemviews/qcolumnviewgrip.cpp \
+    itemviews/qstyleditemdelegate.cpp
 

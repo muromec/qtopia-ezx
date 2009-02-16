@@ -26,6 +26,9 @@
 #include <qglobal.h>
 #include <qbytearray.h>
 #include <qstring.h>
+
+QT_BEGIN_NAMESPACE
+
 typedef unsigned char md5byte;
 typedef quint32 UWORD32;
 
@@ -39,5 +42,7 @@ static void MD5Init(struct MD5Context *context);
 static void MD5Update(struct MD5Context *context, md5byte const *buf, unsigned len);
 static void MD5Final(struct MD5Context *context, unsigned char digest[16]);
 static void MD5Transform(UWORD32 buf[4], UWORD32 const in[16]);
+
+QT_END_NAMESPACE
 
 #endif /* !MD5_H */

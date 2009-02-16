@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,12 +51,14 @@
 #include "qtabbar.h"
 #include "qtoolbutton.h"
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QTabWidget
     \brief The QTabWidget class provides a stack of tabbed widgets.
 
     \ingroup organizers
-    \ingroup advanced
+    \ingroup basicwidgets
     \mainclass
 
     A tab widget provides a tab bar (see QTabBar) and a "page area"
@@ -165,7 +161,9 @@
     \fn void QTabWidget::currentChanged(int index)
 
     This signal is emitted whenever the current page index changes.
-    The parameter is the new current page \a index position.
+    The parameter is the new current page \a index position, or -1
+    if there isn't a new one (for example, if there are no widgets
+    in the QTabWidget)
 
     \sa currentWidget() currentIndex
 */
@@ -219,10 +217,6 @@ void QTabWidgetPrivate::init()
     tabBar->setDrawBase(false);
     q->setTabBar(tabBar);
 
-#ifdef Q_OS_TEMP
-    pos = QTabWidget::South;
-#endif
-
     q->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding, 
                                  QSizePolicy::TabWidget));
 #ifdef QT_KEYPAD_NAVIGATION
@@ -232,6 +226,8 @@ void QTabWidgetPrivate::init()
 #endif
     q->setFocusPolicy(Qt::TabFocus);
     q->setFocusProxy(tabs);
+    q->setTabPosition(static_cast<QTabWidget::TabPosition> (q->style()->styleHint(
+                      QStyle::SH_TabWidget_DefaultTabPosition, 0, q )));
 }
 
 /*!
@@ -254,17 +250,21 @@ void QTabWidget::initStyleOption(QStyleOptionTabWidgetFrame *option) const
     if (d->tabs->isVisibleTo(const_cast<QTabWidget *>(this)))
         t = d->tabs->sizeHint();
 
-    if (d->rightCornerWidget)
-        option->rightCornerWidgetSize
-            = d->rightCornerWidget->sizeHint().boundedTo(t - QSize(exth, exth));
-    else
+    if (d->rightCornerWidget) {
+        const QSize rightCornerSizeHint = d->rightCornerWidget->sizeHint();
+        const QSize bounds(rightCornerSizeHint.width(), t.height() - exth);
+        option->rightCornerWidgetSize = rightCornerSizeHint.boundedTo(bounds);
+    } else {
         option->rightCornerWidgetSize = QSize(0, 0);
+    }
 
-    if (d->leftCornerWidget)
-        option->leftCornerWidgetSize
-                            = d->leftCornerWidget->sizeHint().boundedTo(t - QSize(exth, exth));
-    else
+    if (d->leftCornerWidget) {
+        const QSize leftCornerSizeHint = d->leftCornerWidget->sizeHint();
+        const QSize bounds(leftCornerSizeHint.width(), t.height() - exth);
+        option->leftCornerWidgetSize = leftCornerSizeHint.boundedTo(bounds);
+    } else {
         option->leftCornerWidgetSize = QSize(0, 0);
+    }
 
     switch (d->pos) {
     case QTabWidget::North:
@@ -330,7 +330,7 @@ QTabWidget::~QTabWidget()
     move the focus to this tab.
 
     \note If you call addTab() after show(), the layout system will try
-    to adjust to the changes in it's widgets hierarchy and may cause
+    to adjust to the changes in its widgets hierarchy and may cause
     flicker. To prevent this, you can set the QWidget::updatesEnabled
     property to false prior to changes; remember to set the property
     to true when the changes are done, making the widget receive paint
@@ -384,7 +384,7 @@ int QTabWidget::addTab(QWidget *child, const QIcon& icon, const QString &label)
     index, but keep the current page.
 
     \note If you call insertTab() after show(), the layout system will try
-    to adjust to the changes in it's widgets hierarchy and may cause
+    to adjust to the changes in its widgets hierarchy and may cause
     flicker. To prevent this, you can set the QWidget::updatesEnabled
     property to false prior to changes; remember to set the property
     to true when the changes are done, making the widget receive paint
@@ -414,8 +414,8 @@ int QTabWidget::insertTab(int index, QWidget *w, const QIcon& icon, const QStrin
     Q_D(QTabWidget);
     if(!w)
         return -1;
-    index = d->tabs->insertTab(index, icon, label);
-    d->stack->insertWidget(index, w);
+    index = d->stack->insertWidget(index, w);
+    d->tabs->insertTab(index, icon, label);
     setUpLayout();
     tabInserted(index);
     return index;
@@ -600,6 +600,10 @@ void QTabWidget::setCurrentWidget(QWidget *widget)
     \property QTabWidget::currentIndex
     \brief the index position of the current tab page
 
+    The current index is -1 if there is no current widget.
+
+    By default, this property contains a value of -1 because there are initially
+    no tabs in the widget.
 */
 
 int QTabWidget::currentIndex() const
@@ -679,14 +683,13 @@ QTabBar* QTabWidget::tabBar() const
 void QTabWidgetPrivate::_q_showTab(int index)
 {
     Q_Q(QTabWidget);
-    if (index < stack->count() && index >= 0) {
+    if (index < stack->count() && index >= 0)
         stack->setCurrentIndex(index);
-        emit q->currentChanged(index);
+    emit q->currentChanged(index);
 #ifdef QT3_SUPPORT
-        emit q->selected(q->tabText(index));
-        emit q->currentChanged(stack->widget(index));
+    emit q->selected(q->tabText(index));
+    emit q->currentChanged(stack->widget(index));
 #endif
-    }
 }
 
 void QTabWidgetPrivate::_q_removeTab(int index)
@@ -738,6 +741,19 @@ void QTabWidget::setUpLayout(bool onlyCheck)
 }
 
 /*!
+    \internal
+*/
+static inline QSize basicSize(
+    bool horizontal, const QSize &lc, const QSize &rc, const QSize &s, const QSize &t)
+{
+    return horizontal
+        ? QSize(qMax(s.width(), t.width() + rc.width() + lc.width()),
+                s.height() + (qMax(rc.height(), qMax(lc.height(), t.height()))))
+        : QSize(s.width() + (qMax(rc.width(), qMax(lc.width(), t.width()))),
+                qMax(s.height(), t.height() + rc.height() + lc.height()));
+}
+
+/*!
     \reimp
 */
 QSize QTabWidget::sizeHint() const
@@ -762,13 +778,9 @@ QSize QTabWidget::sizeHint() const
         t = t.boundedTo(QSize(200,200));
     else
         t = t.boundedTo(QApplication::desktop()->size());
-    QSize sz;
-    if (d->pos == North || d->pos == South)
-        sz = QSize(qMax(s.width(), t.width() + rc.width() + lc.width()),
-                   s.height() + (qMax(rc.height(), qMax(lc.height(), t.height()))));
-    else
-        sz = QSize(s.width() + (qMax(rc.width(), qMax(lc.width(), t.width()))),
-                   qMax(s.height(), t.height() + rc.height() + lc.height()));
+
+    QSize sz = basicSize(d->pos == North || d->pos == South, lc, rc, s, t);
+
     return style()->sizeFromContents(QStyle::CT_TabWidget, &opt, sz, this)
                     .expandedTo(QApplication::globalStrut());
 }
@@ -795,8 +807,8 @@ QSize QTabWidget::minimumSizeHint() const
     QSize s(d->stack->minimumSizeHint());
     QSize t(d->tabs->minimumSizeHint());
 
-    QSize sz(qMax(s.width(), t.width() + rc.width() + lc.width()),
-              s.height() + (qMax(rc.height(), qMax(lc.height(), t.height()))));
+    QSize sz = basicSize(d->pos == North || d->pos == South, lc, rc, s, t);
+
     QStyleOption opt(0);
     opt.rect = rect();
     opt.palette = palette();
@@ -843,6 +855,8 @@ void QTabWidgetPrivate::updateTabBarPosition()
 
     Possible values for this property are described by the TabPosition
     enum.
+
+    By default, this property is set to \l North.
 
     \sa TabPosition
 */
@@ -970,6 +984,8 @@ QWidget *QTabWidget::widget(int index) const
 /*!
     \property QTabWidget::count
     \brief the number of tabs in the tab bar
+
+    By default, this property contains a value of 0.
 */
 int QTabWidget::count() const
 {
@@ -1115,7 +1131,7 @@ void QTabWidget::setElideMode(Qt::TextElideMode mode)
     \since 4.2
 
     When there are too many tabs in a tab bar for its size, the tab bar can either choose
-    to expand it's size or to add buttons that allow you to scroll through the tabs.
+    to expand its size or to add buttons that allow you to scroll through the tabs.
 
     By default the value is style dependant.
 
@@ -1177,7 +1193,7 @@ void QTabWidget::clear()
 /*!
     \fn void QTabWidget::setTabEnabled(QWidget *widget, bool b)
 
-    Use isTabEnabled(tabWidget->indexOf(widget), b) instead.
+    Use setTabEnabled(tabWidget->indexOf(widget), b) instead.
 */
 
 /*!
@@ -1289,6 +1305,7 @@ void QTabWidget::clear()
     Use currentChanged(int) instead.
 */
 
+QT_END_NAMESPACE
 
 #include "moc_qtabwidget.cpp"
 

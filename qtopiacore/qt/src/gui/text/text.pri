@@ -8,7 +8,6 @@ HEADERS += \
 	text/qfontmetrics.h \
 	text/qfont_p.h \
 	text/qfontsubset_p.h \
-	text/qscriptengine_p.h \
 	text/qtextcontrol_p.h \
 	text/qtextcontrol_p_p.h \
 	text/qtextengine_p.h \
@@ -41,7 +40,6 @@ SOURCES += \
 	text/qfontsubset.cpp \
 	text/qfontmetrics.cpp \
 	text/qfontdatabase.cpp \
-	text/qscriptengine.cpp \
 	text/qtextcontrol.cpp \
 	text/qtextengine.cpp \
 	text/qtextlayout.cpp \
@@ -68,11 +66,6 @@ win32 {
 		text/qfont_win.cpp \
 		text/qfontengine_win.cpp
 	HEADERS += text/qfontengine_win_p.h
-}
-
-wince-* {
-	SOURCES -= text/qfontengine_win.cpp
-	SOURCES += text/qfontengine_wce.cpp
 }
 
 unix:x11 {
@@ -173,11 +166,5 @@ contains(QT_CONFIG, fontconfig) {
     CONFIG += opentype
 }
 
-opentype {
-	INCLUDEPATH += ../3rdparty/harfbuzz/src
-	HEADERS += text/qopentype_p.h ../3rdparty/harfbuzz/src/harfbuzz.h
-	SOURCES += ../3rdparty/harfbuzz/src/harfbuzz.c \
-		 text/qopentype.cpp
-} else {
-	DEFINES += QT_NO_OPENTYPE
-}
+DEFINES += QT_NO_OPENTYPE
+INCLUDEPATH += ../3rdparty/harfbuzz/src

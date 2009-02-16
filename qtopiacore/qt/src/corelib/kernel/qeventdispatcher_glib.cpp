@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,8 @@
 #include <QtCore/qpair.h>
 
 #include <glib.h>
+
+QT_BEGIN_NAMESPACE
 
 struct GPollFDWithQSocketNotifier
 {
@@ -125,6 +121,7 @@ struct GTimerSource
 {
     GSource source;
     QTimerInfoList timerList;
+    QEventLoop::ProcessEventsFlags processEventsFlags;
 };
 
 static gboolean timerSourcePrepare(GSource *source, gint *timeout)
@@ -136,19 +133,20 @@ static gboolean timerSourcePrepare(GSource *source, gint *timeout)
     GTimerSource *src = reinterpret_cast<GTimerSource *>(source);
 
     timeval tv = { 0l, 0l };
-    if (src->timerList.timerWait(tv))
+    if (!(src->processEventsFlags & QEventLoop::X11ExcludeTimers) && src->timerList.timerWait(tv))
         *timeout = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
     else
         *timeout = -1;
 
-    return false;
+    return (*timeout == 0);
 }
 
 static gboolean timerSourceCheck(GSource *source)
 {
     GTimerSource *src = reinterpret_cast<GTimerSource *>(source);
 
-    if (src->timerList.isEmpty())
+    if (src->timerList.isEmpty()
+        || (src->processEventsFlags & QEventLoop::X11ExcludeTimers))
         return false;
 
     if (src->timerList.updateCurrentTime() < src->timerList.first()->timeout)
@@ -175,9 +173,8 @@ static GSourceFuncs timerSourceFuncs = {
 struct GPostEventSource
 {
     GSource source;
-    GPollFD pollfd;
-    int wakeUpPipe[2];
-    QEventLoop::ProcessEventsFlags flags, previousFlags;
+    QAtomicInt serialNumber;
+    int lastSerialNumber;
 };
 
 static gboolean postEventSourcePrepare(GSource *s, gint *timeout)
@@ -193,25 +190,19 @@ static gboolean postEventSourcePrepare(GSource *s, gint *timeout)
 
     GPostEventSource *source = reinterpret_cast<GPostEventSource *>(s);
     return (!data->canWait
-            || (source->flags != source->previousFlags));
+            || (source->serialNumber != source->lastSerialNumber));
 }
 
 static gboolean postEventSourceCheck(GSource *source)
 {
-    return (postEventSourcePrepare(source, 0)
-            || reinterpret_cast<GPostEventSource *>(source)->pollfd.revents != 0);
+    return postEventSourcePrepare(source, 0);
 }
 
 static gboolean postEventSourceDispatch(GSource *s, GSourceFunc, gpointer)
 {
     GPostEventSource *source = reinterpret_cast<GPostEventSource *>(s);
-
-    char c[16];
-    while (::read(source->wakeUpPipe[0], c, sizeof(c)) > 0)
-        ;
-
-    source->previousFlags = source->flags;
-    QCoreApplication::sendPostedEvents(0, (source->flags & QEventLoop::DeferredDeletion) ? -1 : 0);
+    source->lastSerialNumber = source->serialNumber;
+    QCoreApplication::sendPostedEvents();
     return true; // i dunno, george...
 }
 
@@ -248,20 +239,6 @@ QEventDispatcherGlibPrivate::QEventDispatcherGlibPrivate(GMainContext *context)
     postEventSource = reinterpret_cast<GPostEventSource *>(g_source_new(&postEventSourceFuncs,
                                                                         sizeof(GPostEventSource)));
     g_source_set_can_recurse(&postEventSource->source, true);
-
-    pipe(postEventSource->wakeUpPipe);
-    fcntl(postEventSource->wakeUpPipe[0], F_SETFD, FD_CLOEXEC);
-    fcntl(postEventSource->wakeUpPipe[1], F_SETFD, FD_CLOEXEC);
-    fcntl(postEventSource->wakeUpPipe[0], F_SETFL,
-          fcntl(postEventSource->wakeUpPipe[0], F_GETFL) | O_NONBLOCK);
-    fcntl(postEventSource->wakeUpPipe[1], F_SETFL,
-          fcntl(postEventSource->wakeUpPipe[1], F_GETFL) | O_NONBLOCK);
-
-    postEventSource->pollfd.fd = postEventSource->wakeUpPipe[0];
-    postEventSource->pollfd.events = G_IO_IN | G_IO_HUP | G_IO_ERR;
-    postEventSource->flags = postEventSource->previousFlags = QEventLoop::AllEvents;
-
-    g_source_add_poll(&postEventSource->source, &postEventSource->pollfd);
     g_source_attach(&postEventSource->source, mainContext);
 
     // setup socketNotifierSource
@@ -276,6 +253,7 @@ QEventDispatcherGlibPrivate::QEventDispatcherGlibPrivate(GMainContext *context)
     timerSource = reinterpret_cast<GTimerSource *>(g_source_new(&timerSourceFuncs,
                                                                 sizeof(GTimerSource)));
     (void) new (&timerSource->timerList) QTimerInfoList();
+    timerSource->processEventsFlags = QEventLoop::AllEvents;
     g_source_set_can_recurse(&timerSource->source, true);
     g_source_attach(&timerSource->source, mainContext);
 }
@@ -315,12 +293,6 @@ QEventDispatcherGlib::~QEventDispatcherGlib()
     d->socketNotifierSource = 0;
 
     // destroy post event source
-    g_source_remove_poll(&d->postEventSource->source, &d->postEventSource->pollfd);
-    close(d->postEventSource->wakeUpPipe[0]);
-    close(d->postEventSource->wakeUpPipe[1]);
-    d->postEventSource->wakeUpPipe[0] = 0;
-    d->postEventSource->wakeUpPipe[1] = 0;
-
     g_source_destroy(&d->postEventSource->source);
     g_source_unref(&d->postEventSource->source);
     d->postEventSource = 0;
@@ -340,11 +312,15 @@ bool QEventDispatcherGlib::processEvents(QEventLoop::ProcessEventsFlags flags)
     else
         emit awake();
 
-    // tell postEventSourcePrepare() about any new flags
-    d->postEventSource->flags = flags;
+    // tell postEventSourcePrepare() and timerSource about any new flags
+    QEventLoop::ProcessEventsFlags savedFlags = d->timerSource->processEventsFlags;
+    d->timerSource->processEventsFlags = flags;
+    
     bool result = g_main_context_iteration(d->mainContext, canWait);
     while (!result && canWait)
         result = g_main_context_iteration(d->mainContext, canWait);
+    
+    d->timerSource->processEventsFlags = savedFlags;
 
     if (canWait)
         emit awake();
@@ -364,8 +340,7 @@ void QEventDispatcherGlib::registerSocketNotifier(QSocketNotifier *notifier)
     int sockfd = notifier->socket();
     int type = notifier->type();
 #ifndef QT_NO_DEBUG
-    if (sockfd < 0
-        || unsigned(sockfd) >= FD_SETSIZE) {
+    if (sockfd < 0) {
         qWarning("QSocketNotifier: Internal error");
         return;
     } else if (notifier->thread() != thread()
@@ -403,8 +378,7 @@ void QEventDispatcherGlib::unregisterSocketNotifier(QSocketNotifier *notifier)
     Q_ASSERT(notifier);
 #ifndef QT_NO_DEBUG
     int sockfd = notifier->socket();
-    if (sockfd < 0
-        || unsigned(sockfd) >= FD_SETSIZE) {
+    if (sockfd < 0) {
         qWarning("QSocketNotifier: Internal error");
         return;
     } else if (notifier->thread() != thread()
@@ -497,8 +471,8 @@ void QEventDispatcherGlib::interrupt()
 void QEventDispatcherGlib::wakeUp()
 {
     Q_D(QEventDispatcherGlib);
-    char c = 0;
-    ::write(d->postEventSource->wakeUpPipe[1], &c, 1);
+    d->postEventSource->serialNumber.ref();
+    g_main_context_wakeup(d->mainContext);
 }
 
 void QEventDispatcherGlib::flush()
@@ -518,3 +492,5 @@ QEventDispatcherGlib::QEventDispatcherGlib(QEventDispatcherGlibPrivate &dd, QObj
     : QAbstractEventDispatcher(dd, parent)
 {
 }
+
+QT_END_NAMESPACE

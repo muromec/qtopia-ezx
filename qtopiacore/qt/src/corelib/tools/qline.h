@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include <QtCore/qpoint.h>
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Core)
 
@@ -77,6 +73,14 @@ public:
 
     inline void translate(const QPoint &p);
     inline void translate(int dx, int dy);
+
+    inline QLine translated(const QPoint &p) const;
+    inline QLine translated(int dx, int dy) const;
+
+    inline void setP1(const QPoint &p1);
+    inline void setP2(const QPoint &p2);
+    inline void setPoints(const QPoint &p1, const QPoint &p2);
+    inline void setLine(int x1, int y1, int x2, int y2);
 
     inline bool operator==(const QLine &d) const;
     inline bool operator!=(const QLine &d) const { return !(*this == d); }
@@ -152,6 +156,38 @@ inline void QLine::translate(int adx, int ady)
     this->translate(QPoint(adx, ady));
 }
 
+inline QLine QLine::translated(const QPoint &p) const
+{
+    return QLine(pt1 + p, pt2 + p);
+}
+
+inline QLine QLine::translated(int adx, int ady) const
+{
+    return translated(QPoint(adx, ady));
+}
+
+inline void QLine::setP1(const QPoint &aP1)
+{
+    pt1 = aP1;
+}
+
+inline void QLine::setP2(const QPoint &aP2)
+{
+    pt2 = aP2;
+}
+
+inline void QLine::setPoints(const QPoint &aP1, const QPoint &aP2)
+{
+    pt1 = aP1;
+    pt2 = aP2;
+}
+
+inline void QLine::setLine(int aX1, int aY1, int aX2, int aY2)
+{
+    pt1 = QPoint(aX1, aY1);
+    pt2 = QPoint(aX2, aY2);
+}
+
 inline bool QLine::operator==(const QLine &d) const
 {
     return pt1 == d.pt1 && pt2 == d.pt2;
@@ -179,6 +215,8 @@ public:
     inline QLineF(qreal x1, qreal y1, qreal x2, qreal y2);
     inline QLineF(const QLine &line) : pt1(line.p1()), pt2(line.p2()) { }
 
+    static QLineF fromPolar(qreal length, qreal angle);
+
     bool isNull() const;
 
     inline QPointF p1() const;
@@ -196,6 +234,11 @@ public:
     qreal length() const;
     void setLength(qreal len);
 
+    qreal angle() const;
+    void setAngle(qreal angle);
+
+    qreal angleTo(const QLineF &l) const;
+
     QLineF unitVector() const;
     QLineF normalVector() const;
 
@@ -207,6 +250,14 @@ public:
     QPointF pointAt(qreal t) const;
     inline void translate(const QPointF &p);
     inline void translate(qreal dx, qreal dy);
+
+    inline QLineF translated(const QPointF &p) const;
+    inline QLineF translated(qreal dx, qreal dy) const;
+
+    inline void setP1(const QPointF &p1);
+    inline void setP2(const QPointF &p2);
+    inline void setPoints(const QPointF &p1, const QPointF &p2);
+    inline void setLine(qreal x1, qreal y1, qreal x2, qreal y2);
 
     inline bool operator==(const QLineF &d) const;
     inline bool operator!=(const QLineF &d) const { return !(*this == d); }
@@ -292,6 +343,16 @@ inline void QLineF::translate(qreal adx, qreal ady)
     this->translate(QPointF(adx, ady));
 }
 
+inline QLineF QLineF::translated(const QPointF &p) const
+{
+    return QLineF(pt1 + p, pt2 + p);
+}
+
+inline QLineF QLineF::translated(qreal adx, qreal ady) const
+{
+    return translated(QPointF(adx, ady));
+}
+
 inline void QLineF::setLength(qreal len)
 {
     if (isNull())
@@ -312,10 +373,36 @@ inline QLine QLineF::toLine() const
     return QLine(pt1.toPoint(), pt2.toPoint());
 }
 
+
+inline void QLineF::setP1(const QPointF &aP1)
+{
+    pt1 = aP1;
+}
+
+inline void QLineF::setP2(const QPointF &aP2)
+{
+    pt2 = aP2;
+}
+
+inline void QLineF::setPoints(const QPointF &aP1, const QPointF &aP2)
+{
+    pt1 = aP1;
+    pt2 = aP2;
+}
+
+inline void QLineF::setLine(qreal aX1, qreal aY1, qreal aX2, qreal aY2)
+{
+    pt1 = QPointF(aX1, aY1);
+    pt2 = QPointF(aX2, aY2);
+}
+
+
 inline bool QLineF::operator==(const QLineF &d) const
 {
     return pt1 == d.pt1 && pt2 == d.pt2;
 }
+
+
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_CORE_EXPORT QDebug operator<<(QDebug d, const QLineF &p);
@@ -325,6 +412,8 @@ Q_CORE_EXPORT QDebug operator<<(QDebug d, const QLineF &p);
 Q_CORE_EXPORT QDataStream &operator<<(QDataStream &, const QLineF &);
 Q_CORE_EXPORT QDataStream &operator>>(QDataStream &, QLineF &);
 #endif
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

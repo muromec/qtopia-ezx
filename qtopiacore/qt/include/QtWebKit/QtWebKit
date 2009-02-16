@@ -1,0 +1,9 @@
+#include <QtNetwork/QtNetwork>
+#include "qwebhistoryinterface.h"
+#include "qwebkitglobal.h"
+#include "qwebpage.h"
+#include "qwebsettings.h"
+#include "qwebframe.h"
+#include "qwebview.h"
+#include "qwebhistory.h"
+#include "qwebpluginfactory.h"

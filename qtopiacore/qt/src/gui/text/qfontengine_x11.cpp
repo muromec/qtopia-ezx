@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,9 +39,11 @@
 
 // #define FONTENGINE_DEBUG
 
+#include <qapplication.h>
 #include <qbytearray.h>
 #include <qdebug.h>
 #include <qtextcodec.h>
+#include <qthread.h>
 
 #include "qfontdatabase.h"
 #include "qpaintdevice.h"
@@ -71,6 +67,8 @@
 #include "qfontengine_x11_p.h"
 
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 
 // ------------------------------------------------------------------
@@ -192,7 +190,7 @@ static QFontEngine::FaceId fontFile(const QByteArray &_xname, QFreetypeFace **fr
         ++minus;
     QByteArray encoding = xname.mid(pos + 1);
     //qDebug("xname='%s', searchname='%s', encoding='%s'", xname.data(), searchname.data(), encoding.data());
-    QStringList fontpath = ::fontPath();
+    QStringList fontpath = fontPath();
     QFontEngine::FaceId face_id;
     face_id.index = 0;
 
@@ -391,6 +389,13 @@ bool QFontEngineXLFD::stringToCMap(const QChar *s, int len, QGlyphLayout *glyphs
     }
     *nglyphs = len;
 
+    if (!(flags & QTextEngine::GlyphIndicesOnly))
+        recalcAdvances(len, glyphs, flags);
+    return true;
+}
+
+void QFontEngineXLFD::recalcAdvances(int len, QGlyphLayout *glyphs, QTextEngine::ShaperFlags /*flags*/) const
+{
     QGlyphLayout *g = glyphs + len;
     XCharStruct *xcs;
     // inlined for better perfomance
@@ -433,7 +438,6 @@ bool QFontEngineXLFD::stringToCMap(const QChar *s, int len, QGlyphLayout *glyphs
             }
         }
     }
-    return true;
 }
 
 glyph_metrics_t QFontEngineXLFD::boundingBox(const QGlyphLayout *glyphs, int numGlyphs)
@@ -598,14 +602,50 @@ bool QFontEngineXLFD::canRender(const QChar *string, int len)
 
 void QFontEngineXLFD::addOutlineToPath(qreal x, qreal y, const QGlyphLayout *glyphs, int numGlyphs, QPainterPath *path, QTextItem::RenderFlags flags)
 {
-    addBitmapFontToPath(x, y, glyphs, numGlyphs, path, flags);
+    // cannot use QFontEngine::addBitmapFontToPath(), since we don't
+    // have direct access to the glyph bitmaps, so we have to draw
+    // onto a QBitmap, then convert to QImage, then to path
+    glyph_metrics_t metrics = boundingBox(glyphs, numGlyphs);
+    int w = metrics.width.toInt();
+    int h = metrics.height.toInt();
+    if (w <= 0 || h <= 0)
+        return;
+    QBitmap bm(w, h);
+    QPainter p(&bm);
+    p.fillRect(0, 0, w, h, Qt::color0);
+    p.setPen(Qt::color1);
+
+    QTextItemInt item;
+    item.flags = flags;
+    item.ascent = -metrics.y;
+    item.descent = metrics.height - item.ascent;
+    item.width = metrics.width;
+    item.chars = 0;
+    item.num_chars = 0;
+    item.logClusters = 0;
+    item.glyphs = const_cast<QGlyphLayout *>(glyphs);
+    item.num_glyphs = numGlyphs;
+    item.fontEngine = this;
+    item.f = 0;
+
+    p.drawTextItem(QPointF(-metrics.x.toReal(), item.ascent.toReal()), item);
+    p.end();
+
+    QImage image = bm.toImage();
+    image = image.convertToFormat(QImage::Format_Mono);
+    const uchar *image_data = image.bits();
+    uint bpl = image.bytesPerLine();
+    // from qfontengine.cpp
+    extern void qt_addBitmapToPath(qreal x0, qreal y0, const uchar *image_data,
+                                   int bpl, int w, int h, QPainterPath *path);
+    qt_addBitmapToPath(x, y - item.ascent.toReal(), image_data, bpl, w, h, path);
 }
 
 QFontEngine::FaceId QFontEngineXLFD::faceId() const
 {
 #ifndef QT_NO_FREETYPE
     if (face_id.index == -1) {
-        face_id = ::fontFile(_name, &freetype, &synth);
+        face_id = fontFile(_name, &freetype, &synth);
         if (_codec)
             face_id.encoding = _codec->mibEnum();
         if (freetype) {
@@ -670,9 +710,9 @@ void QFontEngineXLFD::getUnscaledGlyph(glyph_t glyph, QPainterPath *path, glyph_
     metrics->y = QFixed::fromFixed(-top);
     metrics->xoff = QFixed::fromFixed(face->glyph->advance.x);
 
-    if (!FT_IS_SCALABLE(freetype->face)) 
+    if (!FT_IS_SCALABLE(freetype->face))
         QFreetypeFace::addBitmapToPath(face->glyph, p, path);
-    else 
+    else
         QFreetypeFace::addGlyphToPath(face, face->glyph, p, path, face->units_per_EM << 6, face->units_per_EM << 6);
 
     FT_Set_Transform(face, &freetype->matrix, 0);
@@ -681,17 +721,19 @@ void QFontEngineXLFD::getUnscaledGlyph(glyph_t glyph, QPainterPath *path, glyph_
 }
 
 
-QByteArray QFontEngineXLFD::getSfntTable(uint tag) const
+bool QFontEngineXLFD::getSfntTableData(uint tag, uchar *buffer, uint *length) const
 {
 #ifndef QT_NO_FREETYPE
     if (face_id.index == -1)
         (void)faceId();
     if (!freetype)
-        return QByteArray();
-    return freetype->getSfntTable(tag);
+        return false;
+    return freetype->getSfntTable(tag, buffer, length);
 #else
     Q_UNUSED(tag);
-    return QByteArray();
+    Q_UNUSED(buffer);
+    Q_UNUSED(length);
+    return false;
 #endif
 }
 
@@ -767,6 +809,9 @@ QFontEngineMultiFT::QFontEngineMultiFT(QFontEngine *fe, FcPattern *p, int s, con
 
 QFontEngineMultiFT::~QFontEngineMultiFT()
 {
+    extern QMutex *qt_fontdatabase_mutex();
+    QMutexLocker locker(qt_fontdatabase_mutex());
+
     FcPatternDestroy(pattern);
     if (fontSet)
         FcFontSetDestroy(fontSet);
@@ -775,6 +820,9 @@ QFontEngineMultiFT::~QFontEngineMultiFT()
 
 void QFontEngineMultiFT::loadEngine(int at)
 {
+    extern QMutex *qt_fontdatabase_mutex();
+    QMutexLocker locker(qt_fontdatabase_mutex());
+
     extern void qt_addPatternProps(FcPattern *pattern, int screen, int script,
                                    const QFontDef &request);
     extern QFontDef qt_FcPatternToQFontDef(FcPattern *pattern, const QFontDef &);
@@ -783,6 +831,16 @@ void QFontEngineMultiFT::loadEngine(int at)
     Q_ASSERT(at > 0);
     if (!fontSet) {
         fontSet = qt_fontSetForPattern(pattern, request);
+
+        // it may happen that the fontset of fallbacks consists of only one font. In this case we
+        // have to fall back to the box fontengine as we cannot render the glyph.
+        if (fontSet->nfont == 1 && at == 1 && engines.size() == 2) {
+            Q_ASSERT(engines.at(at) == 0);
+            QFontEngine *fe = new QFontEngineBox(request.pixelSize);
+            fe->fontDef = request;
+            engines[at] = fe;
+            return;
+        }
         engines.resize(fontSet->nfont);
     }
     Q_ASSERT(at < engines.size());
@@ -796,13 +854,13 @@ void QFontEngineMultiFT::loadEngine(int at)
     // note: we use -1 for the script to make sure that we keep real
     // FT engines separate from Multi engines in the font cache
     QFontCache::Key key(fontDef, -1, screen);
-    QFontEngine *fontEngine = QFontCache::instance->findEngine(key);
+    QFontEngine *fontEngine = QFontCache::instance()->findEngine(key);
     if (!fontEngine) {
         FcConfigSubstitute(0, pattern, FcMatchPattern);
         FcDefaultSubstitute(pattern);
         fontEngine = engineForPattern(pattern, request, screen);
         FcPatternDestroy(pattern);
-        QFontCache::instance->insertEngine(key, fontEngine);
+        QFontCache::instance()->insertEngine(key, fontEngine);
     }
     fontEngine->ref.ref();
     engines[at] = fontEngine;
@@ -840,7 +898,7 @@ QFontEngineX11FT::QFontEngineX11FT(FcPattern *pattern, const QFontDef &fd, int s
     face_id.filename = file_name;
     face_id.index = face_index;
 
-    canUploadGlyphsToServer = true;
+    canUploadGlyphsToServer = qApp->thread() == QThread::currentThread();
 
     subpixelType = Subpixel_None;
     if (antialias) {
@@ -930,7 +988,7 @@ QFontEngineX11FT::~QFontEngineX11FT()
 unsigned long QFontEngineX11FT::allocateServerGlyphSet()
 {
 #ifndef QT_NO_XRENDER
-    if (!X11->use_xrender)
+    if (!canUploadGlyphsToServer || !X11->use_xrender)
         return 0;
     return XRenderCreateGlyphSet(X11->display, XRenderFindStandardFormat(X11->display, xglyph_format));
 #else
@@ -950,6 +1008,8 @@ void QFontEngineX11FT::freeServerGlyphSet(unsigned long id)
 bool QFontEngineX11FT::uploadGlyphToServer(QGlyphSet *set, uint glyphid, Glyph *g, GlyphInfo *info, int glyphDataSize) const
 {
 #ifndef QT_NO_XRENDER
+    if (!canUploadGlyphsToServer)
+        return false;
     if (g->format == Format_Mono) {
         /*
          * swap bit order around; FreeType is always MSBFirst
@@ -981,3 +1041,5 @@ bool QFontEngineX11FT::uploadGlyphToServer(QGlyphSet *set, uint glyphid, Glyph *
 }
 
 #endif // QT_NO_FONTCONFIG
+
+QT_END_NAMESPACE

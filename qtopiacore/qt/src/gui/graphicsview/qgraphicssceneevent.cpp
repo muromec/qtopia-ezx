@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,7 @@
     graphics view related events.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     When a QGraphicsView receives Qt mouse, keyboard, and drag and
     drop events (QMouseEvent, QKeyEvent, QDragEvent, etc.), it
@@ -85,9 +80,10 @@
 /*!
     \class QGraphicsSceneMouseEvent
     \brief The QGraphicsSceneMouseEvent class provides mouse events 
-	   in the graphics view framework.
+           in the graphics view framework.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     When a QGraphicsView receives a QMouseEvent, it translates it to
     a QGraphicsSceneMouseEvent. The event is then forwarded to the
@@ -100,18 +96,19 @@
     lastPos(), lastScreenPos(), and lastScenePos().
 
     \sa QGraphicsSceneContextMenuEvent,
-	QGraphicsSceneHoverEvent, QGraphicsSceneWheelEvent,
-	QMouseEvent
+        QGraphicsSceneHoverEvent, QGraphicsSceneWheelEvent,
+        QMouseEvent
 */
 
 /*!
     \class QGraphicsSceneWheelEvent
     \brief The QGraphicsSceneWheelEvent class provides wheel events 
-	   in the graphics view framework.
+           in the graphics view framework.
     \brief The QGraphicsSceneWheelEvent class provides wheel events in the
     graphics view framework.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     \l{QWheelEvent}{QWheelEvent}s received by a QGraphicsView are translated
     into QGraphicsSceneWheelEvents; it translates the QWheelEvent::globalPos()
@@ -125,9 +122,10 @@
 /*!
     \class QGraphicsSceneContextMenuEvent
     \brief The QGraphicsSceneContextMenuEvent class provides context
-	   menu events in the graphics view framework.
+           menu events in the graphics view framework.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     A QContextMenuEvent received by a QGraphicsView is translated
     into a QGraphicsSceneContextMenuEvent. The
@@ -156,9 +154,10 @@
 /*!
     \class QGraphicsSceneHoverEvent
     \brief The QGraphicsSceneHoverEvent class provides hover events 
-	   in the graphics view framework.
+           in the graphics view framework.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     When a QGraphicsView receives a QHoverEvent event, it translates
     it into QGraphicsSceneHoverEvent. The event is then forwarded to
@@ -171,9 +170,10 @@
 /*!
     \class QGraphicsSceneHelpEvent
     \brief The QGraphicsSceneHelpEvent class provides events when a 
-	   tooltip is requested.
+           tooltip is requested.
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     When a QGraphicsView receives a QEvent of type
     QEvent::ToolTip, it creates a QGraphicsSceneHelpEvent, which is
@@ -181,7 +181,7 @@
     with \l{QGraphicsItem::}{setToolTip()}; by default QGraphicsScene
     displays the tooltip of the QGraphicsItem with the highest
     z-value (i.e, the top-most item) under the mouse position.
-    
+
     QGraphicsView does not forward events when
     \l{QWhatsThis}{"What's This"} and \l{QStatusTipEvent}{status tip}
     help is requested. If you need this, you can reimplement
@@ -195,9 +195,10 @@
 /*!
     \class QGraphicsSceneDragDropEvent
     \brief The QGraphicsSceneDragDropEvent class provides events for
-	   drag and drop in the graphics view framework. 
+           drag and drop in the graphics view framework. 
     \since 4.2
     \ingroup multimedia
+    \ingroup graphicsview-api
 
     QGraphicsView inherits the drag and drop functionality provided
     by QWidget. When it receives a drag and drop event, it translates
@@ -216,6 +217,42 @@
     drops with \l{QGraphicsItem::}{setAcceptDrops()}.
 */
 
+/*!
+    \class QGraphicsSceneResizeEvent
+    \brief The QGraphicsSceneResizeEvent class provides events for widget
+    resizing in the graphics view framework.
+    \since 4.4
+    \ingroup multimedia
+    \ingroup graphicsview-api
+
+    A QGraphicsWidget sends itself a QGraphicsSceneResizeEvent immediately
+    when its geometry changes.
+
+    It's similar to QResizeEvent, but its sizes, oldSize() and newSize(), use
+    QSizeF instead of QSize.
+
+    \sa QGraphicsWidget::setGeometry(), QGraphicsWidget::resize()
+*/
+
+/*!
+    \class QGraphicsSceneMoveEvent
+    \brief The QGraphicsSceneMoveEvent class provides events for widget
+    moving in the graphics view framework.
+    \since 4.4
+    \ingroup multimedia
+    \ingroup graphicsview-api
+
+    A QGraphicsWidget sends itself a QGraphicsSceneMoveEvent immediately when
+    its local position changes. The delivery is implemented as part of
+    QGraphicsItem::itemChange().
+
+    It's similar to QMoveEvent, but its positions, oldPos() and newPos(), use
+    QPointF instead of QPoint.
+
+    \sa QGraphicsItem::setPos(), QGraphicsItem::ItemPositionChange,
+    QGraphicsItem::ItemPositionHasChanged
+*/
+
 #include "qgraphicssceneevent.h"
 
 #ifndef QT_NO_GRAPHICSVIEW
@@ -224,7 +261,11 @@
 #include <QtCore/qdebug.h>
 #endif
 #include <QtCore/qmap.h>
+#include <QtCore/qpoint.h>
+#include <QtCore/qsize.h>
 #include <QtCore/qstring.h>
+
+QT_BEGIN_NAMESPACE
 
 class QGraphicsSceneEventPrivate
 {
@@ -641,7 +682,7 @@ void QGraphicsSceneWheelEvent::setPos(const QPointF &pos)
 }
 
 /*!
-    Returns the position of the cursor in item coordinates when the wheel
+    Returns the position of the cursor in scene coordinates when the wheel
     event occurred.
 
     \sa pos(), screenPos()
@@ -922,6 +963,10 @@ public:
     QPointF pos;
     QPointF scenePos;
     QPoint screenPos;
+    QPointF lastPos;
+    QPointF lastScenePos;
+    QPoint lastScreenPos;
+    Qt::KeyboardModifiers modifiers;
 };
 
 /*!
@@ -1014,6 +1059,99 @@ void QGraphicsSceneHoverEvent::setScreenPos(const QPoint &pos)
 {
     Q_D(QGraphicsSceneHoverEvent);
     d->screenPos = pos;
+}
+
+/*!
+    \since 4.4
+
+    Returns the last recorded mouse cursor position in item coordinates.
+
+    \sa lastScenePos(), lastScreenPos(), pos()
+*/
+QPointF QGraphicsSceneHoverEvent::lastPos() const
+{
+    Q_D(const QGraphicsSceneHoverEvent);
+    return d->lastPos;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneHoverEvent::setLastPos(const QPointF &pos)
+{
+    Q_D(QGraphicsSceneHoverEvent);
+    d->lastPos = pos;
+}
+
+/*!
+    \since 4.4
+
+    Returns the last recorded, the scene coordinates of the previous mouse or
+    hover event received by the view, that created the event mouse cursor
+    position in scene coordinates.
+
+    \sa lastPos(), lastScreenPos(), scenePos()
+*/
+QPointF QGraphicsSceneHoverEvent::lastScenePos() const
+{
+    Q_D(const QGraphicsSceneHoverEvent);
+    return d->lastScenePos;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneHoverEvent::setLastScenePos(const QPointF &pos)
+{
+    Q_D(QGraphicsSceneHoverEvent);
+    d->lastScenePos = pos;
+}
+
+/*!
+    \since 4.4
+
+    Returns the last recorded mouse cursor position in screen coordinates. The
+    last recorded position is the position of the previous mouse or hover
+    event received by the view that created the event.
+
+    \sa lastPos(), lastScenePos(), screenPos()
+*/
+QPoint QGraphicsSceneHoverEvent::lastScreenPos() const
+{
+    Q_D(const QGraphicsSceneHoverEvent);
+    return d->lastScreenPos;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneHoverEvent::setLastScreenPos(const QPoint &pos)
+{
+    Q_D(QGraphicsSceneHoverEvent);
+    d->lastScreenPos = pos;
+}
+
+/*!
+    \since 4.4
+
+    Returns the keyboard modifiers at the moment the the hover event was sent.
+*/
+Qt::KeyboardModifiers QGraphicsSceneHoverEvent::modifiers() const
+{
+    Q_D(const QGraphicsSceneHoverEvent);
+    return d->modifiers;
+}
+
+/*!
+    \fn void QGraphicsSceneHoverEvent::setModifiers(Qt::KeyboardModifiers modifiers)
+    \internal
+
+    Sets the modifiers for the current hover event to \a modifiers.
+*/
+void QGraphicsSceneHoverEvent::setModifiers(Qt::KeyboardModifiers modifiers)
+{
+    Q_D(QGraphicsSceneHoverEvent);
+    d->modifiers = modifiers;
 }
 
 class QGraphicsSceneHelpEventPrivate : public QGraphicsSceneEventPrivate
@@ -1314,11 +1452,7 @@ void QGraphicsSceneDragDropEvent::setProposedAction(Qt::DropAction action)
     Sets the proposed action as accepted, i.e, the drop action
     is set to the proposed action. This is equal to:
 
-    \code
-
-    setDropAction(proposedAction());
-
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_graphicsview_qgraphicssceneevent.cpp 0
 
     When using this function, one should not call \c accept().
 
@@ -1400,5 +1534,141 @@ void QGraphicsSceneDragDropEvent::setMimeData(const QMimeData *data)
     Q_D(QGraphicsSceneDragDropEvent);
     d->mimeData = data;
 }
+
+class QGraphicsSceneResizeEventPrivate : public QGraphicsSceneEventPrivate
+{
+    Q_DECLARE_PUBLIC(QGraphicsSceneResizeEvent)
+public:
+    inline QGraphicsSceneResizeEventPrivate()
+    { }
+
+    QSizeF oldSize;
+    QSizeF newSize;
+};
+
+/*!
+    Constructs a QGraphicsSceneResizeEvent.
+*/
+QGraphicsSceneResizeEvent::QGraphicsSceneResizeEvent()
+    : QGraphicsSceneEvent(*new QGraphicsSceneResizeEventPrivate, QEvent::GraphicsSceneResize)
+{
+}
+
+/*!
+    Destroys the QGraphicsSceneResizeEvent.
+*/
+QGraphicsSceneResizeEvent::~QGraphicsSceneResizeEvent()
+{
+}
+
+/*!
+    Returns the old size (i.e., the size immediately before the widget was
+    resized).
+
+    \sa newSize(), QGraphicsWidget::resize()
+*/
+QSizeF QGraphicsSceneResizeEvent::oldSize() const
+{
+    Q_D(const QGraphicsSceneResizeEvent);
+    return d->oldSize;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneResizeEvent::setOldSize(const QSizeF &size)
+{
+    Q_D(QGraphicsSceneResizeEvent);
+    d->oldSize = size;
+}
+
+/*!
+    Returns the new size (i.e., the current size).
+
+    \sa oldSize(), QGraphicsWidget::resize()
+*/
+QSizeF QGraphicsSceneResizeEvent::newSize() const
+{
+    Q_D(const QGraphicsSceneResizeEvent);
+    return d->newSize;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneResizeEvent::setNewSize(const QSizeF &size)
+{
+    Q_D(QGraphicsSceneResizeEvent);
+    d->newSize = size;
+}
+
+class QGraphicsSceneMoveEventPrivate : public QGraphicsSceneEventPrivate
+{
+    Q_DECLARE_PUBLIC(QGraphicsSceneMoveEvent)
+public:
+    inline QGraphicsSceneMoveEventPrivate()
+    { }
+
+    QPointF oldPos;
+    QPointF newPos;
+};
+
+/*!
+    Constructs a QGraphicsSceneMoveEvent.
+*/
+QGraphicsSceneMoveEvent::QGraphicsSceneMoveEvent()
+    : QGraphicsSceneEvent(*new QGraphicsSceneMoveEventPrivate, QEvent::GraphicsSceneMove)
+{
+}
+
+/*!
+    Destroys the QGraphicsSceneMoveEvent.
+*/
+QGraphicsSceneMoveEvent::~QGraphicsSceneMoveEvent()
+{
+}
+
+/*!
+    Returns the old position (i.e., the position immediatly before the widget
+    was moved).
+
+    \sa newPos(), QGraphicsItem::setPos()
+*/
+QPointF QGraphicsSceneMoveEvent::oldPos() const
+{
+    Q_D(const QGraphicsSceneMoveEvent);
+    return d->oldPos;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneMoveEvent::setOldPos(const QPointF &pos)
+{
+    Q_D(QGraphicsSceneMoveEvent);
+    d->oldPos = pos;
+}
+
+/*!
+    Returns the new position (i.e., the current position).
+
+    \sa oldPos(), QGraphicsItem::setPos()
+*/
+QPointF QGraphicsSceneMoveEvent::newPos() const
+{
+    Q_D(const QGraphicsSceneMoveEvent);
+    return d->newPos;
+}
+
+/*!
+    \internal
+*/
+void QGraphicsSceneMoveEvent::setNewPos(const QPointF &pos)
+{
+    Q_D(QGraphicsSceneMoveEvent);
+    d->newPos = pos;
+}
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_GRAPHICSVIEW

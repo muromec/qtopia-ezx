@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qtextbrowser.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qtextbrowser.cpp -->
 <head>
-  <title>Qt 4.3: QTextBrowser Class Reference</title>
+  <title>Qt 4.4: QTextBrowser Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QTextBrowser Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QTextBrowser Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QTextBrowser class provides a rich text browser with hypertext navigation. <a href="#details">More...</a></p>
 <pre> #include &lt;QTextBrowser&gt;</pre><p>Inherits <a href="qtextedit.html">QTextEdit</a>.</p>
@@ -39,14 +39,18 @@
 <li><div class="fn"/>15 properties inherited from <a href="qtextedit.html#properties">QTextEdit</a></li>
 <li><div class="fn"/>2 properties inherited from <a href="qabstractscrollarea.html#properties">QAbstractScrollArea</a></li>
 <li><div class="fn"/>6 properties inherited from <a href="qframe.html#properties">QFrame</a></li>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
 <h3>Public Functions</h3>
 <ul>
 <li><div class="fn"/><b><a href="qtextbrowser.html#QTextBrowser">QTextBrowser</a></b> ( QWidget * <i>parent</i> = 0 )</li>
+<li><div class="fn"/>int <b><a href="qtextbrowser.html#backwardHistoryCount">backwardHistoryCount</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qtextbrowser.html#clearHistory">clearHistory</a></b> ()</li>
+<li><div class="fn"/>int <b><a href="qtextbrowser.html#forwardHistoryCount">forwardHistoryCount</a></b> () const</li>
+<li><div class="fn"/>QString <b><a href="qtextbrowser.html#historyTitle">historyTitle</a></b> ( int <i>i</i> ) const</li>
+<li><div class="fn"/>QUrl <b><a href="qtextbrowser.html#historyUrl">historyUrl</a></b> ( int <i>i</i> ) const</li>
 <li><div class="fn"/>bool <b><a href="qtextbrowser.html#isBackwardAvailable">isBackwardAvailable</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextbrowser.html#isForwardAvailable">isForwardAvailable</a></b> () const</li>
 <li><div class="fn"/>virtual QVariant <b><a href="qtextbrowser.html#loadResource">loadResource</a></b> ( int <i>type</i>, const QUrl &amp; <i>name</i> )</li>
@@ -59,12 +63,12 @@
 <li><div class="fn"/>QUrl <b><a href="qtextbrowser.html#source-prop">source</a></b> () const</li>
 </ul>
 <ul>
-<li><div class="fn"/>56 public functions inherited from <a href="qtextedit.html#public-functions">QTextEdit</a></li>
+<li><div class="fn"/>58 public functions inherited from <a href="qtextedit.html#public-functions">QTextEdit</a></li>
 <li><div class="fn"/>15 public functions inherited from <a href="qabstractscrollarea.html#public-functions">QAbstractScrollArea</a></li>
 <li><div class="fn"/>13 public functions inherited from <a href="qframe.html#public-functions">QFrame</a></li>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -76,7 +80,7 @@
 <li><div class="fn"/>virtual void <b><a href="qtextbrowser.html#source-prop">setSource</a></b> ( const QUrl &amp; <i>name</i> )</li>
 </ul>
 <ul>
-<li><div class="fn"/>24 public slots inherited from <a href="qtextedit.html#public-slots">QTextEdit</a></li>
+<li><div class="fn"/>25 public slots inherited from <a href="qtextedit.html#public-slots">QTextEdit</a></li>
 <li><div class="fn"/>19 public slots inherited from <a href="qwidget.html#public-slots">QWidget</a></li>
 <li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
 </ul>
@@ -88,6 +92,7 @@
 <li><div class="fn"/>void <b><a href="qtextbrowser.html#forwardAvailable">forwardAvailable</a></b> ( bool <i>available</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextbrowser.html#highlighted">highlighted</a></b> ( const QUrl &amp; <i>link</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextbrowser.html#highlighted-2">highlighted</a></b> ( const QString &amp; <i>link</i> )</li>
+<li><div class="fn"/>void <b><a href="qtextbrowser.html#historyChanged">historyChanged</a></b> ()</li>
 <li><div class="fn"/>void <b><a href="qtextbrowser.html#sourceChanged">sourceChanged</a></b> ( const QUrl &amp; <i>src</i> )</li>
 </ul>
 <ul>
@@ -154,9 +159,11 @@
 </ul>
 <h3 class="fn"><a name="readOnly-prop"></a>readOnly : const bool</h3>
 <p>This property holds whether the text browser is read-only.</p>
+<p>By default, this property is true.</p>
 <h3 class="fn"><a name="searchPaths-prop"></a>searchPaths : <a href="qstringlist.html">QStringList</a></h3>
 <p>This property holds the search paths used by the text browser to find supporting content.</p>
 <p><a href="qtextbrowser.html">QTextBrowser</a> uses this list to locate images and documents.</p>
+<p>By default, this property contains an empty string list.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QStringList searchPaths () const</b></li>
@@ -167,6 +174,7 @@
 <p>This is a an invalid url if no document is displayed or if the source is unknown.</p>
 <p>When setting this property <a href="qtextbrowser.html">QTextBrowser</a> tries to find a document with the specified name in the paths of the <a href="qtextbrowser.html#searchPaths-prop">searchPaths</a> property and directory of the current source, unless the value is an absolute file path. It also checks for optional anchors and scrolls the document accordingly</p>
 <p>If the first tag in the document is <tt>&lt;qt type=detail&gt;</tt>, the document is displayed as a popup rather than as new document in the browser window itself. Otherwise, the document is displayed normally in the text browser with the text set to the contents of the named document with <a href="qtextedit.html#html-prop">setHtml</a>().</p>
+<p>By default, this property contains an empty URL.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QUrl source () const</b></li>
@@ -174,6 +182,7 @@
 </ul>
 <h3 class="fn"><a name="undoRedoEnabled-prop"></a>undoRedoEnabled : const bool</h3>
 <p>This property holds whether the text browser supports undo/redo operations.</p>
+<p>By default, this property is false.</p>
 <hr />
 <h2>Member Function Documentation</h2>
 <h3 class="fn"><a name="QTextBrowser"></a>QTextBrowser::QTextBrowser ( <a href="qwidget.html">QWidget</a> * <i>parent</i> = 0 )</h3>
@@ -186,6 +195,9 @@
 <p>See also <a href="qtextbrowser.html#forward">forward</a>() and <a href="qtextbrowser.html#backwardAvailable">backwardAvailable</a>().</p>
 <h3 class="fn"><a name="backwardAvailable"></a>void QTextBrowser::backwardAvailable ( bool <i>available</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted when the availability of <a href="qtextbrowser.html#backward">backward</a>() changes. <i>available</i> is false when the user is at <a href="qtextbrowser.html#home">home</a>(); otherwise it is true.</p>
+<h3 class="fn"><a name="backwardHistoryCount"></a>int QTextBrowser::backwardHistoryCount () const</h3>
+<p>Returns the number of locations backward in the history.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="clearHistory"></a>void QTextBrowser::clearHistory ()</h3>
 <p>Clears the history of visited documents and disables the forward and backward navigation.</p>
 <p>This function was introduced in Qt 4.2.</p>
@@ -195,13 +207,40 @@
 <p>See also <a href="qtextbrowser.html#backward">backward</a>() and <a href="qtextbrowser.html#forwardAvailable">forwardAvailable</a>().</p>
 <h3 class="fn"><a name="forwardAvailable"></a>void QTextBrowser::forwardAvailable ( bool <i>available</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted when the availability of <a href="qtextbrowser.html#forward">forward</a>() changes. <i>available</i> is true after the user navigates <a href="qtextbrowser.html#backward">backward</a>() and false when the user navigates or goes <a href="qtextbrowser.html#forward">forward</a>().</p>
+<h3 class="fn"><a name="forwardHistoryCount"></a>int QTextBrowser::forwardHistoryCount () const</h3>
+<p>Returns the number of locations forward in the history.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="highlighted"></a>void QTextBrowser::highlighted ( const <a href="qurl.html">QUrl</a> &amp; <i>link</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted when the user has selected but not activated an anchor in the document. The URL referred to by the anchor is passed in <i>link</i>.</p>
 <h3 class="fn"><a name="highlighted-2"></a>void QTextBrowser::highlighted ( const <a href="qstring.html">QString</a> &amp; <i>link</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Convenience signal that allows connecting to a slot that takes just a <a href="qstring.html">QString</a>, like for example <a href="qstatusbar.html">QStatusBar</a>'s message().</p>
+<h3 class="fn"><a name="historyChanged"></a>void QTextBrowser::historyChanged ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal is emitted when the history changes.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextbrowser.html#historyTitle">historyTitle</a>() and <a href="qtextbrowser.html#historyUrl">historyUrl</a>().</p>
+<h3 class="fn"><a name="historyTitle"></a><a href="qstring.html">QString</a> QTextBrowser::historyTitle ( int <i>i</i> ) const</h3>
+<p>Returns the <a href="qtextedit.html#documentTitle-prop">documentTitle</a>() of the HistoryItem.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Input</th><th>Return</th></tr></thead>
+<tr valign="top" class="odd"><td><i>i</i> &lt; 0</td><td><a href="qtextbrowser.html#backward">backward</a>() history</td></tr>
+<tr valign="top" class="even"><td><i>i</i> == 0</td><td>current, see <a href="qtextbrowser.html#source-prop">QTextBrowser::source</a>()</td></tr>
+<tr valign="top" class="odd"><td><i>i</i> &gt; 0</td><td><a href="qtextbrowser.html#forward">forward</a>() history</td></tr>
+</table></p>
+<pre> backaction.setToolTip(browser.historyTitle(-1));
+ forwardaction.setToolTip(browser.historyTitle(+1));</pre>
+<p>This function was introduced in Qt 4.4.</p>
+<h3 class="fn"><a name="historyUrl"></a><a href="qurl.html">QUrl</a> QTextBrowser::historyUrl ( int <i>i</i> ) const</h3>
+<p>Returns the url of the HistoryItem.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Input</th><th>Return</th></tr></thead>
+<tr valign="top" class="odd"><td><i>i</i> &lt; 0</td><td><a href="qtextbrowser.html#backward">backward</a>() history</td></tr>
+<tr valign="top" class="even"><td><i>i</i> == 0</td><td>current, see <a href="qtextbrowser.html#source-prop">QTextBrowser::source</a>()</td></tr>
+<tr valign="top" class="odd"><td><i>i</i> &gt; 0</td><td><a href="qtextbrowser.html#forward">forward</a>() history</td></tr>
+</table></p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="home"></a>void QTextBrowser::home ()&nbsp;&nbsp;<tt> [virtual slot]</tt></h3>
-<p>Changes the document displayed to be the first document the browser displayed.</p>
+<p>Changes the document displayed to be the first document from the history.</p>
 <h3 class="fn"><a name="isBackwardAvailable"></a>bool QTextBrowser::isBackwardAvailable () const</h3>
 <p>Returns true if the text browser can go backward in the document history using <a href="qtextbrowser.html#backward">backward</a>().</p>
 <p>This function was introduced in Qt 4.2.</p>
@@ -220,7 +259,7 @@
 </table></p>
 <p>Reimplemented from <a href="qwidget.html#keyPressEvent">QWidget</a>.</p>
 <h3 class="fn"><a name="loadResource"></a><a href="qvariant.html">QVariant</a> QTextBrowser::loadResource ( int <i>type</i>, const <a href="qurl.html">QUrl</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>This function is called when the document is loaded. The <i>type</i> indicates the type of resource to be loaded. For each image in the document, this function is called once.</p>
+<p>This function is called when the document is loaded and for each image in the document. The <i>type</i> indicates the type of resource to be loaded. An invalid <a href="qvariant.html">QVariant</a> is returned if the resource cannot be loaded.</p>
 <p>The default implementation ignores <i>type</i> and tries to locate the resources by interpreting <i>name</i> as a file name. If it is not an absolute path it tries to find the file in the paths of the <a href="qtextbrowser.html#searchPaths-prop">searchPaths</a> property and in the same directory as the current source. On success, the result is a <a href="qvariant.html">QVariant</a> that stores a <a href="qbytearray.html">QByteArray</a> with the contents of the file.</p>
 <p>If you reimplement this function, you can return other <a href="qvariant.html">QVariant</a> types. The table below shows which variant types are supported depending on the resource type:</p>
 <p><table align="center" cellpadding="2" cellspacing="1" border="0">
@@ -237,8 +276,8 @@
 <p>Source changes happen both programmatically when calling <a href="qtextbrowser.html#source-prop">setSource</a>(), <a href="qtextbrowser.html#forward">forward</a>(), backword() or <a href="qtextbrowser.html#home">home</a>() or when the user clicks on links or presses the equivalent key sequences.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

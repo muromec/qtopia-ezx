@@ -1,52 +1,47 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qline.h"
 #include "qdebug.h"
 #include "qdatastream.h"
+#include "qmath.h"
 #include <private/qnumeric_p.h>
 
-#include <math.h>
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QLine
@@ -200,6 +195,64 @@
     Translates this line the distance specified by \a dx and \a dy.
 */
 
+/*!
+    \fn QLine QLine::translated(const QPoint &offset) const
+
+    \since 4.4
+
+    Returns this line translated by the given \a offset.
+*/
+
+/*!
+    \fn QLine QLine::translated(int dx, int dy) const
+    \overload
+    \since 4.4
+
+    Returns this line translated the distance specified by \a dx and \a dy.
+*/
+
+
+/*!
+    \fn void QLine::setP1(const QPoint &p1)
+    \since 4.4
+
+    Sets the starting point of this line to \a p1.
+
+    \sa setP2(), p1()
+*/
+
+
+/*!
+    \fn void QLine::setP2(const QPoint &p2)
+    \since 4.4
+
+    Sets the end point of this line to \a p2.
+
+    \sa setP1(), p2()
+*/
+
+
+/*!
+    \fn void QLine::setPoints(const QPoint &p1, const QPoint &p2)
+    \since 4.4
+
+    Sets the start point of this line to \a p1 and the end point of this line to \a p2.
+
+    \sa setP1(), setP2(), p1(), p2()
+*/
+
+
+/*!
+    \fn void QLine::setLine(int x1, int y1, int x2, int y2)
+    \since 4.4
+
+    Sets this line to the start in \a x1, \a y1 and end in \a x2, \a y2.
+
+    \sa setP1(), setP2(), p1(), p2()
+*/
+
+
+
 #ifndef QT_NO_DEBUG_STREAM
 QDebug operator<<(QDebug d, const QLine &p)
 {
@@ -275,7 +328,9 @@ QDataStream &operator>>(QDataStream &stream, QLine &line)
     components of the line, respectively.
 
     The line's length can be retrieved using the length() function,
-    and altered using the setLength() function.  Use the isNull()
+    and altered using the setLength() function.  Similarly, angle()
+    and setAngle() are respectively used for retrieving and altering
+    the angle of the line. Use the isNull()
     function to determine whether the QLineF represents a valid line
     or a null line.
 
@@ -311,9 +366,12 @@ QDataStream &operator>>(QDataStream &stream, QLine &line)
     \value NoIntersection Indicates that the lines do not intersect;
     i.e. they are parallel.
 
-    \value UnboundedIntersection The two lines intersect,
-    but not within the range defined by their lengths. This will be
-    the case if the lines are not parallel.
+    \value UnboundedIntersection The two lines intersect, but not
+    within the range defined by their lengths. This will be the case
+    if the lines are not parallel. 
+
+    intersect() will also return this value if the intersect point is
+    within the start and end point of only one of the lines.
 
     \value BoundedIntersection The two lines intersect with each other
     within the start and end points of each line.
@@ -437,9 +495,11 @@ bool QLineF::isNull() const
 /*!
     \fn QLineF::setLength(qreal length)
 
-    Sets the length of the line to the given \a length. If the line is a
-    null line, the length will remain zero regardless of the length
-    specified.
+    Sets the length of the line to the given \a length. QLineF will
+    move the end point - p2() - of the line to give the line its new length.
+    
+    If the line is a null line, the length will remain zero regardless
+    of the length specified. 
 
     \sa length(), isNull()
 */
@@ -492,9 +552,73 @@ qreal QLineF::length() const
 {
     qreal x = pt2.x() - pt1.x();
     qreal y = pt2.y() - pt1.y();
-    return sqrt(x*x + y*y);
+    return qSqrt(x*x + y*y);
 }
 
+/*!
+    \since 4.4
+
+    Returns the angle of the line in degrees.
+
+    Positive values for the angles mean counter-clockwise while negative values
+    mean the clockwise direction. Zero degrees is at the 3 o'clock position.
+
+    \sa setAngle()
+*/
+qreal QLineF::angle() const
+{
+    const qreal dx = pt2.x() - pt1.x();
+    const qreal dy = pt2.y() - pt1.y();
+
+    const qreal theta = atan2(-dy, dx) * 360.0 / M_2PI;
+
+    const qreal theta_normalized = theta < 0 ? theta + 360 : theta;
+
+    if (qFuzzyCompare(theta_normalized, qreal(360)))
+        return qreal(0);
+    else
+        return theta_normalized;
+}
+
+/*!
+    \since 4.4
+
+    Sets the angle of the line to the given \a angle (in degrees).
+    This will change the position of the second point of the line such that
+    the line has the given angle.
+
+    Positive values for the angles mean counter-clockwise while negative values
+    mean the clockwise direction. Zero degrees is at the 3 o'clock position.
+
+    \sa angle()
+*/
+void QLineF::setAngle(qreal angle)
+{
+    const qreal angleR = angle * M_2PI / 360.0;
+    const qreal l = length();
+
+    const qreal dx = qCos(angleR) * l;
+    const qreal dy = -qSin(angleR) * l;
+
+    pt2.rx() = pt1.x() + dx;
+    pt2.ry() = pt1.y() + dy;
+}
+
+/*!
+    \since 4.4
+
+    Returns a QLineF with the given \a length and \a angle.
+
+    The first point of the line will be on the origin.
+
+    Positive values for the angles mean counter-clockwise while negative values
+    mean the clockwise direction. Zero degrees is at the 3 o'clock position.
+*/
+QLineF QLineF::fromPolar(qreal length, qreal angle)
+{
+    const qreal angleR = angle * M_2PI / 360.0;
+    return QLineF(0, 0, qCos(angleR) * length, -qSin(angleR) * length);
+}
 
 /*!
     Returns the unit vector for this line, i.e a line starting at the
@@ -507,7 +631,7 @@ QLineF QLineF::unitVector() const
     qreal x = pt2.x() - pt1.x();
     qreal y = pt2.y() - pt1.y();
 
-    qreal len = sqrt(x*x + y*y);
+    qreal len = qSqrt(x*x + y*y);
     QLineF f(p1(), QPointF(pt1.x() + x/len, pt1.y() + y/len));
 
 #ifndef QT_NO_DEBUG
@@ -573,8 +697,8 @@ QLineF::IntersectType QLineF::intersect(const QLineF &l, QPointF *intersectionPo
                                             l.x1(), l.y1(), l.x2(), l.y2())
                          ? BoundedIntersection : UnboundedIntersection;
 
-    bool dx_zero = qFuzzyCompare(dx(), 0);
-    bool ldx_zero = qFuzzyCompare(l.dx(), 0);
+    bool dx_zero = qFuzzyCompare(dx() + 1, 1);
+    bool ldx_zero = qFuzzyCompare(l.dx() + 1, 1);
 
     // For special case where one of the lines are vertical
     if (dx_zero && ldx_zero) {
@@ -613,12 +737,103 @@ QLineF::IntersectType QLineF::intersect(const QLineF &l, QPointF *intersectionPo
 */
 
 /*!
+    \fn QLineF QLineF::translated(const QPointF &offset) const
+
+    \since 4.4
+
+    Returns this line translated by the given \a offset.
+*/
+
+/*!
+    \fn QLineF QLineF::translated(qreal dx, qreal dy) const
+    \overload
+    \since 4.4
+
+    Returns this line translated the distance specified by \a dx and \a dy.
+*/
+
+/*!
+    \fn void QLineF::setP1(const QPointF &p1)
+    \since 4.4
+
+    Sets the starting point of this line to \a p1.
+
+    \sa setP2(), p1()
+*/
+
+
+/*!
+    \fn void QLineF::setP2(const QPointF &p2)
+    \since 4.4
+
+    Sets the end point of this line to \a p2.
+
+    \sa setP1(), p2()
+*/
+
+
+/*!
+    \fn void QLineF::setPoints(const QPointF &p1, const QPointF &p2)
+    \since 4.4
+
+    Sets the start point of this line to \a p1 and the end point of this line to \a p2.
+
+    \sa setP1(), setP2(), p1(), p2()
+*/
+
+
+/*!
+    \fn void QLineF::setLine(qreal x1, qreal y1, qreal x2, qreal y2)
+    \since 4.4
+
+    Sets this line to the start in \a x1, \a y1 and end in \a x2, \a y2.
+
+    \sa setP1(), setP2(), p1(), p2()
+*/
+
+/*!
+  \fn qreal QLineF::angleTo(const QLineF &line) const
+
+  \since 4.4
+
+  Returns the angle (in degrees) from this line to the given \a
+  line, taking the direction of the lines into account. If the lines
+  do not intersect within their range, it is the intersection point of
+  the extended lines that serves as origin (see
+  QLineF::UnboundedIntersection).
+
+  The returned value represents the number of degrees you need to add
+  to this line to make it have the same angle as the given \a line,
+  going counter-clockwise.
+
+  \sa intersect()
+*/
+qreal QLineF::angleTo(const QLineF &l) const
+{
+    if (isNull() || l.isNull())
+        return 0;
+
+    const qreal a1 = angle();
+    const qreal a2 = l.angle();
+
+    const qreal delta = a2 - a1;
+    const qreal delta_normalized = delta < 0 ? delta + 360 : delta;
+
+    if (qFuzzyCompare(delta, qreal(360)))
+        return 0;
+    else
+        return delta_normalized;
+}
+
+/*!
   \fn qreal QLineF::angle(const QLineF &line) const
+
+  \obsolete
 
   Returns the angle (in degrees) between this line and the given \a
   line, taking the direction of the lines into account. If the lines
   do not intersect within their range, it is the intersection point of
-  the extended lines that serves as origo (see
+  the extended lines that serves as origin (see
   QLineF::UnboundedIntersection).
 
   \table
@@ -688,3 +903,5 @@ QDataStream &operator>>(QDataStream &stream, QLineF &line)
 }
 
 #endif // QT_NO_DATASTREAM
+
+QT_END_NAMESPACE

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,36 +54,45 @@ TRANSLATOR qdesigner_internal::BuddyEditor
 
 #include <QtCore/qdebug.h>
 #include <QtGui/QLabel>
+#include <QtGui/QMenu>
+#include <QtGui/QAction>
+#include <QtGui/QApplication>
 
-namespace {
-    bool canBeBuddy(QWidget *w, QDesignerFormWindowInterface *form) {
-        if (qobject_cast<const QLayoutWidget*>(w)        || w == form->mainContainer() || w->isHidden())
-            return false;
+QT_BEGIN_NAMESPACE
 
-        QExtensionManager *ext = form->core()->extensionManager();
-        if (QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(ext, w)) {
-            const int index = sheet->indexOf(QLatin1String("focusPolicy"));
-            if (index != -1) {
-                bool ok = false;
-                const Qt::FocusPolicy q = static_cast<Qt::FocusPolicy>(qdesigner_internal::Utils::valueOf(sheet->property(index), &ok));
-                return ok && q != Qt::NoFocus;
-            }
-        }
+static const char *buddyPropertyC = "buddy";
+
+static bool canBeBuddy(QWidget *w, QDesignerFormWindowInterface *form)
+{
+    if (qobject_cast<const QLayoutWidget*>(w) || qobject_cast<const QLabel*>(w))
         return false;
-    }
+    if (w == form->mainContainer() || w->isHidden() )
+        return false;
 
-    QString buddy(QLabel *label, QDesignerFormEditorInterface *core) {
-        QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(core->extensionManager(), label);
-        if (sheet == 0)
-            return QString();
-        const int prop_idx = sheet->indexOf(QLatin1String("buddy"));
-        if (prop_idx == -1)
-            return QString();
-        return sheet->property(prop_idx).toString();
+    QExtensionManager *ext = form->core()->extensionManager();
+    if (QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(ext, w)) {
+        const int index = sheet->indexOf(QLatin1String("focusPolicy"));
+        if (index != -1) {
+            bool ok = false;
+            const Qt::FocusPolicy q = static_cast<Qt::FocusPolicy>(qdesigner_internal::Utils::valueOf(sheet->property(index), &ok));
+            return ok && q != Qt::NoFocus;
+        }
     }
-
-    typedef QList<QLabel*> LabelList;
+    return false;
 }
+
+static QString buddy(QLabel *label, QDesignerFormEditorInterface *core)
+{
+    QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(core->extensionManager(), label);
+    if (sheet == 0)
+        return QString();
+    const int prop_idx = sheet->indexOf(QLatin1String(buddyPropertyC));
+    if (prop_idx == -1)
+        return QString();
+    return sheet->property(prop_idx).toString();
+}
+
+typedef QList<QLabel*> LabelList;
 
 namespace qdesigner_internal {
 
@@ -202,12 +205,8 @@ void BuddyEditor::updateBackground()
     if (!toRemove.isEmpty()) {
         DeleteConnectionsCommand command(this, toRemove);
         command.redo();
-        foreach (Connection *con, toRemove) {
-            if (m_con_list.contains(con)) {
-                m_con_list.removeAll(con);
-                delete con;
-            }
-        }
+        foreach (Connection *con, toRemove)
+            delete takeConnection(con);
     }
 
     QListIterator<Connection *> it(newList);
@@ -255,41 +254,44 @@ void BuddyEditor::setBackground(QWidget *background)
     }
 }
 
+static QUndoCommand *createBuddyCommand(QDesignerFormWindowInterface *fw, QLabel *label, QWidget *buddy)
+{
+    SetPropertyCommand *command = new SetPropertyCommand(fw);
+    command->init(label, QLatin1String(buddyPropertyC), buddy->objectName());
+    command->setText(BuddyEditor::tr("Add buddy"));
+    return command;
+}
+
 void BuddyEditor::endConnection(QWidget *target, const QPoint &pos)
 {
-    Q_ASSERT(m_tmp_con != 0);
+    Connection *tmp_con = newlyAddedConnection();
+    Q_ASSERT(tmp_con != 0);
 
-    m_tmp_con->setEndPoint(EndPoint::Target, target, pos);
+    tmp_con->setEndPoint(EndPoint::Target, target, pos);
 
-    QWidget *source = m_tmp_con->widget(EndPoint::Source);
+    QWidget *source = tmp_con->widget(EndPoint::Source);
     Q_ASSERT(source != 0);
     Q_ASSERT(target != 0);
     setEnabled(false);
     Connection *new_con = createConnection(source, target);
     setEnabled(true);
     if (new_con != 0) {
-        new_con->setEndPoint(EndPoint::Source, source, m_tmp_con->endPointPos(EndPoint::Source));
-        new_con->setEndPoint(EndPoint::Target, target, m_tmp_con->endPointPos(EndPoint::Target));
+        new_con->setEndPoint(EndPoint::Source, source, tmp_con->endPointPos(EndPoint::Source));
+        new_con->setEndPoint(EndPoint::Target, target, tmp_con->endPointPos(EndPoint::Target));
 
         selectNone();
-        m_con_list.append(new_con);
-        QWidget *source = new_con->widget(EndPoint::Source);
+        addConnection(new_con);
+        QLabel *source = qobject_cast<QLabel*>(new_con->widget(EndPoint::Source));
         QWidget *target = new_con->widget(EndPoint::Target);
-        if (qobject_cast<QLabel*>(source) == 0) {
-            qDebug("BuddyEditor::endConnection(): not a label");
+        if (source) {
+            undoStack()->push(createBuddyCommand(m_formWindow, source, target));
         } else {
-            undoStack()->beginMacro(tr("Add buddy"));
-            SetPropertyCommand *command = new SetPropertyCommand(formWindow());
-            command->init(source, QLatin1String("buddy"), target->objectName());
-            undoStack()->push(command);
-            undoStack()->endMacro();
+            qDebug("BuddyEditor::endConnection(): not a label");
         }
         setSelected(new_con, true);
     }
 
-    delete m_tmp_con;
-    m_tmp_con = 0;
-
+    clearNewlyAddedConnection();
     findObjectsUnderMouse(mapFromGlobal(QCursor::pos()));
 }
 
@@ -300,7 +302,8 @@ void BuddyEditor::widgetRemoved(QWidget *widget)
 
     ConnectionSet remove_set;
     foreach (QWidget *w, child_list) {
-        foreach (Connection *con, m_con_list) {
+        const ConnectionList &cl = connectionList();
+        foreach (Connection *con, cl) {
             if (con->widget(EndPoint::Source) == w || con->widget(EndPoint::Target) == w)
                 remove_set.insert(con, con);
         }
@@ -316,13 +319,10 @@ void BuddyEditor::widgetRemoved(QWidget *widget)
                 qDebug("BuddyConnection::widgetRemoved(): not a label");
             } else {
                 ResetPropertyCommand *command = new ResetPropertyCommand(formWindow());
-                command->init(source, QLatin1String("buddy"));
+                command->init(source, QLatin1String(buddyPropertyC));
                 undoStack()->push(command);
             }
-            if (m_con_list.contains(con)) {
-                m_con_list.removeAll(con);
-                delete con;
-            }
+            delete takeConnection(con);
         }
         undoStack()->endMacro();
     }
@@ -330,29 +330,114 @@ void BuddyEditor::widgetRemoved(QWidget *widget)
 
 void BuddyEditor::deleteSelected()
 {
-    if (m_sel_con_set.isEmpty())
+    const ConnectionSet selectedConnections = selection(); // want copy for unselect
+    if (selectedConnections.isEmpty())
         return;
 
-    if (!m_sel_con_set.isEmpty()) {
-        undoStack()->beginMacro(tr("Remove buddies"));
-        foreach (Connection *con, m_sel_con_set) {
-            setSelected(con, false);
-            con->update();
-            QWidget *source = con->widget(EndPoint::Source);
-            if (qobject_cast<QLabel*>(source) == 0) {
-                qDebug("BuddyConnection::deleteSelected(): not a label");
-            } else {
-                ResetPropertyCommand *command = new ResetPropertyCommand(formWindow());
-                command->init(source, QLatin1String("buddy"));
-                undoStack()->push(command);
-            }
-            if (m_con_list.contains(con)) {
-                m_con_list.removeAll(con);
-                delete con;
-            }
+    undoStack()->beginMacro(tr("Remove %n buddies", 0, selectedConnections.size()));
+    foreach (Connection *con, selectedConnections) {
+        setSelected(con, false);
+        con->update();
+        QWidget *source = con->widget(EndPoint::Source);
+        if (qobject_cast<QLabel*>(source) == 0) {
+            qDebug("BuddyConnection::deleteSelected(): not a label");
+        } else {
+            ResetPropertyCommand *command = new ResetPropertyCommand(formWindow());
+            command->init(source, QLatin1String(buddyPropertyC));
+            undoStack()->push(command);
         }
-        undoStack()->endMacro();
+        delete takeConnection(con);
     }
+    undoStack()->endMacro();
+}
+
+void BuddyEditor::autoBuddy()
+{
+    // Any labels?
+    LabelList labelList = qFindChildren<QLabel*>(background());
+    if (labelList.empty())
+        return;
+    // Find already used buddies
+    QWidgetList usedBuddies;
+    const ConnectionList &beforeConnections = connectionList();
+    foreach (const Connection *c, beforeConnections)
+        usedBuddies.push_back(c->widget(EndPoint::Target));
+    // Find potential new buddies, keep lists in sync
+    QWidgetList buddies;
+    for (LabelList::iterator it = labelList.begin(); it != labelList.end(); ) {
+        QLabel *label = *it;
+        QWidget *newBuddy = 0;
+        if (m_formWindow->isManaged(label)) {
+            const QString buddy_name = buddy(label, m_formWindow->core());
+            if (buddy_name.isEmpty())
+                newBuddy = findBuddy(label, usedBuddies);
+        }
+        if (newBuddy) {
+            buddies.push_back(newBuddy);
+            usedBuddies.push_back(newBuddy);
+            ++it;
+        } else {
+            it = labelList.erase(it);
+        }
+    }
+    // Add the list in one go.
+    if (labelList.empty())
+        return;
+    const int count = labelList.size();
+    Q_ASSERT(count == buddies.size());
+    undoStack()->beginMacro(tr("Add %n buddies", 0, count));
+    for (int i = 0; i < count; i++)
+        undoStack()->push(createBuddyCommand(m_formWindow, labelList.at(i), buddies.at(i)));
+    undoStack()->endMacro();
+    // Now select all new ones
+    const ConnectionList &connections = connectionList();
+    foreach (Connection *con, connections)
+        setSelected(con, buddies.contains(con->widget(EndPoint::Target)));
+}
+
+// Geometrically find  a potential buddy for label by checking neighbouring children of parent
+QWidget *BuddyEditor::findBuddy(QLabel *l, const QWidgetList &existingBuddies) const
+{
+    enum { DeltaX = 5 };
+    const QWidget *parent = l->parentWidget();
+    // Try to find next managed neighbour on horizontal line
+    const QRect geom = l->geometry();
+    const int y = geom.center().y();
+    QWidget *neighbour = 0;
+    switch (QApplication::layoutDirection()) {
+    case Qt::LeftToRight: { // Walk right to find next managed neighbour
+        const int xEnd = parent->size().width();
+        for (int x = geom.right() + 1; x < xEnd; x += DeltaX)
+            if (QWidget *c = parent->childAt (x, y))
+                if (m_formWindow->isManaged(c)) {
+                    neighbour = c;
+                    break;
+                }
+    }
+        break;
+    case Qt::RightToLeft:  // Walk left to find next managed neighbour
+        for (int x = geom.x() - 1; x >= 0; x -= DeltaX)
+            if (QWidget *c = parent->childAt (x, y))
+                if (m_formWindow->isManaged(c)) {
+                    neighbour = c;
+                    break;
+                }
+        break;
+    }
+    if (neighbour && !existingBuddies.contains(neighbour) && canBeBuddy(neighbour, m_formWindow))
+        return neighbour;
+
+    return 0;
+}
+
+void BuddyEditor::createContextMenu(QMenu &menu)
+{
+    QAction *autoAction = menu.addAction(tr("Set automatically"));
+    connect(autoAction, SIGNAL(triggered()), this, SLOT(autoBuddy()));
+    menu.addSeparator();
+    ConnectionEdit::createContextMenu(menu);
 }
 
 }
+
+QT_END_NAMESPACE

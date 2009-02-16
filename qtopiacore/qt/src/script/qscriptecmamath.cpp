@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,7 +50,11 @@
 #include <QtCore/QSysInfo>
 #include <math.h>
 
+QT_BEGIN_NAMESPACE
+
 namespace QScript { namespace Ecma {
+
+static const qsreal qt_PI = 2.0 * ::asin(1.0);
 
 Math::Math(QScriptEnginePrivate *engine, QScriptClassInfo *classInfo):
     m_engine(engine),
@@ -74,7 +72,7 @@ void Math::construct(QScriptValueImpl *object, QScriptEnginePrivate *eng)
 
     Math *instance = new Math(eng, classInfo);
     eng->newObject(object, classInfo);
-    object->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
+    object->setObjectData(instance);
 
     QScriptValue::PropertyFlags flags = QScriptValue::Undeletable
                                         | QScriptValue::ReadOnly
@@ -91,49 +89,43 @@ void Math::construct(QScriptValueImpl *object, QScriptEnginePrivate *eng)
     object->setProperty(QLatin1String("LOG10E"),
                         QScriptValueImpl(eng, 1.0/::log(10.0)), flags);
     object->setProperty(QLatin1String("PI"),
-                        QScriptValueImpl(eng, 2.0 * ::asin(1.0)), flags);
+                        QScriptValueImpl(eng, qt_PI), flags);
     object->setProperty(QLatin1String("SQRT1_2"),
                         QScriptValueImpl(eng, ::sqrt(0.5)), flags);
     object->setProperty(QLatin1String("SQRT2"),
                         QScriptValueImpl(eng, ::sqrt(2.0)), flags);
 
     flags = QScriptValue::SkipInEnumeration;
-    object->setProperty(QLatin1String("abs"),
-                        eng->createFunction(method_abs, 1, classInfo), flags);
-    object->setProperty(QLatin1String("acos"),
-                        eng->createFunction(method_acos, 1, classInfo), flags);
-    object->setProperty(QLatin1String("asin"),
-                        eng->createFunction(method_asin, 0, classInfo), flags);
-    object->setProperty(QLatin1String("atan"),
-                        eng->createFunction(method_atan, 1, classInfo), flags);
-    object->setProperty(QLatin1String("atan2"),
-                        eng->createFunction(method_atan2, 2, classInfo), flags);
-    object->setProperty(QLatin1String("ceil"),
-                        eng->createFunction(method_ceil, 1, classInfo), flags);
-    object->setProperty(QLatin1String("cos"),
-                        eng->createFunction(method_cos, 1, classInfo), flags);
-    object->setProperty(QLatin1String("exp"),
-                        eng->createFunction(method_exp, 1, classInfo), flags);
-    object->setProperty(QLatin1String("floor"),
-                        eng->createFunction(method_floor, 1, classInfo), flags);
-    object->setProperty(QLatin1String("log"),
-                        eng->createFunction(method_log, 1, classInfo), flags);
-    object->setProperty(QLatin1String("max"),
-                        eng->createFunction(method_max, 2, classInfo), flags);
-    object->setProperty(QLatin1String("min"),
-                        eng->createFunction(method_min, 2, classInfo), flags);
-    object->setProperty(QLatin1String("pow"),
-                        eng->createFunction(method_pow, 2, classInfo), flags);
-    object->setProperty(QLatin1String("random"),
-                        eng->createFunction(method_random, 0, classInfo), flags);
-    object->setProperty(QLatin1String("round"),
-                        eng->createFunction(method_round, 1, classInfo), flags);
-    object->setProperty(QLatin1String("sin"),
-                        eng->createFunction(method_sin, 1, classInfo), flags);
-    object->setProperty(QLatin1String("sqrt"),
-                        eng->createFunction(method_sqrt, 1, classInfo), flags);
-    object->setProperty(QLatin1String("tan"),
-                        eng->createFunction(method_tan, 1, classInfo), flags);
+    addFunction(*object, QLatin1String("abs"), method_abs, 1, flags);
+    addFunction(*object, QLatin1String("acos"), method_acos, 1, flags);
+    addFunction(*object, QLatin1String("asin"), method_asin, 0, flags);
+    addFunction(*object, QLatin1String("atan"), method_atan, 1, flags);
+    addFunction(*object, QLatin1String("atan2"), method_atan2, 2, flags);
+    addFunction(*object, QLatin1String("ceil"), method_ceil, 1, flags);
+    addFunction(*object, QLatin1String("cos"), method_cos, 1, flags);
+    addFunction(*object, QLatin1String("exp"), method_exp, 1, flags);
+    addFunction(*object, QLatin1String("floor"), method_floor, 1, flags);
+    addFunction(*object, QLatin1String("log"), method_log, 1, flags);
+    addFunction(*object, QLatin1String("max"), method_max, 2, flags);
+    addFunction(*object, QLatin1String("min"), method_min, 2, flags);
+    addFunction(*object, QLatin1String("pow"), method_pow, 2, flags);
+    addFunction(*object, QLatin1String("random"), method_random, 0, flags);
+    addFunction(*object, QLatin1String("round"), method_round, 1, flags);
+    addFunction(*object, QLatin1String("sin"), method_sin, 1, flags);
+    addFunction(*object, QLatin1String("sqrt"), method_sqrt, 1, flags);
+    addFunction(*object, QLatin1String("tan"), method_tan, 1, flags);
+}
+
+/* copies the sign from y to x and returns the result */
+static qsreal copySign(qsreal x, qsreal y)
+{
+    uchar *xch = (uchar *)&x;
+    uchar *ych = (uchar *)&y;
+    if (QSysInfo::ByteOrder == QSysInfo::BigEndian)
+        xch[0] = (xch[0] & 0x7f) | (ych[0] & 0x80);
+    else
+        xch[7] = (xch[7] & 0x7f) | (ych[7] & 0x80);
+    return x;
 }
 
 QScriptValueImpl Math::method_abs(QScriptContextPrivate *context,
@@ -152,6 +144,8 @@ QScriptValueImpl Math::method_acos(QScriptContextPrivate *context,
                                    QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v > 1)
+        return QScriptValueImpl(eng, qSNaN());
     return (QScriptValueImpl(eng, ::acos(v)));
 }
 
@@ -160,6 +154,8 @@ QScriptValueImpl Math::method_asin(QScriptContextPrivate *context,
                                    QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v > 1)
+        return QScriptValueImpl(eng, qSNaN());
     return (QScriptValueImpl(eng, ::asin(v)));
 }
 
@@ -168,6 +164,8 @@ QScriptValueImpl Math::method_atan(QScriptContextPrivate *context,
                                    QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v == 0.0)
+         return QScriptValueImpl(eng, v); 
     return (QScriptValueImpl(eng, ::atan(v)));
 }
 
@@ -177,6 +175,34 @@ QScriptValueImpl Math::method_atan2(QScriptContextPrivate *context,
 {
     qsreal v1 = context->argument(0).toNumber();
     qsreal v2 = context->argument(1).toNumber();
+#ifdef Q_OS_WINCE
+    if (v1 == 0.0) {
+        const bool v1MinusZero = _copysign(1.0, v1) < 0.0;
+        const bool v2MinusZero = (v2 == 0 && _copysign(1.0, v2) < 0.0);
+        if ((v1MinusZero && v2MinusZero) || (v1MinusZero && v2 == -1.0))
+            return QScriptValueImpl(eng, -qt_PI);
+        if (v2MinusZero)
+            return QScriptValueImpl(eng, qt_PI);
+        if (v1MinusZero && v2 == 1.0)
+            return QScriptValueImpl(eng, -0.0);
+#if defined(_X86_)
+        if (v2 == 0.0 && (v1MinusZero || (!v1MinusZero && !v2MinusZero)))
+            return QScriptValueImpl(eng, 0.0);
+#endif
+    }
+#endif
+#if defined(Q_OS_WINCE) && defined(_X86_)
+    if (v1 == -1.0 && !_finite(v2) && _copysign(1.0, v2) > 0.0)
+        return QScriptValueImpl(eng, -0.0);
+#endif
+    if ((v1 < 0) && qIsFinite(v1) && qIsInf(v2) && (copySign(1.0, v2) == 1.0))
+        return QScriptValueImpl(eng, copySign(0, -1.0));
+    if ((v1 == 0.0) && (v2 == 0.0)) {
+        if ((copySign(1.0, v1) == 1.0) && (copySign(1.0, v2) == -1.0))
+            return QScriptValueImpl(eng, qt_PI);
+        else if ((copySign(1.0, v1) == -1.0) && (copySign(1.0, v2) == -1.0))
+            return QScriptValueImpl(eng, -qt_PI);
+    }
     return (QScriptValueImpl(eng, ::atan2(v1, v2)));
 }
 
@@ -185,6 +211,8 @@ QScriptValueImpl Math::method_ceil(QScriptContextPrivate *context,
                                    QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v < 0.0 && v > -1.0)
+        return QScriptValueImpl(eng, copySign(0, -1.0));
     return (QScriptValueImpl(eng, ::ceil(v)));
 }
 
@@ -201,6 +229,12 @@ QScriptValueImpl Math::method_exp(QScriptContextPrivate *context,
                                   QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (qIsInf(v)) {
+        if (copySign(1.0, v) == -1.0)
+            return QScriptValueImpl(eng, 0);
+        else
+            return QScriptValueImpl(eng, qInf());
+    }
     return (QScriptValueImpl(eng, ::exp(v)));
 }
 
@@ -217,6 +251,8 @@ QScriptValueImpl Math::method_log(QScriptContextPrivate *context,
                                   QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v < 0)
+        return QScriptValueImpl(eng, qSNaN());
     return (QScriptValueImpl(eng, ::log(v)));
 }
 
@@ -231,18 +267,6 @@ QScriptValueImpl Math::method_max(QScriptContextPrivate *context,
             mx = x;
     }
     return (QScriptValueImpl(eng, mx));
-}
-
-/* copies the sign from y to x and returns the result */
-static qsreal copySign(qsreal x, qsreal y)
-{
-    uchar *xch = (uchar *)&x;
-    uchar *ych = (uchar *)&y;
-    if (QSysInfo::ByteOrder == QSysInfo::BigEndian)
-        xch[0] = (xch[0] & 0x7f) | (ych[0] & 0x80);
-    else
-        xch[7] = (xch[7] & 0x7f) | (ych[7] & 0x80);
-    return x;
 }
 
 QScriptValueImpl Math::method_min(QScriptContextPrivate *context,
@@ -268,8 +292,40 @@ QScriptValueImpl Math::method_pow(QScriptContextPrivate *context,
     qsreal y = context->argument(1).toNumber();
     if (qIsNaN(y))
         return QScriptValueImpl(eng, qSNaN());
+    if (y == 0)
+        return QScriptValueImpl(eng, 1);
     if (((x == 1) || (x == -1)) && qIsInf(y))
         return QScriptValueImpl(eng, qSNaN());
+    if (((x == 0) && copySign(1.0, x) == 1.0) && (y < 0))
+        return QScriptValueImpl(eng, qInf());
+    if ((x == 0) && copySign(1.0, x) == -1.0) {
+        if (y < 0) {
+            if (::fmod(-y, 2.0) == 1.0)
+                return QScriptValueImpl(eng, -qInf());
+            else
+                return QScriptValueImpl(eng, qInf()); 
+        } else if (y > 0) {
+             if (::fmod(y, 2.0) == 1.0)
+                return QScriptValueImpl(eng, copySign(0, -1.0));
+            else
+                return QScriptValueImpl(eng, 0); 
+        }
+    } 
+#ifdef Q_OS_AIX
+    if (qIsInf(x) && copySign(1.0, x) == -1.0) {
+        if (y > 0) {
+            if (::fmod(y, 2.0) == 1.0)
+                return QScriptValueImpl(eng, -qInf());
+            else
+                return QScriptValueImpl(eng, qInf());
+        } else if (y < 0) { 
+            if (::fmod(-y, 2.0) == 1.0)
+                return QScriptValueImpl(eng, copySign(0, -1.0));
+            else
+                return QScriptValueImpl(eng, 0);
+        }
+    } 
+#endif
     return (QScriptValueImpl(eng, ::pow(x, y)));
 }
 
@@ -310,9 +366,22 @@ QScriptValueImpl Math::method_tan(QScriptContextPrivate *context,
                                   QScriptClassInfo *)
 {
     qsreal v = context->argument(0).toNumber();
+    if (v == 0.0)
+         return QScriptValueImpl(eng, v); 
     return (QScriptValueImpl(eng, ::tan(v)));
 }
 
+void Math::addFunction(QScriptValueImpl &object, const QString &name,
+                       QScriptInternalFunctionSignature fun, int length,
+                       const QScriptValue::PropertyFlags flags)
+{
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(object.engine());
+    QScriptValueImpl val = eng_p->createFunction(fun, length, object.classInfo(), name);
+    object.setProperty(name, val, flags);
+}
+
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

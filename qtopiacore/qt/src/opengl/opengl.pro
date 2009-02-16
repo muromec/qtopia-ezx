@@ -2,6 +2,7 @@ TARGET     = QtOpenGL
 QPRO_PWD   = $$PWD
 QT         = core gui
 DEFINES   += QT_BUILD_OPENGL_LIB
+DEFINES   += QT_NO_USING_NAMESPACE
 win32-msvc*|win32-icc:QMAKE_LFLAGS += /BASE:0x63000000
 solaris-cc*:QMAKE_CXXFLAGS_RELEASE -= -O2
 
@@ -39,9 +40,14 @@ mac {
 	       qglpixelbuffer_mac.cpp
     LIBS += -framework Carbon
 }
-win32 {
+win32:!wince*: {
     SOURCES += qgl_win.cpp \
 	       qglpixelbuffer_win.cpp
+}
+wince*: {
+    SOURCES += qgl_wince.cpp \
+               qglpixelbuffer_wince.cpp
+    HEADERS += qgl_cl_p.h
 }
 
 embedded {
@@ -64,4 +70,15 @@ embedded {
     }
 }
 
-QMAKE_LIBS += $$QMAKE_LIBS_OPENGL
+INCLUDEPATH += ../3rdparty/harfbuzz/src
+
+wince*: {
+    contains(QT_CONFIG,opengl_es_cm) {
+        QMAKE_LIBS += "libGLES_CM.lib"
+    }
+    contains(QT_CONFIG,opengl_es_cl) {
+        QMAKE_LIBS += "libGLES_CL.lib"
+    }
+} else {
+    QMAKE_LIBS += $$QMAKE_LIBS_OPENGL
+}

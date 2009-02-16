@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/qaxserver.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/qaxserver.qdoc -->
 <head>
-  <title>Qt 4.3: QAxServer Module</title>
+  <title>Qt 4.4: QAxServer Module</title>
   <link rel="prev" href="qaxcontainer.html" />
   <link rel="contents" href="modules.html" />
   <link rel="next" href="qtdbus.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="qaxcontainer.html">QAxContainer Module</a>]
 [<a href="modules.html">Qt's Modules</a>]
 [Next: <a href="qtdbus.html">QtDBus module</a>]
@@ -23,22 +23,16 @@
 <h1 class="title">QAxServer Module<br /><span class="subtitle"></span>
 </h1>
 <p>The QAxServer module is a Windows-only static library that you can use to turn a standard Qt binary into a COM server. <a href="#details">More...</a></p>
-<h2>Classes</h2>
-<p><table width="100%" class="annotated" cellpadding="2" cellspacing="1" border="0">
-<tr valign="top" class="odd"><th><a href="qaxaggregated.html">QAxAggregated</a></th><td>Abstract base class for implementations of additional COM interfaces</td></tr>
-<tr valign="top" class="even"><th><a href="qaxbindable.html">QAxBindable</a></th><td>Interface between a QWidget and an ActiveX client</td></tr>
-<tr valign="top" class="odd"><th><a href="qaxfactory.html">QAxFactory</a></th><td>Defines a factory for the creation of COM components</td></tr>
-</table></p>
 <a name="details"></a>
 <h2>Detailed Description</h2>
 <p>The QAxServer module is part of the <a href="activeqt.html#activeqt">ActiveQt</a> framework. It consists of three classes:</p>
 <ul>
-<li><a href="qaxfactory.html">QAxFactory</a> defines a factory for the creation of COM objects.</li>
-<li><a href="qaxbindable.html">QAxBindable</a> provides an interface between the Qt widget and the COM object.</li>
-<li><a href="qaxaggregated.html">QAxAggregated</a> can be subclassed to implement additional COM interfaces.</li>
+<li>QAxFactory defines a factory for the creation of COM objects.</li>
+<li>QAxBindable provides an interface between the Qt widget and the COM object.</li>
+<li>QAxAggregated can be subclassed to implement additional COM interfaces.</li>
 </ul>
 <p>Some <a href="examples.html#activeqt">example implementations</a> of ActiveX controls and COM objects are provided.</p>
-<p>The QAxServer module is part of the <a href="commercialeditions.html#qt-desktop-edition">Qt Desktop Edition</a> for Windows. It is <i>not</i> part of the <a href="opensourceedition.html">Qt Open Source Edition</a>.</p>
+<p>The QAxServer module is part of the <a href="commercialeditions.html#qt-full-framework-edition">Qt Full Framework Edition</a> for Windows. It is <i>not</i> part of the <a href="opensourceedition.html">Qt Open Source Edition</a>.</p>
 <p>Topics:</p>
 <ul><li><a href="#using-the-library">Using the Library</a></li>
 <ul><li><a href="#out-of-process-vs-in-process">Out-of-Process vs. In-Process</a></li>
@@ -154,15 +148,15 @@
  {
      Q_OBJECT</pre>
 <p>The <a href="qobject.html#Q_OBJECT">Q_OBJECT</a> macro is required to provide the meta object information about the widget to the <a href="activeqt.html#activeqt">ActiveQt</a> framework.</p>
-<pre>     Q_CLASSINFO(&quot;ClassID&quot;, &quot;{1D9928BD-4453-4bdd-903D-E525ED17FDE5}&quot;)
-     Q_CLASSINFO(&quot;InterfaceID&quot;, &quot;{99F6860E-2C5A-42ec-87F2-43396F4BE389}&quot;)
-     Q_CLASSINFO(&quot;EventsID&quot;, &quot;{0A3E9F27-E4F1-45bb-9E47-63099BCCD0E3}&quot;)</pre>
+<pre> Q_CLASSINFO(&quot;ClassID&quot;, &quot;{1D9928BD-4453-4bdd-903D-E525ED17FDE5}&quot;)
+ Q_CLASSINFO(&quot;InterfaceID&quot;, &quot;{99F6860E-2C5A-42ec-87F2-43396F4BE389}&quot;)
+ Q_CLASSINFO(&quot;EventsID&quot;, &quot;{0A3E9F27-E4F1-45bb-9E47-63099BCCD0E3}&quot;)</pre>
 <p>Use the <a href="qobject.html#Q_CLASSINFO">Q_CLASSINFO</a>() macro to specify the COM identifiers for the COM object. <tt>ClassID</tt> and <tt>InterfaceID</tt> are required, while <tt>EventsID</tt> is only necessary when your object has signals. To generate these identifiers, use system tools like <tt>uuidgen</tt> or <tt>guidgen</tt>.</p>
 <p>You can specify additional attributes for each of your classes; see <a href="#class-information-and-tuning">Class Information and Tuning</a> for details.</p>
-<pre>     Q_PROPERTY(int value READ value WRITE setValue)</pre>
+<pre> Q_PROPERTY(int value READ value WRITE setValue)</pre>
 <p>Use the <a href="qobject.html#Q_PROPERTY">Q_PROPERTY</a>() macro to declare properties for the ActiveX control.</p>
 <p>Declare a standard constructor taking a parent object, and functions, signals and slots like for any <a href="qobject.html">QObject</a> subclass. </p>
-<!-- <p>If a standard constructor is not present the compiler will issue an error &quot;no overloaded function takes 2 parameters&quot; when using the default factory through the <a href="qaxfactory.html#QAXFACTORY_DEFAULT">QAXFACTORY_DEFAULT</a>() macro. If you cannot provide a standard constructor you must implement a <a href="qaxfactory.html">QAxFactory</a> custom factory and call the constructor you have in your implementation of QAxFactory::create.</p>
+<!-- <p>If a standard constructor is not present the compiler will issue an error &quot;no overloaded function takes 2 parameters&quot; when using the default factory through the QAXFACTORY_DEFAULT() macro. If you cannot provide a standard constructor you must implement a QAxFactory custom factory and call the constructor you have in your implementation of QAxFactory::create.</p>
 --><pre> public:
      MyActiveX(QWidget *parent = 0)
      ...
@@ -247,22 +241,22 @@
 <a name="sub-objects"></a>
 <h4>Sub-Objects</h4>
 <p>COM objects can have multiple sub-objects that can represent a sub element of the COM object. A COM object representing a multi-document spread sheet application can for example provide one sub-object for each spread sheet.</p>
-<p>Any <a href="qobject.html">QObject</a> subclass can be used as the type for a sub object in ActiveX, as long as it is known to the <a href="qaxfactory.html">QAxFactory</a>. Then the type can be used in properties, or as the return type or paramter of a slot.</p>
+<p>Any <a href="qobject.html">QObject</a> subclass can be used as the type for a sub object in ActiveX, as long as it is known to the QAxFactory. Then the type can be used in properties, or as the return type or paramter of a slot.</p>
 <a name="property-notification"></a>
 <h4>Property Notification</h4>
-<p>To make the properties bindable for the ActiveX client, use multiple inheritance from the <a href="qaxbindable.html">QAxBindable</a> class:</p>
+<p>To make the properties bindable for the ActiveX client, use multiple inheritance from the QAxBindable class:</p>
 <pre> #include &lt;QAxBindable&gt;
  #include &lt;QWidget&gt;
 
  class MyActiveX : public QWidget, public QAxBindable
  {
      Q_OBJECT</pre>
-<p>When implementing the property write functions, use the <a href="qaxbindable.html">QAxBindable</a> class's requestPropertyChange() and propertyChanged() functions to allow ActiveX clients to bind to the control properties. </p>
+<p>When implementing the property write functions, use the QAxBindable class's requestPropertyChange() and propertyChanged() functions to allow ActiveX clients to bind to the control properties. </p>
 <!-- <p>This is not required, but gives the client more control over the ActiveX control.</p>
 --><a name="serving-controls"></a>
 <h3>Serving Controls</h3>
 <p>To make a COM server available to the COM system it must be registered in the system registry using five unique identifiers. These identifiers are provided by tools like <tt>guidgen</tt> or <tt>uuidgen</tt>. The registration information allows COM to localize the binary providing a requested ActiveX control, marshall remote procedure calls to the control and read type information about the methods and properties exposed by the control.</p>
-<p>To create the COM object when the client asks for it the server must export an implementation of a <a href="qaxfactory.html">QAxFactory</a>. The easist way to do this is to use a set of macros:</p>
+<p>To create the COM object when the client asks for it the server must export an implementation of a QAxFactory. The easist way to do this is to use a set of macros:</p>
 <pre> QAXFACTORY_BEGIN(&quot;{ad90301a-849e-4e8b-9a91-0a6dc5f6461f}&quot;,
                   &quot;{a8f21901-7ff7-4f6a-b939-789620c03d83}&quot;)
      QAXCLASS(MyWidget)
@@ -270,8 +264,8 @@
      QAXTYPE(MySubType)
  QAXFACTORY_END()</pre>
 <p>This will export <tt>MyWidget</tt> and <tt>MyWidget2</tt> as COM objects that can be created by COM clients, and will register <tt>MySubType</tt> as a type that can be used in properties and parameters of <tt>MyWidget</tt> and <tt>MyWidget2</tt>.</p>
-<p>The <a href="qaxfactory.html">QAxFactory class documentation</a> explains how to use this macro, and how to implement and use custom factories.</p>
-<p>For out-of-process executable servers you can implement a main() function to instantiate a <a href="qapplication.html">QApplication</a> object and enter the event loop just like any normal Qt application. By default the application will start as a standard Qt application, but if you pass <tt>-activex</tt> on the command line it will start as an ActiveX server. Use <a href="qaxfactory.html#isServer">QAxFactory::isServer</a>() to create and run a standard application interface, or to prevent a stand-alone execution:</p>
+<p>The QAxFactory class documentation explains how to use this macro, and how to implement and use custom factories.</p>
+<p>For out-of-process executable servers you can implement a main() function to instantiate a <a href="qapplication.html">QApplication</a> object and enter the event loop just like any normal Qt application. By default the application will start as a standard Qt application, but if you pass <tt>-activex</tt> on the command line it will start as an ActiveX server. Use QAxFactory::isServer() to create and run a standard application interface, or to prevent a stand-alone execution:</p>
 <pre> #include &lt;QApplication&gt;
  #include &lt;QAxFactory&gt;
 
@@ -279,11 +273,11 @@
  {
      QApplication app(argc, argv);
      if (!QAxFactory::isServer()) {
-         <span class="comment">// create and show main window</span>
+         // create and show main window
      }
      return app.exec();
  }</pre>
-<p>This is however not necessary as <a href="activeqt.html#activeqt">ActiveQt</a> provides a default implementation of a main function. The default implemenation calls <a href="qaxfactory.html#startServer">QAxFactory::startServer</a>(), creates a <a href="qapplication.html">QApplication</a> instance and calls exec().</p>
+<p>This is however not necessary as <a href="activeqt.html#activeqt">ActiveQt</a> provides a default implementation of a main function. The default implemenation calls QAxFactory::startServer(), creates a <a href="qapplication.html">QApplication</a> instance and calls exec().</p>
 <p>To build the ActiveX server executable run <tt>qmake</tt> to generate the makefile, and use your compiler's make tool as for any other Qt application. The make process will also register the controls in the system registry by calling the resulting executable with the <tt>-regserver</tt> command line option.</p>
 <p>If the ActiveX server is an executable, the following command line options are supported:</p>
 <p><table align="center" cellpadding="2" cellspacing="1" border="0">
@@ -299,19 +293,19 @@
 <p>The compiler/linker errors listed are based on those issued by the Microsoft Visual C++ 6.0 compiler.</p>
 <a name="no-overloaded-function-takes-2-parameters"></a>
 <h5>&quot;No overloaded function takes 2 parameters&quot;</h5>
-<p>When the error occurs in code that uses the <a href="qaxfactory.html#QAXFACTORY_DEFAULT">QAXFACTORY_DEFAULT</a>() macro, the widget class had no constructor that can be used by the default factory. Either add a standard widget constructor or implement a custom factory that doesn't require one.</p>
-<p>When the error occurs in code that uses the <a href="qaxfactory.html#QAXFACTORY_EXPORT">QAXFACTORY_EXPORT</a>() macro, the <a href="qaxfactory.html">QAxFactory</a> subclass had no appropriate constructor. Provide a public class constructor like</p>
+<p>When the error occurs in code that uses the QAXFACTORY_DEFAULT() macro, the widget class had no constructor that can be used by the default factory. Either add a standard widget constructor or implement a custom factory that doesn't require one.</p>
+<p>When the error occurs in code that uses the QAXFACTORY_EXPORT() macro, the QAxFactory subclass had no appropriate constructor. Provide a public class constructor like</p>
 <pre> MyFactory(const QUuid &amp;, const QUuid &amp;);</pre>
 <p>for your factory class.</p>
 <a name="syntax-error-bad-suffix-on-number"></a>
 <h5>&quot;Syntax error: bad suffix on number&quot;</h5>
-<p>The unique identifiers have not been passed as strings into the <a href="qaxfactory.html#QAXFACTORY_EXPORT">QAXFACTORY_EXPORT</a>() or <a href="qaxfactory.html#QAXFACTORY_DEFAULT">QAXFACTORY_DEFAULT</a>() macro.</p>
+<p>The unique identifiers have not been passed as strings into the QAXFACTORY_EXPORT() or QAXFACTORY_DEFAULT() macro.</p>
 <a name="unresolved-external-symbol-ucm-instantiate"></a>
 <h5>&quot;Unresolved external symbol _ucm_instantiate&quot;</h5>
-<p>The server does not export an implementation of a <a href="qaxfactory.html">QAxFactory</a>. Use the <a href="qaxfactory.html#QAXFACTORY_EXPORT">QAXFACTORY_EXPORT</a>() macro in one of the project's implementation files to instantiate and export a factory, or use the <a href="qaxfactory.html#QAXFACTORY_DEFAULT">QAXFACTORY_DEFAULT</a>() macro to use the default factory.</p>
+<p>The server does not export an implementation of a QAxFactory. Use the QAXFACTORY_EXPORT() macro in one of the project's implementation files to instantiate and export a factory, or use the QAXFACTORY_DEFAULT() macro to use the default factory.</p>
 <a name="ucm-initialize-already-defined-in"></a>
 <h5>&quot;_ucm_initialize already defined in ..&#x2e;&quot;</h5>
-<p>The server exports more than one implementation of a <a href="qaxfactory.html">QAxFactory</a>, or exports the same implementation twice. If you use the default factory, the <a href="qaxfactory.html#QAXFACTORY_DEFAULT">QAXFACTORY_DEFAULT</a>() macro must only be used once in the project. Use a custom <a href="qaxfactory.html">QAxFactory</a> implementation and the <a href="qaxfactory.html#QAXFACTORY_EXPORT">QAXFACTORY_EXPORT</a>() macro if the server provides multiple ActiveX controls.</p>
+<p>The server exports more than one implementation of a QAxFactory, or exports the same implementation twice. If you use the default factory, the QAXFACTORY_DEFAULT() macro must only be used once in the project. Use a custom QAxFactory implementation and the QAXFACTORY_EXPORT() macro if the server provides multiple ActiveX controls.</p>
 <a name="distributing-qaxserver-binaries"></a>
 <h4>Distributing QAxServer Binaries</h4>
 <p>ActiveX servers written with Qt can use Qt either as a shared library, or have Qt linked statically into the binary. Both ways will produce rather large packages (either the server binary itself becomes large, or you have to ship the Qt DLL).</p>
@@ -330,21 +324,13 @@
  if (DllRegisterServer)
      res = DllRegisterServer();
  if (res != S_OK)
-     <span class="comment">// error handling</span></pre>
+     // error handling</pre>
 <a name="distributing-servers-over-the-internet"></a>
 <h5>Distributing Servers over the Internet</h5>
 <p>If you want to use controls in your server in web-pages you need to make the server available to the browser used to view your page, and you need to specify the location of the server package in your page.</p>
 <p>To specify the location of a server, use the CODEBASE attribute in the OBJECT tag of your web-site. The value can point to the server file itself, to an INF file listing other files the server requires (e.g&#x2e; the Qt DLL), or a compressed CAB archive.</p>
 <p>INF and CAB files are documented in almost every book available about ActiveX and COM programming as well as in the MSDN library and various other Online resources. The examples include INF files that can be used to build CAB archives:</p>
-<pre> [version]
-     signature=&quot;$CHICAGO$&quot;
-     AdvancedINF=2.0
-  [Add.Code]
-     simpleax.exe=simpleax.exe
-  [simpleax.exe]
-     file-win32-x86=thiscab
-     clsid={DF16845C-92CD-4AAB-A982-EB9840E74669}
-     RegisterServer=yes</pre>
+<pre></pre>
 <p>The CABARC tool from Microsoft can easily generate CAB archives:</p>
 <pre> cabarc N simpleax.cab simpleax.exe simple.inf</pre>
 <p>The INF files assume a static build of Qt, so no dependencies to other DLLs are listed in the INF files. To distribute an ActiveX server depending on DLLs you must add the dependencies, and provide the library files with the archive.</p>
@@ -410,8 +396,8 @@
 <tr valign="top" class="even"><td>DefaultProperty</td><td>The property specified represents the default property of this class. Ie. the default property of a push button would be &quot;text&quot;.</td></tr>
 <tr valign="top" class="odd"><td>DefaultSignal</td><td>The signal specified respresents the default signal of this class. Ie. the default signal of a push button would be &quot;clicked&quot;.</td></tr>
 <tr valign="top" class="even"><td>LicenseKey</td><td>Object creation requires the specified license key. The key can be empty to require a licensed machine. By default classes are not licensed. Also see the following section.</td></tr>
-<tr valign="top" class="odd"><td>StockEvents</td><td>Objects expose stock events if value is &quot;yes&quot;. See <a href="qaxfactory.html#hasStockEvents">QAxFactory::hasStockEvents</a>()</td></tr>
-<tr valign="top" class="even"><td>ToSuperClass</td><td>Objects expose functionality of all super-classes up to and including the class name in value. See <a href="qaxfactory.html#exposeToSuperClass">QAxFactory::exposeToSuperClass</a>()</td></tr>
+<tr valign="top" class="odd"><td>StockEvents</td><td>Objects expose stock events if value is &quot;yes&quot;. See QAxFactory::hasStockEvents()</td></tr>
+<tr valign="top" class="even"><td>ToSuperClass</td><td>Objects expose functionality of all super-classes up to and including the class name in value. See QAxFactory::exposeToSuperClass()</td></tr>
 <tr valign="top" class="odd"><td>Insertable</td><td>If the value is &quot;yes&quot; the class is registered to be &quot;Insertable&quot; and will be listed in OLE 2 containers (ie. Microsoft Office). This attribute is not be set by default.</td></tr>
 <tr valign="top" class="even"><td>Aggregatable</td><td>If the value is &quot;no&quot; the class does not support aggregation. By default aggregation is supported.</td></tr>
 <tr valign="top" class="odd"><td>Creatable</td><td>If the value is &quot;no&quot; the class cannot be created by the client, and is only available through the API of another class (ie. the class is a sub-type).</td></tr>
@@ -449,11 +435,11 @@
      ...
  };</pre>
 <p>The key is required to be able to create an instance of <tt>MyLicensedControl</tt> on a machine that is not licensed itself. The licensed developer can now redistributes the server binary with his application, which creates the control using the value of &quot;LicenseKey&quot;, while users of the application cannot create the control without the license key.</p>
-<p>If a single license key for the control is not sufficient (ie. you want differnet developers to receive different license keys) you can specify an empty key to indicate that the control requires a license, and reimplement <a href="qaxfactory.html#validateLicenseKey">QAxFactory::validateLicenseKey</a>() to verify that a license exists on the system (ie. through a license file).</p>
+<p>If a single license key for the control is not sufficient (ie. you want differnet developers to receive different license keys) you can specify an empty key to indicate that the control requires a license, and reimplement QAxFactory::validateLicenseKey() to verify that a license exists on the system (ie. through a license file).</p>
 <a name="more-interfaces"></a>
 <h4>More Interfaces</h4>
-<p>ActiveX controls provided by <a href="activeqt.html#activeqt">ActiveQt</a> servers support a minimal set of COM interfaces to implement the OLE specifications. When the ActiveX class inherits from the <a href="qaxbindable.html">QAxBindable</a> class it can also implement additional COM interfaces.</p>
-<p>Create a new subclass of <a href="qaxaggregated.html">QAxAggregated</a> and use multiple inheritance to subclass additional COM interface classes.</p>
+<p>ActiveX controls provided by <a href="activeqt.html#activeqt">ActiveQt</a> servers support a minimal set of COM interfaces to implement the OLE specifications. When the ActiveX class inherits from the QAxBindable class it can also implement additional COM interfaces.</p>
+<p>Create a new subclass of QAxAggregated and use multiple inheritance to subclass additional COM interface classes.</p>
 <pre> class AxImpl : public QAxAggregated, public ISomeCOMInterface
  {
  public:
@@ -461,13 +447,13 @@
 
      long queryInterface(const QUuid &amp;iid, void **iface);
 
-     <span class="comment">// IUnknown</span>
+     // IUnknown
      QAXAGG_IUNKNOWN
 
-     <span class="comment">// ISomeCOMInterface</span>
+     // ISomeCOMInterface
      ...
  }</pre>
-<p>Reimplement the <a href="qaxaggregated.html#queryInterface">QAxAggregated::queryInterface</a>() function to support the additional COM interfaces.</p>
+<p>Reimplement the QAxAggregated::queryInterface() function to support the additional COM interfaces.</p>
 <pre> long AxImpl::queryInterface(const QUuid &amp;iid, void **iface)
  {
      *iface = 0;
@@ -479,14 +465,14 @@
      AddRef();
      return S_OK;
  }</pre>
-<p>Since <tt>ISomeCOMInterface</tt> is a subclass of <tt>IUnknown</tt> you will have to implement the <tt>QueryInterface()</tt>, <tt>AddRef()</tt>, and <tt>Release()</tt> functions. Use the QAXAGG_IUNKNOWN macro in your class definition to do that. If you implement the <tt>IUnknown</tt> functions manually, delegate the calls to the interface pointer returned by the <a href="qaxaggregated.html#controllingUnknown">QAxAggregated::controllingUnknown</a>() function, e.g&#x2e;</p>
+<p>Since <tt>ISomeCOMInterface</tt> is a subclass of <tt>IUnknown</tt> you will have to implement the <tt>QueryInterface()</tt>, <tt>AddRef()</tt>, and <tt>Release()</tt> functions. Use the QAXAGG_IUNKNOWN macro in your class definition to do that. If you implement the <tt>IUnknown</tt> functions manually, delegate the calls to the interface pointer returned by the QAxAggregated::controllingUnknown() function, e.g&#x2e;</p>
 <pre> HRESULT AxImpl::QueryInterface(REFIID iid, void **iface)
  {
      return controllingUnknown()-&gt;QueryInterface(iid, iface);
  }</pre>
-<p>Do not support the <tt>IUnknown</tt> interface itself in your <a href="qaxaggregated.html#queryInterface">queryInterface()</a> implementation.</p>
-<p>Implement the methods of the COM interfaces, and use <a href="qaxaggregated.html#object">QAxAggregated::object</a>() if you need to make calls to the <a href="qobject.html">QObject</a> subclass implementing the control.</p>
-<p>In your <a href="qaxbindable.html">QAxBindable</a> subclass, implement <a href="qaxbindable.html#createAggregate">QAxBindable::createAggregate</a>() to return a new object of the <a href="qaxaggregated.html">QAxAggregated</a> subclass.</p>
+<p>Do not support the <tt>IUnknown</tt> interface itself in your queryInterface() implementation.</p>
+<p>Implement the methods of the COM interfaces, and use QAxAggregated::object() if you need to make calls to the <a href="qobject.html">QObject</a> subclass implementing the control.</p>
+<p>In your QAxBindable subclass, implement QAxBindable::createAggregate() to return a new object of the QAxAggregated subclass.</p>
 <pre> class MyActiveX : public QWidget, public QAxBindable
  {
      Q_OBJECT
@@ -507,8 +493,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

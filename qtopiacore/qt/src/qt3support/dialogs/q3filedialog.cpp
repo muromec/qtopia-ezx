@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -96,11 +90,11 @@
 #endif
 #endif // Q_WS_WIN
 
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
 #include <time.h>
 #else
 #include <shellapi.h>
-#endif // Q_OS_TEMP
+#endif // Q_OS_WINCE
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
@@ -115,6 +109,8 @@
 #if defined(Q_OS_OPENBSD)
 #include <sys/param.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /* XPM */
 static const char * const start_xpm[]={
@@ -519,7 +515,7 @@ static PtrExtractIconEx ptrExtractIconEx = 0;
 
 static void resolveLibs()
 {
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
     static bool triedResolve = false;
 
     if (!triedResolve) {
@@ -542,7 +538,7 @@ static void resolveLibs()
     }
 #endif
 }
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
 #define PtrExtractIconEx ExtractIconEx
 #endif
 
@@ -567,7 +563,7 @@ private:
 
 static void makeVariables() {
     if (!openFolderIcon) {
-        workingDirectory = new QString(::toRootIfNotExists( QDir::currentDirPath() ));
+        workingDirectory = new QString(toRootIfNotExists( QDir::currentDirPath() ));
         qfd_cleanup_string.add(&workingDirectory);
 
         openFolderIcon = new QPixmap((const char **)open_xpm);
@@ -1428,7 +1424,7 @@ void QFileListBox::viewportDropEvent(QDropEvent *e)
 bool QFileListBox::acceptDrop(const QPoint &pnt, QWidget *source)
 {
     Q3ListBoxItem *item = itemAt(pnt);
-    if (!item || item && !itemRect(item).contains(pnt)) {
+    if (!item || (item && !itemRect(item).contains(pnt))) {
         if (source == viewport() && startDragDir == filedialog->dirPath())
             return false;
         return true;
@@ -1836,7 +1832,7 @@ void Q3FileDialogQFileListView::viewportDropEvent(QDropEvent *e)
 bool Q3FileDialogQFileListView::acceptDrop(const QPoint &pnt, QWidget *source)
 {
     Q3ListViewItem *item = itemAt(pnt);
-    if (!item || item && !itemRect(item).contains(pnt)) {
+    if (!item || (item && !itemRect(item).contains(pnt))) {
         if (source == viewport() && startDragDir == filedialog->dirPath())
             return false;
         return true;
@@ -2124,14 +2120,7 @@ static QStringList makeFiltersList(const QString &filter)
   Windows file dialog and on Mac OS X, these static function will call
   the native Mac OS X file dialog.
 
-  \code
-    QString s = Q3FileDialog::getOpenFileName(
-                    "/home",
-                    "Images (*.png *.xpm *.jpg)",
-                    this,
-                    "open file dialog",
-                    "Choose a file");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 0
 
   In the above example, a modal Q3FileDialog is created using a static
   function. The startup directory is set to "/home". The file filter
@@ -2140,18 +2129,13 @@ static QStringList makeFiltersList(const QString &filter)
   dialog". The caption at the top of file dialog is set to "Choose a
   file". If you want to use multiple filters, separate each one with
   \e two semicolons, e.g.
-  \code
-  "Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 1
 
   You can create your own Q3FileDialog without using the static
   functions. By calling setMode(), you can set what can be returned by
   the Q3FileDialog.
 
-  \code
-    Q3FileDialog* fd = new Q3FileDialog(this, "file dialog", true);
-    fd->setMode(Q3FileDialog::AnyFile);
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 2
 
   In the above example, the mode of the file dialog is set to \l
   AnyFile, meaning that the user can select any file, or even specify a
@@ -2163,9 +2147,7 @@ static QStringList makeFiltersList(const QString &filter)
   You can retrieve the dialog's mode with mode(). Use setFilter() to set
   the dialog's file filter, e.g.
 
-  \code
-    fd->setFilter("Images (*.png *.xpm *.jpg)");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 3
 
   In the above example, the filter is set to "Images (*.png *.xpm
   *.jpg)", this means that only files with the extension \c png, \c xpm
@@ -2180,18 +2162,12 @@ static QStringList makeFiltersList(const QString &filter)
   displays additional information alongside each name, e.g. file size,
   modification date, etc. Set the mode with setViewMode().
 
-  \code
-    fd->setViewMode(Q3FileDialog::Detail);
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 4
 
   The last important function you will need to use when creating your
   own file dialog is selectedFile().
 
-  \code
-    QString fileName;
-    if (fd->exec() == QDialog::Accepted)
-        fileName = fd->selectedFile();
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 5
 
   In the above example, a modal file dialog is created and shown. If
   the user clicked OK, then the file they selected is put in \c
@@ -2217,23 +2193,7 @@ static QStringList makeFiltersList(const QString &filter)
   that the user can see either the contents of the file, or information
   about the file.
 
-  \code
-    class Preview : public QLabel, public Q3FilePreview
-    {
-    public:
-        Preview(QWidget *parent=0) : QLabel(parent) {}
-
-        void previewUrl(const Q3Url &u)
-        {
-            QString path = u.path();
-            QPixmap pix(path);
-            if (pix.isNull())
-                setText("This is not a pixmap");
-            else
-                setPixmap(pix);
-        }
-    };
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 6
 
   In the above snippet, we create a preview widget which inherits from
   QLabel and Q3FilePreview. File preview widgets \e must inherit from
@@ -2244,15 +2204,7 @@ static QStringList makeFiltersList(const QString &filter)
   above example we only show a preview of the file if it is a valid
   pixmap. Here's how to make a file dialog use a preview widget:
 
-  \code
-    Preview* p = new Preview;
-
-    Q3FileDialog* fd = new Q3FileDialog(this);
-    fd->setContentsPreviewEnabled(true);
-    fd->setContentsPreview(p, p);
-    fd->setPreviewMode(Q3FileDialog::Contents);
-    fd->show();
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 7
 
   The first line creates an instance of our preview widget. We then
   create our file dialog and call setContentsPreviewEnabled(true),
@@ -2420,7 +2372,7 @@ void Q3FileDialog::init()
     connect(d->mimeTypeTimer, SIGNAL(timeout()),
              this, SLOT(doMimeTypeLookup()));
 
-    d->url = Q3UrlOperator(::toRootIfNotExists( QDir::currentDirPath() ));
+    d->url = Q3UrlOperator(toRootIfNotExists( QDir::currentDirPath() ));
     d->oldUrl = d->url;
     d->currListChildren = 0;
 
@@ -2600,7 +2552,7 @@ void Q3FileDialog::init()
     d->modeButtons->insert(d->previewInfo);
 
     d->previewContents = new QToolButton(this, "preview info view");
-#if defined(Q_WS_WIN) && !defined(Q_OS_TEMP)
+#if defined(Q_WS_WIN) && !defined(Q_OS_WINCE)
     if ((qWinVersion() & Qt::WV_NT_based) > Qt::WV_NT)
 #else
     if (!qstrcmp(style()->className(), "QWindowsStyle"))
@@ -2957,14 +2909,7 @@ void Q3FileDialog::setSelectedFilter(const QString& mask)
 
   Note that if you want to iterate over the list, you should
   iterate over a copy, e.g.
-    \code
-    QStringList list = myFileDialog.selectedFiles();
-    QStringList::Iterator it = list.begin();
-    while(it != list.end()) {
-        myProcessing(*it);
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 8
 
   \sa selectedFile, selectedFilter, QList::isEmpty()
 */
@@ -3075,12 +3020,7 @@ QString Q3FileDialog::dirPath() const
   semicolons then only the text contained in the parentheses is used as
   the filter. This means that these calls are all equivalent:
 
-  \code
-     fd->setFilter("All C++ files (*.cpp *.cc *.C *.cxx *.c++)");
-     fd->setFilter("*.cpp *.cc *.C *.cxx *.c++");
-     fd->setFilter("All C++ files (*.cpp;*.cc;*.C;*.cxx;*.c++)");
-     fd->setFilter("*.cpp;*.cc;*.C;*.cxx;*.c++");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 9
 
   \sa setFilters()
 */
@@ -3339,14 +3279,7 @@ extern Q_GUI_EXPORT bool qt_use_native_dialogs; //qtgui
   selected by the user. If the user pressed Cancel, it returns a null
   string.
 
-  \code
-    QString s = Q3FileDialog::getOpenFileName(
-                    "/home",
-                    "Images (*.png *.xpm *.jpg)",
-                    this,
-                    "open file dialog",
-                    "Choose a file to open");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 10
 
   The function creates a modal file dialog called \a name, with
   parent, \a parent. If a parent is not 0, the dialog will be shown
@@ -3418,7 +3351,7 @@ QString Q3FileDialog::getOpenFileName(const QString & startWith,
     }
 
     if (workingDirectory->isNull())
-        *workingDirectory = ::toRootIfNotExists( QDir::currentDirPath() );
+        *workingDirectory = toRootIfNotExists( QDir::currentDirPath() );
 
 #if defined(Q_WS_WIN)
     if (qt_use_native_dialogs && qobject_cast<QWindowsStyle *>(qApp->style()))
@@ -3467,14 +3400,7 @@ QString Q3FileDialog::getOpenFileName(const QString & startWith,
   If a parent is not 0, the dialog will be shown centered over the
   parent.
 
-  \code
-    QString s = Q3FileDialog::getSaveFileName(
-                    "/home",
-                    "Images (*.png *.xpm *.jpg)",
-                    this,
-                    "save file dialog",
-                    "Choose a filename to save under");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 11
 
   The file dialog's working directory will be set to \a startWith. If \a
   startWith includes a file name, the file will be selected. The filter
@@ -3536,7 +3462,7 @@ QString Q3FileDialog::getSaveFileName(const QString & startWith,
     }
 
     if (workingDirectory->isNull())
-        *workingDirectory = ::toRootIfNotExists( QDir::currentDirPath() );
+        *workingDirectory = toRootIfNotExists( QDir::currentDirPath() );
 
 #if defined(Q_WS_WIN)
     if (qt_use_native_dialogs && qobject_cast<QWindowsStyle *>(qApp->style()))
@@ -3665,8 +3591,8 @@ void Q3FileDialog::okClicked()
             = (Q3FileDialogPrivate::File *)files->currentItem();
         Q3FileDialogPrivate::MCItem * m
             = (Q3FileDialogPrivate::MCItem *)d->moreFiles->item(d->moreFiles->currentItem());
-        if (c && files->isVisible() && files->hasFocus() ||
-             m && d->moreFiles->isVisible()) {
+        if ((c && files->isVisible() && files->hasFocus())
+            || (m && d->moreFiles->isVisible())) {
             if (c && files->isVisible())
                 f = c->info;
             else
@@ -4377,14 +4303,7 @@ void Q3FileDialog::createdDirectory(const QUrlInfo &info, Q3NetworkOperation *)
   This is a convenience static function that will return an existing directory
   selected by the user.
 
-  \code
-    QString s = Q3FileDialog::getExistingDirectory(
-                    "/home",
-                    this,
-                    "get existing directory",
-                    "Choose a directory",
-                    true);
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 12
 
   This function creates a modal file dialog called \a name, with
   parent, \a parent. If parent is not 0, the dialog will be shown
@@ -4477,7 +4396,7 @@ QString Q3FileDialog::getExistingDirectory(const QString & dir,
         } else {
             QString theDir = dir_;
             if (theDir.isEmpty()) {
-                theDir = ::toRootIfNotExists( QDir::currentDirPath() );
+                theDir = toRootIfNotExists( QDir::currentDirPath() );
             } if (!theDir.isEmpty()) {
                 Q3Url tempUrl(theDir);
                 QFileInfo f(tempUrl.path());
@@ -4693,17 +4612,7 @@ Q3FileDialog::PreviewMode Q3FileDialog::previewMode() const
   labels. The widget \a w is placed underneath the file types combobox.
   The button \a b is placed underneath the Cancel push button.
 
-  \code
-    MyFileDialog::MyFileDialog(QWidget* parent, const char* name) :
-        Q3FileDialog(parent, name)
-    {
-        QLabel* label = new QLabel("Added widgets", this);
-        QLineEdit* lineedit = new QLineEdit(this);
-        QPushButton* pushbutton = new QPushButton(this);
-
-        addWidgets(label, lineedit, pushbutton);
-    }
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 13
 
   If you don't want to have one of the widgets added, pass 0 in that
   widget's position.
@@ -5025,7 +4934,7 @@ QWindowsIconProvider::QWindowsIconProvider(QObject *parent, const char *name)
         QStringList lst = QStringList::split(QLatin1String(","), s);
 
         if (lst.count() >= 2) { // don't just assume that lst has two entries
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
             QT_WA({
                 res = ptrExtractIconEx((TCHAR*)lst[0].simplifyWhiteSpace().ucs2(),
                                        lst[1].simplifyWhiteSpace().toInt(),
@@ -5055,7 +4964,7 @@ QWindowsIconProvider::QWindowsIconProvider(QObject *parent, const char *name)
     }
 
     //------------------------------- get default file pixmap
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
     QT_WA({
         res = ptrExtractIconEx(L"shell32.dll",
                                  0, 0, &si, 1);
@@ -5078,7 +4987,7 @@ QWindowsIconProvider::QWindowsIconProvider(QObject *parent, const char *name)
     }
 
     //------------------------------- get default exe pixmap
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
     QT_WA({
         res = ptrExtractIconEx(L"shell32.dll",
                               2, 0, &si, 1);
@@ -5182,7 +5091,7 @@ const QPixmap * QWindowsIconProvider::pixmap(const QFileInfo &fi)
                     filepath = filepath.mid(1, filepath.length()-2);
 
                 resolveLibs();
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
                 QT_WA({
                     res = ptrExtractIconEx((TCHAR*)filepath.ucs2(), lst[1].stripWhiteSpace().toInt(),
                         0, &si, 1);
@@ -5210,7 +5119,7 @@ const QPixmap * QWindowsIconProvider::pixmap(const QFileInfo &fi)
         HICON si;
         UINT res = 0;
         if (!fi.absFilePath().isEmpty()) {
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
             QT_WA({
                 res = ptrExtractIconEx((TCHAR*)fi.absFilePath().ucs2(), -1,
                                       0, 0, 1);
@@ -5359,8 +5268,8 @@ bool Q3FileDialog::eventFilter(QObject * o, QEvent * e)
         return true;
     } else if ((o == d->moreFiles || o == d->moreFiles->viewport()) &&
                 e->type() == QEvent::FocusIn) {
-        if (o == d->moreFiles->viewport() && !d->moreFiles->viewport()->hasFocus() ||
-             o == d->moreFiles && !d->moreFiles->hasFocus())
+        if ((o == d->moreFiles->viewport() && !d->moreFiles->viewport()->hasFocus())
+            || (o == d->moreFiles && !d->moreFiles->hasFocus()))
             ((QWidget*)o)->setFocus();
         return false;
     }
@@ -5372,14 +5281,7 @@ bool Q3FileDialog::eventFilter(QObject * o, QEvent * e)
   Sets the filters used in the file dialog to \a filters. Each group
   of filters must be separated by \c{;;} (\e two semicolons).
 
-  \code
-    QString types("Image files (*.png *.xpm *.jpg);;"
-                  "Text files (*.txt);;"
-                  "Any files (*)");
-    Q3FileDialog fd = new Q3FileDialog(this);
-    fd->setFilters(types);
-    fd->show();
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 14
 
 */
 
@@ -5433,11 +5335,7 @@ void Q3FileDialog::setFilters(const QStringList & types)
   Adds the filter \a filter to the list of filters and makes it the
   current filter.
 
-  \code
-    Q3FileDialog* fd = new Q3FileDialog(this);
-    fd->addFilter("Images (*.png *.jpg *.xpm)");
-    fd->show();
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 15
 
   In the above example, a file dialog is created, and the file filter "Images
   (*.png *.jpg *.xpm)" is added and is set as the current filter. The original
@@ -5489,14 +5387,7 @@ void Q3FileDialog::modeButtonsDestroyed()
   This is a convenience static function that will return one or more
   existing files selected by the user.
 
-  \code
-    QStringList files = Q3FileDialog::getOpenFileNames(
-                            "Images (*.png *.xpm *.jpg)",
-                            "/home",
-                            this,
-                            "open files dialog",
-                            "Select one or more files to open");
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 16
 
   This function creates a modal file dialog called \a name, with
   parent \a parent. If \a parent is not 0, the dialog will be shown
@@ -5526,14 +5417,7 @@ void Q3FileDialog::modeButtonsDestroyed()
 
   Note that if you want to iterate over the list of files, you should
   iterate over a copy, e.g.
-    \code
-    QStringList list = files;
-    QStringList::Iterator it = list.begin();
-    while(it != list.end()) {
-        myProcessing(*it);
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 17
 
   \sa getOpenFileName(), getSaveFileName(), getExistingDirectory()
 */
@@ -5556,7 +5440,7 @@ QStringList Q3FileDialog::getOpenFileNames(const QString & filter,
     makeVariables();
 
     if (workingDirectory->isNull())
-        *workingDirectory = ::toRootIfNotExists( QDir::currentDirPath() );
+        *workingDirectory = toRootIfNotExists( QDir::currentDirPath() );
 
     if (!dir.isEmpty()) {
         // #### works only correct for local files
@@ -5886,8 +5770,8 @@ void Q3FileDialog::insertEntry(const Q3ValueList<QUrlInfo> &lst, Q3NetworkOperat
             i = new Q3FileDialogPrivate::File(d, &inf, files);
             i2 = new Q3FileDialogPrivate::MCItem(d->moreFiles, i);
 
-            if (d->mode == ExistingFiles && inf.isDir() ||
-                (isDirectoryMode(d->mode) && inf.isFile())) {
+            if ((d->mode == ExistingFiles && inf.isDir())
+                || (isDirectoryMode(d->mode) && inf.isFile())) {
                 i->setSelectable(false);
                 i2->setSelectable(false);
             }
@@ -6029,37 +5913,7 @@ void Q3FileDialog::setContentsPreviewEnabled(bool contents)
   Normally you would create a preview widget that derives from both QWidget and
   Q3FilePreview, so you should pass the same widget twice.
 
-  \code
-    class Preview : public QLabel, public Q3FilePreview
-    {
-    public:
-        Preview(QWidget *parent=0) : QLabel(parent) {}
-
-        void previewUrl(const Q3Url &u)
-        {
-            QString path = u.path();
-            QPixmap pix(path);
-            if (pix.isNull())
-                setText("This is not a pixmap");
-            else
-                setText("This is a pixmap");
-        }
-    };
-
-  //...
-
-  int main(int argc, char** argv)
-  {
-    Preview* p = new Preview;
-
-    Q3FileDialog* fd = new Q3FileDialog(this);
-    fd->setInfoPreviewEnabled(true);
-    fd->setInfoPreview(p, p);
-    fd->setPreviewMode(Q3FileDialog::Info);
-    fd->show();
-  }
-
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 18
 
   \sa setContentsPreview(), setInfoPreviewEnabled(), setPreviewMode()
 
@@ -6091,36 +5945,7 @@ void Q3FileDialog::setInfoPreview(QWidget *w, Q3FilePreview *preview)
   Normally you would create a preview widget that derives from both QWidget and
   Q3FilePreview, so you should pass the same widget twice.
 
-  \code
-    class Preview : public QLabel, public Q3FilePreview
-    {
-    public:
-        Preview(QWidget *parent=0) : QLabel(parent) {}
-
-        void previewUrl(const Q3Url &u)
-        {
-            QString path = u.path();
-            QPixmap pix(path);
-            if (pix.isNull())
-                setText("This is not a pixmap");
-            else
-                setPixmap(pix);
-        }
-    };
-
-  //...
-
-  int main(int argc, char** argv)
-  {
-    Preview* p = new Preview;
-
-    Q3FileDialog* fd = new Q3FileDialog(this);
-    fd->setContentsPreviewEnabled(true);
-    fd->setContentsPreview(p, p);
-    fd->setPreviewMode(Q3FileDialog::Contents);
-    fd->show();
-  }
-  \endcode
+  \snippet doc/src/snippets/code/src_qt3support_dialogs_q3filedialog.cpp 19
 
   \sa setContentsPreviewEnabled(), setInfoPreview(), setPreviewMode()
 */
@@ -6172,7 +5997,7 @@ void Q3FileDialog::resortDir()
         item2 = new Q3FileDialogPrivate::MCItem(d->moreFiles, item, item2);
         item->i = item2;
         d->pendingItems.append(item);
-        if (d->mode == ExistingFiles && item->info.isDir() ||
+        if ((d->mode == ExistingFiles && item->info.isDir()) ||
             (isDirectoryMode(d->mode) && item->info.isFile())) {
             item->setSelectable(false);
             item2->setSelectable(false);
@@ -6360,6 +6185,8 @@ Q3FilePreview::Q3FilePreview()
   function to provide file previewing.
 */
 
+
+QT_END_NAMESPACE
 
 #include "moc_q3filedialog.cpp"
 #include "q3filedialog.moc"

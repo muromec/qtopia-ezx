@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 #include <qglframebufferobject.h>
 #include <qlibrary.h>
 #include <qimage.h>
+
+QT_BEGIN_NAMESPACE
 
 // #define DEPTH_BUFFER
 #define QGL_FUNC_CONTEXT QGLContext *ctx = d_ptr->ctx;
@@ -144,7 +140,7 @@ void QGLFramebufferObjectPrivate::init(const QSize &sz, QGLFramebufferObject::At
     glBindTexture(target, texture);
     glTexImage2D(target, 0, internal_format, size.width(), size.height(), 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-#ifndef Q_WS_QWS
+#ifndef QT_OPENGL_ES
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -186,7 +182,7 @@ void QGLFramebufferObjectPrivate::init(const QSize &sz, QGLFramebufferObject::At
         Q_ASSERT(!glIsRenderbufferEXT(depth_stencil_buffer));
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depth_stencil_buffer);
         Q_ASSERT(glIsRenderbufferEXT(depth_stencil_buffer));
-#ifdef Q_WS_QWS
+#ifdef QT_OPENGL_ES
 #define GL_DEPTH_COMPONENT16 0x81A5
         glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT16, size.width(), size.height());
 #else
@@ -257,13 +253,13 @@ void QGLFramebufferObjectPrivate::init(const QSize &sz, QGLFramebufferObject::At
     framebuffer objects more portable.
     \endlist
 
-    Note that QPainter antialiasing of drawing primitives will not
-    work when using a QGLFramebufferObject as a paintdevice. This is
-    because sample buffers, which are needed for antialiasing, are not
-    yet supported in application-defined framebuffer objects. However,
-    an extension to solve this has already been approved by the OpenGL
-    ARB (\c{GL_EXT_framebuffer_multisample}), and will most likely be
-    available in the near future.
+    Note that primitives drawn to a QGLFramebufferObject with QPainter
+    will only be antialiased if the QPainter::HighQualityAntialiasing
+    render hint is set. This is because there is currently no support
+    for the \c{GL_EXT_framebuffer_multisample} extension, which is
+    required to do multisample based antialiasing. Also note that the
+    QPainter::HighQualityAntialiasing render hint requires the
+    \c{GL_ARB_fragment_program} extension to work in OpenGL.
 
     \sa {Framebuffer Object Example}
 */
@@ -314,7 +310,7 @@ void QGLFramebufferObjectPrivate::init(const QSize &sz, QGLFramebufferObject::At
     \sa size(), texture(), attachment()
 */
 
-#ifndef Q_WS_QWS
+#ifndef QT_OPENGL_ES
 #define DEFAULT_FORMAT GL_RGBA8
 #else
 #define DEFAULT_FORMAT GL_RGBA
@@ -586,6 +582,57 @@ bool QGLFramebufferObject::hasOpenGLFramebufferObjects()
     return (QGLExtensions::glExtensions & QGLExtensions::FramebufferObject);
 }
 
+/*!
+    \since 4.4
+
+    Draws the given texture, \a textureId, to the given target rectangle,
+    \a target, in OpenGL model space. The \a textureTarget should be a 2D
+    texture target.
+
+    The framebuffer object should be bound when calling this function.
+
+    Equivalent to the corresponding QGLContext::drawTexture().
+*/
+void QGLFramebufferObject::drawTexture(const QRectF &target, GLuint textureId, GLenum textureTarget)
+{
+    Q_D(QGLFramebufferObject);
+    d->ctx->drawTexture(target, textureId, textureTarget);
+}
+
+#ifdef Q_MAC_COMPAT_GL_FUNCTIONS
+/*! \internal */
+void QGLFramebufferObject::drawTexture(const QRectF &target, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget)
+{
+    Q_D(QGLFramebufferObject);
+    d->ctx->drawTexture(target, textureId, textureTarget);
+}
+#endif
+
+/*!
+    \since 4.4
+
+    Draws the given texture, \a textureId, at the given \a point in OpenGL
+    model space. The \a textureTarget should be a 2D texture target.
+
+    The framebuffer object should be bound when calling this function.
+
+    Equivalent to the corresponding QGLContext::drawTexture().
+*/
+void QGLFramebufferObject::drawTexture(const QPointF &point, GLuint textureId, GLenum textureTarget)
+{
+    Q_D(QGLFramebufferObject);
+    d->ctx->drawTexture(point, textureId, textureTarget);
+}
+
+#ifdef Q_MAC_COMPAT_GL_FUNCTIONS
+/*! \internal */
+void QGLFramebufferObject::drawTexture(const QPointF &point, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget)
+{
+    Q_D(QGLFramebufferObject);
+    d->ctx->drawTexture(point, textureId, textureTarget);
+}
+#endif
+
 extern int qt_defaultDpi();
 
 /*! \reimp */
@@ -668,3 +715,5 @@ QGLFramebufferObject::Attachment QGLFramebufferObject::attachment() const
         return d->fbo_attachment;
     return NoAttachment;
 }
+
+QT_END_NAMESPACE

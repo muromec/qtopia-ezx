@@ -1,50 +1,44 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qdesigner_formwindow.h"
-#include "qdesigner_actions.h"
 #include "qdesigner_workbench.h"
 #include "qdesigner_settings.h"
+#include "qdesigner_utils_p.h"
 
 // sdk
 #include <QtDesigner/QDesignerFormWindowInterface>
@@ -68,6 +62,7 @@
 #include <QtGui/QUndoCommand>
 #include <QtGui/QWindowStateChangeEvent>
 
+QT_BEGIN_NAMESPACE
 
 QDesignerFormWindow::QDesignerFormWindow(QDesignerFormWindowInterface *editor, QDesignerWorkbench *workbench, QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags),
@@ -106,17 +101,9 @@ QDesignerFormWindow::~QDesignerFormWindow()
 
 void QDesignerFormWindow::widgetActivated(QWidget *widget)
 {
-    if (const QDesignerTaskMenuExtension *taskMenu = qt_extension<QDesignerTaskMenuExtension*>(m_editor->core()->extensionManager(), widget)) {
-        QAction *action = taskMenu->preferredEditAction();
-        if (!action) {
-            const QList<QAction *> actions = taskMenu->taskActions();
-            if (!actions.isEmpty())
-                action = actions.first();
-        }
-        if (action) {
-            QTimer::singleShot(0, action, SIGNAL(triggered()));
-        }
-    }
+    QAction *action = qdesigner_internal::preferredEditAction(m_editor->core(), widget);
+    if (action)
+        QTimer::singleShot(0, action, SIGNAL(triggered()));
 }
 
 QAction *QDesignerFormWindow::action() const
@@ -288,9 +275,19 @@ void QDesignerFormWindow::resizeEvent(QResizeEvent *rev)
 
 void QDesignerFormWindow::geometryChanged()
 {
-    if(QObject *object = m_editor->core()->propertyEditor()->object()) {
-        QDesignerPropertySheetExtension *sheet =
-            qt_extension<QDesignerPropertySheetExtension*>(m_editor->core()->extensionManager(), object);
-        m_editor->core()->propertyEditor()->setPropertyValue(QLatin1String("geometry"), sheet->property(sheet->indexOf(QLatin1String("geometry"))));
-    }
+    // If the form window changes, re-update the geometry of the current widget in the property editor.
+    // Note that in the case of layouts, non-maincontainer widgets must also be updated,
+    // so, do not do it for the main container only
+    const QDesignerFormEditorInterface *core = m_editor->core();
+    QObject *object = core->propertyEditor()->object();
+    if (object == 0 || !object->isWidgetType())
+        return;
+    static const QString geometryProperty = QLatin1String("geometry");
+    const QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(core->extensionManager(), object);
+    const int geometryIndex = sheet->indexOf(geometryProperty);
+    if (geometryIndex == -1)
+        return;
+    core->propertyEditor()->setPropertyValue(geometryProperty, sheet->property(geometryIndex));
 }
+
+QT_END_NAMESPACE

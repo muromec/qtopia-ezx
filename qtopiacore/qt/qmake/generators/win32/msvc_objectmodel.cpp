@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the qmake application of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,8 @@
 #include "msvc_vcproj.h"
 #include <qstringlist.h>
 #include <qfileinfo.h>
+
+QT_BEGIN_NAMESPACE
 
 // XML Tags ---------------------------------------------------------
 const char _Configuration[]                     = "Configuration";
@@ -62,6 +58,7 @@ const char _VisualStudioProject[]               = "VisualStudioProject";
 // XML Properties ---------------------------------------------------
 const char _AddModuleNamesToAssembly[]          = "AddModuleNamesToAssembly";
 const char _AdditionalDependencies[]            = "AdditionalDependencies";
+const char _AdditionalFiles[]                   = "AdditionalFiles";
 const char _AdditionalIncludeDirectories[]      = "AdditionalIncludeDirectories";
 const char _AdditionalLibraryDirectories[]      = "AdditionalLibraryDirectories";
 const char _AdditionalOptions[]                 = "AdditionalOptions";
@@ -179,6 +176,7 @@ const char _ProxyFileName[]                     = "ProxyFileName";
 const char _RedirectOutputAndErrors[]           = "RedirectOutputAndErrors";
 const char _RegisterOutput[]                    = "RegisterOutput";
 const char _RelativePath[]                      = "RelativePath";
+const char _RemoteDirectory[]                   = "RemoteDirectory";
 const char _ResourceOnlyDLL[]                   = "ResourceOnlyDLL";
 const char _ResourceOutputFileName[]            = "ResourceOutputFileName";
 const char _RuntimeLibrary[]                    = "RuntimeLibrary";
@@ -225,6 +223,8 @@ const char _Version[]                           = "Version";
 const char _WarnAsError[]                       = "WarnAsError";
 const char _WarningLevel[]                      = "WarningLevel";
 const char _WholeProgramOptimization[]          = "WholeProgramOptimization";
+const char _CompileForArchitecture[]            = "CompileForArchitecture";
+const char _InterworkCalls[]                    = "InterworkCalls";
 
 // XmlOutput stream functions ------------------------------
 inline XmlOutput::xml_output attrT(const char *name, const triState v)
@@ -323,7 +323,9 @@ VCCLCompilerTool::VCCLCompilerTool()
         UsePrecompiledHeader(pchNone),
         WarnAsError(unset),
         WarningLevel(warningLevel_0),
-        WholeProgramOptimization(unset)
+        WholeProgramOptimization(unset),
+        CompileForArchitecture(archUnknown),
+        InterworkCalls(unset)
 {
 }
 
@@ -342,7 +344,7 @@ VCCLCompilerTool::VCCLCompilerTool()
  */
 inline XmlOutput::xml_output xformUsePrecompiledHeaderForNET2005(pchOption whatPch, DotNET compilerVersion)
 {
-    if (compilerVersion == NET2005) {
+    if (compilerVersion >= NET2005) {
         if (whatPch ==  pchGenerateAuto) whatPch = (pchOption)0;
         if (whatPch ==  pchUseUsingSpecific) whatPch = (pchOption)2;
     }
@@ -354,7 +356,7 @@ inline XmlOutput::xml_output xformExceptionHandlingNET2005(exceptionHandling eh,
     if (eh == ehDefault)
         return noxml();
 
-    if (compilerVersion == NET2005)
+    if (compilerVersion >= NET2005)
         return attrE(_ExceptionHandling, eh);
 
     return attrS(_ExceptionHandling, (eh == ehNoSEH ? "true" : "false"));
@@ -429,6 +431,9 @@ XmlOutput &operator<<(XmlOutput &xml, const VCCLCompilerTool &tool)
             << attrT(_WarnAsError, tool.WarnAsError)
             << attrE(_WarningLevel, tool.WarningLevel, /*ifNot*/ warningLevelUnknown)
             << attrT(_WholeProgramOptimization, tool.WholeProgramOptimization)
+            << attrE(_CompileForArchitecture, tool.CompileForArchitecture, /*ifNot*/ archUnknown)
+            << attrT(_InterworkCalls, tool.InterworkCalls)
+
         << closetag(_Tool);
 }
 
@@ -480,7 +485,7 @@ bool VCCLCompilerTool::parseOption(const char* option)
                 ExceptionHandling = ehNone;
                 AdditionalOptions += option;
             }
-            if (config->CompilerVersion != NET2005
+            if (config->CompilerVersion < NET2005
                 && ExceptionHandling == ehSEH) {
                 ExceptionHandling = ehNone;
                 AdditionalOptions += option;
@@ -722,6 +727,24 @@ bool VCCLCompilerTool::parseOption(const char* option)
         if(second == 'I') {
             AdditionalOptions += option;
             break;
+        } else if (second == 'R') {
+            QString opt = option + 3;
+            if (opt == "interwork-return") {
+                InterworkCalls = _True;
+                break;
+            } else if (opt == "arch4") {
+                CompileForArchitecture = archArmv4;
+                break;
+            } else if (opt == "arch5") {
+                CompileForArchitecture = archArmv5;
+                break;
+            } else if (opt == "arch4T") {
+                CompileForArchitecture = archArmv4T;
+                break;
+            } else if (opt == "arch5T") {
+                CompileForArchitecture = archArmv5T;
+                break;
+            }
         }
         found = false; break;
     case 'R':
@@ -913,7 +936,7 @@ bool VCCLCompilerTool::parseOption(const char* option)
         if(second == '\0') {
             CompileOnly = _True;
         } else if(second == 'l') {
-            if (config->CompilerVersion != NET2005) {
+            if (config->CompilerVersion < NET2005) {
                 if(*(option+5) == 'n') {
                     CompileAsManaged = managedAssemblyPure;
                     TurnOffAssemblyGeneration = _True;
@@ -1045,7 +1068,7 @@ VCLinkerTool::VCLinkerTool()
         LargeAddressAware(addrAwareDefault),
         LinkDLL(unset),
         LinkIncremental(linkIncrementalDefault),
-        LinkTimeCodeGeneration(unset),
+        LinkTimeCodeGeneration(optLTCGDefault),
         MapExports(unset),
         MapLines(unset),
         OptimizeForWindows98(optWin98Default),
@@ -1095,7 +1118,7 @@ XmlOutput &operator<<(XmlOutput &xml, const VCLinkerTool &tool)
             << attrE(_LargeAddressAware, tool.LargeAddressAware, /*ifNot*/ addrAwareDefault)
             << attrT(_LinkDLL, tool.LinkDLL)
             << attrE(_LinkIncremental, tool.LinkIncremental, /*ifNot*/ linkIncrementalDefault)
-            << attrT(_LinkTimeCodeGeneration, tool.LinkTimeCodeGeneration)
+            << attrE(_LinkTimeCodeGeneration, tool.LinkTimeCodeGeneration)
             << attrS(_LinkToManagedResourceFile, tool.LinkToManagedResourceFile)
             << attrT(_MapExports, tool.MapExports)
             << attrS(_MapFileName, tool.MapFileName)
@@ -1287,11 +1310,33 @@ bool VCLinkerTool::parseOption(const char* option)
         break;
     case 0x0341877: // /LTCG[:NOSTATUS|:STATUS]
         config->WholeProgramOptimization = _True;
-        LinkTimeCodeGeneration = _True;
-        if(*(option+5) == ':' &&
-             *(option+6) == 'S')
-             ShowProgress = linkProgressAll;
+        if (config->CompilerVersion >= NET2005) {
+            LinkTimeCodeGeneration = optLTCGEnabled;
+            if(*(option+5) == ':') {
+                const char* str = option+6;
+                if (*str == 'S')
+                    ShowProgress = linkProgressAll;
+#ifndef Q_OS_WIN
+                else if (strncasecmp(str, "pginstrument", 12))
+                    LinkTimeCodeGeneration = optLTCGInstrument;
+                else if (strncasecmp(str, "pgoptimize", 10))
+                    LinkTimeCodeGeneration = optLTCGOptimize;
+                else if (strncasecmp(str, "pgupdate", 8 ))
+                    LinkTimeCodeGeneration = optLTCGUpdate;
+#else
+                else if (_stricmp(str, "pginstrument"))
+                    LinkTimeCodeGeneration = optLTCGInstrument;
+                else if (_stricmp(str, "pgoptimize"))
+                    LinkTimeCodeGeneration = optLTCGOptimize;
+                else if (_stricmp(str, "pgupdate"))
+                    LinkTimeCodeGeneration = optLTCGUpdate;
+#endif
+            }
+        } else {
+            AdditionalOptions.append(option);
+        }
         break;
+	case 0x379ED25:
     case 0x157cf65: // /MACHINE:{AM33|ARM|CEE|IA64|X86|M32R|MIPS|MIPS16|MIPSFPU|MIPSFPU16|MIPSR41XX|PPC|SH3|SH4|SH5|THUMB|TRICORE}
         switch (elfHash(option+9)) {
         // Very limited documentation on all options but X86,
@@ -1406,6 +1451,12 @@ bool VCLinkerTool::parseOption(const char* option)
                 StackCommitSize = both[1].toLongLong();
         }
         break;
+    case 0x75AA4D8: // /SAFESH:{NO}
+        {
+            AdditionalOptions += option;
+            break;
+        }
+	case 0x9B3C00D:
     case 0x78dc00d: // /SUBSYSTEM:{CONSOLE|EFI_APPLICATION|EFI_BOOT_SERVICE_DRIVER|EFI_ROM|EFI_RUNTIME_DRIVER|NATIVE|POSIX|WINDOWS|WINDOWSCE}[,major[.minor]]
         {
             // Split up in subsystem, and version number
@@ -1425,6 +1476,7 @@ bool VCLinkerTool::parseOption(const char* option)
             case 0x5268ea5: // NATIVE
             case 0x05547e8: // POSIX
             case 0x2949c95: // WINDOWSCE
+			case 0x4B69795: // windowsce
                 AdditionalOptions += option;
                 break;
             default:
@@ -1862,6 +1914,26 @@ XmlOutput &operator<<(XmlOutput &xml, const VCResourceCompilerTool &tool)
         << closetag(_Tool);
 }
 
+// VCDeploymentTool --------------------------------------------
+VCDeploymentTool::VCDeploymentTool()
+    :   RegisterOutput(registerNo)
+{
+    DeploymentTag = "DeploymentTool";
+    RemoteDirectory = "";
+}
+
+XmlOutput &operator<<(XmlOutput &xml, const VCDeploymentTool &tool)
+{
+    if (tool.AdditionalFiles.isEmpty())
+        return xml;
+    return xml
+        << tag(tool.DeploymentTag)
+        << attrS(_RemoteDirectory, tool.RemoteDirectory)
+        << attrE(_RegisterOutput, tool.RegisterOutput)
+        << attrS(_AdditionalFiles, tool.AdditionalFiles)
+        << closetag(tool.DeploymentTag);
+}
+
 // VCEventTool -------------------------------------------------
 XmlOutput &operator<<(XmlOutput &xml, const VCEventTool &tool)
 {
@@ -1939,6 +2011,7 @@ XmlOutput &operator<<(XmlOutput &xml, const VCConfiguration &tool)
             << tool.preBuild
             << tool.preLink
             << tool.resource
+            << tool.deployment
         << closetag(_Configuration);
     return xml;
 }
@@ -1964,25 +2037,6 @@ void VCFilter::addFiles(const QStringList& fileList)
 {
     for (int i = 0; i < fileList.count(); ++i)
         addFile(fileList.at(i));
-}
-
-void VCFilter::addMOCstage(const VCFilterFile &file, bool hdr)
-{
-    if (file.additionalFile.isEmpty())
-        return;
-
-    const QString &filename  = hdr ? file.file : file.additionalFile;
-    const QString &mocOutput = hdr ? file.additionalFile : file.file;
-    if(mocOutput.isEmpty())
-        return;
-
-    useCustomBuildTool = true;
-    CustomBuildTool.Description = QString("Moc'ing %1...").arg(filename);
-    QString mocApp = Project->var("QMAKE_MOC");
-    CustomBuildTool.CommandLine += (mocApp + " " + customMocArguments + " "
-				+ filename + " -o " + mocOutput);
-    CustomBuildTool.AdditionalDependencies = QStringList(mocApp);
-    CustomBuildTool.Outputs += mocOutput;
 }
 
 void VCFilter::modifyPCHstage(QString str)
@@ -2524,3 +2578,5 @@ XmlOutput &operator<<(XmlOutput &xml, VCProject &tool)
             << data(); // No "/>" end tag
     return xml;
 }
+
+QT_END_NAMESPACE

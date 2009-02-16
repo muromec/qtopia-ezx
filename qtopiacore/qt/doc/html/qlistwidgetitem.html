@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/itemviews/qlistwidget.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/itemviews/qlistwidget.cpp -->
 <head>
-  <title>Qt 4.3: QListWidgetItem Class Reference</title>
+  <title>Qt 4.4: QListWidgetItem Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QListWidgetItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QListWidgetItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QListWidgetItem class provides an item for use with the <a href="qlistwidget.html">QListWidget</a> item view class. <a href="#details">More...</a></p>
 <pre> #include &lt;QListWidgetItem&gt;</pre><ul>
@@ -73,8 +73,8 @@
 <a name="related-non-members"></a>
 <h3>Related Non-Members</h3>
 <ul>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qlistwidgetitem.html#operator-lt-lt-51">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QListWidgetItem &amp; <i>item</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qlistwidgetitem.html#operator-gt-gt-33">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QListWidgetItem &amp; <i>item</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qlistwidgetitem.html#operator-lt-lt-46">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QListWidgetItem &amp; <i>item</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qlistwidgetitem.html#operator-gt-gt-23">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QListWidgetItem &amp; <i>item</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -195,7 +195,7 @@
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qlistwidgetitem.html#sizeHint">sizeHint</a>().</p>
 <h3 class="fn"><a name="setStatusTip"></a>void QListWidgetItem::setStatusTip ( const <a href="qstring.html">QString</a> &amp; <i>statusTip</i> )</h3>
-<p>Sets the status tip for the list item to the text specified by <i>statusTip</i>.</p>
+<p>Sets the status tip for the list item to the text specified by <i>statusTip</i>. <a href="qlistwidget.html">QListWidget</a> mouse tracking needs to be enabled for this feature to work.</p>
 <p>See also <a href="qlistwidgetitem.html#statusTip">statusTip</a>(), <a href="qlistwidgetitem.html#setToolTip">setToolTip</a>(), and <a href="qlistwidgetitem.html#setWhatsThis">setWhatsThis</a>().</p>
 <h3 class="fn"><a name="setText"></a>void QListWidgetItem::setText ( const <a href="qstring.html">QString</a> &amp; <i>text</i> )</h3>
 <p>Sets the text for the list widget item's to the given <i>text</i>.</p>
@@ -241,20 +241,20 @@
 <p>See also <a href="qlistwidgetitem.html#data">data</a>() and <a href="qlistwidgetitem.html#flags">flags</a>().</p>
 <hr />
 <h2>Related Non-Members</h2>
-<h3 class="fn"><a name="operator-lt-lt-51"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QListWidgetItem &amp; <i>item</i> )</h3>
+<h3 class="fn"><a name="operator-lt-lt-46"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QListWidgetItem &amp; <i>item</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Writes the list widget item <i>item</i> to stream <i>out</i>.</p>
 <p>This operator uses <a href="qlistwidgetitem.html#write">QListWidgetItem::write</a>().</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
-<h3 class="fn"><a name="operator-gt-gt-33"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QListWidgetItem &amp; <i>item</i> )</h3>
+<h3 class="fn"><a name="operator-gt-gt-23"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QListWidgetItem &amp; <i>item</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Reads a list widget item from stream <i>in</i> into <i>item</i>.</p>
 <p>This operator uses <a href="qlistwidgetitem.html#read">QListWidgetItem::read</a>().</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

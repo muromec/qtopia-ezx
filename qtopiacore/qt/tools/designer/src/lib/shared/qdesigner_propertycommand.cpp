@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,6 +40,7 @@
 #include "dynamicpropertysheet.h"
 #include "qdesigner_propertyeditor_p.h"
 #include "qdesigner_integration_p.h"
+#include "spacer_widget_p.h"
 
 #include <QtDesigner/QDesignerFormEditorInterface>
 #include <QtDesigner/QDesignerFormWindowInterface>
@@ -65,12 +60,58 @@
 #include <QtGui/QAction>
 #include <QtGui/QDialog>
 #include <QtGui/QPushButton>
+#include <QtGui/QLayout>
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 namespace  {
 enum { debugPropertyCommands = 0 };
 
+// Debug resolve mask of font
+QString fontMask(unsigned m)
+{
+    QString rc;
+    if (m & QFont::FamilyResolved)
+        rc += QLatin1String("Family");
+    if (m & QFont::SizeResolved)
+        rc += QLatin1String("Size ");
+    if (m & QFont::StyleResolved)
+        rc += QLatin1String("Style ");
+    if (m & QFont::UnderlineResolved)
+        rc += QLatin1String("Underline ");
+    if (m & QFont::StrikeOutResolved)
+        rc += QLatin1String("StrikeOut ");
+    if (m & QFont::KerningResolved)
+        rc += QLatin1String("Kerning ");
+    if (m & QFont::StyleStrategyResolved)
+        rc += QLatin1String("StyleStrategy");
+    return rc;
+}
 
+// Debug font
+QString fontString(const QFont &f)
+{
+    QString rc; {
+        const QChar comma = QLatin1Char(',');
+        QTextStream str(&rc);
+        str << QLatin1String("QFont(\"") <<  f.family() << comma <<
+            f.pointSize();
+        if (f.bold())
+            str << comma <<  QLatin1String("bold");
+        if (f.italic())
+            str << comma <<  QLatin1String("italic");
+        if (f.underline())
+            str << comma <<  QLatin1String("underline");
+        if (f.strikeOut())
+            str << comma <<  QLatin1String("strikeOut");
+        if (f.kerning())
+            str << comma << QLatin1String("kerning");
+        str <<  comma << f.styleStrategy() << QLatin1String(" resolve: ")
+            << fontMask(f.resolve()) << QLatin1Char(')');
+    }
+    return rc;
+}
 QSize checkSize(const QSize &size)
 {
     return size.boundedTo(QSize(0xFFFFFF, 0xFFFFFF));
@@ -120,8 +161,6 @@ void checkSizes(QDesignerFormWindowInterface *fw, const QSize &size, QSize *form
 
 enum RectSubPropertyMask {  SubPropertyX=1, SubPropertyY = 2, SubPropertyWidth = 4, SubPropertyHeight = 8 };
 enum SizePolicySubPropertyMask { SubPropertyHSizePolicy = 1, SubPropertyHStretch = 2, SubPropertyVSizePolicy =4, SubPropertyVStretch = 8 };
-enum FontSubPropertyMask { SubPropertyFamily=1, SubPropertyPointSize=2, SubPropertyBold=4,  SubPropertyItalic=8,
-                           SubPropertyUnderline=16, SubPropertyStrikeOut=32, SubPropertyKerning=64, SubPropertyStyleStrategy=128};
 enum AlignmentSubPropertyMask { SubPropertyHorizontalAlignment=1, SubPropertyVerticalAlignment=2 };
 
 enum CommonSubPropertyMask { SubPropertyAll = 0xFFFFFFFF };
@@ -159,18 +198,40 @@ unsigned compareSubProperties(const QSizePolicy & sp1, const QSizePolicy & sp2)
     return rc;
 }
 
+// Compare font-subproperties taking the [undocumented]
+// resolve flag into account
+template <class Property>
+void compareFontSubProperty(const QFont & f1,
+                            const QFont & f2,
+                            Property (QFont::*getter) () const,
+                            unsigned maskBit,
+                            unsigned &mask)
+{
+    const bool f1Changed = f1.resolve() & maskBit;
+    const bool f2Changed = f2.resolve() & maskBit;
+    // Role has been set/reset in editor
+    if (f1Changed != f2Changed) {
+        mask |= maskBit;
+    } else {
+        // Was modified in both palettes: Compare values.
+        if (f1Changed && f2Changed && (f1.*getter)() != (f2.*getter)())
+            mask |= maskBit;
+    }
+}
 // find changed subproperties of a QFont
 unsigned compareSubProperties(const QFont & f1, const QFont & f2)
 {
     unsigned rc = 0;
-    COMPARE_SUBPROPERTY(f1, f2, family,        rc, SubPropertyFamily)
-    COMPARE_SUBPROPERTY(f1, f2, pointSize,     rc, SubPropertyPointSize)
-    COMPARE_SUBPROPERTY(f1, f2, bold,          rc, SubPropertyBold)
-    COMPARE_SUBPROPERTY(f1, f2, italic,        rc, SubPropertyItalic)
-    COMPARE_SUBPROPERTY(f1, f2, underline,     rc, SubPropertyUnderline)
-    COMPARE_SUBPROPERTY(f1, f2, strikeOut,     rc, SubPropertyStrikeOut)
-    COMPARE_SUBPROPERTY(f1, f2, kerning,       rc, SubPropertyKerning)
-    COMPARE_SUBPROPERTY(f1, f2, styleStrategy, rc, SubPropertyStyleStrategy)
+    compareFontSubProperty(f1, f2, &QFont::family,        QFont::FamilyResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::pointSize,     QFont::SizeResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::bold,          QFont::WeightResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::italic,        QFont::StyleResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::underline,     QFont::UnderlineResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::strikeOut,     QFont::StrikeOutResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::kerning,       QFont::KerningResolved, rc);
+    compareFontSubProperty(f1, f2, &QFont::styleStrategy, QFont::StyleStrategyResolved, rc);
+    if (debugPropertyCommands)
+        qDebug() << "compareSubProperties " <<  fontString(f1) << fontString(f2) << "\n\treturns " << fontMask(rc);
     return rc;
 }
 
@@ -184,7 +245,7 @@ bool roleColorChanged(const QPalette & p1, const QPalette & p2, QPalette::ColorR
     }
     return false;
 }
-// find changed subproperties of a QPalette
+// find changed subproperties of a QPalette taking the [undocumented] resolve flags into account
 unsigned compareSubProperties(const QPalette & p1, const QPalette & p2)
 {
     unsigned rc = 0;
@@ -238,6 +299,8 @@ unsigned compareSubProperties(const QVariant & q1, const QVariant & q2, qdesigne
     case QVariant::Palette:
         return compareSubProperties(qvariant_cast<QPalette>(q1), qvariant_cast<QPalette>(q2));
     default:
+        if (q1.userType() == qMetaTypeId<qdesigner_internal::PropertySheetIconValue>())
+            return qvariant_cast<qdesigner_internal::PropertySheetIconValue>(q1).compare(qvariant_cast<qdesigner_internal::PropertySheetIconValue>(q2));
         // Enumerations, flags
         switch (specialProperty) {
         case qdesigner_internal::SP_Alignment:
@@ -286,18 +349,44 @@ QSizePolicy applySizePolicySubProperty(const QSizePolicy &oldValue, const QSizeP
     return rc;
 }
 
+// Apply the font-subproperties keeping the [undocumented]
+// resolve flag in sync (note that PropertySetterType might be something like const T&).
+template <class PropertyReturnType, class PropertySetterType>
+inline void setFontSubProperty(unsigned mask,
+                               const QFont &newValue,
+                               unsigned maskBit,
+                               PropertyReturnType (QFont::*getter) () const,
+                               void (QFont::*setter) (PropertySetterType),
+                               QFont &value)
+{
+    if (mask & maskBit) {
+        (value.*setter)((newValue.*getter)());
+        // Set the resolve bit from NewValue in return value
+        uint r = value.resolve();
+        const bool origFlag = newValue.resolve() & maskBit;
+        if (origFlag)
+            r |= maskBit;
+        else
+            r &= ~maskBit;
+        value.resolve(r);
+        if (debugPropertyCommands)
+            qDebug() << "setFontSubProperty " <<  fontMask(maskBit) << " resolve=" << origFlag;
+    }
+}
 // apply changed subproperties to a QFont
 QFont applyFontSubProperty(const QFont &oldValue, const QFont &newValue, unsigned mask)
 {
     QFont  rc = oldValue;
-    SET_SUBPROPERTY(rc, newValue, family,        setFamily,        mask, SubPropertyFamily)
-    SET_SUBPROPERTY(rc, newValue, pointSize,     setPointSize,     mask, SubPropertyPointSize)
-    SET_SUBPROPERTY(rc, newValue, bold,          setBold,          mask, SubPropertyBold)
-    SET_SUBPROPERTY(rc, newValue, italic,        setItalic,        mask, SubPropertyItalic)
-    SET_SUBPROPERTY(rc, newValue, underline,     setUnderline,     mask, SubPropertyUnderline)
-    SET_SUBPROPERTY(rc, newValue, strikeOut,     setStrikeOut,     mask, SubPropertyStrikeOut)
-    SET_SUBPROPERTY(rc, newValue, kerning,       setKerning,       mask, SubPropertyKerning)
-    SET_SUBPROPERTY(rc, newValue, styleStrategy, setStyleStrategy, mask, SubPropertyStyleStrategy)
+    setFontSubProperty(mask, newValue, QFont::FamilyResolved,        &QFont::family,        &QFont::setFamily, rc);
+    setFontSubProperty(mask, newValue, QFont::SizeResolved,          &QFont::pointSize,     &QFont::setPointSize, rc);
+    setFontSubProperty(mask, newValue, QFont::WeightResolved,        &QFont::bold,          &QFont::setBold, rc);
+    setFontSubProperty(mask, newValue, QFont::StyleResolved,         &QFont::italic,        &QFont::setItalic, rc);
+    setFontSubProperty(mask, newValue, QFont::UnderlineResolved,     &QFont::underline,     &QFont::setUnderline, rc);
+    setFontSubProperty(mask, newValue, QFont::StrikeOutResolved,     &QFont::strikeOut,     &QFont::setStrikeOut, rc);
+    setFontSubProperty(mask, newValue, QFont::KerningResolved,       &QFont::kerning,       &QFont::setKerning, rc);
+    setFontSubProperty(mask, newValue, QFont::StyleStrategyResolved, &QFont::styleStrategy, &QFont::setStyleStrategy, rc);
+    if (debugPropertyCommands)
+        qDebug() << "applyFontSubProperty old " <<  fontMask(oldValue.resolve()) << " new " << fontMask(newValue.resolve()) << " return: " << fontMask(rc.resolve());
     return rc;
 }
 
@@ -339,50 +428,79 @@ Qt::Alignment applyAlignmentSubProperty(Qt::Alignment oldValue, Qt::Alignment ne
     return (oldValue & takeOverMask) | (newValue & changeMask);
 }
 
+}
+
+namespace qdesigner_internal {
+
 // apply changed subproperties to a variant
-QVariant applySubProperty(const QVariant &oldValue, const QVariant &newValue, qdesigner_internal::SpecialProperty specialProperty, unsigned mask)
+PropertyHelper::Value applySubProperty(const QVariant &oldValue, const QVariant &newValue, qdesigner_internal::SpecialProperty specialProperty, unsigned mask, bool changed)
 {
     if (mask == SubPropertyAll)
-        return newValue;
+        return PropertyHelper::Value(newValue, changed);
 
     switch (oldValue.type()) {
     case QVariant::Rect:
-        return applyRectSubProperty(oldValue.toRect(), newValue.toRect(), mask);
+        return PropertyHelper::Value(applyRectSubProperty(oldValue.toRect(), newValue.toRect(), mask), changed);
     case QVariant::Size:
-        return applySizeSubProperty(oldValue.toSize(), newValue.toSize(), mask);
+        return PropertyHelper::Value(applySizeSubProperty(oldValue.toSize(), newValue.toSize(), mask), changed);
     case QVariant::SizePolicy:
-        return qVariantFromValue(applySizePolicySubProperty(qvariant_cast<QSizePolicy>(oldValue), qvariant_cast<QSizePolicy>(newValue), mask));
-    case QVariant::Font:
-        return qVariantFromValue(applyFontSubProperty(qvariant_cast<QFont>(oldValue), qvariant_cast<QFont>(newValue), mask));
-    case QVariant::Palette:
-        return qVariantFromValue(applyPaletteSubProperty(qvariant_cast<QPalette>(oldValue), qvariant_cast<QPalette>(newValue), mask));
+        return PropertyHelper::Value(qVariantFromValue(applySizePolicySubProperty(qvariant_cast<QSizePolicy>(oldValue), qvariant_cast<QSizePolicy>(newValue), mask)), changed);
+    case QVariant::Font: {
+        // Changed flag in case of font and palette depends on resolve mask only, not on the passed "changed" value.
+
+        // The first case: the user changed bold subproperty and then pressed reset button for this subproperty (not for
+        // the whole font property). We instantiate SetPropertyCommand passing changed=true. But in this case no
+        // subproperty is changed and the whole property should be marked an unchanged.
+
+        // The second case: there are 2 pushbuttons, for 1st the user set bold and italic subproperties,
+        // for the 2nd he set bold only. He does multiselection so that the current widget is the 2nd one.
+        // He press reset next to bold subproperty. In result the 2nd widget should have the whole
+        // font property marked as unchanged and the 1st widget should have the font property
+        // marked as changed and only italic subproperty should be marked as changed (the bold should be reset).
+
+        // The third case: there are 2 pushbuttons, for 1st the user set bold and italic subproperties,
+        // for the 2nd he set bold only. He does multiselection so that the current widget is the 2nd one.
+        // He press reset button for the whole font property. In result whole font properties for both
+        // widgets should be marked as unchanged.
+        QFont font = applyFontSubProperty(qvariant_cast<QFont>(oldValue), qvariant_cast<QFont>(newValue), mask);
+        return PropertyHelper::Value(qVariantFromValue(font), font.resolve());
+        }
+    case QVariant::Palette: {
+        QPalette palette = applyPaletteSubProperty(qvariant_cast<QPalette>(oldValue), qvariant_cast<QPalette>(newValue), mask);
+        return PropertyHelper::Value(qVariantFromValue(palette), palette.resolve());
+        }
     default:
+        if (oldValue.userType() == qMetaTypeId<qdesigner_internal::PropertySheetIconValue>()) {
+            PropertySheetIconValue icon = qvariant_cast<qdesigner_internal::PropertySheetIconValue>(oldValue);
+            icon.assign(qvariant_cast<qdesigner_internal::PropertySheetIconValue>(newValue), mask);
+            return PropertyHelper::Value(qVariantFromValue(icon), icon.mask());
+        }
         // Enumerations, flags
         switch (specialProperty) {
         case qdesigner_internal::SP_Alignment: {
-            qdesigner_internal::FlagType f = qvariant_cast<qdesigner_internal::FlagType>(oldValue);
-            f.value = static_cast<uint>(applyAlignmentSubProperty(variantToAlignment(oldValue), variantToAlignment(newValue), mask));
+            qdesigner_internal::PropertySheetFlagValue f = qvariant_cast<qdesigner_internal::PropertySheetFlagValue>(oldValue);
+            f.value = applyAlignmentSubProperty(variantToAlignment(oldValue), variantToAlignment(newValue), mask);
             QVariant v;
             qVariantSetValue(v, f);
-            return v;
+            return PropertyHelper::Value(v, changed);
                                                }
         default:
         break;
         }
         break;
     }
-    return newValue;
+    return PropertyHelper::Value(newValue, changed);
 
 }
-}
-
-namespace qdesigner_internal {
-
 // figure out special property
 enum SpecialProperty getSpecialProperty(const QString& propertyName)
 {
     if (propertyName == QLatin1String("objectName"))
         return SP_ObjectName;
+    if (propertyName == QLatin1String("layoutName"))
+        return SP_LayoutName;
+    if (propertyName == QLatin1String("spacerName"))
+        return SP_SpacerName;
     if (propertyName == QLatin1String("icon"))
         return SP_Icon;
     if (propertyName == QLatin1String("currentTabName"))
@@ -399,6 +517,8 @@ enum SpecialProperty getSpecialProperty(const QString& propertyName)
         return SP_Alignment;
     if (propertyName == QLatin1String("autoDefault"))
         return SP_AutoDefault;
+    if (propertyName == QLatin1String("shortcut"))
+        return SP_Shortcut;
     return SP_None;
 }
 
@@ -453,9 +573,7 @@ void PropertyHelper::checkApplyWidgetValue(QDesignerFormWindowInterface *fw, QWi
 
     switch (specialProperty) {
     case SP_MinimumSize: {
-        const QSize diff = diffSize(fw);
         const QSize size = checkSize(value.toSize());
-        container->setMinimumSize((size + diff).expandedTo(QSize(16, 16)));
         qVariantSetValue(value, size);
     }
 
@@ -488,6 +606,8 @@ unsigned PropertyHelper::updateMask() const
     unsigned rc = 0;
     switch (m_specialProperty) {
     case SP_ObjectName:
+    case SP_LayoutName:
+    case SP_SpacerName:
     case SP_CurrentTabName:
         if (m_objectType != OT_FreeAction)
             rc |=  UpdateObjectInspector;
@@ -509,6 +629,12 @@ bool PropertyHelper::canMerge(const PropertyHelper &other) const
     return m_object == other.m_object &&  m_index == other.m_index;
 }
 
+void PropertyHelper::triggerActionChanged(QAction *a)
+{
+    a->setData(QVariant(true)); // this triggers signal "changed" in QAction
+    a->setData(QVariant(false));
+}
+
 // Update the object to reflect the changes
 void PropertyHelper::updateObject(QDesignerFormWindowInterface *fw, const QVariant &oldValue, const QVariant &newValue)
 {
@@ -527,20 +653,53 @@ void PropertyHelper::updateObject(QDesignerFormWindowInterface *fw, const QVaria
     } break;
     case OT_AssociatedAction:
     case OT_FreeAction:
-        if (m_specialProperty == SP_ObjectName) {
-            QAction *act = qobject_cast<QAction *>(m_object);
-            act->setData(QVariant(true)); // this triggers signal "changed" in QAction
-            act->setData(QVariant(false));
-        }
+        // SP_Shortcut is a fake property, so, QAction::changed does not trigger.
+        if (m_specialProperty == SP_ObjectName || m_specialProperty == SP_Shortcut)
+            triggerActionChanged(qobject_cast<QAction *>(m_object));
         break;
     default:
         break;
     }
 
-    if (m_specialProperty == SP_ObjectName) {
-        QDesignerIntegration *integr = integration(fw);
-        if (integr)
-            integr->emitObjectNameChanged(fw, m_object, newValue.toString());
+    switch (m_specialProperty) {
+    case SP_ObjectName:
+    case SP_LayoutName:
+    case SP_SpacerName:
+        if (QDesignerIntegration *integr = integration(fw))
+            integr->emitObjectNameChanged(fw, m_object, newValue.toString(), m_oldValue.first.toString());
+        break;
+    default:
+        break;
+    }
+}
+
+void PropertyHelper::ensureUniqueObjectName(QDesignerFormWindowInterface *fw, QObject *object) const
+{
+    switch (m_specialProperty) {
+    case SP_SpacerName:
+        if (object->isWidgetType()) {
+            if (Spacer *sp = qobject_cast<Spacer *>(object)) {
+                fw->ensureUniqueObjectName(sp);
+                return;
+            }
+        }
+        fw->ensureUniqueObjectName(object);
+        break;
+    case SP_LayoutName: // Layout name is invoked on the parent widget.
+        if (object->isWidgetType()) {
+            const QWidget * w = qobject_cast<const QWidget *>(object);
+            if (QLayout *wlayout = w->layout()) {
+                fw->ensureUniqueObjectName(wlayout);
+                return;
+            }
+        }
+        fw->ensureUniqueObjectName(object);
+        break;
+    case SP_ObjectName:
+        fw->ensureUniqueObjectName(object);
+        break;
+    default:
+        break;
     }
 }
 
@@ -551,15 +710,15 @@ PropertyHelper::Value PropertyHelper::setValue(QDesignerFormWindowInterface *fw,
         return  applyValue(fw, m_oldValue.first, Value(value, changed));
 
     // apply subproperties
-    const QVariant maskedNewValue = applySubProperty(m_oldValue.first, value, m_specialProperty, subPropertyMask);
-    return applyValue(fw, m_oldValue.first, Value(maskedNewValue, changed));
+    const PropertyHelper::Value maskedNewValue = applySubProperty(m_oldValue.first, value, m_specialProperty, subPropertyMask, changed);
+    return applyValue(fw, m_oldValue.first, maskedNewValue);
 }
 
 // Apply the value and update. Returns corrected value
 PropertyHelper::Value PropertyHelper::applyValue(QDesignerFormWindowInterface *fw, const QVariant &oldValue, Value newValue)
 {
      if(debugPropertyCommands){
-         qDebug() << "PropertyHelper::applyValue(" << m_object->objectName() << ") " << oldValue << " -> " << newValue.first << " changed=" << newValue.second;
+         qDebug() << "PropertyHelper::applyValue(" << m_object << ") " << oldValue << " -> " << newValue.first << " changed=" << newValue.second;
      }
 
     if (m_objectType ==  OT_Widget) {
@@ -568,9 +727,16 @@ PropertyHelper::Value PropertyHelper::applyValue(QDesignerFormWindowInterface *f
 
     m_propertySheet->setProperty(m_index, newValue.first);
     m_propertySheet->setChanged(m_index, newValue.second);
-    if (m_specialProperty == SP_ObjectName) {
-        fw->ensureUniqueObjectName(m_object);
+
+    switch (m_specialProperty) {
+    case SP_LayoutName:
+    case SP_ObjectName:
+    case SP_SpacerName:
+        ensureUniqueObjectName(fw, m_object);
         newValue.first = m_propertySheet->property(m_index);
+        break;
+    default:
+        break;
     }
 
     updateObject(fw, oldValue, newValue.first);
@@ -625,9 +791,15 @@ PropertyHelper::Value PropertyHelper::restoreDefaultValue(QDesignerFormWindowInt
         checkApplyWidgetValue(fw, qobject_cast<QWidget *>(m_object), m_specialProperty, defaultValue.first);
     }
 
-    if (m_specialProperty == SP_ObjectName) {
-        fw->ensureUniqueObjectName(m_object);
+    switch (m_specialProperty) {
+    case SP_LayoutName:
+    case SP_ObjectName:
+    case SP_SpacerName:
+        ensureUniqueObjectName(fw, m_object);
         defaultValue.first = m_propertySheet->property(m_index);
+        break;
+    default:
+        break;
     }
 
     updateObject(fw, currentValue, defaultValue.first);
@@ -910,7 +1082,7 @@ bool SetPropertyCommand::init(QObject *object, const QString &apropertyName, con
 }
 
 bool SetPropertyCommand::init(const ObjectList &list, const QString &apropertyName, const QVariant &newValue,
-                              QObject *referenceObject)
+                              QObject *referenceObject, bool enableSubPropertyHandling)
 {
     if (!initList(list, apropertyName, referenceObject))
         return false;
@@ -918,11 +1090,12 @@ bool SetPropertyCommand::init(const ObjectList &list, const QString &apropertyNa
     m_newValue = newValue;
 
     if(debugPropertyCommands)
-        qDebug() << "SetPropertyCommand::init()" << propertyHelperList().size() << '/' << list.size();
+        qDebug() << "SetPropertyCommand::init()" << propertyHelperList().size() << '/' << list.size() << " reference " << referenceObject;
 
     setDescription();
 
-    m_subPropertyMask = subPropertyMask(newValue, referenceObject);
+    if (enableSubPropertyHandling)
+        m_subPropertyMask = subPropertyMask(newValue, referenceObject);
     return true;
 }
 
@@ -1214,3 +1387,5 @@ void RemoveDynamicPropertyCommand::setDescription()
 
 
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE

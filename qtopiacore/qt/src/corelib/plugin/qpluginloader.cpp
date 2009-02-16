@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,8 @@
 #include "qdebug.h"
 
 #ifndef QT_NO_LIBRARY
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QPluginLoader
@@ -108,6 +104,11 @@
 
     See \l{How to Create Qt Plugins} for more information about
     how to make your application extensible through plugins.
+
+    Note that the QPluginLoader cannot be used if your application is
+    statically linked against Qt. In this case, you will also have to
+    link to plugins statically. You can use QLibrary if you need to
+    load dynamic libraries in a statically linked application.
 
     \sa QLibrary, {Plug & Paint Example}
 */
@@ -170,7 +171,7 @@ QPluginLoader::~QPluginLoader()
 */
 QObject *QPluginLoader::instance()
 {
-    if (!d)
+    if (!d || d->fileName.isEmpty())
         return 0;
     if (!d->pHnd)
         load();
@@ -191,7 +192,7 @@ QObject *QPluginLoader::instance()
 */
 bool QPluginLoader::load()
 {
-    if (!d)
+    if (!d || d->fileName.isEmpty())
         return false;
     if (did_load)
         return d->pHnd && d->instance;
@@ -251,17 +252,28 @@ bool QPluginLoader::isLoaded() const
     Unix, \c .dylib on Mac OS X, and \c .dll on Windows. The suffix
     can be verified with QLibrary::isLibrary().
 
+    If the file name does not exist, it will not be set. This property
+    will then contain an empty string.
+
+    By default, this property contains an empty string.
+
     \sa load()
 */
 void QPluginLoader::setFileName(const QString &fileName)
 {
 #if defined(QT_SHARED)
+    QLibrary::LoadHints lh;
     if (d) {
+        lh = d->loadHints;
         d->release();
         d = 0;
         did_load = false;
     }
-    d = QLibraryPrivate::findOrCreate(QFileInfo(fileName).canonicalFilePath());
+    QString fn = QFileInfo(fileName).canonicalFilePath();
+    d = QLibraryPrivate::findOrCreate(fn);
+    d->loadHints = lh;
+    if (fn.isEmpty())
+        d->errorString = QLibrary::tr("The shared library was not found.");
 #else
     if (qt_debug_component()) {
         qWarning("Cannot load %s into a statically linked Qt library.",
@@ -291,8 +303,42 @@ QString QPluginLoader::errorString() const
 typedef QList<QtPluginInstanceFunction> StaticInstanceFunctionList;
 Q_GLOBAL_STATIC(StaticInstanceFunctionList, staticInstanceFunctionList)
 
+/*! \since 4.4
+
+    \property QPluginLoader::loadHints
+    \brief Give the load() function some hints on how it should behave.
+
+    You can give hints on how the symbols in the plugin are
+    resolved. By default, none of the hints are set.
+
+    See the documentation of QLibrary::loadHints for a complete
+    description of how this property works.
+
+    \sa QLibrary::loadHints
+*/
+
+void QPluginLoader::setLoadHints(QLibrary::LoadHints loadHints)
+{
+    if (!d) {
+        d = QLibraryPrivate::findOrCreate(QString());   // ugly, but we need a d-ptr
+        d->errorString.clear();
+    }
+    d->loadHints = loadHints;
+}
+
+QLibrary::LoadHints QPluginLoader::loadHints() const
+{
+    if (!d) {
+        QPluginLoader *that = const_cast<QPluginLoader *>(this);
+        that->d = QLibraryPrivate::findOrCreate(QString());   // ugly, but we need a d-ptr
+        that->d->errorString.clear();
+    }
+    return d->loadHints;
+}
+
 /*!
     \relates QPluginLoader
+    \since 4.4
 
     Registers the given \a function with the plugin loader.
 */
@@ -315,4 +361,7 @@ QObjectList QPluginLoader::staticInstances()
     }
     return instances;
 }
+
+QT_END_NAMESPACE
+
 #endif // QT_NO_LIBRARY

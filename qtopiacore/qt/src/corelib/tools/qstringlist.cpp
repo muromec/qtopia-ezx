@@ -1,47 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include <qstringlist.h>
+
+QT_BEGIN_NAMESPACE
 
 /*! \typedef QStringListIterator
     \relates QStringList
@@ -79,17 +75,17 @@
     \mainclass
     \reentrant
 
-    QStringList inherits from QList<QString>. Like QList, QStringList
-    is \l{implicitly shared}. It provides fast index-based access as
-    well as fast insertions and removals. Passing string lists as
-    value parameters is both fast and safe.
+    QStringList inherits from QList<QString>. Like QList, QStringList is
+    \l{implicitly shared}. It provides fast index-based access as well as fast
+    insertions and removals. Passing string lists as value parameters is both
+    fast and safe.
 
-    All of QList's functionality also applies to QStringList. For
-    example, you can use isEmpty() to test whether the list is empty,
-    and you can call functions like append(), prepend(), insert(),
-    replace(), and remove() to modify a QStringList. In addition,
-    QStringList provides a few convenience functions that make
-    handling lists of strings easier:
+    All of QList's functionality also applies to QStringList. For example, you
+    can use isEmpty() to test whether the list is empty, and you can call
+    functions like append(), prepend(), insert(), replace(), removeAll(),
+    removeAt(), removeFirst(), removeLast(), and removeOne() to modify a
+    QStringList. In addition, QStringList provides a few convenience
+    functions that make handling lists of strings easier:
 
     \tableofcontents
 
@@ -100,9 +96,7 @@
     {QList::operator+=()}{operator+=()} and \l
     {QStringList::operator<<()}{operator<<()} functions. For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList fonts
-    \printuntil Courier
+    \snippet doc/src/snippets/qstringlist/main.cpp 0
 
     \section1 Iterating over the strings
 
@@ -111,21 +105,15 @@
 
     Indexing:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto for (int i = 0; i < fonts.size(); ++i)
-    \printuntil cout << fonts.at(i).toLocal8Bit().constData() << end
+    \snippet doc/src/snippets/qstringlist/main.cpp 1
 
     Java-style iterator:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringListIterator
-    \printuntil cout << javaStyleIterator
+    \snippet doc/src/snippets/qstringlist/main.cpp 2
 
     STL-style iterator:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList::const_iterator
-    \printuntil cout << (*constIterator)
+    \snippet doc/src/snippets/qstringlist/main.cpp 3
 
     The QStringListIterator class is simply a type definition for
     QListIterator<QString>. QStringList also provide the
@@ -139,16 +127,12 @@
     string list into a single string (with an optional separator)
     using the join() function. For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto fonts.join
-    \printuntil // str
+    \snippet doc/src/snippets/qstringlist/main.cpp 4
 
     To break up a string into a string list, use the QString::split()
     function:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList list;
-    \printuntil // list
+    \snippet doc/src/snippets/qstringlist/main.cpp 6
 
     The argument to split can be a single character, a string, or a
     QRegExp.
@@ -162,9 +146,7 @@
     contain a particular substring (or match a particular regular
     expression):
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto monospacedFonts
-    \printline monospacedFonts
+    \snippet doc/src/snippets/qstringlist/main.cpp 7
 
     The contains() function tells you whether the list contains a
     given string, while the indexOf() function returns the index of
@@ -175,9 +157,7 @@
     Finally, the replaceInStrings() function calls QString::replace()
     on each string in the string list in turn. For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList files
-    \printuntil // files
+    \snippet doc/src/snippets/qstringlist/main.cpp 8
 
     \sa QString
 */
@@ -194,9 +174,7 @@
     Constructs a string list that contains the given string, \a
     str. Longer lists are easily created like this:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto  longerList
-    \printline  longerList
+    \snippet doc/src/snippets/qstringlist/main.cpp 9
 
     \sa append()
 */
@@ -296,19 +274,13 @@ void QtPrivate::QStringList_sort(QStringList *that)
     comparison is case sensitive; otherwise the comparison is case
     insensitive.
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList list;
-    \printline QStringList list;
-    \skipto list << "Bill Murray"
-    \printuntil  // result
+    \snippet doc/src/snippets/qstringlist/main.cpp 5
+    \snippet doc/src/snippets/qstringlist/main.cpp 10
 
     This is equivalent to
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList result;
-    \printline QStringList result;
-    \skipto foreach
-    \printuntil }
+    \snippet doc/src/snippets/qstringlist/main.cpp 11
+    \snippet doc/src/snippets/qstringlist/main.cpp 12
 
     \sa contains()
 */
@@ -338,7 +310,7 @@ QBool QtPrivate::QStringList_contains(const QStringList *that, const QString &st
 {
     QStringMatcher matcher(str, cs);
     for (int i = 0; i < that->size(); ++i) {
-        QString string(that->at(i));
+        const QString & string = that->at(i);
         if (string.length() == str.length() && matcher.indexIn(string) == 0)
             return QBool(true);
     }
@@ -374,11 +346,8 @@ QStringList QtPrivate::QStringList_filter(const QStringList *that, const QRegExp
 
     For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList list;
-    \printline QStringList list;
-    \skipto list << "alpha"
-    \printuntil  // list
+    \snippet doc/src/snippets/qstringlist/main.cpp 5
+    \snippet doc/src/snippets/qstringlist/main.cpp 13
 
     \sa QString::replace()
 */
@@ -401,13 +370,8 @@ void QtPrivate::QStringList_replaceInStrings(QStringList *that, const QString &b
 
     For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList list;
-    \printline QStringList list;
-    \skipto list << "alpha"
-    \skipto list.clear()
-    \skipto list << "alpha"
-    \printuntil  // list
+    \snippet doc/src/snippets/qstringlist/main.cpp 5
+    \snippet doc/src/snippets/qstringlist/main.cpp 14
 
     For regular expressions that contain \l{capturing parentheses},
     occurrences of \bold{\\1}, \bold{\\2}, ..., in \a after are
@@ -415,11 +379,8 @@ void QtPrivate::QStringList_replaceInStrings(QStringList *that, const QString &b
 
     For example:
 
-    \quotefromfile snippets/qstringlist/main.cpp
-    \skipto QStringList list;
-    \printline QStringList list;
-    \skipto list << "Bill Clinton" << "Murray, Bill"
-    \printuntil  // list
+    \snippet doc/src/snippets/qstringlist/main.cpp 5
+    \snippet doc/src/snippets/qstringlist/main.cpp 15
 */
 void QtPrivate::QStringList_replaceInStrings(QStringList *that, const QRegExp &rx, const QString &after)
 {
@@ -553,6 +514,8 @@ QString QtPrivate::QStringList_join(const QStringList *that, const QString &sep)
     the list, searching forward from index position \a from. Returns
     -1 if no item matched.
 
+    By default, this function is case sensitive.
+
     \sa lastIndexOf(), contains(), QRegExp::exactMatch()
 */
 int QtPrivate::QStringList_indexOf(const QStringList *that, const QRegExp &rx, int from)
@@ -573,6 +536,8 @@ int QtPrivate::QStringList_indexOf(const QStringList *that, const QRegExp &rx, i
     the list, searching backward from index position \a from. If \a
     from is -1 (the default), the search starts at the last item.
     Returns -1 if no item matched.
+
+    By default, this function is case sensitive.
 
     \sa indexOf(), contains(), QRegExp::exactMatch()
 */
@@ -597,6 +562,8 @@ int QtPrivate::QStringList_lastIndexOf(const QStringList *that, const QRegExp &r
     the list, searching forward from index position \a from. Returns
     -1 if no item matched.
 
+    By default, this function is case sensitive.
+
     \sa lastIndexOf(), contains(), QList::indexOf()
 */
 
@@ -608,5 +575,9 @@ int QtPrivate::QStringList_lastIndexOf(const QStringList *that, const QRegExp &r
     from is -1 (the default), the search starts at the last item.
     Returns -1 if no item matched.
 
+    By default, this function is case sensitive.
+
     \sa indexOf(), QList::lastIndexOf()
 */
+
+QT_END_NAMESPACE

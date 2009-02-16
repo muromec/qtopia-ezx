@@ -1,49 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qfactoryloader_p.h"
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 #include "qfactoryinterface.h"
 #include "qmap.h"
 #include <qdir.h>
@@ -55,6 +49,12 @@
 #include "private/qobject_p.h"
 #include "private/qcoreapplication_p.h"
 
+QT_BEGIN_NAMESPACE
+
+Q_GLOBAL_STATIC(QList<QFactoryLoader *>, qt_factory_loaders);
+
+Q_GLOBAL_STATIC_WITH_ARGS(QMutex, qt_factoryloader_mutex, (QMutex::Recursive))
+
 class QFactoryLoaderPrivate : public QObjectPrivate
 {
     Q_DECLARE_PUBLIC(QFactoryLoader)
@@ -65,24 +65,49 @@ public:
     QList<QLibraryPrivate*> libraryList;
     QMap<QString,QLibraryPrivate*> keyMap;
     QStringList keyList;
+    QString suffix;
+    Qt::CaseSensitivity cs;
+    QStringList loadedPaths;
+
+    void unloadPath(const QString &path);
 };
 
 QFactoryLoader::QFactoryLoader(const char *iid,
-                               const QStringList &paths, const QString &suffix,
+                               const QString &suffix,
                                Qt::CaseSensitivity cs)
     : QObject(*new QFactoryLoaderPrivate)
 {
     moveToThread(QCoreApplicationPrivate::mainThread());
     Q_D(QFactoryLoader);
     d->iid = iid;
+    d->cs = cs;
+    d->suffix = suffix;
 
+
+    QMutexLocker locker(qt_factoryloader_mutex());
+    qt_factory_loaders()->append(this);
+    update();
+}
+
+
+
+void QFactoryLoader::update()
+{
 #ifdef QT_SHARED
+    Q_D(QFactoryLoader);
+    QStringList paths = QCoreApplication::libraryPaths();
     QSettings settings(QSettings::UserScope, QLatin1String("Trolltech"));
-
     for (int i = 0; i < paths.count(); ++i) {
-        QString path = paths.at(i) + suffix;
+        const QString &pluginDir = paths.at(i);
+        // Already loaded, skip it...
+        if (d->loadedPaths.contains(pluginDir))
+            continue;
+        d->loadedPaths << pluginDir;
+
+        QString path = pluginDir + d->suffix;
         if (!QDir(path).exists(QLatin1String(".")))
             continue;
+
         QStringList plugins = QDir(path).entryList(QDir::Files);
         QLibraryPrivate *library = 0;
         for (int j = 0; j < plugins.count(); ++j) {
@@ -91,7 +116,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
                 qDebug() << "QFactoryLoader::QFactoryLoader() looking at" << fileName;
             }
             library = QLibraryPrivate::findOrCreate(QFileInfo(fileName).canonicalFilePath());
-            if (!library->isPlugin()) {
+            if (!library->isPlugin(&settings)) {
                 if (qt_debug_component()) {
                     qDebug() << library->errorString;
                     qDebug() << "         not a plugin";
@@ -102,7 +127,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
             QString regkey = QString::fromLatin1("Qt Factory Cache %1.%2/%3:/%4")
                              .arg((QT_VERSION & 0xff0000) >> 16)
                              .arg((QT_VERSION & 0xff00) >> 8)
-                             .arg(QLatin1String(iid))
+                             .arg(QLatin1String(d->iid))
                              .arg(fileName);
             QStringList reg, keys;
             reg = settings.value(regkey).toStringList();
@@ -123,7 +148,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
                     // ignore plugins that have a valid signature but cannot be loaded.
                     continue;
                 QFactoryInterface *factory = qobject_cast<QFactoryInterface*>(instance);
-                if (instance && factory && instance->qt_metacast(iid))
+                if (instance && factory && instance->qt_metacast(d->iid))
                     keys = factory->keys();
                 if (keys.isEmpty())
                     library->unload();
@@ -147,7 +172,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
                 // whereas the new one has a Qt version that fits
                 // better
                 QString key = keys.at(k);
-                if (!cs)
+                if (!d->cs)
                     key = key.toLower();
                 QLibraryPrivate *previous = d->keyMap.value(key);
                 if (!previous || (previous->qt_version > QT_VERSION && library->qt_version <= QT_VERSION)) {
@@ -158,9 +183,7 @@ QFactoryLoader::QFactoryLoader(const char *iid,
         }
     }
 #else
-    Q_UNUSED(paths);
-    Q_UNUSED(suffix);
-    Q_UNUSED(cs);
+    Q_D(QFactoryLoader);
     if (qt_debug_component()) {
         qDebug() << "QFactoryLoader::QFactoryLoader() ignoring" << d->iid
                  << "since plugins are disabled in static builds";
@@ -173,6 +196,9 @@ QFactoryLoader::~QFactoryLoader()
     Q_D(QFactoryLoader);
     for (int i = 0; i < d->libraryList.count(); ++i)
         d->libraryList.at(i)->release();
+
+    QMutexLocker locker(qt_factoryloader_mutex());
+    qt_factory_loaders()->removeAll(this);
 }
 
 QStringList QFactoryLoader::keys() const
@@ -198,7 +224,8 @@ QObject *QFactoryLoader::instance(const QString &key) const
             if (instances.at(i)->qt_metacast(d->iid) && factory->keys().contains(key, Qt::CaseInsensitive))
                 return instances.at(i);
 
-    if (QLibraryPrivate* library = d->keyMap.value(key)) {
+    QString lowered = d->cs ? key : key.toLower();
+    if (QLibraryPrivate* library = d->keyMap.value(lowered)) {
         if (library->instance || library->loadPlugin()) {
             if (QObject *obj = library->instance()) {
                 if (obj && !obj->parent())
@@ -209,4 +236,17 @@ QObject *QFactoryLoader::instance(const QString &key) const
     }
     return 0;
 }
+
+void QFactoryLoader::refreshAll()
+{
+    QMutexLocker locker(qt_factoryloader_mutex());
+    QList<QFactoryLoader *> *loaders = qt_factory_loaders();
+    for (QList<QFactoryLoader *>::const_iterator it = loaders->constBegin();
+         it != loaders->constEnd(); ++it) {
+        (*it)->update();
+    }
+}
+
+QT_END_NAMESPACE
+
 #endif // QT_NO_LIBRARY

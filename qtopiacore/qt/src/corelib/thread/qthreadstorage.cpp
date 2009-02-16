@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,25 +44,27 @@
 
 #include <string.h>
 
+QT_BEGIN_NAMESPACE
+
 // #define THREADSTORAGE_DEBUG
 #ifdef THREADSTORAGE_DEBUG
-#  define DEBUG qDebug
+#  define DEBUG_MSG qDebug
 #else
-#  define DEBUG if(false)qDebug
+#  define DEBUG_MSG if(false)qDebug
 #endif
 
-static QBasicAtomic idCounter = Q_ATOMIC_INIT(0);
+static QBasicAtomicInt idCounter = Q_BASIC_ATOMIC_INITIALIZER(INT_MAX);
 Q_GLOBAL_STATIC(QMutex, mutex)
-typedef QHash<int, void (*)(void *)> DestructorHash;
-Q_GLOBAL_STATIC(DestructorHash, destructors)
+typedef QMap<int, void (*)(void *)> DestructorMap;
+Q_GLOBAL_STATIC(DestructorMap, destructors)
 
 QThreadStorageData::QThreadStorageData(void (*func)(void *))
-    : id(idCounter.fetchAndAdd(1))
+    : id(idCounter.fetchAndAddRelaxed(-1))
 {
     QMutexLocker locker(mutex());
     destructors()->insert(id, func);
 
-    DEBUG("QThreadStorageData: Allocated id %d, destructor %p", id, func);
+    DEBUG_MSG("QThreadStorageData: Allocated id %d, destructor %p", id, func);
 }
 
 QThreadStorageData::~QThreadStorageData()
@@ -77,7 +73,7 @@ QThreadStorageData::~QThreadStorageData()
     if (destructors())
         destructors()->remove(id);
 
-    DEBUG("QThreadStorageData: Released id %d", id);
+    DEBUG_MSG("QThreadStorageData: Released id %d", id);
 }
 
 void **QThreadStorageData::get() const
@@ -87,8 +83,8 @@ void **QThreadStorageData::get() const
         qWarning("QThreadStorage::get: QThreadStorage can only be used with threads started with QThread");
         return 0;
     }
-    QHash<int, void *>::iterator it = data->tls.find(id);
-    DEBUG("QThreadStorageData: Returning storage %d, data %p, for thread %p",
+    QMap<int, void *>::iterator it = data->tls.find(id);
+    DEBUG_MSG("QThreadStorageData: Returning storage %d, data %p, for thread %p",
           id,
           it != data->tls.end() ? it.value() : 0,
           data->thread);
@@ -103,11 +99,11 @@ void **QThreadStorageData::set(void *p)
         return 0;
     }
 
-    QHash<int, void *>::iterator it = data->tls.find(id);
+    QMap<int, void *>::iterator it = data->tls.find(id);
     if (it != data->tls.end()) {
         // delete any previous data
         if (it.value() != 0) {
-            DEBUG("QThreadStorageData: Deleting previous storage %d, data %p, for thread %p",
+            DEBUG_MSG("QThreadStorageData: Deleting previous storage %d, data %p, for thread %p",
                   id,
                   it.value(),
                   data->thread);
@@ -124,10 +120,10 @@ void **QThreadStorageData::set(void *p)
 
         // store new data
         it.value() = p;
-        DEBUG("QThreadStorageData: Set storage %d for thread %p to %p", id, data->thread, p);
+        DEBUG_MSG("QThreadStorageData: Set storage %d for thread %p to %p", id, data->thread, p);
     } else {
         it = data->tls.insert(id, p);
-        DEBUG("QThreadStorageData: Inserted storage %d, data %p, for thread %p", id, p, data->thread);
+        DEBUG_MSG("QThreadStorageData: Inserted storage %d, data %p, for thread %p", id, p, data->thread);
     }
 
     return &it.value();
@@ -135,13 +131,13 @@ void **QThreadStorageData::set(void *p)
 
 void QThreadStorageData::finish(void **p)
 {
-    QHash<int, void *> *tls = reinterpret_cast<QHash<int, void *> *>(p);
+    QMap<int, void *> *tls = reinterpret_cast<QMap<int, void *> *>(p);
     if (!tls || tls->isEmpty() || !mutex())
         return; // nothing to do
 
-    DEBUG("QThreadStorageData: Destroying storage for thread %p", QThread::currentThread());
+    DEBUG_MSG("QThreadStorageData: Destroying storage for thread %p", QThread::currentThread());
 
-    QHash<int, void *>::iterator it = tls->begin();
+    QMap<int, void *>::iterator it = tls->begin();
     while (it != tls->end()) {
         int id = it.key();
         void *q = it.value();
@@ -198,11 +194,9 @@ void QThreadStorageData::finish(void **p)
     removeFromCache() functions. The cache is automatically
     deleted when the calling thread exits.
 
-    \quotefromfile snippets/threads/threads.cpp
-    \skipto QThreadStorage<
-    \printuntil cacheObject
-    \printuntil removeFromCache
-    \printuntil /^\}$/
+    \snippet doc/src/snippets/threads/threads.cpp 7
+    \snippet doc/src/snippets/threads/threads.cpp 8
+    \snippet doc/src/snippets/threads/threads.cpp 9
 
     \section1 Caveats
 
@@ -303,3 +297,5 @@ void QThreadStorageData::finish(void **p)
 */
 
 #endif // QT_NO_THREAD
+
+QT_END_NAMESPACE

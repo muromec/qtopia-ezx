@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,11 @@
 #include <qbitarray.h>
 #include <qstring.h>
 #include <stdlib.h>
+#ifdef QT_QHASH_DEBUG
+#include <qstring.h>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 /*
     These functions are based on Peter J. Weinberger's hash function
@@ -110,7 +109,7 @@ uint qHash(const QBitArray &bitArray)
     // the padding is initialized to 0 in bitArray.d
     int n = bitArray.size();
     if (n & 0x7)
-        result = (result << 4) + bitArray.d.at(m) & ((1 << n) - 1);
+        result = ((result << 4) + bitArray.d.at(m)) & ((1 << n) - 1);
     return result;
 }
 
@@ -163,17 +162,17 @@ static int countBits(int hint)
 const int MinNumBits = 4;
 
 QHashData QHashData::shared_null = {
-    0, 0, Q_ATOMIC_INIT(1), 0, 0, MinNumBits, 0, 0, true
+    0, 0, Q_BASIC_ATOMIC_INITIALIZER(1), 0, 0, MinNumBits, 0, 0, true
 };
 
 void *QHashData::allocateNode()
 {
-    return ::malloc(nodeSize);
+    return qMalloc(nodeSize);
 }
 
 void QHashData::freeNode(void *node)
 {
-    ::free(node);
+    qFree(node);
 }
 
 QHashData *QHashData::detach_helper(void (*node_duplicate)(Node *, void *), int nodeSize)
@@ -185,7 +184,7 @@ QHashData *QHashData::detach_helper(void (*node_duplicate)(Node *, void *), int 
     d = new QHashData;
     d->fakeNext = 0;
     d->buckets = 0;
-    d->ref.init(1);
+    d->ref = 1;
     d->size = size;
     d->nodeSize = nodeSize;
     d->userNumBits = userNumBits;
@@ -329,7 +328,6 @@ void QHashData::destroyAndFree()
 }
 
 #ifdef QT_QHASH_DEBUG
-#include <qstring.h>
 
 void QHashData::dump()
 {
@@ -403,32 +401,21 @@ void QHashData::checkSanity()
     \endlist
 
     Here's an example QHash with QString keys and \c int values:
-    \code
-        QHash<QString, int> hash;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 0
 
     To insert a (key, value) pair into the hash, you can use operator[]():
 
-    \code
-        hash["one"] = 1;
-        hash["three"] = 3;
-        hash["seven"] = 7;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 1
 
     This inserts the following three (key, value) pairs into the
     QHash: ("one", 1), ("three", 3), and ("seven", 7). Another way to
     insert items into the hash is to use insert():
 
-    \code
-        hash.insert("twelve", 12);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 2
 
     To look up a value, use operator[]() or value():
 
-    \code
-        int num1 = hash["thirteen"];
-        int num2 = hash.value("thirteen");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 3
 
     If there is no item with the specified key in the hash, these
     functions return a \l{default-constructed value}.
@@ -436,18 +423,12 @@ void QHashData::checkSanity()
     If you want to check whether the hash contains a particular key,
     use contains():
 
-    \code
-        int timeout = 30;
-        if (hash.contains("TIMEOUT"))
-            timeout = hash.value("TIMEOUT");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 4
 
     There is also a value() overload that uses its second argument as
     a default value if there is no item with the specified key:
 
-    \code
-        int timeout = hash.value("TIMEOUT", 30);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 5
 
     In general, we recommend that you use contains() and value()
     rather than operator[]() for looking up a key in a hash. The
@@ -456,15 +437,7 @@ void QHashData::checkSanity()
     const). For example, the following code snippet will create 1000
     items in memory:
 
-    \code
-        // WRONG
-        QHash<int, QWidget *> hash;
-        ...
-        for (int i = 0; i < 1000; ++i) {
-            if (hash[i] == okButton)
-                cout << "Found button at index " << i << endl;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 6
 
     To avoid this problem, replace \c hash[i] with \c hash.value(i)
     in the code above.
@@ -476,23 +449,11 @@ void QHashData::checkSanity()
     QHash::iterator). Here's how to iterate over a QHash<QString,
     int> using a Java-style iterator:
 
-    \code
-        QHashIterator<QString, int> i(hash);
-        while (i.hasNext()) {
-            i.next();
-            cout << i.key() << ": " << i.value() << endl;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 7
 
     Here's the same code, but using an STL-style iterator:
 
-    \code
-        QHash<QString, int>::const_iterator i = hash.constBegin();
-        while (i != hash.constEnd()) {
-            cout << i.key() << ": " << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 8
 
     QHash is unordered, so an iterator's sequence cannot be assumed
     to be predictable. If ordering by key is required, use a QMap.
@@ -501,11 +462,7 @@ void QHashData::checkSanity()
     insert() with a key that already exists in the QHash, the
     previous value is erased. For example:
 
-    \code
-        hash.insert("plenty", 100);
-        hash.insert("plenty", 2000);
-        // hash.value("plenty") == 2000
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 9
 
     However, you can store multiple values per key by using
     insertMulti() instead of insert() (or using the convenience
@@ -513,34 +470,19 @@ void QHashData::checkSanity()
     the values for a single key, you can use values(const Key &key),
     which returns a QList<T>:
 
-    \code
-        QList<int> values = hash.values("plenty");
-        for (int i = 0; i < values.size(); ++i)
-            cout << values.at(i) << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 10
 
     The items that share the same key are available from most
     recently to least recently inserted. A more efficient approach is
     to call find() to get the iterator for the first item with a key
     and iterate from there:
 
-    \code
-        QHash<QString, int>::iterator i = hash.find("plenty");
-        while (i != hash.end() && i.key() == "plenty") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 11
 
     If you only need to extract the values from a hash (not the keys),
     you can also use \l{foreach}:
 
-    \code
-        QHash<QString, int> hash;
-        ...
-        foreach (int value, hash)
-            cout << value << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 12
 
     Items can be removed from the hash in several ways. One way is to
     call remove(); this will remove any item with the given key.
@@ -563,35 +505,7 @@ void QHashData::checkSanity()
     implementation.
 
     Example:
-    \code
-        #ifndef EMPLOYEE_H
-        #define EMPLOYEE_H
-
-        class Employee
-        {
-        public:
-            Employee() {}
-            Employee(const QString &name, const QDate &dateOfBirth);
-            ...
-
-        private:
-            QString myName;
-            QDate myDateOfBirth;
-        };
-
-        inline bool operator==(const Employee &e1, const Employee &e2)
-        {
-            return e1.name() == e2.name()
-                   && e1.dateOfBirth() == e2.dateOfBirth();
-        }
-
-        inline uint qHash(const Employee &key)
-        {
-            return qHash(key.name()) ^ key.dateOfBirth().day();
-        }
-
-        #endif // EMPLOYEE_H
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 13
 
     The qHash() function computes a numeric value based on a key. It
     can use any algorithm imaginable, as long as it always returns
@@ -709,12 +623,7 @@ void QHashData::checkSanity()
     This function is useful for code that needs to build a huge hash
     and wants to avoid repeated reallocation. For example:
 
-    \code
-        QHash<QString, int> hash;
-        hash.reserve(20000);
-        for (int i = 0; i < 20000; ++i)
-            hash.insert(keys[i], values[i]);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 14
 
     Ideally, \a size should be slightly more than the maximum number
     of items expected in the hash. \a size doesn't have to be prime,
@@ -850,10 +759,9 @@ void QHashData::checkSanity()
 /*! \fn QList<Key> QHash::uniqueKeys() const
     \since 4.2
 
-    Returns a list containing all the keys in the map in ascending
-    order. Keys that occur multiple times in the map (because items
-    were inserted with insertMulti(), or unite() was used) occur only
-    once in the returned list.
+    Returns a list containing all the keys in the map. Keys that occur multiple
+    times in the map (because items were inserted with insertMulti(), or
+    unite() was used) occur only once in the returned list.
 
     \sa keys(), values()
 */
@@ -922,7 +830,7 @@ void QHashData::checkSanity()
     \sa value(), keys()
 */
 
-/*! 
+/*!
     \fn Key QHash::key(const T &value, const Key &defaultKey) const
     \since 4.3
     \overload
@@ -1002,18 +910,7 @@ void QHashData::checkSanity()
     be called while iterating, and won't affect the order of items in
     the hash. For example:
 
-    \code
-        QHash<QObject *, int> objectHash;
-        ...
-        QHash<QObject *, int>::iterator i = objectHash.find(obj);
-        while (i != objectHash.end() && i.key() == obj) {
-            if (i.value() == 0) {
-                i = objectHash.erase(i);
-            } else {
-                ++i;
-            }
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 15
 
     \sa remove(), take(), find()
 */
@@ -1032,15 +929,7 @@ void QHashData::checkSanity()
     the iterator. For example, here's some code that iterates over all
     the items with the same key:
 
-    \code
-        QHash<QString, int> hash;
-        ...
-        QHash<QString, int>::const_iterator i = hash.find("HDR");
-        while (i != hash.end() && i.key() == "HDR") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 16
 
     \sa value(), values(), QMultiHash::find()
 */
@@ -1197,17 +1086,7 @@ void QHashData::checkSanity()
     start iterating. Here's a typical loop that prints all the (key,
     value) pairs stored in a hash:
 
-    \code
-        QHash<QString, int> hash;
-        hash.insert("January", 1);
-        hash.insert("February", 2);
-        ...
-        hash.insert("December", 12);
-
-        QHash<QString, int>::iterator i;
-        for (i = hash.begin(); i != hash.end(); ++i)
-            cout << i.key() << ": " << i.value() << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 17
 
     Unlike QMap, which orders its items by key, QHash stores its
     items in an arbitrary order. The only guarantee is that items that
@@ -1220,49 +1099,22 @@ void QHashData::checkSanity()
     Here's an example that increments every value stored in the QHash
     by 2:
 
-    \code
-        QHash<QString, int>::iterator i;
-        for (i = hash.begin(); i != hash.end(); ++i)
-            i.value() += 2;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 18
 
     Here's an example that removes all the items whose key is a
     string that starts with an underscore character:
 
-    \code
-        QHash<QString, int>::iterator i = hash.begin();
-        while (i != hash.end()) {
-            if (i.key().startsWith("_"))
-                i = hash.erase(i);
-            else
-                ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 19
 
     The call to QHash::erase() removes the item pointed to by the
     iterator from the hash, and returns an iterator to the next item.
     Here's another way of removing an item while iterating:
 
-    \code
-        QHash<QString, int>::iterator i = hash.begin();
-        while (i != hash.end()) {
-            QHash<QString, int>::iterator prev = i;
-            ++i;
-            if (prev.key().startsWith("_"))
-                hash.erase(prev);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 20
 
     It might be tempting to write code like this:
 
-    \code
-        // WRONG
-        while (i != hash.end()) {
-            if (i.key().startsWith("_"))
-                hash.erase(i);
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 21
 
     However, this will potentially crash in \c{++i}, because \c i is
     a dangling iterator after the call to erase().
@@ -1319,10 +1171,7 @@ void QHashData::checkSanity()
     You can change the value of an item by using value() on
     the left side of an assignment, for example:
 
-    \code
-        if (i.key() == "Hello")
-            i.value() = "Bonjour";
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 22
 
     \sa key(), operator*()
 */
@@ -1466,17 +1315,7 @@ void QHashData::checkSanity()
     QHash::find() before you can start iterating. Here's a typical
     loop that prints all the (key, value) pairs stored in a hash:
 
-    \code
-        QHash<QString, int> hash;
-        hash.insert("January", 1);
-        hash.insert("February", 2);
-        ...
-        hash.insert("December", 12);
-
-        QHash<QString, int>::const_iterator i;
-        for (i = hash.constBegin(); i != hash.constEnd(); ++i)
-            cout << i.key() << ": " << i.value() << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 23
 
     Unlike QMap, which orders its items by key, QHash stores its
     items in an arbitrary order. The only guarantee is that items that
@@ -1752,7 +1591,7 @@ void QHashData::checkSanity()
     Returns the hash value for \a key.
 */
 
-/*! 
+/*!
     \fn uint qHash(const QPair<T1, T2> &key)
     \relates QHash
     \since 4.3
@@ -1809,19 +1648,7 @@ void QHashData::checkSanity()
     operator+=().
 
     Example:
-    \code
-        QMultiHash<QString, int> hash1, hash2, hash3;
-
-        hash1.insert("plenty", 100);
-        hash1.insert("plenty", 2000);
-        // hash1.size() == 2
-
-        hash2.insert("plenty", 5000);
-        // hash2.size() == 1
-
-        hash3 = hash1 + hash2;
-        // hash3.size() == 3
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 24
 
     Unlike QHash, QMultiHash provides no operator[]. Use value() or
     replace() if you want to access the most recently inserted item
@@ -1830,11 +1657,7 @@ void QHashData::checkSanity()
     If you want to retrieve all the values for a single key, you can
     use values(const Key &key), which returns a QList<T>:
 
-    \code
-        QList<int> values = hash.values("plenty");
-        for (int i = 0; i < values.size(); ++i)
-            cout << values.at(i) << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 25
 
     The items that share the same key are available from most
     recently to least recently inserted.
@@ -1843,13 +1666,7 @@ void QHashData::checkSanity()
     the STL-style iterator for the first item with a key and iterate from
     there:
 
-    \code
-        QMultiHash<QString, int>::iterator i = hash.find("plenty");
-        while (i != hash.end() && i.key() == "plenty") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qhash.cpp 26
 
     QMultiHash's key and value data types must be \l{assignable data
     types}. You cannot, for example, store a QWidget as a value;
@@ -2021,3 +1838,5 @@ void QHashData::checkSanity()
     \overload
     \sa QHash::constFind()
 */
+
+QT_END_NAMESPACE

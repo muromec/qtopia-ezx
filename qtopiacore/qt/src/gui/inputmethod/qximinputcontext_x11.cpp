@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,7 +41,7 @@
 **
 ** Copyright (C) 2003-2004 immodule for Qt Project.  All rights reserved.
 **
-** This file is written to contribute to Trolltech ASA under their own
+** This file is written to contribute to Nokia Corporation and/or its subsidiary(-ies) under their own
 ** license. You may use this file under your Qt license. Following
 ** description is copied from their original file headers. Contact
 ** immodule-qt@freedesktop.org if any conditions of this licensing are
@@ -60,8 +54,11 @@
 
 #if !defined(QT_NO_IM)
 
+QT_BEGIN_NAMESPACE
+
 #if !defined(QT_NO_XIM)
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include "qplatformdefs.h"
 
 #include "qapplication.h"
@@ -76,6 +73,7 @@
 
 #include <stdlib.h>
 #include <limits.h>
+QT_END_INCLUDE_NAMESPACE
 
 // #define QT_XIM_DEBUG
 #ifdef QT_XIM_DEBUG
@@ -384,7 +382,7 @@ void QXIMInputContext::create_xim()
 #ifdef USE_X11R6_XIM
         XIMCallback destroy;
         destroy.callback = (XIMProc) xim_destroy_callback;
-        destroy.client_data = 0;
+        destroy.client_data = XPointer(this);
         if (XSetIMValues(xim, XNDestroyCallback, &destroy, (char *) 0) != 0)
             qWarning("Xlib dosn't support destroy callback");
 #endif // USE_X11R6_XIM
@@ -605,7 +603,7 @@ bool QXIMInputContext::x11FilterEvent(QWidget *keywidget, XEvent *event)
     int xkey_keycode = event->xkey.keycode;
     if (!keywidget->testAttribute(Qt::WA_WState_Created))
         return false;
-    if (XFilterEvent(event, keywidget->winId())) {
+    if (XFilterEvent(event, keywidget->effectiveWinId())) {
         qt_ximComposingKeycode = xkey_keycode; // ### not documented in xlib
 
         return true;
@@ -708,14 +706,14 @@ QXIMInputContext::ICData *QXIMInputContext::createICData(QWidget *w)
     if (preedit_attr) {
         data->ic = XCreateIC(xim,
                              XNInputStyle, xim_style,
-                             XNClientWindow, w->winId(),
+                             XNClientWindow, w->effectiveWinId(),
                              XNPreeditAttributes, preedit_attr,
                              (char *) 0);
         XFree(preedit_attr);
     } else {
         data->ic = XCreateIC(xim,
                              XNInputStyle, xim_style,
-                             XNClientWindow, w->winId(),
+                             XNClientWindow, w->effectiveWinId(),
                              (char *) 0);
     }
 
@@ -741,7 +739,11 @@ void QXIMInputContext::update()
         return;
 
     QRect r = w->inputMethodQuery(Qt::ImMicroFocus).toRect();
-    QPoint p = QPoint((r.left() + r.right() + 1)/2, r.bottom());
+    QPoint p;
+    if (w->nativeParentWidget())
+        p = w->mapTo(w->nativeParentWidget(), QPoint((r.left() + r.right() + 1)/2, r.bottom()));
+    else
+        p = QPoint((r.left() + r.right() + 1)/2, r.bottom());
     XPoint spot;
     spot.x = p.x();
     spot.y = p.y();
@@ -797,6 +799,9 @@ QXIMInputContext::~QXIMInputContext() {}
 void QXIMInputContext::widgetDestroyed(QWidget *) {}
 QString QXIMInputContext::language() { return QString(); }
 bool QXIMInputContext::x11FilterEvent(QWidget *, XEvent *) { return true; }
+
 #endif //QT_NO_XIM
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_IM

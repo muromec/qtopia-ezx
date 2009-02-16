@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/stylesheet.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/stylesheet.qdoc -->
 <head>
-  <title>Qt 4.3: The Style Sheet Syntax</title>
+  <title>Qt 4.4: The Style Sheet Syntax</title>
   <link rel="prev" href="stylesheet.html" />
   <link rel="contents" href="stylesheet.html" />
   <link rel="next" href="stylesheet-designer.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="stylesheet.html">Qt Style Sheets</a>]
 [<a href="stylesheet.html">Contents</a>]
 [Next: <a href="stylesheet-designer.html">Qt Designer Integration</a>]
@@ -45,7 +45,8 @@
 <thead><tr valign="top" class="qt-style"><th>Selector</th><th>Example</th><th>Explanation</th></tr></thead>
 <tr valign="top" class="odd"><td>Universal Selector</td><td><tt>*</tt></td><td>Matches all widgets.</td></tr>
 <tr valign="top" class="even"><td>Type Selector</td><td><tt>QPushButton</tt></td><td>Matches instances of <a href="qpushbutton.html">QPushButton</a> and of its subclasses.</td></tr>
-<tr valign="top" class="odd"><td>Property Selector</td><td><tt>QPushButton[flat=&quot;false&quot;]</tt></td><td>Matches instances of <a href="qpushbutton.html">QPushButton</a> that are not <a href="qpushbutton.html#flat-prop">flat</a>. You may use this selector to test for any Qt property specified using <a href="qobject.html#Q_PROPERTY">Q_PROPERTY</a>(). In addition, the special <tt>class</tt> property is supported, for the name of the class.<p>Instead of <tt>=</tt>, you can also use <tt>~=</tt> to test whether a Qt property of type <a href="qstringlist.html">QStringList</a> contains a given <a href="qstring.html">QString</a>.</p>
+<tr valign="top" class="odd"><td>Property Selector</td><td><tt>QPushButton[flat=&quot;false&quot;]</tt></td><td>Matches instances of <a href="qpushbutton.html">QPushButton</a> that are not <a href="qpushbutton.html#flat-prop">flat</a>. You may use this selector to test for any Qt property specified using <a href="qobject.html#Q_PROPERTY">Q_PROPERTY</a>(). In addition, the special <tt>class</tt> property is supported, for the name of the class.<p>This selector may also be used to test dynamic properties. For more information on customization using dynamic properties, refer to <a href="stylesheet-examples.html#customizing-using-dynamic-properties">Customizing Using Dynamic Properties</a>.</p>
+<p>Instead of <tt>=</tt>, you can also use <tt>~=</tt> to test whether a Qt property of type <a href="qstringlist.html">QStringList</a> contains a given <a href="qstring.html">QString</a>.</p>
 <p><b>Warning:</b> If the value of the Qt property changes after the style sheet has been set, it might be necessary to force a style sheet recomputation. One way to achieve this is to unset the style sheet and set it again.</p>
 </td></tr>
 <tr valign="top" class="even"><td>Class Selector</td><td><tt>.QPushButton</tt></td><td>Matches instances of <a href="qpushbutton.html">QPushButton</a>, but not of its subclasses.<p>This is equivalent to <tt>*[class~=&quot;QPushButton&quot;]</tt>.</p>
@@ -59,8 +60,8 @@
 <p>For styling complex widgets, it is necessary to access subcontrols of the widget, such as the drop-down button of a <a href="qcombobox.html">QComboBox</a> or the up and down arrows of a <a href="qspinbox.html">QSpinBox</a>. Selectors may contain <i>subcontrols</i> that make it possible to restrict the application of a rule to specific widget subcontrols. For example:</p>
 <pre> QComboBox::drop-down { image: url(dropdown.png) }</pre>
 <p>The above rule styles the drop-down button of all <a href="qcombobox.html">QComboBox</a>es. Although the double-colon (<tt>::</tt>) syntax is reminiscent of CSS3 Pseudo-Elements, Qt Sub-Controls differ conceptually from these and have different cascading semantics.</p>
-<p>Sub-controls are always positioned with respect to another element (a reference element). This reference element could be the widget or another Sub-control. For example, the <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> of a <a href="qcombobox.html">QComboBox</a> is placed, by default, in the top right corner of the Padding rectangle of the <a href="qcombobox.html">QComboBox</a>. The <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> is placed, by default, in the Center of the Contents rectangle of the <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> Sub-control. See the <a href="stylesheet-reference.html#list-of-stylable-widgets">List of Stylable Widgets</a> below for the Sub-controls to use to style a widget and their default positions.</p>
-<p>The origin rectangle to be used is changed using the <a href="stylesheet-reference.html#subcontrol-origin-prop">subcontrol-origin</a> property. For example, if we want to place the drop-down in the margin rectangle of the <a href="qcombobox.html">QComboBox</a> instead of the default Padding rectangle, we can specify:</p>
+<p>Sub-controls are always positioned with respect to another element - a reference element. This reference element could be the widget or another Sub-control. For example, the <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> of a <a href="qcombobox.html">QComboBox</a> is placed, by default, in the top right corner of the Padding rectangle of the <a href="qcombobox.html">QComboBox</a>. The <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> is placed, by default, in the Center of the Contents rectangle of the <a href="stylesheet-reference.html#drop-down-sub">::drop-down</a> Sub-control. See the <a href="stylesheet-reference.html#list-of-stylable-widgets">List of Stylable Widgets</a> below for the Sub-controls to use to style a widget and their default positions.</p>
+<p>The origin rectangle to be used can be changed using the <a href="stylesheet-reference.html#subcontrol-origin-prop">subcontrol-origin</a> property. For example, if we want to place the drop-down in the margin rectangle of the <a href="qcombobox.html">QComboBox</a> instead of the default Padding rectangle, we can specify:</p>
 <pre> QComboBox {
      margin-right: 20px;
  }
@@ -69,7 +70,7 @@
  }</pre>
 <p>The alignment of the drop-down within the Margin rectangle is changed using <a href="stylesheet-reference.html#subcontrol-position-prop">subcontrol-position</a> property.</p>
 <p>The <a href="stylesheet-reference.html#width-prop">width</a> and <a href="stylesheet-reference.html#height-prop">height</a> properties can be used to control the size of the Sub-control. Note that setting a <a href="stylesheet-reference.html#image-prop">image</a> implicitly sets the size of a Sub-control.</p>
-<p>The relative positioning scheme (<a href="stylesheet-reference.html#position-prop">position</a> : relative), allows the position of the Sub-Control to be offset from its initial position. For example, when the <a href="qcombobox.html">QComboBox</a>'s drop-down button is pressed, we may desire the arrow inside to be offset to give a &quot;pressed&quot; effect. To achieve this, we can specify:</p>
+<p>The relative positioning scheme (<a href="stylesheet-reference.html#position-prop">position</a> : relative), allows the position of the Sub-Control to be offset from its initial position. For example, when the <a href="qcombobox.html">QComboBox</a>'s drop-down button is pressed, we might like the arrow inside to be offset to give a &quot;pressed&quot; effect. To achieve this, we can specify:</p>
 <pre> QComboBox::down-arrow {
      image: url(down_arrow.png);
  }
@@ -79,7 +80,8 @@
  }</pre>
 <p>The absolute positioning scheme (<a href="stylesheet-reference.html#position-prop">position</a> : absolute), allows the position and size of the Sub-control to be changed with respect to the reference element.</p>
 <p>Once positioned, they are treated the same as widgets and can be styled using the the <a href="stylesheet-customizing.html#box-model">box model</a>.</p>
-<p>See the <a href="stylesheet-reference.html#list-of-sub-controls">List of Sub-Controls</a> below for a list of supported subcontrols, and <a href="stylesheet-examples.html#customizing-the-qpushbutton-s-menu-indicator-sub-control">Customizing the QPushButton's Menu Indicator Sub-Control</a> for a realistic example.</p>
+<p>See the <a href="stylesheet-reference.html#list-of-sub-controls">List of Sub-Controls</a> below for a list of supported sub-controls, and <a href="stylesheet-examples.html#customizing-the-qpushbutton-s-menu-indicator-sub-control">Customizing the QPushButton's Menu Indicator Sub-Control</a> for a realistic example.</p>
+<p><b>Note:</b> With complex widgets such as <a href="qcombobox.html">QComboBox</a> and <a href="qscrollbar.html">QScrollBar</a>, if one property or sub-control is customized, <b>all</b> the other properties or sub-controls must be customized as well.</p>
 <a name="pseudo-states"></a>
 <h2>Pseudo-States</h2>
 <p>Selectors may contain <i>pseudo-states</i> that denote that restrict the application of the rule based on the widget's state. Pseudo-states appear at the end of the selector, with a colon (<tt>:</tt>) in between. For example, the following rule applies when the mouse hovers over a <a href="qpushbutton.html">QPushButton</a>:</p>
@@ -127,14 +129,14 @@
 </ul>
 <p><i>Concatenating the three numbers a-b-c (in a number system with a large base) gives the specificity.</i></p>
 <p><i>Some examples:</i></p>
-<pre> *             {}  <span class="comment">/* a=0 b=0 c=0 -&gt; specificity =   0 */</span>
- LI            {}  <span class="comment">/* a=0 b=0 c=1 -&gt; specificity =   1 */</span>
- UL LI         {}  <span class="comment">/* a=0 b=0 c=2 -&gt; specificity =   2 */</span>
- UL OL+LI      {}  <span class="comment">/* a=0 b=0 c=3 -&gt; specificity =   3 */</span>
- H1 + *[REL=up]{}  <span class="comment">/* a=0 b=1 c=1 -&gt; specificity =  11 */</span>
- UL OL LI.red  {}  <span class="comment">/* a=0 b=1 c=3 -&gt; specificity =  13 */</span>
- LI.red.level  {}  <span class="comment">/* a=0 b=2 c=1 -&gt; specificity =  21 */</span>
- #x34y         {}  <span class="comment">/* a=1 b=0 c=0 -&gt; specificity = 100 */</span></pre>
+<pre> *             {}  /* a=0 b=0 c=0 -&gt; specificity =   0 */
+ LI            {}  /* a=0 b=0 c=1 -&gt; specificity =   1 */
+ UL LI         {}  /* a=0 b=0 c=2 -&gt; specificity =   2 */
+ UL OL+LI      {}  /* a=0 b=0 c=3 -&gt; specificity =   3 */
+ H1 + *[REL=up]{}  /* a=0 b=1 c=1 -&gt; specificity =  11 */
+ UL OL LI.red  {}  /* a=0 b=1 c=3 -&gt; specificity =  13 */
+ LI.red.level  {}  /* a=0 b=2 c=1 -&gt; specificity =  21 */
+ #x34y         {}  /* a=1 b=0 c=0 -&gt; specificity = 100 */</pre>
 </blockquote>
 <a name="cascading"></a>
 <h2>Cascading</h2>
@@ -161,19 +163,19 @@
 <h2>Widgets inside C++ namespaces</h2>
 <p>The Type Selector can be used to style widgets of a particular type. For example,</p>
 <pre> class MyPushButton : public QPushButton {
-     <span class="comment">// ...</span>
+     // ...
  }
 
-<span class="comment"> // ...</span>
+ // ...
  qApp-&gt;setStyleSheet(&quot;MyPushButton { background: yellow; }&quot;);</pre>
 <p>Qt Style Sheet uses <a href="qobject-qt3.html#className">QObject::className</a>() of the widget to determine when to apply the Type Selector. When custom widgets are inside namespaces, the <a href="qobject-qt3.html#className">QObject::className</a>() returns &lt;namespace&gt;::&lt;classname&gt;. This conflicts with the syntax for <a href="stylesheet-customizing.html#sub-controls">Sub-Controls</a>. To overcome this problem, when using the Type Selector for widgets inside namespaces, we must replace the &quot;::&quot; with &quot;--&quot;. For example,</p>
 <pre> namespace ns {
      class MyPushButton : public QPushButton {
-         <span class="comment">// ...</span>
+         // ...
      }
  }
 
-<span class="comment"> // ...</span>
+ // ...
  qApp-&gt;setSytleSheet(&quot;ns--MyPushButton { background: yellow; }&quot;);</pre>
 <a name="setting-qobject-properties"></a>
 <h2>Setting QObject properties</h2>
@@ -189,8 +191,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

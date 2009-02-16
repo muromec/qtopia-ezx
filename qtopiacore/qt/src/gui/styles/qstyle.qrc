@@ -1,7 +1,11 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource prefix="/trolltech/styles/commonstyle">
 <file>images/filelink-16.png</file>
+<file>images/filelink-32.png</file>
+<file>images/filelink-128.png</file>
 <file>images/file-16.png</file>
+<file>images/file-32.png</file>
+<file>images/file-128.png</file>
 <file>images/newdirectory-16.png</file>
 <file>images/newdirectory-32.png</file>
 <file>images/newdirectory-128.png</file>
@@ -9,12 +13,23 @@
 <file>images/parentdir-32.png</file>
 <file>images/parentdir-128.png</file>
 <file>images/dvd-16.png</file>
+<file>images/dvd-32.png</file>
+<file>images/dvd-128.png</file>
 <file>images/cdr-16.png</file>
 <file>images/cdr-32.png</file>
+<file>images/cdr-128.png</file>
 <file>images/floppy-16.png</file>
+<file>images/floppy-32.png</file>
+<file>images/floppy-128.png</file>
 <file>images/harddrive-16.png</file>
+<file>images/harddrive-32.png</file>
+<file>images/harddrive-128.png</file>
 <file>images/trash-16.png</file>
+<file>images/trash-32.png</file>
+<file>images/trash-128.png</file>
 <file>images/networkdrive-16.png</file>
+<file>images/networkdrive-32.png</file>
+<file>images/networkdrive-128.png</file>
 <file>images/computer-16.png</file>
 <file>images/computer-32.png</file>
 <file>images/desktop-16.png</file>
@@ -23,6 +38,8 @@
 <file>images/dirclosed-32.png</file>
 <file>images/dirclosed-128.png</file>
 <file>images/dirlink-16.png</file>
+<file>images/dirlink-32.png</file>
+<file>images/dirlink-128.png</file>
 <file>images/diropen-16.png</file>
 <file>images/diropen-32.png</file>
 <file>images/diropen-128.png</file>
@@ -85,6 +102,26 @@
 <file>images/standardbutton-yes-128.png</file>
 <file>images/standardbutton-yes-16.png</file>
 <file>images/standardbutton-yes-32.png</file>
+<file>images/refresh-24.png</file>
+<file>images/refresh-32.png</file>
+<file>images/stop-24.png</file>
+<file>images/stop-32.png</file>
+<file>images/media-stop-16.png</file>
+<file>images/media-stop-32.png</file>
+<file>images/media-play-16.png</file>
+<file>images/media-play-32.png</file>
+<file>images/media-pause-16.png</file>
+<file>images/media-pause-32.png</file>
+<file>images/media-seek-forward-16.png</file>
+<file>images/media-seek-forward-32.png</file>
+<file>images/media-seek-backward-16.png</file>
+<file>images/media-seek-backward-32.png</file>
+<file>images/media-skip-forward-16.png</file>
+<file>images/media-skip-forward-32.png</file>
+<file>images/media-skip-backward-16.png</file>
+<file>images/media-skip-backward-32.png</file>
+<file>images/media-volume-16.png</file>
+<file>images/media-volume-muted-16.png</file>
 </qresource>
 <qresource prefix="/trolltech/styles/macstyle">
 <file>images/closedock-16.png</file>

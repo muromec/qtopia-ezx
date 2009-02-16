@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,25 +42,30 @@
 #include <formbuilder.h>
 #include <ui4_p.h>
 
-#include <qdebug.h>
-#include <QAction>
-#include <QActionGroup>
-#include <QApplication>
-#include <QDir>
-#include <QLibraryInfo>
-#include <QLayout>
-#include <QWidget>
-#include <QMap>
-#include <QTabWidget>
-#include <QTreeWidget>
-#include <QListWidget>
-#include <QTableWidget>
-#include <QToolBox>
-#include <QComboBox>
-#include <QFontComboBox>
+#include <QtCore/qdebug.h>
+#include <QtGui/QAction>
+#include <QtGui/QActionGroup>
+#include <QtGui/QApplication>
+#include <QtCore/QDir>
+#include <QtCore/QLibraryInfo>
+#include <QtGui/QLayout>
+#include <QtGui/QWidget>
+#include <QtCore/QMap>
+#include <QtGui/QTabWidget>
+#include <QtGui/QTreeWidget>
+#include <QtGui/QListWidget>
+#include <QtGui/QTableWidget>
+#include <QtGui/QToolBox>
+#include <QtGui/QComboBox>
+#include <QtGui/QFontComboBox>
+
+QT_BEGIN_NAMESPACE
 
 typedef QMap<QString, bool> widget_map;
 Q_GLOBAL_STATIC(widget_map, g_widgets)
+
+class QUiLoader;
+class QUiLoaderPrivate;
 
 #ifdef QFORMINTERNAL_NAMESPACE
 namespace QFormInternal
@@ -75,8 +74,8 @@ namespace QFormInternal
 
 class FormBuilderPrivate: public QFormBuilder
 {
-    friend class ::QUiLoader;
-    friend class ::QUiLoaderPrivate;
+    friend class QT_PREPEND_NAMESPACE(QUiLoader);
+    friend class QT_PREPEND_NAMESPACE(QUiLoaderPrivate);
     typedef QFormBuilder ParentClass;
 
 public:
@@ -213,7 +212,9 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
     if (w == 0)
         return 0;
 
-    if (QTabWidget *tabw = qobject_cast<QTabWidget*>(w)) {
+    if (0) {
+#ifndef QT_NO_TABWIDGET
+    } else if (QTabWidget *tabw = qobject_cast<QTabWidget*>(w)) {
         const int cnt = tabw->count();
         for (int i = 0; i < cnt; ++i) {
             const QString text = QApplication::translate(m_class.toUtf8(),
@@ -223,6 +224,8 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
 
             tabw->setTabText(i, text);
         }
+#endif
+#ifndef QT_NO_LISTWIDGET
     } else if (QListWidget *listw = qobject_cast<QListWidget*>(w)) {
         const int cnt = listw->count();
         for (int i = 0; i < cnt; ++i) {
@@ -233,12 +236,16 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
                                                     QCoreApplication::UnicodeUTF8);
             item->setText(text);
         }
+#endif
+#ifndef QT_NO_TREEWIDGET
     } else if (QTreeWidget *treew = qobject_cast<QTreeWidget*>(w)) {
         const int cnt = treew->topLevelItemCount();
         for (int i = 0; i < cnt; ++i) {
             QTreeWidgetItem *item = treew->topLevelItem(i);
             recursiveTranslate(item, m_class);
         }
+#endif
+#ifndef QT_NO_TABLEWIDGET
     } else if (QTableWidget *tablew = qobject_cast<QTableWidget*>(w)) {
         const int row_cnt = tablew->rowCount();
         const int col_cnt = tablew->columnCount();
@@ -254,6 +261,8 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
                 item->setText(text);
             }
         }
+#endif
+#ifndef QT_NO_COMBOBOX
     } else if (QComboBox *combow = qobject_cast<QComboBox*>(w)) {
         if (!qobject_cast<QFontComboBox*>(w)) {
             const int cnt = combow->count();
@@ -265,6 +274,8 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
                 combow->setItemText(i, text);
             }
         }
+#endif
+#ifndef QT_NO_TOOLBOX
     } else if (QToolBox *toolw = qobject_cast<QToolBox*>(w)) {
         const int cnt = toolw->count();
         for (int i = 0; i < cnt; ++i) {
@@ -274,6 +285,7 @@ QWidget *FormBuilderPrivate::create(DomWidget *ui_widget, QWidget *parentWidget)
                                                     QCoreApplication::UnicodeUTF8);
             toolw->setItemText(i, text);
         }
+#endif
     }
 
     return w;
@@ -332,25 +344,19 @@ void QUiLoaderPrivate::setupWidgetMap() const
     the pluginPaths() function. You can retrieve the contents of an \c
     .ui file using the load() function. For example:
 
-    \quotefromfile snippets/quiloader/mywidget.cpp
-    \skipto MyWidget::MyWidget
-    \printuntil /^\}/
+    \snippet doc/src/snippets/quiloader/mywidget.cpp 0
 
     By including the user interface in the form's resources (\c myform.qrc),
     we ensure that it will be present at run-time:
 
-    \quotefromfile snippets/quiloader/mywidget.qrc
-    \skipto <!DOCTYPE
-    \printuntil </RCC>
+    \quotefile doc/src/snippets/quiloader/mywidget.qrc
 
     The availableWidgets() function returns a QStringList with the
     class names of the widgets available in the specified plugin
     paths. You can create any of these widgets using the
     createWidget() function. For example:
 
-    \quotefromfile snippets/quiloader/main.cpp
-    \skipto loadCustomWidget
-    \printuntil /^\}/
+    \snippet doc/src/snippets/quiloader/main.cpp 0
 
     You can make a custom widget available to the loader using the
     addPluginPath() function, and you can remove all the available widgets
@@ -588,3 +594,5 @@ bool QUiLoader::isScriptingEnabled() const
     Q_D(const QUiLoader);
     return d->builder.isScriptingEnabled();
 }
+
+QT_END_NAMESPACE

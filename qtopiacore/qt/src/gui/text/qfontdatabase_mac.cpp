@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include <qabstractfileengine.h>
 #include <stdlib.h>
 #include <qendian.h>
+
+QT_BEGIN_NAMESPACE
 
 int qt_mac_pixelsize(const QFontDef &def, int dpi); //qfont_mac.cpp
 int qt_mac_pointsize(const QFontDef &def, int dpi); //qfont_mac.cpp
@@ -87,7 +83,7 @@ static void initializeDb()
     if(!db || db->count)
         return;
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
+#if ((defined (USE_COOA) || 0) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
 if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_5) {
     QCFType<CTFontCollectionRef> collection = CTFontCollectionCreateFromAvailableFonts(0);
     if(!collection)
@@ -239,8 +235,9 @@ static const char *styleHint(const QFontDef &request)
 void QFontDatabase::load(const QFontPrivate *d, int script)
 {
     // sanity checks
-    if(!QFontCache::instance)
+    if(!qApp)
         qWarning("QFont: Must construct a QApplication before a QFont");
+
     Q_ASSERT(script >= 0 && script < QUnicodeTables::ScriptCount);
     Q_UNUSED(script);
 
@@ -251,9 +248,9 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
     req.pointSize = 0;
     QFontCache::Key key = QFontCache::Key(req, QUnicodeTables::Common, d->screen);
 
-    if(!(d->engineData = QFontCache::instance->findEngineData(key))) {
+    if(!(d->engineData = QFontCache::instance()->findEngineData(key))) {
         d->engineData = new QFontEngineData;
-        QFontCache::instance->insertEngineData(key, d->engineData);
+        QFontCache::instance()->insertEngineData(key, d->engineData);
     } else {
         d->engineData->ref.ref();
     }
@@ -263,14 +260,13 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
     // set it to the actual pointsize, so QFontInfo will do the right thing
     req.pointSize = qRound(qt_mac_pointsize(d->request, d->dpi));
 
-    QFontEngine *e = QFontCache::instance->findEngine(key);
+    QFontEngine *e = QFontCache::instance()->findEngine(key);
     if(!e && qt_enable_test_font && req.family == QLatin1String("__Qt__Box__Engine__")) {
         e = new QTestFontEngine(req.pixelSize);
         e->fontDef = req;
     }
 
     if(e) {
-        Q_ASSERT(e->type() == QFontEngine::Multi || e->type() == QFontEngine::TestFontEngine);
         e->ref.ref();
         d->engineData->engine = e;
         return; // the font info and fontdef should already be filled
@@ -281,7 +277,7 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
     // append the substitute list for each family in family_list
     {
 	    QStringList subs_list;
-	    for(QStringList::ConstIterator it = family_list.begin(); it != family_list.end(); ++it)
+	    for(QStringList::ConstIterator it = family_list.constBegin(); it != family_list.constEnd(); ++it)
 		    subs_list += QFont::substitutes(*it);
 	    family_list += subs_list;
     }
@@ -296,6 +292,8 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
 
     ATSFontFamilyRef familyRef = 0;
     ATSFontRef fontRef = 0;
+
+    QMutexLocker locker(fontDatabaseMutex());
     QFontDatabasePrivate *db = privateDb();
     if (!db->count)
         initializeDb();
@@ -336,37 +334,100 @@ FamilyFound:
     }
 #endif
 
+#if 1
     QFontEngine *engine = new QFontEngineMacMulti(familyRef, fontRef, fontDef, d->kerning);
+#else
+    ATSFontFamilyRef atsFamily = familyRef;
+    ATSFontFamilyRef atsFontRef = fontRef;
+
+    FMFont fontID;
+    FMFontFamily fmFamily;
+    FMFontStyle fntStyle = 0;
+    fmFamily = FMGetFontFamilyFromATSFontFamilyRef(atsFamily);
+    if (fmFamily == kInvalidFontFamily) {
+        // Use the ATSFont then...
+        fontID = FMGetFontFromATSFontRef(atsFontRef);
+    } else {
+        if (fontDef.weight >= QFont::Bold)
+            fntStyle |= ::bold;
+        if (fontDef.style != QFont::StyleNormal)
+            fntStyle |= ::italic;
+
+        FMFontStyle intrinsicStyle;
+        FMFont fnt = 0;
+        if (FMGetFontFromFontFamilyInstance(fmFamily, fntStyle, &fnt, &intrinsicStyle) == noErr)
+           fontID = FMGetATSFontRefFromFont(fnt);
+    }
+
+    OSStatus status;
+
+    const int maxAttributeCount = 5;
+    ATSUAttributeTag tags[maxAttributeCount + 1];
+    ByteCount sizes[maxAttributeCount + 1];
+    ATSUAttributeValuePtr values[maxAttributeCount + 1];
+    int attributeCount = 0;
+
+    Fixed size = FixRatio(fontDef.pixelSize, 1);
+    tags[attributeCount] = kATSUSizeTag;
+    sizes[attributeCount] = sizeof(size);
+    values[attributeCount] = &size;
+    ++attributeCount;
+
+    tags[attributeCount] = kATSUFontTag;
+    sizes[attributeCount] = sizeof(fontID);
+    values[attributeCount] = &fontID;
+    ++attributeCount;
+
+    CGAffineTransform transform = CGAffineTransformIdentity;
+    if (fontDef.stretch != 100) {
+        transform = CGAffineTransformMakeScale(float(fontDef.stretch) / float(100), 1);
+        tags[attributeCount] = kATSUFontMatrixTag;
+        sizes[attributeCount] = sizeof(transform);
+        values[attributeCount] = &transform;
+        ++attributeCount;
+    }
+
+    ATSUStyle style;
+    status = ATSUCreateStyle(&style);
+    Q_ASSERT(status == noErr);
+
+    Q_ASSERT(attributeCount < maxAttributeCount + 1);
+    status = ATSUSetAttributes(style, attributeCount, tags, sizes, values);
+    Q_ASSERT(status == noErr);
+
+    QFontEngine *engine = new QFontEngineMac(style, fontID, fontDef, /*multiEngine*/ 0);
+    ATSUDisposeStyle(style);
+#endif
     d->engineData->engine = engine;
     engine->ref.ref(); //a ref for the engineData->engine
-    QFontCache::instance->insertEngine(key, engine);
+    QFontCache::instance()->insertEngine(key, engine);
 }
 
 static void registerFont(QFontDatabasePrivate::ApplicationFont *fnt)
 {
     ATSFontContainerRef handle;
-    OSStatus e;
+    OSStatus e  = noErr;
 
     if(fnt->data.isEmpty()) {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
-if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_5) {
-        extern OSErr qt_mac_create_fsref(const QString &, FSRef *); // qglobal.cpp
-        FSRef ref;
-        if(qt_mac_create_fsref(fnt->fileName, &ref) != noErr)
-            return;
+        if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_5) {
+                extern OSErr qt_mac_create_fsref(const QString &, FSRef *); // qglobal.cpp
+                FSRef ref;
+                if(qt_mac_create_fsref(fnt->fileName, &ref) != noErr)
+                    return;
 
-        ATSFontActivateFromFileReference(&ref, kATSFontContextLocal, kATSFontFormatUnspecified, 0, kATSOptionFlagsDefault, &handle);
-} else 
+               e = ATSFontActivateFromFileReference(&ref, kATSFontContextLocal, kATSFontFormatUnspecified, 0, kATSOptionFlagsDefault, &handle);
+        } else
 #endif
-{
-        extern Q_CORE_EXPORT OSErr qt_mac_create_fsspec(const QString &, FSSpec *); // global.cpp
-        FSSpec spec;
-        if(qt_mac_create_fsspec(fnt->fileName, &spec) != noErr)
-            return;
+        {
+            extern Q_CORE_EXPORT OSErr qt_mac_create_fsspec(const QString &, FSSpec *); // global.cpp
+            FSSpec spec;
+            if(qt_mac_create_fsspec(fnt->fileName, &spec) != noErr)
+                return;
 
-        e = ATSFontActivateFromFileSpecification(&spec, kATSFontContextLocal, kATSFontFormatUnspecified,
-                                           0, kATSOptionFlagsDefault, &handle);
-}
+            e = ATSFontActivateFromFileSpecification(&spec, kATSFontContextLocal, kATSFontFormatUnspecified,
+                                               0, kATSOptionFlagsDefault, &handle);
+        }
     } else {
         e = ATSFontActivateFromMemory((void *)fnt->data.constData(), fnt->data.size(), kATSFontContextLocal,
                                            kATSFontFormatUnspecified, 0, kATSOptionFlagsDefault, &handle);
@@ -399,6 +460,8 @@ if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_5) {
 
 bool QFontDatabase::removeApplicationFont(int handle)
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     if(handle < 0 || handle >= db->applicationFonts.count())
         return false;
@@ -416,6 +479,8 @@ bool QFontDatabase::removeApplicationFont(int handle)
 
 bool QFontDatabase::removeAllApplicationFonts()
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     for(int i = 0; i < db->applicationFonts.count(); ++i) {
         if(!removeApplicationFont(i))
@@ -424,3 +489,9 @@ bool QFontDatabase::removeAllApplicationFonts()
     return true;
 }
 
+bool QFontDatabase::supportsThreadedFontRendering()
+{
+    return true;
+}
+
+QT_END_NAMESPACE

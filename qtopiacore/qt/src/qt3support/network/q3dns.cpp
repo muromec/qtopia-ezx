@@ -1,49 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qplatformdefs.h"
 #include "qbytearray.h"
-#ifdef Q_OS_WIN32
+#if defined(Q_OS_WIN32) || defined(Q_OS_WINCE) || defined(Q_OS_CYGWIN)
 # include "qt_windows.h"
 #else
 # include <sys/types.h>
@@ -92,9 +86,11 @@ extern "C" int res_init();
 #include "q3cleanuphandler.h"
 #include <limits.h>
 
+QT_BEGIN_NAMESPACE
+
 //#define Q3DNS_DEBUG
 
-static Q_UINT16 id; // ### seeded started by now()
+static Q_UINT16 theId; // ### seeded started by now()
 
 
 static QDateTime * originOfTime = 0;
@@ -107,14 +103,14 @@ static Q_UINT32 now()
 	return originOfTime->secsTo( QDateTime::currentDateTime() );
 
     originOfTime = new QDateTime( QDateTime::currentDateTime() );
-    ::id = originOfTime->time().msec() * 60 + originOfTime->time().second();
+    theId = originOfTime->time().msec() * 60 + originOfTime->time().second();
     q3dns_cleanup_time.add( &originOfTime );
     return 0;
 }
 
 
-static Q3PtrList<QHostAddress> * ns = 0;
-static Q3StrList * domains = 0;
+static Q3PtrList<QHostAddress> * theNs = 0;
+static Q3StrList * theDomains = 0;
 static bool ipv6support = false;
 
 class Q3DnsPrivate {
@@ -949,7 +945,7 @@ Q3DnsManager::Q3DnsManager()
     }
 #endif
 
-    if ( !ns )
+    if ( !theNs )
 	Q3Dns::doResInit();
 
     // O(n*n) stuff here.  but for 3 and 6, O(n*n) with a low k should
@@ -957,9 +953,9 @@ Q3DnsManager::Q3DnsManager()
     // might be hidden in the lists.
     Q3PtrList<QHostAddress> * ns = new Q3PtrList<QHostAddress>;
 
-    ::ns->first();
+    theNs->first();
     QHostAddress * h;
-    while( (h=::ns->current()) != 0 ) {
+    while( (h=theNs->current()) != 0 ) {
 	ns->first();
 	while( ns->current() != 0 && !(*ns->current() == *h) )
 	    ns->next();
@@ -971,18 +967,18 @@ Q3DnsManager::Q3DnsManager()
 	    qDebug( "skipping address %s", h->toString().latin1() );
 #endif
 	}
-	::ns->next();
+	theNs->next();
     }
 
-    delete ::ns;
-    ::ns = ns;
-    ::ns->setAutoDelete( true );
+    delete theNs;
+    theNs = ns;
+    theNs->setAutoDelete( true );
 
     Q3StrList * domains = new Q3StrList( true );
 
-    ::domains->first();
+    theDomains->first();
     const char * s;
-    while( (s=::domains->current()) != 0 ) {
+    while( (s=theDomains->current()) != 0 ) {
 	domains->first();
 	while( domains->current() != 0 && qstrcmp( domains->current(), s ) )
 	    domains->next();
@@ -994,12 +990,12 @@ Q3DnsManager::Q3DnsManager()
 	    qDebug( "skipping domain %s", s );
 #endif
 	}
-	::domains->next();
+	theDomains->next();
     }
 
-    delete ::domains;
-    ::domains = domains;
-    ::domains->setAutoDelete( true );
+    delete theDomains;
+    theDomains = domains;
+    theDomains->setAutoDelete( true );
 }
 
 
@@ -1152,7 +1148,7 @@ void Q3DnsManager::transmitQuery( int i )
 	return;
     }
 
-    if ( q && !q->dns || q->dns->isEmpty() )
+    if ((q && !q->dns) || q->dns->isEmpty())
 	// no one currently wants the answer, so there's no point in
 	// retransmitting the query. we keep it, though. an answer may
 	// arrive for an earlier query transmission, and if it does we
@@ -1229,10 +1225,10 @@ void Q3DnsManager::transmitQuery( int i )
     // name servers have recently been defined (like on windows,
     // plugging/unplugging the network cable will change the name
     // server entries)
-    if ( !ns || ns->isEmpty() )
+    if ( !theNs || theNs->isEmpty() )
         Q3Dns::doResInit();
 
-    if ( !ns || ns->isEmpty() ) {
+    if ( !theNs || theNs->isEmpty() ) {
 	// we don't find any name servers. We fake an NXDomain
 	// with a very short life time...
 	Q3DnsAnswer answer( q );
@@ -1248,7 +1244,7 @@ void Q3DnsManager::transmitQuery( int i )
 	return;
     }
 
-    QHostAddress receiver = *ns->at( q->step % ns->count() );
+    QHostAddress receiver = *theNs->at( q->step % theNs->count() );
     if (receiver.isIPv4Address())
 	ipv4Socket->writeBlock( p.data(), pp, receiver, 53 );
 #if !defined (QT_NO_IPV6)
@@ -1260,13 +1256,13 @@ void Q3DnsManager::transmitQuery( int i )
 	    q->id, q->step, q->l.ascii(), q->t,
 	    ns->at( q->step % ns->count() )->toString().ascii() );
 #endif
-    if ( ns->count() > 1 && q->step == 0 && queries.count() == 1 ) {
+    if ( theNs->count() > 1 && q->step == 0 && queries.count() == 1 ) {
 	// if it's the first time, and we don't have any other
 	// outstanding queries, send nonrecursive queries to the other
 	// name servers too.
 	p[2] = 0;
 	QHostAddress * server;
-	while( (server=ns->next()) != 0 ) {
+	while( (server=theNs->next()) != 0 ) {
 	    if (server->isIPv4Address())
 		ipv4Socket->writeBlock( p.data(), pp, *server, 53 );
 #if !defined (QT_NO_IPV6)
@@ -1283,7 +1279,7 @@ void Q3DnsManager::transmitQuery( int i )
     // seconds.  the graph becomes steep around that point, and the
     // number of errors rises... so it seems good to retry at that
     // point.
-    q->start( q->step < ns->count() ? 800 : 1500, true );
+    q->start( q->step < theNs->count() ? 800 : 1500, true );
 }
 
 
@@ -1435,14 +1431,14 @@ Q3PtrList<Q3DnsRR> * Q3DnsDomain::cached( const Q3Dns * r )
 			// ask the name server again right now.
 			Q3DnsQuery * query = new Q3DnsQuery;
 			query->started = now();
-			query->id = ++::id;
+			query->id = ++theId;
 			query->t = rr->t;
 			query->l = rr->domain->name();
 			// note that here, we don't bother about
 			// notification. but we do bother about
 			// timeouts: we make sure to use high timeouts
 			// and few tramsissions.
-			query->step = ns->count();
+			query->step = theNs->count();
 			QObject::connect( query, SIGNAL(timeout()),
 					  Q3DnsManager::manager(),
 					  SLOT(retransmit()) );
@@ -1491,7 +1487,7 @@ Q3PtrList<Q3DnsRR> * Q3DnsDomain::cached( const Q3Dns * r )
 					     int(l->count()) >= n.count()-1 ) ) {
 		Q3DnsQuery * query = new Q3DnsQuery;
 		query->started = now();
-		query->id = ++::id;
+		query->id = ++theId;
 		query->t = r->recordType();
 		query->l = s;
 		query->dns->replace( (void*)r, (void*)r );
@@ -1734,7 +1730,7 @@ void Q3Dns::setLabel( const QString & label )
 	}
 	if ( dots < maxDots ) {
 	    (void)Q3DnsManager::manager(); // create a Q3DnsManager, if it is not already there
-	    Q3StrListIterator it( *domains );
+	    Q3StrListIterator it( *theDomains );
 	    const char * dom;
 	    while( (dom=it.current()) != 0 ) {
 		++it;
@@ -1784,14 +1780,7 @@ void Q3Dns::setLabel( const QHostAddress & address )
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    QStringList list = myDns.qualifiedNames();
-    QStringList::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 0
 
 */
 
@@ -1985,14 +1974,7 @@ bool Q3Dns::isWorking() const
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    Q3ValueList<QHostAddress> list = myDns.addresses();
-    Q3ValueList<QHostAddress>::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 1
 
 */
 
@@ -2035,14 +2017,7 @@ Q3ValueList<QHostAddress> Q3Dns::addresses() const
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    Q3ValueList<Q3Dns::MailServer> list = myDns.mailServers();
-    Q3ValueList<Q3Dns::MailServer>::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 2
 
 */
 Q3ValueList<Q3Dns::MailServer> Q3Dns::mailServers() const
@@ -2088,14 +2063,7 @@ Q3ValueList<Q3Dns::MailServer> Q3Dns::mailServers() const
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    Q3ValueList<Q3Dns::Server> list = myDns.servers();
-    Q3ValueList<Q3Dns::Server>::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 3
 */
 Q3ValueList<Q3Dns::Server> Q3Dns::servers() const
 {
@@ -2126,14 +2094,7 @@ Q3ValueList<Q3Dns::Server> Q3Dns::servers() const
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    QStringList list = myDns.hostNames();
-    QStringList::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 4
 
 */
 QStringList Q3Dns::hostNames() const
@@ -2165,14 +2126,7 @@ QStringList Q3Dns::hostNames() const
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-    QStringList list = myDns.texts();
-    QStringList::Iterator it = list.begin();
-    while( it != list.end() ) {
-        myProcessing( *it );
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3dns.cpp 5
 */
 QStringList Q3Dns::texts() const
 {
@@ -2351,25 +2305,25 @@ void Q3Dns::doResInit()
 {
     char separator = 0;
 
-    if ( ns )
-        delete ns;
-    ns = new Q3PtrList<QHostAddress>;
-    ns->setAutoDelete( true );
-    domains = new Q3StrList( true );
-    domains->setAutoDelete( true );
+    if ( theNs )
+        delete theNs;
+    theNs = new Q3PtrList<QHostAddress>;
+    theNs->setAutoDelete( true );
+    theDomains = new Q3StrList( true );
+    theDomains->setAutoDelete( true );
 
     QString domainName, nameServer, searchList;
 
     bool gotNetworkParams = false;
     // try the API call GetNetworkParams() first and use registry lookup only
     // as a fallback
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
     HINSTANCE hinstLib = LoadLibraryW( L"iphlpapi" );
 #else
     HINSTANCE hinstLib = LoadLibraryA( "iphlpapi" );
 #endif
     if ( hinstLib != 0 ) {
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
 	GNP getNetworkParams = (GNP) GetProcAddressW( hinstLib, L"GetNetworkParams" );
 #else
 	GNP getNetworkParams = (GNP) GetProcAddress( hinstLib, "GetNetworkParams" );
@@ -2432,7 +2386,7 @@ void Q3Dns::doResInit()
 	    Q3ValueList<QHostAddress> address = tmp.addresses();
 	    Q_LONG i = address.count();
 	    while( i )
-		ns->append( new QHostAddress(address[--i]) );
+		theNs->append( new QHostAddress(address[--i]) );
 	    first = last+1;
 	} while( first < (int)nameServer.length() );
     }
@@ -2444,7 +2398,7 @@ void Q3Dns::doResInit()
 	last = searchList.find( QLatin1Char(separator), first );
 	if ( last < 0 )
 	    last = searchList.length();
-	domains->append( qstrdup( searchList.mid( first, last-first ).latin1() ) );
+	theDomains->append( qstrdup( searchList.mid( first, last-first ).latin1() ) );
 	first = last+1;
     } while( first < (int)searchList.length() );
 }
@@ -2494,7 +2448,7 @@ void Q3Dns::doSynchronousLookup()
 
 		Q3DnsQuery * query = new Q3DnsQuery;
 		query->started = now();
-		query->id = ++::id;
+		query->id = ++theId;
 		query->t = t;
 		query->l = s;
 		Q3DnsAnswer a( ba, query );
@@ -2514,12 +2468,12 @@ void Q3Dns::doSynchronousLookup()
 
 void Q3Dns::doResInit()
 {
-    if ( ns )
+    if ( theNs )
 	return;
-    ns = new Q3PtrList<QHostAddress>;
-    ns->setAutoDelete( true );
-    domains = new Q3StrList( true );
-    domains->setAutoDelete( true );
+    theNs = new Q3PtrList<QHostAddress>;
+    theNs->setAutoDelete( true );
+    theDomains = new Q3StrList( true );
+    theDomains->setAutoDelete( true );
 
     // read resolv.conf manually.
     QFile resolvConf(QLatin1String("/etc/resolv.conf"));
@@ -2540,7 +2494,7 @@ void Q3Dns::doResInit()
 		    // only add ipv6 addresses from resolv.conf if
 		    // this host supports ipv6.
 		    if ( address->isIPv4Address() || ipv6support )
-			ns->append( address );
+			theNs->append( address );
                     else
                         delete address;
 		} else {
@@ -2549,58 +2503,58 @@ void Q3Dns::doResInit()
 	    } else if ( type == QLatin1String("search") ) {
 		QStringList srch = QStringList::split( QLatin1String(" "), list[1] );
 		for ( QStringList::Iterator i = srch.begin(); i != srch.end(); ++i )
-		    domains->append( (*i).lower().local8Bit() );
+		    theDomains->append( (*i).lower().local8Bit() );
 
 	    } else if ( type == QLatin1String("domain") ) {
-		domains->append( list[1].lower().local8Bit() );
+		theDomains->append( list[1].lower().local8Bit() );
 	    }
 	}
     }
 
-    if (ns->isEmpty()) {
+    if (theNs->isEmpty()) {
 #if defined(Q_MODERN_RES_API)
 	struct __res_state res;
 	res_ninit( &res );
 	int i;
 	// find the name servers to use
 	for( i=0; i < MAXNS && i < res.nscount; i++ )
-	    ns->append( new QHostAddress( ntohl( res.nsaddr_list[i].sin_addr.s_addr ) ) );
+	    theNs->append( new QHostAddress( ntohl( res.nsaddr_list[i].sin_addr.s_addr ) ) );
 #  if defined(MAXDFLSRCH)
 	for( i=0; i < MAXDFLSRCH; i++ ) {
 	    if ( res.dnsrch[i] && *(res.dnsrch[i]) )
-		domains->append( QString::fromLatin1( res.dnsrch[i] ).lower().local8Bit() );
+		theDomains->append( QString::fromLatin1( res.dnsrch[i] ).lower().local8Bit() );
 	    else
 		break;
 	}
 #  endif
 	if ( *res.defdname )
-	    domains->append( QString::fromLatin1( res.defdname ).lower().local8Bit() );
+	    theDomains->append( QString::fromLatin1( res.defdname ).lower().local8Bit() );
 #else
 	res_init();
 	int i;
 	// find the name servers to use
 	for( i=0; i < MAXNS && i < _res.nscount; i++ )
-	    ns->append( new QHostAddress( ntohl( _res.nsaddr_list[i].sin_addr.s_addr ) ) );
+	    theNs->append( new QHostAddress( ntohl( _res.nsaddr_list[i].sin_addr.s_addr ) ) );
 #  if defined(MAXDFLSRCH)
 	for( i=0; i < MAXDFLSRCH; i++ ) {
 	    if ( _res.dnsrch[i] && *(_res.dnsrch[i]) )
-		domains->append( QString::fromLatin1( _res.dnsrch[i] ).lower().local8Bit() );
+		theDomains->append( QString::fromLatin1( _res.dnsrch[i] ).lower().local8Bit() );
 	    else
 		break;
 	}
 #  endif
 	if ( *_res.defdname )
-	    domains->append( QString::fromLatin1( _res.defdname ).lower().local8Bit() );
+	    theDomains->append( QString::fromLatin1( _res.defdname ).lower().local8Bit() );
 #endif
 
 	// the code above adds "0.0.0.0" as a name server at the slightest
 	// hint of trouble. so remove those again.
-	ns->first();
-	while( ns->current() ) {
-	    if ( ns->current()->isNull() )
-		delete ns->take();
+	theNs->first();
+	while( theNs->current() ) {
+	    if ( theNs->current()->isNull() )
+		delete theNs->take();
 	    else
-		ns->next();
+		theNs->next();
 	}
     }
 
@@ -2656,5 +2610,7 @@ void Q3Dns::doResInit()
 }
 
 #endif
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_DNS

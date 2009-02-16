@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include "qpixmapcache.h"
 #include "qvariant.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \enum QIcon::Mode
@@ -89,15 +85,15 @@
 
 extern Q_GUI_EXPORT qint64 qt_pixmap_id(const QPixmap &pixmap);
 
-QBasicAtomic serialNumCounter = Q_ATOMIC_INIT(1);
+static QBasicAtomicInt serialNumCounter = Q_BASIC_ATOMIC_INITIALIZER(1);
 
 class QIconPrivate
 {
 public:
-    QIconPrivate():ref(1), engine(0), serialNum(serialNumCounter.fetchAndAdd(1)), detach_no(0), engine_version(2) {}
+    QIconPrivate():ref(1), engine(0), serialNum(serialNumCounter.fetchAndAddRelaxed(1)), detach_no(0), engine_version(2) {}
 
     ~QIconPrivate() { delete engine; }
-    QAtomic ref;
+    QAtomicInt ref;
     QIconEngine *engine;
     int serialNum;
     int detach_no;
@@ -271,6 +267,7 @@ QPixmap QPixmapIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::St
 
     QString key = QLatin1String("$qt_icon_")
                   + QString::number(qt_pixmap_id(pm))
+                  + QString::number(pe->mode)
                   + QString::number(actualSize.width())
                   + QLatin1Char('_')
                   + QString::number(actualSize.height())
@@ -290,6 +287,8 @@ QPixmap QPixmapIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::St
     }
 
     if (!QPixmapCache::find(key + QString::number(mode), pm)) {
+        if (pm.size() != actualSize)
+            pm = pm.scaled(actualSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         if (pe->mode != mode && mode != QIcon::Normal) {
             QStyleOption opt(0);
             opt.palette = QApplication::palette();
@@ -297,8 +296,6 @@ QPixmap QPixmapIconEngine::pixmap(const QSize &size, QIcon::Mode mode, QIcon::St
             if (!generated.isNull())
                 pm = generated;
         }
-        if (pm.size() != actualSize)
-            pm = pm.scaled(actualSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         QPixmapCache::insert(key + QString::number(mode), pm);
     }
     return pm;
@@ -320,17 +317,48 @@ QSize QPixmapIconEngine::actualSize(const QSize &size, QIcon::Mode mode, QIcon::
 
 void QPixmapIconEngine::addPixmap(const QPixmap &pixmap, QIcon::Mode mode, QIcon::State state)
 {
-    if (!pixmap.isNull())
-        pixmaps += QPixmapIconEngineEntry(pixmap, mode, state);
+    if (!pixmap.isNull()) {
+        QPixmapIconEngineEntry *pe = tryMatch(pixmap.size(), mode, state);
+        if(pe && pe->size == pixmap.size()) {
+            pe->pixmap = pixmap;
+            pe->fileName.clear();
+        } else {
+            pixmaps += QPixmapIconEngineEntry(pixmap, mode, state);
+        }
+    }
 }
 
-void QPixmapIconEngine::addFile(const QString &fileName, const QSize &size, QIcon::Mode mode, QIcon::State state)
+void QPixmapIconEngine::addFile(const QString &fileName, const QSize &_size, QIcon::Mode mode, QIcon::State state)
 {
     if (!fileName.isEmpty()) {
+        QSize size = _size;
+        QPixmap pixmap;
+
         QString abs = fileName;
         if (fileName.at(0) != QLatin1Char(':'))
             abs = QFileInfo(fileName).absoluteFilePath();
-        pixmaps += QPixmapIconEngineEntry(abs, size, mode, state);
+
+        for (int i = 0; i < pixmaps.count(); ++i) {
+            if (pixmaps.at(i).mode == mode && pixmaps.at(i).state == state) {
+                QPixmapIconEngineEntry *pe = &pixmaps[i];
+                if(size == QSize()) {
+                    pixmap = QPixmap(abs);
+                    size = pixmap.size();
+                }
+                if (pe->size == QSize() && pe->pixmap.isNull()) {
+                    pe->pixmap = QPixmap(pe->fileName);
+                    pe->size = pe->pixmap.size();
+                }
+                if(pe->size == size) {
+                    pe->pixmap = pixmap;
+                    pe->fileName = abs;
+                    return;
+                }
+            }
+        }
+        QPixmapIconEngineEntry e(abs, size, mode, state);
+        e.pixmap = pixmap;
+        pixmaps += e;
     }
 }
 
@@ -389,11 +417,11 @@ bool QPixmapIconEngine::write(QDataStream &out) const
     return true;
 }
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-    (QIconEngineFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/iconengines"), Qt::CaseInsensitive))
+    (QIconEngineFactoryInterface_iid, QLatin1String("/iconengines"), Qt::CaseInsensitive))
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loaderV2,
-    (QIconEngineFactoryInterfaceV2_iid, QCoreApplication::libraryPaths(), QLatin1String("/iconengines"), Qt::CaseInsensitive))
+    (QIconEngineFactoryInterfaceV2_iid, QLatin1String("/iconengines"), Qt::CaseInsensitive))
 #endif
 
 
@@ -416,17 +444,12 @@ Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loaderV2,
   resource, and then use it, allowing Qt to work out all the required
   icon styles and sizes. For example:
 
-  \code
-    QToolButton *button = new QToolButton;
-    button->setIcon(QIcon("open.xpm"));
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_image_qicon.cpp 0
 
   To undo a QIcon, simply set a null icon in its place:
-  
-  \code
-   button->setIcon(QIcon());
-  \endcode
-  
+
+  \snippet doc/src/snippets/code/src_gui_image_qicon.cpp 1
+
   Use the QImageReader::supportedImageFormats() and
   QImageWriter::supportedImageFormats() functions to retrieve a
   complete list of the supported file formats.
@@ -439,8 +462,11 @@ Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loaderV2,
   the current style to calculate a disabled appearance. By using
   custom icon engines, you can customize every aspect of generated
   icons. With QIconEnginePluginV2 it is possible to register different
-  icon engines for different file suffixes, so you could provide a SVG
-  icon engine or any other scalable format.
+  icon engines for different file suffixes, making it possible for
+  third parties to provide additional icon engines to those included
+  with Qt.
+
+  \note Since Qt 4.2, an icon engine that supports SVG is included.
 
   \section1 Making Classes that Use QIcon
 
@@ -451,17 +477,7 @@ Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loaderV2,
   Provide a method to set a QIcon, and when you draw the icon, choose
   whichever pixmap is appropriate for the current state of your widget.
   For example:
-  \code
-    void MyWidget::drawIcon(QPainter *painter, QPoint pos)
-    {
-        QPixmap pixmap = icon.pixmap(QSize(22, 22),
-                                       isEnabled() ? QIcon::Normal
-                                                   : QIcon::Disabled,
-                                       isOn() ? QIcon::On
-                                              : QIcon::Off);
-        painter->drawPixmap(pos, pixmap);
-    }
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_image_qicon.cpp 2
 
   You might also make use of the \c Active mode, perhaps making your
   widget \c Active when the mouse is over the widget (see \l
@@ -524,29 +540,6 @@ QIcon::QIcon(const QIcon &other)
 QIcon::QIcon(const QString &fileName)
     : d(0)
 {
-    QFileInfo info(fileName);
-    QString suffix = info.suffix();
-#ifndef QT_NO_LIBRARY
-    if (!suffix.isEmpty()) {
-        // first try version 2 engines..
-        if (QIconEngineFactoryInterfaceV2 *factory = qobject_cast<QIconEngineFactoryInterfaceV2*>(loaderV2()->instance(suffix))) {
-            if (QIconEngine *engine = factory->create(fileName)) {
-                d = new QIconPrivate;
-                d->engine = engine;
-                return;
-            }
-        }
-        // ..then fall back and try to load version 1 engines
-        if (QIconEngineFactoryInterface *factory = qobject_cast<QIconEngineFactoryInterface*>(loader()->instance(suffix))) {
-            if (QIconEngine *engine = factory->create(fileName)) {
-                d = new QIconPrivate;
-                d->engine = engine;
-                d->engine_version = 1;
-                return;
-            }
-        }
-    }
-#endif
     addFile(fileName);
 }
 
@@ -589,12 +582,11 @@ QIcon::~QIcon()
 */
 QIcon &QIcon::operator=(const QIcon &other)
 {
-    QIconPrivate *x = other.d;
-    if (x)
-        x->ref.ref();
-    x = qAtomicSetPtr(&d, x);
-    if (x && !x->ref.deref())
-        delete x;
+    if (other.d)
+        other.d->ref.ref();
+    if (d && !d->ref.deref())
+        delete d;
+    d = other.d;
     return *this;
 }
 
@@ -751,9 +743,9 @@ void QIcon::detach()
                 x->engine = d->engine;
             }
             x->engine_version = d->engine_version;
-            x = qAtomicSetPtr(&d, x);
-            if (!x->ref.deref())
-                delete x;
+            if (!d->ref.deref())
+                delete d;
+            d = x;
         }
         ++d->detach_no;
     }
@@ -782,7 +774,7 @@ void QIcon::addPixmap(const QPixmap &pixmap, Mode mode, State state)
 }
 
 
-/*!  Adds a pixmap from the file with the given \a fileName to the
+/*!  Adds an image from the file with the given \a fileName to the
      icon, as a specialization for \a size, \a mode and \a state. The
      file will be loaded on demand. Note: custom icon engines are free
      to ignore additionally added pixmaps.
@@ -808,8 +800,34 @@ void QIcon::addFile(const QString &fileName, const QSize &size, Mode mode, State
     if (fileName.isEmpty())
         return;
     if (!d) {
-        d = new QIconPrivate;
-        d->engine = new QPixmapIconEngine;
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
+        QFileInfo info(fileName);
+        QString suffix = info.suffix();
+        if (!suffix.isEmpty()) {
+            // first try version 2 engines..
+            if (QIconEngineFactoryInterfaceV2 *factory = qobject_cast<QIconEngineFactoryInterfaceV2*>(loaderV2()->instance(suffix))) {
+                if (QIconEngine *engine = factory->create(fileName)) {
+                    d = new QIconPrivate;
+                    d->engine = engine;
+                }
+            }
+            // ..then fall back and try to load version 1 engines
+            if (!d) {
+                if (QIconEngineFactoryInterface *factory = qobject_cast<QIconEngineFactoryInterface*>(loader()->instance(suffix))) {
+                    if (QIconEngine *engine = factory->create(fileName)) {
+                        d = new QIconPrivate;
+                        d->engine = engine;
+                        d->engine_version = 1;
+                    }
+                }
+            }
+        }
+#endif
+        // ...then fall back to the default engine
+        if (!d) {
+            d = new QIconPrivate;
+            d->engine = new QPixmapIconEngine;
+        }
     } else {
         detach();
     }
@@ -887,7 +905,7 @@ QDataStream &operator>>(QDataStream &s, QIcon &icon)
             QIconEngineV2 *engine = new QPixmapIconEngine;
             icon.d->engine = engine;
             engine->read(s);
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
         } else if (QIconEngineFactoryInterfaceV2 *factory = qobject_cast<QIconEngineFactoryInterfaceV2*>(loaderV2()->instance(key))) {
             if (QIconEngineV2 *engine= factory->create()) {
                 icon.d = new QIconPrivate;
@@ -933,7 +951,8 @@ QDataStream &operator>>(QDataStream &s, QIcon &icon)
 static int widths[2] = { 22, 32 };
 static int heights[2] = { 22, 32 };
 
-static QSize pixmapSize(QIcon::Size which) {
+static QSize pixmapSizeHelper(QIcon::Size which)
+{
     int i = 0;
     if (which == QIcon::Large)
         i = 1;
@@ -956,7 +975,7 @@ static QSize pixmapSize(QIcon::Size which) {
     \sa pixmapSize()
 */
 QPixmap QIcon::pixmap(Size size, Mode mode, State state) const
-{ return pixmap(::pixmapSize(size), mode, state); }
+{ return pixmap(pixmapSizeHelper(size), mode, state); }
 
 /*!
     Use pixmap(QSize(...), mode, \a state), where the first argument
@@ -967,13 +986,13 @@ QPixmap QIcon::pixmap(Size size, Mode mode, State state) const
     \sa pixmapSize()
 */
 QPixmap QIcon::pixmap(Size size, bool enabled, State state) const
-{ return pixmap(::pixmapSize(size), enabled ? Normal : Disabled, state); }
+{ return pixmap(pixmapSizeHelper(size), enabled ? Normal : Disabled, state); }
 
 /*!
     Use one of the other pixmap() overloads.
 */
 QPixmap QIcon::pixmap() const
-{ return pixmap(::pixmapSize(Small), Normal, Off); }
+{ return pixmap(pixmapSizeHelper(Small), Normal, Off); }
 
 /*!
     The pixmap() function now takes a QSize instead of a QIcon::Size,
@@ -995,7 +1014,7 @@ void QIcon::setPixmapSize(Size which, const QSize &size)
 */
 QSize QIcon::pixmapSize(Size which)
 {
-    return ::pixmapSize(which);
+    return pixmapSizeHelper(which);
 }
 
 /*!
@@ -1029,3 +1048,5 @@ QSize QIcon::pixmapSize(Size which)
     \typedef QIcon::DataPtr
     \internal
 */
+
+QT_END_NAMESPACE

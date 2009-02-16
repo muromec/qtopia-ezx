@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -77,6 +71,9 @@
 #ifndef QT_NO_PRINTDIALOG
 #  define QT_NO_PRINTDIALOG
 #endif
+#ifndef QT_NO_PRINTPREVIEWDIALOG
+#  define QT_NO_PRINTPREVIEWDIALOG
+#endif
 #ifndef QT_NO_PROGRESSDIALOG
 #  define QT_NO_PROGRESSDIALOG
 #endif
@@ -93,6 +90,9 @@
 #endif
 #ifndef QT_NO_FILESYSTEMWATCHER
 #  define QT_NO_FILESYSTEMWATCHER
+#endif
+#ifndef QT_NO_FILESYSTEMMODEL
+#  define QT_NO_FILESYSTEMMODEL
 #endif
 #ifndef QT_NO_PROCESS
 #  define QT_NO_PROCESS
@@ -189,6 +189,9 @@
 #ifndef QT_NO_LISTVIEW
 #  define QT_NO_LISTVIEW
 #endif
+#ifndef QT_NO_COLUMNVIEW
+#  define QT_NO_COLUMNVIEW
+#endif
 #ifndef QT_NO_PROXYMODEL
 #  define QT_NO_PROXYMODEL
 #endif
@@ -215,6 +218,9 @@
 #ifndef QT_NO_CLIPBOARD
 #  define QT_NO_CLIPBOARD
 #endif
+#ifndef QT_NO_CSSPARSER
+#  define QT_NO_CSSPARSER
+#endif
 #ifndef QT_NO_CURSOR
 #  define QT_NO_CURSOR
 #endif
@@ -230,20 +236,41 @@
 #ifndef QT_NO_SESSIONMANAGER
 #  define QT_NO_SESSIONMANAGER
 #endif
+#ifndef QT_NO_SHAREDMEMORY
+#  define QT_NO_SHAREDMEMORY
+#endif
 #ifndef QT_NO_SHORTCUT
 #  define QT_NO_SHORTCUT
 #endif
 #ifndef QT_NO_SOUND
 #  define QT_NO_SOUND
 #endif
+#ifndef QT_NO_SYSTEMSEMAPHORE
+#  define QT_NO_SYSTEMSEMAPHORE
+#endif
 #ifndef QT_NO_TABLETEVENT
 #  define QT_NO_TABLETEVENT
+#endif
+#ifndef QT_NO_TEXTHTMLPARSER
+#  define QT_NO_TEXTHTMLPARSER
 #endif
 #ifndef QT_NO_THREAD
 #  define QT_NO_THREAD
 #endif
+#ifndef QT_NO_CONCURRENT
+#  define QT_NO_CONCURRENT
+#endif
 #ifndef QT_NO_WHEELEVENT
 #  define QT_NO_WHEELEVENT
+#endif
+#ifndef QT_NO_XMLSTREAM
+#  define QT_NO_XMLSTREAM
+#endif
+#ifndef QT_NO_XMLSTREAMREADER
+#  define QT_NO_XMLSTREAMREADER
+#endif
+#ifndef QT_NO_XMLSTREAMWRITER
+#  define QT_NO_XMLSTREAMWRITER
 #endif
 
 /* Networking */
@@ -295,7 +322,7 @@
 #  define QT_NO_CUPS
 #endif
 
-/* Qtopia Core */
+/* Qt for Embedded Linux */
 #ifndef QT_NO_QWSEMBEDWIDGET
 #  define QT_NO_QWSEMBEDWIDGET
 #endif
@@ -341,6 +368,29 @@
 #ifndef QT_NO_QWS_PROPERTIES
 #  define QT_NO_QWS_PROPERTIES
 #endif
+#ifndef QT_NO_QWS_PROXYSCREEN
+#  define QT_NO_QWS_PROXYSCREEN
+#endif
+#ifndef QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+#  define QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+#endif
+
+/* SVG */
+#ifndef QT_NO_SVG
+#  define QT_NO_SVG
+#endif
+#ifndef QT_NO_GRAPHICSSVGITEM
+#  define QT_NO_GRAPHICSSVGITEM
+#endif
+#ifndef QT_NO_SVGGENERATOR
+#  define QT_NO_SVGGENERATOR
+#endif
+#ifndef QT_NO_SVGRENDERER
+#  define QT_NO_SVGRENDERER
+#endif
+#ifndef QT_NO_SVGWIDGET
+#  define QT_NO_SVGWIDGET
+#endif
 
 /* Styles */
 #ifndef QT_NO_STYLE_MOTIF
@@ -357,6 +407,12 @@
 #endif
 #ifndef QT_NO_STYLE_STYLESHEET
 #  define QT_NO_STYLE_STYLESHEET
+#endif
+#ifndef QT_NO_STYLE_WINDOWSCE
+#  define QT_NO_STYLE_WINDOWSCE
+#endif
+#ifndef QT_NO_STYLE_WINDOWSMOBILE
+#  define QT_NO_STYLE_WINDOWSMOBILE
 #endif
 #ifndef QT_NO_STYLE_WINDOWSVISTA
 #  define QT_NO_STYLE_WINDOWSVISTA
@@ -479,6 +535,9 @@
 #ifndef QT_NO_GRAPHICSVIEW
 #  define QT_NO_GRAPHICSVIEW
 #endif
+#ifndef QT_NO_PRINTPREVIEWWIDGET
+#  define QT_NO_PRINTPREVIEWWIDGET
+#endif
 #ifndef QT_NO_MDIAREA
 #  define QT_NO_MDIAREA
 #endif
@@ -532,4 +591,9 @@
 #endif
 #ifndef QT_NO_VALIDATOR
 #  define QT_NO_VALIDATOR
+#endif
+
+/* Windows */
+#ifndef QT_NO_WIN_ACTIVEQT
+#  define QT_NO_WIN_ACTIVEQT
 #endif

@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,12 +45,14 @@
 #include "private/qfactoryloader_p.h"
 #include "qscreendriverplugin_qws.h"
 
+QT_BEGIN_NAMESPACE
+
 #if !defined(Q_OS_WIN32) || defined(QT_MAKEDLL)
 #ifndef QT_NO_LIBRARY
 
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-    (QScreenDriverFactoryInterface_iid, QCoreApplication::libraryPaths(),
-     QLatin1String("/gfxdrivers")))
+    (QScreenDriverFactoryInterface_iid,
+     QLatin1String("/gfxdrivers"), Qt::CaseInsensitive))
 
 #endif //QT_NO_LIBRARY
 #endif //QT_MAKEDLL
@@ -69,24 +62,24 @@ Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
     \ingroup qws
 
     \brief The QScreenDriverFactory class creates screen drivers in
-    Qtopia Core.
+    Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
     QScreenDriverFactory is used to detect and instantiate the
-    available screen drivers, allowing \l {Qtopia Core} to load the
+    available screen drivers, allowing \l{Qt for Embedded Linux} to load the
     preferred driver into the server application at runtime.  The
     create() function returns a QScreen object representing the screen
     driver identified by a given key. The valid keys (i.e. the
     supported drivers) can be retrieved using the keys() function.
 
 
-    \l {Qtopia Core} provides several built-in screen drivers. In
+    \l{Qt for Embedded Linux} provides several built-in screen drivers. In
     addition, custom screen drivers can be added using Qt's plugin
     mechanism, i.e. by subclassing the QScreen class and creating a
-    screen driver plugin (QScreenDriverPlugin). See the \l {Qtopia
-    Core Display Management}{display management} documentation for
-    details.
+    screen driver plugin (QScreenDriverPlugin). See the
+    \l{Qt for Embedded Linux Display Management}{display management}
+    documentation for details.
 
     \sa QScreen, QScreenDriverPlugin
 */
@@ -163,11 +156,18 @@ QStringList QScreenDriverFactory::keys()
 #ifndef QT_NO_LIBRARY
     QStringList plugins = loader()->keys();
     for (int i = 0; i < plugins.size(); ++i) {
+# ifdef QT_NO_QWS_QVFB
+        // give QVFb top priority for autodetection
+        if (plugins.at(i) == QLatin1String("QVFb"))
+            list.prepend(plugins.at(i));
+        else
+# endif
         if (!list.contains(plugins.at(i)))
             list += plugins.at(i);
     }
 #endif //QT_NO_LIBRARY
 #endif //QT_MAKEDLL
-
     return list;
 }
+
+QT_END_NAMESPACE

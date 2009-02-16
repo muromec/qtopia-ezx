@@ -1,47 +1,41 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
-#include "qscriptextqobject_p.h"
+#include <QtCore/qglobal.h>
 
 #ifndef QT_NO_SCRIPT
 
@@ -52,12 +46,15 @@
 #include "qscriptobject_p.h"
 #include "qscriptable.h"
 #include "qscriptable_p.h"
+#include "qscriptextqobject_p.h"
 
 #include <QtCore/QtDebug>
 #include <QtCore/QMetaMethod>
 #include <QtCore/QRegExp>
 #include <QtCore/QVarLengthArray>
-#include "qscriptextqobject_p.h"
+#include <QtCore/QPointer>
+
+QT_BEGIN_NAMESPACE
 
 // we use bits 15..12 of property flags
 enum {
@@ -70,6 +67,13 @@ enum {
 };
 
 static const bool GeneratePropertyFunctions = true;
+
+int QScriptMetaType::typeId() const
+{
+    if (isVariant())
+        return QMetaType::type("QVariant");
+    return isMetaEnum() ? 2/*int*/ : m_typeId;
+}
 
 QByteArray QScriptMetaType::name() const
 {
@@ -94,6 +98,8 @@ public:
     virtual void execute(QScriptContextPrivate *context);
 
     virtual Type type() const { return QScriptFunction::QtProperty; }
+
+    virtual QString functionName() const;
 
 private:
     const QMetaObject *m_meta;
@@ -140,10 +146,27 @@ static inline QVariant variantFromValue(int targetType, const QScriptValueImpl &
     return QVariant();
 }
 
+void ExtQObject::Instance::finalize(QScriptEngine *eng)
+{
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
+    switch (ownership) {
+    case QScriptEngine::QtOwnership:
+        break;
+    case QScriptEngine::ScriptOwnership:
+        if (value)
+            eng_p->disposeQObject(value);
+        break;
+    case QScriptEngine::AutoOwnership:
+        if (value && !value->parent())
+            eng_p->disposeQObject(value);
+        break;
+    }
+}
+
 ExtQObject::Instance *ExtQObject::Instance::get(const QScriptValueImpl &object, QScriptClassInfo *klass)
 {
     if (! klass || klass == object.classInfo())
-        return static_cast<Instance*> (object.objectData().data());
+        return static_cast<Instance*> (object.objectData());
 
     return 0;
 }
@@ -151,27 +174,32 @@ ExtQObject::Instance *ExtQObject::Instance::get(const QScriptValueImpl &object, 
 
 void ExtQObject::Instance::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    QScriptEnginePrivate *eng = context->enginePrivate();
+    eng->notifyFunctionEntry(context);
+#endif
     if (!value) {
         context->throwError(QLatin1String("cannot call function of deleted QObject"));
-        return;
+    } else {
+        const QMetaObject *meta = value->metaObject();
+        // look for qscript_call()
+        QByteArray qscript_call = QByteArray("qscript_call");
+        int index;
+        for (index = meta->methodCount() - 1; index >= 0; --index) {
+            if (methodName(meta->method(index)) == qscript_call)
+                break;
+        }
+        if (index < 0) {
+            context->throwError(QScriptContext::TypeError,
+                                QLatin1String("not a function"));
+        } else {
+            QtFunction fun(context->callee(), index, /*maybeOverloaded=*/true);
+            fun.execute(context);
+        }
     }
-
-    const QMetaObject *meta = value->metaObject();
-    // look for qscript_call()
-    QByteArray qscript_call = QByteArray("qscript_call");
-    int index;
-    for (index = meta->methodCount() - 1; index >= 0; --index) {
-        if (methodName(meta->method(index)) == qscript_call)
-            break;
-    }
-    if (index < 0) {
-        context->throwError(QScriptContext::TypeError,
-                            QLatin1String("not a function"));
-        return;
-    }
-
-    QtFunction fun(value, index, /*maybeOverloaded=*/true);
-    fun.execute(context);
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng->notifyFunctionExit(context);
+#endif
 }
 
 static inline QScriptable *scriptableFromQObject(QObject *qobj)
@@ -195,10 +223,336 @@ static bool hasMethodAccess(const QMetaMethod &method)
     return (method.access() != QMetaMethod::Private);
 }
 
+static bool isEnumerableMetaProperty(const QMetaProperty &prop,
+                                     const QMetaObject *mo, int index)
+{
+    return prop.isScriptable() && prop.isValid()
+        // the following lookup is to ensure that we have the
+        // "most derived" occurrence of the property with this name
+        && (mo->indexOfProperty(prop.name()) == index);
+}
+
+static uint flagsForMetaProperty(const QMetaProperty &prop)
+{
+    return (QScriptValue::Undeletable
+        | (!prop.isWritable()
+           ? QScriptValue::ReadOnly
+           : QScriptValue::PropertyFlag(0))
+        | (GeneratePropertyFunctions
+           ? (QScriptValue::PropertyGetter
+              | QScriptValue::PropertySetter)
+           : QScriptValue::PropertyFlag(0))
+        | QScriptValue::QObjectMember
+        | PROPERTY_ID);
+}
+
+class ExtQObjectDataIterator: public QScriptClassDataIterator
+{
+public:
+    ExtQObjectDataIterator(const QScriptValueImpl &object);
+    virtual ~ExtQObjectDataIterator();
+
+    virtual bool hasNext() const;
+    virtual void next(QScript::Member *member);
+
+    virtual bool hasPrevious() const;
+    virtual void previous(QScript::Member *member);
+
+    virtual void toFront();
+    virtual void toBack();
+
+private:
+    enum State {
+        MetaProperties,
+        DynamicProperties,
+        MetaMethods
+    };
+
+    QScriptValueImpl m_object;
+    int m_index;
+    State m_state;
+};
+
+ExtQObjectDataIterator::ExtQObjectDataIterator(const QScriptValueImpl &object)
+{
+    m_object = object;
+    toFront();
+}
+
+ExtQObjectDataIterator::~ExtQObjectDataIterator()
+{
+}
+
+bool ExtQObjectDataIterator::hasNext() const
+{
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return false;
+    const QMetaObject *meta = inst->value->metaObject();
+    int i = m_index;
+
+    switch (m_state) {
+    case MetaProperties: {
+        for ( ; i < meta->propertyCount(); ++i) {
+            QMetaProperty prop = meta->property(i);
+            if (isEnumerableMetaProperty(prop, meta, i)
+                && !isObjectProperty(m_object, prop.name())) {
+                return true;
+            }
+        }
+        i = 0;
+        // fall-through
+    }
+
+    case DynamicProperties: {
+        QList<QByteArray> dpNames = inst->value->dynamicPropertyNames();
+        for ( ; i < dpNames.count(); ++i) {
+            if (!isObjectProperty(m_object, dpNames.at(i))) {
+                return true;
+            }
+        }
+        if (inst->options & QScriptEngine::SkipMethodsInEnumeration)
+            return false;
+        i = (inst->options & QScriptEngine::ExcludeSuperClassMethods)
+            ? meta->methodOffset() : 0;
+        // fall-through
+    }
+
+    case MetaMethods: {
+        for ( ; i < meta->methodCount(); ++i) {
+            QMetaMethod method = meta->method(i);
+            if (hasMethodAccess(method)
+                && !isObjectProperty(m_object, method.signature())) {
+                return true;
+            }
+        }
+    }
+
+    } // switch
+
+    return false;
+}
+
+void ExtQObjectDataIterator::next(QScript::Member *member)
+{
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(m_object.engine());
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return;
+    const QMetaObject *meta = inst->value->metaObject();
+    int i = m_index;
+
+    switch (m_state) {
+    case MetaProperties: {
+        for ( ; i < meta->propertyCount(); ++i) {
+            QMetaProperty prop = meta->property(i);
+            if (isEnumerableMetaProperty(prop, meta, i)
+                && !isObjectProperty(m_object, prop.name())) {
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(prop.name()));
+                member->native(nameId, i, flagsForMetaProperty(prop));
+                m_index = i + 1;
+                return;
+            }
+        }
+        m_state = DynamicProperties;
+        m_index = 0;
+        i = m_index;
+        // fall-through
+    }
+
+    case DynamicProperties: {
+        QList<QByteArray> dpNames = inst->value->dynamicPropertyNames();
+        for ( ; i < dpNames.count(); ++i) {
+            if (!isObjectProperty(m_object, dpNames.at(i))) {
+                QByteArray name = dpNames.at(i);
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(name));
+                member->native(nameId, i,
+                               QScriptValue::QObjectMember
+                               | DYNAPROPERTY_ID);
+                m_index = i + 1;
+                return;
+            }
+        }
+        m_state = MetaMethods;
+        m_index = (inst->options & QScriptEngine::ExcludeSuperClassMethods)
+                  ? meta->methodOffset() : 0;
+        i = m_index;
+        // fall-through
+    }
+
+    case MetaMethods: {
+        for ( ; i < meta->methodCount(); ++i) {
+            QMetaMethod method = meta->method(i);
+            if (hasMethodAccess(method)
+                && !isObjectProperty(m_object, method.signature())) {
+                QMetaMethod method = meta->method(i);
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.signature()));
+                member->native(nameId, i,
+                               QScriptValue::QObjectMember
+                               | METHOD_ID);
+                m_index = i + 1;
+                return;
+            }
+        }
+    }
+
+    } // switch
+
+    member->invalidate();
+}
+
+bool ExtQObjectDataIterator::hasPrevious() const
+{
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return false;
+    const QMetaObject *meta = inst->value->metaObject();
+    int i = m_index - 1;
+
+    switch (m_state) {
+    case MetaMethods: {
+        int limit = (inst->options & QScriptEngine::ExcludeSuperClassMethods)
+                    ? meta->methodOffset() : 0;
+        for ( ; i >= limit; --i) {
+            QMetaMethod method = meta->method(i);
+            if (hasMethodAccess(method)
+                && !isObjectProperty(m_object, method.signature())) {
+                return true;
+            }
+        }
+        i = inst->value->dynamicPropertyNames().count() - 1;
+        // fall-through
+    }
+
+    case DynamicProperties: {
+        QList<QByteArray> dpNames = inst->value->dynamicPropertyNames();
+        for ( ; i >= 0; --i) {
+            if (!isObjectProperty(m_object, dpNames.at(i))) {
+                return true;
+            }
+        }
+        i = meta->propertyCount() - 1;
+        // fall-through
+    }
+
+    case MetaProperties: {
+        int limit = (inst->options & QScriptEngine::ExcludeSuperClassProperties)
+                    ? meta->propertyOffset() : 0;
+        for ( ; i >= limit; --i) {
+            QMetaProperty prop = meta->property(i);
+            if (isEnumerableMetaProperty(prop, meta, i)
+                && !isObjectProperty(m_object, prop.name())) {
+                return true;
+            }
+        }
+    }
+
+    } // switch
+
+    return false;
+}
+
+void ExtQObjectDataIterator::previous(QScript::Member *member)
+{
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(m_object.engine());
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return;
+    const QMetaObject *meta = inst->value->metaObject();
+    int i = m_index - 1;
+
+    switch (m_state) {
+    case MetaMethods: {
+        int limit = (inst->options & QScriptEngine::ExcludeSuperClassMethods)
+                    ? meta->methodOffset() : 0;
+        for ( ; i >= limit; --i) {
+            QMetaMethod method = meta->method(i);
+            if (hasMethodAccess(method)
+                && !isObjectProperty(m_object, method.signature())) {
+                QMetaMethod method = meta->method(i);
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.signature()));
+                member->native(nameId, i,
+                               QScriptValue::QObjectMember
+                               | METHOD_ID);
+                m_index = i;
+                return;
+            }
+        }
+        m_state = DynamicProperties;
+        m_index = inst->value->dynamicPropertyNames().count() - 1;
+        i = m_index;
+        // fall-through
+    }
+
+    case DynamicProperties: {
+        QList<QByteArray> dpNames = inst->value->dynamicPropertyNames();
+        for ( ; i >= 0; --i) {
+            if (!isObjectProperty(m_object, dpNames.at(i))) {
+                QByteArray name = dpNames.at(i);
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(name));
+                member->native(nameId, i,
+                               QScriptValue::QObjectMember
+                               | DYNAPROPERTY_ID);
+                m_index = i;
+                return;
+            }
+        }
+        m_state = MetaProperties;
+        m_index = meta->propertyCount() - 1;
+        i = m_index;
+        // fall-through
+    }
+
+    case MetaProperties: {
+        int limit = (inst->options & QScriptEngine::ExcludeSuperClassProperties)
+                    ? meta->propertyOffset() : 0;
+        for ( ; i >= limit; --i) {
+            QMetaProperty prop = meta->property(i);
+            if (isEnumerableMetaProperty(prop, meta, i)
+                && !isObjectProperty(m_object, prop.name())) {
+                QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(prop.name()));
+                member->native(nameId, i, flagsForMetaProperty(prop));
+                m_index = i;
+                return;
+            }
+        }
+    }
+
+    } // switch
+
+    member->invalidate();
+}
+
+void ExtQObjectDataIterator::toFront()
+{
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return;
+    m_state = MetaProperties;
+    const QMetaObject *meta = inst->value->metaObject();
+    m_index = (inst->options & QScriptEngine::ExcludeSuperClassProperties)
+              ? meta->propertyOffset() : 0;
+}
+
+void ExtQObjectDataIterator::toBack()
+{
+    ExtQObject::Instance *inst = ExtQObject::Instance::get(m_object);
+    if (!inst->value)
+        return;
+    if (inst->options & QScriptEngine::SkipMethodsInEnumeration) {
+        m_state = DynamicProperties;
+        m_index = inst->value->dynamicPropertyNames().count();
+    } else {
+        m_state = MetaMethods;
+        const QMetaObject *meta = inst->value->metaObject();
+        m_index = meta->methodCount();
+    }
+}
+
 class ExtQObjectData: public QScriptClassData
 {
 public:
-    ExtQObjectData(QScriptEnginePrivate *, QScriptClassInfo *classInfo)
+    ExtQObjectData(QScriptClassInfo *classInfo)
         : m_classInfo(classInfo)
     {
     }
@@ -271,17 +625,7 @@ public:
         if (index != -1) {
             QMetaProperty prop = meta->property(index);
             if (prop.isScriptable()) {
-                member->native(nameId, index,
-                               QScriptValue::Undeletable
-                               | (!prop.isWritable()
-                                  ? QScriptValue::ReadOnly
-                                  : QScriptValue::PropertyFlag(0))
-                               | (GeneratePropertyFunctions
-                                  ? (QScriptValue::PropertyGetter
-                                     | QScriptValue::PropertySetter)
-                                  : QScriptValue::PropertyFlag(0))
-                               | QScriptValue::QObjectMember
-                               | PROPERTY_ID);
+                member->native(nameId, index, flagsForMetaProperty(prop));
 #ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
                 metaCache->registerMember(nameId, *member);
 #endif
@@ -396,20 +740,23 @@ public:
         case METHOD_ID: {
             QScript::Member m;
             bool maybeOverloaded = (member.flags() & MAYBE_OVERLOADED) != 0;
-            *result = eng->createFunction(new QtFunction(qobject, member.id(),
-                                                           maybeOverloaded));
+            *result = eng->createFunction(new QtFunction(obj, member.id(),
+                                                         maybeOverloaded));
             // make it persist (otherwise Function.prototype.disconnect() would fail)
+            uint flags = QScriptValue::QObjectMember;
+            if (inst->options & QScriptEngine::SkipMethodsInEnumeration)
+                flags |= QScriptValue::SkipInEnumeration;
             QScriptObject *instance = obj.objectValue();
-            if (!instance->findMember(member.nameId(), &m)) {
-                instance->createMember(member.nameId(), &m,
-                                       QScriptValue::QObjectMember);
-            }
+            if (!instance->findMember(member.nameId(), &m))
+                instance->createMember(member.nameId(), &m, flags);
             instance->put(m, *result);
         }   break;
 
         case CHILD_ID: {
             QObject *child = qobject->children().at(member.id());
-            *result = eng->newQObject(child);
+            result->invalidate();
+            QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
+            eng->newQObject(result, child, QScriptEngine::QtOwnership, opt);
         }   break;
 
         } // switch
@@ -470,121 +817,6 @@ public:
         return false;
     }
 
-    virtual int extraMemberCount(const QScriptValueImpl &object)
-    {
-        ExtQObject::Instance *inst = ExtQObject::Instance::get(object, m_classInfo);
-        QObject *qobject = inst->value;
-        if (! qobject)
-            return 0;
-        const QScriptEngine::QObjectWrapOptions &opt = inst->options;
-        const QMetaObject *meta = qobject->metaObject();
-        int count = 0;
-        // meta-object-defined properties
-        int offset = (opt & QScriptEngine::ExcludeSuperClassProperties)
-                     ? meta->propertyOffset() : 0;
-        for (int i = offset; i < meta->propertyCount(); ++i) {
-            QMetaProperty prop = meta->property(i);
-            if (prop.isScriptable()
-                && !isObjectProperty(object, prop.name())) {
-                ++count;
-            }
-        }
-        // dynamic properties
-        QList<QByteArray> dpNames = qobject->dynamicPropertyNames();
-        for (int i = 0; i < dpNames.count(); ++i) {
-            if (!isObjectProperty(object, dpNames.at(i))) {
-                ++count;
-            }
-        }
-        // meta-object-defined methods
-        offset = (opt & QScriptEngine::ExcludeSuperClassMethods)
-                 ? meta->methodOffset() : 0;
-        for (int i = offset; i < meta->methodCount(); ++i) {
-            QMetaMethod method = meta->method(i);
-            if (hasMethodAccess(method)
-                && !isObjectProperty(object, method.signature())) {
-                ++count;
-            }
-        }
-        return count;
-    }
-
-    virtual bool extraMember(const QScriptValueImpl &object, int index, QScript::Member *member)
-    {
-        ExtQObject::Instance *inst = ExtQObject::Instance::get(object, m_classInfo);
-        QObject *qobject = inst->value;
-        const QScriptEngine::QObjectWrapOptions &opt = inst->options;
-        const QMetaObject *meta = qobject->metaObject();
-        QScriptEnginePrivate *eng = QScriptEnginePrivate::get(object.engine());
-        int logicalIndex = 0;
-        // meta-object-defined properties
-        int physicalIndex = (opt & QScriptEngine::ExcludeSuperClassProperties)
-                            ? meta->propertyOffset() : 0;
-        for ( ; physicalIndex < meta->propertyCount(); ++physicalIndex) {
-            QMetaProperty prop = meta->property(physicalIndex);
-            if (prop.isScriptable()
-                && !isObjectProperty(object, prop.name())) {
-                if (logicalIndex == index)
-                    break;
-                ++logicalIndex;
-            }
-        }
-        if (physicalIndex < meta->propertyCount()) {
-            QMetaProperty prop = meta->property(physicalIndex);
-            QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(prop.name()));
-            member->native(nameId, physicalIndex,
-                           QScriptValue::Undeletable
-                           | (!prop.isWritable()
-                              ? QScriptValue::ReadOnly
-                              : QScriptValue::PropertyFlag(0))
-                           | QScriptValue::QObjectMember
-                           | PROPERTY_ID);
-            return true;
-        }
-
-        // dynamic properties
-        physicalIndex = 0;
-        QList<QByteArray> dpNames = qobject->dynamicPropertyNames();
-        for ( ; physicalIndex < dpNames.count(); ++physicalIndex) {
-            if (!isObjectProperty(object, dpNames.at(physicalIndex))) {
-                if (logicalIndex == index)
-                    break;
-                ++logicalIndex;
-            }
-        }
-        if (physicalIndex < dpNames.count()) {
-            QByteArray name = dpNames.at(physicalIndex);
-            QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(name));
-            member->native(nameId, physicalIndex,
-                           QScriptValue::QObjectMember
-                           | DYNAPROPERTY_ID);
-            return true;
-        }
-
-        // meta-object-defined methods
-        physicalIndex = (opt & QScriptEngine::ExcludeSuperClassMethods)
-                        ? meta->methodOffset() : 0;
-        for ( ; physicalIndex < meta->methodCount(); ++physicalIndex) {
-            QMetaMethod method = meta->method(physicalIndex);
-            if (hasMethodAccess(method)
-                && !isObjectProperty(object, method.signature())) {
-                if (logicalIndex == index)
-                    break;
-                ++logicalIndex;
-            }
-        }
-        if (physicalIndex < meta->methodCount()) {
-            QMetaMethod method = meta->method(physicalIndex);
-            QScriptNameIdImpl *nameId = eng->nameId(QLatin1String(method.signature()));
-            member->native(nameId, index,
-                           QScriptValue::QObjectMember
-                           | METHOD_ID);
-            return true;
-        }
-
-        return false;
-    }
-
     virtual bool removeMember(const QScriptValueImpl &object,
                               const QScript::Member &member)
     {
@@ -600,26 +832,97 @@ public:
         return false;
     }
 
-    virtual void mark(const QScriptValueImpl &object, int generation)
+    virtual void mark(const QScriptValueImpl &, int)
     {
-        ExtQObject::Instance *inst = ExtQObject::Instance::get(object, m_classInfo);
-        if (inst->isConnection) {
-            ConnectionQObject *connection = static_cast<ConnectionQObject*>((QObject*)inst->value);
-            Q_ASSERT(connection != 0);
-            connection->mark(generation);
-        }
+    }
+
+    virtual QScriptClassDataIterator *newIterator(const QScriptValueImpl &object)
+    {
+        return new ExtQObjectDataIterator(object);
     }
 
 private:
     QScriptClassInfo *m_classInfo;
 };
 
+struct QObjectConnection
+{
+    int slotIndex;
+    QScriptValueImpl receiver;
+    QScriptValueImpl slot;
+    QScriptValueImpl senderWrapper;
+
+    QObjectConnection(int i, const QScriptValueImpl &r, const QScriptValueImpl &s,
+               const QScriptValueImpl &sw)
+        : slotIndex(i), receiver(r), slot(s), senderWrapper(sw) {}
+    QObjectConnection() : slotIndex(-1) {}
+
+    bool hasTarget(const QScriptValueImpl &r, const QScriptValueImpl &s) const
+    {
+        if (r.isObject() != receiver.isObject())
+            return false;
+        if ((r.isObject() && receiver.isObject())
+            && (r.objectValue() != receiver.objectValue())) {
+            return false;
+        }
+        return (s.objectValue() == slot.objectValue());
+    }
+
+    void mark(int generation)
+    {
+        if (senderWrapper.isValid() && !senderWrapper.isMarked(generation)) {
+            // see if the sender should be marked or not
+            ExtQObject::Instance *inst = ExtQObject::Instance::get(senderWrapper);
+            if ((inst->ownership == QScriptEngine::ScriptOwnership)
+                || ((inst->ownership == QScriptEngine::AutoOwnership)
+                    && inst->value && !inst->value->parent())) {
+                senderWrapper.invalidate();
+            } else {
+                senderWrapper.mark(generation);
+            }
+        }
+        if (receiver.isValid())
+            receiver.mark(generation);
+        if (slot.isValid())
+            slot.mark(generation);
+    }
+};
+
+class QObjectConnectionManager: public QObject
+{
+public:
+    QObjectConnectionManager();
+    ~QObjectConnectionManager();
+
+    bool addSignalHandler(QObject *sender, int signalIndex,
+        const QScriptValueImpl &receiver,
+        const QScriptValueImpl &slot,
+        const QScriptValueImpl &senderWrapper = QScriptValueImpl());
+    bool removeSignalHandler(
+        QObject *sender, int signalIndex,
+        const QScriptValueImpl &receiver,
+        const QScriptValueImpl &slot);
+
+    static const QMetaObject staticMetaObject;
+    virtual const QMetaObject *metaObject() const;
+    virtual void *qt_metacast(const char *);
+    virtual int qt_metacall(QMetaObject::Call, int, void **argv);
+
+    void execute(int slotIndex, void **argv);
+
+    void mark(int generation);
+
+private:
+    int m_slotCounter;
+    QVector<QVector<QObjectConnection> > connections;
+};
+
 } // ::QScript
 
 
 
-QScript::ExtQObject::ExtQObject(QScriptEnginePrivate *eng, QScriptClassInfo *classInfo):
-    Ecma::Core(eng), m_classInfo(classInfo)
+QScript::ExtQObject::ExtQObject(QScriptEnginePrivate *eng):
+    Ecma::Core(eng, QLatin1String("QObject"), QScriptClassInfo::QObjectType)
 {
     newQObject(&publicPrototype, new QScript::QObjectPrototype(),
                QScriptEngine::AutoOwnership,
@@ -628,16 +931,12 @@ QScript::ExtQObject::ExtQObject(QScriptEnginePrivate *eng, QScriptClassInfo *cla
                | QScriptEngine::ExcludeChildObjects);
 
     eng->newConstructor(&ctor, this, publicPrototype);
-    const QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("findChild"),
-                                eng->createFunction(method_findChild, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("findChildren"),
-                                eng->createFunction(method_findChildren, 1, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 0);
+    addPrototypeFunction(QLatin1String("findChild"), method_findChild, 1);
+    addPrototypeFunction(QLatin1String("findChildren"), method_findChildren, 1);
 
-    QExplicitlySharedDataPointer<QScriptClassData> data(new QScript::ExtQObjectData(eng, classInfo));
-    m_classInfo->setData(data);
+    QExplicitlySharedDataPointer<QScriptClassData> data(new QScript::ExtQObjectData(classInfo()));
+    classInfo()->setData(data);
 }
 
 QScript::ExtQObject::~ExtQObject()
@@ -653,17 +952,27 @@ void QScript::ExtQObject::execute(QScriptContextPrivate *context)
 
 void QScript::ExtQObject::newQObject(QScriptValueImpl *result, QObject *value,
                                      QScriptEngine::ValueOwnership ownership,
-                                     const QScriptEngine::QObjectWrapOptions &options,
-                                     bool isConnection)
+                                     const QScriptEngine::QObjectWrapOptions &options)
 {
-    Instance *instance = new Instance();
+    Instance *instance;
+    if (!result->isValid()) {
+        engine()->newObject(result, publicPrototype, classInfo());
+        instance = new Instance();
+        result->setObjectData(instance);
+    } else {
+        Q_ASSERT(result->isObject());
+        if (result->classInfo() != classInfo()) {
+            result->destroyObjectData();
+            result->setClassInfo(classInfo());
+            instance = new Instance();
+            result->setObjectData(instance);
+        } else {
+            instance = Instance::get(*result);
+        }
+    }
     instance->value = value;
-    instance->isConnection = isConnection;
     instance->ownership = ownership;
     instance->options = options;
-
-    engine()->newObject(result, publicPrototype, classInfo());
-    result->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
 }
 
 QScriptValueImpl QScript::ExtQObject::method_findChild(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo)
@@ -671,7 +980,11 @@ QScriptValueImpl QScript::ExtQObject::method_findChild(QScriptContextPrivate *co
     if (Instance *instance = Instance::get(context->thisObject(), classInfo)) {
         QObject *obj = instance->value;
         QString name = context->argument(0).toString();
-        return eng->newQObject(qFindChild<QObject*>(obj, name));
+        QObject *child = qFindChild<QObject*>(obj, name);
+        QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
+        QScriptValueImpl result;
+        eng->newQObject(&result, child, QScriptEngine::QtOwnership, opt);
+        return result;
     }
     return eng->undefinedValue();
 }
@@ -689,12 +1002,14 @@ QScriptValueImpl QScript::ExtQObject::method_findChildren(QScriptContextPrivate 
         } else
 #endif
         {
-            QString name = arg.toString();
+            QString name = arg.isUndefined() ? QString() : arg.toString();
             found = qFindChildren<QObject*>(obj, name);
         }
         QScriptValueImpl result = eng->newArray(found.size());
+        QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
         for (int i = 0; i < found.size(); ++i) {
-            QScriptValueImpl value = eng->newQObject(found.at(i));
+            QScriptValueImpl value;
+            eng->newQObject(&value, found.at(i), QScriptEngine::QtOwnership, opt);
             result.setProperty(i, value);
         }
         return result;
@@ -716,32 +1031,9 @@ QScriptValueImpl QScript::ExtQObject::method_toString(QScriptContextPrivate *con
     return eng->undefinedValue();
 }
 
-QScript::ConnectionQObject::ConnectionQObject(const QMetaMethod &method,
-                                              const QScriptValueImpl &sender,
-                                              const QScriptValueImpl &receiver,
-                                              const QScriptValueImpl &slot)
-    : m_method(method), m_sender(sender),
-      m_receiver(receiver)
-{
-    m_slot = slot;
 
-    QScriptEngine *eng = m_slot.engine();
-    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
-    QScriptValueImpl me;
-    eng_p->qobjectConstructor->newQObject(&me, this, QScriptEngine::QtOwnership,
-                                          /*options=*/0, /*isConnection=*/true);
-    QScriptValuePrivate::init(m_self, eng_p->registerValue(me));
 
-    QObject *qobject = static_cast<QtFunction*>(sender.toFunction())->object();
-    Q_ASSERT(qobject);
-    connect(qobject, SIGNAL(destroyed()), this, SLOT(deleteLater()));
-}
-
-QScript::ConnectionQObject::~ConnectionQObject()
-{
-}
-
-static const uint qt_meta_data_ConnectionQObject[] = {
+static const uint qt_meta_data_QObjectConnectionManager[] = {
 
  // content:
        1,       // revision
@@ -752,63 +1044,93 @@ static const uint qt_meta_data_ConnectionQObject[] = {
        0,    0, // enums/sets
 
  // slots: signature, parameters, type, tag, flags
-      19,   18,   18,   18, 0x0a,
+      35,   34,   34,   34, 0x0a,
 
        0        // eod
 };
 
-static const char qt_meta_stringdata_ConnectionQObject[] = {
-    "ConnectionQObject\0\0execute()\0"
+static const char qt_meta_stringdata_QObjectConnectionManager[] = {
+    "QScript::QObjectConnectionManager\0\0execute()\0"
 };
 
-const QMetaObject QScript::ConnectionQObject::staticMetaObject = {
-    { &QObject::staticMetaObject, qt_meta_stringdata_ConnectionQObject,
-      qt_meta_data_ConnectionQObject, 0 }
+const QMetaObject QScript::QObjectConnectionManager::staticMetaObject = {
+    { &QObject::staticMetaObject, qt_meta_stringdata_QObjectConnectionManager,
+      qt_meta_data_QObjectConnectionManager, 0 }
 };
 
-const QMetaObject *QScript::ConnectionQObject::metaObject() const
+const QMetaObject *QScript::QObjectConnectionManager::metaObject() const
 {
     return &staticMetaObject;
 }
 
-void *QScript::ConnectionQObject::qt_metacast(const char *_clname)
+void *QScript::QObjectConnectionManager::qt_metacast(const char *_clname)
 {
     if (!_clname) return 0;
-    if (!strcmp(_clname, qt_meta_stringdata_ConnectionQObject))
-        return static_cast<void*>(const_cast<ConnectionQObject*>(this));
+    if (!strcmp(_clname, qt_meta_stringdata_QObjectConnectionManager))
+        return static_cast<void*>(const_cast<QObjectConnectionManager*>(this));
     return QObject::qt_metacast(_clname);
 }
 
-int QScript::ConnectionQObject::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+int QScript::QObjectConnectionManager::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
 {
     _id = QObject::qt_metacall(_c, _id, _a);
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        switch (_id) {
-        case 0: execute(_a); break;
-        }
-        _id -= 1;
+        execute(_id, _a);
+        _id -= m_slotCounter;
     }
     return _id;
 }
 
-void QScript::ConnectionQObject::execute(void **argv)
+void QScript::QObjectConnectionManager::execute(int slotIndex, void **argv)
 {
-    Q_ASSERT(m_slot.isValid());
+    QScriptValueImpl receiver;
+    QScriptValueImpl slot;
+    QScriptValueImpl senderWrapper;
+    int signalIndex = -1;
+    for (int i = 0; i < connections.size(); ++i) {
+        const QVector<QObjectConnection> &cs = connections.at(i);
+        for (int j = 0; j < cs.size(); ++j) {
+            const QObjectConnection &c = cs.at(j);
+            if (c.slotIndex == slotIndex) {
+                receiver = c.receiver;
+                slot = c.slot;
+                senderWrapper = c.senderWrapper;
+                signalIndex = i;
+                break;
+            }
+        }
+    }
+    Q_ASSERT(slot.isValid());
 
-    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(m_slot.engine());
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(slot.engine());
 
-    QScriptFunction *fun = eng->convertToNativeFunction(m_slot);
-    Q_ASSERT(fun != 0);
+    if (eng->isCollecting()) {
+        // we can't do a script function call during GC,
+        // so we're forced to ignore this signal
+        return;
+    }
 
-    QList<QByteArray> parameterTypes = m_method.parameterTypes();
+    QScriptFunction *fun = eng->convertToNativeFunction(slot);
+    if (fun == 0) {
+        // the signal handler has been GC'ed. This can only happen when
+        // a QObject is owned by the engine, the engine is destroyed, and
+        // there is a script function connected to the destroyed() signal
+        Q_ASSERT(signalIndex <= 1); // destroyed(QObject*)
+        return;
+    }
+
+    const QMetaObject *meta = sender()->metaObject();
+    const QMetaMethod method = meta->method(signalIndex);
+
+    QList<QByteArray> parameterTypes = method.parameterTypes();
     int argc = parameterTypes.count();
 
     QScriptValueImpl activation;
     eng->newActivation(&activation);
     QScriptObject *activation_data = activation.objectValue();
-    activation_data->m_scope = m_slot.scope();
+    activation_data->m_scope = slot.scope();
 
     int formalCount = fun->formals.count();
     int mx = qMax(formalCount, argc);
@@ -832,63 +1154,107 @@ void QScript::ConnectionQObject::execute(void **argv)
     }
 
     QScriptValueImpl senderObject;
-    if (sender() == m_sender.toQObject())
-        senderObject = m_sender;
-    else
-        senderObject = eng->newQObject(sender());
+    if (senderWrapper.isQObject()) {
+        senderObject = senderWrapper;
+    } else {
+        QScriptEngine::QObjectWrapOptions opt = QScriptEngine::PreferExistingWrapperObject;
+        eng->newQObject(&senderObject, sender(), QScriptEngine::QtOwnership, opt);
+    }
     activation_data->m_members[mx].object(eng->idTable()->id___qt_sender__, mx,
                                           QScriptValue::SkipInEnumeration);
     activation_data->m_objects[mx] = senderObject;
 
     QScriptValueImpl thisObject;
-    if (m_receiver.isObject())
-        thisObject = m_receiver;
+    if (receiver.isObject())
+        thisObject = receiver;
     else
         thisObject = eng->globalObject();
 
     QScriptContext *context = eng->pushContext();
     QScriptContextPrivate *context_data = QScriptContextPrivate::get(context);
     context_data->m_activation = activation;
-    context_data->m_callee = m_slot;
+    context_data->m_callee = slot;
     context_data->m_thisObject = thisObject;
     context_data->argc = argc;
     context_data->args = const_cast<QScriptValueImpl*> (activation_data->m_objects.constData());
 
     fun->execute(context_data);
 
-    if (context->state() == QScriptContext::ExceptionState) {
-        qWarning() << "***" << context->returnValue().toString(); // ### fixme
-    }
-
     eng->popContext();
+    if (eng->hasUncaughtException())
+        eng->emitSignalHandlerException();
 }
 
-void QScript::ConnectionQObject::mark(int generation)
+QScript::QObjectConnectionManager::QObjectConnectionManager()
+    : m_slotCounter(0)
 {
-    if (m_sender.isValid())
-        m_sender.mark(generation);
-    if (m_receiver.isValid())
-        m_receiver.mark(generation);
-    if (m_slot.isValid())
-        m_slot.mark(generation);
 }
 
-bool QScript::ConnectionQObject::hasTarget(const QScriptValueImpl &receiver,
-                                           const QScriptValueImpl &slot) const
+QScript::QObjectConnectionManager::~QObjectConnectionManager()
 {
-    if (receiver.isObject() != m_receiver.isObject())
-        return false;
-    if ((receiver.isObject() && m_receiver.isObject())
-        && (receiver.objectValue() != m_receiver.objectValue())) {
-        return false;
+}
+
+void QScript::QObjectConnectionManager::mark(int generation)
+{
+    for (int i = 0; i < connections.size(); ++i) {
+        QVector<QObjectConnection> &cs = connections[i];
+        for (int j = 0; j < cs.size(); ++j)
+            cs[j].mark(generation);
     }
-    return (slot.objectValue() == m_slot.objectValue());
+}
+
+bool QScript::QObjectConnectionManager::addSignalHandler(
+    QObject *sender, int signalIndex, const QScriptValueImpl &receiver,
+    const QScriptValueImpl &function, const QScriptValueImpl &senderWrapper)
+{
+    if (connections.size() <= signalIndex)
+        connections.resize(signalIndex+1);
+    QVector<QObjectConnection> &cs = connections[signalIndex];
+    int absSlotIndex = m_slotCounter + metaObject()->methodOffset();
+    bool ok = QMetaObject::connect(sender, signalIndex, this, absSlotIndex);
+    if (ok)
+        cs.append(QScript::QObjectConnection(m_slotCounter++, receiver, function, senderWrapper));
+    return ok;
+}
+
+bool QScript::QObjectConnectionManager::removeSignalHandler(
+    QObject *sender, int signalIndex,
+    const QScriptValueImpl &receiver,
+    const QScriptValueImpl &slot)
+{
+    if (connections.size() <= signalIndex)
+        return false;
+    QVector<QObjectConnection> &cs = connections[signalIndex];
+    for (int i = 0; i < cs.size(); ++i) {
+        const QObjectConnection &c = cs.at(i);
+        if (c.hasTarget(receiver, slot)) {
+            int absSlotIndex = c.slotIndex + metaObject()->methodOffset();
+            bool ok = QMetaObject::disconnect(sender, signalIndex, this, absSlotIndex);
+            if (ok)
+                cs.remove(i);
+            return ok;
+        }
+    }
+    return false;
+}
+
+
+
+QString QScript::QtPropertyFunction::functionName() const
+{
+    QMetaProperty prop = m_meta->property(m_index);
+    return QLatin1String(prop.name());
 }
 
 void QScript::QtPropertyFunction::execute(QScriptContextPrivate *context)
 {
+    context->calleeMetaIndex = m_index;
+
     QScriptEngine *eng = context->engine();
     QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng_p->notifyFunctionEntry(context);
+#endif
     QScriptValueImpl result = eng_p->undefinedValue();
 
     QScriptValueImpl object = context->thisObject();
@@ -902,7 +1268,6 @@ void QScript::QtPropertyFunction::execute(QScriptContextPrivate *context)
 
     QMetaProperty prop = m_meta->property(m_index);
     Q_ASSERT(prop.isScriptable());
-
     if (context->argumentCount() == 0) {
         // get
         if (prop.isValid()) {
@@ -938,7 +1303,11 @@ void QScript::QtPropertyFunction::execute(QScriptContextPrivate *context)
 
         result = context->argument(0);
     }
-    context->m_result = result;
+    if (!eng->hasUncaughtException())
+        context->m_result = result;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng_p->notifyFunctionExit(context);
+#endif
 }
 
 static int indexOfMetaEnum(const QMetaObject *meta, const QByteArray &str)
@@ -960,23 +1329,46 @@ static int indexOfMetaEnum(const QMetaObject *meta, const QByteArray &str)
     return -1;
 }
 
+QString QScript::QtFunction::functionName() const
+{
+    const QMetaObject *meta = metaObject();
+    if (!meta)
+        return QString();
+    QMetaMethod method = meta->method(m_initialIndex);
+    return QLatin1String(methodName(method));
+}
+
+void QScript::QtFunction::mark(QScriptEnginePrivate *engine, int generation)
+{
+    if (m_object.isValid())
+        engine->markObject(m_object, generation);
+    QScriptFunction::mark(engine, generation);
+}
+
 void QScript::QtFunction::execute(QScriptContextPrivate *context)
 {
-    if (!m_object) {
+    QScriptEngine *eng = context->engine();
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
+    QObject *qobj = qobject();
+    if (!qobj) {
+        context->calleeMetaIndex = m_initialIndex;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng_p->notifyFunctionEntry(context);
+#endif
         context->throwError(QLatin1String("cannot call function of deleted QObject"));
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng_p->notifyFunctionExit(context);
+#endif
         return;
     }
 
-    QScriptEngine *eng = context->engine();
-    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
-
     QScriptValueImpl result = eng_p->undefinedValue();
 
-    const QMetaObject *meta = m_object->metaObject();
+    const QMetaObject *meta = qobj->metaObject();
 
     QObject *thisQObject = context->thisObject().toQObject();
     if (!thisQObject) // ### TypeError
-        thisQObject = m_object;
+        thisQObject = qobj;
 
     QByteArray funName;
     if (!meta->cast(thisQObject)) {
@@ -993,18 +1385,27 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
         return;
 #endif
         // invoking a function in the prototype
-        thisQObject = m_object;
+        thisQObject = qobj;
     }
 
+    int limit;
 #ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
+    int lastFoundIndex = m_initialIndex;
     QScriptMetaObject *metaCache = eng_p->cachedMetaObject(meta);
+    limit = metaCache->methodLowerBound(m_initialIndex);
+#else
+    limit = 0;
 #endif
 
     QScriptMetaMethod chosenMethod;
     int chosenIndex = -1;
     QVarLengthArray<QVariant, 9> args;
     QVector<QScriptMetaArguments> candidates;
-    for (int index = m_initialIndex; index >= 0; --index) {
+    QVector<QScriptMetaArguments> unresolved;
+    QVector<int> tooFewArgs;
+    QVector<int> conversionFailed;
+    int index;
+    for (index = m_initialIndex; index >= limit; --index) {
 #ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
         QScriptMetaMethod mtd = metaCache->findMethod(index);
         if (!mtd.isValid())
@@ -1021,8 +1422,6 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
             if ((rtype == 0) && !returnTypeName.isEmpty()) {
                 if (returnTypeName == "QVariant") {
                     types.append(QScriptMetaType::variant());
-                } else if (returnTypeName.endsWith('*')) {
-                    types.append(QScriptMetaType::metaType(QMetaType::VoidStar, returnTypeName));
                 } else {
                     int enumIndex = indexOfMetaEnum(meta, returnTypeName);
                     if (enumIndex != -1)
@@ -1031,7 +1430,10 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                         types.append(QScriptMetaType::unresolved(returnTypeName));
                 }
             } else {
-                types.append(QScriptMetaType::metaType(rtype, returnTypeName));
+                if (returnTypeName == "QVariant")
+                    types.append(QScriptMetaType::variant());
+                else
+                    types.append(QScriptMetaType::metaType(rtype, returnTypeName));
             }
             // resolve argument types
             QList<QByteArray> parameterTypeNames = method.parameterTypes();
@@ -1049,7 +1451,10 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                             types.append(QScriptMetaType::unresolved(argTypeName));
                     }
                 } else {
-                    types.append(QScriptMetaType::metaType(atype, argTypeName));
+                    if (argTypeName == "QVariant")
+                        types.append(QScriptMetaType::variant());
+                    else
+                        types.append(QScriptMetaType::metaType(atype, argTypeName));
                 }
             }
 
@@ -1063,17 +1468,25 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
 
         if (index == m_initialIndex)
             funName = mtd.name();
-        else if (mtd.name() != funName)
-            continue;
+        else {
+            if (mtd.name() != funName)
+                continue;
+#ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
+            lastFoundIndex = index;
+#endif
+        }
 
-        if (context->argumentCount() < mtd.argumentCount())
+        if (context->argumentCount() < mtd.argumentCount()) {
+            tooFewArgs.append(index);
             continue;
+        }
 
         if (!mtd.fullyResolved()) {
             // remember it so we can give an error message later, if necessary
-            candidates.append(QScriptMetaArguments(/*matchDistance=*/INT_MAX, index,
+            unresolved.append(QScriptMetaArguments(/*matchDistance=*/INT_MAX, index,
                                                    mtd, QVarLengthArray<QVariant, 9>()));
-            continue;
+            if (mtd.hasUnresolvedReturnType())
+                continue;
         }
 
         if (args.count() != mtd.count())
@@ -1088,21 +1501,36 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
         for (int i = 0; converted && i < mtd.argumentCount(); ++i) {
             QScriptValueImpl actual = context->argument(i);
             QScriptMetaType argType = mtd.argumentType(i);
-            int tid = argType.typeId();
-            QVariant v(tid, (void *)0);
-
-            converted = eng_p->convert(actual, tid, v.data());
+            int tid = -1;
+            QVariant v;
+            if (argType.isUnresolved()) {
+                v = QVariant(QMetaType::QObjectStar, (void *)0);
+                converted = eng_p->convertToNativeQObject(
+                    actual, argType.name(), reinterpret_cast<void* *>(v.data()));
+            } else if (argType.isVariant()) {
+                if (actual.isVariant()) {
+                    v = actual.variantValue();
+                } else {
+                    v = actual.toVariant();
+                    converted = v.isValid();
+                }
+            } else {
+                tid = argType.typeId();
+                v = QVariant(tid, (void *)0);
+                converted = eng_p->convert(actual, tid, v.data());
+                if (eng_p->hasUncaughtException())
+                    return;
+            }
 
             if (!converted) {
                 if (actual.isVariant()) {
+                    if (tid == -1)
+                        tid = argType.typeId();
                     QVariant &vv = actual.variantValue();
-                    if (argType.isVariant()) {
-                        v = vv;
-                        converted = true;
-                    } else if (vv.canConvert(QVariant::Type(tid))) {
+                    if (vv.canConvert(QVariant::Type(tid))) {
                         v = vv;
                         converted = v.convert(QVariant::Type(tid));
-                        if (converted)
+                        if (converted && (vv.userType() != tid))
                             matchDistance += 10;
                     } else {
                         QByteArray vvTypeName = vv.typeName();
@@ -1209,11 +1637,21 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                         break;
                     }
                 } else if (actual.isVariant()) {
-                    if (actual.variantValue().userType()
-                        || argType.isVariant()) {
+                    if (argType.isVariant()
+                        || (actual.variantValue().userType() == tid)) {
                         // perfect
                     } else {
                         matchDistance += 10;
+                    }
+                } else if (actual.isArray()) {
+                    switch (tid) {
+                    case QMetaType::QStringList:
+                    case QMetaType::QVariantList:
+                        matchDistance += 5;
+                        break;
+                    default:
+                        matchDistance += 10;
+                        break;
                     }
                 } else if (actual.isQObject()) {
                     switch (tid) {
@@ -1223,6 +1661,18 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                         break;
                     default:
                         matchDistance += 10;
+                        break;
+                    }
+                } else if (actual.isNull()) {
+                    switch (tid) {
+                    case QMetaType::VoidStar:
+                    case QMetaType::QObjectStar:
+                    case QMetaType::QWidgetStar:
+                        // perfect
+                        break;
+                    default:
+                        if (!argType.name().endsWith('*'))
+                            matchDistance += 10;
                         break;
                     }
                 } else {
@@ -1242,42 +1692,103 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                 chosenIndex = index;
                 break;
             } else {
-                candidates.append(QScriptMetaArguments(matchDistance, index, mtd, args));
+                QScriptMetaArguments metaArgs(matchDistance, index, mtd, args);
+                if (candidates.isEmpty()) {
+                    candidates.append(metaArgs);
+                } else {
+                    QScriptMetaArguments otherArgs = candidates.at(0);
+                    if ((args.count() > otherArgs.args.count())
+                        || ((args.count() == otherArgs.args.count())
+                            && (matchDistance <= otherArgs.matchDistance))) {
+                        candidates.prepend(metaArgs);
+                    } else {
+                        candidates.append(metaArgs);
+                    }
+                }
             }
+        } else if (mtd.fullyResolved()) {
+            conversionFailed.append(index);
         }
 
         if (!m_maybeOverloaded)
             break;
     }
 
+#ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
+    if ((index == -1) && (lastFoundIndex != limit) && m_maybeOverloaded)
+        metaCache->setMethodLowerBound(m_initialIndex, lastFoundIndex);
+#endif
+
     if ((chosenIndex == -1) && candidates.isEmpty()) {
-        // conversion failed, or incorrect number of arguments
-        result = context->throwError(
-            QScriptContext::SyntaxError,
-            QString::fromUtf8("incorrect number or type of arguments in call to %0::%1()")
-            .arg(QLatin1String(meta->className()))
-            .arg(QLatin1String(funName)));
+        context->calleeMetaIndex = m_initialIndex;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng_p->notifyFunctionEntry(context);
+#endif
+        if (!conversionFailed.isEmpty()) {
+            QString message = QString::fromLatin1("incompatible type of argument(s) in call to %0(); candidates were\n")
+                              .arg(QLatin1String(funName));
+            for (int i = 0; i < conversionFailed.size(); ++i) {
+                if (i > 0)
+                    message += QLatin1String("\n");
+                QMetaMethod mtd = meta->method(conversionFailed.at(i));
+                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
+            }
+            result = context->throwError(QScriptContext::TypeError, message);
+        } else if (!unresolved.isEmpty()) {
+            QScriptMetaArguments argsInstance = unresolved.first();
+            int unresolvedIndex = argsInstance.method.firstUnresolvedIndex();
+            Q_ASSERT(unresolvedIndex != -1);
+            QScriptMetaType unresolvedType = argsInstance.method.type(unresolvedIndex);
+            QString unresolvedTypeName = QString::fromLatin1(unresolvedType.name());
+            QString message = QString::fromLatin1("cannot call %0(): ")
+                              .arg(QString::fromLatin1(funName));
+            if (unresolvedIndex > 0) {
+                message.append(QString::fromLatin1("argument %0 has unknown type `%1'").
+                               arg(unresolvedIndex).arg(unresolvedTypeName));
+            } else {
+                message.append(QString::fromLatin1("unknown return type `%0'")
+                               .arg(unresolvedTypeName));
+            }
+            message.append(QString::fromLatin1(" (register the type with qScriptRegisterMetaType())"));
+            result = context->throwError(QScriptContext::TypeError, message);
+        } else {
+            QString message = QString::fromLatin1("too few arguments in call to %0(); candidates are\n")
+                              .arg(QLatin1String(funName));
+            for (int i = 0; i < tooFewArgs.size(); ++i) {
+                if (i > 0)
+                    message += QLatin1String("\n");
+                QMetaMethod mtd = meta->method(tooFewArgs.at(i));
+                message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
+            }
+            result = context->throwError(QScriptContext::SyntaxError, message);
+        }
     } else {
         if (chosenIndex == -1) {
-            // pick the best match
-            int dist = INT_MAX;
-            args.clear();
-            for (int i = 0; i < candidates.size(); ++i) {
-                QScriptMetaArguments cdt = candidates.at(i);
-                if (cdt.method.fullyResolved()
-                    && ((cdt.args.count() > args.count())
-                        || ((cdt.args.count() == args.count())
-                            && (cdt.matchDistance < dist)))) {
-                    dist = cdt.matchDistance;
-                    chosenMethod = cdt.method;
-                    chosenIndex = cdt.index;
-                    args = cdt.args;
+            QScriptMetaArguments metaArgs = candidates.at(0);
+            if ((candidates.size() > 1)
+                && (metaArgs.args.count() == candidates.at(1).args.count())
+                && (metaArgs.matchDistance == candidates.at(1).matchDistance)) {
+                // ambiguous call
+                QString message = QString::fromLatin1("ambiguous call of overloaded function %0(); candidates were\n")
+                                  .arg(QLatin1String(funName));
+                for (int i = 0; i < candidates.size(); ++i) {
+                    if (i > 0)
+                        message += QLatin1String("\n");
+                    QMetaMethod mtd = meta->method(candidates.at(i).index);
+                    message += QString::fromLatin1("    %0").arg(QString::fromLatin1(mtd.signature()));
                 }
+                result = context->throwError(QScriptContext::TypeError, message);
+            } else {
+                chosenMethod = metaArgs.method;
+                chosenIndex = metaArgs.index;
+                args = metaArgs.args;
             }
         }
 
         if (chosenIndex != -1) {
             // call it
+            context->calleeMetaIndex = chosenIndex;
+
             QVarLengthArray<void*, 9> array(args.count());
             void **params = array.data();
             for (int i = 0; i < args.count(); ++i) {
@@ -1288,6 +1799,7 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                     break;
                 case QScriptMetaType::MetaType:
                 case QScriptMetaType::MetaEnum:
+                case QScriptMetaType::Unresolved:
                     params[i] = const_cast<void*>(v.constData());
                     break;
                 default:
@@ -1302,6 +1814,10 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                 QScriptablePrivate::get(scriptable)->engine = eng;
             }
 
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+            eng_p->notifyFunctionEntry(context);
+#endif
+
             thisQObject->qt_metacall(QMetaObject::InvokeMetaMethod, chosenIndex, params);
 
             if (scriptable)
@@ -1311,41 +1827,30 @@ void QScript::QtFunction::execute(QScriptContextPrivate *context)
                 result = context->returnValue(); // propagate
             } else {
                 QScriptMetaType retType = chosenMethod.returnType();
-                if (retType.typeId() != 0) {
+                if (retType.isVariant()) {
+                    result = eng_p->valueFromVariant(*(QVariant *)params[0]);
+                } else if (retType.typeId() != 0) {
                     result = eng_p->create(retType.typeId(), params[0]);
                     if (!result.isValid())
-                        result = eng_p->newVariant(QVariant(retType.typeId(), params[0]));
-                } else if (retType.isVariant()) {
-                    result = eng_p->newVariant(*(QVariant *)params[0]);
+                        eng_p->newVariant(&result, QVariant(retType.typeId(), params[0]));
                 } else {
                     result = eng_p->undefinedValue();
                 }
             }
-        } else {
-            // one or more types are unresolved
-            QScriptMetaArguments argsInstance = candidates.first();
-            int unresolvedIndex = argsInstance.method.firstUnresolvedIndex();
-            Q_ASSERT(unresolvedIndex != -1);
-            QScriptMetaType unresolvedType = argsInstance.method.type(unresolvedIndex);
-            result = context->throwError(
-                QScriptContext::TypeError,
-                QString::fromUtf8("cannot call %0::%1(): unknown type `%2'")
-                .arg(QLatin1String(meta->className()))
-                .arg(QString::fromLatin1(funName))
-                .arg(QLatin1String(unresolvedType.name())));
         }
     }
 
     context->m_result = result;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng_p->notifyFunctionExit(context);
+#endif
 }
 
-bool QScript::QtFunction::createConnection(const QScriptValueImpl &self,
-                                           const QScriptValueImpl &receiver,
-                                           const QScriptValueImpl &slot)
+int QScript::QtFunction::mostGeneralMethod(QMetaMethod *out) const
 {
-    Q_ASSERT(slot.isFunction());
-
-    const QMetaObject *meta = m_object->metaObject();
+    const QMetaObject *meta = metaObject();
+    if (!meta)
+        return -1;
     int index = m_initialIndex;
     QMetaMethod method = meta->method(index);
     if (maybeOverloaded() && (method.attributes() & QMetaMethod::Cloned)) {
@@ -1354,48 +1859,9 @@ bool QScript::QtFunction::createConnection(const QScriptValueImpl &self,
             method = meta->method(--index);
         } while (method.attributes() & QMetaMethod::Cloned);
     }
-
-    QObject *conn = new ConnectionQObject(method, self, receiver, slot);
-    m_connections.append(conn);
-    return QMetaObject::connect(m_object, index, conn, conn->metaObject()->methodOffset());
-}
-
-bool QScript::QtFunction::destroyConnection(const QScriptValueImpl &,
-                                            const QScriptValueImpl &receiver,
-                                            const QScriptValueImpl &slot)
-{
-    Q_ASSERT(slot.isFunction());
-    // find the connection with the given receiver+slot
-    QObject *conn = 0;
-    for (int i = 0; i < m_connections.count(); ++i) {
-        ConnectionQObject *candidate = static_cast<ConnectionQObject*>((QObject*)m_connections.at(i));
-        if (candidate->hasTarget(receiver, slot)) {
-            conn = candidate;
-            m_connections.removeAt(i);
-            break;
-        }
-    }
-    if (! conn)
-        return false;
-
-    const QMetaObject *meta = m_object->metaObject();
-    int index = m_initialIndex;
-    QMetaMethod method = meta->method(index);
-    if (maybeOverloaded() && (method.attributes() & QMetaMethod::Cloned)) {
-        // find the most general method
-        do {
-            method = meta->method(--index);
-        } while (method.attributes() & QMetaMethod::Cloned);
-    }
-
-    bool ok = QMetaObject::disconnect(m_object, index, conn, conn->metaObject()->methodOffset());
-    delete conn;
-    return ok;
-}
-
-QScript::QtFunction::~QtFunction()
-{
-    qDeleteAll(m_connections);
+    if (out)
+        *out = method;
+    return index;
 }
 
 /////////////////////////////////////////////////////////
@@ -1407,7 +1873,7 @@ ExtQMetaObject::Instance *ExtQMetaObject::Instance::get(const QScriptValueImpl &
                                                         QScriptClassInfo *klass)
 {
     if (! klass || klass == object.classInfo())
-        return static_cast<Instance*> (object.objectData().data());
+        return static_cast<Instance*> (object.objectData());
 
     return 0;
 }
@@ -1418,9 +1884,9 @@ void QScript::ExtQMetaObject::Instance::execute(QScriptContextPrivate *context)
         QScriptValueImplList args;
         for (int i = 0; i < context->argumentCount(); ++i)
             args << context->argument(i);
-        QScriptValueImpl result = ctor.call(context->thisObject(), args);
-        context->m_thisObject = result;
-        context->m_result = result;
+        QScriptEnginePrivate *eng = QScriptEnginePrivate::get(context->engine());
+        context->m_result = eng->call(ctor, context->thisObject(), args,
+                                      context->isCalledAsConstructor());
     } else {
         context->m_result = context->throwError(
             QScriptContext::TypeError,
@@ -1442,8 +1908,10 @@ public:
 
     virtual bool resolve(const QScriptValueImpl &object, QScriptNameIdImpl *nameId,
                          QScript::Member *member, QScriptValueImpl *base);
-    virtual bool get(const QScriptValueImpl &obj, const QScript::Member &member,
+    virtual bool get(const QScriptValueImpl &object, const QScript::Member &member,
                      QScriptValueImpl *result);
+    virtual bool put(QScriptValueImpl *object, const QScript::Member &member,
+                     const QScriptValueImpl &value);
     virtual void mark(const QScriptValueImpl &object, int generation);
 
 private:
@@ -1465,9 +1933,14 @@ bool ExtQMetaObjectData::resolve(const QScriptValueImpl &object,
     if (!meta)
         return false;
 
-    QScriptEngine *eng = object.engine();
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(object.engine());
+    if (eng_p->idTable()->id_prototype == nameId) {
+        // prototype property is a proxy to constructor's prototype property
+        member->native(nameId, /*id=*/0, QScriptValue::Undeletable);
+        return true;
+    }
 
-    QByteArray name = QScriptEnginePrivate::get(eng)->toString(nameId).toLatin1();
+    QByteArray name = eng_p->toString(nameId).toLatin1();
 
     for (int i = 0; i < meta->enumeratorCount(); ++i) {
         QMetaEnum e = meta->enumerator(i);
@@ -1486,14 +1959,35 @@ bool ExtQMetaObjectData::resolve(const QScriptValueImpl &object,
     return false;
 }
 
-bool ExtQMetaObjectData::get(const QScriptValueImpl &obj,
+bool ExtQMetaObjectData::get(const QScriptValueImpl &object,
                              const QScript::Member &member,
                              QScriptValueImpl *result)
 {
     if (! member.isNativeProperty())
         return false;
 
-    *result = QScriptValueImpl(QScriptEnginePrivate::get(obj.engine()), member.id());
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(object.engine());
+    if (eng_p->idTable()->id_prototype == member.nameId()) {
+        ExtQMetaObject::Instance *inst = ExtQMetaObject::Instance::get(object, m_classInfo);
+        *result = inst->ctor.property(eng_p->idTable()->id_prototype);
+    } else {
+        *result = QScriptValueImpl(eng_p, member.id());
+    }
+    return true;
+}
+
+bool ExtQMetaObjectData::put(QScriptValueImpl *object, const Member &member,
+                             const QScriptValueImpl &value)
+{
+    if (! member.isNativeProperty())
+        return false;
+
+    QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(object->engine());
+    if (eng_p->idTable()->id_prototype == member.nameId()) {
+        ExtQMetaObject::Instance *inst = ExtQMetaObject::Instance::get(*object, m_classInfo);
+        inst->ctor.setProperty(eng_p->idTable()->id_prototype, value);
+    }
+
     return true;
 }
 
@@ -1506,20 +2000,16 @@ void ExtQMetaObjectData::mark(const QScriptValueImpl &object, int generation)
 
 } // namespace QScript
 
-QScript::ExtQMetaObject::ExtQMetaObject(QScriptEnginePrivate *eng,
-                                        QScriptClassInfo *classInfo):
-    Ecma::Core(eng), m_classInfo(classInfo)
+QScript::ExtQMetaObject::ExtQMetaObject(QScriptEnginePrivate *eng)
+    : Ecma::Core(eng, QLatin1String("QMetaObject"), QScriptClassInfo::QMetaObjectType)
 {
-    publicPrototype.invalidate();
     newQMetaObject(&publicPrototype, QScript::StaticQtMetaObject::get());
 
     eng->newConstructor(&ctor, this, publicPrototype);
-    const QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-    publicPrototype.setProperty(QLatin1String("className"),
-                                eng->createFunction(method_className, 0, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("className"), method_className, 0);
 
-    QExplicitlySharedDataPointer<QScriptClassData> data(new QScript::ExtQMetaObjectData(eng, classInfo));
-    m_classInfo->setData(data);
+    QExplicitlySharedDataPointer<QScriptClassData> data(new QScript::ExtQMetaObjectData(eng, classInfo()));
+    classInfo()->setData(data);
 }
 
 QScript::ExtQMetaObject::~ExtQMetaObject()
@@ -1541,7 +2031,7 @@ void QScript::ExtQMetaObject::newQMetaObject(QScriptValueImpl *result, const QMe
     instance->ctor = ctor;
 
     engine()->newObject(result, publicPrototype, classInfo());
-    result->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
+    result->setObjectData(instance);
 }
 
 QScriptValueImpl QScript::ExtQMetaObject::method_className(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo)
@@ -1551,6 +2041,83 @@ QScriptValueImpl QScript::ExtQMetaObject::method_className(QScriptContextPrivate
     }
     return eng->undefinedValue();
 }
+
+QScriptQObjectData::QScriptQObjectData()
+    : m_connectionManager(0)
+{
+}
+
+QScriptQObjectData::~QScriptQObjectData()
+{
+    if (m_connectionManager) {
+        delete m_connectionManager;
+        m_connectionManager = 0;
+    }
+}
+
+bool QScriptQObjectData::addSignalHandler(QObject *sender,
+                                          int signalIndex,
+                                          const QScriptValueImpl &receiver,
+                                          const QScriptValueImpl &slot,
+                                          const QScriptValueImpl &senderWrapper)
+{
+    if (!m_connectionManager)
+        m_connectionManager = new QScript::QObjectConnectionManager();
+    return m_connectionManager->addSignalHandler(
+        sender, signalIndex, receiver, slot, senderWrapper);
+}
+
+bool QScriptQObjectData::removeSignalHandler(QObject *sender,
+                                             int signalIndex,
+                                             const QScriptValueImpl &receiver,
+                                             const QScriptValueImpl &slot)
+{
+    if (!m_connectionManager)
+        return false;
+    return m_connectionManager->removeSignalHandler(
+        sender, signalIndex, receiver, slot);
+}
+
+bool QScriptQObjectData::findWrapper(QScriptEngine::ValueOwnership ownership,
+                                     const QScriptEngine::QObjectWrapOptions &options,
+                                     QScriptValueImpl *out)
+{
+    for (int i = 0; i < wrappers.size(); ++i) {
+        const QScriptQObjectWrapperInfo &info = wrappers.at(i);
+        if ((info.ownership == ownership) && (info.options == options)) {
+            *out = info.object;
+            return true;
+        }
+    }
+    return false;
+}
+
+void QScriptQObjectData::registerWrapper(const QScriptValueImpl &wrapper,
+                                         QScriptEngine::ValueOwnership ownership,
+                                         const QScriptEngine::QObjectWrapOptions &options)
+{
+    wrappers.append(QScriptQObjectWrapperInfo(wrapper, ownership, options));
+}
+
+void QScriptQObjectData::mark(int generation)
+{
+    if (m_connectionManager)
+        m_connectionManager->mark(generation);
+
+    {
+        QList<QScriptQObjectWrapperInfo>::iterator it;
+        for (it = wrappers.begin(); it != wrappers.end(); ) {
+            const QScriptQObjectWrapperInfo &info = *it;
+            if (info.object.isMarked(generation)) {
+                ++it;
+            } else {
+                it = wrappers.erase(it);
+            }
+        }
+    }
+}
+
+QT_END_NAMESPACE
 
 #include "qscriptextqobject.moc"
 

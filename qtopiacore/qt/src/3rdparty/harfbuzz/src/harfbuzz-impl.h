@@ -13,11 +13,9 @@
 #ifndef HARFBUZZ_IMPL_H
 #define HARFBUZZ_IMPL_H
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_TRUETYPE_TAGS_H
+#include "harfbuzz-global.h"
 
-FT_BEGIN_HEADER
+HB_BEGIN_HEADER
 
 #ifndef NULL
 # define NULL ((void *)0)
@@ -32,20 +30,18 @@ FT_BEGIN_HEADER
 #endif
 
 #ifndef TTAG_GDEF
-# define TTAG_GDEF  FT_MAKE_TAG( 'G', 'D', 'E', 'F' )
+# define TTAG_GDEF  HB_MAKE_TAG( 'G', 'D', 'E', 'F' )
 #endif
 #ifndef TTAG_GPOS
-# define TTAG_GPOS  FT_MAKE_TAG( 'G', 'P', 'O', 'S' )
+# define TTAG_GPOS  HB_MAKE_TAG( 'G', 'P', 'O', 'S' )
 #endif
 #ifndef TTAG_GSUB
-# define TTAG_GSUB  FT_MAKE_TAG( 'G', 'S', 'U', 'B' )
+# define TTAG_GSUB  HB_MAKE_TAG( 'G', 'S', 'U', 'B' )
 #endif
 
-#ifndef FT_UNUSED
-# define FT_UNUSED(arg) ((arg) = (arg))
+#ifndef HB_UNUSED
+# define HB_UNUSED(arg) ((arg) = (arg))
 #endif
-
-#include "ftglue.h"
 
 #define ARRAY_LEN(Array) ((int)(sizeof (Array) / sizeof (Array)[0]))
 
@@ -65,19 +61,19 @@ FT_BEGIN_HEADER
 
 #define CHECK_Property( gdef, index, flags, property )              \
           ( ( error = _HB_GDEF_Check_Property( (gdef), (index), (flags),     \
-                                      (property) ) ) != FT_Err_Ok )
+                                      (property) ) ) != HB_Err_Ok )
 
 #define ADD_String( buffer, num_in, num_out, glyph_data, component, ligID )             \
           ( ( error = hb_buffer_add_output_glyphs( (buffer),                           \
 						    (num_in), (num_out),                \
                                                     (glyph_data), (component), (ligID)  \
-                                                  ) ) != FT_Err_Ok )
+                                                  ) ) != HB_Err_Ok )
 #define ADD_Glyph( buffer, glyph_index, component, ligID )             		 	 \
           ( ( error = hb_buffer_add_output_glyph( (buffer),                             \
                                                     (glyph_index), (component), (ligID)  \
-                                                  ) ) != FT_Err_Ok )
+                                                  ) ) != HB_Err_Ok )
 
 
-FT_END_HEADER
+HB_END_HEADER
 
 #endif /* HARFBUZZ_IMPL_H */

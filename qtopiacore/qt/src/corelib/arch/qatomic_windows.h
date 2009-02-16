@@ -1,145 +1,227 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
-#ifndef WINDOWS_QATOMIC_H
-#define WINDOWS_QATOMIC_H
-
-#include <QtCore/qglobal.h>
+#ifndef QATOMIC_WINDOWS_H
+#define QATOMIC_WINDOWS_H
 
 QT_BEGIN_HEADER
 
-#if !defined(Q_CC_GNU) && !defined(Q_CC_BOR)
+QT_BEGIN_NAMESPACE
 
-// MSVC++ 6.0 doesn't generate correct code when optimization are turned on!
+#define Q_ATOMIC_INT_REFERENCE_COUNTING_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_INT_REFERENCE_COUNTING_IS_WAIT_FREE
+
+inline bool QBasicAtomicInt::isReferenceCountingNative()
+{ return true; }
+inline bool QBasicAtomicInt::isReferenceCountingWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_INT_TEST_AND_SET_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_INT_TEST_AND_SET_IS_WAIT_FREE
+
+inline bool QBasicAtomicInt::isTestAndSetNative()
+{ return true; }
+inline bool QBasicAtomicInt::isTestAndSetWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_INT_FETCH_AND_STORE_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_INT_FETCH_AND_STORE_IS_WAIT_FREE
+
+inline bool QBasicAtomicInt::isFetchAndStoreNative()
+{ return true; }
+inline bool QBasicAtomicInt::isFetchAndStoreWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_INT_FETCH_AND_ADD_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_INT_FETCH_AND_ADD_IS_WAIT_FREE
+
+inline bool QBasicAtomicInt::isFetchAndAddNative()
+{ return true; }
+inline bool QBasicAtomicInt::isFetchAndAddWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_POINTER_TEST_AND_SET_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_POINTER_TEST_AND_SET_IS_WAIT_FREE
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isTestAndSetNative()
+{ return true; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isTestAndSetWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_POINTER_FETCH_AND_STORE_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_POINTER_FETCH_AND_STORE_IS_WAIT_FREE
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndStoreNative()
+{ return true; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndStoreWaitFree()
+{ return true; }
+
+#define Q_ATOMIC_POINTER_FETCH_AND_ADD_IS_ALWAYS_NATIVE
+#define Q_ATOMIC_POINTER_FETCH_AND_ADD_IS_WAIT_FREE
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndAddNative()
+{ return true; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndAddWaitFree()
+{ return true; }
+
+#if defined(Q_CC_MSVC)
+
+// MSVC++ 6.0 doesn't generate correct code when optimizations are turned on!
 #if _MSC_VER < 1300 && defined (_M_IX86)
 
-inline int q_atomic_test_and_set_int(volatile int *pointer, int expected, int newval)
+inline bool QBasicAtomicInt::ref()
 {
-    __asm {
-        mov EDX,pointer
-        mov EAX,expected
-        mov ECX,newval
-        lock cmpxchg dword ptr[EDX],ECX
-        mov newval,EAX
-    }
-    return newval == expected;
-}
-
-inline int q_atomic_test_and_set_ptr(volatile void *pointer, void *expected, void *newval)
-{
-    __asm {
-        mov EDX,pointer
-        mov EAX,expected
-        mov ECX,newval
-        lock cmpxchg dword ptr[EDX],ECX
-        mov newval,EAX
-    }
-    return newval == expected;
-}
-
-inline int q_atomic_increment(volatile int *pointer)
-{
+    volatile int *pointer = &_q_value;
     unsigned char retVal;
     __asm {
         mov ECX,pointer
         lock inc DWORD ptr[ECX]
         setne retVal
     }
-    return static_cast<int>(retVal);
+    return retVal != 0;
 }
 
-inline int q_atomic_decrement(volatile int *pointer)
+inline bool QBasicAtomicInt::deref()
 {
+    volatile int *pointer = &_q_value;
     unsigned char retVal;
     __asm {
         mov ECX,pointer
         lock dec DWORD ptr[ECX]
         setne retVal
     }
-    return static_cast<int>(retVal);
+    return retVal != 0;
 }
 
-inline int q_atomic_set_int(volatile int *pointer, int newval)
+inline bool QBasicAtomicInt::testAndSetOrdered(int expectedValue, int newValue)
 {
+    volatile int *pointer = &_q_value;
     __asm {
         mov EDX,pointer
-        mov ECX,newval
-        lock xchg dword ptr[EDX],ECX
-        mov newval,ECX
+        mov EAX,expectedValue
+        mov ECX,newValue
+        lock cmpxchg dword ptr[EDX],ECX
+        mov newValue,EAX
     }
-    return newval;
+    return newValue == expectedValue;
 }
 
-inline void *q_atomic_set_ptr(volatile void *pointer, void *newval)
+
+inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
 {
+    volatile int *pointer = &_q_value;
     __asm {
         mov EDX,pointer
-        mov ECX,newval
+        mov ECX,newValue
         lock xchg dword ptr[EDX],ECX
-        mov newval,ECX
+        mov newValue,ECX
     }
-    return newval;
+    return newValue;
 }
 
-inline int q_atomic_fetch_and_add_int(volatile int *pointer, int value)
+
+inline int QBasicAtomicInt::fetchAndAddOrdered(int valueToAdd)
 {
+    volatile int *pointer = &_q_value;
     __asm {
         mov EDX,pointer
-        mov ECX,value
+        mov ECX,valueToAdd
         lock xadd dword ptr[EDX],ECX
-        mov value,ECX
+        mov valueToAdd,ECX
     }
-    return value;
+    return valueToAdd;
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetOrdered(T *expectedValue, T *newValue)
+{
+    volatile void *pointer = &_q_value;
+    __asm {
+        mov EDX,pointer
+        mov EAX,expectedValue
+        mov ECX,newValue
+        lock cmpxchg dword ptr[EDX],ECX
+        mov newValue,EAX
+    }
+    return newValue == expectedValue;
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+{
+    volatile void *pointer = &_q_value;
+    __asm {
+        mov EDX,pointer
+        mov ECX,newValue
+        lock xchg dword ptr[EDX],ECX
+        mov newValue,ECX
+    }
+    return reinterpret_cast<T *>(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddOrdered(qptrdiff valueToAdd)
+{
+    volatile void *pointer = &_q_value;
+    valueToAdd *= sizeof(T);
+    __asm {
+        mov EDX,pointer
+        mov ECX,valueToAdd
+        lock xadd dword ptr[EDX],ECX
+        mov pointer,ECX
+    }
+    return reinterpret_cast<T *>(const_cast<void *>(pointer));
 }
 
 #else
+
+#if !defined(Q_OS_WINCE)
 // use compiler intrinsics for all atomic functions
 extern "C" {
-    long _InterlockedIncrement(volatile long *);
-    long _InterlockedDecrement(volatile long *);
-    long _InterlockedExchange(volatile long *, long);
-    long _InterlockedCompareExchange(volatile long *, long, long);
-    long _InterlockedExchangeAdd(volatile long *, long);
+    long __cdecl _InterlockedIncrement(volatile long *);
+    long __cdecl _InterlockedDecrement(volatile long *);
+    long __cdecl _InterlockedExchange(volatile long *, long);
+    long __cdecl _InterlockedCompareExchange(volatile long *, long, long);
+    long __cdecl _InterlockedExchangeAdd(volatile long *, long);
 }
 #  pragma intrinsic (_InterlockedIncrement)
 #  pragma intrinsic (_InterlockedDecrement)
@@ -151,44 +233,155 @@ extern "C" {
 extern "C" {
     void *_InterlockedCompareExchangePointer(void * volatile *, void *, void *);
     void *_InterlockedExchangePointer(void * volatile *, void *);
+    __int64 _InterlockedExchangeAdd64(__int64 volatile * Addend, __int64 Value);
 }
 #    pragma intrinsic (_InterlockedCompareExchangePointer)
 #    pragma intrinsic (_InterlockedExchangePointer)
+#    pragma intrinsic (_InterlockedExchangeAdd64)
+#    define _InterlockedExchangeAddPointer(a,b) \
+        _InterlockedExchangeAdd64(reinterpret_cast<volatile __int64 *>(a), __int64(b))
 #  else
 #    define _InterlockedCompareExchangePointer(a,b,c) \
-        reinterpret_cast<void *>(_InterlockedCompareExchange(reinterpret_cast<volatile long *>(a), reinterpret_cast<long>(b), reinterpret_cast<long>(c)))
+        _InterlockedCompareExchange(reinterpret_cast<volatile long *>(a), long(b), long(c))
 #    define _InterlockedExchangePointer(a, b) \
-        reinterpret_cast<void *>(_InterlockedExchange(reinterpret_cast<volatile long *>(a), reinterpret_cast<long>(b)))
+        _InterlockedExchange(reinterpret_cast<volatile long *>(a), long(b))
+#    define _InterlockedExchangeAddPointer(a,b) \
+        _InterlockedExchangeAdd(reinterpret_cast<volatile long *>(a), long(b))
 #  endif
-
-inline int q_atomic_test_and_set_int(volatile int *ptr, int expected, int newval)
-{ return _InterlockedCompareExchange(reinterpret_cast<volatile long *>(ptr), newval, expected) == expected; }
-
-inline int q_atomic_test_and_set_ptr(volatile void *ptr, void *expected, void *newval)
-{ return _InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(ptr), newval, expected) == expected; }
-
-inline int q_atomic_increment(volatile int *ptr)
-{ return _InterlockedIncrement(reinterpret_cast<volatile long *>(ptr)); }
-
-inline int q_atomic_decrement(volatile int *ptr)
-{ return _InterlockedDecrement(reinterpret_cast<volatile long *>(ptr)); }
-
-inline int q_atomic_set_int(volatile int *ptr, int newval)
-{ return _InterlockedExchange(reinterpret_cast<volatile long *>(ptr), newval); }
-
-inline void *q_atomic_set_ptr(volatile void *ptr, void *newval)
-{ return _InterlockedExchangePointer(reinterpret_cast<void * volatile *>(ptr), newval); }
-
-inline int q_atomic_fetch_and_add_int(volatile int *ptr, int value)
+inline bool QBasicAtomicInt::ref()
 {
-    return _InterlockedExchangeAdd(reinterpret_cast<volatile long *>(ptr), value);
+    return _InterlockedIncrement(reinterpret_cast<volatile long *>(&_q_value)) != 0;
 }
+
+inline bool QBasicAtomicInt::deref()
+{
+    return _InterlockedDecrement(reinterpret_cast<volatile long *>(&_q_value)) != 0;
+}
+
+inline bool QBasicAtomicInt::testAndSetOrdered(int expectedValue, int newValue)
+{
+    return _InterlockedCompareExchange(reinterpret_cast<volatile long *>(&_q_value), newValue, expectedValue) == expectedValue;
+}
+
+inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
+{
+    return _InterlockedExchange(reinterpret_cast<volatile long *>(&_q_value), newValue);
+}
+
+inline int QBasicAtomicInt::fetchAndAddOrdered(int valueToAdd)
+{
+    return _InterlockedExchangeAdd(reinterpret_cast<volatile long *>(&_q_value), valueToAdd);
+}
+
+#if defined(Q_CC_MSVC)
+#pragma warning( push )
+#pragma warning( disable : 4311 ) // ignoring the warning from /Wp64
+#endif
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetOrdered(T *expectedValue, T *newValue)
+{
+    return (_InterlockedCompareExchangePointer(reinterpret_cast<void * volatile *>(&_q_value),
+                                              newValue, expectedValue) == 
+#ifndef _M_IX86
+                                              (void *)
+#else
+                                              (long)  
+#endif
+                                              (expectedValue));
+}
+
+#if defined(Q_CC_MSVC)
+#pragma warning( pop )
+#endif
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+{
+    return reinterpret_cast<T *>(_InterlockedExchangePointer(reinterpret_cast<void * volatile *>(&_q_value), newValue));
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddOrdered(qptrdiff valueToAdd)
+{
+    return reinterpret_cast<T *>(_InterlockedExchangeAddPointer(reinterpret_cast<void * volatile *>(&_q_value), valueToAdd * sizeof(T)));
+}
+
+#else // Q_OS_WINCE
+
+#if _WIN32_WCE < 0x600 && defined(_X86_)
+// For X86 Windows CE build we need to include winbase.h to be able
+// to catch the inline functions which overwrite the regular 
+// definitions inside of coredll.dll. Though one could use the 
+// original version of Increment/Decrement, the others are not
+// exported at all.
+#include <winbase.h>
+#else
+#if _WIN32_WCE >= 0x600
+#define Q_ARGUMENT_TYPE volatile
+#else
+#define Q_ARGUMENT_TYPE
+#endif
+extern "C" {
+long __cdecl InterlockedIncrement(long Q_ARGUMENT_TYPE * lpAddend);
+long __cdecl InterlockedDecrement(long Q_ARGUMENT_TYPE * lpAddend);
+long __cdecl InterlockedExchange(long Q_ARGUMENT_TYPE * Target, long Value);
+long __cdecl InterlockedCompareExchange(long Q_ARGUMENT_TYPE * Destination, long Exchange, long Comperand);
+long __cdecl InterlockedExchangeAdd(long Q_ARGUMENT_TYPE * Addend, long Value);
+}
+#endif
+
+
+inline bool QBasicAtomicInt::ref()
+{
+    return InterlockedIncrement((long*)(&_q_value)) != 0;
+}
+
+inline bool QBasicAtomicInt::deref()
+{
+    return InterlockedDecrement((long*)(&_q_value)) != 0;
+}
+
+inline bool QBasicAtomicInt::testAndSetOrdered(int expectedValue, int newValue)
+{
+    return InterlockedCompareExchange((long*)(&_q_value), newValue, expectedValue) == expectedValue;
+}
+
+inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
+{
+    return InterlockedExchange((long*)(&_q_value), newValue);
+}
+
+inline int QBasicAtomicInt::fetchAndAddOrdered(int valueToAdd)
+{
+    return InterlockedExchangeAdd((long*)(&_q_value), valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetOrdered(T *expectedValue, T *newValue)
+{
+    return (InterlockedCompareExchange((long*)(&_q_value),
+                                              (long)newValue, (long)expectedValue) == 
+                                              (long)(expectedValue));
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+{
+    return reinterpret_cast<T *>(InterlockedExchange((long*)(&_q_value), (long)newValue));
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddOrdered(qptrdiff valueToAdd)
+{
+    return reinterpret_cast<T *>(InterlockedExchangeAdd((long*)(&_q_value), valueToAdd * sizeof(T)));
+}
+
+#endif //Q_OS_WINCE
 
 #endif // _MSC_VER ...
 
 #else
-
-#if !(defined Q_CC_BOR) || (__BORLANDC__ < 0x560)
 
 extern "C" {
     __declspec(dllimport) long __stdcall InterlockedCompareExchange(long *, long, long);
@@ -198,66 +391,147 @@ extern "C" {
     __declspec(dllimport) long __stdcall InterlockedExchangeAdd(long *, long);
 }
 
-#else
-
-extern "C" {
-    __declspec(dllimport) long __stdcall InterlockedCompareExchange(long volatile*, long, long);
-    __declspec(dllimport) long __stdcall InterlockedIncrement(long volatile*);
-    __declspec(dllimport) long __stdcall InterlockedDecrement(long volatile*);
-    __declspec(dllimport) long __stdcall InterlockedExchange(long volatile*, long);
-    __declspec(dllimport) long __stdcall InterlockedExchangeAdd(long volatile*, long);
-}
-
-#endif
-
-inline int q_atomic_test_and_set_int(volatile int *ptr, int expected, int newval)
-{ return InterlockedCompareExchange(reinterpret_cast<long *>(const_cast<int *>(ptr)), newval, expected) == expected; }
-
-inline int q_atomic_test_and_set_ptr(volatile void *ptr, void *expected, void *newval)
-{ return InterlockedCompareExchange(reinterpret_cast<long *>(const_cast<void *>(ptr)),
-                                    reinterpret_cast<long>(newval),
-                                    reinterpret_cast<long>(expected)) == reinterpret_cast<long>(expected); }
-
-inline int q_atomic_increment(volatile int *ptr)
-{ return InterlockedIncrement(reinterpret_cast<long *>(const_cast<int *>(ptr))); }
-
-inline int q_atomic_decrement(volatile int *ptr)
-{ return InterlockedDecrement(reinterpret_cast<long *>(const_cast<int *>(ptr))); }
-
-inline int q_atomic_set_int(volatile int *ptr, int newval)
-{ return InterlockedExchange(reinterpret_cast<long *>(const_cast<int *>(ptr)), newval); }
-
-inline void *q_atomic_set_ptr(volatile void *ptr, void *newval)
-{ return reinterpret_cast<void *>(InterlockedExchange(reinterpret_cast<long *>(const_cast<void *>(ptr)),
-                                  reinterpret_cast<long>(newval))); }
-
-inline int q_atomic_fetch_and_add_int(volatile int *ptr, int value)
+inline bool QBasicAtomicInt::ref()
 {
-    return InterlockedExchangeAdd(reinterpret_cast<long *>(const_cast<int *>(ptr)), value);
+    return InterlockedIncrement(reinterpret_cast<long *>(const_cast<int *>(&_q_value))) != 0;
 }
+
+inline bool QBasicAtomicInt::deref()
+{
+    return InterlockedDecrement(reinterpret_cast<long *>(const_cast<int *>(&_q_value))) != 0;
+}
+
+inline bool QBasicAtomicInt::testAndSetOrdered(int expectedValue, int newValue)
+{
+    return InterlockedCompareExchange(reinterpret_cast<long *>(const_cast<int *>(&_q_value)), newValue, expectedValue) == expectedValue;
+}
+
+inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
+{ return InterlockedExchange(reinterpret_cast<long *>(const_cast<int *>(&_q_value)), newValue); }
+
+inline int QBasicAtomicInt::fetchAndAddOrdered(int valueToAdd)
+{
+    return InterlockedExchangeAdd(reinterpret_cast<long *>(const_cast<int *>(&_q_value)), valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetOrdered(T *expectedValue, T* newValue)
+{ return InterlockedCompareExchange(reinterpret_cast<long *>(const_cast<T **>(&_q_value)),
+                                    reinterpret_cast<long>(newValue),
+                                    reinterpret_cast<long>(expectedValue)) == reinterpret_cast<long>(expectedValue); }
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T* newValue)
+{ return reinterpret_cast<T *>(InterlockedExchange(reinterpret_cast<long *>(const_cast<T **>(&_q_value)),
+			                           reinterpret_cast<long>(newValue))); }
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddOrdered(qptrdiff valueToAdd)
+{ return reinterpret_cast<T *>(InterlockedExchangeAdd(reinterpret_cast<long *>(const_cast<T **>(&_q_value)), valueToAdd * sizeof(T))); }
 
 #endif // Q_CC_GNU
 
-inline int q_atomic_test_and_set_acquire_int(volatile int *ptr, int expected, int newval)
+inline bool QBasicAtomicInt::testAndSetRelaxed(int expectedValue, int newValue)
 {
-    return q_atomic_test_and_set_int(ptr, expected, newval);
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline int q_atomic_test_and_set_release_int(volatile int *ptr, int expected, int newval)
+inline bool QBasicAtomicInt::testAndSetAcquire(int expectedValue, int newValue)
 {
-    return q_atomic_test_and_set_int(ptr, expected, newval);
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline int q_atomic_fetch_and_add_acquire_int(volatile int *ptr, int value)
+inline bool QBasicAtomicInt::testAndSetRelease(int expectedValue, int newValue)
 {
-    return q_atomic_fetch_and_add_int(ptr, value);
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline int q_atomic_fetch_and_add_release_int(volatile int *ptr, int value)
+inline int QBasicAtomicInt::fetchAndStoreRelaxed(int newValue)
 {
-    return q_atomic_fetch_and_add_int(ptr, value);
+    return fetchAndStoreOrdered(newValue);
 }
+
+inline int QBasicAtomicInt::fetchAndStoreAcquire(int newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+inline int QBasicAtomicInt::fetchAndStoreRelease(int newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+inline int QBasicAtomicInt::fetchAndAddRelaxed(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+inline int QBasicAtomicInt::fetchAndAddAcquire(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+inline int QBasicAtomicInt::fetchAndAddRelease(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetRelaxed(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetAcquire(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetRelease(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreRelaxed(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreAcquire(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreRelease(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelaxed(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddAcquire(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelease(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 
-#endif // WINDOWS_QATOMIC_H
+#endif // QATOMIC_WINDOWS_H

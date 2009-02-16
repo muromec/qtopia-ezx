@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/hellogl.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/hellogl.qdoc -->
 <head>
-  <title>Qt 4.3: Hello GL Example</title>
+  <title>Qt 4.4: Hello GL Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Hello GL Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Hello GL Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -129,7 +129,7 @@
          updateGL();
      }
  }</pre>
-<p>In the above slot, the <tt>xRot</tt> variable is updated only if the new angle is different to the old one, the <tt>xRotationChanged()</tt> signals is emitted to allow other components to be updated, and the widget's <a href="qglwidget.html#updateGL">updateGL()</a> handler function is called.</p>
+<p>In the above slot, the <tt>xRot</tt> variable is updated only if the new angle is different to the old one, the <tt>xRotationChanged()</tt> signal is emitted to allow other components to be updated, and the widget's <a href="qglwidget.html#updateGL">updateGL()</a> handler function is called.</p>
 <p>The <tt>setYRotation()</tt> and <tt>setZRotation()</tt> slots perform the same task for rotations measured by the <tt>yRot</tt> and <tt>zRot</tt> variables.</p>
 <a name="opengl-initialization"></a>
 <h3>OpenGL Initialization</h3>
@@ -202,52 +202,7 @@
 <a name="window-class-definition"></a>
 <h2>Window Class Definition</h2>
 <p>The <tt>Window</tt> class is used as a container for the <tt>GLWidget</tt> used to display the scene:</p>
-<pre> ** This file is part of the example classes of the Qt Toolkit.
- **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
- **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
- **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
- **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
- **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- **
- ****************************************************************************/</span>
-
- #ifndef WINDOW_H
- #define WINDOW_H
-
- #include &lt;QWidget&gt;
-
- class QSlider;
- class GLWidget;
+<pre> class GLWidget;
 
  class Window : public QWidget
  {
@@ -310,7 +265,7 @@
  }</pre>
 <a name="summary"></a>
 <h2>Summary</h2>
-<p>The <tt>GLWidget</tt> class implementation shows how to subclass <a href="qglwidget.html">QGLWidget</a> for the purposes of rendering a 3D scene using OpenGL calls. Since <a href="qglwidget.html">QGLWidget</a> is a subclass of <a href="qwidget.html">QWidget</a>, subclasses of <a href="qglwidget.html">QGLWidget</a> can be placed in layouts and provide interactive features just like normal custom widgets.</p>
+<p>The <tt>GLWidget</tt> class implementation shows how to subclass <a href="qglwidget.html">QGLWidget</a> for the purposes of rendering a 3D scene using OpenGL calls. Since <a href="qglwidget.html">QGLWidget</a> is a subclass of <a href="qwidget.html">QWidget</a>, subclasses of <a href="qglwidget.html">QGLWidget</a> can be placed in layouts and provided with interactive features just like normal custom widgets.</p>
 <p>We ensure that the widget is able to correctly render the scene using OpenGL by reimplementing the following functions:</p>
 <ul>
 <li><a href="qglwidget.html#initializeGL">QGLWidget::initializeGL</a>() sets up resources needed by the OpenGL implementation to render the scene.</li>
@@ -321,8 +276,8 @@
 <p>More advanced users may want to paint over parts of a scene rendered using OpenGL. <a href="qglwidget.html">QGLWidget</a> allows pure OpenGL rendering to be mixed with <a href="qpainter.html">QPainter</a> calls, but care must be taken to maintain the state of the OpenGL implementation. See the <a href="opengl-overpainting.html">Overpainting</a> example for more information.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

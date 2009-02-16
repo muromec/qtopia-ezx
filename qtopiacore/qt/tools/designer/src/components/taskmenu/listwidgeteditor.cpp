@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,8 +40,10 @@ TRANSLATOR qdesigner_internal::ListWidgetEditor
 */
 
 #include "listwidgeteditor.h"
-#include <findicondialog_p.h>
+#include <abstractformbuilder.h>
 #include <iconloader_p.h>
+#include <formwindowbase_p.h>
+#include <qdesigner_utils_p.h>
 
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtDesigner/QDesignerFormEditorInterface>
@@ -57,15 +53,19 @@ TRANSLATOR qdesigner_internal::ListWidgetEditor
 #include <QtCore/QDir>
 #include <QtCore/qdebug.h>
 
+QT_BEGIN_NAMESPACE
+
 using namespace qdesigner_internal;
 
 ListWidgetEditor::ListWidgetEditor(QDesignerFormWindowInterface *form, QWidget *parent)
     : QDialog(parent)
 {
     ui.setupUi(this);
-    m_form = form;
-    ui.deletePixmapItemButton->setIcon(createIconSet(QString::fromUtf8("editdelete.png")));
-    ui.deletePixmapItemButton->setEnabled(false);
+    m_form = qobject_cast<FormWindowBase *>(form);
+    ui.itemIconSelector->setFormEditor(form->core());
+    ui.itemIconSelector->setEnabled(false);
+    ui.itemIconSelector->setPixmapCache(m_form->pixmapCache());
+    ui.itemIconSelector->setIconCache(m_form->iconCache());
 
     QIcon upIcon = createIconSet(QString::fromUtf8("up.png"));
     QIcon downIcon = createIconSet(QString::fromUtf8("down.png"));
@@ -75,6 +75,8 @@ ListWidgetEditor::ListWidgetEditor(QDesignerFormWindowInterface *form, QWidget *
     ui.moveItemDownButton->setIcon(downIcon);
     ui.newItemButton->setIcon(plusIcon);
     ui.deleteItemButton->setIcon(minusIcon);
+
+    connect(m_form->iconCache(), SIGNAL(reloaded()), this, SLOT(cacheReloaded()));
 }
 
 ListWidgetEditor::~ListWidgetEditor()
@@ -104,6 +106,7 @@ void ListWidgetEditor::fillContentsFromComboBox(QComboBox *comboBox)
         QListWidgetItem *item = new QListWidgetItem();
         item->setText(comboBox->itemText(i));
         item->setIcon(qVariantValue<QIcon>(comboBox->itemData(i)));
+        item->setData(QAbstractFormBuilder::resourceRole(), comboBox->itemData(i, QAbstractFormBuilder::resourceRole()));
         item->setFlags(item->flags() | Qt::ItemIsEditable);
         ui.listWidget->addItem(item);
     }
@@ -175,55 +178,15 @@ void ListWidgetEditor::on_listWidget_itemChanged(QListWidgetItem *)
     updateEditor();
 }
 
-void ListWidgetEditor::on_itemTextLineEdit_textEdited(const QString &text)
-{
-    int currentRow = ui.listWidget->currentRow();
-    if (currentRow != -1) {
-        QListWidgetItem *item = ui.listWidget->item(currentRow);
-        item->setText(text);
-    }
-}
-
-void ListWidgetEditor::on_deletePixmapItemButton_clicked()
+void ListWidgetEditor::on_itemIconSelector_iconChanged(const PropertySheetIconValue &icon)
 {
     int currentRow = ui.listWidget->currentRow();
     if (currentRow == -1)
         return;
     QListWidgetItem *item = ui.listWidget->item(currentRow);
 
-    item->setIcon(QIcon());
-    ui.previewPixmapItemButton->setIcon(QIcon());
-    ui.deletePixmapItemButton->setEnabled(false);
-}
-
-void ListWidgetEditor::on_previewPixmapItemButton_clicked()
-{
-    int currentRow = ui.listWidget->currentRow();
-    if (currentRow == -1)
-        return;
-    QListWidgetItem *item = ui.listWidget->item(currentRow);
-
-    FindIconDialog dialog(m_form, this);
-    QString file_path;
-    QString qrc_path;
-
-    QIcon icon = item->icon();
-    if (!icon.isNull()) {
-        file_path = m_form->core()->iconCache()->iconToFilePath(icon);
-        qrc_path = m_form->core()->iconCache()->iconToQrcPath(icon);
-    }
-
-    dialog.setPaths(qrc_path, file_path);
-    if (dialog.exec()) {
-        file_path = dialog.filePath();
-        qrc_path = dialog.qrcPath();
-        if (!file_path.isEmpty()) {
-            icon = m_form->core()->iconCache()->nameToIcon(file_path, qrc_path);
-            item->setIcon(icon);
-            ui.previewPixmapItemButton->setIcon(icon);
-            ui.deletePixmapItemButton->setEnabled(!icon.isNull());
-        }
-    }
+    item->setData(QAbstractFormBuilder::resourceRole(), qVariantFromValue(icon));
+    item->setIcon(m_form->iconCache()->icon(icon));
 }
 
 int ListWidgetEditor::count() const
@@ -231,14 +194,19 @@ int ListWidgetEditor::count() const
     return ui.listWidget->count();
 }
 
-QIcon ListWidgetEditor::icon(int row) const
+PropertySheetIconValue ListWidgetEditor::icon(int row) const
 {
-    return ui.listWidget->item(row)->icon();
+    return qVariantValue<PropertySheetIconValue>(ui.listWidget->item(row)->data(QAbstractFormBuilder::resourceRole()));
 }
 
 QString ListWidgetEditor::text(int row) const
 {
     return ui.listWidget->item(row)->text();
+}
+
+void ListWidgetEditor::cacheReloaded()
+{
+    reloadIconResources(m_form->iconCache(), ui.listWidget);
 }
 
 void ListWidgetEditor::updateEditor()
@@ -261,22 +229,16 @@ void ListWidgetEditor::updateEditor()
     ui.moveItemUpButton->setEnabled(moveRowUpEnabled);
     ui.moveItemDownButton->setEnabled(moveRowDownEnabled);
     ui.deleteItemButton->setEnabled(currentItemEnabled);
-    ui.textLabel->setEnabled(currentItemEnabled);
-    ui.pixmapLabel->setEnabled(currentItemEnabled);
-    ui.deletePixmapItemButton->setEnabled(currentItemEnabled);
-    ui.previewPixmapItemButton->setEnabled(currentItemEnabled);
-    ui.itemTextLineEdit->setEnabled(currentItemEnabled);
+    ui.itemIconSelector->setEnabled(currentItemEnabled);
 
     QString itemText;
-    QIcon itemIcon;
+    PropertySheetIconValue itemIcon;
 
     if (item) {
         itemText = item->text();
-        itemIcon = item->icon();
+        itemIcon = qVariantValue<PropertySheetIconValue>(item->data(QAbstractFormBuilder::resourceRole()));
     }
-    int cursorPos = ui.itemTextLineEdit->cursorPosition();
-    ui.itemTextLineEdit->setText(itemText);
-    ui.itemTextLineEdit->setCursorPosition(cursorPos);
-    ui.previewPixmapItemButton->setIcon(itemIcon);
-    ui.deletePixmapItemButton->setEnabled(!itemIcon.isNull());
+    ui.itemIconSelector->setIcon(itemIcon);
 }
+
+QT_END_NAMESPACE

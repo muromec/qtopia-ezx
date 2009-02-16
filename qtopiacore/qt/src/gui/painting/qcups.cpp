@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 #include <qdebug.h>
@@ -47,6 +41,8 @@
 
 #include <cups/language.h>
 #include <qtextcodec.h>
+
+QT_BEGIN_NAMESPACE
 
 typedef int (*CupsGetDests)(cups_dest_t **dests);
 typedef void (*CupsFreeDests)(int num_dests, cups_dest_t *dests);
@@ -62,6 +58,8 @@ typedef void (*CupsSetDests)(int num_dests, cups_dest_t *dests);
 typedef cups_lang_t* (*CupsLangGet)(const char *language);
 typedef const char* (*CupsLangEncoding)(cups_lang_t *language);
 typedef int (*CupsAddOption)(const char *name, const char *value, int num_options, cups_option_t **options);
+typedef int (*CupsTempFd)(char *name, int len);
+typedef int (*CupsPrintFile)(const char * name, const char * filename, const char * title, int num_options, cups_option_t * options);
 
 static bool cupsLoaded = false;
 static int qt_cups_num_printers = 0;
@@ -78,6 +76,8 @@ static CupsSetDests _cupsSetDests = 0;
 static CupsLangGet _cupsLangGet = 0;
 static CupsLangEncoding _cupsLangEncoding = 0;
 static CupsAddOption _cupsAddOption = 0;
+static CupsTempFd _cupsTempFd = 0;
+static CupsPrintFile _cupsPrintFile = 0;
 
 static void resolveCups()
 {
@@ -96,6 +96,8 @@ static void resolveCups()
         _cupsFreeOptions = (CupsFreeOptions) cupsLib.resolve("cupsFreeOptions");
         _cupsSetDests = (CupsSetDests) cupsLib.resolve("cupsSetDests");
         _cupsAddOption = (CupsAddOption) cupsLib.resolve("cupsAddOption");
+        _cupsTempFd = (CupsTempFd) cupsLib.resolve("cupsTempFd");
+        _cupsPrintFile = (CupsPrintFile) cupsLib.resolve("cupsPrintFile");
 
         if (_cupsGetDests && _cupsFreeDests) {
             cups_dest_t *printers;
@@ -124,7 +126,7 @@ QCUPSSupport::QCUPSSupport()
     // getting all available printers
     if (!isAvailable())
         return;
-        
+
     prnCount = _cupsGetDests(&printers);
 
     for (int i = 0; i <  prnCount; ++i) {
@@ -227,25 +229,25 @@ bool QCUPSSupport::isAvailable()
 
 const ppd_option_t* QCUPSSupport::ppdOption(const char *key) const
 {
-    for (int gr = 0; gr < currPPD->num_groups; ++gr) {
-        for (int opt = 0; opt < currPPD->groups[gr].num_options; ++opt) {
-            if (qstrcmp(currPPD->groups[gr].options[opt].keyword, key) == 0)
-                return &currPPD->groups[gr].options[opt];
+    if (currPPD) {
+        for (int gr = 0; gr < currPPD->num_groups; ++gr) {
+            for (int opt = 0; opt < currPPD->groups[gr].num_options; ++opt) {
+                if (qstrcmp(currPPD->groups[gr].options[opt].keyword, key) == 0)
+                    return &currPPD->groups[gr].options[opt];
+            }
         }
     }
     return 0;
 }
 
-#if 0
 const cups_option_t* QCUPSSupport::printerOption(const QString &key) const
 {
     for (int i = 0; i < printers[currPrinterIndex].num_options; ++i) {
-        if (printers[currPrinterIndex].options[i].name == key)
+        if (QLatin1String(printers[currPrinterIndex].options[i].name) == key)
             return &printers[currPrinterIndex].options[i];
     }
     return 0;
 }
-#endif
 
 const ppd_option_t* QCUPSSupport::pageSizes() const
 {
@@ -371,5 +373,20 @@ void QCUPSSupport::collectMarkedOptionsHelper(QStringList& list, const ppd_group
     }
 }
 
-#endif // QT_NO_CUPS
+QPair<int, QString> QCUPSSupport::tempFd()
+{
+    char filename[512];
+    int fd = _cupsTempFd(filename, 512);
+    return QPair<int, QString>(fd, QString::fromLocal8Bit(filename));
+}
 
+// Prints the given file and returns a job id.
+int QCUPSSupport::printFile(const char * printerName, const char * filename, const char * title,
+                            int num_options, cups_option_t * options)
+{
+    return _cupsPrintFile(printerName, filename, title, num_options, options);
+}
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_CUPS

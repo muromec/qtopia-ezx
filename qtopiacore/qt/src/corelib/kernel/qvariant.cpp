@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -64,6 +58,8 @@
 
 #include <float.h>
 
+QT_BEGIN_NAMESPACE
+
 #ifndef DBL_DIG
 #  define DBL_DIG 10
 #endif
@@ -72,7 +68,7 @@
 #endif
 
 
-static const void *constData(const QVariant::Private &d)
+static const void *constDataHelper(const QVariant::Private &d)
 {
     switch (d.type) {
     case QVariant::Int:
@@ -340,6 +336,26 @@ static bool isNull(const QVariant::Private *d)
     return d->is_null;
 }
 
+/*
+  \internal
+  \since 4.4
+
+  We cannot use v_cast() for QMetaType's numeric types because they're smaller than QVariant::Private::Data,
+  which in turns makes v_cast() believe the value is stored in d->data.c. But
+  it's not, since we're a QMetaType type.
+ */
+template<typename T>
+inline bool compareNumericMetaType(const QVariant::Private *const a, const QVariant::Private *const b)
+{
+    return *static_cast<const T *>(a->data.shared->ptr) == *static_cast<const T *>(b->data.shared->ptr);
+}
+
+/*!
+  \internal
+
+  Compares \a a to \a b. The caller guarantees that \a a and \a b
+  are of the same type.
+ */
 static bool compare(const QVariant::Private *a, const QVariant::Private *b)
 {
     switch(a->type) {
@@ -353,7 +369,7 @@ static bool compare(const QVariant::Private *a, const QVariant::Private *b)
         QVariantMap::ConstIterator it = m1->constBegin();
         QVariantMap::ConstIterator it2 = m2->constBegin();
         while (it != m1->constEnd()) {
-            if (*it != *it2)
+            if (*it != *it2 || it.key() != it2.key())
                 return false;
             ++it;
             ++it2;
@@ -416,6 +432,18 @@ static bool compare(const QVariant::Private *a, const QVariant::Private *b)
         return *v_cast<QBitArray>(a) == *v_cast<QBitArray>(b);
     case QVariant::Invalid:
         return true;
+    case QMetaType::Long:
+        return compareNumericMetaType<long>(a, b);
+    case QMetaType::ULong:
+        return compareNumericMetaType<ulong>(a, b);
+    case QMetaType::Short:
+        return compareNumericMetaType<short>(a, b);
+    case QMetaType::UShort:
+        return compareNumericMetaType<ushort>(a, b);
+    case QMetaType::UChar:
+        return compareNumericMetaType<uchar>(a, b);
+    case QMetaType::Char:
+        return compareNumericMetaType<char>(a, b);
     default:
         break;
     }
@@ -550,6 +578,7 @@ static qulonglong qConvertToUnsignedNumber(const QVariant::Private *d, bool *ok)
 static bool convert(const QVariant::Private *d, QVariant::Type t, void *result, bool *ok)
 {
     Q_ASSERT(d->type != uint(t));
+    Q_ASSERT(result);
 
     bool dummy;
     if (!ok)
@@ -705,7 +734,8 @@ static bool convert(const QVariant::Private *d, QVariant::Type t, void *result, 
 #endif
         else
             return false;
-        break;
+        
+        return dt->isValid();
     }
     case QVariant::Time: {
         QTime *t = static_cast<QTime *>(result);
@@ -721,7 +751,7 @@ static bool convert(const QVariant::Private *d, QVariant::Type t, void *result, 
         default:
             return false;
         }
-        break;
+        return t->isValid();
     }
     case QVariant::DateTime: {
         QDateTime *dt = static_cast<QDateTime *>(result);
@@ -737,7 +767,7 @@ static bool convert(const QVariant::Private *d, QVariant::Type t, void *result, 
         default:
             return false;
         }
-        break;
+        return dt->isValid();
     }
     case QVariant::ByteArray: {
         QByteArray *ba = static_cast<QByteArray *>(result);
@@ -1115,25 +1145,7 @@ const QVariant::Handler *QVariant::handler = &qt_kernel_variant_handler;
 
     Here is some example code to demonstrate the use of QVariant:
 
-    \code
-        QDataStream out(...);
-        QVariant v(123);                // The variant now contains an int
-        int x = v.toInt();              // x = 123
-        out << v;                       // Writes a type tag and an int to out
-        v = QVariant("hello");          // The variant now contains a QByteArray
-        v = QVariant(tr("hello"));      // The variant now contains a QString
-        int y = v.toInt();              // y = 0 since v cannot be converted to an int
-        QString s = v.toString();       // s = tr("hello")  (see QObject::tr())
-        out << v;                       // Writes a type tag and a QString to out
-        ...
-        QDataStream in(...);            // (opening the previously written stream)
-        in >> v;                        // Reads an Int variant
-        int z = v.toInt();              // z = 123
-        qDebug("Type is %s",            // prints "Type is int"
-                v.typeName());
-        v = v.toInt() + 100;            // The variant now hold the value 223
-        v = QVariant(QStringList());
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 0
 
     You can even store QList<QVariant> and QMap<QString, QVariant>
     values in a variant, so you can easily construct arbitrarily
@@ -1144,13 +1156,7 @@ const QVariant::Handler *QVariant::handler = &qt_kernel_variant_handler;
     QVariant also supports the notion of null values, where you have
     a defined type with no value set.
 
-    \code
-        QVariant x, y(QString()), z(QString(""));
-        x.convert(QVariant::Int);
-        // x.isNull() == true
-        // y.isNull() == true, z.isNull() == false
-        // y.isEmpty() == true, z.isEmpty() == true
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 1
 
     QVariant can be extended to support other types than those
     mentioned in the \l Type enum. See the \l QMetaType documentation
@@ -1164,20 +1170,13 @@ const QVariant::Handler *QVariant::handler = &qt_kernel_variant_handler;
     toColor() function. Instead, you can use the QVariant::value() or
     the qVariantValue() template function. For example:
 
-    \code
-        QVariant variant;
-        ...
-        QColor color = variant.value<QColor>();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 2
 
     The inverse conversion (e.g., from QColor to QVariant) is
     automatic for all data types supported by QVariant, including
     GUI-related types:
 
-    \code
-        QColor color = palette().background().color();
-        QVariant variant = color;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 3
 
     \section1 Using canConvert() and convert() Consecutively
 
@@ -1373,6 +1372,10 @@ QVariant::QVariant(QDataStream &s)
     The variant creates a deep copy of \a val, using the encoding
     set by QTextCodec::setCodecForCStrings().
 
+    Note that \a val is converted to a QString for storing in the
+    variant and QVariant::type() will return QMetaType::QString for
+    the variant.
+
     You can disable this operator by defining \c
     QT_NO_CAST_FROM_ASCII when you compile your applications.
 
@@ -1511,11 +1514,8 @@ QVariant::QVariant(const char *val)
 /*!
   \fn QVariant::QVariant(bool val)
 
-    Constructs a new variant with a boolean value, \a val. The integer
-    argument is a dummy, necessary for compatibility with some
-    compilers.
+    Constructs a new variant with a boolean value, \a val.
 */
-
 
 /*!
   \fn QVariant::QVariant(double val)
@@ -1619,8 +1619,34 @@ QVariant::QVariant(Qt::GlobalColor color) { create(62, &color); }
 
 /*!
     Returns the storage type of the value stored in the variant.
-    Usually it's best to test with canConvert() whether the variant can
-    deliver the data type you are interested in.
+    Although this function is declared as returning QVariant::Type,
+    the return value should be interpreted as QMetaType::Type. In
+    particular, QVariant::UserType is returned here only if the value
+    is equal or greater than QMetaType::User.
+
+    Note that return values in the ranges QVariant::Char through
+    QVariant::RegExp and QVariant::Font through QVariant::Transform
+    correspond to the values in the ranges QMetaType::QChar through
+    QMetaType::QRegExp and QMetaType::QFont through QMetaType::QTransform.
+
+    Pay particular attention when working with char and QChar
+    variants.  Note that there is no QVariant constructor specifically
+    for type char, but there is one for QChar. For a variant of type
+    QChar, this function returns QVariant::Char, which is the same as
+    QMetaType::QChar, but for a variant of type \c char, this function
+    returns QMetaType::Char, which is \e not the same as
+    QVariant::Char.
+
+    Also note that the types \c void*, \c long, \c short, \c unsigned
+    \c long, \c unsigned \c short, \c unsigned \c char, \c float, \c
+    QObject*, and \c QWidget* are represented in QMetaType::Type but
+    not in QVariant::Type, and they can be returned by this function.
+    However, they are considered to be user defined types when tested
+    against QVariant::Type.
+    
+    To test whether an instance of QVariant contains a data type that
+    is compatible with the data type you are interested in, use
+    canConvert().
 */
 
 QVariant::Type QVariant::type() const
@@ -1677,9 +1703,9 @@ void QVariant::detach()
     Private dd;
     dd.type = d.type;
     handler->construct(&dd, constData());
-    dd.data.shared = qAtomicSetPtr(&d.data.shared, dd.data.shared);
-    if (!dd.data.shared->ref.deref())
-        handler->clear(&dd);
+    if (!d.data.shared->ref.deref())
+        handler->clear(&d);
+    d.data.shared = dd.data.shared;
 }
 
 /*!
@@ -1688,7 +1714,7 @@ void QVariant::detach()
     \internal
 */
 
-// Qt 5 ###: change typeName()(and froends= to return a QString. Suggestion from Harald.
+// ### Qt 5: change typeName()(and froends= to return a QString. Suggestion from Harald.
 /*!
     Returns the name of the type stored in the variant. The returned
     strings describe the C++ datatype used to store the data: for
@@ -1836,8 +1862,8 @@ void QVariant::load(QDataStream &s)
     }
 
     // const cast is save since we operate on a newly constructed variant
-    if (!QMetaType::load(s, d.type, const_cast<void *>(::constData(d)))) {
-        Q_ASSERT_X(false, "QVariant::load", "Invalid type to load");
+    if (!QMetaType::load(s, d.type, const_cast<void *>(constDataHelper(d)))) {
+        s.setStatus(QDataStream::ReadCorruptData);
         qWarning("QVariant::load: unable to load type %d.", d.type);
     }
 }
@@ -1853,13 +1879,13 @@ void QVariant::save(QDataStream &s) const
     quint32 tp = type();
     if (s.version() < QDataStream::Qt_4_0) {
         int i;
-        for (i = 0; i < MapFromThreeCount; ++i) {
+        for (i = MapFromThreeCount - 1; i >= 0; i--) {
             if (map_from_three[i] == tp) {
                 tp = i;
                 break;
             }
         }
-        if (i == MapFromThreeCount) {
+        if (i == -1) {
             s << QVariant();
             return;
         }
@@ -1876,13 +1902,15 @@ void QVariant::save(QDataStream &s) const
         return;
     }
 
-    if (!QMetaType::save(s, d.type, ::constData(d))) {
+    if (!QMetaType::save(s, d.type, constDataHelper(d))) {
         Q_ASSERT_X(false, "QVariant::save", "Invalid type to save");
         qWarning("QVariant::save: unable to save type %d.", d.type);
     }
 }
 
 /*!
+    \since 4.4
+
     Reads a variant \a p from the stream \a s.
 
     \sa \link datastreamformat.html Format of the QDataStream
@@ -2459,7 +2487,7 @@ static const quint32 qCanConvertMatrix[QVariant::LastCoreType + 1] =
                          \l Font, \l Int, \l KeySequence, \l LongLong, \l StringList, \l Time, \l UInt,
                          \l ULongLong
     \row \o \l StringList \o \l List, \l String (if the list contains exactly one item)
-    \row \o \l Time \o \l DateTime, \l String
+    \row \o \l Time \o \l String
     \row \o \l UInt \o \l Bool, \l Char, \l Double, \l Int, \l LongLong, \l String, \l ULongLong
     \row \o \l ULongLong \o \l Bool, \l Char, \l Double, \l Int, \l LongLong, \l String, \l UInt
     \endtable
@@ -2474,7 +2502,13 @@ bool QVariant::canConvert(Type t) const
     if (d.type > QVariant::LastCoreType || t > QVariant::LastCoreType) {
         switch (uint(t)) {
         case QVariant::Int:
-            return d.type == QVariant::KeySequence;
+            return d.type == QVariant::KeySequence
+                   || d.type == QMetaType::ULong
+                   || d.type == QMetaType::Long
+                   || d.type == QMetaType::UShort
+                   || d.type == QMetaType::UChar
+                   || d.type == QMetaType::Char
+                   || d.type == QMetaType::Short;
         case QVariant::Image:
             return d.type == QVariant::Pixmap || d.type == QVariant::Bitmap;
         case QVariant::Pixmap:
@@ -2496,9 +2530,9 @@ bool QVariant::canConvert(Type t) const
                               || d.type == QVariant::Brush;
         case QVariant::Brush:
             return d.type == QVariant::Color || d.type == QVariant::Pixmap;
+        case QMetaType::Long:
         case QMetaType::Char:
         case QMetaType::UChar:
-        case QMetaType::Long:
         case QMetaType::ULong:
         case QMetaType::Short:
         case QMetaType::UShort:
@@ -2516,14 +2550,15 @@ bool QVariant::canConvert(Type t) const
 }
 
 /*!
-    Casts the variant to the requested type. If the cast cannot be
-    done, the variant is set to the default value of the requested
-    type (e.g. an empty string if the requested type \a t is
-    QVariant::String, an empty point array if the requested type \a t
-    is QVariant::Polygon, etc). Returns true if the current type of
+    Casts the variant to the requested type, \a t. If the cast cannot be
+    done, the variant is cleared. Returns true if the current type of
     the variant was successfully cast; otherwise returns false.
 
-    \sa canConvert()
+    \warning For historical reasons, converting a null QVariant results
+    in a null value of the desired type (e.g., an empty string for
+    QString) and a result of false.
+
+    \sa canConvert(), clear()
 */
 
 bool QVariant::convert(Type t)
@@ -2574,8 +2609,8 @@ bool QVariant::convert(Type t)
     Compares this QVariant with \a v and returns true if they are
     equal; otherwise returns false.
 
-    \warning This function doesn't support custom types registered
-    with qRegisterMetaType().
+    In the case of custom types, their equalness operators are not called.
+    Instead the values' addresses are compared.
 */
 
 /*!
@@ -2622,7 +2657,7 @@ bool QVariant::cmp(const QVariant &v) const
 
 const void *QVariant::constData() const
 {
-    return ::constData(d);
+    return constDataHelper(d);
 }
 
 /*!
@@ -2635,7 +2670,7 @@ const void *QVariant::constData() const
 void* QVariant::data()
 {
     detach();
-    return const_cast<void *>(::constData(d));
+    return const_cast<void *>(constDataHelper(d));
 }
 
 
@@ -2825,20 +2860,7 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 
     Example:
 
-    \code
-        QVariant v;
-
-        v.setValue(5);
-        int i = v.toInt();         // i is now 5
-        QString s = v.toString()   // s is now "5"
-
-        MyCustomStruct c;
-        v.setValue(c);
-
-        ...
-
-        MyCustomStruct c2 = v.value<MyCustomStruct>();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 4
 
     \warning This function is not available with MSVC 6. Use
     qVariantSetValue() instead if you need to support that version of
@@ -2859,18 +2881,7 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 
     Example:
 
-    \code
-        QVariant v;
-
-        MyCustomStruct c;
-        if (v.canConvert<MyCustomStruct>())
-            c = v.value<MyCustomStruct>(v);
-
-        v = 7;
-        int i = v.value<int>();                        // same as v.toInt()
-        QString s = v.value<QString>();                // same as v.toString(), s is now "7"
-        MyCustomStruct c2 = v.value<MyCustomStruct>(); // conversion failed, c2 is empty
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 5
 
     \warning This function is not available with MSVC 6. Use
     qVariantValue() or qvariant_cast() instead if you need to support
@@ -2886,18 +2897,7 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 
     Example:
 
-    \code
-        QVariant v = 42;
-
-        v.canConvert<int>();              // returns true
-        v.canConvert<QString>();          // returns true
-
-        MyCustomStruct s;
-        v.setValue(s);
-
-        v.canConvert<int>();              // returns false
-        v.canConvert<MyCustomStruct>();   // returns true
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 6
 
     \warning This function is not available with MSVC 6. Use
     qVariantCanConvert() instead if you need to support that version
@@ -2913,10 +2913,10 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
 
     Example:
 
-    \code
-        MyCustomStruct s;
-        return QVariant::fromValue(s);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 7
+
+    \note If you are working with custom types, you should use
+    the Q_DECLARE_METATYPE() macro to register your custom type.
 
     \warning This function is not available with MSVC 6. Use
     qVariantFromValue() instead if you need to support that version
@@ -2939,10 +2939,7 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
     For example, a QObject pointer can be stored in a variant with the
     following code:
 
-    \code
-    QObject *object = getObjectFromSomewhere();
-    QVariant data = qVariantFromValue(object);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qvariant.cpp 8
 
     \sa QVariant::fromValue()
 */
@@ -3020,3 +3017,5 @@ QDebug operator<<(QDebug dbg, const QVariant::Type p)
     \fn DataPtr &QVariant::data_ptr()
     \internal
 */
+
+QT_END_NAMESPACE

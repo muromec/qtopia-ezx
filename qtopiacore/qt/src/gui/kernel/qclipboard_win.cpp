@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,23 @@
 #include "qmime.h"
 #include "qt_windows.h"
 #include "qdnd_p.h"
+
+QT_BEGIN_NAMESPACE
+
+#if defined(Q_OS_WINCE)
+QT_BEGIN_INCLUDE_NAMESPACE
+#include "qguifunctions_wince.h"
+QT_END_INCLUDE_NAMESPACE
+
+HRESULT QtCeGetClipboard(IDataObject** obj);
+HRESULT QtCeSetClipboard(IDataObject* obj);
+void QtCeFlushClipboard();
+
+#define OleGetClipboard QtCeGetClipboard
+#define OleSetClipboard QtCeSetClipboard
+#define OleFlushClipboard QtCeFlushClipboard
+
+#endif
 
 
 class QClipboardWatcher : public QInternalMimeData {
@@ -170,6 +181,64 @@ static void cleanupClipboardData()
     ptrClipboardData = 0;
 }
 
+#if defined(Q_OS_WINCE)
+HRESULT QtCeGetClipboard(IDataObject** obj)
+{
+    HWND owner = ptrClipboardData->clipBoardViewer->internalWinId();
+    if (!OpenClipboard(owner))
+        return !S_OK;
+
+    if (!IsClipboardFormatAvailable(CF_TEXT) && !IsClipboardFormatAvailable(CF_UNICODETEXT))
+        return !S_OK;
+
+    HANDLE clipData = GetClipboardData(CF_TEXT);
+    QString clipText;
+    if (clipData == 0) {
+        clipData = GetClipboardData(CF_UNICODETEXT);
+        if (clipData != 0)
+            clipText = QString::fromUtf16((unsigned short *)clipData);
+    } else {
+        clipText = QString::fromLatin1((const char*)clipData);
+    }
+
+    QMimeData *mimeData = new QMimeData();
+    mimeData->setText(clipText);
+    QOleDataObject* data = new QOleDataObject(mimeData);
+    *obj = data;
+    CloseClipboard();
+    return S_OK;
+}
+
+HRESULT QtCeSetClipboard(IDataObject* obj)
+{
+    HWND owner = ptrClipboardData->clipBoardViewer->internalWinId();
+    if (!OpenClipboard(owner))
+        return !S_OK;
+
+    bool result = false;
+    if (obj == 0) {
+        result = true;
+        EmptyClipboard();
+        CloseClipboard();
+    } else {
+        QOleDataObject* qobj = static_cast<QOleDataObject*>(obj);
+
+        const QMimeData* data = qobj->mimeData();
+        if (data->hasText()) {
+            EmptyClipboard();
+            result = SetClipboardData(CF_UNICODETEXT, wcsdup(reinterpret_cast<const wchar_t *> (data->text().utf16()))) != NULL;
+            CloseClipboard();
+            result = true;
+        }
+    }
+    return result ? S_OK : !S_OK;
+}
+
+void QtCeFlushClipboard() { }
+#endif
+
+
+
 QClipboard::~QClipboard()
 {
     cleanupClipboardData();
@@ -179,7 +248,6 @@ void QClipboard::setMimeData(QMimeData *src, Mode mode)
 {
     if (mode != Clipboard)
         return;
-
     QClipboardData *d = clipboardData();
 
     if (!(d->iData && d->iData->mimeData() == src)) {
@@ -192,7 +260,12 @@ void QClipboard::setMimeData(QMimeData *src, Mode mode)
         qErrnoWarning("QClipboard::setMimeData: Failed to set data on clipboard");
         return;
     }
-
+#if defined(Q_OS_WINCE)
+    // As WinCE does not support notifications we send the signal here
+    // We will get no event when the clipboard changes outside...
+    emit dataChanged();
+    emit changed(Clipboard);
+#endif
 }
 
 void QClipboard::clear(Mode mode)
@@ -207,6 +280,12 @@ void QClipboard::clear(Mode mode)
         qErrnoWarning("QClipboard::clear: Failed to clear data on clipboard");
         return;
     }
+#if defined(Q_OS_WINCE)
+    // As WinCE does not support notifications we send the signal here
+    // We will get no event when the clipboard changes outside...
+    emit dataChanged();
+    emit changed(Clipboard);
+#endif
 }
 
 bool QClipboard::event(QEvent *e)
@@ -287,7 +366,11 @@ bool QClipboard::ownsMode(Mode mode) const
 {
     if (mode == Clipboard) {
         QClipboardData *d = clipboardData();
+#if !defined(Q_OS_WINCE)
         return d->iData && OleIsCurrentClipboard(d->iData) == S_OK;
+#else
+        return d->iData && GetClipboardOwner() == d->clipBoardViewer->internalWinId();
+#endif
     } else {
         return false;
     }
@@ -296,5 +379,7 @@ bool QClipboard::ownsMode(Mode mode) const
 void QClipboard::ownerDestroyed()
 {
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_CLIPBOARD

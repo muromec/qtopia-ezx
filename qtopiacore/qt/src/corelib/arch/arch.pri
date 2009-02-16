@@ -1,11 +1,10 @@
 win32:HEADERS += arch/qatomic_windows.h \
-                 arch/qatomic_boundschecker.h \
                  arch/qatomic_generic.h
 
 mac:HEADERS += arch/qatomic_macosx.h \
                arch/qatomic_generic.h
 
-!win32:!mac:HEADERS += arch/qatomic_alpha.h \
+!wince*:!win32:!mac:HEADERS += arch/qatomic_alpha.h \
                        arch/qatomic_ia64.h \
                        arch/qatomic_parisc.h \
                        arch/qatomic_sparc.h \

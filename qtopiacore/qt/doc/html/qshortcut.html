@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/kernel/qshortcut.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/kernel/qshortcut.cpp -->
 <head>
-  <title>Qt 4.3: QShortcut Class Reference</title>
+  <title>Qt 4.4: QShortcut Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QShortcut Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QShortcut Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QShortcut class is used to create keyboard shortcuts. <a href="#details">More...</a></p>
 <pre> #include &lt;QShortcut&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
@@ -77,7 +77,7 @@
 <h2>Detailed Description</h2>
 <p>The QShortcut class is used to create keyboard shortcuts.</p>
 <p>The QShortcut class provides a way of connecting keyboard shortcuts to Qt's <a href="signalsandslots.html">signals and slots</a> mechanism, so that objects can be informed when a shortcut is executed. The shortcut can be set up to contain all the key presses necessary to describe a keyboard shortcut, including the states of modifier keys such as <b>Shift</b>, <b>Ctrl</b>, and <b>Alt</b>.</p>
-<a name="mnemonic"></a><p>On certain widgets, using '&amp;' in front of a character will automatically create a mnemonic (a shortcut) for that character, e.g&#x2e; &quot;E&amp;xit&quot; will create the shortcut <b>Alt+X</b> (use '&amp;&amp;' to display an actual ampersand). The widget might consume and perform an action on a given shortcut. On X11 the ampersand will not be shown and the character will be underlined. On Windows, shortcuts are normally not displayed until the user presses the <b>Alt</b> key, but this is a setting the user can change. On Mac such shortcuts do not exists, unless you explicitly call the global <a href="qtglobal.html#qt_set_sequence_auto_mnemonic">qt_set_sequence_auto_mnemonic</a>() function; then they will appear as they do on X11.</p>
+<a name="mnemonic"></a><p>On certain widgets, using '&amp;' in front of a character will automatically create a mnemonic (a shortcut) for that character, e.g&#x2e; &quot;E&amp;xit&quot; will create the shortcut <b>Alt+X</b> (use '&amp;&amp;' to display an actual ampersand). The widget might consume and perform an action on a given shortcut. On X11 the ampersand will not be shown and the character will be underlined. On Windows, shortcuts are normally not displayed until the user presses the <b>Alt</b> key, but this is a setting the user can change. On Mac, shortcuts are disabled by default. Call <a href="qtglobal.html#qt_set_sequence_auto_mnemonic">qt_set_sequence_auto_mnemonic</a>() to enable them. However, because mnemonic shortcuts do not fit in with Aqua's guidelines, Qt will not show the shortcut character underlined.</p>
 <p>For applications that use menus, it may be more convenient to use the convenience functions provided in the <a href="qmenu.html">QMenu</a> class to assign keyboard shortcuts to menu items as they are created. Alternatively, shortcuts may be associated with other types of actions in the <a href="qaction.html">QAction</a> class.</p>
 <p>The simplest way to create a shortcut for a particular widget is to construct the shortcut with a key sequence. For example:</p>
 <pre> shortcut = new QShortcut(QKeySequence(tr(&quot;Ctrl+O&quot;, &quot;File|Open&quot;)),
@@ -99,6 +99,7 @@
 <h3 class="fn"><a name="context-prop"></a>context : <a href="qt.html#ShortcutContext-enum">Qt::ShortcutContext</a></h3>
 <p>This property holds the context in which the shortcut is valid.</p>
 <p>A shortcut's context decides in which circumstances a shortcut is allowed to be triggered. The normal context is <a href="qt.html#ShortcutContext-enum">Qt::WindowShortcut</a>, which allows the shortcut to trigger if the parent (the widget containing the shortcut) is a subwidget of the active top-level window.</p>
+<p>By default, this property is set to <a href="qt.html#ShortcutContext-enum">Qt::WindowShortcut</a>.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>Qt::ShortcutContext context ()</b></li>
@@ -108,6 +109,7 @@
 <p>This property holds whether the shortcut is enabled.</p>
 <p>An enabled shortcut emits the <a href="qshortcut.html#activated">activated</a>() or <a href="qshortcut.html#activatedAmbiguously">activatedAmbiguously</a>() signal when a <a href="qshortcutevent.html">QShortcutEvent</a> occurs that matches the shortcut's <a href="qshortcut.html#key-prop">key</a>() sequence.</p>
 <p>If the application is in <tt>WhatsThis</tt> mode the shortcut will not emit the signals, but will show the &quot;What's This?&quot; text instead.</p>
+<p>By default, this property is true.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>bool isEnabled () const</b></li>
@@ -124,6 +126,7 @@
  setKey('q');                <span class="comment">// 'q', e.g. to quit</span>
  setKey(Qt::CTRL + Qt::Key_P);       <span class="comment">// Ctrl+P, e.g. to print document</span>
  setKey(&quot;Ctrl+P&quot;);           <span class="comment">// Ctrl+P, e.g. to print document</span></pre>
+<p>By default, this property contains an empty key sequence.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QKeySequence key () const</b></li>
@@ -133,6 +136,7 @@
 <p>This property holds the shortcut's "What's This?" help text.</p>
 <p>The text will be shown when the application is in &quot;What's This?&quot; mode and the user types the shortcut <a href="qshortcut.html#key-prop">key</a>() sequence.</p>
 <p>To set &quot;What's This?&quot; help on a menu item (with or without a shortcut key), set the help on the item's action.</p>
+<p>By default, this property contains an empty string.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QString whatsThis () const</b></li>
@@ -161,8 +165,8 @@
 <p>Returns the shortcut's parent widget.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

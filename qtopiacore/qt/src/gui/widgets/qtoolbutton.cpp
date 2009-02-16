@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,8 @@
 #include <private/qaction_p.h>
 #include <private/qmenu_p.h>
 
+QT_BEGIN_NAMESPACE
+
 class QToolButtonPrivate : public QAbstractButtonPrivate
 {
     Q_DECLARE_PUBLIC(QToolButton)
@@ -72,6 +68,7 @@ public:
     void _q_buttonPressed();
     void popupTimerDone();
     void _q_updateButtonDown();
+    void _q_menuTriggered(QAction *);
 #endif
     void _q_actionTriggered();
     QPointer<QAction> menuAction; //the menu set by the user (setMenu)
@@ -88,6 +85,8 @@ public:
     QAction *defaultAction;
 #ifndef QT_NO_MENU
     bool hasMenu() const;
+    //workaround for task 177850
+    QList<QAction *> actionsCopy;
 #endif
 #ifdef QT3_SUPPORT
     bool userDefinedPopupDelay;
@@ -155,7 +154,7 @@ bool QToolButtonPrivate::hasMenu() const
     adjust it with setPopupDelay().
 
     \table 100%
-    \row \o \inlineimage assistant-toolbar1.png Qt Assistant's toolbar with tool buttons
+    \row \o \inlineimage assistant-toolbar.png Qt Assistant's toolbar with tool buttons
     \row \o Qt Assistant's toolbar contains tool buttons that are associated
          with actions used in other parts of the main window.
     \endtable
@@ -286,7 +285,9 @@ void QToolButtonPrivate::init()
     q->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed,
                                  QSizePolicy::ToolButton));
 
+#ifndef QT_NO_MENU
     QObject::connect(q, SIGNAL(pressed()), q, SLOT(_q_buttonPressed()));
+#endif
 
     setLayoutItemMargins(QStyle::SE_ToolButtonLayoutItem);
 
@@ -312,8 +313,12 @@ void QToolButton::initStyleOption(QStyleOptionToolButton *option) const
     if (parentWidget()) {
 #ifdef QT3_SUPPORT
         if (parentWidget()->inherits("Q3ToolBar")) {
-            int iconSize = style()->pixelMetric(QStyle::PM_ToolBarIconSize, option, this);
-            option->iconSize = d->icon.actualSize(QSize(iconSize, iconSize));
+            if ( iconSize().isValid()) {
+                option->iconSize = this->iconSize();
+            } else {
+                int iconSize = style()->pixelMetric(QStyle::PM_ToolBarIconSize, option, this);
+                option->iconSize = d->icon.actualSize(QSize(iconSize, iconSize));
+            }
             forceNoText = d->toolButtonStyle == Qt::ToolButtonIconOnly;
         } else
 #endif
@@ -470,6 +475,8 @@ QSize QToolButton::minimumSizeHint() const
     \brief whether the button displays an arrow instead of a normal icon
 
     This displays an arrow as the icon for the QToolButton.
+
+    By default, this property is set to Qt::NoArrow.
 */
 
 Qt::ToolButtonStyle QToolButton::toolButtonStyle() const
@@ -563,6 +570,7 @@ void QToolButtonPrivate::_q_actionTriggered()
         emit q->triggered(action);
 }
 
+
 /*!
     \reimp
  */
@@ -640,7 +648,7 @@ void QToolButton::mousePressEvent(QMouseEvent *e)
 #ifndef QT_NO_MENU
     QStyleOptionToolButton opt;
     initStyleOption(&opt);
-    if (e->button() == Qt::LeftButton && d->popupMode == MenuButtonPopup) {
+    if (e->button() == Qt::LeftButton && (d->popupMode == MenuButtonPopup)) {
         QRect popupr = style()->subControlRect(QStyle::CC_ToolButton, &opt,
                                                QStyle::SC_ToolButtonMenu, this);
         if (popupr.isValid() && popupr.contains(e->pos())) {
@@ -816,7 +824,7 @@ void QToolButtonPrivate::_q_buttonPressed()
 
     if (delay > 0 && popupMode == QToolButton::DelayedPopup)
         popupTimer.start(delay, q);
-    else if  (popupMode == QToolButton::InstantPopup)
+    else if (popupMode == QToolButton::InstantPopup)
         q->showMenu();
 }
 
@@ -832,8 +840,6 @@ void QToolButtonPrivate::popupTimerDone()
     bool mustDeleteActualMenu = false;
     if(menuAction) {
         actualMenu = menuAction->menu();
-        if (q->actions().size() > 1)
-            qWarning("QToolButton: Menu in setMenu() overriding actions set in addAction!");
     } else if (defaultAction && defaultAction->menu()) {
         actualMenu = defaultAction->menu();
     } else {
@@ -890,15 +896,23 @@ void QToolButtonPrivate::popupTimerDone()
     p.ry() += 1;
     QPointer<QToolButton> that = q;
     actualMenu->setNoReplayFor(q);
+    if (!mustDeleteActualMenu) //only if action are not in this widget
+        QObject::connect(actualMenu, SIGNAL(triggered(QAction*)), q, SLOT(_q_menuTriggered(QAction*)));
     QObject::connect(actualMenu, SIGNAL(aboutToHide()), q, SLOT(_q_updateButtonDown()));
     actualMenu->d_func()->causedPopup.widget = q;
     actualMenu->d_func()->causedPopup.action = defaultAction;
+    actionsCopy = q->actions(); //(the list of action may be modified in slots)
     actualMenu->exec(p);
     QObject::disconnect(actualMenu, SIGNAL(aboutToHide()), q, SLOT(_q_updateButtonDown()));
     if (mustDeleteActualMenu)
         delete actualMenu;
+    else
+        QObject::disconnect(actualMenu, SIGNAL(triggered(QAction*)), q, SLOT(_q_menuTriggered(QAction*)));
+
     if (!that)
         return;
+
+    actionsCopy.clear();
 
     if (repeat)
         q->setAutoRepeat(true);
@@ -912,6 +926,13 @@ void QToolButtonPrivate::_q_updateButtonDown()
         q->setDown(false);
     else
         q->repaint();
+}
+
+void QToolButtonPrivate::_q_menuTriggered(QAction *action)
+{
+    Q_Q(QToolButton);
+    if (action && !actionsCopy.contains(action))
+        emit q->triggered(action);
 }
 #endif // QT_NO_MENU
 
@@ -967,6 +988,8 @@ int QToolButton::popupDelay() const
 /*!
     \property QToolButton::popupMode
     \brief describes the way that popup menus are used with tool buttons
+
+    By default, this property is set to \l DelayedPopup.
 */
 
 void QToolButton::setPopupMode(ToolButtonPopupMode mode)
@@ -1172,6 +1195,9 @@ QToolButton::QToolButton(QToolButtonPrivate &dd, QWidget *parent)
 
     Use setToolButtonStyle() instead.
 */
+
+QT_END_NAMESPACE
+
 #include "moc_qtoolbutton.cpp"
 
 #endif

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,8 +44,12 @@
 
 #include <stdlib.h>
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QTextTableCell qtexttable.h
+    \reentrant
+
     \brief The QTextTableCell class represents the properties of a
     cell in a QTextTable.
 
@@ -135,7 +133,10 @@ QTextCharFormat QTextTableCell::format() const
 {
     QTextDocumentPrivate *p = table->docHandle();
     QTextFormatCollection *c = p->formatCollection();
-    return c->charFormat(QTextDocumentPrivate::FragmentIterator(&p->fragmentMap(), fragment)->format);
+
+    QTextCharFormat fmt = c->charFormat(QTextDocumentPrivate::FragmentIterator(&p->fragmentMap(), fragment)->format);
+    fmt.setObjectType(QTextFormat::TableCellObject);
+    return fmt;
 }
 
 /*!
@@ -465,6 +466,8 @@ void QTextTablePrivate::update() const
 
 /*!
     \class QTextTable qtexttable.h
+    \reentrant
+
     \brief The QTextTable class represents a table in a QTextDocument.
 
     \ingroup text
@@ -478,11 +481,9 @@ void QTextTablePrivate::update() const
     For example, we can insert a table with three rows and two columns at the
     current cursor position in an editor using the following lines of code:
 
-    \quotefromfile snippets/textdocument-tables/mainwindow.cpp
-    \skipto QTextCursor cursor(editor
-    \printuntil cursor.movePosition(QTextCursor::Start);
-    \skipto QTextTable *table = cursor
-    \printuntil QTextTable *table = cursor
+    \snippet doc/src/snippets/textdocument-tables/mainwindow.cpp 1
+    \codeline
+    \snippet doc/src/snippets/textdocument-tables/mainwindow.cpp 3
 
     The table format is either defined when the table is created or changed
     later with setFormat().
@@ -503,30 +504,27 @@ void QTextTablePrivate::update() const
     the mergeCells() and splitCell() functions. However, only cells that span multiple
     rows or columns can be split. (Merging or splitting does not increase or decrease
     the number of rows and columns.)
-    
+
     \table 80%
     \row
         \o \inlineimage texttable-split.png Original Table
-        \o Suppose we have a 2x6 table of names and addresses. To merge both
+        \o Suppose we have a 2x3 table of names and addresses. To merge both
         columns in the first row we invoke mergeCells() with \a row = 0,
         \a column = 0, \a numRows = 1 and \a numColumns = 2.
-        \quotefromfile snippets/textdocument-texttable/main.cpp
-        \skipto table->mergeCells
-        \printuntil );
- 
+        \snippet doc/src/snippets/textdocument-texttable/main.cpp 0
+
     \row
         \o \inlineimage texttable-merge.png
         \o  This gives us the following table. To split the first row of the table
         back into two cells, we invoke the splitCell() function with \a numRows
         and \a numCols = 1.
-        \skipto table->splitCell
-        \printuntil );
+        \snippet doc/src/snippets/textdocument-texttable/main.cpp 1
 
     \row
         \o \inlineimage texttable-split.png Split Table
         \o This results in the original table.
     \endtable
-    
+
     \sa QTextTableFormat
 */
 
@@ -578,11 +576,11 @@ QTextTableCell QTextTable::cellAt(int position) const
         d->update();
 
     uint pos = (uint)position;
-    const QTextDocumentPrivate::FragmentMap &m = d->pieceTable->fragmentMap();
-    if (position < 0 || m.position(d->fragment_start) >= pos || m.position(d->fragment_end) < pos)
+    const QTextDocumentPrivate::FragmentMap &map = d->pieceTable->fragmentMap();
+    if (position < 0 || map.position(d->fragment_start) >= pos || map.position(d->fragment_end) < pos)
         return QTextTableCell();
 
-    QFragmentFindHelper helper(position, m);
+    QFragmentFindHelper helper(position, map);
     QList<int>::ConstIterator it = qLowerBound(d->cells.begin(), d->cells.end(), helper);
     if (it != d->cells.begin())
         --it;
@@ -615,13 +613,13 @@ void QTextTable::resize(int rows, int cols)
     if (d->dirty)
         d->update();
 
-    d->pieceTable->beginEditBlock();
-
     int nRows = this->rows();
     int nCols = this->columns();
 
     if (rows == nRows && cols == nCols)
 	return;
+
+    d->pieceTable->beginEditBlock();
 
     if (nCols < cols)
         insertColumns(nCols, cols - nCols);
@@ -748,6 +746,12 @@ void QTextTable::insertColumns(int pos, int num)
 
     QTextTableFormat tfmt = format();
     tfmt.setColumns(tfmt.columns()+num);
+    QVector<QTextLength> columnWidths = tfmt.columnWidthConstraints();
+    if (! columnWidths.isEmpty()) {
+        for (int i = num; i > 0; --i)
+            columnWidths.insert(pos, columnWidths[qMax(0, pos-1)]);
+    }
+    tfmt.setColumnWidthConstraints (columnWidths);
     QTextObject::setFormat(tfmt);
 
 //     qDebug() << "-------- end insertCols" << pos << num;
@@ -787,9 +791,15 @@ void QTextTable::removeRows(int pos, int num)
         return;
     }
 
+    p->aboutToRemoveCell(cellAt(pos, 0).firstPosition(), cellAt(pos + num - 1, d->nCols - 1).lastPosition());
+
+    QList<int> touchedCells;
     for (int r = pos; r < pos + num; ++r) {
         for (int c = 0; c < d->nCols; ++c) {
             int cell = d->grid[r*d->nCols + c];
+            if (touchedCells.contains(cell))
+                continue;
+            touchedCells << cell;
             QTextDocumentPrivate::FragmentIterator it(&p->fragmentMap(), cell);
             QTextCharFormat fmt = collection->charFormat(it->format);
             int span = fmt.tableCellRowSpan();
@@ -843,9 +853,15 @@ void QTextTable::removeColumns(int pos, int num)
         return;
     }
 
+    p->aboutToRemoveCell(cellAt(0, pos).firstPosition(), cellAt(d->nRows - 1, pos + num - 1).lastPosition());
+
+    QList<int> touchedCells;
     for (int r = 0; r < d->nRows; ++r) {
         for (int c = pos; c < pos + num; ++c) {
             int cell = d->grid[r*d->nCols + c];
+            if (touchedCells.contains(cell))
+                continue;
+            touchedCells << cell;
             QTextDocumentPrivate::FragmentIterator it(&p->fragmentMap(), cell);
             QTextCharFormat fmt = collection->charFormat(it->format);
             int span = fmt.tableCellColumnSpan();
@@ -863,6 +879,11 @@ void QTextTable::removeColumns(int pos, int num)
 
     QTextTableFormat tfmt = format();
     tfmt.setColumns(tfmt.columns()-num);
+    QVector<QTextLength> columnWidths = tfmt.columnWidthConstraints();
+    if (columnWidths.count() > pos) {
+        columnWidths.remove(pos, num);
+        tfmt.setColumnWidthConstraints (columnWidths);
+    }
     QTextObject::setFormat(tfmt);
 
     p->endEditBlock();
@@ -876,7 +897,7 @@ void QTextTable::removeColumns(int pos, int num)
     into one cell. The new cell will span \a numRows rows and \a numCols columns.
     If \a numRows or \a numCols is less than the current number of rows or columns
     the cell spans then this method does nothing.
-    
+
     \sa splitCell()
 */
 void QTextTable::mergeCells(int row, int column, int numRows, int numCols)
@@ -1032,7 +1053,7 @@ void QTextTable::mergeCells(int row, int column, int numRows, int numCols)
     \since 4.1
 
     Merges the cells selected by the provided \a cursor.
-    
+
     \sa splitCell()
 */
 void QTextTable::mergeCells(const QTextCursor &cursor)
@@ -1050,10 +1071,10 @@ void QTextTable::mergeCells(const QTextCursor &cursor)
 
     Splits the specified cell at \a row and \a column into an array of multiple
     cells with dimensions specified by \a numRows and \a numCols.
-    
+
     \note It is only possible to split cells that span multiple rows or columns, such as rows
     that have been merged using mergeCells().
-    
+
     \sa mergeCells()
 */
 void QTextTable::splitCell(int row, int column, int numRows, int numCols)
@@ -1222,3 +1243,4 @@ void QTextTable::setFormat(const QTextTableFormat &format)
     \sa setFormat()
 */
 
+QT_END_NAMESPACE

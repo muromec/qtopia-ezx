@@ -1,5 +1,3 @@
-TARGET=ptrsizetest
-CONFIG-=qt dylib
+SOURCES = ptrsizetest.cpp
+CONFIG -= qt dylib
 mac:CONFIG -= app_bundle
-TEMPLATE=app
-SOURCES=ptrsizetest.cpp

@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -74,6 +65,8 @@
 #include <QtCore/qcache.h>
 
 #define BUF_SIZE 512
+
+QT_BEGIN_NAMESPACE
 
 /*!
   \internal
@@ -112,37 +105,20 @@ Q_GUI_EXPORT void *guaranteed_memset(void *v,int c,size_t n)
   In the server code first get a pointer to a QTransportAuth::Data object
   using the connectTransport() method:
 
-  \code
-  QTransportAuth::Data *conData;
-  QTransportAuth *a = QTransportAuth::getInstance();
-
-  conData = a->connectTransport(
-        QTransportAuth::Trusted | QTransportAuth::UnixStreamSock,
-        socketDescriptor );
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qtransportauth_qws.cpp 0
 
   Here it is asserted that the transport is trusted.  See the assumptions
   listed in the \link secure-exe-environ.html SXE documentation \endlink
 
   Then proxy in the authentication device:
 
-  \code
-  // mySocket can be any QIODevice subclass
-  AuthDevice *ad = a->recvBuf( d, mySocket );
-
-  // proxy in the auth device where the socket would have gone
-  connect( ad, SIGNAL(readyRead()), this, SLOT(mySocketReadyRead()));
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qtransportauth_qws.cpp 1
 
   In the client code it is similar.  Use the connectTransport() method
   just the same then proxy in the authentication device instead of the
   socket in write calls:
 
-  \code
-  AuthDevice *ad = a->authBuf( d, mySocket );
-
-  ad->write( someData );
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qtransportauth_qws.cpp 2
 */
 
 static int hmac_md5(
@@ -223,7 +199,7 @@ QTransportAuth::~QTransportAuth()
 }
 
 /*!
-  Set the process key for this currently running Qtopia process to
+  Set the process key for this currently running Qt Extended process to
   the \a authdata.  \a authdata should be sizeof(struct AuthCookie)
   in length and contain the key and program id.  Use this method
   when setting or changing the SXE identity of the current program.
@@ -232,7 +208,7 @@ void QTransportAuth::setProcessKey( const char *authdata )
 {
     Q_D(QTransportAuth);
     ::memcpy(&d->authKey, authdata, sizeof(struct AuthCookie));
-    QFile proc_key( "/proc/self/lids_key" );
+    QFile proc_key( QLatin1String("/proc/self/lids_key") );
     // where proc key exists use that instead
     if ( proc_key.open( QIODevice::ReadOnly ))
     {
@@ -268,9 +244,7 @@ void QTransportAuth::setProcessKey( const char *key, const char *prog )
 /*!
   Register \a pr as a policy handler object.  The object pointed to
   by \a pr should have a slot as follows
-  \code
-      policyCheck( QTransportAuth::Data &, const QString & )
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qtransportauth_qws.cpp 3
   All requests received by this server will then generate a call to
   this slot, and may be processed for policy compliance.
 */
@@ -382,7 +356,7 @@ QTransportAuth *QTransportAuth::getInstance()
   Set the full path to the key file
 
   Since this is normally relative to Qtopia::qpeDir() this needs to be
-  set within the qtopia framework.
+  set within the Qt Extended framework.
 
   The keyfile should be protected by file permissions or by MAC rules
   such that it can only be read/written by the "qpe" server process
@@ -547,7 +521,7 @@ bool QTransportAuth::authorizeRequest( QTransportAuth::Data &d, const QString &r
 {
     bool isAuthorized = true;
 
-    if ( !request.isEmpty() && request != "Unknown" )
+    if ( !request.isEmpty() && request != QLatin1String("Unknown") )
     {
         d.status &= QTransportAuth::ErrMask;  // clear the status
         emit policyCheck( d, request );
@@ -579,19 +553,19 @@ bool QTransportAuth::authorizeRequest( QTransportAuth::Data &d, const QString &r
         char exeLink[BUF_SIZE]="";
         char cmdlinePath[BUF_SIZE]="";
         char cmdline[BUF_SIZE]="";
-        
+
         //get executable from /proc/pid/exe
         snprintf( exeLink, BUF_SIZE, "/proc/%d/exe", d.processId );
-        if ( -1 == ::readlink( exeLink, linkTarget, BUF_SIZE - 1 ) ) 
+        if ( -1 == ::readlink( exeLink, linkTarget, BUF_SIZE - 1 ) )
         {
-            qWarning( "SXE:- Error encountered in retrieving executable link target from /proc/%u/exe : %s", 
+            qWarning( "SXE:- Error encountered in retrieving executable link target from /proc/%u/exe : %s",
                 d.processId, strerror(errno) );
             snprintf( linkTarget, BUF_SIZE, "%s", linkTarget );
         }
 
         //get cmdline from proc/pid/cmdline
         snprintf( cmdlinePath, BUF_SIZE, "/proc/%d/cmdline", d.processId );
-        int  cmdlineFd = open( cmdlinePath, O_RDONLY ); 
+        int  cmdlineFd = open( cmdlinePath, O_RDONLY );
         if ( cmdlineFd == -1 )
         {
             qWarning( "SXE:- Error encountered in opening /proc/%u/cmdline: %s",
@@ -608,7 +582,7 @@ bool QTransportAuth::authorizeRequest( QTransportAuth::Data &d, const QString &r
             }
             close( cmdlineFd );
         }
-        
+
         syslog( LOG_ERR | LOG_LOCAL6, "%s // PID:%u // ProgId:%u // Exe:%s // Request:%s // Cmdline:%s",
                 "<SXE Breach>", d.processId, d.progId, linkTarget, qPrintable(request), cmdline);
     }
@@ -668,7 +642,6 @@ const unsigned char *QTransportAuthPrivate::getClientKey(unsigned char progId)
 {
     int manifestMatchCount = 0;
     struct IdBlock mr;
-    struct usr_key_entry kr;
     int total_size = 0;
     char *result = 0;
     char *result_ptr;
@@ -682,12 +655,11 @@ const unsigned char *QTransportAuthPrivate::getClientKey(unsigned char progId)
 
     SxeRegistryLocker rlock( m_packageRegistry );
 
-    // This is hacky - fix in 4.3 - see documentation for setKeyFilePath
-    QString manifestPath = m_keyFilePath + QLatin1String( "/manifest" );
-    QString actualKeyPath( "/proc/lids/keys" );
+    // ### Qt 4.3: this is hacky - see documentation for setKeyFilePath
+    QString manifestPath = m_keyFilePath + QLatin1String("/manifest");
+    QString actualKeyPath = QLatin1String("/proc/lids/keys");
     bool noFailOnKeyMissing = true;
-    if ( !QFile::exists( actualKeyPath ))
-    {
+    if ( !QFile::exists( actualKeyPath )) {
         actualKeyPath = m_keyFilePath + QLatin1String( "/" QSXE_KEYFILE );
     }
     QFile kf( actualKeyPath );
@@ -695,7 +667,7 @@ const unsigned char *QTransportAuthPrivate::getClientKey(unsigned char progId)
     if ( !__fileOpen( &mn ))
         goto key_not_found;
     // first find how much storage is needed
-    while ( mn.read( (char*)&mr, sizeof(struct IdBlock)) != 0 )
+    while ( mn.read( (char*)&mr, sizeof(struct IdBlock)) > 0 )
         if ( mr.progId == progId )
             manifestMatchCount++;
     if ( manifestMatchCount == 0 )
@@ -712,12 +684,12 @@ const unsigned char *QTransportAuthPrivate::getClientKey(unsigned char progId)
     result_ptr = result;
     /* reading whole key array in is much more efficient, 99% case is this loop only
        executes once, should not have more than 128 keyed items */
-    while (( keysRead = kf.read( (char*)keys_list, sizeof(struct usr_key_entry)*128 )) != 0 )
+    while (( keysRead = kf.read( (char*)keys_list, sizeof(struct usr_key_entry)*128 )) > 0 )
     {
         /* qDebug("PID %d: getClientKey() - read %d bytes = %d keys from %s", getpid(), keysRead,
                 keysRead/sizeof(struct usr_key_entry), qPrintable(actualKeyPath)); */
         keysRead /= sizeof(struct usr_key_entry);
-        while ( mn.read( (char*)&mr, sizeof(struct IdBlock)) != 0 )
+        while ( mn.read( (char*)&mr, sizeof(struct IdBlock)) > 0 )
         {
             if ( mr.progId == progId )
             {
@@ -843,7 +815,7 @@ QString RequestAnalyzer::analyze( QByteArray *msgQueue )
         *msgQueue = msgQueue->mid( sizeof(int) );
         return QString();
     }
-    QString request( qws_getCommandTypeString( command_type ));
+    QString request = QLatin1String(qws_getCommandTypeString(command_type));
 #ifndef QT_NO_COP
     if ( !command->read( &cmdBuf ))
     {
@@ -855,12 +827,12 @@ QString RequestAnalyzer::analyze( QByteArray *msgQueue )
     if ( command_type == QWSCommand::QCopSend )
     {
         QWSQCopSendCommand *sendCommand = static_cast<QWSQCopSendCommand*>(command);
-        request += QString( "/QCop/%1/%2" ).arg( sendCommand->channel ).arg( sendCommand->message );
+        request += QString( QLatin1String("/QCop/%1/%2") ).arg( sendCommand->channel ).arg( sendCommand->message );
     }
     if ( command_type == QWSCommand::QCopRegisterChannel )
     {
         QWSQCopRegisterChannelCommand *registerCommand = static_cast<QWSQCopRegisterChannelCommand*>(command);
-        request += QString( "/QCop/RegisterChannel/%1" ).arg( registerCommand->channel );
+        request += QString( QLatin1String("/QCop/RegisterChannel/%1") ).arg( registerCommand->channel );
     }
 #endif
     dataSize = QWS_PROTOCOL_ITEM_SIZE( *command );
@@ -1083,7 +1055,7 @@ void QAuthDevice::recvReadyRead()
         unsigned char saveStatus = d->status;
         if (( d->status & QTransportAuth::ErrMask ) == QTransportAuth::NoSuchKey )
         {
-            QTransportAuth::getInstance()->authorizeRequest( *d, "NoSuchKey" );
+            QTransportAuth::getInstance()->authorizeRequest( *d, QLatin1String("NoSuchKey") );
             break;
         }
         if ( !QTransportAuth::getInstance()->authFromMessage( *d, msgQueue, msgQueue.size() ))
@@ -1151,7 +1123,7 @@ bool QAuthDevice::authorizeMessage()
         return false;
     bool isAuthorized = true;
 
-    if ( !request.isEmpty() && request != "Unknown" )
+    if ( !request.isEmpty() && request != QLatin1String("Unknown") )
     {
         isAuthorized = QTransportAuth::getInstance()->authorizeRequest( *d, request );
     }
@@ -1291,10 +1263,7 @@ bool QTransportAuth::authToMessage( QTransportAuth::Data &d, char *hdr, const ch
 
   In these cases the authViolation( QTransportAuth::Data d ) signal is emitted
   and the error string can be obtained from the status like this:
-  \code
-      QTransportAuth::Result r = d.status & QTransportAuth::ErrMask;
-      qWarning( "error: %s", QTransportAuth::errorStrings[r] );
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qtransportauth_qws.cpp 4
 */
 bool QTransportAuth::authFromMessage( QTransportAuth::Data &d, const char *msg, int msgLen )
 {
@@ -1454,9 +1423,7 @@ void hexstring( char *buf, const unsigned char* key, size_t key_len )
 
   The HMAC_MD5 transform looks like:
 
-  \code
-      MD5(K XOR opad, MD5(K XOR ipad, text))
-  \endcode
+  \snippet doc/src/snippets/code/src.gui.embedded.qtransportauth_qws.cpp 5
 
   \list
     \i where K is an n byte key
@@ -1518,8 +1485,8 @@ static int hmac_md5(
 
 
 const int FAREnforcer::minutelyRate = 4; //allowed number of false authentication attempts per minute
-const QString FAREnforcer::FARMessage = "FAR_Exceeded";
-const QString FAREnforcer::SxeTag = "<SXE Breach>";
+const QString FAREnforcer::FARMessage = QLatin1String("FAR_Exceeded");
+const QString FAREnforcer::SxeTag = QLatin1String("<SXE Breach>");
 const int FAREnforcer::minute = 60;
 
 FAREnforcer::FAREnforcer():authAttempts()
@@ -1545,8 +1512,8 @@ void FAREnforcer::logAuthAttempt( QDateTime time )
     {
 #if defined(SXE_DISCOVERY)
         if ( QTransportAuth::getInstance()->isDiscoveryMode() ) {
-            static QBasicAtomic reported = {0};
-            if ( reported.testAndSet(0,1) ) {
+            static QBasicAtomicInt reported = Q_BASIC_ATOMIC_INITIALIZER(0);
+            if ( reported.testAndSetRelaxed(0,1) ) {
 #ifndef QT_NO_TEXTSTREAM
                 QString logFilePath = QTransportAuth::getInstance()->logFilePath();
                 if ( !logFilePath.isEmpty() ) {
@@ -1578,8 +1545,10 @@ void FAREnforcer::reset()
 {
     QDateTime nullDateTime = QDateTime();
     for (int i = 0; i < minutelyRate; i++ )
-        authAttempts[i] = nullDateTime; 
+        authAttempts[i] = nullDateTime;
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qtransportauth_qws_p.cpp"
 

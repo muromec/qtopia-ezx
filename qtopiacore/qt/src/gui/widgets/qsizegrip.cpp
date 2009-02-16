@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,7 @@
 #include "qpainter.h"
 #include "qstyle.h"
 #include "qstyleoption.h"
+#include "qlayout.h"
 #include "qdebug.h"
 #include <QDesktopWidget>
 
@@ -70,11 +65,22 @@
 #define SZ_SIZETOPLEFT      0xf004
 #define SZ_SIZETOPRIGHT     0xf005
 
+QT_BEGIN_NAMESPACE
+
 static QWidget *qt_sizegrip_topLevelWidget(QWidget* w)
 {
     while (w && !w->isWindow() && w->windowType() != Qt::SubWindow)
         w = w->parentWidget();
     return w;
+}
+
+static inline bool hasHeightForWidth(QWidget *widget)
+{
+    if (!widget)
+        return false;
+    if (QLayout *layout = widget->layout())
+        return layout->hasHeightForWidth();
+    return widget->sizePolicy().hasHeightForWidth();
 }
 
 class QSizeGripPrivate : public QWidgetPrivate
@@ -87,7 +93,6 @@ public:
     int d;
     int dxMax;
     int dyMax;
-    bool hiddenByUser;
     Qt::Corner m_corner;
     bool gotMousePress;
 #ifdef Q_WS_MAC
@@ -102,6 +107,27 @@ public:
     inline bool atLeft() const
     {
         return m_corner == Qt::BottomLeftCorner || m_corner == Qt::TopLeftCorner;
+    }
+
+    // This slot is invoked by QLayout when the size grip is added to
+    // a layout or reparented after the tlw is shown. This re-implementation is basically
+    // the same as QWidgetPrivate::_q_showIfNotHidden except that it checks
+    // for Qt::WindowFullScreen and Qt::WindowMaximized as well.
+    void _q_showIfNotHidden()
+    {
+        Q_Q(QSizeGrip);
+        bool showSizeGrip = !(q->isHidden() && q->testAttribute(Qt::WA_WState_ExplicitShowHide));
+        QWidget *tlw = qt_sizegrip_topLevelWidget(q);
+        if (tlw && showSizeGrip) {
+            Qt::WindowStates sizeGripNotVisibleState = Qt::WindowFullScreen;
+#ifndef Q_WS_MAC
+            sizeGripNotVisibleState |= Qt::WindowMaximized;
+#endif
+            // Don't show the size grip if the tlw is maximized or in full screen mode.
+            showSizeGrip = !(tlw->windowState() & sizeGripNotVisibleState);
+        }
+        if (showSizeGrip)
+            q->setVisible(true);
     }
 };
 
@@ -122,7 +148,6 @@ Qt::Corner QSizeGripPrivate::corner() const
     Q_Q(const QSizeGrip);
     QWidget *tlw = qt_sizegrip_topLevelWidget(const_cast<QSizeGrip *>(q));
     const QPoint sizeGripPos = q->mapTo(tlw, QPoint(0, 0));
-    const QPoint globalPos = tlw->mapFromGlobal(q->mapToGlobal(QPoint(0, 0)));
     bool isAtBottom = sizeGripPos.y() >= tlw->height() / 2;
     bool isAtLeft = sizeGripPos.x() <= tlw->width() / 2;
     if (isAtLeft)
@@ -204,8 +229,7 @@ void QSizeGripPrivate::init()
     Q_Q(QSizeGrip);
     dxMax = 0;
     dyMax = 0;
-    hiddenByUser = false;
-    m_corner = corner();
+    m_corner = q->isLeftToRight() ? Qt::BottomRightCorner : Qt::BottomLeftCorner;
     gotMousePress = false;
 
 #if !defined(QT_NO_CURSOR) && !defined(Q_WS_MAC)
@@ -276,7 +300,8 @@ void QSizeGrip::mousePressEvent(QMouseEvent * e)
 
 #ifdef Q_WS_X11
     // Use a native X11 sizegrip for "real" top-level windows if supported.
-    if (tlw->isWindow() && X11->isSupportedByWM(ATOM(_NET_WM_MOVERESIZE))) {
+    if (tlw->isWindow() && X11->isSupportedByWM(ATOM(_NET_WM_MOVERESIZE))
+        && !tlw->testAttribute(Qt::WA_DontShowOnScreen) && !hasHeightForWidth(tlw)) {
         XEvent xev;
         xev.xclient.type = ClientMessage;
         xev.xclient.message_type = ATOM(_NET_WM_MOVERESIZE);
@@ -297,6 +322,20 @@ void QSizeGrip::mousePressEvent(QMouseEvent * e)
         return;
     }
 #endif // Q_WS_X11
+#ifdef Q_WS_WIN
+    if (tlw->isWindow() && !tlw->testAttribute(Qt::WA_DontShowOnScreen) && !hasHeightForWidth(tlw)) {
+        uint orientation = 0;
+        if (d->atBottom())
+            orientation = d->atLeft() ? SZ_SIZEBOTTOMLEFT : SZ_SIZEBOTTOMRIGHT;
+        else
+            orientation = d->atLeft() ? SZ_SIZETOPLEFT : SZ_SIZETOPRIGHT;
+
+        ReleaseCapture();
+        QT_WA_INLINE(PostMessageW(tlw->winId(), WM_SYSCOMMAND, orientation, 0),
+                     PostMessageA(tlw->winId(), WM_SYSCOMMAND, orientation, 0));
+        return;
+    }
+#endif // Q_WS_WIN
 
     // Find available desktop/workspace geometry.
     QRect availableGeometry;
@@ -374,11 +413,12 @@ void QSizeGrip::mouseMoveEvent(QMouseEvent * e)
 
 #ifdef Q_WS_X11
     if (tlw->isWindow() && X11->isSupportedByWM(ATOM(_NET_WM_MOVERESIZE))
-        && tlw->isTopLevel())
+        && tlw->isTopLevel() && !tlw->testAttribute(Qt::WA_DontShowOnScreen) && !hasHeightForWidth(tlw))
         return;
 #endif
 #ifdef Q_WS_WIN
-    if (tlw->isWindow() && ::GetSystemMenu(tlw->winId(), FALSE) != 0) {
+    if (tlw->isWindow() && GetSystemMenu(tlw->winId(), FALSE) != 0 && internalWinId()
+        && !tlw->testAttribute(Qt::WA_DontShowOnScreen) && !hasHeightForWidth(tlw)) {
         MSG msg;
         while(PeekMessage(&msg, winId(), WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE));
         return;
@@ -399,7 +439,7 @@ void QSizeGrip::mouseMoveEvent(QMouseEvent * e)
     else
         ns.rwidth() = d->r.width() + qMin(np.x() - d->p.x(), d->dxMax);
 
-    ns = ns.expandedTo(tlw->minimumSize()).expandedTo(tlw->minimumSizeHint()).boundedTo(tlw->maximumSize());
+    ns = QLayout::closestAcceptableSize(tlw, ns);
 
     QPoint p;
     QRect nr(p, ns);
@@ -471,30 +511,32 @@ void QSizeGrip::hideEvent(QHideEvent *hideEvent)
     QWidget::hideEvent(hideEvent);
 }
 
-/*! \reimp */
+/*!
+    \reimp
+*/
 void QSizeGrip::setVisible(bool visible)
 {
-    Q_D(QSizeGrip);
-    d->hiddenByUser = !visible;
     QWidget::setVisible(visible);
 }
 
 /*! \reimp */
 bool QSizeGrip::eventFilter(QObject *o, QEvent *e)
 {
-    Q_D(QSizeGrip);
-    if (d->hiddenByUser || e->type() != QEvent::WindowStateChange)
+    if ((isHidden() && testAttribute(Qt::WA_WState_ExplicitShowHide))
+        || e->type() != QEvent::WindowStateChange) {
         return QWidget::eventFilter(o, e);
+    }
     QWidget *tlw = qt_sizegrip_topLevelWidget(this);
     if (o != tlw)
         return QWidget::eventFilter(o, e);
-    QWidget::setVisible((tlw->windowState() &
-                             (Qt::WindowFullScreen
+    Qt::WindowStates sizeGripNotVisibleState = Qt::WindowFullScreen;
 #ifndef Q_WS_MAC
-                              | Qt::WindowMaximized
+    sizeGripNotVisibleState |= Qt::WindowMaximized;
 #endif
-                              ))==0);
-    return false;
+    // Don't show the size grip if the tlw is maximized or in full screen mode.
+    setVisible(!(tlw->windowState() & sizeGripNotVisibleState));
+    setAttribute(Qt::WA_WState_ExplicitShowHide, false);
+    return QWidget::eventFilter(o, e);
 }
 
 /*!
@@ -509,26 +551,12 @@ bool QSizeGrip::event(QEvent *event)
 /*! \reimp */
 bool QSizeGrip::winEvent( MSG *m, long *result )
 {
-    if (m->message != WM_LBUTTONDOWN)
-        return QWidget::winEvent(m, result);
-
-    // toplevel windows use the native size grip on Windows
-    QWidget *w = qt_sizegrip_topLevelWidget(this);
-    if (!w->isWindow())
-        return QWidget::winEvent(m, result);
-
-    Q_D(QSizeGrip);
-    uint orientation = 0;
-    if (d->atBottom())
-        orientation = d->atLeft() ? SZ_SIZEBOTTOMLEFT : SZ_SIZEBOTTOMRIGHT;
-    else
-        orientation = d->atLeft() ? SZ_SIZETOPLEFT : SZ_SIZETOPRIGHT;
-
-    QT_WA_INLINE(PostMessageW(w->winId(), WM_SYSCOMMAND, orientation, 0),
-                 PostMessageA(w->winId(), WM_SYSCOMMAND, orientation, 0));
-
-    return true;
+    return QWidget::winEvent(m, result);
 }
 #endif
+
+QT_END_NAMESPACE
+
+#include "moc_qsizegrip.cpp"
 
 #endif //QT_NO_SIZEGRIP

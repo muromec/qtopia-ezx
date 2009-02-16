@@ -13,10 +13,9 @@ isEmpty(QT_MAJOR_VERSION) {
 } else {
    VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
 }
-QMAKE_TARGET_COMPANY = Trolltech ASA
+include(../../../../src/qt_targets.pri)
 QMAKE_TARGET_PRODUCT = UiLoader
 QMAKE_TARGET_DESCRIPTION = QUiLoader
-QMAKE_TARGET_COPYRIGHT = Copyright (C) 2003-2006 Trolltech ASA
 
 include(../lib/uilib/uilib.pri)
 

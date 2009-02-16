@@ -1,18 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = 					\
-	$(FREETYPE_CFLAGS)
-
 noinst_LTLIBRARIES = libharfbuzz-1.la
 
 MAINSOURCES =  \
-	ftglue.c \
+	harfbuzz-global.c \
 	harfbuzz-buffer.c \
+	harfbuzz-stream.c \
 	harfbuzz-dump.c \
 	harfbuzz-gdef.c \
 	harfbuzz-gpos.c \
 	harfbuzz-gsub.c \
-	harfbuzz-open.c
+	harfbuzz-open.c \
+	harfbuzz-shaper.cpp \
+	harfbuzz-tibetan.c \
+	harfbuzz-khmer.c \
+	harfbuzz-indic.cpp \
+	harfbuzz-hebrew.c \
+	harfbuzz-arabic.c \
+	harfbuzz-hangul.c \
+	harfbuzz-myanmar.c
 
 EXTRA_SOURCES = harfbuzz.c
 
@@ -23,31 +29,32 @@ PUBLICHEADERS = \
 	harfbuzz-gdef.h \
 	harfbuzz-gpos.h \
 	harfbuzz-gsub.h \
-	harfbuzz-open.h
+	harfbuzz-open.h \
+	harfbuzz-global.h \
+	harfbuzz-external.h \
+	harfbuzz-shaper.h
 
 PRIVATEHEADERS = \
-	ftglue.h \
 	harfbuzz-impl.h \
+	harfbuzz-stream.h \
 	harfbuzz-gdef-private.h \
 	harfbuzz-gpos-private.h \
 	harfbuzz-gsub-private.h \
-	harfbuzz-open-private.h
+	harfbuzz-open-private.h \
+	harfbuzz-shaper-private.h
 
 libharfbuzz_1_la_SOURCES = \
 	$(MAINSOURCES) \
 	$(PUBLICHEADERS) \
 	$(PRIVATEHEADERS)
 
-libharfbuzz_1_la_LIBADD = \
-	$(FREETYPE_LIBS)
-
-noinst_PROGRAMS = harfbuzz-dump
-
-harfbuzz_dump_SOURCES = 	\
-	harfbuzz-dump-main.c
-
-harfbuzz_dump_LDADD = 		\
-	libharfbuzz-1.la
+#noinst_PROGRAMS = harfbuzz-dump
+#
+#harfbuzz_dump_SOURCES = 	\
+#	harfbuzz-dump-main.c
+#
+#harfbuzz_dump_LDADD = 		\
+#	libharfbuzz-1.la
 
 EXTRA_DIST = 		\
 	README		\

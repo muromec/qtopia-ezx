@@ -53,6 +53,9 @@ contains(QT_CONFIG, system-tiff) {
             unix: {
 	       SOURCES += ../../../3rdparty/libtiff/libtiff/tif_unix.c
             }
+            wince*: {
+               SOURCES += ../../../corelib/kernel/qfunctions_wince.cpp
+            }
 }
 
 contains(QT_CONFIG, system-zlib) {

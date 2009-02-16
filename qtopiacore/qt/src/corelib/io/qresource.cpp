@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
 
 //#define DEBUG_RESOURCE_MATCH
 
+QT_BEGIN_NAMESPACE
+
 //resource glue
 class QResourceRoot
 {
@@ -74,7 +70,7 @@ class QResourceRoot
     QString name(int node) const;
     short flags(int node) const;
 public:
-    mutable QAtomic ref;
+    mutable QAtomicInt ref;
 
     inline QResourceRoot(): tree(0), names(0), payloads(0) {}
     inline QResourceRoot(const uchar *t, const uchar *n, const uchar *d) { setSource(t, n, d); }
@@ -163,7 +159,8 @@ Q_GLOBAL_STATIC(QStringList, resourceSearchPaths)
     to the unregistered file, they will continue to be valid but the resource
     file itself will be removed from the resource roots, and thus no further
     QResource can be created pointing into this resource data. The resource
-    itself will be unmapped from memory when the last QResource points into it.
+    itself will be unmapped from memory when the last QResource that points
+    to it is destroyed.
 
     \sa {The Qt Resource System}, QFile, QDir, QFileInfo
 */
@@ -567,7 +564,12 @@ inline QString QResourceRoot::name(int node) const
 }
 int QResourceRoot::findNode(const QString &_path, const QLocale &locale) const
 {
-    QString path = _path;
+    QString path = QDir::cleanPath(_path);
+    // QDir::cleanPath does not remove two trailing slashes under _Windows_
+    // due to support for UNC paths. Remove those manually.
+    if (path.startsWith(QLatin1String("//")))
+        path.remove(0, 1);
+
     {
         QString root = mappingRoot();
         if(!root.isEmpty()) {
@@ -873,8 +875,10 @@ public:
 // also this lacks Large File support but that's probably irrelevant
 #if defined(QT_USE_MMAP)
 // for mmap
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <sys/mman.h>
 #include <errno.h>
+QT_END_INCLUDE_NAMESPACE
 #endif
 
 
@@ -1141,6 +1145,8 @@ class QResourceFileEnginePrivate : public QAbstractFileEnginePrivate
 protected:
     Q_DECLARE_PUBLIC(QResourceFileEngine)
 private:
+    uchar *map(qint64 offset, qint64 size, QFile::MemoryMapFlags flags);
+    bool unmap(uchar *ptr);
     qint64 offset;
     QResource resource;
     QByteArray uncompressed;
@@ -1182,7 +1188,7 @@ QResourceFileEngine::QResourceFileEngine(const QString &file) :
 #ifndef QT_NO_COMPRESS
         d->uncompressed = qUncompress(d->resource.data(), d->resource.size());
 #else
-        Q_ASSERT("QResourceFileEngine::open: Qt built without support for compression");
+        Q_ASSERT(!"QResourceFileEngine::open: Qt built without support for compression");
 #endif
     }
 }
@@ -1398,16 +1404,45 @@ QAbstractFileEngine::Iterator *QResourceFileEngine::endEntryList()
 
 bool QResourceFileEngine::extension(Extension extension, const ExtensionOption *option, ExtensionReturn *output)
 {
-    Q_UNUSED(extension);
-    Q_UNUSED(option);
-    Q_UNUSED(output);
+    Q_D(QResourceFileEngine);
+    if (extension == MapExtension) {
+        const MapExtensionOption *options = (MapExtensionOption*)(option);
+        MapExtensionReturn *returnValue = static_cast<MapExtensionReturn*>(output);
+        returnValue->address = d->map(options->offset, options->size, options->flags);
+        return (returnValue->address != 0);
+    }
+    if (extension == UnMapExtension) {
+        UnMapExtensionOption *options = (UnMapExtensionOption*)option;
+        return d->unmap(options->address);
+    }
     return false;
 }
 
 bool QResourceFileEngine::supportsExtension(Extension extension) const
 {
-    Q_UNUSED(extension);
-    return false;
+    return (extension == UnMapExtension || extension == MapExtension);
+}
+
+uchar *QResourceFileEnginePrivate::map(qint64 offset, qint64 size, QFile::MemoryMapFlags flags)
+{
+    Q_Q(QResourceFileEngine);
+    Q_UNUSED(flags);
+    if (!resource.isValid()
+        || offset < 0
+        || size < 0
+        || offset + size > resource.size()
+        || (size == 0)) {
+        q->setError(QFile::UnspecifiedError, QString());
+        return 0;
+    }
+    uchar *address = const_cast<uchar *>(resource.data());
+    return (address + offset);
+}
+
+bool QResourceFileEnginePrivate::unmap(uchar *ptr)
+{
+    Q_UNUSED(ptr);
+    return true;
 }
 
 //Initialization and cleanup
@@ -1418,5 +1453,4 @@ Q_CORE_EXPORT void qInitResourceIO() { resource_file_handler(); }
 static int qt_forced_resource_init = qt_force_resource_init();
 Q_CONSTRUCTOR_FUNCTION(qt_force_resource_init)
 
-
-
+QT_END_NAMESPACE

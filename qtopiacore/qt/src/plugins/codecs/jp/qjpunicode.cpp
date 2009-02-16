@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the plugins of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,10 +43,9 @@
 #include "qjpunicode.h"
 
 #include "qbytearray.h"
-#ifdef Q_OS_TEMP
-#include "qwinfunctions_wce.h"
-#endif
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 #define        USE_JISX0212
 
@@ -10501,7 +10494,7 @@ static unsigned short const sjis208ibmvdc_unicode[] = {
 
 uint QJpUnicodeConv::sjisibmvdcToUnicode(uint h, uint l) const
 {
-    if ((rule & IBM_VDC) && IsSjisIBMVDCChar1(h)) 
+    if (((rule & IBM_VDC) || (rule & Microsoft_CP932))  && IsSjisIBMVDCChar1(h)) 
           return sjis208ibmvdc_unicode[((h - 0x00fa)*189 + (l-0x0040))];
     else
         return 0;
@@ -10509,7 +10502,7 @@ uint QJpUnicodeConv::sjisibmvdcToUnicode(uint h, uint l) const
 
 uint QJpUnicodeConv::unicodeToSjisibmvdc(uint h, uint l) const
 {
-    if ((rule & IBM_VDC)) {
+    if ((rule & IBM_VDC) || (rule & Microsoft_CP932)) {
         uint u = (h<<8) | l;
         //since there is no direct mapping, do a linear search
        for (uint i =0; i<sizeof(sjis208ibmvdc_unicode)/sizeof(short) ; i++) {
@@ -10517,7 +10510,111 @@ uint QJpUnicodeConv::unicodeToSjisibmvdc(uint h, uint l) const
            if (!sjis208ibmvdc_unicode[i])
                return 0;
            if (u==sjis208ibmvdc_unicode[i]){
-               return ((0x00fa +(i/189))<<8 | 0x0040+(i%189));
+               return (((0x00fa +(i/189))<<8) | (0x0040+(i%189)));
+           }
+       }
+    }
+    return 0;
+}
+
+static unsigned short const cp932_87_unicode[] = {
+        /*0x8740 -0x879c*/
+        0x2460, 0x2461, 0x2462, 0x2463, 0x2464, 0x2465, 0x2466, 0x2467,  
+        0x2468, 0x2469, 0x246a, 0x246b, 0x246c, 0x246d, 0x246e, 0x246f,  
+        0x2470, 0x2471, 0x2472, 0x2473, 0x2160, 0x2161, 0x2162, 0x2163,  
+        0x2164, 0x2165, 0x2166, 0x2167, 0x2168, 0x2169, 0x0000, 0x3349, 
+        0x3314, 0x3322, 0x334d, 0x3318, 0x3327, 0x3303, 0x3336, 0x3351, 
+        0x3357, 0x330d, 0x3326, 0x3323, 0x332b, 0x334a, 0x333b, 0x339c, 
+        0x339d, 0x339e, 0x338e, 0x338f, 0x33c4, 0x33a1, 0x0000, 0x0000, 
+        0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x337b, 0x0000, 
+        0x301d, 0x301f, 0x2116, 0x33cd, 0x2121, 0x32a4, 0x32a5, 0x32a6, 
+        0x32a7, 0x32a8, 0x3231, 0x3232, 0x3239, 0x337e, 0x337d, 0x337c, 
+        0x2252, 0x2261, 0x222b, 0x222e, 0x2211, 0x221a, 0x22a5, 0x2220, 
+        0x221f, 0x22bf, 0x2235, 0x2229, 0x222a
+};
+
+static unsigned short const cp932_ed_ee_unicode[] = {
+        /*0xed40-0xedfc*/
+        0x7e8a, 0x891c, 0x9348, 0x9288, 0x84dc, 0x4fc9, 0x70bb, 0x6631, 
+        0x68c8, 0x92f9, 0x66fb, 0x5f45, 0x4e28, 0x4ee1, 0x4efc, 0x4f00, 
+        0x4f03, 0x4f39, 0x4f56, 0x4f92, 0x4f8a, 0x4f9a, 0x4f94, 0x4fcd, 
+        0x5040, 0x5022, 0x4fff, 0x501e, 0x5046, 0x5070, 0x5042, 0x5094, 
+        0x50f4, 0x50d8, 0x514a, 0x5164, 0x519d, 0x51be, 0x51ec, 0x5215, 
+        0x529c, 0x52a6, 0x52c0, 0x52db, 0x5300, 0x5307, 0x5324, 0x5372, 
+        0x5393, 0x53b2, 0x53dd, 0xfa0e, 0x549c, 0x548a, 0x54a9, 0x54ff, 
+        0x5586, 0x5759, 0x5765, 0x57ac, 0x57c8, 0x57c7, 0xfa0f, 0x0000, 
+        0xfa10, 0x589e, 0x58b2, 0x590b, 0x5953, 0x595b, 0x595d, 0x5963, 
+        0x59a4, 0x59ba, 0x5b56, 0x5bc0, 0x752f, 0x5bd8, 0x5bec, 0x5c1e, 
+        0x5ca6, 0x5cba, 0x5cf5, 0x5d27, 0x5d53, 0xfa11, 0x5d42, 0x5d6d, 
+        0x5db8, 0x5db9, 0x5dd0, 0x5f21, 0x5f34, 0x5f67, 0x5fb7, 0x5fde, 
+        0x605d, 0x6085, 0x608a, 0x60de, 0x60d5, 0x6120, 0x60f2, 0x6111, 
+        0x6137, 0x6130, 0x6198, 0x6213, 0x62a6, 0x63f5, 0x6460, 0x649d, 
+        0x64ce, 0x654e, 0x6600, 0x6615, 0x663b, 0x6609, 0x662e, 0x661e, 
+        0x6624, 0x6665, 0x6657, 0x6659, 0xfa12, 0x6673, 0x6699, 0x66a0, 
+        0x66b2, 0x66bf, 0x66fa, 0x670e, 0xf929, 0x6766, 0x67bb, 0x6852, 
+        0x67c0, 0x6801, 0x6844, 0x68cf, 0xfa13, 0x6968, 0xfa14, 0x6998, 
+        0x69e2, 0x6a30, 0x6a6b, 0x6a46, 0x6a73, 0x6a7e, 0x6ae2, 0x6ae4, 
+        0x6bd6, 0x6c3f, 0x6c5c, 0x6c86, 0x6c6f, 0x6cda, 0x6d04, 0x6d87, 
+        0x6d6f, 0x6d96, 0x6dac, 0x6dcf, 0x6df8, 0x6df2, 0x6dfc, 0x6e39, 
+        0x6e5c, 0x6e27, 0x6e3c, 0x6ebf, 0x6f88, 0x6fb5, 0x6ff5, 0x7005, 
+        0x7007, 0x7028, 0x7085, 0x70ab, 0x710f, 0x7104, 0x715c, 0x7146, 
+        0x7147, 0xfa15, 0x71c1, 0x71fe, 0x72b1, 
+        /*0xee40-0xeefc*/
+        0x72be, 0x7324, 0xfa16, 0x7377, 0x73bd, 0x73c9, 0x73d6, 0x73e3, 
+        0x73d2, 0x7407, 0x73f5, 0x7426, 0x742a, 0x7429, 0x742e, 0x7462, 
+        0x7489, 0x749f, 0x7501, 0x756f, 0x7682, 0x769c, 0x769e, 0x769b, 
+        0x76a6, 0xfa17, 0x7746, 0x52af, 0x7821, 0x784e, 0x7864, 0x787a, 
+        0x7930, 0xfa18, 0xfa19, 0xfa1a, 0x7994, 0xfa1b, 0x799b, 0x7ad1, 
+        0x7ae7, 0xfa1c, 0x7aeb, 0x7b9e, 0xfa1d, 0x7d48, 0x7d5c, 0x7db7, 
+        0x7da0, 0x7dd6, 0x7e52, 0x7f47, 0x7fa1, 0xfa1e, 0x8301, 0x8362, 
+        0x837f, 0x83c7, 0x83f6, 0x8448, 0x84b4, 0x8553, 0x8559, 0x0000, 
+        0x856b, 0xfa1f, 0x85b0, 0xfa20, 0xfa21, 0x8807, 0x88f5, 0x8a12, 
+        0x8a37, 0x8a79, 0x8aa7, 0x8abe, 0x8adf, 0xfa22, 0x8af6, 0x8b53, 
+        0x8b7f, 0x8cf0, 0x8cf4, 0x8d12, 0x8d76, 0xfa23, 0x8ecf, 0xfa24, 
+        0xfa25, 0x9067, 0x90de, 0xfa26, 0x9115, 0x9127, 0x91da, 0x91d7, 
+        0x91de, 0x91ed, 0x91ee, 0x91e4, 0x91e5, 0x9206, 0x9210, 0x920a, 
+        0x923a, 0x9240, 0x923c, 0x924e, 0x9259, 0x9251, 0x9239, 0x9267, 
+        0x92a7, 0x9277, 0x9278, 0x92e7, 0x92d7, 0x92d9, 0x92d0, 0xfa27, 
+        0x92d5, 0x92e0, 0x92d3, 0x9325, 0x9321, 0x92fb, 0xfa28, 0x931e, 
+        0x92ff, 0x931d, 0x9302, 0x9370, 0x9357, 0x93a4, 0x93c6, 0x93de, 
+        0x93f8, 0x9431, 0x9445, 0x9448, 0x9592, 0xf9dc, 0xfa29, 0x969d, 
+        0x96af, 0x9733, 0x973b, 0x9743, 0x974d, 0x974f, 0x9751, 0x9755, 
+        0x9857, 0x9865, 0xfa2a, 0xfa2b, 0x9927, 0xfa2c, 0x999e, 0x9a4e, 
+        0x9ad9, 0x9adc, 0x9b75, 0x9b72, 0x9b8f, 0x9bb1, 0x9bbb, 0x9c00, 
+        0x9d70, 0x9d6b, 0xfa2d, 0x9e19, 0x9ed1, 0x0000, 0x0000, 0x2170, 
+        0x2171, 0x2172, 0x2173, 0x2174, 0x2175, 0x2176, 0x2177, 0x2178, 
+        0x2179, 0xffe2, 0xffe4, 0xff07, 0xff02
+};
+
+uint QJpUnicodeConv::cp932ToUnicode(uint h, uint l) const
+{
+    if (rule & Microsoft_CP932) {
+        if (h == 0x0087 && (l >= 0x0040 && l <= 0x009c)) 
+            return cp932_87_unicode[l-0x0040];
+        else if ((h == 0x00ed || h == 0x00ee)  && (l >= 0x0040 && l <= 0x00fc)) 
+            return cp932_ed_ee_unicode[((h - 0x00ed)*189 + (l-0x0040))];
+    }
+    return 0;
+}
+
+uint QJpUnicodeConv::unicodeToCp932(uint h, uint l) const
+{
+    if ((rule & Microsoft_CP932)) {
+        uint u = (h<<8) | l;
+        //since there is no direct mapping, do a linear search
+        for (uint i =0; i<sizeof(cp932_87_unicode)/sizeof(short) ; i++) {
+           //the table has zeros for some characters
+           if (!cp932_87_unicode[i])
+               return 0;
+           if (u == cp932_87_unicode[i]){
+               return ((0x0087<<8) | (0x0040+i));
+           }
+        }
+       for (uint j =0; j<sizeof(cp932_ed_ee_unicode)/sizeof(short) ; j++) {
+           if (!cp932_ed_ee_unicode[j])
+               return 0;
+           if (u==cp932_ed_ee_unicode[j]){
+               return (((0x00ed +(j/189))<<8) | (0x0040+(j%189)));
            }
        }
     }
@@ -10595,3 +10692,5 @@ uint QJpUnicodeConv::unicodeToSjisibmvdc(uint h, uint l) const
 
 \internal
 */
+
+QT_END_NAMESPACE

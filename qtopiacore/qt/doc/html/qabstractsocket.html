@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/network/qabstractsocket.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/network/socket/qabstractsocket.cpp -->
 <head>
-  <title>Qt 4.3: QAbstractSocket Class Reference</title>
+  <title>Qt 4.4: QAbstractSocket Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QAbstractSocket Class Reference<br /><span class="small-subtitle">[<a href="qtnetwork.html">QtNetwork</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QAbstractSocket Class Reference<br /><span class="small-subtitle">[<a href="qtnetwork.html">QtNetwork</a> module]</span>
 </h1>
 <p>The QAbstractSocket class provides the base functionality common to all socket types. <a href="#details">More...</a></p>
 <pre> #include &lt;QAbstractSocket&gt;</pre><p>Inherits <a href="qiodevice.html">QIODevice</a>.</p>
@@ -26,7 +26,7 @@
 <h3>Public Types</h3>
 <ul>
 <li><div class="fn"/>enum <b><a href="qabstractsocket.html#NetworkLayerProtocol-enum">NetworkLayerProtocol</a></b> { IPv4Protocol, IPv6Protocol, UnknownNetworkLayerProtocol }</li>
-<li><div class="fn"/>enum <b><a href="qabstractsocket.html#SocketError-enum">SocketError</a></b> { ConnectionRefusedError, RemoteHostClosedError, HostNotFoundError, SocketAccessError, ..., UnknownSocketError }</li>
+<li><div class="fn"/>enum <b><a href="qabstractsocket.html#SocketError-enum">SocketError</a></b> { ConnectionRefusedError, RemoteHostClosedError, HostNotFoundError, SocketAccessError, ..., UnfinishedSocketOperationError }</li>
 <li><div class="fn"/>enum <b><a href="qabstractsocket.html#SocketState-enum">SocketState</a></b> { UnconnectedState, HostLookupState, ConnectingState, ConnectedState, ..., ListeningState }</li>
 <li><div class="fn"/>enum <b><a href="qabstractsocket.html#SocketType-enum">SocketType</a></b> { TcpSocket, UdpSocket, UnknownSocketType }</li>
 </ul>
@@ -78,7 +78,7 @@
 <li><div class="fn"/>void <b><a href="qabstractsocket.html#stateChanged">stateChanged</a></b> ( QAbstractSocket::SocketState <i>socketState</i> )</li>
 </ul>
 <ul>
-<li><div class="fn"/>3 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
+<li><div class="fn"/>4 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
 <li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
 </ul>
 <a name="protected-functions"></a>
@@ -175,9 +175,10 @@
 <tr><td valign="top"><tt>QAbstractSocket::SocketAddressNotAvailableError</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">The address specified to <a href="qudpsocket.html#bind">QUdpSocket::bind</a>() does not belong to the host.</td></tr>
 <tr><td valign="top"><tt>QAbstractSocket::UnsupportedSocketOperationError</tt></td><td align="center" valign="top"><tt>10</tt></td><td valign="top">The requested socket operation is not supported by the local operating system (e.g&#x2e;, lack of IPv6 support).</td></tr>
 <tr><td valign="top"><tt>QAbstractSocket::ProxyAuthenticationRequiredError</tt></td><td align="center" valign="top"><tt>12</tt></td><td valign="top">The socket is using a proxy, and the proxy requires authentication.</td></tr>
+<tr><td valign="top"><tt>QAbstractSocket::SslHandshakeFailedError</tt></td><td align="center" valign="top"><tt>13</tt></td><td valign="top">The SSL/TLS handshake failed, so the connection was closed (only used in <a href="qsslsocket.html">QSslSocket</a>)</td></tr>
 <tr><td valign="top"><tt>QAbstractSocket::UnknownSocketError</tt></td><td align="center" valign="top"><tt>-1</tt></td><td valign="top">An unidentified error occurred.</td></tr>
+<tr><td valign="top"><tt>QAbstractSocket::UnfinishedSocketOperationError</tt></td><td align="center" valign="top"><tt>11</tt></td><td valign="top">Used by QAbstractSocketEngine only, The last operation attempted has not finished yet (still in progress in the background).</td></tr>
 </table></p>
-<p>Used by QAbstractSocketEngine only, this error indicates that the last operation could not complete.</p>
 <p>See also <a href="qabstractsocket.html#error">QAbstractSocket::error</a>().</p>
 <h3 class="fn"><a name="SocketState-enum"></a>enum QAbstractSocket::SocketState</h3>
 <p>This enum describes the different states in which a socket can be.</p>
@@ -209,7 +210,7 @@
 <h3 class="fn"><a name="dtor.QAbstractSocket"></a>QAbstractSocket::~QAbstractSocket ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Destroys the socket.</p>
 <h3 class="fn"><a name="abort"></a>void QAbstractSocket::abort ()</h3>
-<p>Aborts the current connection and resets the socket. Unlike <a href="qabstractsocket.html#disconnectFromHost">disconnectFromHost</a>(), this function immediately closes the socket, clearing any pending data in the write buffer.</p>
+<p>Aborts the current connection and resets the socket. Unlike <a href="qabstractsocket.html#disconnectFromHost">disconnectFromHost</a>(), this function immediately closes the socket, discarding any pending data in the write buffer.</p>
 <p>See also <a href="qabstractsocket.html#disconnectFromHost">disconnectFromHost</a>() and <a href="qabstractsocket.html#close">close</a>().</p>
 <h3 class="fn"><a name="bytesAvailable"></a><a href="qtglobal.html#qint64-typedef">qint64</a> QAbstractSocket::bytesAvailable () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns the number of incoming bytes that are waiting to be read.</p>
@@ -251,6 +252,7 @@
 <p>This function was introduced in Qt 4.1.</p>
 <h3 class="fn"><a name="disconnected"></a>void QAbstractSocket::disconnected ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted when the socket has been disconnected.</p>
+<p><b>Warning:</b> If you need to delete the <a href="qobject.html#sender">sender</a>() of this signal in a slot connected to it, use the <a href="qobject.html#deleteLater">deleteLater()</a> function.</p>
 <p>See also <a href="qabstractsocket.html#connectToHost">connectToHost</a>(), <a href="qabstractsocket.html#disconnectFromHost">disconnectFromHost</a>(), and <a href="qabstractsocket.html#abort">abort</a>().</p>
 <h3 class="fn"><a name="error"></a><a href="qabstractsocket.html#SocketError-enum">SocketError</a> QAbstractSocket::error () const</h3>
 <p>Returns the type of error that last occurred.</p>
@@ -383,14 +385,14 @@
 <p>If msecs is -1, this function will not time out.</p>
 <p>See also <a href="qabstractsocket.html#disconnectFromHost">disconnectFromHost</a>() and <a href="qabstractsocket.html#close">close</a>().</p>
 <h3 class="fn"><a name="waitForReadyRead"></a>bool QAbstractSocket::waitForReadyRead ( int <i>msecs</i> = 30000 )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>This function blocks until data is available for reading and the <a href="qiodevice.html#readyRead">readyRead()</a> signal has been emitted. The function will timeout after <i>msecs</i> milliseconds; the default timeout is 3000 milliseconds.</p>
+<p>This function blocks until data is available for reading and the <a href="qiodevice.html#readyRead">readyRead()</a> signal has been emitted. The function will timeout after <i>msecs</i> milliseconds; the default timeout is 30000 milliseconds.</p>
 <p>The function returns true if the <a href="qiodevice.html#readyRead">readyRead</a>() signal is emitted and there is data available for reading; otherwise it returns false (if an error occurred or the operation timed out).</p>
 <p>Reimplemented from <a href="qiodevice.html#waitForReadyRead">QIODevice</a>.</p>
 <p>See also <a href="qiodevice.html#waitForBytesWritten">waitForBytesWritten</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

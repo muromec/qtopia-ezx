@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,9 +46,12 @@
 #include <qsqlindex.h>
 #include <qsqlrecord.h>
 #include <qsqlquery.h>
+#include <qsocketnotifier.h>
 #include <qstringlist.h>
+#include <qmutex.h>
 
 #include <libpq-fe.h>
+#include <pg_config.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -80,13 +77,15 @@
 #define QXIDOID 28
 #define QCIDOID 29
 
-Q_DECLARE_METATYPE(PGconn*)
-Q_DECLARE_METATYPE(PGresult*)
-
 /* This is a compile time switch - if PQfreemem is declared, the compiler will use that one,
    otherwise it'll run in this template */
 template <typename T>
 inline void PQfreemem(T *t, int = 0) { free(t); }
+
+Q_DECLARE_METATYPE(PGconn*)
+Q_DECLARE_METATYPE(PGresult*)
+
+QT_BEGIN_NAMESPACE
 
 inline void qPQfreemem(void *buffer)
 {
@@ -96,10 +95,12 @@ inline void qPQfreemem(void *buffer)
 class QPSQLDriverPrivate
 {
 public:
-    QPSQLDriverPrivate(): connection(0), isUtf8(false), pro(QPSQLDriver::Version6) {}
+    QPSQLDriverPrivate() : connection(0), isUtf8(false), pro(QPSQLDriver::Version6), sn(0) {}
     PGconn *connection;
     bool isUtf8;
     QPSQLDriver::Protocol pro;
+    QSocketNotifier *sn;
+    QStringList seid;
 
     void appendTables(QStringList &tl, QSqlQuery &t, QChar type);
 };
@@ -114,9 +115,9 @@ void QPSQLDriverPrivate::appendTables(QStringList &tl, QSqlQuery &t, QChar type)
                   "and (pg_class.relname !~ '^pg_') "
                   "and (pg_namespace.nspname != 'information_schema') ").arg(type);
     } else {
-        query = QString::fromLatin1("select relname, null from pg_class where (relkind = 'r') "
+        query = QString::fromLatin1("select relname, null from pg_class where (relkind = '%1') "
                   "and (relname !~ '^Inv') "
-                  "and (relname !~ '^pg_') ");
+                  "and (relname !~ '^pg_') ").arg(type);
     }
     t.exec(query);
     while (t.next()) {
@@ -131,12 +132,15 @@ void QPSQLDriverPrivate::appendTables(QStringList &tl, QSqlQuery &t, QChar type)
 class QPSQLResultPrivate
 {
 public:
-    QPSQLResultPrivate(QPSQLResult *qq): q(qq), driver(0), result(0), currentSize(-1) {}
+    QPSQLResultPrivate(QPSQLResult *qq): q(qq), driver(0), result(0), currentSize(-1), precisionPolicy(QSql::HighPrecision) {}
 
     QPSQLResult *q;
     const QPSQLDriverPrivate *driver;
     PGresult *result;
     int currentSize;
+    QSql::NumericalPrecisionPolicy precisionPolicy;
+    bool preparedQueriesEnabled;
+    QString preparedStmtId;
 
     bool processResults();
 };
@@ -217,16 +221,34 @@ static QVariant::Type qDecodePSQLType(int t)
     return type;
 }
 
+static void qDeallocatePreparedStmt(QPSQLResultPrivate *d)
+{
+    const QString stmt = QLatin1String("DEALLOCATE ") + d->preparedStmtId;
+    PGresult *result = PQexec(d->driver->connection,
+                              d->driver->isUtf8 ? stmt.toUtf8().constData()
+                                                : stmt.toLocal8Bit().constData());
+
+    if (PQresultStatus(result) != PGRES_COMMAND_OK)
+        qWarning("Unable to free statement: %s", PQerrorMessage(d->driver->connection));
+    PQclear(result);
+    d->preparedStmtId = QString();
+}
+
 QPSQLResult::QPSQLResult(const QPSQLDriver* db, const QPSQLDriverPrivate* p)
     : QSqlResult(db)
 {
     d = new QPSQLResultPrivate(this);
     d->driver = p;
+    d->preparedQueriesEnabled = db->hasFeature(QSqlDriver::PreparedQueries);
 }
 
 QPSQLResult::~QPSQLResult()
 {
     cleanup();
+
+    if (d->preparedQueriesEnabled && !d->preparedStmtId.isNull())
+        qDeallocatePreparedStmt(d);
+
     delete d;
 }
 
@@ -293,8 +315,22 @@ QVariant QPSQLResult::data(int i)
     case QVariant::Int:
         return atoi(val);
     case QVariant::Double:
-        if (ptype == QNUMERICOID)
+        if (ptype == QNUMERICOID) {
+            if (d->precisionPolicy != QSql::HighPrecision) {
+                QVariant retval;
+                bool convert;
+                if (d->precisionPolicy == QSql::LowPrecisionInt64)
+                    retval = QString::fromAscii(val).toLongLong(&convert);
+                else if (d->precisionPolicy == QSql::LowPrecisionInt32)
+                    retval = QString::fromAscii(val).toInt(&convert);
+                else if (d->precisionPolicy == QSql::LowPrecisionDouble)
+                    retval = QString::fromAscii(val).toDouble(&convert);
+                if (!convert)
+                    return QVariant();
+                return retval;
+            }
             return QString::fromAscii(val);
+        }
         return strtod(val, 0);
     case QVariant::Date:
         if (val[0] == '\0') {
@@ -420,6 +456,126 @@ QSqlRecord QPSQLResult::record() const
     return info;
 }
 
+void QPSQLResult::virtual_hook(int id, void *data)
+{
+    Q_ASSERT(data);
+
+    switch (id) {
+    case QSqlResult::SetNumericalPrecision:
+        d->precisionPolicy = *reinterpret_cast<QSql::NumericalPrecisionPolicy *>(data);
+        break;
+    default:
+        QSqlResult::virtual_hook(id, data);
+    }
+}
+
+static QString qReplacePlaceholderMarkers(const QString &query)
+{
+    const int originalLength = query.length();
+    bool inQuote = false;
+    int markerIdx = 0;
+    QString result;
+    result.reserve(originalLength + 23);
+    for (int i = 0; i < originalLength; ++i) {
+        const QChar ch = query.at(i);
+        if (ch == QLatin1Char('?') && !inQuote) {
+            result += QLatin1Char('$');
+            result += QString::number(++markerIdx);
+        } else {
+            if (ch == QLatin1Char('\''))
+                inQuote = !inQuote;
+            result += ch;
+        }
+    }
+
+    result.squeeze();
+    return result;
+}
+
+static QString qCreateParamString(const QVector<QVariant> boundValues, const QSqlDriver *driver)
+{
+    if (boundValues.isEmpty())
+        return QString();
+
+    QString params;
+    QSqlField f;
+    for (int i = 0; i < boundValues.count(); ++i) {
+        const QVariant &val = boundValues.at(i);
+
+        f.setType(val.type());
+        if (val.isNull())
+            f.clear();
+        else
+            f.setValue(val);
+        
+        params.append(driver->formatValue(f)).append(QLatin1String(", "));
+    }
+
+    params.chop(2);
+    return params;
+}
+
+Q_GLOBAL_STATIC(QMutex, qMutex)
+QString qMakePreparedStmtId()
+{
+    qMutex()->lock();
+    static unsigned int qPreparedStmtCount = 0;
+    QString id = QLatin1String("qpsqlpstmt_") + QString::number(++qPreparedStmtCount, 16);
+    qMutex()->unlock();
+    return id;
+}
+
+bool QPSQLResult::prepare(const QString &query)
+{
+    if (!d->preparedQueriesEnabled)
+        return QSqlResult::prepare(query);
+    
+    cleanup();
+
+    if (!d->preparedStmtId.isEmpty())
+        qDeallocatePreparedStmt(d);
+
+    const QString stmtId = qMakePreparedStmtId();
+    const QString stmt = QString(QLatin1String("PREPARE %1 AS ")).arg(stmtId).append(qReplacePlaceholderMarkers(query));
+
+    PGresult *result = PQexec(d->driver->connection,
+                              d->driver->isUtf8 ? stmt.toUtf8().constData()
+                                                : stmt.toLocal8Bit().constData());
+
+    if (PQresultStatus(result) != PGRES_COMMAND_OK) {
+        setLastError(qMakeError(QCoreApplication::translate("QPSQLResult",
+                                "Unable to prepare statement"), QSqlError::StatementError, d->driver));
+        PQclear(result);
+        d->preparedStmtId = QString();
+        return false;
+    }
+
+    PQclear(result);
+    d->preparedStmtId = stmtId;
+    return true;
+}
+
+bool QPSQLResult::exec()
+{
+    if (!d->preparedQueriesEnabled)
+        return QSqlResult::exec();
+
+    cleanup();
+
+    QString stmt;
+    const QString params = qCreateParamString(boundValues(), d->q->driver());
+    if (params.isEmpty())
+        stmt = QString(QLatin1String("EXECUTE %1")).arg(d->preparedStmtId);
+    else
+        stmt = QString(QLatin1String("EXECUTE %1 (%2)")).arg(d->preparedStmtId).arg(params);
+
+    d->result = PQexec(d->driver->connection,
+                       d->driver->isUtf8 ? stmt.toUtf8().constData()
+                                         : stmt.toLocal8Bit().constData());
+
+    return d->processResults();
+}
+
 ///////////////////////////////////////////////////////////////////
 
 static bool setEncodingUtf8(PGconn* connection)
@@ -441,6 +597,7 @@ static void setDatestyle(PGconn* connection)
 
 static QPSQLDriver::Protocol getPSQLVersion(PGconn* connection)
 {
+    QPSQLDriver::Protocol serverVersion = QPSQLDriver::Version6;
     PGresult* result = PQexec(connection, "select version()");
     int status =  PQresultStatus(result);
     if (status == PGRES_COMMAND_OK || status == PGRES_TUPLES_OK) {
@@ -451,25 +608,46 @@ static QPSQLDriver::Protocol getPSQLVersion(PGconn* connection)
         if (rx.indexIn(val) != -1) {
             int vMaj = rx.cap(1).toInt();
             int vMin = rx.cap(2).toInt();
-            if (vMaj < 6) {
-                qWarning("This version of PostgreSQL is not supported and may not work.");
-                return QPSQLDriver::Version6;
+
+            switch (vMaj) {
+            case 7:
+                switch (vMin) {
+                case 0:
+                    serverVersion = QPSQLDriver::Version7;
+                    break;
+                case 1:
+                case 2:
+                    serverVersion = QPSQLDriver::Version71;
+                    break;
+                default:
+                    serverVersion = QPSQLDriver::Version73;
+                    break;
+                }
+                break;
+            case 8:
+                switch (vMin) {
+                case 0:
+                    serverVersion = QPSQLDriver::Version8;
+                    break;
+                case 1:
+                    serverVersion = QPSQLDriver::Version81;
+                    break;
+                case 2:
+                default:
+                    serverVersion = QPSQLDriver::Version82;
+                    break;
+                }
+                break;
+            default:
+                break;
             }
-            if (vMaj == 6) {
-                return QPSQLDriver::Version6;
-            } else if (vMaj == 7) {
-                if (vMin < 1)
-                    return QPSQLDriver::Version7;
-                else if (vMin < 3)
-                    return QPSQLDriver::Version71;
-            }
-            return QPSQLDriver::Version73;
         }
-    } else {
-        qWarning("This version of PostgreSQL is not supported and may not work.");
     }
 
-    return QPSQLDriver::Version6;
+    if (serverVersion < QPSQLDriver::Version71)
+        qWarning("This version of PostgreSQL is not supported and may not work.");
+
+    return serverVersion;
 }
 
 QPSQLDriver::QPSQLDriver(QObject *parent)
@@ -478,7 +656,7 @@ QPSQLDriver::QPSQLDriver(QObject *parent)
     init();
 }
 
-QPSQLDriver::QPSQLDriver(PGconn * conn, QObject * parent)
+QPSQLDriver::QPSQLDriver(PGconn *conn, QObject *parent)
     : QSqlDriver(parent)
 {
     init();
@@ -513,13 +691,17 @@ bool QPSQLDriver::hasFeature(DriverFeature f) const
     case Transactions:
     case QuerySize:
     case LastInsertId:
-        return true;
-    case BatchOperations:
-    case PreparedQueries:
-    case NamedPlaceholders:
-    case PositionalPlaceholders:
-    case SimpleLocking:
     case LowPrecisionNumbers:
+    case EventNotifications:
+        return true;
+    case PreparedQueries:
+    case PositionalPlaceholders:
+        return d->pro >= QPSQLDriver::Version82;
+    case BatchOperations:
+    case NamedPlaceholders:
+    case SimpleLocking:
+    case FinishQuery:
+    case MultipleResultSets:
         return false;
     case BLOB:
         return d->pro >= QPSQLDriver::Version71;
@@ -573,10 +755,10 @@ bool QPSQLDriver::open(const QString & db,
 
     d->connection = PQconnectdb(connectString.toLocal8Bit().constData());
     if (PQstatus(d->connection) == CONNECTION_BAD) {
-        PQfinish(d->connection);
-        d->connection = 0;
         setLastError(qMakeError(tr("Unable to connect"), QSqlError::ConnectionError, d));
         setOpenError(true);
+        PQfinish(d->connection);
+        d->connection = 0;
         return false;
     }
 
@@ -592,6 +774,14 @@ bool QPSQLDriver::open(const QString & db,
 void QPSQLDriver::close()
 {
     if (isOpen()) {
+
+        d->seid.clear();
+        if (d->sn) {
+            disconnect(d->sn, SIGNAL(activated(int)), this, SLOT(_q_handleNotification(int)));
+            delete d->sn;
+            d->sn = 0;
+        }
+
         if (d->connection)
             PQfinish(d->connection);
         d->connection = 0;
@@ -722,11 +912,15 @@ QSqlIndex QPSQLDriver::primaryIndex(const QString& tablename) const
                 "order by pg_att2.attnum");
         break;
     case QPSQLDriver::Version73:
+    case QPSQLDriver::Version74:
+    case QPSQLDriver::Version8:
+    case QPSQLDriver::Version81:
+    case QPSQLDriver::Version82:
         stmt = QLatin1String("SELECT pg_attribute.attname, pg_attribute.atttypid::int, "
                 "pg_class.relname "
                 "FROM pg_attribute, pg_class "
-                "WHERE %1 pg_class.oid = "
-                "(SELECT indexrelid FROM pg_index WHERE indisprimary = true AND indrelid = "
+                "WHERE %1 pg_class.oid IN "
+                "(SELECT indexrelid FROM pg_index WHERE indisprimary = true AND indrelid IN "
                 " (SELECT oid FROM pg_class WHERE lower(relname) = '%2')) "
                 "AND pg_attribute.attrelid = pg_class.oid "
                 "AND pg_attribute.attisdropped = false "
@@ -791,6 +985,10 @@ QSqlRecord QPSQLDriver::record(const QString& tablename) const
                 "order by pg_attribute.attnum ");
         break;
     case QPSQLDriver::Version73:
+    case QPSQLDriver::Version74:
+    case QPSQLDriver::Version8:
+    case QPSQLDriver::Version81:
+    case QPSQLDriver::Version82:
         stmt = QLatin1String("select pg_attribute.attname, pg_attribute.atttypid::int, "
                 "pg_attribute.attnotnull, pg_attribute.attlen, pg_attribute.atttypmod, "
                 "pg_attrdef.adsrc "
@@ -917,7 +1115,11 @@ QString QPSQLDriver::formatValue(const QSqlField &field, bool trimStrings) const
         case QVariant::ByteArray: {
             QByteArray ba(field.value().toByteArray());
             size_t len;
+#if defined PG_VERSION_NUM && PG_VERSION_NUM-0 >= 80200
+            unsigned char *data = PQescapeByteaConn(d->connection, (unsigned char*)ba.constData(), ba.size(), &len);
+#else
             unsigned char *data = PQescapeBytea((unsigned char*)ba.constData(), ba.size(), &len);
+#endif
             r += QLatin1Char('\'');
             r += QLatin1String((const char*)data);
             r += QLatin1Char('\'');
@@ -950,3 +1152,94 @@ QPSQLDriver::Protocol QPSQLDriver::protocol() const
 {
     return d->pro;
 }
+
+bool QPSQLDriver::subscribeToNotificationImplementation(const QString &name)
+{
+    if (!isOpen()) {
+        qWarning("QPSQLDriver::subscribeToNotificationImplementation: database not open.");
+        return false;
+    }
+
+    if (d->seid.contains(name)) {
+        qWarning("QPSQLDriver::subscribeToNotificationImplementation: already subscribing to '%s'.",
+            qPrintable(name));
+        return false;
+    }
+    
+    int socket = PQsocket(d->connection);
+    if (socket) {
+        QString query = QString(QLatin1String("LISTEN %1")).arg(escapeIdentifier(name, QSqlDriver::TableName));
+        if (PQresultStatus(PQexec(d->connection, 
+                                  d->isUtf8 ? query.toUtf8().constData() 
+                                            : query.toLocal8Bit().constData())
+                          ) != PGRES_COMMAND_OK) {
+            setLastError(qMakeError(tr("Unable to subscribe"), QSqlError::StatementError, d));
+            return false;
+        }
+
+        if (!d->sn) {
+            d->sn = new QSocketNotifier(socket, QSocketNotifier::Read);
+            connect(d->sn, SIGNAL(activated(int)), this, SLOT(_q_handleNotification(int)));
+        }
+    }
+
+    d->seid << name;
+    return true;
+}
+
+bool QPSQLDriver::unsubscribeFromNotificationImplementation(const QString &name)
+{
+    if (!isOpen()) {
+        qWarning("QPSQLDriver::unsubscribeFromNotificationImplementation: database not open.");
+        return false;
+    }
+
+    if (!d->seid.contains(name)) {
+        qWarning("QPSQLDriver::unsubscribeFromNotificationImplementation: not subscribed to '%s'.",
+            qPrintable(name));
+        return false;
+    }
+
+    QString query = QString(QLatin1String("UNLISTEN %1")).arg(escapeIdentifier(name, QSqlDriver::TableName));
+    if (PQresultStatus(PQexec(d->connection, 
+                              d->isUtf8 ? query.toUtf8().constData() 
+                                        : query.toLocal8Bit().constData())
+                      ) != PGRES_COMMAND_OK) {
+        setLastError(qMakeError(tr("Unable to unsubscribe"), QSqlError::StatementError, d));
+        return false;
+    }
+
+    d->seid.removeAll(name);
+
+    if (d->seid.isEmpty()) {
+        disconnect(d->sn, SIGNAL(activated(int)), this, SLOT(_q_handleNotification(int)));
+        delete d->sn;
+        d->sn = 0;
+    }
+
+    return true;
+}
+
+QStringList QPSQLDriver::subscribedToNotificationsImplementation() const
+{
+    return d->seid;
+}
+
+void QPSQLDriver::_q_handleNotification(int)
+{
+    PQconsumeInput(d->connection);
+    PGnotify *notify = PQnotifies(d->connection);
+    if (notify) {
+        QString name(QLatin1String(notify->relname));
+
+        if (d->seid.contains(name))
+            emit notification(name);
+        else
+            qWarning("QPSQLDriver: received notification for '%s' which isn't subscribed to.", 
+                qPrintable(name));
+
+        qPQfreemem(notify);
+    }
+}
+
+QT_END_NAMESPACE

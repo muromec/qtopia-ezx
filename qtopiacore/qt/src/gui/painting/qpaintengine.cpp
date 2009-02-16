@@ -1,46 +1,39 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
-
 #include "qpaintengine.h"
 #include "qpaintengine_p.h"
 #include "qpainter_p.h"
@@ -48,53 +41,102 @@
 #include "qbitmap.h"
 #include "qapplication.h"
 #include <qdebug.h>
+#include <qmath.h>
 #include <private/qtextengine_p.h>
-#include <private/qmath_p.h>
 #include <qvarlengtharray.h>
+#include <private/qfontengine_p.h>
+
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QTextItem
-    \internal
+
+    \brief The QTextItem class provides all the information required to draw
+    text in a custom paint engine.
+
+    When you reimplement your own paint engine, you must reimplement
+    QPaintEngine::drawTextItem(), a function that takes a QTextItem as
+    one of its arguments.
 */
 
+/*!
+  \enum QTextItem::RenderFlag
+
+  \value  RightToLeft Render the text from right to left.
+  \value  Overline    Paint a line above the text.
+  \value  Underline   Paint a line under the text.
+  \value  StrikeOut   Paint a line through the text.
+  \omitvalue Dummy
+*/
+
+
+/*!
+    \fn qreal QTextItem::descent() const
+
+    Corresponds to the \l{QFontMetrics::descent()}{descent} of the piece of text that is drawn.
+*/
 qreal QTextItem::descent() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return ti->descent.toReal();
 }
 
+/*!
+    \fn qreal QTextItem::ascent() const
+
+    Corresponds to the \l{QFontMetrics::ascent()}{ascent} of the piece of text that is drawn.
+*/
 qreal QTextItem::ascent() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return ti->ascent.toReal();
 }
 
+/*!
+    \fn qreal QTextItem::width() const
+
+    Specifies the total width of the text to be drawn.
+*/
 qreal QTextItem::width() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return ti->width.toReal();
 }
 
+/*!
+    \fn QTextItem::RenderFlags QTextItem::renderFlags() const
+
+    Returns the render flags used.
+*/
 QTextItem::RenderFlags QTextItem::renderFlags() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return ti->flags;
 }
 
+/*!
+    \fn QString QTextItem::text() const
+
+    Returns the text that should be drawn.
+*/
 QString QTextItem::text() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return QString(ti->chars, ti->num_chars);
 }
 
+/*!
+    \fn QFont QTextItem::font() const
+
+    Returns the font that should be used to draw the text.
+*/
 QFont QTextItem::font() const
 {
     const QTextItemInt *ti = static_cast<const QTextItemInt *>(this);
     return ti->f ? *ti->f : QApplication::font();
 }
 
-
-#include <private/qfontengine_p.h>
 
 /*!
   \class QPaintEngine
@@ -151,6 +193,13 @@ QFont QTextItem::font() const
   \value LinearGradientFill The engine supports linear gradient fills.
   \value MaskedBrush        The engine is capable of rendering brushes that has a
                             texture with an alpha channel or a mask.
+  \value ObjectBoundingModeGradients The engine has native support for gradients
+                            with coordinate mode QGradient::ObjectBoundingMode.
+                            Otherwise, if QPaintEngine::PatternTransform is
+                            supported, object bounding mode gradients are
+                            converted to gradients with coordinate mode
+                            QGradient::LogicalMode and a brush transform for
+                            the coordinate mapping.
   \value PainterPaths       The engine has path support.
   \value PaintOutsidePaintEvent The engine is capable of painting outside of
                                 paint events.
@@ -245,6 +294,7 @@ QFont QTextItem::font() const
     from QPainters state to the native state is required.
 */
 
+
 static QPaintEngine *qt_polygon_recursion = 0;
 struct QT_Point {
     int x;
@@ -259,9 +309,7 @@ struct QT_Point {
     by the \a pointCount first points in \a points, using mode \a
     mode.
 
-    The default implementation of this function will try to use drawPath
-    if the engine supports the feature QPaintEngine::PainterPaths or try
-    the float based drawPolygon() implementation if not.
+    \note At least one of the drawPolygon() functions must be reimplemented.
 */
 void QPaintEngine::drawPolygon(const QPointF *points, int pointCount, PolygonDrawMode mode)
 {
@@ -288,9 +336,7 @@ struct QT_PointF {
     Reimplement this virtual function to draw the polygon defined by the
     \a pointCount first points in \a points, using mode \a mode.
 
-    The default implementation of this function will try to use drawPath()
-    if the engine supports the feature QPaintEngine::PainterPaths or try
-    the int based drawPolygon() implementation if not.
+    \note At least one of the drawPolygon() functions must be reimplemented.
 */
 void QPaintEngine::drawPolygon(const QPoint *points, int pointCount, PolygonDrawMode mode)
 {
@@ -315,13 +361,14 @@ void QPaintEngine::drawPolygon(const QPoint *points, int pointCount, PolygonDraw
     \value MacPrinter
     \value CoreGraphics Mac OS X's Quartz2D (CoreGraphics)
     \value QuickDraw Mac OS X's QuickDraw
-    \value QWindowSystem Qtopia Core
+    \value QWindowSystem Qt for Embedded Linux
     \value PostScript
     \value OpenGL
     \value Picture QPicture format
     \value SVG Scalable Vector Graphics XML format
     \value Raster
     \value Direct3D Windows only, Direct3D based engine
+    \value Pdf Portable Document Format
     \value User First user type ID
     \value MaxUser Last user type ID
 */
@@ -531,8 +578,6 @@ void QPaintEngine::drawImage(const QRectF &r, const QImage &image, const QRectF 
     if (baseSize != sr)
         im = im.copy(qFloor(sr.x()), qFloor(sr.y()),
                      qCeil(sr.width()), qCeil(sr.height()));
-    if (im.depth() == 1)
-        im = im.convertToFormat(QImage::Format_RGB32);
     QPixmap pm = QPixmap::fromImage(im, flags);
     drawPixmap(r, pm, QRectF(QPointF(0, 0), pm.size()));
 }
@@ -681,6 +726,13 @@ void QPaintEngine::drawLines(const QLineF *lines, int lineCount)
 {
     for (int i=0; i<lineCount; ++i) {
         QPointF pts[2] = { lines[i].p1(), lines[i].p2() };
+
+        if (pts[0] == pts[1]) {
+            if (state->pen().capStyle() != Qt::FlatCap)
+                drawPoints(pts, 1);
+            continue;
+        }
+
         drawPolygon(pts, 2, PolylineMode);
     }
 }
@@ -896,3 +948,33 @@ QRect QPaintEngine::systemRect() const
 {
     return d_func()->systemRect;
 }
+
+void QPaintEnginePrivate::drawBoxTextItem(const QPointF &p, const QTextItemInt &ti)
+{
+    if (!ti.num_glyphs)
+        return;
+
+    // any fixes here should probably also be done in QFontEngineBox::draw
+    const int size = qRound(ti.fontEngine->ascent());
+    QVarLengthArray<QFixedPoint> positions;
+    QVarLengthArray<glyph_t> glyphs;
+    QTransform matrix;
+    matrix.translate(p.x(), p.y() - size);
+    ti.fontEngine->getGlyphPositions(ti.glyphs, ti.num_glyphs, matrix, ti.flags, glyphs, positions);
+    if (glyphs.size() == 0)
+        return;
+
+    QSize s(size - 3, size - 3);
+
+    QPainter *painter = q_func()->state->painter();
+    painter->save();
+    painter->setBrush(Qt::NoBrush);
+    QPen pen = painter->pen();
+    pen.setWidthF(ti.fontEngine->lineThickness().toReal());
+    painter->setPen(pen);
+    for (int k = 0; k < positions.size(); k++)
+        painter->drawRect(QRectF(positions[k].toPointF(), s));
+    painter->restore();
+}
+
+QT_END_NAMESPACE

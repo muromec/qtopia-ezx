@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/graphicsview/qgraphicsitem.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/graphicsview/qgraphicsitem.cpp -->
 <head>
-  <title>Qt 4.3: QGraphicsTextItem Class Reference</title>
+  <title>Qt 4.4: QGraphicsTextItem Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QGraphicsTextItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QGraphicsTextItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QGraphicsTextItem class provides a text item that you can add to a <a href="qgraphicsscene.html">QGraphicsScene</a> to display formatted text. <a href="#details">More...</a></p>
 <pre> #include &lt;QGraphicsTextItem&gt;</pre><p>Inherits <a href="qobject.html">QObject</a> and <a href="qgraphicsitem.html">QGraphicsItem</a>.</p>
@@ -57,7 +57,7 @@
 </ul>
 <ul>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>114 public functions inherited from <a href="qgraphicsitem.html#public-functions">QGraphicsItem</a></li>
+<li><div class="fn"/>132 public functions inherited from <a href="qgraphicsitem.html#public-functions">QGraphicsItem</a></li>
 </ul>
 <a name="signals"></a>
 <h3>Signals</h3>
@@ -82,14 +82,14 @@
 <p>The QGraphicsTextItem class provides a text item that you can add to a <a href="qgraphicsscene.html">QGraphicsScene</a> to display formatted text.</p>
 <p>To set the item's text, pass a <a href="qstring.html">QString</a> to QGraphicsTextItem's constructor, or call <a href="qgraphicstextitem.html#setHtml">setHtml</a>()/<a href="qgraphicstextitem.html#setPlainText">setPlainText</a>().</p>
 <p>QGraphicsTextItem uses the text's formatted size and the associated font to provide a reasonable implementation of <a href="qgraphicsitem.html#boundingRect">boundingRect</a>(), <a href="qgraphicsitem.html#shape">shape</a>(), and <a href="qgraphicsitem.html#contains">contains</a>(). You can set the font by calling <a href="qgraphicstextitem.html#setFont">setFont</a>().</p>
-<p>It is possible to make the item editable by setting the <a href="qt.html#TextInteractionFlag-enum">Qt::TextEditable</a> flag using <a href="qgraphicstextitem.html#setTextInteractionFlags">setTextInteractionFlags</a>().</p>
+<p>It is possible to make the item editable by setting the <a href="qt.html#TextInteractionFlag-enum">Qt::TextEditorInteraction</a> flag using <a href="qgraphicstextitem.html#setTextInteractionFlags">setTextInteractionFlags</a>().</p>
 <p>The item's preferred text width can be set using <a href="qgraphicstextitem.html#setTextWidth">setTextWidth</a>() and obtained using <a href="qgraphicstextitem.html#textWidth">textWidth</a>().</p>
 <p><b>Note:</b> In order to align HTML text in the center, the item's text width must be set.</p>
 <p align="center"><img src="images/graphicsview-textitem.png" /></p><p>See also <a href="qgraphicssimpletextitem.html">QGraphicsSimpleTextItem</a>, <a href="qgraphicspathitem.html">QGraphicsPathItem</a>, <a href="qgraphicsrectitem.html">QGraphicsRectItem</a>, <a href="qgraphicsellipseitem.html">QGraphicsEllipseItem</a>, <a href="qgraphicspixmapitem.html">QGraphicsPixmapItem</a>, <a href="qgraphicspolygonitem.html">QGraphicsPolygonItem</a>, <a href="qgraphicslineitem.html">QGraphicsLineItem</a>, and <a href="graphicsview.html">The Graphics View Framework</a>.</p>
 <hr />
 <h2>Property Documentation</h2>
 <h3 class="fn"><a name="openExternalLinks-prop"></a>openExternalLinks : bool</h3>
-<p>Specifies whether <a href="qgraphicstextitem.html">QGraphicsTextItem</a> should automatically open links using <a href="qdesktopservices.html#openUrl">QDesktopServices::openUrl</a>() instead of emitting the anchorClicked signal.</p>
+<p>Specifies whether <a href="qgraphicstextitem.html">QGraphicsTextItem</a> should automatically open links using <a href="qdesktopservices.html#openUrl">QDesktopServices::openUrl</a>() instead of emitting the linkActivated signal.</p>
 <p>The default value is false.</p>
 <p>Access functions:</p>
 <ul>
@@ -98,6 +98,7 @@
 </ul>
 <h3 class="fn"><a name="textCursor-prop"></a>textCursor : <a href="qtextcursor.html">QTextCursor</a></h3>
 <p>This property represents the visible text cursor in an editable text item.</p>
+<p>By default, if the item's text has not been set, this property contains a null text cursor; otherwise it contains a text cursor placed at the start of the item's document.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QTextCursor textCursor () const</b></li>
@@ -154,13 +155,15 @@
 <p>Sets the preferred width for the item's text. If the actual text is wider than the specified width then it will be broken into multiple lines.</p>
 <p>If <i>width</i> is set to -1 then the text will not be broken into multiple lines unless it is enforced through an explicit line break or a new paragraph.</p>
 <p>The default value is -1.</p>
-<p>See also <a href="qgraphicstextitem.html#textWidth">textWidth</a>().</p>
+<p>Note that <a href="qgraphicstextitem.html">QGraphicsTextItem</a> keeps a <a href="qtextdocument.html">QTextDocument</a> internally, which is used to calculate the text width.</p>
+<p>See also <a href="qgraphicstextitem.html#textWidth">textWidth</a>() and <a href="qtextdocument.html#textWidth-prop">QTextDocument::setTextWidth</a>().</p>
 <h3 class="fn"><a name="textInteractionFlags"></a><a href="qt.html#TextInteractionFlag-enum">Qt::TextInteractionFlags</a> QGraphicsTextItem::textInteractionFlags () const</h3>
 <p>Returns the current text interaction flags.</p>
 <p>See also <a href="qgraphicstextitem.html#setTextInteractionFlags">setTextInteractionFlags</a>().</p>
 <h3 class="fn"><a name="textWidth"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QGraphicsTextItem::textWidth () const</h3>
 <p>Returns the text width.</p>
-<p>See also <a href="qgraphicstextitem.html#setTextWidth">setTextWidth</a>().</p>
+<p>The width is calculated with the <a href="qtextdocument.html">QTextDocument</a> that <a href="qgraphicstextitem.html">QGraphicsTextItem</a> keeps internally.</p>
+<p>See also <a href="qgraphicstextitem.html#setTextWidth">setTextWidth</a>() and <a href="qtextdocument.html#textWidth-prop">QTextDocument::textWidth</a>().</p>
 <h3 class="fn"><a name="toHtml"></a><a href="qstring.html">QString</a> QGraphicsTextItem::toHtml () const</h3>
 <p>Returns the item's text converted to HTML, or an empty <a href="qstring.html">QString</a> if no text has been set.</p>
 <p>See also <a href="qgraphicstextitem.html#setHtml">setHtml</a>().</p>
@@ -169,8 +172,8 @@
 <p>See also <a href="qgraphicstextitem.html#setPlainText">setPlainText</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,7 @@
 #include "qdebug.h"
 #include "private/qlayoutengine_p.h"
 
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QScrollArea
@@ -70,15 +65,7 @@
     widget can be viewed. The child widget must be specified with
     setWidget(). For example:
 
-    \code
-        QLabel *imageLabel = new QLabel;
-        QImage image("happyguy.png");
-        imageLabel->setPixmap(QPixmap::fromImage(image));
-
-        scrollArea = new QScrollArea;
-        scrollArea->setBackgroundRole(QPalette::Dark);
-        scrollArea->setWidget(imageLabel);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qscrollarea.cpp 0
 
     The code above creates a scroll area (shown in the images below)
     containing an image label. When scaling the image, the scroll area
@@ -113,6 +100,13 @@
     function. The alignment of the widget can be specified with
     setAlignment().
 
+    Two convenience functions ensureVisible() and
+    ensureWidgetVisible() ensure a certain region of the contents is
+    visible inside the viewport, by scrolling the contents if
+    necessary.
+
+    \section1 Size Hints and Layouts
+
     When using a scroll area to display the contents of a custom
     widget, it is important to ensure that the
     \l{QWidget::sizeHint}{size hint} of the child widget is set to a
@@ -121,10 +115,16 @@
     ensure that the contents of the widget are shown correctly within
     the scroll area.
 
-    Two convenience functions ensureVisible() and
-    ensureWidgetVisible() ensure a certain region of the contents is
-    visible inside the viewport, by scrolling the contents if
-    necessary.
+    If a scroll area is used to display the contents of a widget that
+    contains child widgets arranged in a layout, it is important to
+    realise that the size policy of the layout will also determine the
+    size of the widget. This is especially useful to know if you intend
+    to dynamically change the contents of the layout. In such cases,
+    setting the layout's \l{QLayout::sizeConstraint}{size constraint}
+    property to one which provides constraints on the minimum and/or
+    maximum size of the layout (e.g., QLayout::SetMinAndMaxSize) will
+    cause the size of the the scroll area to be updated whenever the
+    contents of the layout changes.
 
     For a complete example using the QScrollArea class, see the \l
     {widgets/imageviewer}{Image Viewer} example. The example shows how
@@ -191,6 +191,15 @@ void QScrollAreaPrivate::updateScrollBars()
 
     QSize min = qSmartMinSize(widget);
     QSize max = qSmartMaxSize(widget);
+
+    if (resizable) {
+        if ((widget->layout() ? widget->layout()->hasHeightForWidth() : widget->sizePolicy().hasHeightForWidth())) {
+            QSize p_hfw = p.expandedTo(min).boundedTo(max);
+            int h = widget->heightForWidth( p_hfw.width() );
+            min = QSize(p_hfw.width(), qMax(p_hfw.height(), h));
+        }
+    }
+
     if ((resizable && m.expandedTo(min) == m && m.boundedTo(max) == m)
         || (!resizable && m.expandedTo(widget->size()) == m))
         p = m; // no scroll bars needed
@@ -227,9 +236,18 @@ QWidget *QScrollArea::widget() const
     The \a widget becomes a child of the scroll area, and will be
     destroyed when the scroll area is deleted or when a new widget is
     set.
+    
+    The widget's \l{QWidget::setAutoFillBackground()}{autoFillBackground}
+    property will be set to \c{true}.
 
-    Note that if the scroll area is visible when the \a widget is
+    If the scroll area is visible when the \a widget is
     added, you must \l{QWidget::}{show()} it explicitly.
+
+    Note that You must add the layout of \a widget before you call
+    this function; if you add it later, the \a widget will not be
+    visible - regardless of when you \l{QWidget::}{show()} the scroll
+    area. In this case, you can also not \l{QWidget::}{show()} the \a
+    widget later.
 
     \sa widget()
 */
@@ -493,5 +511,7 @@ Qt::Alignment QScrollArea::alignment() const
     Q_D(const QScrollArea);
     return d->alignment;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCROLLAREA

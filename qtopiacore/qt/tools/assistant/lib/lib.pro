@@ -1,77 +1,62 @@
-TEMPLATE        = lib
-QT += network
-TARGET                = QtAssistantClient
-isEmpty(QT_MAJOR_VERSION) {
-   VERSION=4.3.0
-} else {
-   VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
+QT += sql xml network
+TEMPLATE = lib
+TARGET = QtHelp
+DEFINES += QHELP_LIB QT_CLUCENE_SUPPORT
+CONFIG += qt warn_on
+
+include(../../../src/qbase.pri)
+
+QMAKE_TARGET_PRODUCT = Help
+QMAKE_TARGET_DESCRIPTION = Help application framework.
+DEFINES -= QT_ASCII_CAST_WARNINGS
+
+qclucene = QtCLucene$${QT_LIBINFIX}
+if(!debug_and_release|build_pass):CONFIG(debug, debug|release) {
+    mac:qclucene = $${qclucene}_debug
+    win32:qclucene = $${qclucene}d
 }
+LIBS += -l$$qclucene
 
-CONFIG                += qt warn_on
-mac|win32:CONFIG                += debug_and_release
-mac:unix:CONFIG       += explicitlib
-CONFIG                -= dll
+RESOURCES += helpsystem.qrc
 
-HEADERS         = qassistantclient.h \
-                  qassistantclient_global.h
-SOURCES         = qassistantclient.cpp
+SOURCES += qhelpenginecore.cpp \
+           qhelpengine.cpp \
+           qhelpdbreader.cpp \
+           qhelpcontentwidget.cpp \
+           qhelpindexwidget.cpp \
+           qhelpgenerator.cpp \
+           qhelpdatainterface.cpp \
+           qhelpprojectdata.cpp \
+           qhelpcollectionhandler.cpp \
+           qhelpsearchengine.cpp \
+           qhelpsearchquerywidget.cpp \
+           qhelpsearchresultwidget.cpp \
+           qhelpsearchindex_default.cpp \
+           qhelpsearchindexwriter_default.cpp \
+           qhelpsearchindexreader_default.cpp
 
-DESTDIR                = ../../../lib
-DLLDESTDIR             = ../../../bin
+# access to clucene
+SOURCES += qhelpsearchindexwriter_clucene.cpp \
+           qhelpsearchindexreader_clucene.cpp
 
-unix {
-        QMAKE_CFLAGS += $$QMAKE_CFLAGS_SHLIB
-        QMAKE_CXXFLAGS += $$QMAKE_CXXFLAGS_SHLIB
-}
+HEADERS += qhelpenginecore.h \
+           qhelpengine.h \
+           qhelpengine_p.h \
+           qhelp_global.h \
+           qhelpdbreader_p.h \
+           qhelpcontentwidget.h \
+           qhelpindexwidget.h \
+           qhelpgenerator_p.h \
+           qhelpdatainterface_p.h \
+           qhelpprojectdata_p.h \
+           qhelpcollectionhandler_p.h \
+           qhelpsearchengine.h \
+           qhelpsearchquerywidget.h \
+           qhelpsearchresultwidget.h \
+           qhelpsearchindex_default_p.h \
+           qhelpsearchindexwriter_default_p.h \
+           qhelpsearchindexreader_default_p.h
 
-DEFINES += QT_ASSISTANT_CLIENT_LIBRARY
-contains(CONFIG, static) {
-    DEFINES += QT_ASSISTANT_CLIENT_STATIC
-}
-
-#load up the headers info
-CONFIG += qt_install_headers
-HEADERS_PRI = $$QT_BUILD_TREE/include/QtAssistant/headers.pri
-include($$HEADERS_PRI)|clear(HEADERS_PRI)
-
-#mac frameworks
-mac:!static:contains(QT_CONFIG, qt_framework) {
-   TARGET = QtAssistant    # Change the name to match the headers
-   QMAKE_FRAMEWORK_BUNDLE_NAME = $$TARGET
-   CONFIG += lib_bundle qt_no_framework_direct_includes qt_framework
-   CONFIG(debug, debug|release) {
-      !build_pass:CONFIG += build_all
-   } else { #release
-      !debug_and_release|build_pass {
-	  CONFIG -= qt_install_headers #no need to install these as well
-	  FRAMEWORK_HEADERS.version = Versions
-	  FRAMEWORK_HEADERS.files = $$SYNCQT.HEADER_FILES $$SYNCQT.HEADER_CLASSES
-      	  FRAMEWORK_HEADERS.path = Headers
-      }
-      QMAKE_BUNDLE_DATA += FRAMEWORK_HEADERS
-   }
-}
-
-TARGET = $$qtLibraryTarget($$TARGET) #done towards the end
-
-target.path=$$[QT_INSTALL_LIBS]
-INSTALLS        += target
-win32 {
-    dlltarget.path=$$[QT_INSTALL_BINS]
-    INSTALLS += dlltarget
-}
-
-qt_install_headers {
-    assistant_headers.files = $$SYNCQT.HEADER_FILES $$SYNCQT.HEADER_CLASSES
-    assistant_headers.path = $$[QT_INSTALL_HEADERS]/QtAssistant
-    INSTALLS        += assistant_headers
-}
-
-unix {
-   CONFIG     += create_pc
-   QMAKE_PKGCONFIG_LIBDIR = $$[QT_INSTALL_LIBS]
-   QMAKE_PKGCONFIG_INCDIR = $$[QT_INSTALL_HEADERS]/$$TARGET
-   QMAKE_PKGCONFIG_CFLAGS = -I$$[QT_INSTALL_HEADERS]
-   QMAKE_PKGCONFIG_DESTDIR = pkgconfig
-}
-
+# access to clucene
+HEADERS += qhelpsearchindexwriter_clucene_p.h \
+           qhelpsearchindexreader_clucene_p.h

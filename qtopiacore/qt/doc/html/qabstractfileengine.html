@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qabstractfileengine.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qabstractfileengine.cpp -->
 <head>
-  <title>Qt 4.3: QAbstractFileEngine Class Reference</title>
+  <title>Qt 4.4: QAbstractFileEngine Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QAbstractFileEngine Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QAbstractFileEngine Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QAbstractFileEngine class provides an abstraction for accessing the filesystem. <a href="#details">More...</a></p>
 <pre> #include &lt;QAbstractFileEngine&gt;</pre><p>Inherited by <a href="qfsfileengine.html">QFSFileEngine</a>.</p>
@@ -26,7 +26,10 @@
 <ul>
 <li><div class="fn"/>class <b><a href="qabstractfileengine-extensionoption.html">ExtensionOption</a></b></li>
 <li><div class="fn"/>class <b><a href="qabstractfileengine-extensionreturn.html">ExtensionReturn</a></b></li>
-<li><div class="fn"/>enum <b><a href="qabstractfileengine.html#Extension-enum">Extension</a></b> { AtEndExtension, FastReadLineExtension }</li>
+<li><div class="fn"/>class <b><a href="qabstractfileengine-mapextensionoption.html">MapExtensionOption</a></b></li>
+<li><div class="fn"/>class <b><a href="qabstractfileengine-mapextensionreturn.html">MapExtensionReturn</a></b></li>
+<li><div class="fn"/>class <b><a href="qabstractfileengine-unmapextensionoption.html">UnMapExtensionOption</a></b></li>
+<li><div class="fn"/>enum <b><a href="qabstractfileengine.html#Extension-enum">Extension</a></b> { AtEndExtension, FastReadLineExtension, MapExtension, UnMapExtension }</li>
 <li><div class="fn"/>enum <b><a href="qabstractfileengine.html#FileFlag-enum">FileFlag</a></b> { ReadOwnerPerm, WriteOwnerPerm, ExeOwnerPerm, ReadUserPerm, ..., Refresh }</li>
 <li><div class="fn"/>flags <b><a href="qabstractfileengine.html#FileFlag-enum">FileFlags</a></b></li>
 <li><div class="fn"/>enum <b><a href="qabstractfileengine.html#FileName-enum">FileName</a></b> { DefaultName, BaseName, PathName, AbsoluteName, ..., BundleName }</li>
@@ -55,6 +58,7 @@
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#isRelativePath">isRelativePath</a></b> () const</li>
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#isSequential">isSequential</a></b> () const</li>
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#link">link</a></b> ( const QString &amp; <i>newName</i> )</li>
+<li><div class="fn"/>uchar * <b><a href="qabstractfileengine.html#map">map</a></b> ( qint64 <i>offset</i>, qint64 <i>size</i>, QFile::MemoryMapFlags <i>flags</i> )</li>
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#mkdir">mkdir</a></b> ( const QString &amp; <i>dirName</i>, bool <i>createParentDirectories</i> ) const</li>
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#open">open</a></b> ( QIODevice::OpenMode <i>mode</i> )</li>
 <li><div class="fn"/>virtual QString <b><a href="qabstractfileengine.html#owner">owner</a></b> ( FileOwner <i>owner</i> ) const</li>
@@ -71,6 +75,7 @@
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#setSize">setSize</a></b> ( qint64 <i>size</i> )</li>
 <li><div class="fn"/>virtual qint64 <b><a href="qabstractfileengine.html#size">size</a></b> () const</li>
 <li><div class="fn"/>virtual bool <b><a href="qabstractfileengine.html#supportsExtension">supportsExtension</a></b> ( Extension <i>extension</i> ) const</li>
+<li><div class="fn"/>bool <b><a href="qabstractfileengine.html#unmap">unmap</a></b> ( uchar * <i>address</i> )</li>
 <li><div class="fn"/>virtual qint64 <b><a href="qabstractfileengine.html#write">write</a></b> ( const char * <i>data</i>, qint64 <i>len</i> )</li>
 </ul>
 <a name="static-public-members"></a>
@@ -105,6 +110,8 @@
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
 <tr><td valign="top"><tt>QAbstractFileEngine::AtEndExtension</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">Whether the current file position is at the end of the file or not. This extension allows file engines that implement local buffering to report end-of-file status without having to check the size of the file. It is also useful for sequential files, where the size of the file cannot be used to determine whether or not you have reached the end. This extension returns true if the file is at the end; otherwise it returns false. The input and output arguments to <a href="qabstractfileengine.html#extension">extension</a>() are ignored.</td></tr>
 <tr><td valign="top"><tt>QAbstractFileEngine::FastReadLineExtension</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">Whether the file engine provides a fast implementation for <a href="qabstractfileengine.html#readLine">readLine</a>() or not. If <a href="qabstractfileengine.html#readLine">readLine</a>() remains unimplemented in the file engine, <a href="qabstractfileengine.html">QAbstractFileEngine</a> will provide an implementation based on calling <a href="qabstractfileengine.html#read">read</a>() repeatedly. If <a href="qabstractfileengine.html#supportsExtension">supportsExtension</a>() returns false for this extension, however, <a href="qiodevice.html">QIODevice</a> can provide a faster implementation by making use of its internal buffer. For engines that already provide a fast <a href="qabstractfileengine.html#readLine">readLine</a>() implementation, returning false for this extension can avoid unnnecessary double-buffering in <a href="qiodevice.html">QIODevice</a>.</td></tr>
+<tr><td valign="top"><tt>QAbstractFileEngine::MapExtension</tt></td><td align="center" valign="top"><tt>2</tt></td><td valign="top">Whether the file engine provides the ability to map a file to memory.</td></tr>
+<tr><td valign="top"><tt>QAbstractFileEngine::UnMapExtension</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">Whether the file engine provides the ability to unmap memory that was previously mapped.</td></tr>
 </table></p>
 <p>This enum was introduced in Qt 4.3.</p>
 <h3 class="flags"><a name="FileFlag-enum"></a>enum QAbstractFileEngine::FileFlag<br />flags QAbstractFileEngine::FileFlags</h3>
@@ -244,6 +251,12 @@
 <p>Operations involving <a href="qabstractfileengine.html#size">size</a>() and seek(int) are not valid on sequential devices.</p>
 <h3 class="fn"><a name="link"></a>bool QAbstractFileEngine::link ( const <a href="qstring.html">QString</a> &amp; <i>newName</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Creates a link from the file currently specified by <a href="qabstractfileengine.html#fileName">fileName</a>() to <i>newName</i>. What a link is depends on the underlying filesystem (be it a shortcut on Windows or a symbolic link on Unix). Returns true if successful; otherwise returns false.</p>
+<h3 class="fn"><a name="map"></a><a href="qtglobal.html#uchar-typedef">uchar</a> * QAbstractFileEngine::map ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>offset</i>, <a href="qtglobal.html#qint64-typedef">qint64</a> <i>size</i>, <a href="qfile.html#MemoryMapFlags-enum">QFile::MemoryMapFlags</a> <i>flags</i> )</h3>
+<p>Maps <i>size</i> bytes of the file into memory starting at <i>offset</i>. Returns a pointer to the memory if successful; otherwise returns false if, for example, an error occurs.</p>
+<p>This function bases its behavior on calling <a href="qabstractfileengine.html#extension">extension</a>() with <a href="qabstractfileengine-mapextensionoption.html">MapExtensionOption</a>. If the engine does not support this extension, 0 is returned.</p>
+<p><i>flags</i> is currently not used, but could be used in the future.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qabstractfileengine.html#unmap">unmap</a>() and <a href="qabstractfileengine.html#supportsExtension">supportsExtension</a>().</p>
 <h3 class="fn"><a name="mkdir"></a>bool QAbstractFileEngine::mkdir ( const <a href="qstring.html">QString</a> &amp; <i>dirName</i>, bool <i>createParentDirectories</i> ) const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Requests that the directory <i>dirName</i> be created. If <i>createParentDirectories</i> is true, then any sub-directories in <i>dirName</i> that don't exist must be created. If <i>createParentDirectories</i> is false then any sub-directories in <i>dirName</i> must already exist for the function to succeed. If the operation succeeds return true; otherwise return false.</p>
 <p>This virtual function must be reimplemented by all subclasses.</p>
@@ -305,6 +318,11 @@
 <p>This virtual function returns true if the file engine supports <i>extension</i>; otherwise, false is returned. By default, no extensions are supported.</p>
 <p>This function was introduced in Qt 4.3.</p>
 <p>See also <a href="qabstractfileengine.html#extension">extension</a>().</p>
+<h3 class="fn"><a name="unmap"></a>bool QAbstractFileEngine::unmap ( <a href="qtglobal.html#uchar-typedef">uchar</a> * <i>address</i> )</h3>
+<p>Unmaps the memory <i>address</i>. Returns true if the unmap succeeds; otherwise returns false.</p>
+<p>This function bases its behavior on calling <a href="qabstractfileengine.html#extension">extension</a>() with <a href="qabstractfileengine-unmapextensionoption.html">UnMapExtensionOption</a>. If the engine does not support this extension, false is returned.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qabstractfileengine.html#map">map</a>() and <a href="qabstractfileengine.html#supportsExtension">supportsExtension</a>().</p>
 <h3 class="fn"><a name="write"></a><a href="qtglobal.html#qint64-typedef">qint64</a> QAbstractFileEngine::write ( const char * <i>data</i>, <a href="qtglobal.html#qint64-typedef">qint64</a> <i>len</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Writes <i>len</i> bytes from <i>data</i> to the file. Returns the number of characters written on success; otherwise returns -1.</p>
 <hr />
@@ -314,8 +332,8 @@
 <p>This typedef was introduced in Qt 4.3.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

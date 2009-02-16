@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/qmake-manual.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/qmake-manual.qdoc -->
 <head>
-  <title>Qt 4.3: Using Precompiled Headers</title>
+  <title>Qt 4.4: Using Precompiled Headers</title>
   <link rel="prev" href="qmake-advanced-usage.html" />
   <link rel="contents" href="qmake-manual.html" />
   <link rel="next" href="qmake-reference.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="qmake-advanced-usage.html">qmake Advanced Usage</a>]
 [<a href="qmake-manual.html">Contents</a>]
 [Next: <a href="qmake-reference.html">qmake Reference</a>]
@@ -48,14 +48,14 @@
 <p>The precompiled header must contain code which is <i>stable</i> and <i>static</i> throughout your project. A typical PCH might look like this:</p>
 <a name="example"></a>
 <h4>Example: <tt>stable.h</tt></h4>
-<pre><span class="comment"> // Add C includes here</span>
+<pre> // Add C includes here
 
  #if defined __cplusplus
-<span class="comment"> // Add C++ includes here</span>
+ // Add C++ includes here
  #include &lt;stdlib&gt;
  #include &lt;iostream&gt;
  #include &lt;vector&gt;
- #include &lt;QApplication&gt; <span class="comment">// Qt includes</span>
+ #include &lt;QApplication&gt; // Qt includes
  #include &lt;QPushButton&gt;
  #include &lt;QLabel&gt;
  #include &quot;thirdparty/include/libmain.h&quot;
@@ -66,17 +66,17 @@
 <a name="project-options"></a><a name="project-options"></a>
 <h3>Project Options</h3>
 <p>To make your project use PCH, you only need to define the <tt>PRECOMPILED_HEADER</tt> variable in your project file:</p>
-<pre>     PRECOMPILED_HEADER = stable.h</pre>
+<pre> PRECOMPILED_HEADER = stable.h</pre>
 <p><tt>qmake</tt> will handle the rest, to ensure the creation and use of the precompiled header file. You do not need to include the precompiled header file in <tt>HEADERS</tt>, as <tt>qmake</tt> will do this if the configuration supports PCH.</p>
 <p>All platforms that support precompiled headers have the configuration option <tt>precompile_header</tt> set. Using this option, you may trigger conditional blocks in your project file to add settings when using PCH. For example:</p>
-<pre>     precompile_header:!isEmpty(PRECOMPILED_HEADER) {
-     DEFINES += USING_PCH
-     }</pre>
+<pre> precompile_header:!isEmpty(PRECOMPILED_HEADER) {
+ DEFINES += USING_PCH
+ }</pre>
 <a name="notes-on-possible-issues"></a>
 <h2>Notes on Possible Issues</h2>
 <p>On some platforms, the file name suffix for precompiled header files is the same as that for other object files. For example, the following declarations may cause two different object files with the same name to be generated:</p>
-<pre>     PRECOMPILED_HEADER = window.h
-     SOURCES            = window.cpp</pre>
+<pre> PRECOMPILED_HEADER = window.h
+ SOURCES            = window.cpp</pre>
 <p>To avoid potential conflicts like these, it is good practice to ensure that header files that will be precompiled are given distinctive names.</p>
 <a name="example-project"></a><a name="example-project"></a>
 <h2>Example Project</h2>
@@ -194,12 +194,7 @@
  }</pre>
 <a name=""></a>
 <h3><tt>precompile.pro</tt></h3>
-<pre> #############################################
- #
- # Example for using Precompiled Headers
- #
- #############################################
- TEMPLATE  = app
+<pre> TEMPLATE  = app
  LANGUAGE  = C++
  CONFIG   += console precompile_header
 
@@ -221,8 +216,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

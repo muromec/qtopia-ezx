@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,6 +52,8 @@
 #include "qtimer.h"
 #include <private/qdialog_p.h>
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 // If the operation is expected to take this long (as predicted by
 // progress time), show the progress dialog.
@@ -166,7 +162,8 @@ void QProgressDialogPrivate::layout()
             cs.width(), cs.height());
     }
 
-    label->setGeometry(mlr, 0, q->width()-mlr*2, lh);
+    if (label)
+        label->setGeometry(mlr, 0, q->width()-mlr*2, lh);
     bar->setGeometry(mlr, lh+sp, q->width()-mlr*2, bh.height());
 }
 
@@ -214,9 +211,7 @@ void QProgressDialogPrivate::retranslateStrings()
   to use for the programmer. Do the operation in a loop, call \l setValue() at
   intervals, and check for cancellation with wasCanceled(). For example:
 
-  \quotefromfile snippets/dialogs/dialogs.cpp
-  \skipto QProgressDialog progress("Copying files...", "Abort Copy", 0, numFiles, this);
-  \printuntil progress.setValue(numFiles);
+  \snippet doc/src/snippets/dialogs/dialogs.cpp 3
 
   A modeless progress dialog is suitable for operations that take
   place in the background, where the user is able to interact with the
@@ -229,19 +224,17 @@ void QProgressDialogPrivate::retranslateStrings()
   canceled() signal to a slot that stops the operation, and call \l
   setValue() at intervals. For example:
 
-  \skipto Operation constructor
-  \printuntil }
-  \printuntil }
-  \printuntil }
+  \snippet doc/src/snippets/dialogs/dialogs.cpp 4
+  \codeline
+  \snippet doc/src/snippets/dialogs/dialogs.cpp 5
+  \codeline
+  \snippet doc/src/snippets/dialogs/dialogs.cpp 6
 
   In both modes the progress dialog may be customized by
   replacing the child widgets with custom widgets by using setLabel(),
   setBar(), and setCancelButton().
   The functions setLabelText() and setCancelButtonText()
   set the texts shown.
-
-  The \l{dialogs/standarddialogs}{Standard Dialogs} example shows
-  how to use QProgressDialog as well as other built-in Qt dialogs.
 
   \image plastique-progressdialog.png A progress dialog shown in the Plastique widget style.
 
@@ -291,8 +284,8 @@ QProgressDialog::QProgressDialog(QWidget *parent, Qt::WindowFlags f)
    setValue(0). As each file is processed call setValue(1), setValue(2),
    etc., finally calling setValue(50) after examining the last file.
 
-   The \a parent argument is the dialog's parent widget. The  and widget flags,
-   \a f, are passed to the QDialog::QDialog() constructor.
+   The \a parent argument is the dialog's parent widget. The parent, \a parent, and
+   widget flags, \a f, are passed to the QDialog::QDialog() constructor.
 
   \sa setLabelText(), setLabel(), setCancelButtonText(), setCancelButton(),
   setMinimum(), setMaximum()
@@ -453,6 +446,10 @@ void QProgressDialog::setCancelButtonText(const QString &cancelButtonText)
 void QProgressDialog::setBar(QProgressBar *bar)
 {
     Q_D(QProgressDialog);
+    if (!bar) {
+        qWarning("QProgressDialog::setBar: Cannot set a null progress bar");
+        return;
+    }
 #ifndef QT_NO_DEBUG
     if (value() > 0)
         qWarning("QProgressDialog::setBar: Cannot set a new progress bar "
@@ -605,8 +602,8 @@ int QProgressDialog::value() const
 void QProgressDialog::setValue(int progress)
 {
     Q_D(QProgressDialog);
-    if (progress == d->bar->value() ||
-         d->bar->value() == -1 && progress == d->bar->maximum())
+    if (progress == d->bar->value()
+        || (d->bar->value() == -1 && progress == d->bar->maximum()))
         return;
 
     d->bar->setValue(progress);
@@ -664,7 +661,7 @@ void QProgressDialog::setValue(int progress)
 QSize QProgressDialog::sizeHint() const
 {
     Q_D(const QProgressDialog);
-    QSize sh = d->label->sizeHint();
+    QSize sh = d->label ? d->label->sizeHint() : QSize(0, 0);
     QSize bh = d->bar->sizeHint();
     int margin = style()->pixelMetric(QStyle::PM_DefaultTopLevelMargin);
     int spacing = style()->pixelMetric(QStyle::PM_DefaultLayoutSpacing);
@@ -809,4 +806,6 @@ void QProgressDialog::forceShow()
     d->shown_once = true;
 }
 
-#endif
+QT_END_NAMESPACE
+
+#endif // QT_NO_PROGRESSDIALOG

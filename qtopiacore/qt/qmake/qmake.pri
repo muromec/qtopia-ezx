@@ -49,6 +49,7 @@ bootstrap { #Qt code
         qlistdata.cpp \
         qlinkedlist.cpp \
         qlocale.cpp \
+        qmalloc.cpp \
         qmap.cpp \
         qmetatype.cpp \
         qregexp.cpp \
@@ -62,7 +63,7 @@ bootstrap { #Qt code
         qlibraryinfo.cpp \
         qvariant.cpp \
         qvector.cpp \
-        qvsnprintf.cpp 
+        qvsnprintf.cpp
 
    HEADERS+= \
         qbitarray.h \
@@ -86,6 +87,7 @@ bootstrap { #Qt code
         qlist.h \
         qlinkedlist.h \
         qlocale.h \
+        qmalloc.h \
         qmap.h \
         qmetatype.h \
         qregexp.h \
@@ -96,7 +98,7 @@ bootstrap { #Qt code
         qtextstream.h \
         qurl.h \
         quuid.h \
-        qvector.h 
+        qvector.h
 
     unix {
         SOURCES += qfsfileengine_unix.cpp qfsfileengine_iterator_unix.cpp

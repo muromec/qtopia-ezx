@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,9 @@
 #include "q3tl.h"
 
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
+
 using namespace Qt;
 
 class Q3CanvasData {
@@ -1292,13 +1289,7 @@ void Q3Canvas::ensureOffScrSize(int osw, int osh)
     painter, using double-buffering if \a dbuf is true.
 
     e.g. to print the canvas to a printer:
-    \code
-    QPrinter pr;
-    if (pr.setup()) {
-	QPainter p(&pr);
-	canvas.drawArea(canvas.rect(), &p);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_canvas_q3canvas.cpp 0
 */
 void Q3Canvas::drawArea(const QRect& clip, QPainter* painter, bool dbuf)
 {
@@ -1306,7 +1297,10 @@ void Q3Canvas::drawArea(const QRect& clip, QPainter* painter, bool dbuf)
 	drawCanvasArea(clip, painter, dbuf);
 }
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <qdebug.h>
+QT_END_INCLUDE_NAMESPACE
+
 /*!
   \internal
 */
@@ -3319,16 +3313,7 @@ void Q3CanvasSprite::draw(QPainter& painter)
     subclass Q3CanvasView. You might then reimplement
     Q3ScrollView::contentsMousePressEvent(). For example:
 
-    \code
-    void MyCanvasView::contentsMousePressEvent(QMouseEvent* e)
-    {
-        Q3CanvasItemList l = canvas()->collisions(e->pos());
-        for (Q3CanvasItemList::Iterator it=l.begin(); it!=l.end(); ++it) {
-            if ((*it)->rtti() == Q3CanvasRectangle::RTTI)
-                qDebug("A Q3CanvasRectangle lies somewhere at this point");
-        }
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_canvas_q3canvas.cpp 1
 
     The canvas view shows canvas canvas(); this can be changed using
     setCanvas().
@@ -3337,16 +3322,7 @@ void Q3CanvasSprite::draw(QPainter& painter)
     canvas in various ways, for example, zooming in or out or rotating.
     For example:
 
-    \code
-    QMatrix wm;
-    wm.scale(2, 2);   // Zooms in by 2 times
-    wm.rotate(90);    // Rotates 90 degrees counter clockwise
-                      // around the origin.
-    wm.translate(0, -canvas->height());
-                      // moves the canvas down so what was visible
-                      // before is still visible.
-    myCanvasView->setWorldMatrix(wm);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_canvas_q3canvas.cpp 2
 
     Use setWorldMatrix() to set the canvas view's world matrix: you must
     ensure that the world matrix is invertible. The current world matrix
@@ -3358,11 +3334,7 @@ void Q3CanvasSprite::draw(QPainter& painter)
     The following code finds the part of the canvas that is visible in
     this view, i.e. the bounding rectangle of the view in canvas coordinates.
 
-    \code
-    QRect rc = QRect(myCanvasView->contentsX(), myCanvasView->contentsY(),
-                     myCanvasView->visibleWidth(), myCanvasView->visibleHeight());
-    QRect canvasRect = myCanvasView->inverseWorldMatrix().mapRect(rc);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_canvas_q3canvas.cpp 3
 
     \sa QMatrix QPainter::setWorldMatrix(), QtCanvas, {Porting to Graphics View}
 */
@@ -4913,17 +4885,7 @@ void Q3CanvasText::removeFromChunks()
 
     For example:
 
-    \code
-	Q3CanvasItem* item;
-	// Find an item, e.g. with Q3CanvasItem::collisions().
-	...
-	if (item->rtti() == MySprite::RTTI) {
-	    MySprite* s = (MySprite*)item;
-	    if (s->isDamagable()) s->loseHitPoints(1000);
-	    if (s->isHot()) myself->loseHitPoints(1000);
-	    ...
-	}
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_canvas_q3canvas.cpp 4
 */
 int Q3CanvasItem::rtti() const { return RTTI; }
 int Q3CanvasItem::RTTI = Rtti_Item;
@@ -5195,3 +5157,5 @@ void Q3CanvasPolygonalItem::scanPolygon(const Q3PointArray& pa, int winding, QPo
     Q3CanvasPolygonScanner scanner(process);
     scanner.scan(pa,winding);
 }
+
+QT_END_NAMESPACE

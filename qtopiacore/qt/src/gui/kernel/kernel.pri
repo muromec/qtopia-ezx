@@ -3,6 +3,8 @@
 # Only used on platforms with CONFIG += precompile_header
 PRECOMPILED_HEADER = kernel/qt_gui_pch.h
 
+# enable a workaround for a miscompilation on AVR32
+equals(QT_ARCH, avr32):CONFIG -= precompile_header
 
 KERNEL_P= kernel
 HEADERS += \
@@ -18,6 +20,7 @@ HEADERS += \
 	kernel/qdnd_p.h \
 	kernel/qevent.h \
 	kernel/qevent_p.h \
+	kernel/qformlayout.h \
 	kernel/qgridlayout.h \
 	kernel/qkeysequence.h \
 	kernel/qlayout.h \
@@ -51,6 +54,7 @@ SOURCES += \
 	kernel/qdrag.cpp \
 	kernel/qdnd.cpp \
 	kernel/qevent.cpp \
+	kernel/qformlayout.cpp \
 	kernel/qgridlayout.cpp \
 	kernel/qkeysequence.cpp \
 	kernel/qlayout.cpp \
@@ -108,6 +112,7 @@ unix:x11 {
             HEADERS += \
                 kernel/qguieventdispatcher_glib_p.h
             QMAKE_CXXFLAGS += $$QT_CFLAGS_GLIB
+	    LIBS +=$$QT_LIBS_GLIB
 	}
             SOURCES += \
 		kernel/qeventdispatcher_x11.cpp
@@ -132,9 +137,9 @@ embedded {
 
         contains(QT_CONFIG, glib) {
             SOURCES += \
-		kernel/qwseventdispatcher_glib.cpp
+		kernel/qeventdispatcher_glib_qws.cpp
             HEADERS += \
-                kernel/qwseventdispatcher_glib_p.h
+                kernel/qeventdispatcher_glib_qws_p.h
             QMAKE_CXXFLAGS += $$QT_CFLAGS_GLIB
 	}
 
@@ -161,7 +166,12 @@ embedded {
         LIBS += -framework AppKit
 }
 
-wince-* {
-	HEADERS += kernel/qfunctions_wce.h
-	SOURCES += kernel/qfunctions_wce.cpp
+wince*: {
+        HEADERS += \
+                ../corelib/kernel/qfunctions_wince.h \
+                kernel/qguifunctions_wince.h
+
+        SOURCES += \
+                ../corelib/kernel/qfunctions_wince.cpp \
+                kernel/qguifunctions_wince.cpp
 }

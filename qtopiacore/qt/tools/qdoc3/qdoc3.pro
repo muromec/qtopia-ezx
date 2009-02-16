@@ -1,4 +1,7 @@
 DEFINES += QDOC2_COMPAT
+#DEFINES += QT_NO_CAST_TO_ASCII
+#DEFINES += QT_NO_CAST_FROM_ASCII
+
 QT = core xml
 CONFIG += console
 build_all:!build_pass {
@@ -23,10 +26,12 @@ HEADERS += apigenerator.h \
            doc.h \
 	   editdistance.h \
 	   generator.h \
+           helpprojectwriter.h \
 	   htmlgenerator.h \
            jambiapiparser.h \
 	   javacodemarker.h \
            javadocgenerator.h \
+           linguistgenerator.h \
            location.h \
 	   loutgenerator.h \
 	   mangenerator.h \
@@ -65,10 +70,12 @@ SOURCES += apigenerator.cpp \
            doc.cpp \
 	   editdistance.cpp \
 	   generator.cpp \
+           helpprojectwriter.cpp \
 	   htmlgenerator.cpp \
            jambiapiparser.cpp \
 	   javacodemarker.cpp \
            javadocgenerator.cpp \
+           linguistgenerator.cpp \
            location.cpp \
 	   loutgenerator.cpp \
 	   mangenerator.cpp \
@@ -91,3 +98,11 @@ SOURCES += apigenerator.cpp \
 	   uncompressor.cpp \
            webxmlgenerator.cpp \
 	   yyindent.cpp
+
+
+win32 {
+    QT_WINCONFIG = release
+    CONFIG(debug, debug|release) {
+        QT_WINCONFIG = debug
+    }    
+}

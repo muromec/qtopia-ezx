@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -83,6 +77,9 @@
 #include <private/qpaintengine_opengl_p.h>
 #include <qimage.h>
 
+QT_BEGIN_NAMESPACE
+
+extern void qgl_cleanup_glyph_cache(QGLContext *);
 
 void QGLPixelBufferPrivate::common_init(const QSize &size, const QGLFormat &format, QGLWidget *shareWidget)
 {
@@ -98,7 +95,9 @@ void QGLPixelBufferPrivate::common_init(const QSize &size, const QGLFormat &form
         qctx->d_func()->valid = true;
 #if defined(Q_WS_WIN)
         qctx->d_func()->dc = dc;
+#if !defined(QT_OPENGL_ES)
         qctx->d_func()->rc = ctx;
+#endif
 #elif defined(Q_WS_X11)
         qctx->d_func()->cx = ctx;
         qctx->d_func()->pbuf = (void *) pbuf;
@@ -106,6 +105,12 @@ void QGLPixelBufferPrivate::common_init(const QSize &size, const QGLFormat &form
 #elif defined(Q_WS_MAC)
         qctx->d_func()->cx = ctx;
         qctx->d_func()->vi = 0;
+#endif
+#if defined(QT_OPENGL_ES)
+        qctx->d_func()->dpy = dpy;
+        qctx->d_func()->cx = ctx;
+        qctx->d_func()->config = config;
+        qctx->d_func()->surface = pbuf;
 #endif
     }
 }
@@ -162,8 +167,6 @@ QGLPixelBuffer::~QGLPixelBuffer()
     Q_D(QGLPixelBuffer);
 
     // defined in qpaintengine_opengl.cpp
-    extern void qgl_cleanup_glyph_cache(QGLContext *);
-
     QGLContext *current = const_cast<QGLContext *>(QGLContext::currentContext());
     if (current != d->qctx)
         makeCurrent();
@@ -216,7 +219,7 @@ bool QGLPixelBuffer::doneCurrent()
     \sa size()
 */
 
-#if defined(Q_WS_X11) || defined(Q_WS_WIN)
+#if defined(Q_WS_X11) || defined(Q_WS_WIN) && !defined(Q_OS_WINCE)
 GLuint QGLPixelBuffer::generateDynamicTexture() const
 {
     Q_D(const QGLPixelBuffer);
@@ -244,15 +247,7 @@ GLuint QGLPixelBuffer::generateDynamicTexture() const
 
     Example:
 
-    \code
-        QGLPixelBuffer pbuffer(...);
-        ...
-        pbuffer.makeCurrent();
-        GLuint dynamicTexture = pbuffer.generateDynamicTexture();
-        pbuffer.bindToDynamicTexture(dynamicTexture);
-        ...
-        pbuffer.releaseFromDynamicTexture();
-    \endcode
+    \snippet doc/src/snippets/code/src_opengl_qglpixelbuffer.cpp 0
 
     \warning This function uses the \c {render_texture} extension,
     which is currently not supported under X11. An alternative that
@@ -268,8 +263,7 @@ GLuint QGLPixelBuffer::generateDynamicTexture() const
 
 /*! \fn void QGLPixelBuffer::releaseFromDynamicTexture()
 
-    Releases the pbuffer from any previously bound texture. Returns
-    true on success; otherwise returns false.
+    Releases the pbuffer from any previously bound texture.
 
     \sa bindToDynamicTexture()
 */
@@ -288,14 +282,7 @@ GLuint QGLPixelBuffer::generateDynamicTexture() const
 
     Example:
 
-    \code
-        QGLPixelBuffer pbuffer(...);
-        ...
-        pbuffer.makeCurrent();
-        GLuint dynamicTexture = pbuffer.generateDynamicTexture();
-        ...
-        pbuffer.updateDynamicTexture(dynamicTexture);
-    \endcode
+    \snippet doc/src/snippets/code/src_opengl_qglpixelbuffer.cpp 1
 
     An alternative on Windows and Mac OS X systems that support the
     \c render_texture extension is to use bindToDynamicTexture() to
@@ -309,7 +296,7 @@ void QGLPixelBuffer::updateDynamicTexture(GLuint texture_id) const
     if (d->invalid)
         return;
     glBindTexture(GL_TEXTURE_2D, texture_id);
-#ifndef Q_WS_QWS
+#ifndef QT_OPENGL_ES
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, d->req_size.width(), d->req_size.height(), 0);
 #else
     glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, d->req_size.width(), d->req_size.height(), 0);
@@ -463,7 +450,7 @@ int QGLPixelBuffer::metric(PaintDeviceMetric metric) const
 GLuint QGLPixelBuffer::bindTexture(const QImage &image, GLenum target)
 {
     Q_D(QGLPixelBuffer);
-#ifndef Q_WS_QWS
+#ifndef QT_OPENGL_ES
     return d->qctx->bindTexture(image, target, GLint(GL_RGBA8));
 #else
     return d->qctx->bindTexture(image, target, GL_RGBA);
@@ -490,7 +477,7 @@ GLuint QGLPixelBuffer::bindTexture(const QImage &image, QMacCompatGLenum target)
 GLuint QGLPixelBuffer::bindTexture(const QPixmap &pixmap, GLenum target)
 {
     Q_D(QGLPixelBuffer);
-#ifndef Q_WS_QWS
+#ifndef QT_OPENGL_ES
     return d->qctx->bindTexture(pixmap, target, GLint(GL_RGBA8));
 #else
     return d->qctx->bindTexture(pixmap, target, GL_RGBA);
@@ -542,6 +529,53 @@ void QGLPixelBuffer::deleteTexture(QMacCompatGLuint texture_id)
 #endif
 
 /*!
+    \since 4.4
+
+    Draws the given texture, \a textureId, to the given target rectangle,
+    \a target, in OpenGL model space. The \a textureTarget should be a 2D
+    texture target.
+
+    Equivalent to the corresponding QGLContext::drawTexture().
+*/
+void QGLPixelBuffer::drawTexture(const QRectF &target, GLuint textureId, GLenum textureTarget)
+{
+    Q_D(QGLPixelBuffer);
+    d->qctx->drawTexture(target, textureId, textureTarget);
+}
+
+#ifdef Q_MAC_COMPAT_GL_FUNCTIONS
+/*! \internal */
+void QGLPixelBuffer::drawTexture(const QRectF &target, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget)
+{
+    Q_D(QGLPixelBuffer);
+    d->qctx->drawTexture(target, textureId, textureTarget);
+}
+#endif
+
+/*!
+    \since 4.4
+
+    Draws the given texture, \a textureId, at the given \a point in OpenGL model
+    space. The textureTarget parameter should be a 2D texture target.
+
+    Equivalent to the corresponding QGLContext::drawTexture().
+*/
+void QGLPixelBuffer::drawTexture(const QPointF &point, GLuint textureId, GLenum textureTarget)
+{
+    Q_D(QGLPixelBuffer);
+    d->qctx->drawTexture(point, textureId, textureTarget);
+}
+
+#ifdef Q_MAC_COMPAT_GL_FUNCTIONS
+/*! \internal */
+void QGLPixelBuffer::drawTexture(const QPointF &point, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget)
+{
+    Q_D(QGLPixelBuffer);
+    d->qctx->drawTexture(point, textureId, textureTarget);
+}
+#endif
+
+/*!
     Returns the format of the pbuffer. The format may be different
     from the one that was requested.
 */
@@ -552,6 +586,7 @@ QGLFormat QGLPixelBuffer::format() const
 }
 
 /*! \fn int QGLPixelBuffer::devType() const
-
     \reimp
 */
+
+QT_END_NAMESPACE

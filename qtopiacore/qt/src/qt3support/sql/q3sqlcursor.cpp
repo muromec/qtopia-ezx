@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include "qsql.h"
 #include "q3sqlrecordinfo.h"
 #include "q3sqlfieldinfo.h"
+
+QT_BEGIN_NAMESPACE
 
 class Q3SqlCursorPrivate
 {
@@ -164,15 +160,7 @@ QString qWhereClause(QSqlRecord* rec, const QString& prefix, const QString& sep,
 
     For example:
 
-    \code
-    Q3SqlCursor cur( "staff" ); // Specify the table/view name
-    cur.select(); // We'll retrieve every record
-    while ( cur.next() ) {
-        qDebug( cur.value( "id" ).toString() + ": " +
-        cur.value( "surname" ).toString() + " " +
-        cur.value( "salary" ).toString() );
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 0
 
     In the above example, a cursor is created specifying a table or
     view name in the database. Then, select() is called, which can be
@@ -196,17 +184,7 @@ QString qWhereClause(QSqlRecord* rec, const QString& prefix, const QString& sep,
 
     For example:
 
-    \code
-    Q3SqlCursor cur( "prices" );
-    cur.select( "id=202" );
-    if ( cur.next() ) {
-        QSqlRecord *buffer = cur.primeUpdate();
-        double price = buffer->value( "price" ).toDouble();
-        double newprice = price * 1.05;
-        buffer->setValue( "price", newprice );
-        cur.update();
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 1
 
     To edit an existing database record, first move to the record you
     wish to update. Call primeUpdate() to get the pointer to the
@@ -641,33 +619,14 @@ QSqlIndex Q3SqlCursor::index(const QString& fieldName) const
     row, use seek(), first(), last(), previous() or next().
 
     Example:
-    \code
-    Q3SqlCursor cur("Employee"); // Use the Employee table or view
-    cur.select("deptno=10"); // select all records in department 10
-    while(cur.next()) {
-        ... // process data
-    }
-    ...
-    // select records in other departments, ordered by department number
-    cur.select("deptno>10", cur.index("deptno"));
-    ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 2
 
     The filter will apply to any subsequent select() calls that do not
     explicitly specify another filter. Similarly the sort will apply
     to any subsequent select() calls that do not explicitly specify
     another sort.
 
-    \code
-    Q3SqlCursor cur("Employee");
-    cur.select("deptno=10"); // select all records in department 10
-    while(cur.next()) {
-        ... // process data
-    }
-    ...
-    cur.select(); // re-selects all records in department 10
-    ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 3
 
 */
 
@@ -741,13 +700,7 @@ bool Q3SqlCursor::select(const QSqlIndex& sort)
     last(), previous() or next(). This function is useful, for example,
     for retrieving data based upon a table's primary index:
 
-    \code
-    Q3SqlCursor cur("Employee");
-    QSqlIndex pk = cur.primaryIndex();
-    cur.setValue("id", 10);
-    cur.select(pk, pk); // generates "SELECT ... FROM Employee WHERE id=10 ORDER BY id"
-    ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 4
 
     In this example the QSqlIndex, pk, is used for two different
     purposes. When used as the filter (first) argument, the field
@@ -767,15 +720,7 @@ bool Q3SqlCursor::select(const QSqlIndex & filter, const QSqlIndex & sort)
     combination of \l Q3SqlCursor::Mode values. The default mode for a
     cursor is Q3SqlCursor::Writable.
 
-    \code
-    Q3SqlCursor cur("Employee");
-    cur.setMode(Q3SqlCursor::Writable); // allow insert/update/delete
-    ...
-    cur.setMode(Q3SqlCursor::Insert | Q3SqlCursor::Update); // allow inserts and updates only
-    ...
-    cur.setMode(Q3SqlCursor::ReadOnly); // no inserts/updates/deletes allowed
-
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 5
 */
 
 void Q3SqlCursor::setMode(int mode)
@@ -1013,14 +958,7 @@ QString Q3SqlCursor::toString(const QSqlIndex& i, QSqlRecord* rec, const QString
     new select() call must be made before navigating to a valid
     record.
 
-    \code
-    Q3SqlCursor cur("prices");
-    QSqlRecord *buffer = cur.primeInsert();
-    buffer->setValue("id",    53981);
-    buffer->setValue("name",  "Thingy");
-    buffer->setValue("price", 105.75);
-    cur.insert();
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 6
 
     In the above example, a cursor is created on the 'prices' table
     and a pointer to the insert buffer is acquired using primeInsert().
@@ -1188,17 +1126,7 @@ QSqlRecord* Q3SqlCursor::primeInsert()
     longer be navigated. A new select() call must be made before you
     can move to a valid record. For example:
 
-    \code
-    Q3SqlCursor cur("prices");
-    cur.select("id=202");
-    if (cur.next()) {
-        QSqlRecord *buffer = cur.primeUpdate();
-        double price = buffer->value("price").toDouble();
-        double newprice = price * 1.05;
-        buffer->setValue("price", newprice);
-        cur.update();
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 7
 
     In the above example, a cursor is created on the 'prices' table
     and is positioned on the record to be updated. Then a pointer to
@@ -1300,14 +1228,7 @@ int Q3SqlCursor::update(const QString & filter, bool invalidate)
     be navigated. A new select() call must be made before you can move
     to a valid record. For example:
 
-    \code
-    Q3SqlCursor cur("prices");
-    cur.select("id=999");
-    if (cur.next()) {
-        cur.primeDelete();
-        cur.del();
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlcursor.cpp 8
 
     In the above example, a cursor is created on the 'prices' table
     and positioned to the record to be deleted. First primeDelete() is
@@ -1588,5 +1509,7 @@ bool Q3SqlCursor::last()
     sync();
     return res;
 }
+
+QT_END_NAMESPACE
 
 #endif

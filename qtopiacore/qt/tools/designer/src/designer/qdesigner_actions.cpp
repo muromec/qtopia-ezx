@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,9 @@
 #include <qdesigner_utils_p.h>
 #include <iconloader_p.h>
 #include <qsimpleresource_p.h>
+#include <previewmanager_p.h>
+#include <codedialog_p.h>
+
 // sdk
 #include <QtDesigner/QDesignerFormEditorInterface>
 #include <QtDesigner/QDesignerFormWindowInterface>
@@ -75,8 +72,6 @@
 #include <QtDesigner/QDesignerFormEditorPluginInterface>
 #include <QtDesigner/QExtensionManager>
 
-#include <QtAssistant/QAssistantClient>
-
 #include <QtGui/QAction>
 #include <QtGui/QActionGroup>
 #include <QtGui/QStyleFactory>
@@ -86,7 +81,14 @@
 #include <QtGui/QMessageBox>
 #include <QtGui/QPushButton>
 #include <QtGui/QIcon>
+#include <QtGui/QImage>
+#include <QtGui/QPixmap>
 #include <QtGui/QMdiSubWindow>
+#include <QtGui/QPrintDialog>
+#include <QtGui/QPainter>
+#include <QtGui/QTransform>
+#include <QtGui/QCursor>
+#include <QtCore/QSizeF>
 
 #include <QtCore/QLibraryInfo>
 #include <QtCore/QBuffer>
@@ -99,9 +101,11 @@
 #include <QtGui/QDesktopWidget>
 #include <QtXml/QDomDocument>
 
-#ifdef Q_WS_MAC
+QT_BEGIN_NAMESPACE
+
+//#ifdef Q_WS_MAC
 #  define NONMODAL_PREVIEW
-#endif
+//#endif
 
 static QString getFileExtension(QDesignerFormEditorInterface *core)
 {
@@ -129,10 +133,41 @@ static inline QString savedMessage(const QString &fileName)
     return QDesignerActions::tr("Saved %1.").arg(fileName);
 }
 
+// Prompt for a file and make sure an extension is added
+// unless the user explicitly specifies another one.
+
+static QString getSaveFileNameWithExtension(QWidget *parent, const QString &title, QString dir, const QString &filter, const QString &extension)
+{
+    const QChar dot = QLatin1Char('.');
+
+    QString saveFile;
+    while (true) {
+        saveFile = QFileDialog::getSaveFileName(parent, title, dir, filter, 0, QFileDialog::DontConfirmOverwrite);
+        if (saveFile.isEmpty())
+            return saveFile;
+
+        const QFileInfo fInfo(saveFile);
+        if (fInfo.suffix().isEmpty() && !fInfo.fileName().endsWith(dot)) {
+            saveFile += dot;
+            saveFile += extension;
+        }
+
+        const QFileInfo fi(saveFile);
+        if (!fi.exists())
+            break;
+
+        const QString prompt = QDesignerActions::tr("%1 already exists.\nDo you want to replace it?").arg(fi.fileName());
+        if (QMessageBox::warning(parent, title, prompt, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+            break;
+
+        dir = saveFile;
+    }
+    return saveFile;
+}
+
 QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
     : QObject(workbench),
       m_workbench(workbench),
-      m_assistantClient(0),
       m_backupTimer(new QTimer(this)),
       m_fileActions(createActionGroup(this)),
       m_recentFilesActions(createActionGroup(this)),
@@ -141,28 +176,57 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
       m_windowActions(createActionGroup(this)),
       m_toolActions(createActionGroup(this, true)),
       m_helpActions(0),
-      m_styleActions(createActionGroup(this, true)),
+      m_styleActions(qdesigner_internal::PreviewManager::createStyleActionGroup(this)),
       m_editWidgetsAction(new QAction(tr("Edit Widgets"), this)),
-      m_newFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("filenew.png")), tr("&New Form..."), this)),
-      m_openFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("fileopen.png")), tr("&Open Form..."), this)),
-      m_saveFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("filesave.png")), tr("&Save Form"), this)),
-      m_saveFormAsAction(new QAction(tr("Save Form &As..."), this)),
-      m_saveAllFormsAction(new QAction(tr("Save A&ll Forms"), this)),
-      m_saveFormAsTemplateAction(new QAction(tr("Save Form As &Template..."), this)),
-      m_closeFormAction(new QAction(tr("&Close Form"), this)),
+      m_newFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("filenew.png")), tr("&New..."), this)),
+      m_openFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("fileopen.png")), tr("&Open..."), this)),
+      m_saveFormAction(new QAction(qdesigner_internal::createIconSet(QLatin1String("filesave.png")), tr("&Save"), this)),
+      m_saveFormAsAction(new QAction(tr("Save &As..."), this)),
+      m_saveAllFormsAction(new QAction(tr("Save A&ll"), this)),
+      m_saveFormAsTemplateAction(new QAction(tr("Save As &Template..."), this)),
+      m_closeFormAction(new QAction(tr("&Close"), this)),
+      m_savePreviewImageAction(new QAction(tr("Save &Image..."), this)),
+      m_printPreviewAction(new QAction(tr("&Print..."), this)),
       m_quitAction(new QAction(tr("&Quit"), this)),
-      m_previewFormAction(new QAction(tr("&Preview"), this)),
+      m_previewFormAction(new QAction(tr("&Preview..."), this)),
+      m_viewCodeAction(new QAction(tr("View &Code..."), this)),
       m_formSettings(new QAction(tr("Form &Settings..."), this)),
       m_minimizeAction(new QAction(tr("&Minimize"), this)),
       m_bringAllToFrontSeparator(createSeparator(this)),
       m_bringAllToFrontAction(new QAction(tr("Bring All to Front"), this)),
       m_windowListSeparatorAction(createSeparator(this)),
-      m_preferencesAction(new QAction(tr("Preferences..."), this))
+      m_preferencesAction(new QAction(tr("Preferences..."), this)),
+#ifndef QT_NO_PRINTER
+      m_printer(QPrinter::HighResolution),
+#endif
+      m_previewManager(new qdesigner_internal::PreviewManager(
+#ifdef NONMODAL_PREVIEW
+                       qdesigner_internal::PreviewManager::SingleFormNonModalPreview,
+#else
+                       qdesigner_internal::PreviewManager::ApplicationModalPreview,
+#endif
+                       this))
 {
     Q_ASSERT(m_workbench != 0);
 
     m_core = m_workbench->core();
     Q_ASSERT(m_core != 0);
+
+    m_editWidgetsAction->setObjectName(QLatin1String("__qt_edit_widgets_action"));
+    m_newFormAction->setObjectName(QLatin1String("__qt_new_form_action"));
+    m_openFormAction->setObjectName(QLatin1String("__qt_open_form_action"));
+    m_saveFormAction->setObjectName(QLatin1String("__qt_save_form_action"));
+    m_saveFormAsAction->setObjectName(QLatin1String("__qt_save_form_as_action"));
+    m_saveAllFormsAction->setObjectName(QLatin1String("__qt_save_all_forms_action"));
+    m_saveFormAsTemplateAction->setObjectName(QLatin1String("__qt_save_form_as_template_action"));
+    m_closeFormAction->setObjectName(QLatin1String("__qt_close_form_action"));
+    m_quitAction->setObjectName(QLatin1String("__qt_quit_action"));
+    m_previewFormAction->setObjectName(QLatin1String("__qt_preview_form_action"));
+    m_viewCodeAction->setObjectName(QLatin1String("__qt_preview_code_action"));
+    m_formSettings->setObjectName(QLatin1String("__qt_form_settings_action"));
+    m_minimizeAction->setObjectName(QLatin1String("__qt_minimize_action"));
+    m_bringAllToFrontAction->setObjectName(QLatin1String("__qt_bring_all_to_front_action"));
+    m_preferencesAction->setObjectName(QLatin1String("__qt_preferences_action"));
 
     m_helpActions = createHelpActions();
 
@@ -207,7 +271,11 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
     connect(m_saveFormAsAction, SIGNAL(triggered()), this, SLOT(saveFormAs()));
     m_fileActions->addAction(m_saveFormAsAction);
 
-    m_saveAllFormsAction->setShortcut(tr("CTRL+SHIFT+S"));
+#ifdef Q_OS_MAC
+    m_saveAllFormsAction->setShortcut(tr("ALT+CTRL+S"));
+#else
+    m_saveAllFormsAction->setShortcut(tr("CTRL+SHIFT+S")); // Commonly "Save As" on Mac
+#endif
     connect(m_saveAllFormsAction, SIGNAL(triggered()), this, SLOT(saveAllForms()));
     m_fileActions->addAction(m_saveAllFormsAction);
 
@@ -216,7 +284,15 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
 
     m_fileActions->addAction(createSeparator(this));
 
-    m_closeFormAction = new QAction(this);
+    connect(m_printPreviewAction,  SIGNAL(triggered()), this, SLOT(printPreviewImage()));
+    m_fileActions->addAction(m_printPreviewAction);
+    m_printPreviewAction->setObjectName(QLatin1String("__qt_print_action"));
+
+    connect(m_savePreviewImageAction,  SIGNAL(triggered()), this, SLOT(savePreviewImage()));
+    m_savePreviewImageAction->setObjectName(QLatin1String("__qt_saveimage_action"));
+    m_fileActions->addAction(m_savePreviewImageAction);
+    m_fileActions->addAction(createSeparator(this));
+
     m_closeFormAction->setShortcut(tr("CTRL+W"));
     connect(m_closeFormAction, SIGNAL(triggered()), this, SLOT(closeForm()));
     m_fileActions->addAction(m_closeFormAction);
@@ -233,10 +309,12 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
 // edit actions
 //
     QAction *undoAction = formWindowManager->actionUndo();
+    undoAction->setObjectName(QLatin1String("__qt_undo_action"));
     undoAction->setShortcut(tr("CTRL+Z"));
     m_editActions->addAction(undoAction);
 
     QAction *redoAction = formWindowManager->actionRedo();
+    redoAction->setObjectName(QLatin1String("__qt_redo_action"));
     redoAction->setShortcut(tr("CTRL+SHIFT+Z"));
     m_editActions->addAction(redoAction);
 
@@ -259,7 +337,12 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
 //
 
     m_editWidgetsAction->setCheckable(true);
-    m_editWidgetsAction->setShortcut(tr("F3"));
+    QList<QKeySequence> shortcuts;
+    shortcuts.append(QKeySequence(Qt::Key_F3));
+#if QT_VERSION >= 0x040900 // "ESC" switching to edit mode: Activate once item delegates handle shortcut overrides for ESC.
+    shortcuts.append(QKeySequence(Qt::Key_Escape));
+#endif
+    m_editWidgetsAction->setShortcuts(shortcuts);
     m_editWidgetsAction->setIcon(QIcon(m_core->resourceLocation() + QLatin1String("/widgettool.png")));
     connect(m_editWidgetsAction, SIGNAL(triggered()), this, SLOT(editWidgetsSlot()));
     m_editWidgetsAction->setChecked(true);
@@ -291,13 +374,22 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
     m_formActions->addAction(formWindowManager->actionSplitHorizontal());
     m_formActions->addAction(formWindowManager->actionSplitVertical());
     m_formActions->addAction(formWindowManager->actionGridLayout());
+    m_formActions->addAction(formWindowManager->actionFormLayout());
     m_formActions->addAction(formWindowManager->actionBreakLayout());
     m_formActions->addAction(formWindowManager->actionAdjustSize());
+    m_formActions->addAction(formWindowManager->actionSimplifyLayout());
     m_formActions->addAction(createSeparator(this));
 
     m_previewFormAction->setShortcut(tr("CTRL+R"));
     connect(m_previewFormAction, SIGNAL(triggered()), this, SLOT(previewFormLater()));
     m_formActions->addAction(m_previewFormAction);
+    connect(m_previewManager, SIGNAL(firstPreviewOpened()), this, SLOT(updateCloseAction()));
+    connect(m_previewManager, SIGNAL(lastPreviewClosed()), this, SLOT(updateCloseAction()));
+
+    connect(m_viewCodeAction, SIGNAL(triggered()), this, SLOT(viewCode()));
+    // Preview code only in Cpp
+    if (qt_extension<QDesignerLanguageExtension *>(m_core->extensionManager(), m_core) == 0)
+        m_formActions->addAction(m_viewCodeAction);
 
     connect(m_styleActions, SIGNAL(triggered(QAction*)), this, SLOT(previewForm(QAction*)));
 
@@ -306,13 +398,6 @@ QDesignerActions::QDesignerActions(QDesignerWorkbench *workbench)
     m_formSettings->setEnabled(false);
     connect(m_formSettings, SIGNAL(triggered()), this, SLOT(showFormSettings()));
     m_formActions->addAction(m_formSettings);
-
-    foreach (QString style,  QStyleFactory::keys()) {
-        QAction *a = new QAction(tr("%1 Style").arg(style), this);
-        a->setData(style);
-        m_styleActions->addAction(a);
-    }
-
 //
 // window actions
 //
@@ -345,35 +430,41 @@ QActionGroup *QDesignerActions::createHelpActions()
 
 #ifndef QT_JAMBI_BUILD
     QAction *mainHelpAction = new QAction(tr("Qt Designer &Help"), this);
+    mainHelpAction->setObjectName(QLatin1String("__qt_designer_help_action"));
     connect(mainHelpAction, SIGNAL(triggered()), this, SLOT(showDesignerHelp()));
     mainHelpAction->setShortcut(Qt::CTRL + Qt::Key_Question);
     helpActions->addAction(mainHelpAction);
 
     helpActions->addAction(createSeparator(this));
     QAction *widgetHelp = new QAction(tr("Current Widget Help"), this);
+    widgetHelp->setObjectName(QLatin1String("__qt_current_widget_help_action"));
     widgetHelp->setShortcut(Qt::Key_F1);
     connect(widgetHelp, SIGNAL(triggered()), this, SLOT(showWidgetSpecificHelp()));
     helpActions->addAction(widgetHelp);
 
     helpActions->addAction(createSeparator(this));
     QAction *whatsNewAction = new QAction(tr("What's New in Qt Designer?"), this);
+    whatsNewAction->setObjectName(QLatin1String("__qt_whats_new_in_qt_designer_action"));
     connect(whatsNewAction, SIGNAL(triggered()), this, SLOT(showWhatsNew()));
     helpActions->addAction(whatsNewAction);
 #endif
 
     helpActions->addAction(createSeparator(this));
     QAction *aboutPluginsAction = new QAction(tr("About Plugins"), this);
+    aboutPluginsAction->setObjectName(QLatin1String("__qt_about_plugins_action"));
     aboutPluginsAction->setMenuRole(QAction::ApplicationSpecificRole);
     connect(aboutPluginsAction, SIGNAL(triggered()), this, SLOT(aboutPlugins()));
     helpActions->addAction(aboutPluginsAction);
 
     QAction *aboutDesignerAction = new QAction(tr("About Qt Designer"), this);
     aboutDesignerAction->setMenuRole(QAction::AboutRole);
+    aboutDesignerAction->setObjectName(QLatin1String("__qt_about_designer_action"));
     connect(aboutDesignerAction, SIGNAL(triggered()), this, SLOT(aboutDesigner()));
     helpActions->addAction(aboutDesignerAction);
 
     QAction *aboutQtAction = new QAction(tr("About Qt"), this);
     aboutQtAction->setMenuRole(QAction::AboutQtRole);
+    aboutQtAction->setObjectName(QLatin1String("__qt_about_qt_action"));
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
     helpActions->addAction(aboutQtAction);
     return helpActions;
@@ -411,9 +502,11 @@ QActionGroup *QDesignerActions::helpActions() const
 QActionGroup *QDesignerActions::styleActions() const
 { return m_styleActions; }
 
-
 QAction *QDesignerActions::previewFormAction() const
 { return m_previewFormAction; }
+
+QAction *QDesignerActions::viewCodeAction() const
+{ return m_viewCodeAction; }
 
 
 void QDesignerActions::editWidgetsSlot()
@@ -432,9 +525,7 @@ void QDesignerActions::createForm()
 
 void QDesignerActions::showNewFormDialog(const QString &fileName)
 {
-#ifdef NONMODAL_PREVIEW
     closePreview();
-#endif
     NewForm *dlg = new NewForm(workbench(), workbench()->core()->topLevel(), fileName);
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->setAttribute(Qt::WA_ShowModal);
@@ -450,9 +541,7 @@ void QDesignerActions::slotOpenForm()
 
 bool QDesignerActions::openForm(QWidget *parent)
 {
-#ifdef NONMODAL_PREVIEW
     closePreview();
-#endif
     const QString extension = getFileExtension(core());
     const QStringList fileNames = QFileDialog::getOpenFileNames(parent, tr("Open Form"),
         m_openDirectory, tr("Designer UI files (*.%1);;All Files (*)").arg(extension), 0, QFileDialog::DontUseSheet);
@@ -492,28 +581,9 @@ bool QDesignerActions::saveFormAs(QDesignerFormWindowInterface *fw)
         dir += extension;
     }
 
-    QString saveFile;
-    while (1) {
-        saveFile = QFileDialog::getSaveFileName(fw, tr("Save form as"),
-                dir,
-                tr("Designer UI files (*.%1);;All Files (*)").arg(extension), 0, QFileDialog::DontConfirmOverwrite);
-        if (saveFile.isEmpty())
-            return false;
-
-        const QFileInfo fInfo(saveFile);
-        if (fInfo.suffix().isEmpty() && !fInfo.fileName().endsWith(QLatin1Char('.')))
-            saveFile.append(QLatin1Char('.')).append(extension);
-
-        const QFileInfo fi(saveFile);
-        if (!fi.exists())
-            break;
-
-        if (QMessageBox::warning(fw, tr("Save"), tr("%1 already exists.\nDo you want to replace it?")
-                    .arg(fi.fileName()), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-            break;
-
-        dir = saveFile;
-    }
+    const  QString saveFile = getSaveFileNameWithExtension(fw, tr("Save Form As"), dir, tr("Designer UI files (*.%1);;All Files (*)").arg(extension), extension);
+    if (saveFile.isEmpty())
+        return false;
 
     fw->setFileName(saveFile);
     return writeOutForm(fw, saveFile);
@@ -523,7 +593,7 @@ void QDesignerActions::saveForm()
 {
     if (QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow()) {
         if (saveForm(fw))
-            showStatusBarMessage(savedMessage(fw->fileName()));
+            showStatusBarMessage(savedMessage(QFileInfo(fw->fileName()).fileName()));
     }
 }
 
@@ -565,10 +635,10 @@ bool QDesignerActions::saveForm(QDesignerFormWindowInterface *fw)
 
 void QDesignerActions::closeForm()
 {
-#ifdef NONMODAL_PREVIEW
-    if (closePreview())
+    if (m_previewManager->previewCount()) {
+        closePreview();
         return;
-#endif
+    }
 
     if (QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow())
         if (QWidget *parent = fw->parentWidget()) {
@@ -608,65 +678,44 @@ void QDesignerActions::previewFormLater(QAction *action)
                                 Q_ARG(QAction*, action));
 }
 
-bool QDesignerActions::closePreview()
+void QDesignerActions::closePreview()
 {
-    if (m_previewWidget) {
-        m_previewWidget->close();
-        return true;
-    }
-    return false;
+    m_previewManager->closeAllPreviews();
 }
 
 void QDesignerActions::previewForm(QAction *action)
 {
-#ifdef NONMODAL_PREVIEW
-    closePreview();
-#endif
     QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow();
     if (!fw)
         return;
 
     // Get style stored in action if any
-    QString styleName;
+    QString menuStyleName;
     if (action) {
         const QVariant data = action->data();
         if (data.type() == QVariant::String)
-            styleName = data.toString();
+            menuStyleName = data.toString();
     }
+    // check the preferences, observing the enabled flag of PreviewConfigurationWidgetState
+    const QDesignerSettings settings;
+    qdesigner_internal::PreviewConfiguration pc = settings.previewConfigurationWidgetState().previewConfiguration(settings.previewConfiguration());
 
-    // create and have form builder display errors.
-    QWidget *widget =  qdesigner_internal::QDesignerFormBuilder::createPreview(fw, styleName);
-    if (!widget)
+    if (!menuStyleName.isEmpty())
+        pc.setStyle(menuStyleName);
+
+    QString errorMessage;
+    if (!m_previewManager->showPreview(fw, pc, &errorMessage))
+        QMessageBox::warning(fw, tr("Preview failed"), errorMessage);
+}
+
+void  QDesignerActions::viewCode()
+{
+    QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow();
+    if (!fw)
         return;
-
-#ifdef Q_WS_WIN
-    Qt::WindowFlags windwowFlags = (widget->windowType() == Qt::Window) ? Qt::Window | Qt::WindowMaximizeButtonHint : Qt::WindowFlags(Qt::Dialog);
-#else
-    // Only Dialogs have close buttons on mac
-    // On linux we don't want additional item on task bar and don't want minimize button, we want the preview to be on top
-    Qt::WindowFlags windwowFlags = Qt::Dialog;
-#endif
-    // Install filter for Escape key
-    widget->setParent(fw->window(), windwowFlags);
-
-#ifdef NONMODAL_PREVIEW
-    connect(fw, SIGNAL(changed()), widget, SLOT(close()));
-#else
-    // Cannot do this on the Mac as the dialog would have no close button
-    widget->setWindowModality(Qt::ApplicationModal);
-#endif
-
-    // Position over form window
-    widget->setAttribute(Qt::WA_DeleteOnClose, true);
-    widget->move(fw->mapToGlobal(QPoint(10, 10)));
-
-    widget->installEventFilter(this);
-    widget->show();
-    m_previewWidget = widget;
-
-#ifdef NONMODAL_PREVIEW
-    updateCloseAction();
-#endif
+    QString errorMessage;
+    if (!qdesigner_internal::CodeDialog::showCodeDialog(fw, fw, &errorMessage))
+        QMessageBox::warning(fw, tr("Code generation failed"), errorMessage);
 }
 
 void QDesignerActions::fixActionContext()
@@ -807,7 +856,7 @@ bool QDesignerActions::writeOutForm(QDesignerFormWindowInterface *fw, const QStr
             return false;
         } else if (box.clickedButton() == switchButton) {
             QString extension = getFileExtension(core());
-            const QString fileName = QFileDialog::getSaveFileName(fw, tr("Save form as"),
+            const QString fileName = QFileDialog::getSaveFileName(fw, tr("Save Form As"),
                                                                   QDir::current().absolutePath(),
                                                                   QLatin1String("*.") + extension);
             if (fileName.isEmpty()) {
@@ -867,21 +916,19 @@ void QDesignerActions::shutdown()
 void QDesignerActions::activeFormWindowChanged(QDesignerFormWindowInterface *formWindow)
 {
     const bool enable = formWindow != 0;
-#ifdef NONMODAL_PREVIEW
-    closePreview();
-#endif
-
     m_saveFormAction->setEnabled(enable);
     m_saveFormAsAction->setEnabled(enable);
     m_saveAllFormsAction->setEnabled(enable);
     m_saveFormAsTemplateAction->setEnabled(enable);
     m_closeFormAction->setEnabled(enable);
-    m_closeFormAction->setEnabled(enable);
+    m_savePreviewImageAction->setEnabled(enable);
+    m_printPreviewAction->setEnabled(enable);
 
     m_editWidgetsAction->setEnabled(enable);
     m_formSettings->setEnabled(enable);
 
     m_previewFormAction->setEnabled(enable);
+    m_viewCodeAction->setEnabled(enable);
     m_styleActions->setEnabled(enable);
 }
 
@@ -950,6 +997,11 @@ void QDesignerActions::addRecentFile(const QString &fileName)
     updateRecentFileActions();
 }
 
+QAction *QDesignerActions::openFormAction() const
+{
+    return  m_openFormAction;
+}
+
 QAction *QDesignerActions::closeFormAction() const
 {
     return m_closeFormAction;
@@ -962,35 +1014,30 @@ QAction *QDesignerActions::minimizeAction() const
 
 void QDesignerActions::showDesignerHelp()
 {
-    showHelp(QLatin1String("designer-manual.html"));
+    QString url = AssistantClient::designerManualUrl();
+    url += QLatin1String("designer-manual.html");
+    showHelp(url);
 }
 
 void QDesignerActions::showWhatsNew()
 {
-    showHelp(QLatin1String("qt4-designer.html"));
+    QString url = AssistantClient::qtReferenceManualUrl();
+    url += QLatin1String("qt4-designer.html");
+    showHelp(url);
+}
+
+void QDesignerActions::helpRequested(const QString &manual, const QString &document)
+{
+    QString url = AssistantClient::documentUrl(manual);
+    url += document;
+    showHelp(url);
 }
 
 void QDesignerActions::showHelp(const QString &url)
 {
-    if (!m_assistantClient)
-        m_assistantClient
-            = new QAssistantClient(QLibraryInfo::location(QLibraryInfo::BinariesPath), this);
-
-    QString filePath = QLibraryInfo::location(QLibraryInfo::DocumentationPath);
-    filePath += QLatin1String("/html/");
-    filePath += url;
-
-    QString cleanFilePath(filePath);
-    const int index = cleanFilePath.lastIndexOf(QLatin1Char('#'));
-    if (index != -1)
-         cleanFilePath.remove(index, cleanFilePath.size() - index);
-
-    if (!QFile::exists(cleanFilePath)) {
-        filePath = QLibraryInfo::location(QLibraryInfo::DocumentationPath);
-        filePath += QLatin1String("/html/designer-manual.html");
-    }
-
-    m_assistantClient->showPage(filePath);
+    QString errorMessage;
+    if (!m_assistantClient.showPage(url, &errorMessage))
+        QMessageBox::warning(core()->topLevel(), tr("Assistant"), errorMessage);
 }
 
 void QDesignerActions::aboutDesigner()
@@ -1048,17 +1095,20 @@ void QDesignerActions::showWidgetSpecificHelp()
     else if (className == QLatin1String("QLayoutWidget"))
         className = QLatin1String("QLayout");
 
-    QString url = className.toLower();
-
-    // special case
-    url += QLatin1String(".html");
-
-    if (!currentPropertyName.isEmpty()) {
-        url += QLatin1Char('#');
-        url += currentPropertyName;
+    QString errorMessage;
+    bool rc =  false;
+    if (currentPropertyName.isEmpty()) {
+        rc = m_assistantClient.activateKeyword(className, &errorMessage);
+    } else {
+        QString assistantId = className;
+        if (!currentPropertyName.isEmpty()) {
+            assistantId += QLatin1String("::");
+            assistantId += currentPropertyName;
+        }
+        rc = m_assistantClient.activateIdentifier(assistantId, &errorMessage);
     }
-
-    showHelp(url);
+    if (!rc)
+        QMessageBox::warning(core()->topLevel(), tr("Assistant"), errorMessage);
 }
 
 void QDesignerActions::aboutPlugins()
@@ -1095,50 +1145,12 @@ void QDesignerActions::showFormSettings()
     delete settingsDialog;
 }
 
-bool QDesignerActions::eventFilter(QObject *watched, QEvent *event)
-{
-    do {
-        if (!watched->isWidgetType())
-            break;
-        QWidget *previewWindow = qobject_cast<QWidget *>(watched);
-        if (!previewWindow || !previewWindow->isWindow())
-            break;
-
-        switch (event->type()) {
-        case QEvent::KeyPress:
-        case QEvent::ShortcutOverride:        {
-            const  QKeyEvent *keyEvent = static_cast<const QKeyEvent *>(event);
-            const int key = keyEvent->key();
-            if ((key == Qt::Key_Escape
-#ifdef Q_WS_MAC
-                 || (keyEvent->modifiers() == Qt::ControlModifier && key == Qt::Key_Period)
-#endif
-                 )) {
-                previewWindow->close();
-                return true;
-            }
-        }
-            break;
-#ifdef NONMODAL_PREVIEW
-        case QEvent::Close:
-            previewWindow->removeEventFilter(this);
-            m_previewWidget = 0;
-            updateCloseAction();
-            break;
-#endif
-        default:
-            break;
-        }
-    } while(false);
-    return QObject::eventFilter(watched, event);
-}
-
 void QDesignerActions::updateCloseAction()
 {
-    if (m_previewWidget) {
+    if (m_previewManager->previewCount()) {
         m_closeFormAction->setText(tr("&Close Preview"));
     } else {
-        m_closeFormAction->setText(tr("&Close Form"));
+        m_closeFormAction->setText(tr("&Close"));
     }
 }
 
@@ -1320,7 +1332,7 @@ void QDesignerActions::showPreferencesDialog()
     Preferences preferences = settings.preferences();
 
     { // It is important that the dialog be deleted before UI mode changes.
-        PreferencesDialog preferencesDialog(workbench()->core()->topLevel());
+        PreferencesDialog preferencesDialog(workbench()->core(), workbench()->core()->topLevel());
         if (!preferencesDialog.showDialog(preferences))  {
             return;
         }
@@ -1329,3 +1341,118 @@ void QDesignerActions::showPreferencesDialog()
     settings.setPreferences(preferences);
     m_workbench->applyPreferences(preferences);
 }
+
+QPixmap QDesignerActions::createPreviewPixmap(QDesignerFormWindowInterface *fw)
+{
+    const QCursor oldCursor = core()->topLevel()->cursor();
+    core()->topLevel()->setCursor(Qt::WaitCursor);
+
+
+
+    // check the preferences, observing the enabled flag of PreviewConfigurationWidgetState
+    const QDesignerSettings settings;
+    qdesigner_internal::PreviewConfiguration pc = settings.previewConfigurationWidgetState().previewConfiguration(settings.previewConfiguration());
+
+    QString errorMessage;
+
+    const QPixmap pixmap = m_previewManager->createPreviewPixmap(fw, pc, &errorMessage);
+    core()->topLevel()->setCursor( oldCursor);
+    if (pixmap.isNull()) {
+        QMessageBox::warning(fw, tr("Preview failed"), errorMessage);
+    }
+    return pixmap;
+}
+
+void QDesignerActions::savePreviewImage()
+{
+    const char *format = "png";
+
+    QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow();
+    if (!fw)
+        return;
+
+    QImage image;
+    const QString extension = QString::fromAscii(format);
+    const QString filter = tr("Image files (*.%1)").arg(extension);
+
+    QString suggestion = fw->fileName();
+    if (!suggestion.isEmpty()) {
+        suggestion = QFileInfo(suggestion).baseName();
+        suggestion += QLatin1Char('.');
+        suggestion += extension;
+    }
+    do {
+        const QString fileName  = getSaveFileNameWithExtension(fw, tr("Save Image"), suggestion, filter, extension);
+        if (fileName.isEmpty())
+            break;
+
+        if (image.isNull()) {
+            const QPixmap pixmap = createPreviewPixmap(fw);
+            if (pixmap.isNull())
+                break;
+
+            image = pixmap.toImage();
+        }
+
+        if (image.save(fileName, format)) {
+            showStatusBarMessage(tr("Saved image %1.").arg(QFileInfo(fileName).fileName()));
+            break;
+        }
+
+        QMessageBox box(QMessageBox::Warning, tr("Save Image"),
+                        tr("The file %1 could not be written.").arg( fileName),
+                        QMessageBox::Retry|QMessageBox::Cancel, fw);
+        if (box.exec() == QMessageBox::Cancel)
+            break;
+    } while (true);
+}
+
+void QDesignerActions::printPreviewImage()
+{
+#ifndef QT_NO_PRINTER
+    QDesignerFormWindowInterface *fw = core()->formWindowManager()->activeFormWindow();
+    if (!fw)
+        return;
+
+    m_printer.setFullPage(false);
+
+    // Grab the image to be able to a suggest suitable orientation
+    const QPixmap pixmap = createPreviewPixmap(fw);
+    if (pixmap.isNull())
+        return;
+
+    const QSizeF pixmapSize = pixmap.size();
+    m_printer.setOrientation( pixmapSize.width() > pixmapSize.height() ?  QPrinter::Landscape :  QPrinter::Portrait);
+
+    // Printer parameters
+    QPrintDialog dialog(&m_printer, fw);
+    if (!dialog.exec())
+        return;
+
+    const QCursor oldCursor = core()->topLevel()->cursor();
+    core()->topLevel()->setCursor(Qt::WaitCursor);
+    // Estimate of required scaling to make form look the same on screen and printer.
+    const double suggestedScaling = static_cast<double>(m_printer.physicalDpiX()) /  static_cast<double>(fw->physicalDpiX());
+
+    QPainter painter(&m_printer);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+
+    // Clamp to page
+    const QRectF page =  painter.viewport();
+    const double maxScaling = qMin(page.size().width() / pixmapSize.width(), page.size().height() / pixmapSize.height());
+    const double scaling = qMin(suggestedScaling, maxScaling);
+
+    const double xOffset = page.left() + qMax(0.0, (page.size().width()  - scaling * pixmapSize.width())  / 2.0);
+    const double yOffset = page.top()  + qMax(0.0, (page.size().height() - scaling * pixmapSize.height()) / 2.0);
+
+    // Draw.
+    painter.translate(xOffset, yOffset);
+    painter.scale(scaling, scaling);
+    painter.drawPixmap(0, 0, pixmap);
+    core()->topLevel()->setCursor(oldCursor);
+
+    showStatusBarMessage(tr("Printed %1.").arg(QFileInfo(fw->fileName()).fileName()));
+#endif
+}
+
+QT_END_NAMESPACE

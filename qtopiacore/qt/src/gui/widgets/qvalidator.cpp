@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,8 @@
 
 #include <limits.h>
 #include <math.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QValidator
@@ -85,7 +81,7 @@
 
     \list
 
-    \i For a line edit that accepts integers from 10 to 999 inclusive,
+    \i For a line edit that accepts integers from 10 to 1000 inclusive,
     42 and 123 are \l Acceptable, the empty string and 5 are \l
     Intermediate, and "asdf" and 1114 is \l Invalid.
 
@@ -127,8 +123,7 @@
     exist.
 
     \value Invalid       The string is \e clearly invalid.
-    \value Intermediate  The string is a plausible intermediate value
-                         during editing.
+    \value Intermediate  The string is a plausible intermediate value.
     \value Acceptable    The string is acceptable as a final result;
                          i.e. it is valid.
 
@@ -251,41 +246,12 @@ void QValidator::fixup(QString &) const
 
     Example of use:
 
-    \code
-    QValidator *validator = new QIntValidator(100, 999, this);
-    QLineEdit *edit = new QLineEdit(this);
-
-    // the edit lineedit will only accept integers between 100 and 999
-    edit->setValidator(validator);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qvalidator.cpp 0
 
     Below we present some examples of validators. In practice they would
     normally be associated with a widget as in the example above.
 
-    \code
-    QString str;
-    int pos = 0;
-    QIntValidator v(100, 999, this);
-
-    str = "1";
-    v.validate(str, pos);     // returns Intermediate
-    str = "12";
-    v.validate(str, pos);     // returns Intermediate
-
-    str = "123";
-    v.validate(str, pos);     // returns Acceptable
-    str = "678";
-    v.validate(str, pos);     // returns Acceptable
-
-    str = "1234";
-    v.validate(str, pos);     // returns Invalid
-    str = "-123";
-    v.validate(str, pos);     // returns Invalid
-    str = "abc";
-    v.validate(str, pos);     // returns Invalid
-    str = "12cm";
-    v.validate(str, pos);     // returns Invalid
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qvalidator.cpp 1
 
     The minimum and maximum values are set in one call with setRange(),
     or individually with setBottom() and setTop().
@@ -373,26 +339,17 @@ QIntValidator::~QIntValidator()
     \fn QValidator::State QIntValidator::validate(QString &input, int &pos) const
 
     Returns \l Acceptable if the \a input is an integer within the
-    valid range, \l Intermediate if the \a input is an integer outside
-    the valid range and \l Invalid if the \a input is not an integer.
+    valid range, \l Intermediate if the \a input is a prefix of an integer in the
+    valid range, and \l Invalid otherwise.
 
-    Note: If the valid range consists of just positive integers (e.g. 32 to 100)
-    and \a input is a negative integer then Invalid is returned. If \a input
-    has a greater number of digits than an integer in the valid range can have,
-    Invalid is returned.
+    If the valid range consists of just positive integers (e.g., 32 to 100)
+    and \a input is a negative integer, then Invalid is returned. (On the other
+    hand, if the range consists of negative integers (e.g., -100 to -32) and
+    \a input is a positive integer, then Intermediate is returned, because
+    the user might be just about to type the minus (especially for right-to-left
+    languages).
 
-    \code
-    int pos = 0;
-
-    s = "abc";
-    v.validate(s, pos);    // returns Invalid
-
-    s = "5";
-    v.validate(s, pos);    // returns Intermediate
-
-    s = "50";
-    v.validate(s, pos);    // returns Acceptable
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qvalidator.cpp 2
 
     By default, the \a pos parameter is not used by this validator.
 */
@@ -430,22 +387,23 @@ QValidator::State QIntValidator::validate(QString & input, int&) const
     if (t < 0 && buff.startsWith('+'))
         return Invalid;
 
-    bool ok, overflow;
-    qlonglong i = QLocalePrivate::bytearrayToLongLong(buff.constData(), 10, &ok, &overflow);
-    if (overflow)
-        return Invalid;
-    if (!ok)
+    if (buff.size() == 1 && (buff.at(0) == '+' || buff.at(0) == '-'))
         return Intermediate;
 
-    if (i >= b && i <= t)
+    bool ok, overflow;
+    qlonglong entered = QLocalePrivate::bytearrayToLongLong(buff.constData(), 10, &ok, &overflow);
+    if (overflow || !ok)
+        return Invalid;
+    if (entered >= b && entered <= t)
         return Acceptable;
 
-    qlonglong max = qMax(qAbs(b), qAbs(t));
-    qlonglong n = pow10(numDigits(max)) - 1;
-    if (qAbs(i) > n)
-        return Invalid;
-
-    return Intermediate;
+    if (entered >= 0) {
+        // the -entered < b condition is necessary to allow people to type
+        // the minus last (e.g. for right-to-left languages)
+        return (entered > t && -entered < b) ? Invalid : Intermediate;
+    } else {
+        return (entered < b) ? Invalid : Intermediate;
+    }
 }
 
 
@@ -465,6 +423,9 @@ void QIntValidator::setRange(int bottom, int top)
     \property QIntValidator::bottom
     \brief the validator's lowest acceptable value
 
+    By default, this property's value is derived from the lowest signed
+    integer available (typically -2147483647).
+
     \sa setRange()
 */
 void QIntValidator::setBottom(int bottom)
@@ -475,6 +436,9 @@ void QIntValidator::setBottom(int bottom)
 /*!
     \property QIntValidator::top
     \brief the validator's highest acceptable value
+
+    By default, this property's value is derived from the highest signed
+    integer available (typically 2147483647).
 
     \sa setRange()
 */
@@ -726,6 +690,8 @@ void QDoubleValidator::setRange(double minimum, double maximum, int decimals)
     \property QDoubleValidator::bottom
     \brief the validator's minimum acceptable value
 
+    By default, this property contains a value of -infinity.
+
     \sa setRange()
 */
 
@@ -739,6 +705,8 @@ void QDoubleValidator::setBottom(double bottom)
     \property QDoubleValidator::top
     \brief the validator's maximum acceptable value
 
+    By default, this property contains a value of infinity.
+
     \sa setRange()
 */
 
@@ -750,6 +718,8 @@ void QDoubleValidator::setTop(double top)
 /*!
     \property QDoubleValidator::decimals
     \brief the validator's maximum number of digits after the decimal point
+
+    By default, this property contains a value of 1000.
 
     \sa setRange()
 */
@@ -763,6 +733,8 @@ void QDoubleValidator::setDecimals(int decimals)
     \property QDoubleValidator::notation
     \since 4.3
     \brief the notation of how a string can describe a number
+
+    By default, this property is set to ScientificNotation.
 
     \sa Notation
 */
@@ -804,51 +776,12 @@ QDoubleValidator::Notation QDoubleValidator::notation() const
     For a brief introduction to Qt's regexp engine, see \l QRegExp.
 
     Example of use:
-    \code
-    // regexp: optional '-' followed by between 1 and 3 digits
-    QRegExp rx("-?\\d{1,3}");
-    QValidator *validator = new QRegExpValidator(rx, this);
-
-    QLineEdit *edit = new QLineEdit(this);
-    edit->setValidator(validator);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qvalidator.cpp 3
 
     Below we present some examples of validators. In practice they would
     normally be associated with a widget as in the example above.
 
-    \code
-    // integers 1 to 9999
-    QRegExp rx("[1-9]\\d{0,3}");
-    // the validator treats the regexp as "^[1-9]\\d{0,3}$"
-    QRegExpValidator v(rx, 0);
-    QString s;
-    int pos = 0;
-
-    s = "0";     v.validate(s, pos);    // returns Invalid
-    s = "12345"; v.validate(s, pos);    // returns Invalid
-    s = "1";     v.validate(s, pos);    // returns Acceptable
-
-    rx.setPattern("\\S+");            // one or more non-whitespace characters
-    v.setRegExp(rx);
-    s = "myfile.txt";  v.validate(s, pos); // Returns Acceptable
-    s = "my file.txt"; v.validate(s, pos); // Returns Invalid
-
-    // A, B or C followed by exactly five digits followed by W, X, Y or Z
-    rx.setPattern("[A-C]\\d{5}[W-Z]");
-    v.setRegExp(rx);
-    s = "a12345Z"; v.validate(s, pos);        // Returns Invalid
-    s = "A12345Z"; v.validate(s, pos);        // Returns Acceptable
-    s = "B12";     v.validate(s, pos);        // Returns Intermediate
-
-    // match most 'readme' files
-    rx.setPattern("read\\S?me(\.(txt|asc|1st))?");
-    rx.setCaseSensitive(false);
-    v.setRegExp(rx);
-    s = "readme";      v.validate(s, pos); // Returns Acceptable
-    s = "README.1ST";  v.validate(s, pos); // Returns Acceptable
-    s = "read me.txt"; v.validate(s, pos); // Returns Invalid
-    s = "readm";       v.validate(s, pos); // Returns Intermediate
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qvalidator.cpp 4
 
     \sa QRegExp, QIntValidator, QDoubleValidator, {Settings Editor Example}
 */
@@ -948,6 +881,9 @@ QValidator::State QRegExpValidator::validate(QString &input, int& pos) const
 /*!
     \property QRegExpValidator::regExp
     \brief the regular expression used for validation
+
+    By default, this property contains a regular expression with the pattern \c{.*}
+    that matches any string.
 */
 
 void QRegExpValidator::setRegExp(const QRegExp& rx)
@@ -957,4 +893,6 @@ void QRegExpValidator::setRegExp(const QRegExp& rx)
 
 #endif
 
-#endif
+QT_END_NAMESPACE
+
+#endif // QT_NO_VALIDATOR

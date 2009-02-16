@@ -2,7 +2,7 @@ TEMPLATE = lib
 CONFIG += plugin
 QT += opengl
 
-LIBS += 
+QTDIR_build:DESTDIR = $$QT_BUILD_TREE/plugins/gfxdrivers
 
 TARGET = hybridscreen
 target.path = $$[QT_INSTALL_PLUGINS]/gfxdrivers

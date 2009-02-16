@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +40,7 @@
 #include <qdirectpainter_qws.h>
 
 #include <qglscreen_qws.h>
+#include <qscreenproxy_qws.h>
 #include <private/qglwindowsurface_qws_p.h>
 
 #endif
@@ -79,6 +71,28 @@
 #endif
 #endif
 
+QT_BEGIN_NAMESPACE
+
+static QGLScreen *glScreenForDevice(QPaintDevice *device)
+{
+    QScreen *screen = qt_screen;
+    if (screen->classId() == QScreen::MultiClass) {
+        int screenNumber;
+        if (device && device->devType() == QInternal::Widget)
+            screenNumber = qApp->desktop()->screenNumber(static_cast<QWidget *>(device));
+        else
+            screenNumber = 0;
+        screen = screen->subScreens()[screenNumber];
+    }
+    while (screen->classId() == QScreen::ProxyClass) {
+        screen = static_cast<QProxyScreen *>(screen)->screen();
+    }
+    if (screen->classId() == QScreen::GLClass)
+        return static_cast<QGLScreen *>(screen);
+    else
+        return 0;
+}
+
 /*****************************************************************************
   QOpenGL debug facilities
  *****************************************************************************/
@@ -92,11 +106,11 @@ bool QGLFormat::hasOpenGL()
 
 bool QGLFormat::hasOpenGLOverlays()
 {
-#ifdef Q_USE_EGLWINDOWSURFACE
-    return false;
-#else
-    return true;
-#endif
+    QGLScreen *glScreen = glScreenForDevice(0);
+    if (glScreen)
+        return (glScreen->options() & QGLScreen::Overlays);
+    else
+        return false;
 }
 
 #define QT_EGL_CHECK(x)                          \
@@ -112,223 +126,204 @@ bool QGLFormat::hasOpenGLOverlays()
             printf( txt " failure %x!\n", err); \
     } while (0)
 
-
-#define QT_EGL_CHECK_ATTR(attr, val)     success = eglGetConfigAttrib(dpy, config, attr, &value); \
-    if (!success || value != val)                                       \
-        return false
-
-#if defined(Q_USE_QEGL) && !defined(Q_USE_EGLWINDOWSURFACE)
-static bool checkConfig(EGLDisplay dpy, EGLConfig config, int r, int g, int b, int a)
+EGLDisplay qt_qgl_egl_display()
 {
-    EGLint value;
-    EGLBoolean success;
-    QT_EGL_CHECK_ATTR(EGL_RED_SIZE, r);
-    QT_EGL_CHECK_ATTR(EGL_GREEN_SIZE, g);
-    QT_EGL_CHECK_ATTR(EGL_BLUE_SIZE, b);
-    QT_EGL_CHECK_ATTR(EGL_ALPHA_SIZE, a);
-    return true;
+    static EGLDisplay dpy = EGL_NO_DISPLAY;
+    if (dpy == EGL_NO_DISPLAY) {
+        dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        if (dpy == EGL_NO_DISPLAY) {
+            qWarning("qt_qgl_egl_display(): Cannot open EGL display");
+            return EGL_NO_DISPLAY;
+        }
+        if (!eglInitialize(dpy, NULL, NULL)) {
+            qWarning("qt_qgl_egl_display(): Cannot initialize EGL display");
+            return EGL_NO_DISPLAY;
+        }
+    }
+    return dpy;
 }
-#endif
 
 bool QGLContext::chooseContext(const QGLContext* shareContext)
 {
-#ifdef Q_USE_EGLWINDOWSURFACE
-    // EGL Only works if drawable is a QGLWidget. QGLPixelBuffer not supported
-    if (device() && device()->devType() == QInternal::Widget)
-        return static_cast<QGLScreen*>(QScreen::instance())->chooseContext(this, shareContext);
-    else
-        return false;
-#else
     Q_D(QGLContext);
+
+    if (!device())
+        return false;
+
+    // Find the QGLScreen for this paint device.
+    QGLScreen *glScreen = glScreenForDevice(device());
+    if (!glScreen) {
+        qWarning("QGLContext::chooseContext(): The screen is not a QGLScreen");
+        return false;
+    }
+
+    // Determine if we should use QGLScreen::chooseContext() because
+    // we cannot otherwise create a native drawable.  This behavior
+    // is provided for backwards compatibility with Qt 4.3.
+    int devType = device()->devType();
+    QGLScreen::Option option;
+    if (devType == QInternal::Pixmap)
+        option = QGLScreen::NativePixmaps;
+    else if (devType == QInternal::Image)
+        option = QGLScreen::NativeImages;
+    else
+        option = QGLScreen::NativeWindows;
+    if ((glScreen->options() & option) == 0)
+        return glScreen->chooseContext(this, shareContext);
+
     d->cx = 0;
 
-    EGLint matchingConfigs;
-    EGLint configAttribs[] = {
-        EGL_RED_SIZE,        8,
-        EGL_GREEN_SIZE,      8,
-        EGL_BLUE_SIZE,       8,
-        EGL_ALPHA_SIZE,      8,
-        EGL_ALPHA_MASK_SIZE, 8,
-        EGL_DEPTH_SIZE,     16,
-        EGL_STENCIL_SIZE,   EGL_DONT_CARE,
-        EGL_SURFACE_TYPE,   EGL_WINDOW_BIT,
-        EGL_NONE,           EGL_NONE
-    };
+    // Get the display and initialize it.
+    d->dpy = qt_qgl_egl_display();
+    if (d->dpy == EGL_NO_DISPLAY)
+        return false;
 
-    if (d->paintDevice->devType() == QInternal::Image) {
-        QImage *img = static_cast<QImage*>(d->paintDevice);
-        if (img->format() == QImage::Format_RGB16) {
-            configAttribs[1] = 5;
-            configAttribs[3] = 6;
-            configAttribs[5] = 5;
-            configAttribs[7] = 0;
-        }
-    } else if (d->paintDevice->devType() == QInternal::Widget) {
-#ifdef Q_USE_QEGL
-        if (qt_screen->pixmapDepth() == 16) {
-            configAttribs[1] = 5;
-            configAttribs[3] = 6;
-            configAttribs[5] = 5;
-            configAttribs[7] = 0;
-        }
-        configAttribs[15] = EGL_PIXMAP_BIT;
-#else
-        configAttribs[1] = 0;
-        configAttribs[3] = 0;
-        configAttribs[5] = 0;
-        configAttribs[7] = 0;
-        configAttribs[9] = 0;
-#endif
+    // Construct the configuration we need for this surface.
+    EGLint configAttribs[64];
+    int cfg = 0;
+    QGLFormat fmt = format();
+    EGLint red, green, blue, alpha;
+    switch (glScreen->pixelFormat()) {
+        case QImage::Format_RGB32:
+        case QImage::Format_RGB888:
+            red = green = blue = 8; alpha = 0; break;
+        case QImage::Format_ARGB32:
+        case QImage::Format_ARGB32_Premultiplied:
+            red = green = blue = alpha = 8; break;
+        case QImage::Format_RGB16:
+            red = 5; green = 6; blue = 5; alpha = 0; break;
+        case QImage::Format_ARGB8565_Premultiplied:
+            red = 5; green = 6; blue = 5; alpha = 8; break;
+        case QImage::Format_RGB666:
+            red = green = blue = 6; alpha = 0; break;
+        case QImage::Format_ARGB6666_Premultiplied:
+            red = green = blue = alpha = 6; break;
+        case QImage::Format_RGB555:
+            red = green = blue = 5; alpha = 0; break;
+        case QImage::Format_ARGB8555_Premultiplied:
+            red = green = blue = 5; alpha = 8; break;
+        case QImage::Format_RGB444:
+            red = green = blue = 4; alpha = 0; break;
+        case QImage::Format_ARGB4444_Premultiplied:
+            red = green = blue = alpha = 4; break;
+        default:
+            qWarning("QGLContext::chooseContext(): Unsupported pixel format");
+            return false;
     }
-    if (deviceIsPixmap() || d->paintDevice->devType() == QInternal::Image)
-        configAttribs[15] = EGL_PIXMAP_BIT;
-
-    //Ask for an available display
-    d->dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    QT_EGL_CHECK(d->dpy);
-
-    //Display initialization (don't care about the OGLES version numbers)
-    if (!eglInitialize(d->dpy, NULL, NULL))
-        return false;
-
-    eglBindAPI(EGL_OPENGL_ES_API);
-
-    if (!eglChooseConfig(d->dpy, configAttribs, 0, 0, &matchingConfigs))
-        return false;
-
-    //If there isn't any configuration good enough
-    if (matchingConfigs < 1)
-        return false;
-
-    QVarLengthArray<EGLConfig> configs(matchingConfigs);
-
-    if (!eglChooseConfig(d->dpy, configAttribs, configs.data(),
-                         matchingConfigs, &matchingConfigs))
-        return false;
-#ifdef Q_USE_QEGL
-    bool found = false;
-    for (int i = 0; i < matchingConfigs; ++i) {
-        if (checkConfig(d->dpy, configs[i], configAttribs[1], configAttribs[3], configAttribs[5], configAttribs[7])) {
-            d->config = configs[i];
-            found = true;
-            break;
-        }
+    configAttribs[cfg++] = EGL_RED_SIZE;
+    configAttribs[cfg++] = red;
+    configAttribs[cfg++] = EGL_GREEN_SIZE;
+    configAttribs[cfg++] = green;
+    configAttribs[cfg++] = EGL_BLUE_SIZE;
+    configAttribs[cfg++] = blue;
+    configAttribs[cfg++] = EGL_ALPHA_SIZE;
+    configAttribs[cfg++] = alpha;
+    if (fmt.depth()) {
+        configAttribs[cfg++] = EGL_DEPTH_SIZE;
+        configAttribs[cfg++] = fmt.depthBufferSize() == -1 ? 1 : fmt.depthBufferSize();
     }
-    if (!found) {
-        qWarning("QGLContext::chooseContext none of the %d 'matching' configs actually match", matchingConfigs);
-        return false;
-    }
-#else
-    d->config = configs[0];
-#endif
-
-
-    GLint res;
-    eglGetConfigAttrib(d->dpy, d->config, EGL_LEVEL,&res);
-    d->glFormat.setPlane(res);
-    QT_EGL_ERR("eglGetConfigAttrib");
-    /*
-    if(deviceIsPixmap())
-        res = 0;
+    configAttribs[cfg++] = EGL_LEVEL;
+    configAttribs[cfg++] = fmt.plane();
+    configAttribs[cfg++] = EGL_SURFACE_TYPE;
+    if (devType == QInternal::Pixmap || devType == QInternal::Image)
+        configAttribs[cfg++] = EGL_PIXMAP_BIT;
     else
-    eglDescribePixelFormat(fmt, EGL_DOUBLEBUFFER, &res);
-    d->glFormat.setDoubleBuffer(res);
-    */
+        configAttribs[cfg++] = EGL_WINDOW_BIT;
+    configAttribs[cfg] = EGL_NONE;
 
-    eglGetConfigAttrib(d->dpy,d->config, EGL_DEPTH_SIZE, &res);
-    d->glFormat.setDepth(res);
-    if (d->glFormat.depth())
-        d->glFormat.setDepthBufferSize(res);
+    EGLint matching = 0;
+    if (!eglChooseConfig(d->dpy, configAttribs, &d->config, 1, &matching) || matching < 1) {
+        qWarning("QGLContext::chooseContext(): Could not find a suitable EGL configuration");
+        return false;
+    }
 
-    //eglGetConfigAttrib(d->dpy,d->config, EGL_RGBA, &res);
-    //d->glFormat.setRgba(res);
-
-    eglGetConfigAttrib(d->dpy,d->config, EGL_ALPHA_SIZE, &res);
-    d->glFormat.setAlpha(res);
+    // Inform the context about the actual format properties.
+    EGLint value = 0;
+    eglGetConfigAttrib(d->dpy, d->config, EGL_RED_SIZE, &value);
+    d->glFormat.setRedBufferSize(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_GREEN_SIZE, &value);
+    d->glFormat.setGreenBufferSize(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_BLUE_SIZE, &value);
+    d->glFormat.setBlueBufferSize(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_ALPHA_SIZE, &value);
+    d->glFormat.setAlpha(value != 0);
     if (d->glFormat.alpha())
-        d->glFormat.setAlphaBufferSize(res);
-
-    //eglGetConfigAttrib(d->dpy,d->config, EGL_ACCUM_RED_SIZE, &res);
-    //d->glFormat.setAccum(res);
-    //if (d->glFormat.accum())
-    //    d->glFormat.setAccumBufferSize(res);
-
-    eglGetConfigAttrib(d->dpy, d->config, EGL_STENCIL_SIZE, &res);
-    d->glFormat.setStencil(res);
-    if (d->glFormat.stencil())
-        d->glFormat.setStencilBufferSize(res);
-
-    //eglGetConfigAttrib(d->dpy, d->config, EGL_STEREO, &res);
-    //d->glFormat.setStereo(res);
-
-    eglGetConfigAttrib(d->dpy, d->config, EGL_SAMPLE_BUFFERS, &res);
-    d->glFormat.setSampleBuffers(res);
-
+        d->glFormat.setAlphaBufferSize(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_DEPTH_SIZE, &value);
+    d->glFormat.setDepth(value != 0);
+    if (d->glFormat.depth())
+        d->glFormat.setDepthBufferSize(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_LEVEL, &value);
+    d->glFormat.setPlane(value);
+    eglGetConfigAttrib(d->dpy, d->config, EGL_SAMPLE_BUFFERS, &value);
+    d->glFormat.setSampleBuffers(value != 0);
     if (d->glFormat.sampleBuffers()) {
-        eglGetConfigAttrib(d->dpy, d->config, EGL_SAMPLES, &res);
-        d->glFormat.setSamples(res);
+        eglGetConfigAttrib(d->dpy, d->config, EGL_SAMPLES, &value);
+        d->glFormat.setSamples(value);
+    }
+    eglGetConfigAttrib(d->dpy, d->config, EGL_STENCIL_SIZE, &value);
+    d->glFormat.setStencil(value != 0);
+    if (d->glFormat.stencil())
+        d->glFormat.setStencilBufferSize(value);
+
+    // Create the native drawable for this paint device.
+    NativePixmapType pixmapDrawable = 0;
+    NativeWindowType windowDrawable = 0;
+    bool ok;
+    if (devType == QInternal::Pixmap) {
+        ok = glScreen->surfaceFunctions()
+                ->createNativePixmap(static_cast<QPixmap *>(device()), &pixmapDrawable);
+    } else if (devType == QInternal::Image) {
+        ok = glScreen->surfaceFunctions()
+                ->createNativeImage(static_cast<QImage *>(device()), &pixmapDrawable);
+    } else {
+        ok = glScreen->surfaceFunctions()
+                ->createNativeWindow(static_cast<QWidget *>(device()), &windowDrawable);
+    }
+    if (!ok) {
+        qWarning("QGLContext::chooseContext(): Cannot create the native EGL drawable");
+        return false;
     }
 
-    if(shareContext &&
-       (!shareContext->isValid() || !shareContext->d_func()->cx)) {
-        qWarning("QGLContext::chooseContext(): Cannot share with invalid context");
-        shareContext = 0;
-    }
-
-    EGLContext ctx = eglCreateContext(d->dpy, d->config, 0, 0);
-                                      //(shareContext ? shareContext->d_func()->cx : 0),
-                                      //configAttribs);
-    if(!ctx) {
-        GLenum err = eglGetError();
-        qDebug("eglCreateContext err %x", err);
-        if(err == EGL_BAD_MATCH || err == EGL_BAD_CONTEXT) {
-            if(shareContext && shareContext->d_func()->cx) {
-                qWarning("QGLContext::chooseContext(): Context sharing mismatch!");
-                if(!(ctx = eglCreateContext(d->dpy, d->config, 0, configAttribs)))
-                    return false;
-                shareContext = 0;
-            }
+    // Create a new context for the configuration.
+    if (shareContext && shareContext->d_func()->cx) {
+        d->cx = eglCreateContext(d->dpy, d->config, shareContext->d_func()->cx, 0);
+        if (!d->cx) {
+            qWarning("QGLContext::chooseContext(): Could not share context");
+            shareContext = 0;
         }
-        if(!ctx) {
-            qWarning("QGLContext::chooseContext(): Unable to create QGLContext");
+    }
+    if (!d->cx) {
+        d->cx = eglCreateContext(d->dpy, d->config, 0, 0);
+        if (!d->cx) {
+            qWarning("QGLContext::chooseContext(): Unable to create EGL context");
             return false;
         }
     }
-    d->cx = ctx;
     if (shareContext && shareContext->d_func()->cx) {
         QGLContext *share = const_cast<QGLContext *>(shareContext);
         d->sharing = true;
         share->d_func()->sharing = true;
     }
 
-    // vblank syncing
-    GLint interval = d->reqFormat.swapInterval();
-    if (interval != -1) {
-        if (interval != 0)
-            eglSwapInterval(d->dpy, interval);
-    }
-
-    if (deviceIsPixmap() || d->paintDevice->devType() == QInternal::Image) {
-        d->surface = eglCreatePixmapSurface(d->dpy, d->config,
-                                            (NativeWindowType)d->paintDevice,
-                                            configAttribs);
-    } else {
-#ifndef Q_USE_QEGL
-        d->surface = eglCreateWindowSurface(d->dpy, d->config,
-                                            (NativeWindowType)d->paintDevice, 0);
-        if (!d->surface) {
-             GLenum err = eglGetError();
-             qDebug("eglCreateWindowSurface err %x", err);
-        }
-        qDebug() << "create Window surface" << d->surface;
+#if defined(EGL_VERSION_1_1)
+    if (fmt.swapInterval() != -1)
+        eglSwapInterval(d->dpy, fmt.swapInterval());
 #endif
-    }
 
-
-    if (!d->surface)
+    // Create the EGL surface to draw into.
+    if (devType == QInternal::Widget)
+        d->surface = eglCreateWindowSurface(d->dpy, d->config, windowDrawable, 0);
+    else
+        d->surface = eglCreatePixmapSurface(d->dpy, d->config, pixmapDrawable, 0);
+    if (!d->surface) {
+        qWarning("QGLContext::chooseContext(): Unable to create EGL surface");
+        eglDestroyContext(d->dpy, d->cx);
+        d->cx = 0;
         return false;
+    }
+
     return true;
-#endif
 }
 
 
@@ -338,11 +333,9 @@ void QGLContext::reset()
     if (!d->valid)
         return;
     doneCurrent();
-#ifndef Q_USE_EGLWINDOWSURFACE
     if (d->cx)
         eglDestroyContext(d->dpy, d->cx);
     d->crWin = false;
-#endif
     d->cx = 0;
     d->sharing = false;
     d->valid = false;
@@ -359,51 +352,29 @@ void QGLContext::makeCurrent()
         return;
     }
 
-#ifndef Q_USE_EGLWINDOWSURFACE
     bool ok = eglMakeCurrent(d->dpy, d->surface, d->surface, d->cx);
     if (!ok) {
         EGLint err = eglGetError();
         qWarning("QGLContext::makeCurrent(): Failed %x.", err);
     }
     if (ok) {
-#endif
         if (!qgl_context_storage.hasLocalData() && QThread::currentThread())
             qgl_context_storage.setLocalData(new QGLThreadContext);
         if (qgl_context_storage.hasLocalData())
             qgl_context_storage.localData()->context = this;
         currentCtx = this;
-#ifndef Q_USE_EGLWINDOWSURFACE
     }
-#else
-#if 0
-    if (device()->devType() == QInternal::Widget) {
-        // EGL Only works if drawable is a QGLWidget. QGLFramebufferObject, QGLPixelBuffer not supported
-        static_cast<QGLWidget*>(device())->d_func()->wsurf->beginPaint(QRegion());
-    }
-#endif
-#endif
 }
 
 void QGLContext::doneCurrent()
 {
-#ifndef Q_USE_EGLWINDOWSURFACE
     Q_D(QGLContext);
-    eglMakeCurrent(d->dpy, d->surface, d->surface, 0);
-#endif
+    eglMakeCurrent(d->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 
     QT_EGL_ERR("QGLContext::doneCurrent");
     if (qgl_context_storage.hasLocalData())
         qgl_context_storage.localData()->context = 0;
     currentCtx = 0;
-
-#if 0
-#ifdef Q_USE_EGLWINDOWSURFACE
-    if (device()->devType() == QInternal::Widget) {
-        // EGL Only works if drawable is a QGLWidget, QGLFramebufferObject, QGLPixelBuffer not supported
-        static_cast<QGLWidget*>(device())->d_func()->wsurf->endPaint(QRegion());
-    }
-#endif
-#endif
 }
 
 
@@ -412,15 +383,8 @@ void QGLContext::swapBuffers() const
     Q_D(const QGLContext);
     if(!d->valid)
         return;
-#ifndef Q_USE_EGLWINDOWSURFACE
+
     eglSwapBuffers(d->dpy, d->surface);
-#else
-    if (device()->devType() == QInternal::Widget) {
-        // EGL Only works if drawable is a QGLWidget, QGLPixelBuffer not supported
-        QGLWidget *widget = static_cast<QGLWidget*>(device());
-        widget->d_func()->wsurf->flush(widget, widget->frameGeometry(), QPoint());
-    }
-#endif
     QT_EGL_ERR("QGLContext::swapBuffers");
 }
 
@@ -669,8 +633,11 @@ void QGLWidgetPrivate::init(QGLContext *context, const QGLWidget* shareWidget)
     directPainter = 0;
 
 #ifdef Q_USE_EGLWINDOWSURFACE
-    wsurf = static_cast<QWSGLWindowSurface*>(QScreen::instance()->createSurface(q));
-    q->setWindowSurface(wsurf);
+    QGLScreen *glScreen = glScreenForDevice(q);
+    if (glScreen) {
+        wsurf = static_cast<QWSGLWindowSurface*>(glScreen->createSurface(q));
+        q->setWindowSurface(wsurf);
+    }
 #endif
 
     initContext(context, shareWidget);
@@ -714,3 +681,4 @@ void QGLExtensions::init()
 #endif
 }
 
+QT_END_NAMESPACE

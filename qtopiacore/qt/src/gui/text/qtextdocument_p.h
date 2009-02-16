@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -77,6 +71,8 @@
 #include <iostream>
 #endif
 
+QT_BEGIN_NAMESPACE
+
 class QTextFormatCollection;
 class QTextFormat;
 class QTextBlockFormat;
@@ -104,8 +100,8 @@ class QTextBlockData : public QFragment
 {
 public:
     inline void initialize()
-    { layout = 0; userData = 0; userState = -1; }
-    void invalidate() const;
+        { layout = 0; userData = 0; userState = -1; revision = 0; hidden = 0; }
+    inline void invalidate() const;
     inline void free()
     { delete layout; layout = 0; delete userData; userData = 0; }
 
@@ -114,6 +110,8 @@ public:
     mutable QTextLayout *layout;
     mutable QTextBlockUserData *userData;
     mutable int userState;
+    mutable int revision : 31;
+    mutable uint hidden : 1;
 };
 
 
@@ -150,6 +148,7 @@ public:
         QAbstractUndoItem *custom;
         int objectIndex;
     };
+    quint32 revision;
 
     bool tryMerge(const QTextUndoCommand &other);
 };
@@ -179,6 +178,8 @@ public:
 
     void move(int from, int to, int length, QTextUndoCommand::Operation = QTextUndoCommand::MoveCursor);
     void remove(int pos, int length, QTextUndoCommand::Operation = QTextUndoCommand::MoveCursor);
+
+    void aboutToRemoveCell(int cursorFrom, int cursorEnd);
 
     QTextFrame *insertFrame(int start, int end, const QTextFrameFormat &format);
     void removeFrame(QTextFrame *frame);
@@ -279,7 +280,7 @@ public:
     QTextDocument *document() { return q_func(); }
     const QTextDocument *document() const { return q_func(); }
 
-    void ensureMaximumBlockCount();
+    bool ensureMaximumBlockCount();
 
 private:
     QTextDocumentPrivate(const QTextDocumentPrivate& m);
@@ -321,15 +322,24 @@ private:
     QMap<QUrl, QVariant> cachedResources;
     QString defaultStyleSheet;
 
-    QTextOption defaultTextOption;
     int lastBlockCount;
 
 public:
+    QTextOption defaultTextOption;
+#ifndef QT_NO_CSSPARSER
     QCss::StyleSheet parsedDefaultStyleSheet;
+#endif
     int maximumBlockCount;
+    bool needsEnsureMaximumBlockCount;
     bool inContentsChange;
     QSizeF pageSize;
     QString title;
+    QString url;
+    qreal indentWidth;
+
+    void mergeCachedResources(const QTextDocumentPrivate *priv);
+
+    friend class QTextHtmlExporter;
 };
 
 class QTextTable;
@@ -368,10 +378,15 @@ private:
 
     void emitFontFamily(const QString &family);
 
+    void emitBackgroundAttribute(const QTextFormat &format);
+    QString findUrlForImage(const QTextDocument *doc, qint64 cacheKey, bool isPixmap);
+
     QString html;
     QTextCharFormat defaultCharFormat;
     const QTextDocument *doc;
     bool fragmentMarkers;
 };
+
+QT_END_NAMESPACE
 
 #endif // QTEXTDOCUMENT_P_H

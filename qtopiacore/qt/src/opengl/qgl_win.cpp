@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,7 @@
 #include <qcolormap.h>
 #include <qvarlengtharray.h>
 #include <qdebug.h>
+#include <qcolor.h>
 
 #include <windows.h>
 
@@ -123,6 +118,8 @@ typedef bool (APIENTRY *PFNWGLCHOOSEPIXELFORMATARB)(HDC hdc,
 #define WGL_TYPE_COLORINDEX_ARB        0x202C
 #endif
 
+QT_BEGIN_NAMESPACE
+
 class QGLCmapPrivate
 {
 public:
@@ -149,11 +146,6 @@ public:
 ** Definition of QColorMap class
 **
 ****************************************************************************/
-
-#ifndef QGLCMAP_H
-#define QGLCMAP_H
-
-#include <qcolor.h>
 
 class QGLCmapPrivate;
 
@@ -186,8 +178,6 @@ private:
     void detach();
     QGLCmapPrivate* d;
 };
-
-#endif
 
 
 QGLCmap::QGLCmap(int maxSize) // add a bool prealloc?
@@ -639,7 +629,9 @@ QGLFormat pfiToQGLFormat(HDC hdc, int pfi)
 class QGLTempContext
 {
 public:
-    QGLTempContext() {
+    QGLTempContext(QWidget *parent = 0) {
+        if (parent)
+            dmy.setParent(parent);
         dmy_pdc = GetDC(dmy.winId());
         PIXELFORMATDESCRIPTOR dmy_pfd;
         memset(&dmy_pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
@@ -677,11 +669,7 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
 
     bool result = true;
     HDC myDc;
-
-    // NB! the QGLTempContext object is needed for the
-    // wglGetProcAddress() calls to succeed and are absolutely
-    // necessary - don't remove!
-    QGLTempContext tmp_ctx;
+    QWidget *widget = 0;
 
     if (deviceIsPixmap()) {
         if (d->glFormat.plane())
@@ -701,9 +689,15 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
         d->hbitmap = CreateDIBSection(qt_win_display_dc(), &bmi, DIB_RGB_COLORS, 0, 0, 0);
         SelectObject(myDc, d->hbitmap);
     } else {
-        d->win = ((QWidget*)d->paintDevice)->winId();
+        widget = static_cast<QWidget *>(d->paintDevice);
+        d->win = widget->winId();
         myDc = GetDC(d->win);
     }
+
+    // NB! the QGLTempContext object is needed for the
+    // wglGetProcAddress() calls to succeed and are absolutely
+    // necessary - don't remove!
+    QGLTempContext tmp_ctx(widget);
 
     if (!myDc) {
         qWarning("QGLContext::chooseContext(): Paint device cannot be null");
@@ -1316,31 +1310,6 @@ void QGLWidgetPrivate::updateColormap()
     ReleaseDC(q->winId(), hdc);
 }
 
-bool QGLWidget::event(QEvent *e)
-{
-    Q_D(QGLWidget);
-    if (e->type() == QEvent::ParentChange) {
-        setContext(new QGLContext(d->glcx->requestedFormat(), this));
-        // the overlay needs to be recreated as well
-        delete d->olcx;
-        if (isValid() && context()->format().hasOverlay()) {
-            d->olcx = new QGLContext(QGLFormat::defaultOverlayFormat(), this);
-            if (!d->olcx->create(isSharing() ? d->glcx : 0)) {
-                delete d->olcx;
-                d->olcx = 0;
-                d->glcx->d_func()->glFormat.setOverlay(false);
-            }
-        } else {
-            d->olcx = 0;
-        }
-    } else if (e->type() == QEvent::Show && !format().rgba()) {
-        d->updateColormap();
-    }
-
-    return QWidget::event(e);
-}
-
-
 void QGLWidget::setMouseTracking(bool enable)
 {
     QWidget::setMouseTracking(enable);
@@ -1431,11 +1400,12 @@ void QGLWidget::setContext(QGLContext *context,
     }
 
     if (!d->glcx->isValid()) {
+        bool wasSharing = shareContext || oldcx && oldcx->isSharing();
         d->glcx->create(shareContext ? shareContext : oldcx);
         // the above is a trick to keep disp lists etc when a
         // QGLWidget has been reparented, so remove the sharing
         // flag if we don't actually have a sharing context.
-        if (!shareContext)
+        if (!wasSharing)
             d->glcx->d_ptr->sharing = false;
     }
 
@@ -1498,3 +1468,5 @@ void QGLExtensions::init()
     QGLTempContext temp_ctx;
     init_extensions();
 }
+
+QT_END_NAMESPACE

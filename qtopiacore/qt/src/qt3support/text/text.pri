@@ -21,3 +21,5 @@ SOURCES += \
 	text/q3simplerichtext.cpp \
 	text/q3stylesheet.cpp \
 	text/q3textstream.cpp
+
+INCLUDEPATH += ../3rdparty/harfbuzz/src

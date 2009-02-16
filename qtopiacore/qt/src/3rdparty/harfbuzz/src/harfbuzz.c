@@ -10,7 +10,8 @@
  *  See the file name COPYING for licensing information.
  *
  ******************************************************************/
-#include "ftglue.c"
+#include "harfbuzz-global.c"
+#include "harfbuzz-stream.c"
 #include "harfbuzz-open.c"
 #include "harfbuzz-buffer.c"
 #include "harfbuzz-gdef.c"

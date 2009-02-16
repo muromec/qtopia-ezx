@@ -1,51 +1,50 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include <private/qcursor_p.h>
 #include <qbitmap.h>
 #include <qcursor.h>
+
+#ifndef QT_NO_CURSOR
+
 #include <qimage.h>
 #include <qt_windows.h>
+
+QT_BEGIN_NAMESPACE
 
 extern QCursorData *qt_cursorTable[Qt::LastCursor + 1]; // qcursor.cpp
 
@@ -63,7 +62,7 @@ QCursorData::~QCursorData()
 {
     delete bm;
     delete bmm;
-#ifndef Q_OS_TEMP
+#if !defined(Q_OS_WINCE) || defined(GWES_ICONCURS)
     if (hcurs)
         DestroyCursor(hcurs);
 #endif
@@ -105,6 +104,8 @@ QCursor::QCursor(HCURSOR handle)
     d->hcurs = handle;
 }
 
+#endif //QT_NO_CURSOR
+
 QPoint QCursor::pos()
 {
     POINT p;
@@ -117,12 +118,14 @@ void QCursor::setPos(int x, int y)
     SetCursorPos(x, y);
 }
 
+#ifndef QT_NO_CURSOR
+
 extern HBITMAP qt_createIconMask(const QBitmap &bitmap);
 
 static HCURSOR create32BitCursor(const QPixmap &pixmap, int hx, int hy)
 {
     HCURSOR cur = 0;
-
+#if !defined(Q_OS_WINCE)
     QBitmap mask = pixmap.mask();
     if (mask.isNull()) {
         mask = QBitmap(pixmap.size());
@@ -143,7 +146,58 @@ static HCURSOR create32BitCursor(const QPixmap &pixmap, int hx, int hy)
 
     DeleteObject(ic);
     DeleteObject(im);
+#elif defined(GWES_ICONCURS)
+    QImage bbits, mbits;
+    bool invb, invm;
+    bbits = pixmap.toImage().convertToFormat(QImage::Format_Mono);
+    mbits = pixmap.toImage().convertToFormat(QImage::Format_Mono);
+    invb = bbits.numColors() > 1 && qGray(bbits.color(0)) < qGray(bbits.color(1));
+    invm = mbits.numColors() > 1 && qGray(mbits.color(0)) < qGray(mbits.color(1));
 
+    int sysW = GetSystemMetrics(SM_CXCURSOR);
+    int sysH = GetSystemMetrics(SM_CYCURSOR);
+    int sysN = qMax(1, sysW / 8);
+    int n = qMax(1, bbits.width() / 8);
+    int h = bbits.height();
+
+    uchar* xBits = new uchar[sysH * sysN];
+    uchar* xMask = new uchar[sysH * sysN];
+    int x = 0;
+    for (int i = 0; i < sysH; ++i) {
+        if (i >= h) {
+            memset(&xBits[x] , 255, sysN);
+            memset(&xMask[x] ,   0, sysN);
+            x += sysN;
+        } else {
+            int fillWidth = n > sysN ? sysN : n;
+            uchar *bits = bbits.scanLine(i);
+            uchar *mask = mbits.scanLine(i);
+            for (int j = 0; j < fillWidth; ++j) {
+                uchar b = bits[j];
+                uchar m = mask[j];
+                if (invb)
+                    b ^= 0xFF;
+                if (invm)
+                    m ^= 0xFF;
+                xBits[x] = ~m;
+                xMask[x] = b ^ m;
+                ++x;
+            }
+            for (int j = fillWidth; j < sysN; ++j ) {
+                xBits[x] = 255;
+                xMask[x] = 0;
+                ++x;
+            }
+        }
+    }
+
+    cur = CreateCursor(qWinAppInst(), hx, hy, sysW, sysH,
+        xBits, xMask);
+#else
+    Q_UNUSED(pixmap);
+    Q_UNUSED(hx);
+    Q_UNUSED(hy);
+#endif
     return cur;
 }
 
@@ -243,7 +297,7 @@ void QCursorData::update()
         0x08,0x20,0x10,0x10,0x20,0x10,0x00,0x00};
     static const uchar openhandm_bits[] = {
        0x80,0x01,0xd8,0x0f,0xfc,0x1f,0xfc,0x5f,0xf8,0xff,0xf8,0xff,
-       0xfe,0xff,0xff,0xff,0xff,0x7f,0xfe,0x7f,0xfc,0x7f,0xfc,0x3f,
+       0xf6,0xff,0xff,0xff,0xff,0x7f,0xfe,0x7f,0xfc,0x7f,0xfc,0x3f,
        0xf8,0x3f,0xf0,0x1f,0xe0,0x1f,0x00,0x00};
     static const uchar closedhand_bits[] = {
         0x00,0x00,0x00,0x00,0x00,0x00,0xb0,0x0d,0x48,0x32,0x08,0x50,
@@ -349,6 +403,7 @@ void QCursorData::update()
         }
         int n = qMax(1, bbits.width() / 8);
         int h = bbits.height();
+#if !defined(Q_OS_WINCE)
         uchar* xBits = new uchar[h * n];
         uchar* xMask = new uchar[h * n];
         int x = 0;
@@ -367,12 +422,54 @@ void QCursorData::update()
                 ++x;
             }
         }
-#ifndef Q_OS_TEMP
         hcurs = CreateCursor(qWinAppInst(), hx, hy, bbits.width(), bbits.height(),
                                    xBits, xMask);
+    	delete [] xBits;
+    	delete [] xMask;
+#elif defined(GWES_ICONCURS) // Q_OS_WINCE
+        // Windows CE only supports fixed cursor size.
+        int sysW = GetSystemMetrics(SM_CXCURSOR);
+        int sysH = GetSystemMetrics(SM_CYCURSOR);
+        int sysN = qMax(1, sysW / 8);
+        uchar* xBits = new uchar[sysH * sysN];
+        uchar* xMask = new uchar[sysH * sysN];
+        int x = 0;
+        for (int i = 0; i < sysH; ++i) {
+            if (i >= h) {
+                memset(&xBits[x] , 255, sysN);
+                memset(&xMask[x] ,   0, sysN);
+                x += sysN;
+            } else {
+                int fillWidth = n > sysN ? sysN : n;
+                uchar *bits = bbits.scanLine(i);
+                uchar *mask = mbits.scanLine(i);
+                for (int j = 0; j < fillWidth; ++j) {
+                    uchar b = bits[j];
+                    uchar m = mask[j];
+                    if (invb)
+                        b ^= 0xFF;
+                    if (invm)
+                        m ^= 0xFF;
+                    xBits[x] = ~m;
+                    xMask[x] = b ^ m;
+                    ++x;
+                }
+                for (int j = fillWidth; j < sysN; ++j ) {
+                    xBits[x] = 255;
+                    xMask[x] = 0;
+                    ++x;
+                }
+            }
+        }
+
+        hcurs = CreateCursor(qWinAppInst(), hx, hy, sysW, sysH,
+                                   xBits, xMask);
+    	delete [] xBits;
+    	delete [] xMask;
+#else
+        Q_UNUSED(n);
+        Q_UNUSED(h);
 #endif
-	delete [] xBits;
-	delete [] xMask;
 	return;
     }
     default:
@@ -387,3 +484,6 @@ void QCursorData::update()
         hcurs = LoadCursorA(0, reinterpret_cast<const char*>(sh));
     });
 }
+
+QT_END_NAMESPACE
+#endif // QT_NO_CURSOR

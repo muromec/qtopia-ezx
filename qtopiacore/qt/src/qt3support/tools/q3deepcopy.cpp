@@ -1,47 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "q3deepcopy.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class Q3DeepCopy qdeepcopy.h
@@ -57,37 +53,16 @@
     use and for maximum speed. In the example below, \c s1, \c s2, \c
     s3, \c s4 and \c s5 share data.
 
-    \code
-    // all 5 strings share the same data
-    QString s1 = "abcd";
-    QString s2 = s1;
-    QString s3 = s2;
-    QString s4 = s3;
-    QString s5 = s2;
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_tools_q3deepcopy.cpp 0
 
     Q3DeepCopy can be used several ways to ensure that an object
     references unique, unshared data. In the example below, \c s1, \c
     s2 and \c s5 share data, while neither \c s3 nor \c s4 share data.
-    \code
-    // s1, s2 and s5 share the same data, neither s3 nor s4 are shared
-    QString s1 = "abcd";
-    QString s2 = s1;
-    Q3DeepCopy<QString> s3 = s2;  // s3 is a deep copy of s2
-    QString s4 = s3;             // s4 is a deep copy of s3
-    QString s5 = s2;
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_tools_q3deepcopy.cpp 1
 
     In the example below, \c s1, \c s2 and \c s5 share data, and \c s3
     and \c s4 share data.
-    \code
-    // s1, s2 and s5 share the same data, s3 and s4 share the same data
-    QString s1 = "abcd";
-    QString s2 = s1;
-    QString s3 = Q3DeepCopy<QString>( s2 );  // s3 is a deep copy of s2
-    QString s4 = s3;                        // s4 is a shallow copy of s3
-    QString s5 = s2;
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_tools_q3deepcopy.cpp 2
 
     Q3DeepCopy can also provide safety in multithreaded applications
     that use shared classes. In the example below, the variable \c
@@ -96,34 +71,7 @@
     get a unique copy of the data, and that any assignments to \c
     global_string will result in a deep copy.
 
-    \code
-    Q3DeepCopy<QString> global_string;  // global string data
-    QMutex global_mutex;               // mutex to protext global_string
-
-    ...
-
-    void setGlobalString( const QString &str )
-    {
-	global_mutex.lock();
-	global_string = str;           // global_string is a deep copy of str
-	global_mutex.unlock();
-    }
-
-    ...
-
-    void MyThread::run()
-    {
-	global_mutex.lock();
-	QString str = global_string;          // str is a deep copy of global_string
-	global_mutex.unlock();
-
-	// process the string data
-	...
-
-	// update global_string
-	setGlobalString( str );
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_tools_q3deepcopy.cpp 3
 
     \warning It is the application developer's responsibility to
     protect the object shared across multiple threads.
@@ -168,3 +116,4 @@
     Returns a deep copy of the encapsulated data.
 */
 
+QT_END_NAMESPACE

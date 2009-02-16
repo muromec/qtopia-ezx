@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -79,6 +73,8 @@
 #include "qimagewriter.h"
 #include "qvariant.h"
 #include "qdnd_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*****************************************************************************
   Internal QClipboard functions for X11.
@@ -146,45 +142,68 @@ public:
     mutable QByteArray format_atoms;
 };
 
-
-
 class QClipboardData
 {
+private:
+    QMimeData *&mimeDataRef() const
+    {
+        if(mode == QClipboard::Selection)
+            return selectionData;
+        return clipboardData;
+    }
+
 public:
-    QClipboardData();
+    QClipboardData(QClipboard::Mode mode);
     ~QClipboardData();
 
     void setSource(QMimeData* s)
     {
-        if (s == src)
+        if ((mode == QClipboard::Selection && selectionData == s)
+            || clipboardData == s) {
             return;
-        delete src;
-        src = s;
+        }
+
+        if (selectionData != clipboardData) {
+            delete mimeDataRef();
+        }
+
+        mimeDataRef() = s;
     }
 
-    QMimeData *source() const { return src; }
+    QMimeData *source() const
+    {
+        return mimeDataRef();
+    }
 
-    void clear();
+    void clear()
+    {
+        timestamp = CurrentTime;
+        if (selectionData == clipboardData) {
+            mimeDataRef() = 0;
+        } else {
+            QMimeData *&src = mimeDataRef();
+            delete src;
+            src = 0;
+        }
+    }
 
-    QMimeData *src;
+    static QMimeData *selectionData;
+    static QMimeData *clipboardData;
     Time timestamp;
+    QClipboard::Mode mode;
 };
 
-QClipboardData::QClipboardData()
+QMimeData *QClipboardData::selectionData = 0;
+QMimeData *QClipboardData::clipboardData = 0;
+
+QClipboardData::QClipboardData(QClipboard::Mode clipboardMode)
 {
-    src = 0;
     timestamp = CurrentTime;
+    mode = clipboardMode;
 }
 
 QClipboardData::~QClipboardData()
 { clear(); }
-
-void QClipboardData::clear()
-{
-    delete src;
-    src = 0;
-    timestamp = CurrentTime;
-}
 
 
 static QClipboardData *internalCbData = 0;
@@ -199,7 +218,7 @@ static void cleanupClipboardData()
 static QClipboardData *clipboardData()
 {
     if (internalCbData == 0) {
-        internalCbData = new QClipboardData;
+        internalCbData = new QClipboardData(QClipboard::Clipboard);
         qAddPostRoutine(cleanupClipboardData);
     }
     return internalCbData;
@@ -214,7 +233,7 @@ static void cleanupSelectionData()
 static QClipboardData *selectionData()
 {
     if (internalSelData == 0) {
-        internalSelData = new QClipboardData;
+        internalSelData = new QClipboardData(QClipboard::Selection);
         qAddPostRoutine(cleanupSelectionData);
     }
     return internalSelData;
@@ -391,9 +410,12 @@ bool QX11Data::clipboardWaitForEvent(Window win, int type, XEvent *event, int ti
     QTime started = QTime::currentTime();
     QTime now = started;
 
-    if (QAbstractEventDispatcher::instance()->inherits("QtMotif")) {
-        if (waiting_for_data)
-            qFatal("QClipboard: internal error, qt_xclb_wait_for_event recursed");
+    if (QAbstractEventDispatcher::instance()->inherits("QtMotif")
+        || QApplication::clipboard()->property("useEventLoopWhenWaiting").toBool()) {
+        if (waiting_for_data) {
+            Q_ASSERT(!"QClipboard: internal error, qt_xclb_wait_for_event recursed");
+            return false;
+        }
         waiting_for_data = true;
 
 
@@ -673,6 +695,14 @@ static Atom send_selection(QClipboardData *d, Atom target, Window window, Atom p
     Atom atomFormat = target;
     int dataFormat = 0;
     QByteArray data;
+
+    QByteArray fmt = X11->xdndAtomToString(target);
+    if (fmt.isEmpty() || !QInternalMimeData::hasFormatHelper(QString::fromAscii(fmt), d->source())) { // Not a MIME type we have
+        DEBUG("QClipboard: send_selection(): converting to type '%s' is not supported", fmt.data());
+        return XNone;
+    }
+    DEBUG("QClipboard: send_selection(): converting to type '%s'", fmt.data());
+
     if (X11->xdndMimeDataForAtom(target, d->source(), &data, &atomFormat, &dataFormat)) {
 
         VDEBUG("QClipboard: send_selection():\n"
@@ -724,8 +754,6 @@ void QClipboard::connectNotify(const char *)
 { }
 
 
-/*! \reimp
- */
 bool QClipboard::event(QEvent *e)
 {
     if (e->type() == QEvent::Timer) {
@@ -791,7 +819,7 @@ bool QClipboard::event(QEvent *e)
             QClipboardData *d = selectionData();
 
             // ignore the event if it was generated before we gained selection ownership
-            if (d->timestamp != CurrentTime && xevent->xselectionclear.time < d->timestamp)
+            if (d->timestamp != CurrentTime && xevent->xselectionclear.time <= d->timestamp)
                 break;
 
             DEBUG("QClipboard: new selection owner 0x%lx at time %lx (ours %lx)",
@@ -810,7 +838,7 @@ bool QClipboard::event(QEvent *e)
             QClipboardData *d = clipboardData();
 
             // ignore the event if it was generated before we gained selection ownership
-            if (d->timestamp != CurrentTime && xevent->xselectionclear.time < d->timestamp)
+            if (d->timestamp != CurrentTime && xevent->xselectionclear.time <= d->timestamp)
                 break;
 
             DEBUG("QClipboard: new clipboard owner 0x%lx at time %lx (%lx)",
@@ -1346,5 +1374,7 @@ bool qt_check_clipboard_sentinel()
 
     return doIt;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_CLIPBOARD

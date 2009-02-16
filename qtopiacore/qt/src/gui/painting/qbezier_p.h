@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,9 @@
 #include "QtCore/qrect.h"
 #include "QtCore/qvector.h"
 #include "QtCore/qlist.h"
+#include "QtCore/qpair.h"
+
+QT_BEGIN_NAMESPACE
 
 class QPolygonF;
 
@@ -110,11 +107,11 @@ public:
 
     QBezier bezierOnInterval(qreal t0, qreal t1) const;
 
-    static QVector< QList<qreal> > findIntersections(const QBezier &a,
+    static QVector< QPair<qreal, qreal> > findIntersections(const QBezier &a,
                                                      const QBezier &b);
 
     static bool findIntersections(const QBezier &a, const QBezier &b,
-                                  QVector<qreal> &ta, QVector<qreal> &tb);
+                                  QVector<QPair<qreal, qreal> > *t);
 
     qreal x1, y1, x2, y2, x3, y3, x4, y4;
 };
@@ -169,14 +166,7 @@ inline QPointF QBezier::pointAt(qreal t) const
     Q_ASSERT(t <= 1);
 #if 1
     qreal a, b, c, d;
-    qreal m_t = 1. - t;
-    b = m_t * m_t;
-    c = t * t;
-    d = c * t;
-    a = b * m_t;
-    b *= 3. * t;
-    c *= 3. * m_t;
-
+    coefficients(t, a, b, c, d);
     return QPointF(a*x1 + b*x2 + c*x3 + d*x4, a*y1 + b*y2 + c*y3 + d*y4);
 #else
     // numerically more stable:
@@ -280,5 +270,7 @@ inline void QBezier::parameterSplitLeft(qreal t, QBezier *left)
     left->x4 = x1 = left->x3 + t * (x2 - left->x3);
     left->y4 = y1 = left->y3 + t * (y2 - left->y3);
 }
+
+QT_END_NAMESPACE
 
 #endif // QBEZIER_P_H

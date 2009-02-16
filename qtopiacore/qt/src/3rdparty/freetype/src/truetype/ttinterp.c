@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    TrueType bytecode interpreter (body).                                */
 /*                                                                         */
-/*  Copyright 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007 by             */
+/*  Copyright 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 by       */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -621,6 +621,10 @@
     exec->pts.n_points   = 0;
     exec->pts.n_contours = 0;
 
+    exec->zp1 = exec->pts;
+    exec->zp2 = exec->pts;
+    exec->zp0 = exec->pts;
+
     exec->instruction_trap = FALSE;
 
     return TT_Err_Ok;
@@ -1127,16 +1131,7 @@
     1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1
   };
 
-  static
-  const FT_Vector  Null_Vector = {0,0};
-
-
 #undef PACK
-
-
-#undef  NULL_Vector
-#define NULL_Vector  (FT_Vector*)&Null_Vector
-
 
 #if 1
 
@@ -4826,7 +4821,28 @@
       if ( CUR.opcode & 1 )
         D = CUR_Func_project( CUR.zp0.cur + L, CUR.zp1.cur + K );
       else
-        D = CUR_Func_dualproj( CUR.zp0.org + L, CUR.zp1.org + K );
+      {
+        FT_Vector*  vec1 = CUR.zp0.orus + L;
+        FT_Vector*  vec2 = CUR.zp1.orus + K;
+
+
+        if ( CUR.metrics.x_scale == CUR.metrics.y_scale )
+        {
+          /* this should be faster */
+          D = CUR_Func_dualproj( vec1, vec2 );
+          D = TT_MULFIX( D, CUR.metrics.x_scale );
+        }
+        else
+        {
+          FT_Vector  vec;
+
+
+          vec.x = TT_MULFIX( vec1->x - vec2->x, CUR.metrics.x_scale );
+          vec.y = TT_MULFIX( vec1->y - vec2->y, CUR.metrics.y_scale );
+
+          D = CUR_fast_dualproj( &vec );
+        }
+      }
     }
 
     args[0] = D;
@@ -5433,7 +5449,7 @@
 
     /* XXX: this is probably wrong... at least it prevents memory */
     /*      corruption when zp2 is the twilight zone              */
-    if ( last_point > CUR.zp2.n_points )
+    if ( BOUNDS( last_point, CUR.zp2.n_points ) )
     {
       if ( CUR.zp2.n_points > 0 )
         last_point = (FT_UShort)(CUR.zp2.n_points - 1);
@@ -6157,6 +6173,13 @@
      */
     twilight = CUR.GS.gep0 == 0 || CUR.GS.gep1 == 0 || CUR.GS.gep2 == 0;
 
+    if ( BOUNDS( CUR.GS.rp1, CUR.zp0.n_points ) )
+    {
+      if ( CUR.pedantic_hinting )
+        CUR.error = TT_Err_Invalid_Reference;
+      return;
+    }
+
     if ( twilight )
       orus_base = &CUR.zp0.org[CUR.GS.rp1];
     else
@@ -6209,11 +6232,15 @@
         org_dist = CUR_Func_dualproj( &CUR.zp2.orus[point], orus_base );
 
       cur_dist = CUR_Func_project ( &CUR.zp2.cur[point], cur_base );
-      new_dist = ( old_range != 0 )
-                   ? TT_MULDIV( org_dist, cur_range, old_range )
-                   : cur_dist;
 
-      CUR_Func_move( &CUR.zp2, point, new_dist - cur_dist );
+      if ( org_dist )
+        new_dist = ( old_range != 0 )
+                     ? TT_MULDIV( org_dist, cur_range, old_range )
+                     : cur_dist;
+      else
+        new_dist = 0;
+
+      CUR_Func_move( &CUR.zp2, (FT_UShort)point, new_dist - cur_dist );
     }
     CUR.GS.loop = 1;
     CUR.new_top = CUR.args;
@@ -6255,11 +6282,12 @@
 
 
   /* Local variables for Ins_IUP: */
-  typedef struct
+  typedef struct  IUP_WorkerRec_
   {
     FT_Vector*  orgs;   /* original and current coordinate */
     FT_Vector*  curs;   /* arrays                          */
     FT_Vector*  orus;
+    FT_UInt     max_points;
 
   } IUP_WorkerRec, *IUP_Worker;
 
@@ -6298,6 +6326,10 @@
 
 
     if ( p1 > p2 )
+      return;
+
+    if ( BOUNDS( ref1, worker->max_points ) ||
+         BOUNDS( ref2, worker->max_points ) )
       return;
 
     orus1 = worker->orus[ref1].x;
@@ -6399,6 +6431,10 @@
     FT_UNUSED_ARG;
 
 
+    /* ignore empty outlines */
+    if ( CUR.pts.n_contours == 0 )
+      return;
+
     if ( CUR.opcode & 1 )
     {
       mask   = FT_CURVE_TAG_TOUCH_X;
@@ -6413,6 +6449,7 @@
       V.curs = (FT_Vector*)( (FT_Pos*)CUR.pts.cur + 1 );
       V.orus = (FT_Vector*)( (FT_Pos*)CUR.pts.orus + 1 );
     }
+    V.max_points = CUR.pts.n_points;
 
     contour = 0;
     point   = 0;
@@ -6421,6 +6458,9 @@
     {
       end_point   = CUR.pts.contours[contour] - CUR.pts.first_point;
       first_point = point;
+
+      if ( CUR.pts.n_points <= end_point )
+        end_point = CUR.pts.n_points;
 
       while ( point <= end_point && ( CUR.pts.tags[point] & mask ) == 0 )
         point++;

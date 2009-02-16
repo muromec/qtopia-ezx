@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -76,6 +70,8 @@
 
 #include <limits.h>
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 #define RECT_EXTENSION 300
 
@@ -336,7 +332,7 @@ QList<Q3IconViewPrivate::ItemContainer *>* Q3IconViewPrivate::findContainers(
 extern "C" {
 #endif
 
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
 static int _cdecl cmpIconViewItems(const void *n1, const void *n2)
 #else
 static int cmpIconViewItems(const void *n1, const void *n2)
@@ -737,12 +733,7 @@ void Q3IconDragData::setTextRect(const QRect &r)
     Q3IconView is to construct the item passing the constructor a
     pointer to the icon view, a string and an icon:
 
-    \code
-    (void) new Q3IconViewItem(
-                    iconView,        // A pointer to a Q3IconView
-                    "This is the text of the item",
-                    aPixmap);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 0
 
     By default the text of an icon view item may not be edited by the
     user but calling setRenameEnabled(true) will allow the user to
@@ -754,11 +745,7 @@ void Q3IconDragData::setTextRect(const QRect &r)
     The Q3IconView::firstItem() and Q3IconViewItem::nextItem() functions
     provide a means of iterating over all the items in a Q3IconView:
 
-    \code
-    Q3IconViewItem *item;
-    for (item = iconView->firstItem(); item; item = item->nextItem())
-        do_something_with(item);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 1
 
     The item's icon view is available from iconView(), and its
     position in the icon view from index().
@@ -1298,11 +1285,7 @@ Q3IconViewItem *Q3IconViewItem::prevItem() const
     To find the first item use Q3IconView::firstItem().
 
     Example:
-    \code
-    Q3IconViewItem *item;
-    for (item = iconView->firstItem(); item; item = item->nextItem())
-        do_something_with(item);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 2
 
     \sa prevItem()
 */
@@ -1690,12 +1673,7 @@ void Q3IconViewItem::rename()
     different values and a different comparison function. Here is a
     reimplementation that uses plain Unicode comparison:
 
-    \code
-        int MyIconViewItem::compare(Q3IconViewItem *i) const
-        {
-            return key().compare(i->key());
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 3
 
     \sa key() QString::localeAwareCompare() QString::compare()
 */
@@ -2175,15 +2153,7 @@ void Q3IconViewItem::checkRect()
     object and create some Q3IconViewItems with the Q3IconView as their
     parent, set the icon view's geometry and show it.
     For example:
-    \code
-    Q3IconView *iv = new Q3IconView(this);
-    QDir dir(path, "*.xpm");
-    for (uint i = 0; i < dir.count(); i++) {
-        (void) new Q3IconViewItem(iv, dir[i], QPixmap(path + dir[i]));
-    }
-    iv->resize(600, 400);
-    iv->show();
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 4
 
     The Q3IconViewItem call passes a pointer to the Q3IconView we wish to
     populate, along with the label text and a QPixmap.
@@ -2239,10 +2209,7 @@ void Q3IconViewItem::checkRect()
     Instead we iterate by getting the first item from the \e{icon view}
     and then each subsequent (\l Q3IconViewItem::nextItem()) from each
     \e item in turn:
-    \code
-        for (Q3IconViewItem *item = iv->firstItem(); item; item = item->nextItem())
-            do_something(item);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 5
     Q3IconView also provides currentItem(). You can search for an item
     using findItem() (searching by position or for label text) and
     with findFirstVisibleItem() and findLastVisibleItem(). The number
@@ -2267,12 +2234,7 @@ void Q3IconViewItem::checkRect()
     The simple approach to dragging items out of the icon view is to
     subclass Q3IconView and reimplement Q3IconView::dragObject().
 
-    \code
-    Q3DragObject *MyIconView::dragObject()
-    {
-        return new Q3TextDrag(currentItem()->text(), this);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 6
 
     In this example we create a Q3TextDrag object, (derived from
     Q3DragObject), containing the item's label and return it as the drag
@@ -2287,21 +2249,7 @@ void Q3IconViewItem::checkRect()
     reimplement Q3IconViewItem::acceptDrop() and
     Q3IconViewItem::dropped().
 
-    \code
-    bool MyIconViewItem::acceptDrop(const QMimeSource *mime) const
-    {
-        if (mime->provides("text/plain"))
-            return true;
-        return false;
-    }
-
-    void MyIconViewItem::dropped(QDropEvent *evt, const Q3ValueList<Q3IconDragItem>&)
-    {
-        QString label;
-        if (Q3TextDrag::decode(evt, label))
-            setText(label);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 7
 
     If you want to use extended drag-and-drop or have drag shapes drawn
     you must take a more sophisticated approach.
@@ -2785,9 +2733,7 @@ Q3IconView::~Q3IconView()
     \e{You should never need to call this function.} Instead create
     Q3IconViewItem's and associate them with your icon view like this:
 
-    \code
-        (void) new Q3IconViewItem(myIconview, "The text of the item", aPixmap);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3iconview.cpp 8
 */
 
 void Q3IconView::insertItem(Q3IconViewItem *item, Q3IconViewItem *after)
@@ -3747,8 +3693,8 @@ void Q3IconView::ensureItemVisible(Q3IconViewItem *item)
     if (!item)
         return;
 
-    if (d->updateTimer && d->updateTimer->isActive() ||
-         d->fullRedrawTimer && d->fullRedrawTimer->isActive())
+    if ((d->updateTimer && d->updateTimer->isActive())
+        || (d->fullRedrawTimer && d->fullRedrawTimer->isActive()))
         slotUpdate();
 
     int w = item->width();
@@ -5060,7 +5006,7 @@ void Q3IconView::keyPressEvent(QKeyEvent *e)
   Finds the closest item in the Direction \a dir relative from the point \a relativeTo
   which intersects with the searchRect.
 
-  The function choses the closest item with its center in the searchRect.
+  The function chooses the closest item with its center in the \a searchRect.
 */
 Q3IconViewItem* Q3IconView::findItem(Direction dir,
                                     const QPoint &relativeTo,
@@ -6247,5 +6193,7 @@ bool Q3IconView::isRenaming() const
 
     \sa StringComparisonMode
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_ICONVIEW

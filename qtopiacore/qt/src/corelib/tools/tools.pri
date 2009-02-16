@@ -32,6 +32,7 @@ HEADERS +=  \
 	tools/qstring.h \
 	tools/qstringlist.h \
 	tools/qstringmatcher.h \
+	tools/qtextboundaryfinder.h \
 	tools/qtimeline.h \
 	tools/qunicodetables_p.h \
 	tools/qvarlengtharray.h \
@@ -44,6 +45,7 @@ SOURCES += \
 	tools/qbytearraymatcher.cpp \
 	tools/qcryptographichash.cpp \
 	tools/qdatetime.cpp \
+	tools/qdumper.cpp \
 	tools/qhash.cpp \
         tools/qline.cpp \
 	tools/qlinkedlist.cpp \
@@ -57,6 +59,7 @@ SOURCES += \
         tools/qsize.cpp \
 	tools/qstring.cpp \
 	tools/qstringlist.cpp \
+	tools/qtextboundaryfinder.cpp \
 	tools/qtimeline.cpp \
 	tools/qvector.cpp \
         tools/qvsnprintf.cpp
@@ -64,6 +67,7 @@ SOURCES += \
 
 #zlib support
 contains(QT_CONFIG, zlib) {
+   wince*: DEFINES += NO_ERRNO_H
    INCLUDEPATH += ../3rdparty/zlib
    SOURCES+= \
 	../3rdparty/zlib/adler32.c \
@@ -81,5 +85,13 @@ contains(QT_CONFIG, zlib) {
    unix:LIBS += -lz
 #  win32:LIBS += libz.lib
 }
+
+DEFINES += HB_EXPORT=Q_CORE_EXPORT
+INCLUDEPATH += ../3rdparty/harfbuzz/src
+HEADERS += ../3rdparty/harfbuzz/src/harfbuzz.h
+SOURCES += ../3rdparty/harfbuzz/src/harfbuzz.c \
+           ../3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp \
+           tools/qharfbuzz.cpp
+HEADERS += tools/qharfbuzz_p.h
 
 !macx-icc:unix:LIBS += -lm

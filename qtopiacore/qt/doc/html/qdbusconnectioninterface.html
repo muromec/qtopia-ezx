@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/tools/qdbus/src/qdbusconnectioninterface.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/dbus/qdbusconnectioninterface.cpp -->
 <head>
-  <title>Qt 4.3: QDBusConnectionInterface Class Reference</title>
+  <title>Qt 4.4: QDBusConnectionInterface Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QDBusConnectionInterface Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QDBusConnectionInterface Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
 </h1>
 <p>The QDBusConnectionInterface class provides access to the D-Bus bus daemon service. <a href="#details">More...</a></p>
 <pre> #include &lt;QDBusConnectionInterface&gt;</pre><p>Inherits <a href="qdbusabstractinterface.html">QDBusAbstractInterface</a>.</p>
@@ -72,7 +72,7 @@
 <hr />
 <h2>Detailed Description</h2>
 <p>The QDBusConnectionInterface class provides access to the D-Bus bus daemon service.</p>
-<p>The D-BUS bus server daemon provides one special interface <tt>org.freedesktop.DBus</tt> that allows clients to access certain properties of the bus, such as the current list of clients connected. The QDBusConnectionInterface class provides access to that interface.</p>
+<p>The D-Bus bus server daemon provides one special interface <tt>org.freedesktop.DBus</tt> that allows clients to access certain properties of the bus, such as the current list of clients connected. The QDBusConnectionInterface class provides access to that interface.</p>
 <p>The most common uses of this class are to register and unregister service names on the bus using the <a href="qdbusconnectioninterface.html#registerService">registerService</a>() and <a href="qdbusconnectioninterface.html#unregisterService">unregisterService</a>() functions, query about existing names using the <a href="qdbusconnectioninterface.html#isServiceRegistered">isServiceRegistered</a>(), <a href="qdbusconnectioninterface.html#registeredServiceNames-prop">registeredServiceNames</a>() and <a href="qdbusconnectioninterface.html#serviceOwner">serviceOwner</a>() functions, and to receive notification that a client has registered or de-registered through the <a href="qdbusconnectioninterface.html#serviceRegistered">serviceRegistered</a>(), <a href="qdbusconnectioninterface.html#serviceUnregistered">serviceUnregistered</a>() and <a href="qdbusconnectioninterface.html#serviceOwnerChanged">serviceOwnerChanged</a>() signals.</p>
 <hr />
 <h2>Member Type Documentation</h2>
@@ -95,7 +95,7 @@
 </table></p>
 <p>See also <a href="qdbusconnectioninterface.html#ServiceReplacementOptions-enum">ServiceReplacementOptions</a>.</p>
 <h3 class="fn"><a name="ServiceReplacementOptions-enum"></a>enum QDBusConnectionInterface::ServiceReplacementOptions</h3>
-<p>Flags for determining if the D-BUS server should allow another application to replace a name that this application has registered with the <a href="qdbusconnectioninterface.html#ServiceQueueOptions-enum">ReplaceExistingService</a> option.</p>
+<p>Flags for determining if the D-Bus server should allow another application to replace a name that this application has registered with the <a href="qdbusconnectioninterface.html#ServiceQueueOptions-enum">ReplaceExistingService</a> option.</p>
 <p>The possible values are:</p>
 <p><table border="1" cellpadding="2" cellspacing="1" width="100%">
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
@@ -120,31 +120,31 @@
 <h3 class="fn"><a name="isServiceRegistered"></a><a href="qdbusreply.html">QDBusReply</a>&lt;bool&gt; QDBusConnectionInterface::isServiceRegistered ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> ) const&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Returns true if the service name <i>serviceName</i> has is currently registered.</p>
 <h3 class="fn"><a name="registerService"></a><a href="qdbusreply.html">QDBusReply</a>&lt;<a href="qdbusconnectioninterface.html#RegisterServiceReply-enum">QDBusConnectionInterface::RegisterServiceReply</a>&gt; QDBusConnectionInterface::registerService ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i>, <a href="qdbusconnectioninterface.html#ServiceQueueOptions-enum">ServiceQueueOptions</a> <i>qoption</i> = DontQueueService, <a href="qdbusconnectioninterface.html#ServiceReplacementOptions-enum">ServiceReplacementOptions</a> <i>roption</i> = DontAllowReplacement )&nbsp;&nbsp;<tt> [slot]</tt></h3>
-<p>Requests to register the service name <i>serviceName</i> on the bus. The <i>qoption</i> flag specifies how the D-BUS server should behave if <i>serviceName</i> is already registered. The <i>roption</i> flag specifies if the server should allow another application to replace our registered name.</p>
+<p>Requests to register the service name <i>serviceName</i> on the bus. The <i>qoption</i> flag specifies how the D-Bus server should behave if <i>serviceName</i> is already registered. The <i>roption</i> flag specifies if the server should allow another application to replace our registered name.</p>
 <p>If the service registration succeeds, the <a href="qdbusconnectioninterface.html#serviceRegistered">serviceRegistered</a>() signal will be emitted. If we are placed in queue, the signal will be emitted when we obtain the name. If <i>roption</i> is <a href="qdbusconnectioninterface.html#ServiceReplacementOptions-enum">AllowReplacement</a>, the <a href="qdbusconnectioninterface.html#serviceUnregistered">serviceUnregistered</a>() signal will be emitted if another application replaces this one.</p>
 <p>See also <a href="qdbusconnectioninterface.html#unregisterService">unregisterService</a>().</p>
 <h3 class="fn"><a name="serviceOwner"></a><a href="qdbusreply.html">QDBusReply</a>&lt;<a href="qstring.html">QString</a>&gt; QDBusConnectionInterface::serviceOwner ( const <a href="qstring.html">QString</a> &amp; <i>name</i> ) const&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Returns the unique connection name of the primary owner of the name <i>name</i>. If the requested name doesn't have an owner, returns a <tt>org.freedesktop.DBus.Error.NameHasNoOwner</tt> error.</p>
 <h3 class="fn"><a name="serviceOwnerChanged"></a>void QDBusConnectionInterface::serviceOwnerChanged ( const <a href="qstring.html">QString</a> &amp; <i>name</i>, const <a href="qstring.html">QString</a> &amp; <i>oldOwner</i>, const <a href="qstring.html">QString</a> &amp; <i>newOwner</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
-<p>This signal is emitted by the D-BUS server whenever a service ownership change happens in the bus, including apparition and disparition of names.</p>
+<p>This signal is emitted by the D-Bus server whenever a service ownership change happens in the bus, including apparition and disparition of names.</p>
 <p>This signal means the application <i>oldOwner</i> lost ownership of bus name <i>name</i> to application <i>newOwner</i>. If <i>oldOwner</i> is an empty string, it means the name <i>name</i> has just been created; if <i>newOwner</i> is empty, the name <i>name</i> has no current owner and is no longer available.</p>
 <h3 class="fn"><a name="servicePid"></a><a href="qdbusreply.html">QDBusReply</a>&lt;<a href="qtglobal.html#uint-typedef">uint</a>&gt; QDBusConnectionInterface::servicePid ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> ) const&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Returns the Unix Process ID (PID) for the process currently holding the bus service <i>serviceName</i>.</p>
 <h3 class="fn"><a name="serviceRegistered"></a>void QDBusConnectionInterface::serviceRegistered ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
-<p>This signal is emitted by the D-BUS server when the bus service name (unique connection name or well-known service name) given by <i>serviceName</i> is acquired by this application.</p>
-<p>Acquisition happens after the application requested a name using <a href="qdbusconnectioninterface.html#registerService">registerService</a>().</p>
+<p>This signal is emitted by the D-Bus server when the bus service name (unique connection name or well-known service name) given by <i>serviceName</i> is acquired by this application.</p>
+<p>Acquisition happens after this application has requested a name using <a href="qdbusconnectioninterface.html#registerService">registerService</a>().</p>
 <h3 class="fn"><a name="serviceUid"></a><a href="qdbusreply.html">QDBusReply</a>&lt;<a href="qtglobal.html#uint-typedef">uint</a>&gt; QDBusConnectionInterface::serviceUid ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> ) const&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Returns the Unix User ID (UID) for the process currently holding the bus service <i>serviceName</i>.</p>
 <h3 class="fn"><a name="serviceUnregistered"></a>void QDBusConnectionInterface::serviceUnregistered ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
-<p>This signal is emitted by the D-BUS server when the application loses ownership of the bus service name given by <i>serviceName</i>.</p>
+<p>This signal is emitted by the D-Bus server when this application loses ownership of the bus service name given by <i>serviceName</i>.</p>
 <h3 class="fn"><a name="startService"></a><a href="qdbusreply.html">QDBusReply</a>&lt;void&gt; QDBusConnectionInterface::startService ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Requests that the bus start the service given by the name <i>name</i>.</p>
 <h3 class="fn"><a name="unregisterService"></a><a href="qdbusreply.html">QDBusReply</a>&lt;bool&gt; QDBusConnectionInterface::unregisterService ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> )&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Releases the claim on the bus service name <i>serviceName</i>, that had been previously registered with <a href="qdbusconnectioninterface.html#registerService">registerService</a>(). If this application had ownership of the name, it will be released for other applications to claim. If it only had the name queued, it gives up its position in the queue.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

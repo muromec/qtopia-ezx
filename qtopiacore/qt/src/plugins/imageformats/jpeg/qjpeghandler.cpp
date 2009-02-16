@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the plugins of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -73,6 +67,8 @@ extern "C" {
 #  undef const          // remove crazy C hackery in jconfig.h
 #endif
 }
+
+QT_BEGIN_NAMESPACE
 
 //#define QT_NO_IMAGE_SMOOTHSCALE
 #ifndef QT_NO_IMAGE_SMOOTHSCALE
@@ -132,7 +128,7 @@ QImageSmoothScaler::QImageSmoothScaler(const int srcWidth, const int srcHeight,
     sModeStr[0] = '\0';
 
     d = new QImageSmoothScalerPrivate;
-#if defined(Q_OS_WIN) && defined(_MSC_VER) && _MSC_VER >= 1400
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE) && defined(_MSC_VER) && _MSC_VER >= 1400
     sscanf_s(parameters, "Scale( %i, %i, %1023s )", &dstWidth, &dstHeight, sModeStr, sizeof(sModeStr));
 #else
     sscanf(parameters, "Scale( %i, %i, %s )", &dstWidth, &dstHeight, sModeStr);
@@ -628,7 +624,7 @@ static void scaleSize(int &reqW, int &reqH, int imgW, int imgH, Qt::AspectRatioM
 
 #define HIGH_QUALITY_THRESHOLD 50
 
-static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArray &parameters, QSize scaledSize, int quality )
+static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArray &parameters, QSize scaledSize, int inQuality )
 {
 #ifdef QT_NO_IMAGE_SMOOTHSCALE
     Q_UNUSED( scaledSize );
@@ -653,7 +649,10 @@ static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArra
         (void) jpeg_read_header(&cinfo, true);
 #endif
 
-        (void) jpeg_start_decompress(&cinfo);
+        // -1 means default quality.
+        int quality = inQuality;
+        if (quality < 0)
+            quality = 75;
 
         QString params = QString::fromLatin1(parameters);
         params.simplified();
@@ -661,24 +660,47 @@ static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArra
         char sModeStr[1024] = "";
         Qt::AspectRatioMode sMode;
 
+#ifndef QT_NO_IMAGE_SMOOTHSCALE
+        // If high quality not required, shrink image during decompression
+        if (scaledSize.isValid() && quality < HIGH_QUALITY_THRESHOLD && !params.contains(QLatin1String("GetHeaderInformation")) ) {
+            cinfo.scale_denom = qMin(cinfo.image_width / scaledSize.width(),
+                                     cinfo.image_width / scaledSize.height());
+            if (cinfo.scale_denom < 2) {
+                cinfo.scale_denom = 1;
+            } else if (cinfo.scale_denom < 4) {
+                cinfo.scale_denom = 2;
+            } else if (cinfo.scale_denom < 8) {
+                cinfo.scale_denom = 4;
+            } else {
+                cinfo.scale_denom = 8;
+            }
+            cinfo.scale_num = 1;
+        }
+#endif
+
+
         // If high quality not required, use fast decompression
         if( quality < HIGH_QUALITY_THRESHOLD ) {
             cinfo.dct_method = JDCT_IFAST;
             cinfo.do_fancy_upsampling = FALSE;
         }
 
+
+        (void) jpeg_start_decompress(&cinfo);
+
         if (params.contains(QLatin1String("GetHeaderInformation"))) {
 
             // Create QImage but don't read the pixels
+            static uchar dummy[1];
             if (cinfo.output_components == 3 || cinfo.output_components == 4) {
                 if (outImage->size() != QSize(cinfo.output_width, cinfo.output_height)
                     || outImage->format() != QImage::Format_RGB32) {
-                    *outImage = QImage(cinfo.output_width, cinfo.output_height, QImage::Format_RGB32);
+                    *outImage = QImage(dummy, cinfo.output_width, cinfo.output_height, QImage::Format_RGB32);
                 }
             } else if (cinfo.output_components == 1) {
                 if (outImage->size() != QSize(cinfo.output_width, cinfo.output_height)
                     || outImage->format() != QImage::Format_Indexed8) {
-                    *outImage = QImage(cinfo.output_width, cinfo.output_height, QImage::Format_Indexed8);
+                    *outImage = QImage(dummy, cinfo.output_width, cinfo.output_height, QImage::Format_Indexed8);
                 }
             } else {
                 // Unsupported format
@@ -687,7 +709,7 @@ static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArra
 
 
         } else if (params.contains(QLatin1String("Scale"))) {
-#if defined(_MSC_VER) && _MSC_VER >= 1400
+#if defined(_MSC_VER) && _MSC_VER >= 1400 && !defined(Q_OS_WINCE)
             sscanf_s(params.toLatin1().data(), "Scale(%i, %i, %1023s)",
                    &sWidth, &sHeight, sModeStr, sizeof(sModeStr));
 #else
@@ -762,21 +784,6 @@ static bool read_jpeg_image(QIODevice *device, QImage *outImage, const QByteArra
             }
 #ifndef QT_NO_IMAGE_SMOOTHSCALE
         } else if (scaledSize.isValid()) {
-            // If high quality not required, shrink image during decompression
-            if(quality < HIGH_QUALITY_THRESHOLD) {
-                cinfo.scale_denom = qMin(cinfo.output_width / scaledSize.width(),
-                                         cinfo.output_height / scaledSize.height());
-                if (cinfo.scale_denom < 2) {
-                    cinfo.scale_denom = 1;
-                } else if (cinfo.scale_denom < 4) {
-                    cinfo.scale_denom = 2;
-                } else if (cinfo.scale_denom < 8) {
-                    cinfo.scale_denom = 4;
-                } else {
-                    cinfo.scale_denom = 8;
-                }
-            }
-            
             jpegSmoothScaler scaler(&cinfo, QString().sprintf("Scale( %d, %d, ScaleFree )",
                                                               scaledSize.width(),
                                                               scaledSize.height()).toLatin1().data());
@@ -1145,3 +1152,5 @@ QByteArray QJpegHandler::name() const
 {
     return "jpeg";
 }
+
+QT_END_NAMESPACE

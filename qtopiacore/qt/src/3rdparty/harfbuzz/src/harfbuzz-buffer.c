@@ -11,16 +11,15 @@
 #include "harfbuzz-gsub-private.h"
 #include "harfbuzz-gpos-private.h"
 
-static FT_Error
+static HB_Error
 hb_buffer_ensure( HB_Buffer buffer,
-		   FT_ULong   size )
+		   HB_UInt   size )
 {
-  FT_Memory memory = buffer->memory;
-  FT_ULong new_allocated = buffer->allocated;
+  HB_UInt new_allocated = buffer->allocated;
 
   if (size > new_allocated)
     {
-      FT_Error error;
+      HB_Error error;
 
       while (size > new_allocated)
 	new_allocated += (new_allocated >> 1) + 8;
@@ -35,19 +34,17 @@ hb_buffer_ensure( HB_Buffer buffer,
       buffer->allocated = new_allocated;
     }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
-hb_buffer_new( FT_Memory   memory,
-		HB_Buffer *buffer )
+HB_Error
+hb_buffer_new(HB_Buffer *buffer )
 {
-  FT_Error error;
+  HB_Error error;
   
   if ( ALLOC( *buffer, sizeof( HB_BufferRec ) ) )
     return error;
 
-  (*buffer)->memory = memory;
   (*buffer)->in_length = 0;
   (*buffer)->out_length = 0;
   (*buffer)->allocated = 0;
@@ -59,10 +56,10 @@ hb_buffer_new( FT_Memory   memory,
   (*buffer)->positions = NULL;
   (*buffer)->max_ligID = 0;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
+HB_Error
 hb_buffer_swap( HB_Buffer buffer )
 {
   HB_GlyphItem tmp_string;
@@ -77,23 +74,21 @@ hb_buffer_swap( HB_Buffer buffer )
   buffer->in_pos = 0;
   buffer->out_pos = 0;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
+HB_Error
 hb_buffer_free( HB_Buffer buffer )
 {
-  FT_Memory memory = buffer->memory;
-
   FREE( buffer->in_string );
   FREE( buffer->out_string );
   FREE( buffer->positions );
   FREE( buffer );
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
+HB_Error
 hb_buffer_clear( HB_Buffer buffer )
 {
   buffer->in_length = 0;
@@ -101,16 +96,16 @@ hb_buffer_clear( HB_Buffer buffer )
   buffer->in_pos = 0;
   buffer->out_pos = 0;
   
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
+HB_Error
 hb_buffer_add_glyph( HB_Buffer buffer,
-		      FT_UInt    glyph_index,
-		      FT_UInt    properties,
-		      FT_UInt    cluster )
+		      HB_UInt    glyph_index,
+		      HB_UInt    properties,
+		      HB_UInt    cluster )
 {
-  FT_Error error;
+  HB_Error error;
   HB_GlyphItem glyph;
   
   error = hb_buffer_ensure( buffer, buffer->in_length + 1 );
@@ -127,7 +122,7 @@ hb_buffer_add_glyph( HB_Buffer buffer,
   
   buffer->in_length++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 /* The following function copies `num_out' elements from `glyph_data'
@@ -149,18 +144,18 @@ hb_buffer_add_glyph( HB_Buffer buffer,
 
    The cluster value for the glyph at position buffer->in_pos is used
    for all replacement glyphs */
-FT_Error
+HB_Error
 hb_buffer_add_output_glyphs( HB_Buffer buffer,
-			      FT_UShort  num_in,
-			      FT_UShort  num_out,
-			      FT_UShort *glyph_data,
-			      FT_UShort  component,
-			      FT_UShort  ligID )
+			      HB_UShort  num_in,
+			      HB_UShort  num_out,
+			      HB_UShort *glyph_data,
+			      HB_UShort  component,
+			      HB_UShort  ligID )
 {
-  FT_Error  error;
-  FT_UShort i;
-  FT_UInt properties;
-  FT_UInt cluster;
+  HB_Error  error;
+  HB_UShort i;
+  HB_UInt properties;
+  HB_UInt cluster;
 
   error = hb_buffer_ensure( buffer, buffer->out_pos + num_out );
   if ( error )
@@ -190,25 +185,25 @@ hb_buffer_add_output_glyphs( HB_Buffer buffer,
 
   buffer->out_length = buffer->out_pos;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_Error
+HB_Error
 hb_buffer_add_output_glyph( HB_Buffer buffer,	
-			     FT_UInt    glyph_index,
-			     FT_UShort  component,
-			     FT_UShort  ligID )
+			     HB_UInt    glyph_index,
+			     HB_UShort  component,
+			     HB_UShort  ligID )
 {
-  FT_UShort glyph_data =  glyph_index;
+  HB_UShort glyph_data =  glyph_index;
 
   return hb_buffer_add_output_glyphs ( buffer, 1, 1,
 					&glyph_data, component, ligID );
 }
 
-FT_Error
+HB_Error
 hb_buffer_copy_output_glyph ( HB_Buffer buffer )
 {  
-  FT_Error  error;
+  HB_Error  error;
 
   error = hb_buffer_ensure( buffer, buffer->out_pos + 1 );
   if ( error )
@@ -217,11 +212,11 @@ hb_buffer_copy_output_glyph ( HB_Buffer buffer )
   buffer->out_string[buffer->out_pos++] = buffer->in_string[buffer->in_pos++];
   buffer->out_length = buffer->out_pos;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
-FT_UShort
+HB_UShort
 hb_buffer_allocate_ligid( HB_Buffer buffer )
 {
-  return buffer->max_ligID++;
+  return ++buffer->max_ligID;
 }

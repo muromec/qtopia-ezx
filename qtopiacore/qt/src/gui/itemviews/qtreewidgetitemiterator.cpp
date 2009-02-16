@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,10 +42,12 @@
 
 #ifndef QT_NO_TREEWIDGET
 
+QT_BEGIN_NAMESPACE
+
 /*!
   \class QTreeWidgetItemIterator
   \ingroup model-view
-  \brief The QTreeWidgetItemIterator class provides a way to iterate over the 
+  \brief The QTreeWidgetItemIterator class provides a way to iterate over the
   items in a QTreeWidget instance.
 
   The iterator will walk the items in a pre-order traversal order, thus visiting the
@@ -60,10 +56,7 @@
   For example, the following code examples each item in a tree, checking the
   text in the first column against a user-specified search string:
 
-  \quotefromfile snippets/qtreewidgetitemiterator-using/mainwindow.cpp
-  \skipto findItems(
-  \skipto QTreeWidgetItemIterator
-  \printuntil }
+  \snippet doc/src/snippets/qtreewidgetitemiterator-using/mainwindow.cpp 0
 
   It is also possible to filter out certain types of node by passing certain
   \l{IteratorFlag}{flags} to the constructor of QTreeWidgetItemIterator.
@@ -118,12 +111,12 @@ QTreeWidgetItemIterator::QTreeWidgetItemIterator(QTreeWidget *widget, IteratorFl
 
 QTreeWidgetItemIterator::QTreeWidgetItemIterator(QTreeWidgetItem *item, IteratorFlags flags)
     : d_ptr(new QTreeWidgetItemIteratorPrivate(
-                this, ::qobject_cast<QTreeModel*>(item->view->model()))),
+                this, qobject_cast<QTreeModel*>(item->view->model()))),
       current(item), flags(flags)
 {
     Q_D(QTreeWidgetItemIterator);
     Q_ASSERT(item);
-    QTreeModel *model = ::qobject_cast<QTreeModel*>(item->view->model());
+    QTreeModel *model = qobject_cast<QTreeModel*>(item->view->model());
     Q_ASSERT(model);
     model->iterators.append(this);
 
@@ -175,7 +168,7 @@ QTreeWidgetItemIterator &QTreeWidgetItemIterator::operator=(const QTreeWidgetIte
 }
 
 /*!
-    The prefix ++ operator (++it) advances the iterator to the next matching item 
+    The prefix ++ operator (++it) advances the iterator to the next matching item
     and returns a reference to the resulting iterator.
     Sets the current pointer to 0 if the current item is the last matching item.
 */
@@ -190,7 +183,7 @@ QTreeWidgetItemIterator &QTreeWidgetItemIterator::operator++()
 }
 
 /*!
-    The prefix -- operator (--it) advances the iterator to the previous matching item 
+    The prefix -- operator (--it) advances the iterator to the previous matching item
     and returns a reference to the resulting iterator.
     Sets the current pointer to 0 if the current item is the first matching item.
 */
@@ -238,9 +231,9 @@ bool QTreeWidgetItemIterator::matchesFlags(const QTreeWidgetItem *item) const
         if ((flags & NotEditable) && (itemFlags & Qt::ItemIsEditable))
             return false;
     }
-
-    {
-        // ### We only test the check state for column 0
+    
+    if (flags & (Checked|NotChecked)) {
+        // ### We only test the check state for column 0 
         Qt::CheckState check = item->checkState(0);
         // PartiallyChecked matches as Checked.
         if ((flags & Checked) && (check == Qt::Unchecked))
@@ -254,22 +247,15 @@ bool QTreeWidgetItemIterator::matchesFlags(const QTreeWidgetItem *item) const
     if ((flags & NoChildren) && item->childCount())
         return false;
 
-    {
-        QTreeWidget *widget = item->view;
-        Q_ASSERT(widget);
+    if ((flags & Hidden) && !item->isHidden())
+        return false;
+    if ((flags & NotHidden) && item->isHidden())
+        return false;
 
-        bool hidden = widget->isItemHidden(item);
-        if ((flags & Hidden) && !hidden)
-            return false;
-        if ((flags & NotHidden) && hidden)
-            return false;
-
-        bool selected = widget->isItemSelected(item);
-        if ((flags & Selected) && !selected)
-            return false;
-        if ((flags & Unselected) && selected)
-            return false;
-    }
+    if ((flags & Selected) && !item->isSelected())
+        return false;
+    if ((flags & Unselected) && item->isSelected())
+        return false;
 
     return true;
 }
@@ -347,7 +333,7 @@ void QTreeWidgetItemIteratorPrivate::ensureValidIterator(const QTreeWidgetItem *
 {
     Q_Q(QTreeWidgetItemIterator);
     Q_ASSERT(itemToBeRemoved);
-    
+
     if (!q->current) return;
     QTreeWidgetItem *nextItem = q->current;
 
@@ -380,10 +366,10 @@ void QTreeWidgetItemIteratorPrivate::ensureValidIterator(const QTreeWidgetItem *
     if (nextItem->parent() == itemToBeRemoved->parent()) {
         // They have the same parent, i.e. we have to adjust the m_currentIndex member of the iterator
         // if the deleted item is to the left of the nextItem.
-        
+
         QTreeWidgetItem *par = itemToBeRemoved->parent();   // We know they both have the same parent.
         QTreeWidget *tw = itemToBeRemoved->treeWidget();    // ..and widget
-        int indexOfItemToBeRemoved = par ? par->indexOfChild(const_cast<QTreeWidgetItem *>(itemToBeRemoved)) 
+        int indexOfItemToBeRemoved = par ? par->indexOfChild(const_cast<QTreeWidgetItem *>(itemToBeRemoved))
             : tw->indexOfTopLevelItem(const_cast<QTreeWidgetItem *>(itemToBeRemoved));
         int indexOfNextItem = par ? par->indexOfChild(nextItem) : tw->indexOfTopLevelItem(nextItem);
 
@@ -398,7 +384,7 @@ void QTreeWidgetItemIteratorPrivate::ensureValidIterator(const QTreeWidgetItem *
 /*!
   \fn const QTreeWidgetItemIterator QTreeWidgetItemIterator::operator++(int)
 
-  The postfix ++ operator (it++) advances the iterator to the next matching item 
+  The postfix ++ operator (it++) advances the iterator to the next matching item
   and returns an iterator to the previously current item.
 */
 
@@ -463,4 +449,7 @@ void QTreeWidgetItemIteratorPrivate::ensureValidIterator(const QTreeWidgetItem *
     \value NotEditable
     \value UserFlag
 */
+
+QT_END_NAMESPACE
+
 #endif // QT_NO_TREEWIDGET

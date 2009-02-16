@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,41 +44,92 @@
 #include "qscriptcontext_p.h"
 #include "qscriptmember_p.h"
 #include "qscriptobject_p.h"
+#include "qscriptclassdata_p.h"
 
 #include <QtCore/QtDebug>
 
+QT_BEGIN_NAMESPACE
+
 namespace QScript { namespace Ecma {
 
-Array::ArrayClassData::ArrayClassData(QScriptClassInfo *classInfo):
+class ArrayClassData: public QScriptClassData
+{
+    QScriptClassInfo *m_classInfo;
+
+public:
+    ArrayClassData(QScriptClassInfo *classInfo);
+    virtual ~ArrayClassData();
+
+    inline QScriptClassInfo *classInfo() const
+        { return m_classInfo; }
+
+    virtual void mark(const QScriptValueImpl &object, int generation);
+    virtual bool resolve(const QScriptValueImpl &object,
+                         QScriptNameIdImpl *nameId,
+                         QScript::Member *member,
+                         QScriptValueImpl *base);
+    virtual bool get(const QScriptValueImpl &obj, const Member &m,
+                     QScriptValueImpl *out_value);
+    virtual bool put(QScriptValueImpl *object, const Member &member,
+                     const QScriptValueImpl &value);
+    virtual bool removeMember(const QScriptValueImpl &object,
+                              const QScript::Member &member);
+    virtual QScriptClassDataIterator *newIterator(const QScriptValueImpl &object);
+};
+
+class ArrayClassDataIterator: public QScriptClassDataIterator
+{
+public:
+    ArrayClassDataIterator(Array::Instance *instance);
+    virtual ~ArrayClassDataIterator();
+
+    virtual bool hasNext() const;
+    virtual void next(QScript::Member *member);
+
+    virtual bool hasPrevious() const;
+    virtual void previous(QScript::Member *member);
+
+    virtual void toFront();
+    virtual void toBack();
+
+private:
+    Array::Instance *m_instance;
+    QList<uint> m_keys;
+    quint32 m_pos;
+};
+
+ArrayClassData::ArrayClassData(QScriptClassInfo *classInfo):
     m_classInfo(classInfo)
 {
 }
 
-Array::ArrayClassData::~ArrayClassData()
+ArrayClassData::~ArrayClassData()
 {
 }
 
-void Array::ArrayClassData::mark(const QScriptValueImpl &object, int generation)
+void ArrayClassData::mark(const QScriptValueImpl &object, int generation)
 {
-    Instance *instance = Instance::get(object, classInfo());
+    Array::Instance *instance = Array::Instance::get(object, classInfo());
     if (! instance)
         return;
 
     instance->value.mark(generation);
 }
 
-bool Array::ArrayClassData::resolve(const QScriptValueImpl &object,
-                                    QScriptNameIdImpl *nameId,
-                                    QScript::Member *member,
-                                    QScriptValueImpl *base)
+bool ArrayClassData::resolve(const QScriptValueImpl &object,
+                             QScriptNameIdImpl *nameId,
+                             QScript::Member *member,
+                             QScriptValueImpl *base)
 {
     QScriptEngine *eng = object.engine();
     QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(eng);
 
-    if (Instance::get(object, classInfo())) {
+    if (Array::Instance::get(object, classInfo())) {
 
         if (nameId == eng_p->idTable()->id_length) {
-            member->native(nameId, /*id=*/ 0, QScriptValue::Undeletable);
+            member->native(nameId, /*id=*/ 0,
+                           QScriptValue::Undeletable
+                           | QScriptValue::SkipInEnumeration);
             *base = object;
             return true;
         }
@@ -93,8 +138,8 @@ bool Array::ArrayClassData::resolve(const QScriptValueImpl &object,
         bool isNumber;
         quint32 pos = propertyName.toUInt(&isNumber);
 
-        if (isNumber && (QScriptValue(eng, pos).toString() == propertyName)) { // ### improve me
-            member->native(0, pos, QScriptValue::Undeletable);
+        if (isNumber && (QScriptValueImpl(eng_p, pos).toString() == propertyName)) { // ### improve me
+            member->native(0, pos, /*flags=*/0);
             *base = object;
             return true;
         }
@@ -103,9 +148,9 @@ bool Array::ArrayClassData::resolve(const QScriptValueImpl &object,
     return false;
 }
 
-bool Array::ArrayClassData::get(const QScriptValueImpl &object,
-                                const QScript::Member &member,
-                                QScriptValueImpl *result)
+bool ArrayClassData::get(const QScriptValueImpl &object,
+                         const QScript::Member &member,
+                         QScriptValueImpl *result)
 {
     Q_ASSERT(member.isValid());
 
@@ -114,7 +159,7 @@ bool Array::ArrayClassData::get(const QScriptValueImpl &object,
 
     QScriptEnginePrivate *eng = QScriptEnginePrivate::get(object.engine());
 
-    Instance *instance = Instance::get(object, classInfo());
+    Array::Instance *instance = Array::Instance::get(object, classInfo());
     if (! instance)
         return false;
 
@@ -133,9 +178,9 @@ bool Array::ArrayClassData::get(const QScriptValueImpl &object,
     return true;
 }
 
-bool Array::ArrayClassData::put(QScriptValueImpl *object,
-                                const QScript::Member &member,
-                                const QScriptValueImpl &value)
+bool ArrayClassData::put(QScriptValueImpl *object,
+                         const QScript::Member &member,
+                         const QScriptValueImpl &value)
 {
     Q_ASSERT(object != 0);
     Q_ASSERT(member.isValid());
@@ -143,7 +188,7 @@ bool Array::ArrayClassData::put(QScriptValueImpl *object,
     if (! member.isNativeProperty())
         return false;
 
-    Instance *instance = Instance::get(*object, classInfo());
+    Array::Instance *instance = Array::Instance::get(*object, classInfo());
     if (! instance)
         return false;
 
@@ -163,62 +208,122 @@ bool Array::ArrayClassData::put(QScriptValueImpl *object,
     return true;
 }
 
-int Array::ArrayClassData::extraMemberCount(const QScriptValueImpl &object)
+bool ArrayClassData::removeMember(const QScriptValueImpl &object,
+                                  const QScript::Member &member)
 {
-    if (Instance *instance = Instance::get(object, classInfo())) {
-        return instance->value.count();
-    }
-    return 0;
+    if (!member.isNativeProperty() || !member.isDeletable() || (member.nameId() != 0))
+        return false;
+
+    Array::Instance *instance = Array::Instance::get(object, classInfo());
+    if (! instance)
+        return false;
+
+    quint32 pos = quint32 (member.id());
+    if (instance->value.at(pos).isValid())
+        instance->value.assign(pos, QScriptValueImpl());
+    return true;
 }
 
-bool Array::ArrayClassData::extraMember(const QScriptValueImpl &object,
-                                        int index, QScript::Member *member)
+QScriptClassDataIterator *ArrayClassData::newIterator(const QScriptValueImpl &object)
 {
-    if (Instance::get(object, classInfo())) {
-        member->native(/*nameId=*/ 0, index, QScriptValue::Undeletable);
-        return true;
-    }
+    Array::Instance *instance = Array::Instance::get(object, classInfo());
+    return new ArrayClassDataIterator(instance);
+}
 
+ArrayClassDataIterator::ArrayClassDataIterator(Array::Instance *instance)
+{
+    m_instance = instance;
+    toFront();
+}
+
+ArrayClassDataIterator::~ArrayClassDataIterator()
+{
+}
+
+bool ArrayClassDataIterator::hasNext() const
+{
+    quint32 limit = m_keys.isEmpty() ? m_instance->value.size() : quint32(m_keys.size());
+    for (quint32 i = m_pos; i < limit; ++i) {
+        quint32 realI = m_keys.isEmpty() ? i : m_keys.at(i);
+        if (m_instance->value.at(realI).isValid())
+            return true;
+    }
     return false;
 }
 
-Array::Array(QScriptEnginePrivate *eng):
-    Core(eng)
+void ArrayClassDataIterator::next(QScript::Member *member)
 {
-    m_classInfo = eng->registerClass(QLatin1String("Array"));
-    QExplicitlySharedDataPointer<QScriptClassData> data(new ArrayClassData(m_classInfo));
-    m_classInfo->setData(data);
+    quint32 limit = m_keys.isEmpty() ? m_instance->value.size() : quint32(m_keys.size());
+    for (quint32 i = m_pos; i < limit; ++i) {
+        quint32 realI = m_keys.isEmpty() ? i : m_keys.at(i);
+        if (m_instance->value.at(realI).isValid()) {
+            member->native(/*nameId=*/0, realI, /*flags=*/0);
+            m_pos = i + 1;
+            return;
+        }
+    }
+    member->invalidate();
+}
 
-    publicPrototype.invalidate();
+bool ArrayClassDataIterator::hasPrevious() const
+{
+    for (quint32 i = m_pos - 1; i != 0xFFFFFFFF; --i) {
+        quint32 realI = m_keys.isEmpty() ? i : m_keys.at(i);
+        if (m_instance->value.at(realI).isValid())
+            return true;
+    }
+    return false;
+}
+
+void ArrayClassDataIterator::previous(QScript::Member *member)
+{
+    for (quint32 i = m_pos - 1; i != 0xFFFFFFFF; --i) {
+        quint32 realI = m_keys.isEmpty() ? i : m_keys.at(i);
+        if (m_instance->value.at(realI).isValid()) {
+            member->native(/*nameId=*/ 0, realI, /*flags=*/0);
+            m_pos = i;
+            return;
+        }
+    }
+    member->invalidate();
+}
+
+void ArrayClassDataIterator::toFront()
+{
+    m_keys = m_instance->value.keys();
+    m_pos = 0;
+}
+
+void ArrayClassDataIterator::toBack()
+{
+    m_keys = m_instance->value.keys();
+    m_pos = m_keys.isEmpty() ? m_instance->value.count() : m_keys.size();
+}
+
+
+
+Array::Array(QScriptEnginePrivate *eng):
+    Core(eng, QLatin1String("Array"), QScriptClassInfo::ArrayType)
+{
+    QExplicitlySharedDataPointer<QScriptClassData> data(new ArrayClassData(classInfo()));
+    classInfo()->setData(data);
+
     newArray(&publicPrototype);
 
     eng->newConstructor(&ctor, this, publicPrototype);
 
-    QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toLocaleString"),
-                                eng->createFunction(method_toLocaleString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("concat"),
-                                eng->createFunction(method_concat, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("join"),
-                                eng->createFunction(method_join, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("pop"),
-                                eng->createFunction(method_pop, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("push"),
-                                eng->createFunction(method_push, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("reverse"),
-                                eng->createFunction(method_reverse, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("shift"),
-                                eng->createFunction(method_shift, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("slice"),
-                                eng->createFunction(method_slice, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("sort"),
-                                eng->createFunction(method_sort, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("splice"),
-                                eng->createFunction(method_splice, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("unshift"),
-                                eng->createFunction(method_unshift, 1, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 0);
+    addPrototypeFunction(QLatin1String("toLocaleString"), method_toLocaleString, 0);
+    addPrototypeFunction(QLatin1String("concat"), method_concat, 0);
+    addPrototypeFunction(QLatin1String("join"), method_join, 1);
+    addPrototypeFunction(QLatin1String("pop"), method_pop, 0);
+    addPrototypeFunction(QLatin1String("push"), method_push, 1);
+    addPrototypeFunction(QLatin1String("reverse"), method_reverse, 0);
+    addPrototypeFunction(QLatin1String("shift"), method_shift, 0);
+    addPrototypeFunction(QLatin1String("slice"), method_slice, 0);
+    addPrototypeFunction(QLatin1String("sort"), method_sort, 1);
+    addPrototypeFunction(QLatin1String("splice"), method_splice, 1);
+    addPrototypeFunction(QLatin1String("unshift"), method_unshift, 1);
 }
 
 Array::~Array()
@@ -227,6 +332,9 @@ Array::~Array()
 
 void Array::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionEntry(context);
+#endif
     QScript::Array value;
 
     if (context->argumentCount() == 1 && context->argument(0).isNumber()) {
@@ -246,6 +354,10 @@ void Array::execute(QScriptContextPrivate *context)
     }
 
     newArray(&context->m_result, value);
+
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionExit(context);
+#endif
 }
 
 void Array::newArray(QScriptValueImpl *result, const QScript::Array &value)
@@ -254,7 +366,7 @@ void Array::newArray(QScriptValueImpl *result, const QScript::Array &value)
     instance->value = value;
 
     engine()->newObject(result, publicPrototype, classInfo());
-    result->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
+    result->setObjectData(instance);
 }
 
 QScriptValueImpl Array::method_toString(QScriptContextPrivate *context,
@@ -620,11 +732,13 @@ QScriptValueImpl Array::method_unshift(QScriptContextPrivate *context,
 Array::Instance *Array::Instance::get(const QScriptValueImpl &object, QScriptClassInfo *klass)
 {
     if (! klass || klass == object.classInfo())
-        return static_cast<Instance*> (object.objectData().data());
+        return static_cast<Instance*> (object.objectData());
 
     return 0;
 }
 
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

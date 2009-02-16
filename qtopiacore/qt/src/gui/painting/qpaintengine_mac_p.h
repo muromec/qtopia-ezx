@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,11 +50,17 @@
 //
 
 #include "QtGui/qpaintengine.h"
-#ifdef Q_WS_MAC //just for now (to get the coregraphics switch) ###
-#  include "private/qt_mac_p.h"
-#endif
+#include "private/qt_mac_p.h"
 #include "private/qpaintengine_p.h"
 #include "private/qpolygonclipper_p.h"
+#include "QtCore/qhash.h"
+
+typedef struct CGColorSpace *CGColorSpaceRef;
+QT_BEGIN_NAMESPACE
+
+extern int qt_defaultDpi();
+extern int qt_defaultDpiX();
+extern int qt_defaultDpiY();
 
 
 class QCoreGraphicsPaintEnginePrivate;
@@ -74,6 +74,8 @@ public:
 
     bool begin(QPaintDevice *pdev);
     bool end();
+    static CGColorSpaceRef macGenericColorSpace();
+    static CGColorSpaceRef macDisplayColorSpace(const QWidget *widget = 0);
 
     void updateState(const QPaintEngineState &state);
 
@@ -122,9 +124,14 @@ public:
 protected:
     friend class QMacPrintEngine;
     friend class QMacPrintEnginePrivate;
+    friend void qt_mac_display_change_callbk(CGDirectDisplayID, CGDisplayChangeSummaryFlags, void *);
     QCoreGraphicsPaintEngine(QPaintEnginePrivate &dptr);
 
 private:
+    static bool m_postRoutineRegistered;
+    static CGColorSpaceRef m_genericColorSpace;
+    static QHash<CGDirectDisplayID, CGColorSpaceRef> m_displayColorSpaceHash;
+    static void cleanUpMacColorSpaces();
     Q_DISABLE_COPY(QCoreGraphicsPaintEngine)
 };
 
@@ -184,5 +191,46 @@ public:
         CGContextSetTextMatrix(hd, xform);
     }
 };
+
+class QMacQuartzPaintDevice : public QPaintDevice
+{
+public:
+    QMacQuartzPaintDevice(CGContextRef cg, int width, int height, int bytesPerLine)
+        : mCG(cg), mWidth(width), mHeight(height), mBytesPerLine(bytesPerLine)
+    { }
+    int devType() const { return QInternal::MacQuartz; }
+    CGContextRef cgContext() const { return mCG; }
+    int metric(PaintDeviceMetric metric) const {
+        switch (metric) {
+        case PdmWidth:
+            return mWidth;
+        case PdmHeight:
+            return mHeight;
+        case PdmWidthMM:
+            return (qt_defaultDpiX() * mWidth) / 2.54;
+        case PdmHeightMM:
+            return (qt_defaultDpiY() * mHeight) / 2.54;
+        case PdmNumColors:
+            return 0;
+        case PdmDepth:
+            return 32;
+        case PdmDpiX:
+        case PdmPhysicalDpiX:
+            return qt_defaultDpiX();
+        case PdmDpiY:
+        case PdmPhysicalDpiY:
+            return qt_defaultDpiY();
+        }
+        return 0;
+    }
+    QPaintEngine *paintEngine() const { qWarning("This function should never be called."); return 0; }
+private:
+    CGContextRef mCG;
+    int mWidth;
+    int mHeight;
+    int mBytesPerLine;
+};
+
+QT_END_NAMESPACE
 
 #endif // QPAINTENGINE_MAC_P_H

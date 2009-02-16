@@ -1,57 +1,55 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSVG module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsvgtinydocument_p.h"
+
+#ifndef QT_NO_SVG
+
 #include "qsvghandler_p.h"
 #include "qsvgfont_p.h"
 
 #include "qpainter.h"
-#include "qxml.h"
 #include "qfile.h"
 #include "qbytearray.h"
 #include "qqueue.h"
 #include "qstack.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 QSvgTinyDocument::QSvgTinyDocument()
     : QSvgStructureNode(0),
@@ -104,16 +102,11 @@ void QSvgTinyDocument::draw(QPainter *p, const QRectF &bounds)
         m_time.start();
     }
 
-    if (m_viewBox.isNull()) {
-        QMatrix matx = QMatrix();
-        m_viewBox = transformedBounds(matx);
-    }
-
     p->save();
 
     //sets default style on the painter
     //### not the most optimal way
-    adjustWindowBounds(p, bounds, m_viewBox);
+    mapSourceToTarget(p, bounds);
     p->setPen(Qt::NoPen);
     p->setBrush(Qt::black);
     p->setRenderHint(QPainter::Antialiasing);
@@ -132,7 +125,7 @@ void QSvgTinyDocument::draw(QPainter *p, const QRectF &bounds)
 
 
 void QSvgTinyDocument::draw(QPainter *p, const QString &id,
-                            const QRectF &boundingWindow)
+                            const QRectF &bounds)
 {
     QSvgNode *node = scopeNode(id);
 
@@ -143,11 +136,10 @@ void QSvgTinyDocument::draw(QPainter *p, const QString &id,
 
     p->save();
 
-    QMatrix matx = QMatrix();
-    QRectF bounds = node->transformedBounds(matx);
+    const QRectF elementBounds = node->transformedBounds(QMatrix());
 
-    adjustWindowBounds(p, boundingWindow, bounds);
-    matx = p->worldMatrix();
+    mapSourceToTarget(p, bounds, elementBounds);
+    QMatrix matx = p->worldMatrix();
 
     //XXX set default style on the painter
     p->setPen(Qt::NoPen);
@@ -238,35 +230,35 @@ void QSvgTinyDocument::draw(QPainter *p)
     draw(p, QRectF());
 }
 
-void QSvgTinyDocument::adjustWindowBounds(QPainter *p,
-                                          const QRectF &d,
-                                          const QRectF &c)
+void QSvgTinyDocument::mapSourceToTarget(QPainter *p, const QRectF &targetRect, const QRectF &sourceRect)
 {
-    QPaintDevice *dev = p->device();
-    QRectF current = c;
-
-    if (current.isNull()) {
-        if (!m_size.isEmpty()) {
-            current = QRectF(0, 0, m_size.width(), m_size.height());
+    QRectF target = targetRect;
+    if (target.isNull()) {
+        QPaintDevice *dev = p->device();
+        QRectF deviceRect(0, 0, dev->width(), dev->height());
+        if (deviceRect.isNull()) {
+            if (sourceRect.isNull())
+                target = QRectF(QPointF(0, 0), size());
+            else
+                target = QRectF(QPointF(0, 0), sourceRect.size());
         } else {
-            current = QRectF(0, 0, 100, 100);
+            target = deviceRect;
         }
     }
-    QRectF desired = d.isNull() ? QRectF(0, 0, dev->width(), dev->height()) : d;
 
-    if (current != desired) {
+    QRectF source = sourceRect;
+    if (source.isNull())
+        source = viewBox();
+
+    if (source != target && !source.isNull()) {
         QMatrix mat;
-        mat.scale(desired.width()/current.width(),
-                  desired.height()/current.height());
-        QRectF c2 = mat.mapRect(current);
-        p->translate(desired.x()-c2.x(),
-                     desired.y()-c2.y());
-        p->scale(desired.width()/current.width(),
-                 desired.height()/current.height());
-
-        //qDebug()<<"two "<<mat<<", pt = "<<QPointF(desired.x()-c2.x(),
-        //                                          desired.y()-c2.y());
-
+        mat.scale(target.width() / source.width(),
+                  target.height() / source.height());
+        QRectF c2 = mat.mapRect(source);
+        p->translate(target.x() - c2.x(),
+                     target.y() - c2.y());
+        p->scale(target.width() / source.width(),
+                 target.height() / source.height());
     }
 }
 
@@ -343,3 +335,6 @@ void QSvgTinyDocument::setFramesPerSecond(int num)
     m_fps = num;
 }
 
+QT_END_NAMESPACE
+
+#endif // QT_NO_SVG

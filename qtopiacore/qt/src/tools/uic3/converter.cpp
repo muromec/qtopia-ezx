@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 enum { warnHeaderGeneration = 0 };
 
@@ -442,16 +438,17 @@ DomUI *Ui3Reader::generateUi4(const QDomElement &widget, bool implicitIncludes)
         ui->setElementPixmapFunction(pixmapFunction);
 
     for (int i=0; i<ui_customwidget_list.size(); ++i) {
-        QString name = ui_customwidget_list.at(i)->elementClass();
+        const QString name = ui_customwidget_list.at(i)->elementClass();
         if (candidateCustomWidgets.contains(name))
             candidateCustomWidgets.remove(name);
     }
+
 
     QMapIterator<QString, bool> it(candidateCustomWidgets);
     while (it.hasNext()) {
         it.next();
 
-        QString customClass = it.key();
+        const QString customClass = it.key();
         QString baseClass;
 
         if (customClass.endsWith(QLatin1String("ListView")))
@@ -481,7 +478,7 @@ DomUI *Ui3Reader::generateUi4(const QDomElement &widget, bool implicitIncludes)
             customWidget->setElementHeader(domHeader);
             if (warnHeaderGeneration) {
                 const QString msg = QString::fromUtf8("Warning: generated header '%1' for class '%2'.").arg(header).arg(customClass);
-                qWarning(msg.toUtf8().constData());
+                qWarning("%s", qPrintable(msg));
             }
         }
         ui_customwidget_list.append(customWidget);
@@ -1066,11 +1063,14 @@ void Ui3Reader::createProperties(const QDomElement &n, QList<DomProperty*> *prop
             CONVERT_PROPERTY(QLatin1String("textLabel"), QLatin1String("text"));
 
             CONVERT_PROPERTY(QLatin1String("toggleButton"), QLatin1String("checkable"));
-            CONVERT_PROPERTY(QLatin1String("isOn"), QLatin1String("checked"));
+            CONVERT_PROPERTY(QLatin1String("on"), QLatin1String("checked"));
 
             CONVERT_PROPERTY(QLatin1String("maxValue"), QLatin1String("maximum"));
             CONVERT_PROPERTY(QLatin1String("minValue"), QLatin1String("minimum"));
             CONVERT_PROPERTY(QLatin1String("lineStep"), QLatin1String("singleStep"));
+
+            // QSlider
+            CONVERT_PROPERTY(QLatin1String("tickmarks"), QLatin1String("tickPosition"));
 
             name = prop->attributeName(); // sync the name
 
@@ -1261,3 +1261,5 @@ QString Ui3Reader::fixMethod(const QString &method) const
     result.append(normalized.mid(index));
     return QLatin1String(result);
 }
+
+QT_END_NAMESPACE

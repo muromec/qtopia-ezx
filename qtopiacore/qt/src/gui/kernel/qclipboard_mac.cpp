@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,14 +47,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+QT_BEGIN_NAMESPACE
+
+QT_USE_NAMESPACE
+
 /*****************************************************************************
   QClipboard debug facilities
  *****************************************************************************/
 //#define DEBUG_PASTEBOARD
 
 #ifndef QT_NO_CLIPBOARD
-
-void qt_event_send_clipboard_changed(); //qapplication_mac.cpp
 
 /*****************************************************************************
   QClipboard member functions for mac.
@@ -97,10 +93,11 @@ static bool qt_mac_updateScrap(QClipboard::Mode mode)
 
 void QClipboard::clear(Mode mode)
 {
-    if (supportsMode(mode) == false)
+    if (!supportsMode(mode))
         return;
     qt_mac_updateScrap(mode);
     qt_mac_pasteboard(mode)->clear();
+    setMimeData(0, mode);
 }
 
 void QClipboard::ownerDestroyed()
@@ -119,12 +116,10 @@ bool QClipboard::event(QEvent *e)
         return QObject::event(e);
 
     if (qt_mac_updateScrap(QClipboard::Clipboard)) {
-        qt_mac_pasteboard(QClipboard::Clipboard)->setMimeData(0);
         emitChanged(QClipboard::Clipboard);
     }
 
     if (qt_mac_updateScrap(QClipboard::FindBuffer)) {
-        qt_mac_pasteboard(QClipboard::FindBuffer)->setMimeData(0);
         emitChanged(QClipboard::FindBuffer);
     }
 
@@ -133,7 +128,7 @@ bool QClipboard::event(QEvent *e)
 
 const QMimeData *QClipboard::mimeData(Mode mode) const
 {
-    if (supportsMode(mode) == false)
+    if (!supportsMode(mode))
         return 0;
     qt_mac_updateScrap(mode);
     return qt_mac_pasteboard(mode)->mimeData();
@@ -141,12 +136,11 @@ const QMimeData *QClipboard::mimeData(Mode mode) const
 
 void QClipboard::setMimeData(QMimeData *src, Mode mode)
 {
-    if (supportsMode(mode) == false)
+    if (!supportsMode(mode))
         return;
     qt_mac_updateScrap(mode);
     qt_mac_pasteboard(mode)->setMimeData(src);
     emitChanged(mode);
-    qt_event_send_clipboard_changed();
 }
 
 bool QClipboard::supportsMode(Mode mode) const
@@ -248,7 +242,7 @@ OSStatus QMacPasteboard::promiseKeeper(PasteboardRef paste, PasteboardItemID id,
 #endif
 
     QList<QByteArray> md = promise.convertor->convertFromMime(promise.mime, promise.data, flavorAsQString);
-    if (md.size() < promise.offset)
+    if (md.size() <= promise.offset)
         return cantGetFlavorErr;
     const QByteArray &ba = md[promise.offset];
     QCFType<CFDataRef> data = CFDataCreate(0, (UInt8*)ba.constData(), ba.size());
@@ -580,7 +574,6 @@ QMacPasteboard::clear()
     qDebug("PasteBoard: clear!");
 #endif
     clear_helper();
-    setMimeData(0);
 }
 
 bool
@@ -588,13 +581,19 @@ QMacPasteboard::sync() const
 {
     if (!paste)
         return false;
-    const bool ret = PasteboardSynchronize(paste) & kPasteboardModified;
+    const bool fromGlobal = PasteboardSynchronize(paste) & kPasteboardModified;
+    
+    if (fromGlobal)
+        const_cast<QMacPasteboard *>(this)->setMimeData(0);
+
 #ifdef DEBUG_PASTEBOARD
-    if(ret)
+    if(fromGlobal)
         qDebug("Pasteboard: Syncronize!");
 #endif
-    return ret;
+    return fromGlobal;
 }
 
 
 
+
+QT_END_NAMESPACE

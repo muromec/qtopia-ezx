@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include "qscriptmember_p.h"
 #include "qscriptobject_p.h"
 
+QT_BEGIN_NAMESPACE
+
 static void dfs(QScriptObject *instance, QHash<QScriptObject*, int> &dfn, int n)
 {
     bool found = dfn.contains(instance);
@@ -59,10 +55,10 @@ static void dfs(QScriptObject *instance, QHash<QScriptObject*, int> &dfn, int n)
     if (found)
         return;
 
-    if (instance->m_prototype.isValid() && instance->m_prototype.isObject())
+    if (instance->m_prototype.isObject())
         dfs (instance->m_prototype.m_object_value, dfn, n + 1);
 
-    if (instance->m_scope.isValid() && instance->m_scope.isObject())
+    if (instance->m_scope.isObject())
         dfs (instance->m_scope.m_object_value, dfn, n + 1);
 }
 
@@ -71,12 +67,12 @@ static bool checkCycle(QScriptObject *instance, const QHash<QScriptObject*, int>
 {
     int n = dfn.value(instance);
 
-    if (instance->m_prototype.isValid() && instance->m_prototype.isObject()) {
+    if (instance->m_prototype.isObject()) {
         if (n >= dfn.value(instance->m_prototype.m_object_value))
             return true;
     }
 
-    if (instance->m_scope.isValid() && instance->m_scope.isObject()) {
+    if (instance->m_scope.isObject()) {
         if (n >= dfn.value(instance->m_scope.m_object_value))
             return true;
     }
@@ -144,46 +140,18 @@ bool QScriptValueImpl::resolve_helper(QScriptNameIdImpl *nameId, QScript::Member
     }
 
     // If not found anywhere else, search in the extra members.
-    if (QScriptClassData *odata = classInfo()->data()) {
+    if (QScriptClassData *odata = classInfo()->data().data()) {
         *object = *this;
 
         if (odata->resolve(*this, nameId, member, object))
             return true;
     }
 
-    if (isFunction()) {
-        if (nameId == eng_p->idTable()->id_length) {
-            member->native(nameId, 0,
-                           QScriptValue::Undeletable
-                           | QScriptValue::ReadOnly
-                           | QScriptValue::SkipInEnumeration);
-            *object = *this;
-            return true;
-        } else if (nameId == eng_p->idTable()->id_arguments) {
-            member->native(nameId, 0,
-                           QScriptValue::Undeletable
-                           | QScriptValue::ReadOnly
-                           | QScriptValue::SkipInEnumeration);
-            *object = *this;
-            return true;
-        }/* else if (nameId == eng_p->idTable()->id___fileName__) {
-            QScriptFunction *foo = toFunction();
-            if (foo->fileName().isEmpty())
-                return false;
-            member->native(nameId, 0,
-                           QScriptValue::Undeletable
-                           | QScriptValue::ReadOnly
-                           | QScriptValue::SkipInEnumeration);
-            *object = *this;
-            return true;
-        }*/
-    }
-
     if (mode & QScriptValue::ResolvePrototype) {
         // For values and other non object based types, search in class's prototype
         const QScriptValueImpl &proto = object_data->m_prototype;
 
-        if (proto.isValid() && proto.isObject()
+        if (proto.isObject()
             && proto.resolve(nameId, member, object, mode)) {
             return true;
         }
@@ -232,7 +200,7 @@ void QScriptValueImpl::setProperty(QScriptNameIdImpl *nameId,
                         createMember(nameId, &member, flags);
                     }
                 }
-            } else {
+            } else if (member.isGetter()) {
                 // the property we resolved is a getter
                 if (!(flags & QScriptValue::PropertyGetter)) {
                     // find the setter, if not, create one
@@ -242,6 +210,12 @@ void QScriptValueImpl::setProperty(QScriptNameIdImpl *nameId,
                         createMember(nameId, &member, flags);
                     }
                 }
+            } else {
+                // the property is a normal property -- change the flags
+                uint newFlags = flags & ~QScript::Member::InternalRange;
+                newFlags |= QScript::Member::ObjectProperty;
+                member.resetFlags(newFlags);
+                base.m_object_value->m_members[member.id()].resetFlags(newFlags);
             }
             Q_ASSERT(member.isValid());
             if (!value.isValid()) {
@@ -303,6 +277,54 @@ void QScriptValueImpl::setProperty(QScriptNameIdImpl *nameId,
     base.put(member, value);
 }
 
+QVariant QScriptValueImpl::toVariant() const
+{
+    if (!isValid())
+        return QVariant();
+    switch (m_type->type()) {
+
+    case QScript::UndefinedType:
+    case QScript::NullType:
+    case QScript::PointerType:
+    case QScript::ReferenceType:
+        break;
+
+    case QScript::BooleanType:
+        return QVariant(m_bool_value);
+
+    case QScript::IntegerType:
+        return QVariant(m_int_value);
+
+    case QScript::NumberType:
+        return QVariant(m_number_value);
+
+    case QScript::StringType:
+        return QVariant(m_string_value->s);
+
+    case QScript::ObjectType:
+        if (isDate())
+            return QVariant(toDateTime());
+
+#ifndef QT_NO_REGEXP
+        if (isRegExp())
+            return QVariant(toRegExp());
+#endif
+        if (isVariant())
+            return variantValue();
+
+#ifndef QT_NO_QOBJECT
+        if (isQObject())        
+            return qVariantFromValue(toQObject());
+#endif
+
+        QScriptValue v = toPrimitive();
+        if (!v.isObject())
+            return v.toVariant();
+        break;
+    } // switch
+    return QVariant();
+}
+
 QDebug &operator<<(QDebug &d, const QScriptValueImpl &object)
 {
     d.nospace() << "QScriptValue(";
@@ -329,56 +351,75 @@ QDebug &operator<<(QDebug &d, const QScriptValueImpl &object)
         d.nospace() << "string=" << object.toString();
         break;
 
-    case QScript::FunctionType:
-        d.nospace() << "function=" << object.toString();
-        break;
-
-    case QScript::VariantType:
-        d.nospace() << "variant=" << object.toString();
-        break;
-
     case QScript::ReferenceType:
         d.nospace() << "reference";
         break;
 
-    default:
-        if (object.isObject()) {
-            d.nospace() << object.classInfo()->name() << ",{";
-            QScriptObject *od = object.objectValue();
-            for (int i=0; i<od->memberCount(); ++i) {
-                if (i != 0)
-                    d << ",";
+    case QScript::NullType:
+        d.nospace() << "null";
+        break;
 
-                QScript::Member m;
-                od->member(i, &m);
+    case QScript::UndefinedType:
+        d.nospace() << "undefined";
+        break;
 
-                if (m.isValid() && m.isObjectProperty()) {
-                    d << QScriptEnginePrivate::get(object.engine())->toString(m.nameId());
-                    QScriptValueImpl o;
-                    od->get(m, &o);
-                    d.nospace() << QLatin1String(":")
-                                << (o.classInfo()
-                                    ? o.classInfo()->name()
-                                    : QLatin1String("?"));
-                }
+    case QScript::PointerType:
+        d.nospace() << "pointer";
+        break;
+
+    case QScript::ObjectType:
+        d.nospace() << object.classInfo()->name() << ",{";
+        QScriptObject *od = object.objectValue();
+        for (int i=0; i<od->memberCount(); ++i) {
+            if (i != 0)
+                d << ",";
+
+            QScript::Member m;
+            od->member(i, &m);
+
+            if (m.isValid() && m.isObjectProperty()) {
+                d << QScriptEnginePrivate::get(object.engine())->toString(m.nameId());
+                QScriptValueImpl o;
+                od->get(m, &o);
+                d.nospace() << QLatin1String(":")
+                            << (o.classInfo()
+                                ? o.classInfo()->name()
+                                : QLatin1String("?"));
             }
-
-            d.nospace() << "} scope={";
-            QScriptValueImpl scope = object.scope();
-            while (scope.isValid()) {
-                Q_ASSERT(scope.isObject());
-                d.nospace() << " " << scope.objectValue();
-                scope = scope.scope();
-            }
-            d.nospace() << "}";
-        } else {
-            d << "n/a";
         }
+
+        d.nospace() << "} scope={";
+        QScriptValueImpl scope = object.scope();
+        while (scope.isValid()) {
+            Q_ASSERT(scope.isObject());
+            d.nospace() << " " << scope.objectValue();
+            scope = scope.scope();
+        }
+        d.nospace() << "}";
         break;
     }
 
     d << ")";
     return d;
 }
+
+void QScriptValueImpl::destroyObjectData()
+{
+    Q_ASSERT(isObject());
+    m_object_value->finalizeData(engine());
+}
+
+bool QScriptValueImpl::isMarked(int generation) const
+{
+    if (isString())
+        return (m_string_value->used != 0);
+    else if (isObject()) {
+        QScript::GCBlock *block = QScript::GCBlock::get(m_object_value);
+        return (block->generation == generation);
+    }
+    return false;
+}
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

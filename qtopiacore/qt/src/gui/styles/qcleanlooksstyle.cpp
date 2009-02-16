@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -66,9 +60,12 @@
 #include <qprogressbar.h>
 #include <qtoolbar.h>
 #include <qwizard.h>
+#include <qlibrary.h>
 
 #define CL_MAX(a,b) (a)>(b) ? (a):(b) // ### qMin/qMax does not work for vc6
 #define CL_MIN(a,b) (a)<(b) ? (a):(b) // remove this when it is working
+
+QT_BEGIN_NAMESPACE
 
 static const bool UsePixmapCache = true;
 
@@ -463,31 +460,25 @@ static const char * const qt_cleanlooks_checkbox_checked[] = {
     "             ",
     "             "};
 
-#define BEGIN_CLEANLOOKS_PIXMAPCACHE(a) \
-    QRect rect = option->rect; \
-    QPixmap cache; \
-    QPainter *p = painter; \
-    QString unique = uniqueName((a), option, option->rect.size()); \
-    if (UsePixmapCache) { \
-        if (!QPixmapCache::find(unique, cache)) { \
-            rect.setRect(0, 0, option->rect.width(), option->rect.height()); \
-            cache = QPixmap(option->rect.size()); \
-            cache.fill(Qt::transparent); \
-            p = new QPainter(&cache); \
-        } else { \
-            painter->drawPixmap(option->rect.topLeft(), cache); \
-            break; \
-        } \
-    }
+#ifdef Q_WS_X11
+extern "C" {
+    struct GConfClient;
+    struct GError;
+    typedef void (*Ptr_g_type_init)();
+    typedef GConfClient* (*Ptr_gconf_client_get_default)();
+    typedef char* (*Ptr_gconf_client_get_string)(GConfClient*, const char*, GError **);
+    typedef void (*Ptr_g_object_unref)(void *);
+    typedef void (*Ptr_g_error_free)(GError *);
+    typedef void (*Ptr_g_free)(void*);
+}
 
-#define END_CLEANLOOKS_PIXMAPCACHE \
-    if (p != painter) { \
-        p->end(); \
-        delete p; \
-        painter->drawPixmap(option->rect.topLeft(), cache); \
-        QPixmapCache::insert(unique, cache); \
-    }
-
+static Ptr_g_type_init p_g_type_init = 0;
+static Ptr_gconf_client_get_default p_gconf_client_get_default = 0;
+static Ptr_gconf_client_get_string p_gconf_client_get_string = 0;
+static Ptr_g_object_unref p_g_object_unref = 0;
+static Ptr_g_error_free p_g_error_free = 0;
+static Ptr_g_free p_g_free = 0;
+#endif
 
 class QCleanlooksStylePrivate : public QWindowsStylePrivate
 {
@@ -1135,7 +1126,7 @@ void QCleanlooksStyle::drawPrimitive(PrimitiveElement elem,
                 return;
             }
 
-            BEGIN_CLEANLOOKS_PIXMAPCACHE(QString::fromLatin1("pushbutton-%1").arg(isDefault))
+            BEGIN_STYLE_PIXMAPCACHE(QString::fromLatin1("pushbutton-%1").arg(isDefault))
             r = rect.adjusted(0, 1, 0, -1);
 
             bool isEnabled = (option->state & State_Enabled);
@@ -1157,7 +1148,10 @@ void QCleanlooksStyle::drawPrimitive(PrimitiveElement elem,
             QRect innerBorder = r.adjusted(1, 1, -1, 0);
 
             if (isDown) {
-                p->fillRect(gradRect, gradientStopColor.darker(110));
+                QBrush fillColor = gradientStopColor.darker(110);
+                if (option->palette.button().gradient())
+                    fillColor = option->palette.button();
+                p->fillRect(gradRect, fillColor);
                 p->setPen(gradientStopColor.darker(125));
                 p->drawLine(innerBorder.topLeft(), innerBorder.topRight());
                 p->drawLine(innerBorder.topLeft(), innerBorder.bottomLeft());
@@ -1248,7 +1242,7 @@ void QCleanlooksStyle::drawPrimitive(PrimitiveElement elem,
             }
             painter->setPen(oldPen);
             painter->setBrush(oldBrush);
-            END_CLEANLOOKS_PIXMAPCACHE
+            END_STYLE_PIXMAPCACHE
         }
         break;
 #ifndef QT_NO_TABBAR
@@ -1368,7 +1362,7 @@ void QCleanlooksStyle::drawPrimitive(PrimitiveElement elem,
     painter->restore();
     break ;
 
-    case PE_FrameStatusBar:
+    case PE_FrameStatusBarItem:
     break;
 
 #endif // QT_NO_TABBAR
@@ -1756,13 +1750,13 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                 QTransform m;
                 m.translate(rect.height()-1, -1.0);
                 m.rotate(90.0);
-                painter->setTransform(m);
+                painter->setTransform(m, true);
             }
 
             int maxWidth = rect.width() - 4;
             int minWidth = 4;
 			qint64 progress = (qint64)qMax(bar->progress, bar->minimum); // workaround for bug in QProgressBar
-			double vc6_workaround = ((progress - qint64(bar->minimum)) / double(qint64(bar->maximum) - qint64(bar->minimum))) * maxWidth;
+			double vc6_workaround = ((progress - qint64(bar->minimum)) / qMax(double(1.0), double(qint64(bar->maximum) - qint64(bar->minimum))) * maxWidth);
 			int progressBarWidth = (int(vc6_workaround) > minWidth ) ? int(vc6_workaround) : minWidth;
 			int width = indeterminate ? maxWidth : progressBarWidth;
 
@@ -1948,7 +1942,7 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                         if (menuItem->icon.isNull()) {
                             if (checked || sunken) {
                                 QImage image(qt_cleanlooks_menuitem_checkbox_checked);
-                                if (menuItem->state & State_Selected) {
+                                if (enabled && (menuItem->state & State_Selected)) {
                                     image.setColor(1, 0x55ffffff);
                                     image.setColor(2, 0xAAffffff);
                                     image.setColor(3, 0xBBffffff);
@@ -1989,10 +1983,18 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                 if (act && !dis)
                     mode = QIcon::Active;
                 QPixmap pixmap;
+
+                int smallIconSize = pixelMetric(PM_SmallIconSize, option, widget);
+                QSize iconSize(smallIconSize, smallIconSize);
+#ifndef QT_NO_COMBOBOX
+                if (const QComboBox *combo = qobject_cast<const QComboBox*>(widget))
+                    iconSize = combo->iconSize();
+#endif // QT_NO_COMBOBOX
                 if (checked)
-                    pixmap = menuItem->icon.pixmap(pixelMetric(PM_SmallIconSize), mode, QIcon::On);
+                    pixmap = menuItem->icon.pixmap(iconSize, mode, QIcon::On);
                 else
-                    pixmap = menuItem->icon.pixmap(pixelMetric(PM_SmallIconSize), mode);
+                    pixmap = menuItem->icon.pixmap(iconSize, mode);
+
                 int pixw = pixmap.width();
                 int pixh = pixmap.height();
 
@@ -2041,7 +2043,7 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                 if (t >= 0) {
                     QRect vShortcutRect = visualRect(opt->direction, menuitem->rect,
                                                      QRect(textRect.topRight(), QPoint(menuitem->rect.right(), textRect.bottom())));
-                    if (dis && !act) {
+                    if (dis && !act && styleHint(SH_EtchDisabledText, option, widget)) {
                         p->setPen(menuitem->palette.light().color());
                         p->drawText(vShortcutRect.adjusted(1, 1, 1, 1), text_flags, s.mid(t + 1));
                         p->setPen(discol);
@@ -2055,7 +2057,7 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                     font.setBold(true);
 
                 p->setFont(font);
-                if (dis && !act) {
+                if (dis && !act && styleHint(SH_EtchDisabledText, option, widget)) {
                     p->setPen(menuitem->palette.light().color());
                     p->drawText(vTextRect.adjusted(1, 1, 1, 1), text_flags, s.left(t));
                     p->setPen(discol);
@@ -2230,19 +2232,19 @@ void QCleanlooksStyle::drawControl(ControlElement element, const QStyleOption *o
                 rotMatrix.rotate(180);
                 rotMatrix.translate(0, -rect.height() + 1);
                 rotMatrix.scale(-1, 1);
-                painter->setTransform(rotMatrix);
+                painter->setTransform(rotMatrix, true);
                 break;
             case QTabBar::RoundedWest:
                 rotMatrix.rotate(180 + 90);
                 rotMatrix.scale(-1, 1);
                 flip = true;
-                painter->setTransform(rotMatrix);
+                painter->setTransform(rotMatrix, true);
                 break;
             case QTabBar::RoundedEast:
                 rotMatrix.rotate(90);
                 rotMatrix.translate(0, - rect.width() + 1);
                 flip = true;
-                painter->setTransform(rotMatrix);
+                painter->setTransform(rotMatrix, true);
                 break;
             default:
                 painter->restore();
@@ -2692,7 +2694,7 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
                 QStyleOptionDockWidgetV2 dockwidget;
                 dockwidget.QStyleOption::operator=(*option);
                 drawControl(CE_DockWidgetTitle, &dockwidget, painter, widget);
-            } else 
+            } else
 #endif // QT3_SUPPORT
             {
                 // Fill title bar gradient
@@ -3289,28 +3291,29 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
                 }
 
 
-                if (comboBox->editable) {
-                    // Draw the down arrow
-                    QImage downArrow(qt_cleanlooks_arrow_down_xpm);
-                    downArrow.setColor(1, comboBox->palette.foreground().color().rgba());
-                    int offset = comboBox->direction == Qt::RightToLeft ? -2 : 2;
-                    cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
-                                           downArrowRect.center().y() - downArrow.height() / 2 + 1, downArrow);
-                } else {
-                    // Draw the up/down arrow
-                    QImage upArrow(qt_scrollbar_button_arrow_up);
-                    upArrow.setColor(1, comboBox->palette.foreground().color().rgba());
-                    QImage downArrow(qt_scrollbar_button_arrow_down);
-                    downArrow.setColor(1, comboBox->palette.foreground().color().rgba());
+                if (comboBox->subControls & SC_ComboBoxArrow) {
+                    if (comboBox->editable) {
+                        // Draw the down arrow
+                        QImage downArrow(qt_cleanlooks_arrow_down_xpm);
+                        downArrow.setColor(1, comboBox->palette.foreground().color().rgba());
+                        int offset = comboBox->direction == Qt::RightToLeft ? -2 : 2;
+                        cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
+                                               downArrowRect.center().y() - downArrow.height() / 2 + 1, downArrow);
+                    } else {
+                        // Draw the up/down arrow
+                        QImage upArrow(qt_scrollbar_button_arrow_up);
+                        upArrow.setColor(1, comboBox->palette.foreground().color().rgba());
+                        QImage downArrow(qt_scrollbar_button_arrow_down);
+                        downArrow.setColor(1, comboBox->palette.foreground().color().rgba());
 
-                    int offset = comboBox->direction == Qt::RightToLeft ? -2 : 2;
+                        int offset = comboBox->direction == Qt::RightToLeft ? -2 : 2;
 
-                    cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
-                                           downArrowRect.center().y() - upArrow.height() , upArrow);
-                    cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
-                                           downArrowRect.center().y()  + 3, downArrow);
+                        cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
+                                               downArrowRect.center().y() - upArrow.height() , upArrow);
+                        cachePainter.drawImage(downArrowRect.center().x() - downArrow.width() / 2 + offset,
+                                               downArrowRect.center().y()  + 3, downArrow);
+                    }
                 }
-
                 // Draw the focus rect
                 if ((focus && (option->state & State_KeyboardFocusChange)) && !comboBox->editable) {
                     QStyleOptionFocusRect focus;
@@ -3405,7 +3408,7 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
             shadowAlpha.setAlpha(10);
             QColor highlightAlpha(Qt::white);
             highlightAlpha.setAlpha(80);
-                
+
             if ((option->subControls & SC_SliderGroove) && groove.isValid()) {
                 QString groovePixmapName = uniqueName(QLatin1String("slider_groove"), option, groove.size());
                 QRect pixmapRect(0, 0, groove.width(), groove.height());
@@ -3505,9 +3508,9 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
                     QColor gradientBgStopColor = gradientStopColor;
 
                     QColor outline = option->state & State_Enabled ? dark : dark.lighter(130);
-                    if (option->state & State_Enabled && option->state & State_MouseOver && option->activeSubControls & SC_SliderHandle) {
+                    if (option->state & State_Enabled && option->activeSubControls & SC_SliderHandle) {
                         gradientBgStartColor = option->palette.highlight().color().lighter(180);
-                        gradientBgStopColor = option->palette.highlight().color().lighter(110); 
+                        gradientBgStopColor = option->palette.highlight().color().lighter(110);
                         outline = option->palette.highlight().color().darker(130);
                     }
 
@@ -3556,15 +3559,15 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
                     qt_cleanlooks_draw_gradient(&handlePainter, horizontal ?
                         gradRect.adjusted(6, 0, -6, 0) : gradRect.adjusted(0, 6, 0, -6),
                         gradientStartColor,
-                        gradientStopColor.darker(106), 
-                        horizontal ? TopDown : FromLeft, 
+                        gradientStopColor.darker(106),
+                        horizontal ? TopDown : FromLeft,
                         option->palette.button());
 
                     //draw grips
                     for (int i = -3; i< 6 ; i += 3) {
                         for (int j = -3; j< 6 ; j += 3) {
                             handlePainter.fillRect(r.center().x() + i, r.center().y() + j, 2, 2, highlightAlpha);
-                            handlePainter.setPen(gripShadow);                            
+                            handlePainter.setPen(gripShadow);
                             handlePainter.drawPoint(r.center().x() + i, r.center().y() + j );
                         }
                     }
@@ -3598,20 +3601,18 @@ void QCleanlooksStyle::drawComplexControl(ComplexControl control, const QStyleOp
                 if (interval <= 0)
                     interval = 1;
 
-                int sliderLength = slider->maximum - slider->minimum + 1;
-                int nticks = sliderLength / interval; // add one to get the end tickmark
-                if (sliderLength % interval > 0)
-                    nticks++; // round up the number of tick marks
-
                 int v = slider->minimum;
                 int len = pixelMetric(PM_SliderLength, slider, widget);
-                while (v <= slider->maximum) {
+                while (v <= slider->maximum + 1) {
+                    if (v == slider->maximum + 1 && interval == 1)
+                        break;
+                    const int v_ = qMin(v, slider->maximum);
                     int pos = sliderPositionFromValue(slider->minimum, slider->maximum,
-                                                    v, (horizontal
+                                                    v_, (horizontal
                                                         ? slider->rect.width()
                                                         : slider->rect.height()) - len,
                                                     slider->upsideDown) + len / 2;
-                    int extra = 2 - ((v == slider->minimum || v == slider->maximum) ? 1 : 0);
+                    int extra = 2 - ((v_ == slider->minimum || v_ == slider->maximum) ? 1 : 0);
 
                     if (horizontal) {
                         if (ticksAbove) {
@@ -3727,9 +3728,15 @@ int QCleanlooksStyle::pixelMetric(PixelMetric metric, const QStyleOption *option
     case PM_ButtonIconSize:
         ret = 24;
         break;
+    case PM_MenuVMargin:
+    case PM_MenuHMargin:
+        ret = 0;
+        break;
     case PM_DockWidgetTitleBarButtonMargin:
         ret = 4;
         break;
+    case PM_MaximumDragDistance:
+        return -1;
     default:
         break;
     }
@@ -3781,7 +3788,23 @@ QSize QCleanlooksStyle::sizeFromContents(ContentsType type, const QStyleOption *
         break;
     case CT_MenuBarItem:
 	    newSize += QSize(0, 2);
-	break;
+	    break;
+    case CT_MenuItem:
+        if (const QStyleOptionMenuItem *menuItem = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            if (menuItem->menuItemType == QStyleOptionMenuItem::Separator) {
+                if (!menuItem->text.isEmpty()) {
+                    newSize.setHeight(menuItem->fontMetrics.lineSpacing());
+                }
+            }
+#ifndef QT_NO_COMBOBOX
+            else if (!menuItem->icon.isNull()) {
+                if (const QComboBox *combo = qobject_cast<const QComboBox*>(widget)) {
+                    newSize.setHeight(qMax(combo->iconSize().height() + 2, newSize.height()));
+                }
+            }
+#endif // QT_NO_COMBOBOX
+        }
+        break;
     case CT_SizeGrip:
 	    newSize += QSize(4, 4);
 	break;
@@ -4104,6 +4127,7 @@ QRect QCleanlooksStyle::subControlRect(ComplexControl control, const QStyleOptio
             int offset = 0;
 
             bool isMinimized = tb->titleBarState & Qt::WindowMinimized;
+            bool isMaximized = tb->titleBarState & Qt::WindowMaximized;
 
             switch (sc) {
             case SC_TitleBarLabel:
@@ -4132,10 +4156,12 @@ QRect QCleanlooksStyle::subControlRect(ComplexControl control, const QStyleOptio
             case SC_TitleBarNormalButton:
                 if (isMinimized && (tb->titleBarFlags & Qt::WindowMinimizeButtonHint))
                     offset += delta;
+                else if (isMaximized && (tb->titleBarFlags & Qt::WindowMaximizeButtonHint))
+                    offset += delta;
                 else if (sc == SC_TitleBarNormalButton)
                     break;
             case SC_TitleBarMaxButton:
-                if (tb->titleBarFlags & Qt::WindowMaximizeButtonHint)
+                if (!isMaximized && (tb->titleBarFlags & Qt::WindowMaximizeButtonHint))
                     offset += delta;
                 else if (sc == SC_TitleBarMaxButton)
                     break;
@@ -4332,14 +4358,38 @@ QRect QCleanlooksStyle::subElementRect(SubElement sr, const QStyleOption *opt, c
 void QCleanlooksStylePrivate::lookupIconTheme() const
 {
 #ifdef Q_WS_X11
-    if (!themeName.isEmpty())
-        return;
-    QProcess gconftool;
-    gconftool.start(QLatin1String("gconftool-2 --get /desktop/gnome/interface/icon_theme"));
-    if (gconftool.waitForStarted(2000) && gconftool.waitForFinished(2000))
-        themeName = QLatin1String(gconftool.readLine().trimmed());
-    if (themeName.isEmpty())
-        themeName = QLatin1String("gnome");
+
+    if (themeName.isEmpty()) {
+        //resolve glib and gconf functions
+        p_g_type_init =              (Ptr_g_type_init)QLibrary::resolve(QLatin1String("gobject-2.0"), 0, "g_type_init");
+        p_gconf_client_get_default = (Ptr_gconf_client_get_default)QLibrary::resolve(QLatin1String("gconf-2"), 4, "gconf_client_get_default");
+        p_gconf_client_get_string =  (Ptr_gconf_client_get_string)QLibrary::resolve(QLatin1String("gconf-2"), 4, "gconf_client_get_string");
+        p_g_object_unref =           (Ptr_g_object_unref)QLibrary::resolve(QLatin1String("gobject-2.0"), 0, "g_object_unref");
+        p_g_error_free =             (Ptr_g_error_free)QLibrary::resolve(QLatin1String("glib-2.0"), 0, "g_error_free");
+        p_g_free =                   (Ptr_g_free)QLibrary::resolve(QLatin1String("glib-2.0"), 0, "g_free");
+
+        if (p_g_type_init &&
+             p_gconf_client_get_default &&
+             p_gconf_client_get_string &&
+             p_g_object_unref &&
+             p_g_error_free &&
+             p_g_free) {
+
+            p_g_type_init();
+            GConfClient* client = p_gconf_client_get_default();
+            GError *err = 0;
+            char *str = p_gconf_client_get_string(client, "/desktop/gnome/interface/icon_theme", &err);
+            if (!err) {
+                themeName = QString::fromUtf8(str);
+                p_g_free(str);
+            }
+            p_g_object_unref(client);
+            if (err)
+                p_g_error_free (err);
+        }
+        if (themeName.isEmpty())
+            themeName = QLatin1String("gnome");
+    }
 #endif
 }
 
@@ -4350,11 +4400,11 @@ QIcon QCleanlooksStyle::standardIconImplementation(StandardPixmap standardIcon,
                                                   const QStyleOption *option,
                                                   const QWidget *widget) const
 {
+#ifndef Q_WS_QWS
     Q_D(const QCleanlooksStyle);
-
-    QIcon icon(standardPixmap(standardIcon, option, widget));
     if (!qApp->desktopSettingsAware())
-        return icon;
+        return QWindowsStyle::standardIconImplementation(standardIcon, option, widget);
+    QIcon icon(standardPixmap(standardIcon, option, widget));
 
     QPixmap pixmap;
     QPixmap link;
@@ -4453,6 +4503,48 @@ QIcon QCleanlooksStyle::standardIconImplementation(StandardPixmap standardIcon,
                 icon.addPixmap(pixmap);
             break;
         }
+    case SP_ArrowUp:
+        {
+            pixmap = d->findIcon(24, QLatin1String("stock_up.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
+    case SP_ArrowDown:
+        {
+            pixmap = d->findIcon(24, QLatin1String("stock_down.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
+    case SP_ArrowRight:
+        {
+            pixmap = d->findIcon(24, QLatin1String("stock_right.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
+    case SP_ArrowLeft:
+        {
+            pixmap = d->findIcon(24, QLatin1String("stock_left.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
+    case SP_BrowserReload:
+        {
+            pixmap = d->findIcon(24, QLatin1String("view-refresh.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
+    case SP_BrowserStop:
+        {
+            pixmap = d->findIcon(24, QLatin1String("stop.png"));
+            if (!pixmap.isNull())
+                icon.addPixmap(pixmap);
+            break;
+        }
     case SP_FileLinkIcon:
         {
             QPixmap link = d->findIcon(12, QLatin1String("emblem-symbolic-link.png"));
@@ -4470,10 +4562,21 @@ QIcon QCleanlooksStyle::standardIconImplementation(StandardPixmap standardIcon,
             }
             break;
         }
+    case SP_ArrowForward:
+        if (QApplication::layoutDirection() == Qt::RightToLeft)
+            return standardIconImplementation(SP_ArrowLeft, option, widget);
+        return standardIconImplementation(SP_ArrowRight, option, widget);
+    case SP_ArrowBack:
+        if (QApplication::layoutDirection() == Qt::RightToLeft)
+            return standardIconImplementation(SP_ArrowRight, option, widget);
+        return standardIconImplementation(SP_ArrowLeft, option, widget);
     default:
         break;
     }
     return icon;
+#else
+    return QWindowsStyle::standardIconImplementation(standardIcon, option, widget);
+#endif
 }
 
 /*!
@@ -4679,6 +4782,8 @@ QPixmap QCleanlooksStyle::standardPixmap(StandardPixmap standardPixmap, const QS
     case SP_DialogCloseButton:
         {
             pixmap = d->findIcon(24, QLatin1String("gtk-close.png"));
+            if (pixmap.isNull())
+                pixmap = d->findIcon(24, QLatin1String("stock-close.png"));
             if (!pixmap.isNull())
                 return pixmap;
             break;
@@ -4720,6 +4825,8 @@ QPixmap QCleanlooksStyle::standardPixmap(StandardPixmap standardPixmap, const QS
             pixmap = d->findIcon(24, QLatin1String("dialog-cancel.png"));
             if (pixmap.isNull())
                 pixmap = d->findIcon(24, QLatin1String("stock-cancel.png"));
+            if (pixmap.isNull())
+                pixmap = d->findIcon(24, QLatin1String("process-stop.png"));
             if (!pixmap.isNull())
                 return pixmap;
             break;
@@ -4727,6 +4834,83 @@ QPixmap QCleanlooksStyle::standardPixmap(StandardPixmap standardPixmap, const QS
     case SP_DialogSaveButton:
         {
             pixmap = d->findIcon(24, QLatin1String("stock_save.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_BrowserStop:
+        {
+            pixmap = d->findIcon(16, QLatin1String("process-stop.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_BrowserReload:
+        {
+            pixmap = d->findIcon(16, QLatin1String("view-refresh.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaPlay:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-playback-start.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaPause:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-playback-pause.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaStop:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-playback-stop.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaVolume:
+        {
+            pixmap = d->findIcon(16, QLatin1String("audio-volume-medium.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaVolumeMuted:
+        {
+            pixmap = d->findIcon(16, QLatin1String("audio-volume-muted.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaSeekForward:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-seek-forward.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaSeekBackward:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-seek-backward.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaSkipForward:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-skip-forward.png"));
+            if (!pixmap.isNull())
+                return pixmap;
+            break;
+        }
+    case SP_MediaSkipBackward:
+        {
+            pixmap = d->findIcon(24, QLatin1String("media-skip-backward.png"));
             if (!pixmap.isNull())
                 return pixmap;
             break;
@@ -4752,5 +4936,7 @@ QPixmap QCleanlooksStyle::standardPixmap(StandardPixmap standardPixmap, const QS
 
     return QWindowsStyle::standardPixmap(standardPixmap, opt, widget);
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_STYLE_CLEANLOOKS || QT_PLUGIN

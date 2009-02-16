@@ -110,7 +110,7 @@ contains(sql-drivers, sqlite2) {
 contains(sql-drivers, sqlite) {
     !system-sqlite:!contains( LIBS, .*sqlite3.* ) {
         CONFIG(release, debug|release):DEFINES *= NDEBUG
-        DEFINES += SQLITE_OMIT_LOAD_EXTENSION SQLITE_OMIT_COMPLETE
+        DEFINES += SQLITE_CORE SQLITE_OMIT_LOAD_EXTENSION SQLITE_OMIT_COMPLETE 
         INCLUDEPATH +=  ../3rdparty/sqlite
         SOURCES +=      ../3rdparty/sqlite/sqlite3.c
     } else {

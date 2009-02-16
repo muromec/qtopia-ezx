@@ -1,9 +1,10 @@
 isEmpty(TARGET):error(You must set TARGET before include()'ing $${_FILE_})
 INCLUDEPATH *= $$QMAKE_INCDIR_QT/$$TARGET #just for today to have some compat
+!isEmpty(RCC_DIR): INCLUDEPATH += $$RCC_DIR
 isEmpty(QT_ARCH):!isEmpty(ARCH):QT_ARCH=$$ARCH #another compat that will rot for change #215700
 TEMPLATE	= lib
 isEmpty(QT_MAJOR_VERSION) {
-   VERSION=4.3.5
+   VERSION=4.4.3
 } else {
    VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
 }
@@ -29,12 +30,13 @@ win32 {
 
 #other
 DESTDIR		 = $$QMAKE_LIBDIR_QT
-win32:DLLDESTDIR = $$[QT_INSTALL_PREFIX]/bin
+win32:!wince*:DLLDESTDIR = $$[QT_INSTALL_PREFIX]/bin
 
 CONFIG		+= qt warn_on depend_includepath
 CONFIG          += qmake_cache target_qt 
 CONFIG          -= fix_output_dirs
 win32|mac:!macx-xcode:CONFIG += debug_and_release
+linux-g++*:QMAKE_LFLAGS += $$QMAKE_LFLAGS_NOUNDEF
 
 contains(QT_CONFIG, reduce_exports):CONFIG += hide_symbols
 unix:contains(QT_CONFIG, reduce_relocations):CONFIG += bsymbolic_functions
@@ -65,7 +67,6 @@ mac:!static:contains(QT_CONFIG, qt_framework) {
 
 mac {
    CONFIG += explicitlib
-   QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.3 #enables weak linking for 10.3 (exported)
    true { #we want to use O2 on Qt itself (Os was used to fix other failures in older GCC)
       QMAKE_CFLAGS_RELEASE ~= s,-Os,-O2,
       QMAKE_CXXFLAGS_RELEASE ~= s,-Os,-O2,
@@ -134,11 +135,11 @@ unix {
 }
 
 contains(QT_PRODUCT, OpenSource.*):DEFINES *= QT_OPENSOURCE
-DEFINES += QT_NO_CAST_TO_ASCII QT_ASCII_CAST_WARNINGS QT_44_API_QSQLQUERY_FINISH
+DEFINES += QT_NO_CAST_TO_ASCII QT_ASCII_CAST_WARNINGS
 contains(QT_CONFIG, qt3support):DEFINES *= QT3_SUPPORT
 DEFINES *= QT_MOC_COMPAT #we don't need warnings from calling moc code in our generated code
 
-TARGET = $$qtLibraryTarget($$TARGET) #do this towards the end
+TARGET = $$qtLibraryTarget($$TARGET$$QT_LIBINFIX) #do this towards the end
 
 moc_dir.name = moc_location
 moc_dir.variable = QMAKE_MOC

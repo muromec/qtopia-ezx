@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,8 +57,11 @@
 #include "QtGui/qmenu.h"
 #include "QtGui/qabstracttextdocumentlayout.h"
 #include "QtCore/qbasictimer.h"
+#include "QtCore/qurl.h"
 #include "private/qtextcontrol_p.h"
 #include "qtextedit.h"
+
+QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_TEXTEDIT
 
@@ -85,7 +82,6 @@ public:
 
     void _q_adjustScrollbars();
     void _q_ensureVisible(const QRectF &rect);
-    void ensureViewportLayouted();
     void relayoutDocument();
 
     void createAutoBulletList();
@@ -103,12 +99,17 @@ public:
 
     void updateDefaultTextOption();
 
+    // re-implemented by QTextBrowser, called by QTextDocument::loadResource
+    virtual QUrl resolveUrl(const QUrl &url) const
+    { return url; }
+
     QTextControl *control;
 
     QTextEdit::AutoFormatting autoFormatting;
     bool tabChangesFocus;
 
     QBasicTimer autoScrollTimer;
+    QPoint autoScrollDragPos;
 
     QTextEdit::LineWrapMode lineWrap;
     int lineWrapColumnOrWidth;
@@ -117,9 +118,9 @@ public:
     uint ignoreAutomaticScrollbarAdjustment : 1;
     uint preferRichText : 1;
     uint showCursorOnInitialShow : 1;
+    uint inDrag : 1;
 
-    // Qt3 COMPAT only
-    // ### non-compat'ed append needs it, too
+    // Qt3 COMPAT only, for setText
     Qt::TextFormat textFormat;
 
     QString anchorToScrollToWhenVisible;
@@ -130,34 +131,7 @@ public:
 };
 #endif // QT_NO_TEXTEDIT
 
-#ifndef QT_NO_CONTEXTMENU
-class QUnicodeControlCharacterMenu : public QMenu
-{
-    Q_OBJECT
-public:
-    QUnicodeControlCharacterMenu(QObject *editWidget, QWidget *parent);
 
-private Q_SLOTS:
-    void menuActionTriggered();
-
-private:
-    QObject *editWidget;
-};
-#endif // QT_NO_CONTEXTMENU
-
-// also used by QLabel
-class QTextEditMimeData : public QMimeData
-{
-public:
-    inline QTextEditMimeData(const QTextDocumentFragment &aFragment) : fragment(aFragment) {}
-
-    virtual QStringList formats() const;
-protected:
-    virtual QVariant retrieveData(const QString &mimeType, QVariant::Type type) const;
-private:
-    void setup() const;
-
-    mutable QTextDocumentFragment fragment;
-};
+QT_END_NAMESPACE
 
 #endif // QTEXTEDIT_P_H

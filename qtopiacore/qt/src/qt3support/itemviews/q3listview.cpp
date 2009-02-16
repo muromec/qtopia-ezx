@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -67,6 +61,8 @@
 #ifndef QT_NO_ACCESSIBILITY
 #include "qaccessible.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 const int Unsorted = 16383;
 
@@ -314,10 +310,7 @@ static QString qEllipsisText(const QString &org, const QFontMetrics &fm, int wid
     The easiest way to use Q3ListViewItem is to construct one with a
     few constant strings, and either a Q3ListView or another
     Q3ListViewItem as parent.
-    \code
-        (void) new Q3ListViewItem(listView, "Column 1", "Column 2");
-        (void) new Q3ListViewItem(listView->firstChild(), "A", "B", "C");
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 0
     We've discarded the pointers to the items since we can still access
     them via their parent \e listView. By default, Q3ListView sorts its
     items; this can be switched off with Q3ListView::setSorting(-1).
@@ -352,27 +345,14 @@ static QString qEllipsisText(const QString &org, const QFontMetrics &fm, int wid
     Here's how to traverse all of an item's children (but not its
     children's children, etc.):
     Example:
-    \code
-        Q3ListViewItem * myChild = myItem->firstChild();
-        while(myChild) {
-            doSomething(myChild);
-            myChild = myChild->nextSibling();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 1
 
     If you want to iterate over every item, to any level of depth use
     an iterator. To iterate over the entire tree, initialize the
     iterator with the list view itself; to iterate over an item's
     children (and children's children to any depth), initialize the
     iterator with the item:
-    \code
-        Q3ListViewItemIterator it(listview);
-        while (it.current()) {
-            Q3ListViewItem *item = it.current();
-            doSomething(item);
-            ++it;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 2
 
     Note that the order of the children will change when the sorting
     order changes and is undefined if the items are not visible. You
@@ -1303,13 +1283,7 @@ QString Q3ListViewItem::key(int column, bool) const
     different values and a different comparison function. Here is a
     reimplementation that uses plain Unicode comparison:
 
-    \code
-    int MyListViewItem::compare(Q3ListViewItem *i, int col,
-                                 bool ascending) const
-    {
-        return key(col, ascending).compare(i->key(col, ascending));
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 3
     We don't recommend using \a ascending so your code can safely
     ignore it.
 
@@ -1662,7 +1636,7 @@ void Q3ListViewItem::setExpandable(bool enable)
 void Q3ListViewItem::enforceSortOrder() const
 {
     Q3ListView *lv = listView();
-    if (!lv || lv && (lv->d->clearing || lv->d->sortcolumn == Unsorted))
+    if (!lv || (lv && (lv->d->clearing || lv->d->sortcolumn == Unsorted)))
         return;
     if (parentItem &&
          (parentItem->lsc != lsc || parentItem->lso != lso))
@@ -5059,17 +5033,7 @@ void Q3ListView::keyPressEvent(QKeyEvent * e)
     item. To check whether or not \a viewPos is on the root decoration
     of the item, you can do something like this:
 
-    \code
-    Q3ListViewItem *i = itemAt(p);
-    if (i) {
-        if (p.x() > header()->sectionPos(header()->mapToIndex(0)) +
-                treeStepSize() * (i->depth() + (rootIsDecorated() ? 1 : 0)) + itemMargin() ||
-                p.x() < header()->sectionPos(header()->mapToIndex(0))) {
-            ; // p is not on root decoration
-        else
-            ; // p is on the root decoration
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 4
 
     This might be interesting if you use this function to find out
     where the user clicked and if you want to start a drag (which you
@@ -5410,11 +5374,7 @@ Q3ListViewItem * Q3ListView::currentItem() const
     Q3ListViewItem::totalHeight()). If you want the rectangle to
     include children you can use something like this:
 
-    \code
-    QRect r(listView->itemRect(item));
-    r.setHeight(qMin(item->totalHeight(),
-                     listView->viewport->height() - r.y()))
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 5
 
     Note the way it avoids too-high rectangles. totalHeight() can be
     much larger than the window system's coordinate system allows.
@@ -6314,7 +6274,7 @@ void Q3CheckListItem::activate()
 {
     Q3ListView * lv = listView();
 
-    if (lv && !lv->isEnabled() || !isEnabled())
+    if ((lv && !lv->isEnabled()) || !isEnabled())
         return;
 
     QPoint pos;
@@ -7089,7 +7049,7 @@ void Q3ListView::contentsDragMoveEvent(QDragMoveEvent *e)
     } else {
         d->autoopenTimer->stop();
     }
-    if (i && i->dropEnabled() && i->acceptDrop(e) || acceptDrops())
+    if ((i && i->dropEnabled() && i->acceptDrop(e)) || acceptDrops())
         e->accept();
     else
         e->ignore();
@@ -7217,25 +7177,10 @@ bool Q3ListView::isRenaming() const
     The following example creates a list of all the items that have
     been selected by the user, storing pointers to the items in a
     QList:
-    \code
-    QList<Q3ListViewItem *> lst;
-    Q3ListViewItemIterator it(myListView);
-    while (it.current()) {
-        if (it.current()->isSelected())
-            lst.append(it.current());
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 6
 
     An alternative approach is to use an \c IteratorFlag:
-    \code
-    QList<Q3ListViewItem *> lst;
-    Q3ListViewItemIterator it(myListView, Selected);
-    while (it.current()) {
-        lst.append(it.current());
-        ++it;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3listview.cpp 7
 
     A Q3ListViewItemIterator provides a convenient and easy way to
     traverse a hierarchical Q3ListView.
@@ -7782,7 +7727,7 @@ void Q3ListView::selectRange(Q3ListViewItem *from, Q3ListViewItem *to, bool inve
             }
         } else {
             bool sel = !i->selected;
-            if ((bool)i->selected != sel && sel && i->isSelectable() || !sel) {
+            if (((bool)i->selected != sel && sel && i->isSelectable()) || !sel) {
                 i->setSelected(sel);
                 changed = true;
             }
@@ -7982,5 +7927,7 @@ void Q3ListView::adjustColumn(int col)
 
     \sa StringComparisonMode
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_LISTVIEW

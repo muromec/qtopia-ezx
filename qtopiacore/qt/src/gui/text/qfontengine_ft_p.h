@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 #ifndef QFONTENGINE_FT_P_H
@@ -72,11 +66,15 @@
 
 #include <qmutex.h>
 
+#include <harfbuzz-shaper.h>
+
+QT_BEGIN_NAMESPACE
+
 struct QFreetypeFace
 {
     void computeSize(const QFontDef &fontDef, int *xsize, int *ysize, bool *outline_drawing);
     QFontEngine::Properties properties() const;
-    QByteArray getSfntTable(uint tag) const;
+    bool getSfntTable(uint tag, uchar *buffer, uint *length) const;
 
     static QFreetypeFace *getFace(const QFontEngine::FaceId &face_id);
     void release(const QFontEngine::FaceId &face_id);
@@ -91,6 +89,7 @@ struct QFreetypeFace
     }
 
     FT_Face face;
+    HB_Face hbFace;
 #ifndef QT_NO_FONTCONFIG
     FcCharSet *charset;
 #endif
@@ -105,13 +104,15 @@ struct QFreetypeFace
 
     int fsType() const;
 
+    HB_Error getPointInOutline(HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints);
+
     static void addGlyphToPath(FT_Face face, FT_GlyphSlot g, const QFixedPoint &point, QPainterPath *path, FT_Fixed x_scale, FT_Fixed y_scale);
     static void addBitmapToPath(FT_GlyphSlot slot, const QFixedPoint &point, QPainterPath *path, bool = false);
 
 private:
-    QFreetypeFace() {}
+    QFreetypeFace() : _lock(QMutex::Recursive) {}
     ~QFreetypeFace() {}
-    QAtomic ref;
+    QAtomicInt ref;
     QMutex _lock;
     QByteArray fontData;
 };
@@ -173,8 +174,9 @@ public:
 
     QFontEngine::FaceId faceId() const;
     QFontEngine::Properties properties() const;
+    QFixed emSquareSize() const;
 
-    QByteArray getSfntTable(uint tag) const;
+    bool getSfntTableData(uint tag, uchar *buffer, uint *length) const;
     int synthesized() const;
 
     QFixed ascent() const;
@@ -207,6 +209,8 @@ public:
 
     bool stringToCMap(const QChar *str, int len, QGlyphLayout *glyphs, int *nglyphs,
                       QTextEngine::ShaperFlags flags) const;
+    bool stringToCMap(const QChar *str, int len, HB_Glyph *glyphs, int *nglyphs,
+                      QTextEngine::ShaperFlags flags) const;
 
     glyph_metrics_t boundingBox(const QGlyphLayout *glyphs, int numGlyphs);
     glyph_metrics_t boundingBox(glyph_t glyph);
@@ -231,8 +235,6 @@ public:
     inline bool invalid() const { return xsize == 0 && ysize == 0; }
     inline bool isBitmapFont() const { return defaultGlyphFormat == Format_Mono; }
 
-    QOpenType *openType() const;
-
     inline Glyph *loadGlyph(uint glyph, GlyphFormat format = Format_None) const
     { return loadGlyph(&defaultGlyphSet, glyph, format); }
     Glyph *loadGlyph(QGlyphSet *set, uint glyph, GlyphFormat = Format_None) const;
@@ -252,6 +254,9 @@ public:
     virtual ~QFontEngineFT();
 
     bool init(FaceId faceId, bool antiaalias, GlyphFormat defaultFormat = Format_None);
+
+    virtual HB_Error getPointInOutline(HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints);
+
 protected:
 
     void freeGlyphSets();
@@ -286,10 +291,12 @@ private:
     QFixed line_thickness;
     QFixed underline_position;
 
-    mutable QOpenType *_openType;
     FT_Size_Metrics metrics;
     mutable bool kerning_pairs_loaded;
 };
 
+QT_END_NAMESPACE
+
 #endif // QT_NO_FREETYPE
+
 #endif // QFONTENGINE_FT_P_H

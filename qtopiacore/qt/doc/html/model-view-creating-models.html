@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/model-view-programming.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/model-view-programming.qdoc -->
 <head>
-  <title>Qt 4.3: Creating New Models</title>
+  <title>Qt 4.4: Creating New Models</title>
   <link rel="prev" href="model-view-model.html" />
   <link rel="contents" href="model-view-programming.html" />
   <link rel="next" href="model-view-view.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="model-view-model.html">Model Classes</a>]
 [<a href="model-view-programming.html">Contents</a>]
 [Next: <a href="model-view-view.html">View Classes</a>]
@@ -71,7 +71,7 @@
 <p>Apart from the model's constructor, we only need to implement two functions: <a href="qabstractitemmodel.html#rowCount">rowCount()</a> returns the number of rows in the model and <a href="qabstractitemmodel.html#data">data()</a> returns an item of data corresponding to a specified model index.</p>
 <p>Well behaved models also implement <a href="qabstractitemmodel.html#headerData">headerData()</a> to give tree and table views something to display in their headers.</p>
 <p>Note that this is a non-hierarchical model, so we don't have to worry about the parent-child relationships. If our model was hierarchical, we would also have to implement the <a href="qabstractitemmodel.html#index">index()</a> and <a href="qabstractitemmodel.html#parent">parent()</a> functions.</p>
-<p>The list of strings are stored internally in the <tt>stringList</tt> private member variable.</p>
+<p>The list of strings is stored internally in the <tt>stringList</tt> private member variable.</p>
 <a name="dimensions-of-the-model"></a>
 <h3>Dimensions of The Model</h3>
 <p>We want the number of rows in the model to be the same as the number of strings in the string list. We implement the <a href="qabstractitemmodel.html#rowCount">rowCount()</a> function with this in mind:</p>
@@ -109,7 +109,7 @@
      else
          return QString(&quot;Row %1&quot;).arg(section);
  }</pre>
-<p>Again, we return a valid <a href="qvariant.html">QVariant</a> only if the model index is valid and the role is one that we support. The orientation of the header is also taken into account when deciding the exact data to return.</p>
+<p>Again, we return a valid <a href="qvariant.html">QVariant</a> only if the role is one that we support. The orientation of the header is also taken into account when deciding the exact data to return.</p>
 <p>Not all views display headers with the item data, and those that do may be configured to hide them. Nonetheless, it is recommended that you implement the <a href="qabstractitemmodel.html#headerData">headerData()</a> function to provide relevant information about the data provided by the model.</p>
 <p>An item can have several roles, giving out different data depending on the role specified. The items in our model only have one role, <a href="qt.html#ItemDataRole-enum">DisplayRole</a>, so we return the data for items irrespective of the role specified. However, we could reuse the data we provide for the <a href="qt.html#ItemDataRole-enum">DisplayRole</a> in other roles, such as the <a href="qt.html#ItemDataRole-enum">ToolTipRole</a> that views can use to display information about items in a tooltip.</p>
 <a name="an-editable-model"></a>
@@ -185,8 +185,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

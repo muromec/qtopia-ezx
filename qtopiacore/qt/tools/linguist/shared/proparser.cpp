@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,10 +41,14 @@
 #include <proreader.h>
 
 #include <QtCore/QFileInfo>
+#include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QStringList>
 
-// assumes that the list is sorted (or more correctly, that all equal elements are grouped together).
+QT_BEGIN_NAMESPACE
+
+// assumes that the list is sorted (or more correctly, that all equal
+// elements are grouped together).
 void removeDuplicates(QStringList *strings, bool alreadySorted /*= true*/)
 {
     if (!alreadySorted) {
@@ -91,28 +89,24 @@ bool evaluateProFile(const QString &fileName, bool verbose,QMap<QByteArray, QStr
     }
     if (ok) {
         // app/lib template
-        sourceFiles += visitor->absFileNames(QLatin1String("SOURCES"));
-        sourceFiles += visitor->absFileNames(QLatin1String("HEADERS"));
-        QStringList tsFiles = visitor->values(QLatin1String("TRANSLATIONS"));
-        for (int i = 0; i < tsFiles.count(); ++i) {
-            tsFileNames << rootPath.absoluteFilePath(tsFiles.at(i));
-        }
-
+        sourceFiles += visitor->values(QLatin1String("SOURCES"));
+        sourceFiles += visitor->values(QLatin1String("HEADERS"));
+        tsFileNames = visitor->values(QLatin1String("TRANSLATIONS"));
         QStringList trcodec = visitor->values(QLatin1String("CODEC"))
             + visitor->values(QLatin1String("DEFAULTCODEC"))
             + visitor->values(QLatin1String("CODECFORTR"));
+
         if (!trcodec.isEmpty())
             codecForTr = trcodec.last();
 
         QStringList srccodec = visitor->values(QLatin1String("CODECFORSRC"));
-        if (!srccodec.isEmpty()) 
+        if (!srccodec.isEmpty())
             codecForSource = srccodec.last();
-        
-        QStringList forms = visitor->absFileNames(QLatin1String("INTERFACES"))
-            + visitor->absFileNames(QLatin1String("FORMS"))
-            + visitor->absFileNames(QLatin1String("FORMS3"));
-        sourceFiles << forms;
 
+        QStringList forms = visitor->values(QLatin1String("INTERFACES"))
+            + visitor->values(QLatin1String("FORMS"))
+            + visitor->values(QLatin1String("FORMS3"));
+        sourceFiles << forms;
     }
     if (ok) {
         removeDuplicates(&sourceFiles, false);
@@ -165,3 +159,4 @@ QStringList getListOfProfiles(const QStringList &proFiles, bool verbose)
     return profileList;
 }
 
+QT_END_NAMESPACE

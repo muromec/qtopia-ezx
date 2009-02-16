@@ -1,0 +1,8 @@
+#include <QtCore/QtCore>
+#include "qtest.h"
+#include "qtestdata.h"
+#include "qtestcase.h"
+#include "qtestsystem.h"
+#include "qsignalspy.h"
+#include "qtesteventloop.h"
+#include "qtestassert.h"

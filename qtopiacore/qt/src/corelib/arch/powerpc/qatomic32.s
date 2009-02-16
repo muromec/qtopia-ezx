@@ -11,13 +11,12 @@ q_atomic_test_and_set_int:
 	.csect .text[PR]
 .q_atomic_test_and_set_int:
 	lwarx  6,0,3
-	cmpw   6,4
-	bne-   $+20
+        xor.   6,6,4
+        bne    $+12
 	stwcx. 5,0,3
 	bne-   $-16
-	addi   3,0,1
-	blr
-	addi   3,0,0
+        subfic 3,6,0
+        adde   3,3,6
 	blr
 LT..q_atomic_test_and_set_int:
 	.long 0
@@ -37,21 +36,20 @@ q_atomic_test_and_set_acquire_int:
 	.csect .text[PR]
 .q_atomic_test_and_set_acquire_int:
 	lwarx  6,0,3
-	cmpw   6,4
-	bne-   $+20
+        xor.   6,6,4
+        bne    $+16
 	stwcx. 5,0,3
 	bne-   $-16
-	addi   3,0,1
-	b      $+8
-	addi   3,0,0
-	eieio
+        isync
+        subfic 3,6,0
+        adde   3,3,6
 	blr
 LT..q_atomic_test_and_set_acquire_int:
 	.long 0
 	.byte 0,9,32,64,0,0,3,0
 	.long 0
 	.long LT..q_atomic_test_and_set_acquire_int-.q_atomic_test_and_set_acquire_int
-	.short 25
+	.short 33
 	.byte "q_atomic_test_and_set_acquire_int"
 	.align 2
 
@@ -63,22 +61,21 @@ q_atomic_test_and_set_release_int:
 	.long .q_atomic_test_and_set_release_int,TOC[tc0],0
 	.csect .text[PR]
 .q_atomic_test_and_set_release_int:
-	eieio
+        eieio
 	lwarx  6,0,3
-	cmpw   6,4
-	bne-   $+20
+        xor.   6,6,4
+        bne    $+12
 	stwcx. 5,0,3
 	bne-   $-16
-	addi   3,0,1
-	blr
-	addi   3,0,0
+        subfic 3,6,0
+        adde   3,3,6
 	blr
 LT..q_atomic_test_and_set_release_int:
 	.long 0
 	.byte 0,9,32,64,0,0,3,0
 	.long 0
 	.long LT..q_atomic_test_and_set_release_int-.q_atomic_test_and_set_release_int
-	.short 25
+	.short 33
 	.byte "q_atomic_test_and_set_release_int"
 	.align 2
 
@@ -91,13 +88,12 @@ q_atomic_test_and_set_ptr:
 	.csect .text[PR]
 .q_atomic_test_and_set_ptr:
 	lwarx  6,0,3
-	cmpw   6,4
-	bne-   $+20
+        xor.   6,6,4
+        bne    $+12
 	stwcx. 5,0,3
 	bne-   $-16
-	addi   3,0,1
-	blr
-	addi   3,0,0
+        subfic 3,6,0
+        adde   3,3,6
 	blr
 LT..q_atomic_test_and_set_ptr:
 	.long 0
@@ -106,6 +102,58 @@ LT..q_atomic_test_and_set_ptr:
 	.long LT..q_atomic_test_and_set_ptr-.q_atomic_test_and_set_ptr
 	.short 25
 	.byte "q_atomic_test_and_set_ptr"
+	.align 2
+
+	.align 2
+	.globl q_atomic_test_and_set_acquire_ptr
+	.globl .q_atomic_test_and_set_acquire_ptr
+	.csect q_atomic_test_and_set_acquire_ptr[DS],3
+q_atomic_test_and_set_acquire_ptr:
+	.long .q_atomic_test_and_set_acquire_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_test_and_set_acquire_ptr:
+	lwarx  6,0,3
+        xor.   6,6,4
+        bne    $+16
+	stwcx. 5,0,3
+	bne-   $-16
+        isync
+        subfic 3,6,0
+        adde   3,3,6
+	blr
+LT..q_atomic_test_and_set_acquire_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,3,0
+	.long 0
+	.long LT..q_atomic_test_and_set_acquire_ptr-.q_atomic_test_and_set_acquire_ptr
+	.short 25
+	.byte "q_atomic_test_and_set_acquire_ptr"
+	.align 2
+
+	.align 2
+	.globl q_atomic_test_and_set_release_ptr
+	.globl .q_atomic_test_and_set_release_ptr
+	.csect q_atomic_test_and_set_release_ptr[DS],3
+q_atomic_test_and_set_release_ptr:
+	.long .q_atomic_test_and_set_release_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_test_and_set_release_ptr:
+        eieio
+	lwarx  6,0,3
+        xor.   6,6,4
+        bne    $+12
+	stwcx. 5,0,3
+	bne-   $-16
+        subfic 3,6,0
+        adde   3,3,6
+	blr
+LT..q_atomic_test_and_set_release_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,3,0
+	.long 0
+	.long LT..q_atomic_test_and_set_release_ptr-.q_atomic_test_and_set_release_ptr
+	.short 33
+	.byte "q_atomic_test_and_set_release_ptr"
 	.align 2
 
 	.align 2
@@ -177,6 +225,52 @@ LT..q_atomic_set_int:
 	.align 2
 
 	.align 2
+	.globl q_atomic_fetch_and_store_acquire_int
+	.globl .q_atomic_fetch_and_store_acquire_int
+	.csect q_atomic_fetch_and_store_acquire_int[DS],3
+q_atomic_fetch_and_store_acquire_int:
+	.long .q_atomic_fetch_and_store_acquire_int,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_store_acquire_int:
+	lwarx  5,0,3
+	stwcx. 4,0,3
+	bne-   $-8
+        isync
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_store_acquire_int:
+	.long 0
+	.byte 0,9,32,64,0,0,2,0
+	.long 0
+	.long LT..q_atomic_fetch_and_store_acquire_int-.q_atomic_fetch_and_store_acquire_int
+	.short 16
+	.byte "q_atomic_fetch_and_store_acquire_int"
+	.align 2
+
+	.align 2
+	.globl q_atomic_fetch_and_store_release_int
+	.globl .q_atomic_fetch_and_store_release_int
+	.csect q_atomic_fetch_and_store_release_int[DS],3
+q_atomic_fetch_and_store_release_int:
+	.long .q_atomic_fetch_and_store_release_int,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_store_release_int:
+        eieio
+	lwarx  5,0,3
+	stwcx. 4,0,3
+	bne-   $-8
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_store_release_int:
+	.long 0
+	.byte 0,9,32,64,0,0,2,0
+	.long 0
+	.long LT..q_atomic_fetch_and_store_release_int-.q_atomic_fetch_and_store_release_int
+	.short 16
+	.byte "q_atomic_fetch_and_store_release_int"
+	.align 2
+
+        .align 2
 	.globl q_atomic_set_ptr
 	.globl .q_atomic_set_ptr
 	.csect q_atomic_set_ptr[DS],3
@@ -196,6 +290,52 @@ LT..q_atomic_set_ptr:
 	.long LT..q_atomic_set_ptr-.q_atomic_set_ptr
 	.short 16
 	.byte "q_atomic_set_ptr"
+	.align 2
+
+	.align 2
+	.globl q_atomic_fetch_and_store_acquire_ptr
+	.globl .q_atomic_fetch_and_store_acquire_ptr
+	.csect q_atomic_fetch_and_store_acquire_ptr[DS],3
+q_atomic_fetch_and_store_acquire_ptr:
+	.long .q_atomic_fetch_and_store_acquire_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_store_acquire_ptr:
+	lwarx  5,0,3
+	stwcx. 4,0,3
+	bne-   $-8
+        isync
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_store_acquire_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,2,0
+	.long 0
+	.long LT..q_atomic_fetch_and_store_acquire_ptr-.q_atomic_fetch_and_store_acquire_ptr
+	.short 16
+	.byte "q_atomic_fetch_and_store_acquire_ptr"
+	.align 2
+
+        .align 2
+	.globl q_atomic_fetch_and_store_release_ptr
+	.globl .q_atomic_fetch_and_store_release_ptr
+	.csect q_atomic_fetch_and_store_release_ptr[DS],3
+q_atomic_fetch_and_store_release_ptr:
+	.long .q_atomic_fetch_and_store_release_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_store_release_ptr:
+        eieio
+	lwarx  5,0,3
+	stwcx. 4,0,3
+	bne-   $-8
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_store_release_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,2,0
+	.long 0
+	.long LT..q_atomic_fetch_and_store_release_ptr-.q_atomic_fetch_and_store_release_ptr
+	.short 16
+	.byte "q_atomic_fetch_and_store_release_ptr"
 	.align 2
 
 	.align 2
@@ -233,8 +373,8 @@ q_atomic_fetch_and_add_acquire_int:
 	add    6,4,5
 	stwcx. 6,0,3
 	bne-   $-12
+        isync
 	mr     3,5
-	eieio
 	blr
 LT..q_atomic_fetch_and_add_acquire_int:
 	.long 0
@@ -253,7 +393,7 @@ q_atomic_fetch_and_add_release_int:
 	.long .q_atomic_fetch_and_add_release_int,TOC[tc0],0
 	.csect .text[PR]
 .q_atomic_fetch_and_add_release_int:
-	eieio
+        eieio
 	lwarx  5,0,3
 	add    6,4,5
 	stwcx. 6,0,3
@@ -265,11 +405,81 @@ LT..q_atomic_fetch_and_add_release_int:
 	.byte 0,9,32,64,0,0,1,0
 	.long 0
 	.long LT..q_atomic_fetch_and_add_release_int-.q_atomic_fetch_and_add_release_int
-	.short 18
+	.short 34
 	.byte "q_atomic_fetch_and_add_release_int"
+	.align 2
+
+	.align 2
+	.globl q_atomic_fetch_and_add_ptr
+	.globl .q_atomic_fetch_and_add_ptr
+	.csect q_atomic_fetch_and_add_ptr[DS],3
+q_atomic_fetch_and_add_ptr:
+	.long .q_atomic_fetch_and_add_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_add_ptr:
+	lwarx  5,0,3
+	add    6,4,5
+	stwcx. 6,0,3
+	bne-   $-12
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_add_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,1,0
+	.long 0
+	.long LT..q_atomic_fetch_and_add_ptr-.q_atomic_fetch_and_add_ptr
+	.short 26
+	.byte "q_atomic_fetch_and_add_ptr"
+	.align 2
+
+	.align 2
+	.globl q_atomic_fetch_and_add_acquire_ptr
+	.globl .q_atomic_fetch_and_add_acquire_ptr
+	.csect q_atomic_fetch_and_add_acquire_ptr[DS],3
+q_atomic_fetch_and_add_acquire_ptr:
+	.long .q_atomic_fetch_and_add_acquire_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_add_acquire_ptr:
+	lwarx  5,0,3
+	add    6,4,5
+	stwcx. 6,0,3
+	bne-   $-12
+        isync
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_add_acquire_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,1,0
+	.long 0
+	.long LT..q_atomic_fetch_and_add_acquire_ptr-.q_atomic_fetch_and_add_acquire_ptr
+	.short 34
+	.byte "q_atomic_fetch_and_add_acquire_ptr"
+	.align 2
+
+	.align 2
+	.globl q_atomic_fetch_and_add_release_ptr
+	.globl .q_atomic_fetch_and_add_release_ptr
+	.csect q_atomic_fetch_and_add_release_ptr[DS],3
+q_atomic_fetch_and_add_release_ptr:
+	.long .q_atomic_fetch_and_add_release_ptr,TOC[tc0],0
+	.csect .text[PR]
+.q_atomic_fetch_and_add_release_ptr:
+        eieio
+	lwarx  5,0,3
+	add    6,4,5
+	stwcx. 6,0,3
+	bne-   $-12
+	mr     3,5
+	blr
+LT..q_atomic_fetch_and_add_release_ptr:
+	.long 0
+	.byte 0,9,32,64,0,0,1,0
+	.long 0
+	.long LT..q_atomic_fetch_and_add_release_ptr-.q_atomic_fetch_and_add_release_ptr
+	.short 34
+	.byte "q_atomic_fetch_and_add_release_ptr"
 	.align 2
 
 _section_.text:
 	.csect .data[RW],3
 	.long _section_.text
-

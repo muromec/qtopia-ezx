@@ -1,0 +1,13 @@
+#include <QtCore/QtCore>
+#include "qscriptvalueiterator.h"
+#include "qscriptextensioninterface.h"
+#include "qscriptable.h"
+#include "qscriptvalue.h"
+#include "qscriptextensionplugin.h"
+#include "qscriptcontextinfo.h"
+#include "qscriptengineagent.h"
+#include "qscriptstring.h"
+#include "qscriptcontext.h"
+#include "qscriptclasspropertyiterator.h"
+#include "qscriptengine.h"
+#include "qscriptclass.h"

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
 #ifdef Q_WS_MAC
 # include <private/qcore_mac_p.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QToolTip
@@ -96,7 +92,12 @@
     QAbstractItemView::viewportEvent() function and handle it yourself.
 
     The default tool tip color and font can be customized with
-    setPalette() and setFont().
+    setPalette() and setFont(). When a tooltip is currently on
+    display, isVisible() returns true and text() the currently visible
+    text.
+
+    \note Tool tips use the inactive color group of QPalette, because tool
+    tips are not active windows.
 
     \sa QWidget::toolTip, QAction::toolTip, {Tool Tips Example}
 */
@@ -105,7 +106,7 @@ class QTipLabel : public QLabel
 {
     Q_OBJECT
 public:
-    QTipLabel(const QPoint &pos, const QString &text, QWidget *w);
+    QTipLabel(const QString &text, QWidget *w);
     ~QTipLabel();
     static QTipLabel *instance;
 
@@ -116,12 +117,13 @@ public:
 
     void reuseTip(const QString &text);
     void hideTip();
-    void hideTipImmidiatly();
+    void hideTipImmediately();
     void setTipRect(QWidget *w, const QRect &r);
     void restartHideTimer();
     bool tipChanged(const QPoint &pos, const QString &text, QObject *o);
     void placeTip(const QPoint &pos, QWidget *w);
 
+    static int getTipScreen(const QPoint &pos, QWidget *w);
 protected:
     void timerEvent(QTimerEvent *e);
     void paintEvent(QPaintEvent *e);
@@ -131,17 +133,17 @@ protected:
 private:
     QWidget *widget;
     QRect rect;
-
-    int getTipScreen(const QPoint &pos, QWidget *w);
 };
 
 QTipLabel *QTipLabel::instance = 0;
 
-QTipLabel::QTipLabel(const QPoint &pos, const QString &text, QWidget *w)
-    : QLabel(QApplication::desktop()->screen(getTipScreen(pos, w)), Qt::ToolTip), widget(0)
+QTipLabel::QTipLabel(const QString &text, QWidget *w)
+    : QLabel(w, Qt::ToolTip), widget(0)
 {
     delete instance;
     instance = this;
+    setForegroundRole(QPalette::ToolTipText);
+    setBackgroundRole(QPalette::ToolTipBase);
     setPalette(QToolTip::palette());
     ensurePolished();
     setMargin(1 + style()->pixelMetric(QStyle::PM_ToolTipLabelFrameWidth, 0, this));
@@ -200,7 +202,7 @@ void QTipLabel::mouseMoveEvent(QMouseEvent *e)
 {
     if (rect.isNull())
         return;
-    QPoint pos = mapToGlobal(e->pos());
+    QPoint pos = e->globalPos();
     if (widget)
         pos = widget->mapFromGlobal(pos);
     if (!rect.contains(pos))
@@ -218,7 +220,7 @@ void QTipLabel::hideTip()
     hideTimer.start(300, this);
 }
 
-void QTipLabel::hideTipImmidiatly()
+void QTipLabel::hideTipImmediately()
 {
     close(); // to trigger QEvent::Close which stops the animation
     deleteLater();
@@ -247,9 +249,9 @@ void QTipLabel::timerEvent(QTimerEvent *e)
             QTipLabel::instance->fadingOut = true; // will never be false again.
         }
         else
-            hideTipImmidiatly();
+            hideTipImmediately();
 #else
-        hideTipImmidiatly();
+        hideTipImmediately();
 #endif
     }
 }
@@ -257,16 +259,18 @@ void QTipLabel::timerEvent(QTimerEvent *e)
 bool QTipLabel::eventFilter(QObject *o, QEvent *e)
 {
     switch (e->type()) {
+#ifdef Q_WS_MAC
     case QEvent::KeyPress:
     case QEvent::KeyRelease: {
         int key = static_cast<QKeyEvent *>(e)->key();
         Qt::KeyboardModifiers mody = static_cast<QKeyEvent *>(e)->modifiers();
-
-        if ((mody & Qt::KeyboardModifierMask)
-            || (key == Qt::Key_Shift || key == Qt::Key_Control
-                || key == Qt::Key_Alt || key == Qt::Key_Meta))
-            break;
+        if (!(mody & Qt::KeyboardModifierMask)
+            && key != Qt::Key_Shift && key != Qt::Key_Control
+            && key != Qt::Key_Alt && key != Qt::Key_Meta)
+            hideTip();
+        break;
     }
+#endif
     case QEvent::Leave:
         hideTip();
         break;
@@ -278,7 +282,7 @@ bool QTipLabel::eventFilter(QObject *o, QEvent *e)
     case QEvent::FocusIn:
     case QEvent::FocusOut:
     case QEvent::Wheel:
-        hideTipImmidiatly();
+        hideTipImmediately();
         break;
 
     case QEvent::MouseMove:
@@ -372,7 +376,10 @@ void QToolTip::showText(const QPoint &pos, const QString &text, QWidget *w, cons
         else if (!QTipLabel::instance->fadingOut){
             // If the tip has changed, reuse the one
             // that is showing (removes flickering)
-            if (QTipLabel::instance->tipChanged(pos, text, w)){
+            QPoint localPos = pos;
+            if (w)
+                localPos = w->mapFromGlobal(pos);
+            if (QTipLabel::instance->tipChanged(localPos, text, w)){
                 QTipLabel::instance->reuseTip(text);
                 QTipLabel::instance->setTipRect(w, rect);
                 QTipLabel::instance->placeTip(pos, w);
@@ -382,7 +389,13 @@ void QToolTip::showText(const QPoint &pos, const QString &text, QWidget *w, cons
     }
 
     if (!text.isEmpty()){ // no tip can be reused, create new tip:
-        new QTipLabel(pos, text, w); // sets QTipLabel::instance to itself
+        new QTipLabel(text, 
+#ifdef Q_WS_WIN
+            QApplication::desktop()->screen(QTipLabel::getTipScreen(pos, w))
+#else
+            w
+#endif
+            ); // sets QTipLabel::instance to itself
         QTipLabel::instance->setTipRect(w, rect);
         QTipLabel::instance->placeTip(pos, w);
         QTipLabel::instance->setObjectName(QLatin1String("qtooltip_label"));
@@ -423,12 +436,39 @@ void QToolTip::showText(const QPoint &pos, const QString &text, QWidget *w)
 */
 
 
-Q_GLOBAL_STATIC_WITH_ARGS(QPalette, tooltip_palette, (Qt::black, QColor(255,255,220),
-                                                      QColor(96,96,96), Qt::black, Qt::black,
-                                                      Qt::black, QColor(255,255,220)))
+/*!
+  \since 4.4
+
+  Returns true if this tooltip is currently shown.
+
+  \sa showText()
+ */
+bool QToolTip::isVisible()
+{
+    return (QTipLabel::instance != 0 && QTipLabel::instance->isVisible());
+}
+
+/*!
+  \since 4.4
+
+  Returns the tooltip text, if a tooltip is visible, or an
+  empty string if a tooltip is not visible.
+ */
+QString QToolTip::text()
+{
+    if (QTipLabel::instance)
+        return QTipLabel::instance->text();
+    return QString();
+}
+
+
+Q_GLOBAL_STATIC(QPalette, tooltip_palette)
 
 /*!
     Returns the palette used to render tooltips.
+
+    \note Tool tips use the inactive color group of QPalette, because tool
+    tips are not active windows.
 */
 QPalette QToolTip::palette()
 {
@@ -449,10 +489,15 @@ QFont QToolTip::font()
     \since 4.2
 
     Sets the \a palette used to render tooltips.
+
+    \note Tool tips use the inactive color group of QPalette, because tool
+    tips are not active windows.
 */
 void QToolTip::setPalette(const QPalette &palette)
 {
     *tooltip_palette() = palette;
+    if (QTipLabel::instance)
+        QTipLabel::instance->setPalette(palette);
 }
 
 /*!
@@ -498,6 +543,8 @@ void QToolTip::setFont(const QFont &font)
     widget->setToolTip("");
     \endcode
 */
+
+QT_END_NAMESPACE
 
 #include "qtooltip.moc"
 #endif // QT_NO_TOOLTIP

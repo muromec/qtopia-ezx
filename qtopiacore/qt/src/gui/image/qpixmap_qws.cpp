@@ -1,67 +1,45 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
-#include "qpixmap_p.h"
-
-#include "qwidget.h"
-#include "qbitmap.h"
-#include "qcolormap.h"
-#include "qimage.h"
-#include "qmatrix.h"
-#include "qapplication.h"
-#include "qpainter.h"
-#include "qwsdisplay_qws.h"
-#include "qscreen_qws.h"
-#include "qhash.h"
-#include "qdesktopwidget.h"
-#include <stdlib.h>
-#include <limits.h>
-
-#include <private/qpaintengine_raster_p.h>
-#include <private/qwidget_p.h>
-#include <private/qbackingstore_p.h>
-
-#include <qdebug.h>
+#include <qpixmap.h>
+#include <qapplication.h>
+#include <qwidget.h>
+#include <qdesktopwidget.h>
+#include <qscreen_qws.h>
+#include <qwsdisplay_qws.h>
+#include <private/qdrawhelper_p.h>
+#include <private/qpixmap_raster_p.h>
 
 QPixmap QPixmap::grabWindow(WId window, int x, int y, int w, int h)
 {
@@ -76,8 +54,6 @@ QPixmap QPixmap::grabWindow(WId window, int x, int y, int w, int h)
         h = widget->height() - y;
     grabRect &= QRect(x, y, w, h).translated(widget->mapToGlobal(QPoint()));
 
-    QPixmap pixmap;
-
     QScreen *screen = qt_screen;
     QDesktopWidget *desktop = QApplication::desktop();
     if (!desktop)
@@ -89,71 +65,52 @@ QPixmap QPixmap::grabWindow(WId window, int x, int y, int w, int h)
         grabRect = grabRect.translated(-screen->region().boundingRect().topLeft());
     }
 
-    QWSDisplay::grab(false);
-
-    if (screen->pixelFormat() != QImage::Format_Invalid) {
-        const QImage img(screen->base(),
-                         screen->width(), screen->height(),
-                         screen->linestep(), screen->pixelFormat());
-        pixmap = fromImage(img.copy(grabRect));
-    } else if (screen->base()) {
-
-        // temporary workaraounds for screen depths supported by the linuxfb
-        // driver. Should be replaced by some QScreen::toImage() function
-        // or something...
-        switch (screen->depth()) {
-#ifdef QT_QWS_DEPTH_24
-        case 24: {
-            QImage img(grabRect.width(), grabRect.height(), QImage::Format_RGB32);
-            const uchar *src = screen->base()
-                               + screen->linestep() * grabRect.y()
-                               + sizeof(quint24) * grabRect.x();
-            qt_rectconvert<quint32, quint24>(reinterpret_cast<quint32*>(img.bits()),
-                                             reinterpret_cast<const quint24*>(src),
-                                             0, 0, grabRect.width(), grabRect.height(),
-                                             img.bytesPerLine(),
-                                             screen->linestep());
-            pixmap = fromImage(img);
-            break;
-        }
-#endif // QT_QWS_DEPTH_24
-#ifdef QT_QWS_DEPTH_18
-        case 18: {
-            QImage img(grabRect.width(), grabRect.height(), QImage::Format_RGB32);
-            const uchar *src = screen->base()
-                               + screen->linestep() * grabRect.y()
-                               + sizeof(quint18) * grabRect.x();
-            qt_rectconvert<quint32, quint18>(reinterpret_cast<quint32*>(img.bits()),
-                                             reinterpret_cast<const quint18*>(src),
-                                             0, 0, grabRect.width(), grabRect.height(),
-                                             img.bytesPerLine(),
-                                             screen->linestep());
-            pixmap = fromImage(img);
-            break;
-        }
-#endif // QT_QWS_DEPTH_18
-        default:
-            qWarning("QPixmap::grabWindow(): Unsupported screen depth %d",
-                     screen->depth());
-            break;
-        }
-    } else {
+    if (screen->pixelFormat() == QImage::Format_Invalid) {
         qWarning("QPixmap::grabWindow(): Unable to copy pixels from framebuffer");
+        return QPixmap();
     }
 
+    if (screen->isTransformed()) {
+        const QSize screenSize(screen->width(), screen->height());
+        grabRect = screen->mapToDevice(grabRect, screenSize);
+    }
+
+    QWSDisplay::grab(false);
+    QPixmap pixmap;
+    QImage img(screen->base(),
+               screen->deviceWidth(), screen->deviceHeight(),
+               screen->linestep(), screen->pixelFormat());
+    img = img.copy(grabRect);
     QWSDisplay::ungrab();
 
-    return pixmap;
+    if (screen->isTransformed()) {
+        QMatrix matrix;
+        switch (screen->transformOrientation()) {
+        case 1: matrix.rotate(90); break;
+        case 2: matrix.rotate(180); break;
+        case 3: matrix.rotate(270); break;
+        default: break;
+        }
+        img = img.transformed(matrix);
+    }
+
+    if (screen->pixelType() == QScreen::BGRPixel)
+        img = img.rgbSwapped();
+
+    return QPixmap::fromImage(img);
 }
-
-
 
 /*!
     \internal
 */
-QRgb * QPixmap::clut() const
+QRgb* QPixmap::clut() const
 {
-    return data->image.colorTable().data();
+    if (data->classId() == QPixmapData::RasterClass) {
+        const QRasterPixmapData *d = static_cast<const QRasterPixmapData*>(data);
+        return d->image.colorTable().data();
+    }
+
+    return 0;
 }
 
 /*!
@@ -161,16 +118,26 @@ QRgb * QPixmap::clut() const
 */
 int QPixmap::numCols() const
 {
-    return data->image.numColors();
+    if (data->classId() == QPixmapData::RasterClass) {
+        const QRasterPixmapData *d = static_cast<const QRasterPixmapData*>(data);
+        return d->image.numColors();
+    }
+
+    return 0;
 }
 
 /*!
     \internal
     \since 4.1
 */
-const uchar *QPixmap::qwsBits() const
+const uchar* QPixmap::qwsBits() const
 {
-    return data->image.bits();
+    if (data->classId() == QPixmapData::RasterClass) {
+        const QRasterPixmapData *d = static_cast<const QRasterPixmapData*>(data);
+        return d->image.bits();
+    }
+
+    return 0;
 }
 
 /*!
@@ -179,5 +146,10 @@ const uchar *QPixmap::qwsBits() const
 */
 int QPixmap::qwsBytesPerLine() const
 {
-    return data->image.bytesPerLine();
+    if (data->classId() == QPixmapData::RasterClass) {
+        const QRasterPixmapData *d = static_cast<const QRasterPixmapData*>(data);
+        return d->image.bytesPerLine();
+    }
+
+    return 0;
 }

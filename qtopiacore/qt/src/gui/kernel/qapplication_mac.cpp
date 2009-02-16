@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -111,9 +105,12 @@
 #define kThemeBrushAlternatePrimaryHighlightColor -5
 #endif
 
+QT_BEGIN_NAMESPACE
+
 //for qt_mac.h
 QPaintDevice *qt_mac_safe_pdev = 0;
 QList<QMacWindowChangeEvent*> *QMacWindowChangeEvent::change_events = 0;
+extern QHash<QByteArray, QFont> *qt_app_fonts_hash(); // qapplication.cpp
 
 /*****************************************************************************
   Internal variables and functions
@@ -167,6 +164,7 @@ static EventLoopTimerUPP mac_context_timerUPP = 0;
 static EventHandlerRef app_proc_handler = 0;
 static EventHandlerUPP app_proc_handlerUPP = 0;
 static AEEventHandlerUPP app_proc_ae_handlerUPP = NULL;
+bool QApplicationPrivate::native_modal_dialog_active;
 
 /*****************************************************************************
   External functions
@@ -236,7 +234,7 @@ Q_GUI_EXPORT bool qt_mac_execute_apple_script(const QString &script, AEDesc *ret
 { const QByteArray l = script.toLatin1(); return qt_mac_execute_apple_script(l.constData(), l.size(), ret); }
 
 /* Resolution change magic */
-static void qt_mac_display_change_callbk(CGDirectDisplayID, CGDisplayChangeSummaryFlags flags, void *)
+void qt_mac_display_change_callbk(CGDirectDisplayID, CGDisplayChangeSummaryFlags flags, void *)
 {
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5)
     const bool resized = flags & kCGDisplayDesktopShapeChangedFlag;
@@ -248,6 +246,7 @@ static void qt_mac_display_change_callbk(CGDirectDisplayID, CGDisplayChangeSumma
         if(QDesktopWidget *dw = qApp->desktop()) {
             QResizeEvent *re = new QResizeEvent(dw->size(), dw->size());
             QApplication::postEvent(dw, re);
+            QCoreGraphicsPaintEngine::cleanUpMacColorSpaces();
         }
     }
 }
@@ -498,7 +497,8 @@ void qt_mac_update_os_settings()
             FontMap("QToolButton", kThemeSmallSystemFont),
             FontMap("QMenuItem", kThemeMenuItemCmdKeyFont),  // It doesn't exist, but its unique.
             FontMap("QComboLineEdit", kThemeViewsFont),  // It doesn't exist, but its unique.
-            FontMap("QMiniPushButton", kThemeMiniSystemFont),  // It doesn't exist, but its unique.
+            FontMap("QSmallFont", kThemeSmallSystemFont),  // It doesn't exist, but its unique.
+            FontMap("QMiniFont", kThemeMiniSystemFont),  // It doesn't exist, but its unique.
             FontMap(0, 0) };
         Str255 f_name;
         SInt16 f_size;
@@ -508,11 +508,10 @@ void qt_mac_update_os_settings()
             QFont fnt(qt_mac_from_pascal_string(f_name), f_size, (f_style & ::bold) ? QFont::Bold : QFont::Normal,
                       (bool)(f_style & ::italic));
             bool set_font = true;
-            extern QHash<QByteArray, QFont> *qt_app_fonts_hash(); // qapplication.cpp
             QHash<QByteArray, QFont> *hash = qt_app_fonts_hash();
             if(!hash->isEmpty()) {
                 QHash<QByteArray, QFont>::const_iterator it
-                                        = hash->find(mac_widget_fonts[i].qt_class);
+                                        = hash->constFind(mac_widget_fonts[i].qt_class);
                 if (it != hash->constEnd())
                     set_font = (fnt != *it);
             }
@@ -625,7 +624,7 @@ void QApplicationPrivate::initializeWidgetPaletteHash()
             QHash<QByteArray, QPalette> *phash = qt_app_palettes_hash();
             if(!phash->isEmpty()) {
                 QHash<QByteArray, QPalette>::const_iterator it
-                                    = phash->find(mac_widget_colors[i].qt_class);
+                                    = phash->constFind(mac_widget_colors[i].qt_class);
                 if (it != phash->constEnd())
                     set_palette = (pal != *it);
             }
@@ -927,18 +926,6 @@ QApplicationPrivate::qt_context_timer_callbk(EventLoopTimerRef r, void *data)
         qt_event_request_context(w, &request_context_hold_pending);
 }
 
-/* clipboard */
-void qt_event_send_clipboard_changed()
-{
-#if 0
-    AppleEvent ae;
-    if(AECreateAppleEvent(kEventClassQt, typeAEClipboardChanged, 0, kAutoGenerateReturnID, kAnyTransactionID, &ae) != noErr)
-        qDebug("Can't happen!!");
-    AppleEvent reply;
-    AESend(&ae, &reply, kAENoReply, kAENormalPriority, kAEDefaultTimeout, 0, 0);
-#endif
-}
-
 /* app menu */
 static QMenu *qt_mac_dock_menu = 0;
 Q_GUI_EXPORT void qt_mac_set_dock_menu(QMenu *menu)
@@ -993,7 +980,7 @@ static EventTypeSpec app_events[] = {
     { kEventClassApplication, kEventAppActivated },
     { kEventClassApplication, kEventAppDeactivated },
 
-//     { kEventClassTextInput, kEventTextInputUnicodeForKeyEvent },
+//    { kEventClassTextInput, kEventTextInputUnicodeForKeyEvent },
     { kEventClassKeyboard, kEventRawKeyModifiersChanged },
     { kEventClassKeyboard, kEventRawKeyRepeat },
     { kEventClassKeyboard, kEventRawKeyUp },
@@ -1017,13 +1004,12 @@ QString QApplicationPrivate::appName() const
 {
     static QString applName;
     if (applName.isEmpty()) {
+        applName = QCoreApplicationPrivate::macMenuBarName();
         ProcessSerialNumber psn;
-        if (qt_is_gui_used && GetCurrentProcess(&psn) == noErr) {
+        if (applName.isEmpty() && qt_is_gui_used && GetCurrentProcess(&psn) == noErr) {
             QCFString cfstr;
             CopyProcessName(&psn, &cfstr);
             applName = cfstr;
-        } else {
-            applName = QCoreApplicationPrivate::appName();
         }
     }
     return applName;
@@ -1049,8 +1035,17 @@ void qt_init(QApplicationPrivate *priv, int)
         CGDisplayRegisterReconfigurationCallback(qt_mac_display_change_callbk, 0);
         ProcessSerialNumber psn;
         if(GetCurrentProcess(&psn) == noErr) {
-            TransformProcessType(&psn, kProcessTransformToForegroundApplication);
-            SetFrontProcess(&psn);
+            // Jambi needs to transform itself since most people aren't "used" to putting things in bundles,
+            // but other people may actually not want to tranform the process (running as a helper or somethng)
+            // so don't do that for them.
+            bool forceTransform = true;
+            CFTypeRef string = CFBundleGetValueForInfoDictionaryKey(CFBundleGetMainBundle(), CFSTR("LSUIElement"));
+            if (string)
+                forceTransform = !(QCFString::toQString(static_cast<CFStringRef>(string)).toInt());
+
+            if (forceTransform) {
+                TransformProcessType(&psn, kProcessTransformToForegroundApplication);
+            }
         }
     }
 
@@ -1131,6 +1126,8 @@ void qt_init(QApplicationPrivate *priv, int)
     }
     if(QApplication::desktopSettingsAware())
         QApplicationPrivate::qt_mac_apply_settings();
+    
+    priv->native_modal_dialog_active = false;
 }
 
 /*****************************************************************************
@@ -1280,6 +1277,7 @@ void QApplicationPrivate::enterModal_sys(QWidget *widget)
     if(!app_do_modal)
         qt_event_request_menubarupdate();
     app_do_modal = true;
+    qt_button_down = 0;
 }
 
 void QApplicationPrivate::leaveModal_sys(QWidget *widget)
@@ -1294,7 +1292,11 @@ void QApplicationPrivate::leaveModal_sys(QWidget *widget)
             qt_modal_stack = 0;
             QPoint p(QCursor::pos());
             app_do_modal = false;
-            QWidget* w = QApplication::widgetAt(p.x(), p.y());
+            QWidget* w = 0;
+            if (QWidget *grabber = QWidget::mouseGrabber())
+                w = grabber;
+            else
+                w = QApplication::widgetAt(p.x(), p.y());
             dispatchEnterLeave(w, qt_mouseover); // send synthetic enter event
             qt_mouseover = w;
         }
@@ -1378,6 +1380,7 @@ OSStatus
 QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event, void *data)
 {
     QApplication *app = (QApplication *)data;
+    QScopedLoopLevelCounter loopLevelCounter(app->d_func()->threadData);
     long result;
     if (app->filterEvent(&event, &result))
         return result;
@@ -1401,6 +1404,8 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
             GetEventParameter(event, kEventParamQWidget, typeQWidget, 0,
                               sizeof(widget), 0, &widget);
             if(widget) {
+                if (widget->macEvent(er, event))
+                    return noErr;
                 WindowPtr window = qt_mac_window_for(widget);
                 bool just_show = !qt_mac_is_macsheet(widget);
                 if(!just_show) {
@@ -1429,6 +1434,8 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
             qt_mac_event_release(request_activate_pending.event);
             if(request_activate_pending.widget) {
                 QWidget *tlw = request_activate_pending.widget->window();
+                if (tlw->macEvent(er, event))
+                    return noErr;
                 request_activate_pending.widget = 0;
                 tlw->activateWindow();
                 SelectWindow(qt_mac_window_for(tlw));
@@ -1452,8 +1459,11 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                         widget = QApplication::widgetAt(where.x(), where.y());
                 }
                 if(widget) {
+                    if (widget->macEvent(er, event))
+                        return noErr;
                     QPoint plocal(widget->mapFromGlobal(where));
-                    QContextMenuEvent qme(QContextMenuEvent::Mouse, plocal, where);
+                    const Qt::KeyboardModifiers keyboardModifiers = qt_mac_get_modifiers(GetCurrentEventKeyModifiers());
+                    QContextMenuEvent qme(QContextMenuEvent::Mouse, plocal, where, keyboardModifiers);
                     QApplication::sendEvent(widget, &qme);
                     if(qme.isAccepted()) { //once this happens the events before are pitched
                         qt_button_down = 0;
@@ -1466,10 +1476,19 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
         } else if(ekind == kEventQtRequestTimer) {
             MacTimerInfo *t = 0;
             GetEventParameter(event, kEventParamMacTimer, typeMacTimerInfo, 0, sizeof(t), 0, &t);
+            QEventDispatcherMac *eventDispatcher = static_cast<QEventDispatcherMac *>(QAbstractEventDispatcher::instance());
             if(t && t->pending) {
-                t->pending = false;
-                QTimerEvent e(t->id);
+                int saveID = t->id;
+                QTimerEvent e(saveID);
                 QApplication::sendEvent(t->obj, &e);        // send event
+                MacTimerList *list = eventDispatcher->d_func()->macTimerList;
+                for (int i = 0; i < list->size(); ++i) {
+                    const MacTimerInfo &info = list->at(i);
+                    if (info.id == saveID) {
+                        (*list)[i].pending = false;
+                        break;
+                    }
+                }
             }
         } else {
             handled_event = false;
@@ -1642,7 +1661,7 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
         } else {
             if(mac_mouse_grabber) {
                 widget = mac_mouse_grabber;
-            } else if(ekind != kEventMouseDown && qt_button_down) {
+            } else if (qt_button_down) {
                 widget = qt_button_down;
             } else {
                 {
@@ -1673,6 +1692,8 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                         GetEventParameter(event, kEventParamClickCount, typeUInt32, NULL,
                                           sizeof(count), NULL, &count);
                         if(count == 2 && qt_mac_collapse_on_dblclick) {
+                            if (widget->macEvent(er, event))
+                                return noErr;
                             widget->setWindowState(widget->windowState() | Qt::WindowMinimized);
                             //we send a hide to be like X11/Windows
                             QEvent e(QEvent::Hide);
@@ -1683,7 +1704,16 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                 }
             }
         }
+        if (widget && widget->macEvent(er, event))
+            return noErr;
         WindowPartCode wpc = qt_mac_window_at(where.h, where.v, 0);
+        if (wpc == inProxyIcon && modifiers == Qt::ControlModifier && buttons != Qt::NoButton) {
+            QIconDragEvent e;
+            QApplication::sendSpontaneousEvent(widget, &e);
+            if (e.isAccepted()) {
+                return noErr; // IconDrag ate it.
+            }
+        }
         if (inPopupMode == false
                 && (qt_button_down == 0 || qt_button_down_in_content == false)
                 && (wpc != inContent && wpc != inStructure)) {
@@ -1693,7 +1723,6 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                 UInt32 count = 0;
                 GetEventParameter(event, kEventParamClickCount, typeUInt32, 0,
                                       sizeof(count), 0, &count);
-                
                 if(count % 2 || count == 0) {
                     etype = QEvent::NonClientAreaMouseButtonPress;
                 } else {
@@ -1795,31 +1824,40 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
 
         if(ekind == kEventMouseDown) {
             qt_mac_no_click_through_mode = false;
-            if(!widget) {
-                const short windowPart = qt_mac_window_at(where.h, where.v, 0);
-                if(windowPart == inMenuBar) {
-                    QMacBlockingFunction block;
-                    MenuSelect(where); //allow menu tracking
-                }
-            } else if(!(GetCurrentKeyModifiers() & cmdKey)) {
-                QWidget *window = widget->window();
-                window->raise();
+            const short windowPart = qt_mac_window_at(where.h, where.v, 0);
+            // Menubar always wins.
+            if(windowPart == inMenuBar) {
+                QMacBlockingFunction block;
+                MenuSelect(where); //allow menu tracking
+            }
+
+            if (widget && !(GetCurrentKeyModifiers() & cmdKey)) {
                 extern bool qt_isGenuineQWidget(const QWidget *); // qwidget_mac.cpp
+                QWidget *window = widget->window();
                 bool genuineQtWidget = qt_isGenuineQWidget(widget);  // the widget, not the window.
-                if(window->windowType() != Qt::Desktop
-                   && window->windowType() != Qt::Popup && !qt_mac_is_macsheet(window)
-                   && (window->isModal() || !::qobject_cast<QDockWidget *>(window))
-                   && (!genuineQtWidget || (genuineQtWidget && !window->isActiveWindow()))) {
-                   window->activateWindow();
-                   if(!qt_mac_can_clickThrough(widget)) {
-                       qt_mac_no_click_through_mode = true;
-                       handled_event = false;
+                window->raise();
+
+                bool needActivate = (window->windowType() != Qt::Desktop)
+                                     && (window->windowType() != Qt::Popup)
+                                     && !qt_mac_is_macsheet(window);
+                if (needActivate && (!window->isModal() && qobject_cast<QDockWidget *>(window)))
+                    needActivate = false;
+
+                if (genuineQtWidget && needActivate)
+                    needActivate = !window->isActiveWindow()
+                                    || !IsWindowActive(qt_mac_window_for(window));
+
+                if (needActivate) {
+                    window->activateWindow();
+                    if (!qt_mac_can_clickThrough(widget)) {
+                        qt_mac_no_click_through_mode = true;
+                        handled_event = false;
 #if defined(DEBUG_MOUSE_MAPS)
-                       qDebug("Bail out early due to qt_mac_canClickThrough %s::%s", widget->metaObject()->className(),
-                              widget->objectName().toLocal8Bit().constData());
+                        qDebug("Bail out early due to qt_mac_canClickThrough %s::%s", widget->metaObject()->className(),
+                                widget->objectName().toLocal8Bit().constData());
 #endif
-                       break;
-                   }
+                        break;
+                    }
                 }
             }
 
@@ -1859,9 +1897,14 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
             break;
         }
 
+        QPointer<QWidget> leaveAfterRelease = 0;
         switch(ekind) {
         case kEventMouseUp:
-            qt_button_down = 0;
+            if (!buttons) {
+                if (!inPopupMode && !QWidget::mouseGrabber())
+                    leaveAfterRelease = qt_button_down;
+                qt_button_down = 0;
+            }
             break;
         case kEventMouseDown: {
             if (button == Qt::LeftButton && !mac_context_timer && qt_mac_press_and_hold_context) {
@@ -1871,7 +1914,8 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                 InstallEventLoopTimer(GetMainEventLoop(), 2, 0, mac_context_timerUPP,
                                       widget, &mac_context_timer);
             }
-            qt_button_down = widget;
+            if (!qt_button_down)
+                qt_button_down = widget;
             WindowPartCode wpc = qt_mac_window_at(where.h, where.v, 0);
             qt_button_down_in_content = (wpc == inContent || wpc == inStructure);
             break;  }
@@ -1881,6 +1925,7 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
         switch(ekind) {
         case kEventMouseDragged:
         case kEventMouseMoved:
+        case kEventMouseUp:
         case kEventMouseDown: {
             // If we are in popup mode, widget will point to the current popup no matter
             // where the mouse cursor is. In that case find out if the mouse cursor is
@@ -1896,8 +1941,31 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                        qt_mouseover ? qt_mouseover->metaObject()->className() : "none",
                        qt_mouseover ? qt_mouseover->objectName().toLocal8Bit().constData() : "");
 #endif
-                QApplicationPrivate::dispatchEnterLeave(enterLeaveWidget, qt_mouseover);
-                qt_mouseover = enterLeaveWidget;
+
+                QWidget * const mouseGrabber = QWidget::mouseGrabber();
+
+                if (inPopupMode) {
+                    QWidget *enter = enterLeaveWidget;
+                    QWidget *leave = qt_mouseover;
+                    if (mouseGrabber) {
+                        QWidget * const popupWidget = qApp->activePopupWidget();
+                        if (leave == popupWidget)
+                            enter = mouseGrabber;
+                        if (enter == popupWidget)
+                            leave = mouseGrabber;
+                        if ((enter == mouseGrabber && leave == popupWidget)
+                            || (leave == mouseGrabber  && enter == popupWidget)) {
+                            QApplicationPrivate::dispatchEnterLeave(enter, leave);
+                            qt_mouseover = enter;
+                        }
+                    } else {
+                        QApplicationPrivate::dispatchEnterLeave(enter, leave);
+                        qt_mouseover = enter;
+                    }
+                } else if ((!qt_button_down || !qt_mouseover) && !mouseGrabber && !leaveAfterRelease) {
+                    QApplicationPrivate::dispatchEnterLeave(enterLeaveWidget, qt_mouseover);
+                    qt_mouseover = enterLeaveWidget;
+                }
             }
             break; }
         }
@@ -1959,6 +2027,13 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
                     handled_event = false;
             }
 
+            if (leaveAfterRelease) {
+                QWidget *enter = QApplication::widgetAt(where.h, where.v);
+                QApplicationPrivate::dispatchEnterLeave(enter, leaveAfterRelease);
+                qt_mouseover = enter;
+                leaveAfterRelease = 0;
+            }
+
             if(ekind == kEventMouseDown &&
                ((button == Qt::RightButton) ||
                 (button == Qt::LeftButton && (modifiers & Qt::MetaModifier))))
@@ -2012,7 +2087,10 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
         else
             widget = app->activeWindow();
 
-        if (!widget) {
+        if (widget) {
+            if (widget->macEvent(er, event))
+                return noErr;
+        } else {
             // Darn, I need to update tho modifier state, even though
             // Qt itself isn't getting them, otherwise the keyboard state get inconsistent.
             if (key_ekind == kEventRawKeyModifiersChanged) {
@@ -2038,6 +2116,8 @@ QApplicationPrivate::globalEventProcessor(EventHandlerCallRef er, EventRef event
         GetEventParameter(event, kEventParamDirectObject, typeWindowRef, 0,
                           sizeof(WindowRef), 0, &wid);
         widget = qt_mac_find_window(wid);
+        if (widget && widget->macEvent(er, event))
+            return noErr;
         if(ekind == kEventWindowActivated) {
             if(QApplicationPrivate::app_style) {
                 QEvent ev(QEvent::Style);
@@ -2316,7 +2396,13 @@ void QApplicationPrivate::closePopup(QWidget *popup)
     if(QApplicationPrivate::popupWidgets->isEmpty()) {  // this was the last popup
         delete QApplicationPrivate::popupWidgets;
         QApplicationPrivate::popupWidgets = 0;
-        if (QApplicationPrivate::active_window) {
+        
+        // Special case for Tool windows: since they are activated and deactived together
+        // with a normal window they never become the QApplicationPrivate::active_window.
+        QWidget *appFocusWidget = QApplication::focusWidget();
+        if (appFocusWidget && appFocusWidget->window()->windowType() == Qt::Tool) {
+            appFocusWidget->setFocus(Qt::PopupFocusReason);
+        } else if (QApplicationPrivate::active_window) {
             if (QWidget *fw = QApplicationPrivate::active_window->focusWidget()) {
                 if (fw != QApplication::focusWidget()) {
                     fw->setFocus(Qt::PopupFocusReason);
@@ -2531,8 +2617,8 @@ bool QApplicationPrivate::qt_mac_apply_settings()
                     .arg((QT_VERSION & 0xff00) >> 8);
     QStringList pathlist = settings.value(libpathkey).toString().split(QLatin1Char(':'));
     if(!pathlist.isEmpty()) {
-        QStringList::ConstIterator it = pathlist.begin();
-        while(it != pathlist.end())
+        QStringList::ConstIterator it = pathlist.constBegin();
+        while(it != pathlist.constEnd())
             QApplication::addLibraryPath(*it++);
     }
 
@@ -2661,3 +2747,5 @@ bool QApplicationPrivate::qt_mac_apply_settings()
     settings.endGroup();
     return true;
 }
+
+QT_END_NAMESPACE

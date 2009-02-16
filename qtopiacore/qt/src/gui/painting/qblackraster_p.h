@@ -5,13 +5,10 @@
 ** This file contains third party code which is not governed by the Qt
 ** Commercial License Agreement. Please read the license headers below
 ** for more information.
-** 
+**
 ** Further information about Qt licensing is available at:
 ** http://www.trolltech.com/products/qt/licensing.html or by
-** contacting info@trolltech.com.
-**
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** contacting qt-info@nokia.com.
 **
 ****************************************************************************/
 
@@ -67,8 +64,11 @@ QT_FT_BEGIN_HEADER
 #define QT_FT_EXPORT_VAR( x )  extern  x
 #endif
 
+QT_BEGIN_NAMESPACE
+
   QT_FT_EXPORT_VAR( const QT_FT_Raster_Funcs )  qt_ft_standard_raster;
 
+QT_END_NAMESPACE
 
 QT_FT_END_HEADER
 

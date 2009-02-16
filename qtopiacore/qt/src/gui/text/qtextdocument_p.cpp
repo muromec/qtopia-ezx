@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,6 +51,8 @@
 #include "qtextengine_p.h"
 
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 #define PMDEBUG if(0) qDebug
 
@@ -95,7 +91,7 @@
 
   START_OF_FRAME: one char format, and a blockFormat (for the next
   block). The format associated with the objectIndex() of the
-  charFormat decides whether this is a frame or table and it's
+  charFormat decides whether this is a frame or table and its
   properties
 
   END_OF_FRAME: one charFormat and a blockFormat (for the next
@@ -192,7 +188,10 @@ QTextDocumentPrivate::QTextDocumentPrivate()
     defaultTextOption.setTabStop(80); // same as in qtextengine.cpp
     defaultTextOption.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
 
+    indentWidth = 40;
+
     maximumBlockCount = 0;
+    needsEnsureMaximumBlockCount = false;
     unreachableCharacterCount = 0;
     lastBlockCount = 0;
 }
@@ -209,7 +208,6 @@ void QTextDocumentPrivate::init()
     undoEnabled = undoState;
     modified = false;
     modifiedState = 0;
-    lastBlockCount = blocks.numNodes();
 }
 
 void QTextDocumentPrivate::clear()
@@ -282,6 +280,7 @@ void QTextDocumentPrivate::setLayout(QAbstractTextDocumentLayout *layout)
         for (BlockMap::Iterator it = blocks.begin(); !it.atEnd(); ++it)
             it->free();
 
+    emit q->documentLayoutChanged();
     inContentsChange = true;
     emit q->contentsChange(0, 0, length());
     inContentsChange = false;
@@ -380,14 +379,28 @@ int QTextDocumentPrivate::insertBlock(const QChar &blockSeparator,
 
     Q_ASSERT(blocks.length() == fragments.length());
 
+    int b = blocks.findNode(pos);
+    QTextBlockData *B = blocks.fragment(b);
+
     QTextUndoCommand c = { QTextUndoCommand::BlockInserted, true,
-                      op, charFormat, strPos, pos, { blockFormat } };
+                           op, charFormat, strPos, pos, { blockFormat },
+                           B->revision };
 
     appendUndoItem(c);
     Q_ASSERT(undoState == undoStack.size());
 
+    // update revision numbers of the modified blocks. Close to the
+    // truth, but we may want to special case breaking a block before
+    // the first or behind the last character
+    B->revision = undoState;
+    b = blocks.next(b);
+    if (b) {
+        B = blocks.fragment(b);
+        B->revision = undoState;
+    }
+
     if (formats.charFormat(charFormat).objectIndex() == -1)
-        ensureMaximumBlockCount();
+        needsEnsureMaximumBlockCount = true;
 
     endEditBlock();
     return fragment;
@@ -410,9 +423,14 @@ void QTextDocumentPrivate::insert(int pos, int strPos, int strLength, int format
 
     beginEditBlock();
 
+    int b = blocks.findNode(pos);
+    QTextBlockData *B = blocks.fragment(b);
+
     QTextUndoCommand c = { QTextUndoCommand::Inserted, true,
-                      QTextUndoCommand::MoveCursor, format, strPos, pos, { strLength } };
+                           QTextUndoCommand::MoveCursor, format, strPos, pos, { strLength },
+                           B->revision };
     appendUndoItem(c);
+    B->revision = undoState;
     Q_ASSERT(undoState == undoStack.size());
 
     endEditBlock();
@@ -528,7 +546,7 @@ void QTextDocumentPrivate::move(int pos, int to, int length, QTextUndoCommand::O
     if (pos == to)
         return;
 
-    bool needsInsert = to != -1;
+    const bool needsInsert = to != -1;
 
 #if !defined(QT_NO_DEBUG)
     const bool startAndEndInSameFrame = (frameAt(pos) == frameAt(pos + length - 1));
@@ -564,12 +582,16 @@ void QTextDocumentPrivate::move(int pos, int to, int length, QTextUndoCommand::O
 
         uint key = fragments.position(x);
         uint b = blocks.findNode(key+1);
+        QTextBlockData *B = blocks.fragment(b);
+        int blockRevision = B->revision;
 
         QTextFragmentData *X = fragments.fragment(x);
         QTextUndoCommand c = { QTextUndoCommand::Removed, true,
-                          op, X->format, X->stringPosition, key, { X->size } };
+                               op, X->format, X->stringPosition, key, { X->size },
+                               blockRevision };
         QTextUndoCommand cInsert = { QTextUndoCommand::Inserted, true,
-                          op, X->format, X->stringPosition, dstKey, { X->size } };
+                                     op, X->format, X->stringPosition, dstKey, { X->size },
+                                     blockRevision };
 
         if (key+1 != blocks.position(b)) {
 //	    qDebug("remove_string from %d length %d", key, X->size);
@@ -584,6 +606,7 @@ void QTextDocumentPrivate::move(int pos, int to, int length, QTextUndoCommand::O
 //	    qDebug("remove_block at %d", key);
             Q_ASSERT(X->size == 1 && isValidBlockSeparator(text.at(X->stringPosition)));
             b = blocks.previous(b);
+            B = 0;
             c.command = blocks.size(b) == 1 ? QTextUndoCommand::BlockDeleted : QTextUndoCommand::BlockRemoved;
             w = remove_block(key, &c.blockFormat, QTextUndoCommand::BlockAdded, op);
 
@@ -594,6 +617,8 @@ void QTextDocumentPrivate::move(int pos, int to, int length, QTextUndoCommand::O
             }
         }
         appendUndoItem(c);
+        if (B)
+            B->revision = undoState;
         x = n;
 
         if (needsInsert)
@@ -609,6 +634,8 @@ void QTextDocumentPrivate::move(int pos, int to, int length, QTextUndoCommand::O
 
 void QTextDocumentPrivate::remove(int pos, int length, QTextUndoCommand::Operation op)
 {
+    if (length == 0)
+        return;
     move(pos, -1, length, op);
 }
 
@@ -677,7 +704,7 @@ void QTextDocumentPrivate::setCharFormat(int pos, int length, const QTextCharFor
         }
 
         QTextUndoCommand c = { QTextUndoCommand::CharFormatChanged, true, QTextUndoCommand::MoveCursor, oldFormat,
-                          0, pos, { length } };
+                               0, pos, { length }, 0 };
         appendUndoItem(c);
 
         pos += length;
@@ -737,7 +764,7 @@ void QTextDocumentPrivate::setBlockFormat(const QTextBlock &from, const QTextBlo
         block(it)->invalidate();
 
         QTextUndoCommand c = { QTextUndoCommand::BlockFormatChanged, true, QTextUndoCommand::MoveCursor, oldFormat,
-                              0, it.position(), { 1 } };
+                               0, it.position(), { 1 }, 0 };
         appendUndoItem(c);
 
         if (group != oldGroup) {
@@ -814,6 +841,7 @@ int QTextDocumentPrivate::undoRedo(bool undo)
         if (undo)
             --undoState;
         QTextUndoCommand &c = undoStack[undoState];
+        int resetBlockRevision = c.pos;
 
 	switch(c.command) {
         case QTextUndoCommand::Inserted:
@@ -839,12 +867,14 @@ int QTextDocumentPrivate::undoRedo(bool undo)
 	case QTextUndoCommand::BlockDeleted:
             PMDEBUG("   blockinsert: charformat %d blockformat %d (pos %d, strpos=%d)", c.format, c.blockFormat, c.pos, c.strPos);
             insert_block(c.pos, c.strPos, c.format, c.blockFormat, (QTextUndoCommand::Operation)c.operation, c.command);
+            resetBlockRevision += 1;
 	    if (c.command == QTextUndoCommand::BlockRemoved)
 		c.command = QTextUndoCommand::BlockInserted;
 	    else
 		c.command = QTextUndoCommand::BlockAdded;
 	    break;
 	case QTextUndoCommand::CharFormatChanged: {
+            resetBlockRevision = -1; // ## TODO
             PMDEBUG("   charFormat: format %d (from %d, length %d)", c.format, c.pos, c.length);
             FragmentIterator it = find(c.pos);
             Q_ASSERT(!it.atEnd());
@@ -855,6 +885,7 @@ int QTextDocumentPrivate::undoRedo(bool undo)
 	    break;
 	}
 	case QTextUndoCommand::BlockFormatChanged: {
+            resetBlockRevision = -1; // ## TODO
             PMDEBUG("   blockformat: format %d pos %d", c.format, c.pos);
             QTextBlock it = blocksFind(c.pos);
             Q_ASSERT(it.isValid());
@@ -876,6 +907,7 @@ int QTextDocumentPrivate::undoRedo(bool undo)
 	    break;
 	}
 	case QTextUndoCommand::GroupFormatChange: {
+            resetBlockRevision = -1; // ## TODO
             PMDEBUG("   group format change");
             QTextObject *object = objectForIndex(c.objectIndex);
             int oldFormat = formats.objectFormatIndex(c.objectIndex);
@@ -884,6 +916,7 @@ int QTextDocumentPrivate::undoRedo(bool undo)
 	    break;
 	}
 	case QTextUndoCommand::Custom:
+            resetBlockRevision = -1; // ## TODO
             if (undo)
                 c.custom->undo();
             else
@@ -892,6 +925,13 @@ int QTextDocumentPrivate::undoRedo(bool undo)
 	default:
 	    Q_ASSERT(false);
         }
+
+        if (resetBlockRevision >= 0) {
+            int b = blocks.findNode(resetBlockRevision);
+            QTextBlockData *B = blocks.fragment(b);
+            B->revision = c.revision;
+        }
+
         if (undo) {
             if (undoState == 0 || !undoStack[undoState-1].block)
                 break;
@@ -948,10 +988,13 @@ void QTextDocumentPrivate::appendUndoItem(const QTextUndoCommand &c)
         if (last.tryMerge(c))
             return;
     }
+    if (modifiedState > undoState)
+        modifiedState = -1;
     undoStack.append(c);
     undoState++;
     emitUndoAvailable(true);
     emitRedoAvailable(false);
+    emit document()->undoCommandAdded();
 }
 
 void QTextDocumentPrivate::truncateUndoStack() {
@@ -995,6 +1038,9 @@ void QTextDocumentPrivate::emitRedoAvailable(bool available)
 
 void QTextDocumentPrivate::enableUndoRedo(bool enable)
 {
+    if (enable && maximumBlockCount > 0)
+        return;
+
     if (!enable) {
         undoState = 0;
         truncateUndoStack();
@@ -1038,6 +1084,17 @@ void QTextDocumentPrivate::endEditBlock()
 
     docChangeFrom = -1;
 
+    if (needsEnsureMaximumBlockCount) {
+        needsEnsureMaximumBlockCount = false;
+        if (ensureMaximumBlockCount()) {
+            // if ensureMaximumBlockCount() returns true
+            // it will have called endEditBlock() and
+            // compressPieceTable() itself, so we return here
+            // to prevent getting two contentsChanged emits
+            return;
+        }
+    }
+
     while (!changedCursors.isEmpty()) {
         QTextCursorPrivate *curs = changedCursors.takeFirst();
         emit q->cursorPositionChanged(QTextCursor(curs));
@@ -1071,6 +1128,11 @@ void QTextDocumentPrivate::documentChange(int from, int length)
     docChangeLength += diff;
 }
 
+/*
+    adjustDocumentChangesAndCursors is called whenever there is an insert or remove of characters.
+    param from is the cursor position in the document
+    param addedOrRemoved is the amount of characters added or removed.  A negative number means characters are removed.
+*/
 void QTextDocumentPrivate::adjustDocumentChangesAndCursors(int from, int addedOrRemoved, QTextUndoCommand::Operation op)
 {
     Q_Q(QTextDocument);
@@ -1192,7 +1254,7 @@ void QTextDocumentPrivate::changeObjectFormat(QTextObject *obj, int format)
         documentChange(f->firstPosition(), f->lastPosition() - f->firstPosition());
 
     QTextUndoCommand c = { QTextUndoCommand::GroupFormatChange, true, QTextUndoCommand::MoveCursor, oldFormatIndex,
-                      0, 0, { obj->d_func()->objectIndex } };
+                           0, 0, { obj->d_func()->objectIndex }, 0 };
     appendUndoItem(c);
 
     endEditBlock();
@@ -1474,12 +1536,12 @@ void QTextDocumentPrivate::setModified(bool m)
     emit q->modificationChanged(modified);
 }
 
-void QTextDocumentPrivate::ensureMaximumBlockCount()
+bool QTextDocumentPrivate::ensureMaximumBlockCount()
 {
     if (maximumBlockCount <= 0)
-        return;
+        return false;
     if (blocks.numNodes() <= maximumBlockCount)
-        return;
+        return false;
 
     beginEditBlock();
 
@@ -1497,5 +1559,16 @@ void QTextDocumentPrivate::ensureMaximumBlockCount()
     endEditBlock();
 
     compressPieceTable();
+
+    return true;
 }
 
+/// This method is called from QTextTable when it is about to remove a table-cell to allow cursors to update their selection.
+void QTextDocumentPrivate::aboutToRemoveCell(int from, int to)
+{
+    Q_ASSERT(from <= to);
+    for (int i = 0; i < cursors.size(); ++i)
+        cursors.at(i)->aboutToRemoveCell(from, to);
+}
+
+QT_END_NAMESPACE

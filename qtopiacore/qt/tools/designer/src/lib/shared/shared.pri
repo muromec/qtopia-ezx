@@ -2,12 +2,19 @@
 INCLUDEPATH += $$PWD
 QT += script
 
+include($$QT_SOURCE_TREE/tools/shared/deviceskin/deviceskin.pri)
+include($$QT_SOURCE_TREE/src/tools/rcc/rcc.pri)
+include($$QT_SOURCE_TREE/tools/shared/findwidget/findwidget.pri)
+include($$QT_SOURCE_TREE/tools/shared/qtgradienteditor/qtgradienteditor.pri)
+
 # Input
-FORMS += $$PWD/findicondialog.ui \
+FORMS += $$PWD/addlinkdialog.ui \
     $$PWD/orderdialog.ui \
     $$PWD/newactiondialog.ui \
-    $$PWD/resourceeditor.ui \
-    $$PWD/gridpanel.ui
+    $$PWD/gridpanel.ui \
+    $$PWD/signalslotdialog.ui \
+    $$PWD/previewconfigurationwidget.ui \
+    $$PWD/qtresourceeditordialog.ui 
 
 HEADERS += \
     $$PWD/shared_global_p.h \
@@ -32,7 +39,6 @@ HEADERS += \
     $$PWD/qdesigner_integration_p.h \
     $$PWD/invisible_widget_p.h \
     $$PWD/qlayout_widget_p.h \
-    $$PWD/tree_widget_p.h \
     $$PWD/sheet_delegate_p.h \
     $$PWD/qdesigner_stackedbox_p.h \
     $$PWD/qdesigner_tabwidget_p.h \
@@ -43,12 +49,12 @@ HEADERS += \
     $$PWD/widgetfactory_p.h \
     $$PWD/widgetdatabase_p.h \
     $$PWD/qdesigner_promotion_p.h \
+    $$PWD/qdesigner_introspection_p.h \
     $$PWD/promotionmodel_p.h \
     $$PWD/qdesigner_promotiondialog_p.h \
-    $$PWD/resourcefile_p.h \
     $$PWD/iconloader_p.h \
-    $$PWD/findicondialog_p.h \
     $$PWD/richtexteditor_p.h \
+    $$PWD/plaintexteditor_p.h \
     $$PWD/actioneditor_p.h \
     $$PWD/actionrepository_p.h \
     $$PWD/qdesigner_toolbar_p.h \
@@ -57,7 +63,6 @@ HEADERS += \
     $$PWD/actionprovider_p.h \
     $$PWD/orderdialog_p.h \
     $$PWD/newactiondialog_p.h \
-    $$PWD/resourceeditor_p.h \
     $$PWD/stylesheeteditor_p.h \
     $$PWD/csshighlighter_p.h \
     $$PWD/shared_enums_p.h \
@@ -72,8 +77,19 @@ HEADERS += \
     $$PWD/grid_p.h \
     $$PWD/formwindowbase_p.h \
     $$PWD/qdesigner_utils_p.h \
-    $$PWD/resourcemimedata_p.h \
-    $$PWD/qdesigner_widgetbox_p.h 
+    $$PWD/qdesigner_widgetbox_p.h \
+    $$PWD/signalslotdialog_p.h \
+    $$PWD/extensionfactory_p.h \
+    $$PWD/dialoggui_p.h \
+    $$PWD/previewmanager_p.h \
+    $$PWD/previewconfigurationwidget_p.h \
+    $$PWD/codedialog_p.h \
+    $$PWD/qtresourceeditordialog_p.h \
+    $$PWD/qtresourcemodel_p.h \
+    $$PWD/qtresourceview_p.h \
+    $$PWD/iconselector_p.h \
+    $$PWD/htmlhighlighter_p.h \
+    $$PWD/qdesigner_widgetitem_p.h
 
 SOURCES += \
     $$PWD/spacer_widget.cpp \
@@ -99,7 +115,6 @@ SOURCES += \
     $$PWD/qsimpleresource.cpp \
     $$PWD/invisible_widget.cpp \
     $$PWD/qlayout_widget.cpp \
-    $$PWD/tree_widget.cpp \
     $$PWD/sheet_delegate.cpp \
     $$PWD/metadatabase.cpp \
     $$PWD/qdesigner_stackedbox.cpp \
@@ -108,11 +123,11 @@ SOURCES += \
     $$PWD/widgetfactory.cpp \
     $$PWD/widgetdatabase.cpp \
     $$PWD/qdesigner_promotion.cpp \
+    $$PWD/qdesigner_introspection.cpp \
     $$PWD/promotionmodel.cpp \
     $$PWD/qdesigner_promotiondialog.cpp \
-    $$PWD/resourcefile.cpp \
-    $$PWD/findicondialog.cpp \
     $$PWD/richtexteditor.cpp \
+    $$PWD/plaintexteditor.cpp \
     $$PWD/actioneditor.cpp \
     $$PWD/actionrepository.cpp \
     $$PWD/qdesigner_toolbar.cpp \
@@ -120,7 +135,6 @@ SOURCES += \
     $$PWD/qdesigner_menu.cpp \
     $$PWD/orderdialog.cpp \
     $$PWD/newactiondialog.cpp \
-    $$PWD/resourceeditor.cpp \
     $$PWD/stylesheeteditor.cpp \
     $$PWD/csshighlighter.cpp \
     $$PWD/textpropertyeditor.cpp \
@@ -134,6 +148,18 @@ SOURCES += \
     $$PWD/grid.cpp \
     $$PWD/formwindowbase.cpp \
     $$PWD/qdesigner_utils.cpp \
-    $$PWD/resourcemimedata.cpp \
     $$PWD/qdesigner_widgetbox.cpp \
-    $$PWD/iconloader.cpp
+    $$PWD/iconloader.cpp \
+    $$PWD/signalslotdialog.cpp \
+    $$PWD/dialoggui.cpp \
+    $$PWD/previewmanager.cpp \
+    $$PWD/previewconfigurationwidget.cpp \
+    $$PWD/codedialog.cpp \
+    $$PWD/qtresourceeditordialog.cpp \
+    $$PWD/qtresourcemodel.cpp \
+    $$PWD/qtresourceview.cpp \
+    $$PWD/iconselector.cpp \
+    $$PWD/htmlhighlighter.cpp \
+    $$PWD/qdesigner_widgetitem.cpp
+
+RESOURCES += $$PWD/shared.qrc

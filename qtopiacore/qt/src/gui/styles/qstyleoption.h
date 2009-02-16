@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,8 +47,13 @@
 #include <QtGui/qtabbar.h>
 #include <QtGui/qtabwidget.h>
 #include <QtGui/qrubberband.h>
+#ifndef QT_NO_ITEMVIEWS
+#   include <QtCore/qabstractitemmodel.h>
+#endif
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Gui)
 
@@ -493,7 +492,10 @@ public:
     enum ViewItemFeature {
         None = 0x00,
         WrapText = 0x01,
-        Alternate = 0x02
+        Alternate = 0x02,
+        HasCheckIndicator = 0x04,
+        HasDisplay = 0x08,
+        HasDecoration = 0x10
     };
     Q_DECLARE_FLAGS(ViewItemFeatures, ViewItemFeature)
 
@@ -507,6 +509,8 @@ public:
 protected:
     QStyleOptionViewItemV2(int version);
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionViewItemV2::ViewItemFeatures)
 
 class Q_GUI_EXPORT QStyleOptionViewItemV3 : public QStyleOptionViewItemV2
 {
@@ -526,7 +530,30 @@ protected:
     QStyleOptionViewItemV3(int version);
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(QStyleOptionViewItemV2::ViewItemFeatures)
+#ifndef QT_NO_ITEMVIEWS
+class Q_GUI_EXPORT QStyleOptionViewItemV4 : public QStyleOptionViewItemV3
+{
+public:
+    enum StyleOptionVersion { Version = 4 };
+    enum ViewItemPosition { Invalid, Beginning, Middle, End, OnlyOne };
+
+    QModelIndex index;
+    Qt::CheckState checkState;
+    QIcon icon;
+    QString text;
+    ViewItemPosition viewItemPosition;
+    QBrush backgroundBrush;
+
+    QStyleOptionViewItemV4();
+    QStyleOptionViewItemV4(const QStyleOptionViewItemV4 &other)
+        : QStyleOptionViewItemV3(Version) { *this = other; }
+    QStyleOptionViewItemV4(const QStyleOptionViewItem &other);
+    QStyleOptionViewItemV4 &operator = (const QStyleOptionViewItem &other);
+
+protected:
+    QStyleOptionViewItemV4(int version);
+};
+#endif
 
 class Q_GUI_EXPORT QStyleOptionToolBox : public QStyleOption
 {
@@ -859,6 +886,8 @@ T qstyleoption_cast(QStyleHintReturn *hint)
 Q_GUI_EXPORT QDebug operator<<(QDebug debug, const QStyleOption::OptionType &optionType);
 Q_GUI_EXPORT QDebug operator<<(QDebug debug, const QStyleOption &option);
 #endif
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

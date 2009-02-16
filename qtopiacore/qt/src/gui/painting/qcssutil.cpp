@@ -1,50 +1,48 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qcssutil_p.h"
 #include "private/qcssparser_p.h"
 #include "qpainter.h"
-#include "private/qmath_p.h"
+#include <qmath.h>
+
+#ifndef QT_NO_CSSPARSER
+
+QT_BEGIN_NAMESPACE
 
 using namespace QCss;
 
@@ -194,7 +192,7 @@ void qDrawEdge(QPainter *p, qreal x1, qreal y1, qreal x2, qreal y2, qreal dw1, q
     switch (style) {
     case BorderStyle_Inset:
     case BorderStyle_Outset:
-        if (style == BorderStyle_Outset && (edge == TopEdge || edge == LeftEdge)
+        if ((style == BorderStyle_Outset && (edge == TopEdge || edge == LeftEdge))
             || (style == BorderStyle_Inset && (edge == BottomEdge || edge == RightEdge)))
             c = c.color().lighter();
         // fall through!
@@ -310,3 +308,97 @@ void qDrawEdge(QPainter *p, qreal x1, qreal y1, qreal x2, qreal y2, qreal dw1, q
     }
     p->restore();
 }
+
+void qNormalizeRadii(const QRect &br, const QSize *radii,
+                     QSize *tlr, QSize *trr, QSize *blr, QSize *brr)
+{
+    *tlr = radii[0].expandedTo(QSize(0, 0));
+    *trr = radii[1].expandedTo(QSize(0, 0));
+    *blr = radii[2].expandedTo(QSize(0, 0));
+    *brr = radii[3].expandedTo(QSize(0, 0));
+    if (tlr->width() + trr->width() > br.width())
+        *tlr = *trr = QSize(0, 0);
+    if (blr->width() + brr->width() > br.width())
+        *blr = *brr = QSize(0, 0);
+    if (tlr->height() + blr->height() > br.height())
+        *tlr = *blr = QSize(0, 0);
+    if (trr->height() + brr->height() > br.height())
+        *trr = *brr = QSize(0, 0);
+}
+
+// Determines if Edge e1 draws over Edge e2. Depending on this trapezoids or rectanges are drawn
+static bool paintsOver(const QCss::BorderStyle *styles, const QBrush *colors, QCss::Edge e1, QCss::Edge e2)
+{
+    QCss::BorderStyle s1 = styles[e1];
+    QCss::BorderStyle s2 = styles[e2];
+
+    if (s2 == BorderStyle_None || colors[e2] == Qt::transparent)
+        return true;
+
+    if ((s1 == BorderStyle_Solid && s2 == BorderStyle_Solid) && (colors[e1] == colors[e2]))
+        return true;
+
+    return false;
+}
+
+void qDrawBorder(QPainter *p, const QRect &rect, const QCss::BorderStyle *styles,
+                 const int *borders, const QBrush *colors, const QSize *radii)
+{
+    const QRectF br(rect);
+    QSize tlr, trr, blr, brr;
+    qNormalizeRadii(rect, radii, &tlr, &trr, &blr, &brr);
+
+    // Drawn in increasing order of precendence
+    if (styles[BottomEdge] != BorderStyle_None) {
+        qreal dw1 = (blr.width() || paintsOver(styles, colors, BottomEdge, LeftEdge)) ? 0 : borders[LeftEdge];
+        qreal dw2 = (brr.width() || paintsOver(styles, colors, BottomEdge, RightEdge)) ? 0 : borders[RightEdge];
+        qreal x1 = br.x() + blr.width();
+        qreal y1 = br.y() + br.height() - borders[BottomEdge];
+        qreal x2 = br.x() + br.width() - brr.width();
+        qreal y2 = br.y() + br.height() ;
+
+        qDrawEdge(p, x1, y1, x2, y2, dw1, dw2, BottomEdge, styles[BottomEdge], colors[BottomEdge]);
+        if (blr.width() || brr.width())
+            qDrawRoundedCorners(p, x1, y1, x2, y2, blr, brr, BottomEdge, styles[BottomEdge], colors[BottomEdge]);
+    }
+    if (styles[RightEdge] != BorderStyle_None) {
+        qreal dw1 = (trr.height() || paintsOver(styles, colors, RightEdge, TopEdge)) ? 0 : borders[TopEdge];
+        qreal dw2 = (brr.height() || paintsOver(styles, colors, RightEdge, BottomEdge)) ? 0 : borders[BottomEdge];
+        qreal x1 = br.x() + br.width() - borders[RightEdge];
+        qreal y1 = br.y() + trr.height();
+        qreal x2 = br.x() + br.width();
+        qreal y2 = br.y() + br.height() - brr.height();
+
+        qDrawEdge(p, x1, y1, x2, y2, dw1, dw2, RightEdge, styles[RightEdge], colors[RightEdge]);
+        if (trr.height() || brr.height())
+            qDrawRoundedCorners(p, x1, y1, x2, y2, trr, brr, RightEdge, styles[RightEdge], colors[RightEdge]);
+    }
+    if (styles[LeftEdge] != BorderStyle_None) {
+        qreal dw1 = (tlr.height() || paintsOver(styles, colors, LeftEdge, TopEdge)) ? 0 : borders[TopEdge];
+        qreal dw2 = (blr.height() || paintsOver(styles, colors, LeftEdge, BottomEdge)) ? 0 : borders[BottomEdge];
+        qreal x1 = br.x();
+        qreal y1 = br.y() + tlr.height();
+        qreal x2 = br.x() + borders[LeftEdge];
+        qreal y2 = br.y() + br.height() - blr.height();
+
+        qDrawEdge(p, x1, y1, x2, y2, dw1, dw2, LeftEdge, styles[LeftEdge], colors[LeftEdge]);
+        if (tlr.height() || blr.height())
+            qDrawRoundedCorners(p, x1, y1, x2, y2, tlr, blr, LeftEdge, styles[LeftEdge], colors[LeftEdge]);
+    }
+    if (styles[TopEdge] != BorderStyle_None) {
+        qreal dw1 = (tlr.width() || paintsOver(styles, colors, TopEdge, LeftEdge)) ? 0 : borders[LeftEdge];
+        qreal dw2 = (trr.width() || paintsOver(styles, colors, TopEdge, RightEdge)) ? 0 : borders[RightEdge];
+        qreal x1 = br.x() + tlr.width();
+        qreal y1 = br.y();
+        qreal x2 = br.left() + br.width() - trr.width();
+        qreal y2 = br.y() + borders[TopEdge];
+
+        qDrawEdge(p, x1, y1, x2, y2, dw1, dw2, TopEdge, styles[TopEdge], colors[TopEdge]);
+        if (tlr.width() || trr.width())
+            qDrawRoundedCorners(p, x1, y1, x2, y2, tlr, trr, TopEdge, styles[TopEdge], colors[TopEdge]);
+    }
+}
+
+#endif //QT_NO_CSSPARSER
+
+QT_END_NAMESPACE

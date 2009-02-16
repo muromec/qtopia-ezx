@@ -21,9 +21,15 @@
  */
 
 #include <string.h>		/* for memcpy() */
+#ifndef _WIN32_WCE
 #include <sys/types.h>		/* for stupid systems */
+#else
+#include <types.h>
+#endif
 
 #include "md5.h"
+
+QT_BEGIN_NAMESPACE
 
 static void
 byteSwap(UWORD32 *buf, unsigned words)
@@ -236,3 +242,5 @@ MD5Transform(UWORD32 buf[4], UWORD32 const in[16])
 }
 
 #endif
+
+QT_END_NAMESPACE

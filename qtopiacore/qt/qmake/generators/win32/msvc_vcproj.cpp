@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the qmake application of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,7 @@
 //#define DEBUG_SOLUTION_GEN
 //#define DEBUG_PROJECT_GEN
 
+QT_BEGIN_NAMESPACE
 // Filter GUIDs (Do NOT change these!) ------------------------------
 const char _GUIDSourceFiles[]          = "{4FC737F1-C7A5-4376-A066-2A32D752A2FF}";
 const char _GUIDHeaderFiles[]          = "{93995380-89BD-4b04-88EB-625FBE52EBFB}";
@@ -63,9 +58,12 @@ const char _GUIDLexYaccFiles[]         = "{E12AE0D2-192F-4d59-BD23-7D3FA58D3183}
 const char _GUIDTranslationFiles[]     = "{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}";
 const char _GUIDFormFiles[]            = "{99349809-55BA-4b9d-BF79-8FDBB0286EB3}";
 const char _GUIDExtraCompilerFiles[]   = "{E0D8C965-CC5F-43d7-AD63-FAEF0BBC0F85}";
+QT_END_NAMESPACE
 
 #ifdef Q_OS_WIN32
 #include <qt_windows.h>
+
+QT_BEGIN_NAMESPACE
 
 struct {
     DotNET version;
@@ -73,12 +71,17 @@ struct {
     const char *regKey;
 } dotNetCombo[] = {
 #ifdef Q_OS_WIN64
+    {NET2008, "MSVC.NET 2008 (9.0)", "Software\\Wow6432Node\\Microsoft\\VisualStudio\\9.0\\Setup\\VC\\ProductDir"},
+    {NET2008, "MSVC.NET 2008 Express Edition (9.0)", "Software\\Wow6432Node\\Microsoft\\VCExpress\\9.0\\Setup\\VC\\ProductDir"},
     {NET2005, "MSVC.NET 2005 (8.0)", "Software\\Wow6432Node\\Microsoft\\VisualStudio\\8.0\\Setup\\VC\\ProductDir"},
+    {NET2005, "MSVC.NET 2005 Express Edition (8.0)", "Software\\Wow6432Node\\Microsoft\\VCExpress\\8.0\\Setup\\VC\\ProductDir"},
     {NET2003, "MSVC.NET 2003 (7.1)", "Software\\Wow6432Node\\Microsoft\\VisualStudio\\7.1\\Setup\\VC\\ProductDir"},
     {NET2002, "MSVC.NET 2002 (7.0)", "Software\\Wow6432Node\\Microsoft\\VisualStudio\\7.0\\Setup\\VC\\ProductDir"},
 #else
+    {NET2008, "MSVC.NET 2008 (9.0)", "Software\\Microsoft\\VisualStudio\\9.0\\Setup\\VC\\ProductDir"},
+    {NET2008, "MSVC.NET 2008 Express Edition (9.0)", "Software\\Microsoft\\VCExpress\\9.0\\Setup\\VC\\ProductDir"},
     {NET2005, "MSVC.NET 2005 (8.0)", "Software\\Microsoft\\VisualStudio\\8.0\\Setup\\VC\\ProductDir"},
-    {NET2005, "MSVC 2005 Express Edition(8.0)", "Software\\Microsoft\\VCExpress\\8.0\\Setup\\VC\\ProductDir"},
+    {NET2005, "MSVC.NET 2005 Express Edition (8.0)", "Software\\Microsoft\\VCExpress\\8.0\\Setup\\VC\\ProductDir"},
     {NET2003, "MSVC.NET 2003 (7.1)", "Software\\Microsoft\\VisualStudio\\7.1\\Setup\\VC\\ProductDir"},
     {NET2002, "MSVC.NET 2002 (7.0)", "Software\\Microsoft\\VisualStudio\\7.0\\Setup\\VC\\ProductDir"},
 #endif
@@ -210,8 +213,10 @@ static QString readRegistryKey(HKEY parentHandle, const QString &rSubkey)
     RegCloseKey(handle);
     return result;
 }
+QT_END_NAMESPACE
 #endif
 
+QT_BEGIN_NAMESPACE
 DotNET which_dotnet_version()
 {
 #ifndef Q_OS_WIN32
@@ -280,6 +285,7 @@ DotNET which_dotnet_version()
 const char _slnHeader70[]       = "Microsoft Visual Studio Solution File, Format Version 7.00";
 const char _slnHeader71[]       = "Microsoft Visual Studio Solution File, Format Version 8.00";
 const char _slnHeader80[]       = "Microsoft Visual Studio Solution File, Format Version 9.00";
+const char _slnHeader90[]       = "Microsoft Visual Studio Solution File, Format Version 10.00";
                                   // The following UUID _may_ change for later servicepacks...
                                   // If so we need to search through the registry at
                                   // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\7.0\Projects
@@ -300,10 +306,10 @@ const char _slnSolutionConf[]   = "\n\tGlobalSection(SolutionConfiguration) = pr
 const char _slnProjDepBeg[]     = "\n\tGlobalSection(ProjectDependencies) = postSolution";
 const char _slnProjDepEnd[]     = "\n\tEndGlobalSection";
 const char _slnProjConfBeg[]    = "\n\tGlobalSection(ProjectConfiguration) = postSolution";
-const char _slnProjRelConfTag1[]= ".Release|Win32.ActiveCfg = Release|Win32";
-const char _slnProjRelConfTag2[]= ".Release|Win32.Build.0 = Release|Win32";
-const char _slnProjDbgConfTag1[]= ".Debug|Win32.ActiveCfg = Debug|Win32";
-const char _slnProjDbgConfTag2[]= ".Debug|Win32.Build.0 = Debug|Win32";
+const char _slnProjRelConfTag1[]= ".Release|%1.ActiveCfg = Release|";
+const char _slnProjRelConfTag2[]= ".Release|%1.Build.0 = Release|";
+const char _slnProjDbgConfTag1[]= ".Debug|%1.ActiveCfg = Debug|";
+const char _slnProjDbgConfTag2[]= ".Debug|%1.Build.0 = Debug|";
 const char _slnProjConfEnd[]    = "\n\tEndGlobalSection";
 const char _slnExtSections[]    = "\n\tGlobalSection(ExtensibilityGlobals) = postSolution"
                                   "\n\tEndGlobalSection"
@@ -329,8 +335,8 @@ bool VcprojGenerator::writeMakefile(QTextStream &t)
         return true;
     } else
     // Generate single configuration project file
-    if((project->first("TEMPLATE") == "vcapp" ||
-        project->first("TEMPLATE") == "vclib")) {
+    if (project->first("TEMPLATE") == "vcapp" ||
+        project->first("TEMPLATE") == "vclib") {
         if(!project->isActiveConfig("build_pass")) {
             debug_msg(1, "Generator: MSVC.NET: Writing single configuration project file");
             XmlOutput xmlOut(t);
@@ -397,7 +403,7 @@ bool VcprojGenerator::writeProjectMakefile()
 struct VcsolutionDepend {
     QString uuid;
     QString vcprojFile, orig_target, target;
-    ::target targetType;
+    Target targetType;
     QStringList dependencies;
 };
 
@@ -467,6 +473,9 @@ void VcprojGenerator::writeSubDirs(QTextStream &t)
     }
 
     switch(which_dotnet_version()) {
+    case NET2008:
+        t << _slnHeader90;
+        break;
     case NET2005:
         t << _slnHeader80;
         break;
@@ -558,20 +567,40 @@ void VcprojGenerator::writeSubDirs(QTextStream &t)
 
                         // We assume project filename is [QMAKE_ORIG_TARGET].vcproj
                         QString vcproj = unescapeFilePath(fixFilename(tmp_vcproj.project->first("QMAKE_ORIG_TARGET")) + project->first("VCPROJ_EXTENSION"));
+                        QString vcprojDir = qmake_getpwd();
 
                         // If file doesn't exsist, then maybe the users configuration
                         // doesn't allow it to be created. Skip to next...
-                        if(!exists(qmake_getpwd() + Option::dir_sep + vcproj)) {
-                            warn_msg(WarnLogic, "Ignored (not found) '%s'", QString(qmake_getpwd() + Option::dir_sep + vcproj).toLatin1().constData());
-                            goto nextfile; // # Dirty!
+                        if(!exists(vcprojDir + Option::dir_sep + vcproj)) {
+
+                            // Try to find the directory which fits relative
+                            // to the output path, which represents the shadow
+                            // path in case we are shadow building
+                            QStringList list = fi.path().split(QLatin1Char('/'));
+                            QString tmpDir = QFileInfo(Option::output).path() + Option::dir_sep;
+                            bool found = false;
+                            for (int i = list.size() - 1; i >= 0; --i) {
+                                QString curr;
+                                for (int j = i; j < list.size(); ++j)
+                                    curr += list.at(j) + Option::dir_sep;
+                                if (exists(tmpDir + curr + vcproj)) {
+                                    vcprojDir = QDir::cleanPath(tmpDir + curr);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                warn_msg(WarnLogic, "Ignored (not found) '%s'", QString(vcprojDir + Option::dir_sep + vcproj).toLatin1().constData());
+                                goto nextfile; // # Dirty!
+                            }
                         }
 
                         VcsolutionDepend *newDep = new VcsolutionDepend;
-                        newDep->vcprojFile = fileFixify(vcproj);
+                        newDep->vcprojFile = vcprojDir + Option::dir_sep + vcproj;
                         newDep->orig_target = unescapeFilePath(tmp_proj.first("QMAKE_ORIG_TARGET"));
                         newDep->target = tmp_proj.first("MSVCPROJ_TARGET").section(Option::dir_sep, -1);
                         newDep->targetType = tmp_vcproj.projectTarget;
-                        newDep->uuid = tmp_proj.isEmpty("QMAKE_UUID") ? getProjectUUID(Option::fixPathToLocalOS(qmake_getpwd() + QDir::separator() + vcproj)).toString().toUpper(): tmp_proj.first("QMAKE_UUID");
+                        newDep->uuid = tmp_proj.isEmpty("QMAKE_UUID") ? getProjectUUID(Option::fixPathToLocalOS(vcprojDir + QDir::separator() + vcproj)).toString().toUpper(): tmp_proj.first("QMAKE_UUID");
 
                         // We want to store it as the .lib name.
                         if(newDep->target.endsWith(".dll"))
@@ -664,7 +693,14 @@ nextfile:
         }
     }
     t << _slnGlobalBeg;
-    t << _slnSolutionConf;
+    if (!project->isEmpty("CE_SDK") && !project->isEmpty("CE_ARCH")) {
+        QString slnConfCE = _slnSolutionConf;
+        QString platform = QString("|") + project->values("CE_SDK").join(" ") + " (" + project->first("CE_ARCH") + ")";
+        slnConfCE.replace(QString("|Win32"), platform);
+        t << slnConfCE;
+    } else {
+        t << _slnSolutionConf;
+    }
     t << _slnProjDepBeg;
 
     // Restore previous after_user_var options
@@ -681,10 +717,13 @@ nextfile:
     t << _slnProjDepEnd;
     t << _slnProjConfBeg;
     for(QList<VcsolutionDepend*>::Iterator it = solution_cleanup.begin(); it != solution_cleanup.end(); ++it) {
-        t << "\n\t\t" << (*it)->uuid << _slnProjDbgConfTag1;
-        t << "\n\t\t" << (*it)->uuid << _slnProjDbgConfTag2;
-        t << "\n\t\t" << (*it)->uuid << _slnProjRelConfTag1;
-        t << "\n\t\t" << (*it)->uuid << _slnProjRelConfTag2;
+        QString platform = "Win32";
+        if (!project->isEmpty("CE_SDK") && !project->isEmpty("CE_ARCH"))
+            platform = project->values("CE_SDK").join(" ") + " (" + project->first("CE_ARCH") + ")";
+        t << "\n\t\t" << (*it)->uuid << QString(_slnProjDbgConfTag1).arg(platform) << platform;
+        t << "\n\t\t" << (*it)->uuid << QString(_slnProjDbgConfTag2).arg(platform) << platform;
+        t << "\n\t\t" << (*it)->uuid << QString(_slnProjRelConfTag1).arg(platform) << platform;
+        t << "\n\t\t" << (*it)->uuid << QString(_slnProjRelConfTag2).arg(platform) << platform;
     }
     t << _slnProjConfEnd;
     t << _slnExtSections;
@@ -725,11 +764,11 @@ void VcprojGenerator::init()
     debug_msg(1, "Generator: MSVC.NET: Initializing variables");
 
     // this should probably not be here, but I'm using it to wrap the .t files
-    if(project->first("TEMPLATE") == "vcapp")
+    if (project->first("TEMPLATE") == "vcapp")
         project->values("QMAKE_APP_FLAG").append("1");
-    else if(project->first("TEMPLATE") == "vclib")
+    else if (project->first("TEMPLATE") == "vclib")
         project->values("QMAKE_LIB_FLAG").append("1");
-    if(project->values("QMAKESPEC").isEmpty())
+    if (project->values("QMAKESPEC").isEmpty())
         project->values("QMAKESPEC").append(qgetenv("QMAKESPEC"));
 
     processVars();
@@ -841,6 +880,9 @@ void VcprojGenerator::initProject()
     // Own elements -----------------------------
     vcProject.Name = unescapeFilePath(project->first("QMAKE_ORIG_TARGET"));
     switch(which_dotnet_version()) {
+    case NET2008:
+        vcProject.Version = "9,00";
+        break;
     case NET2005:
 		//### using ',' because of a bug in 2005 B2
 		//### VS uses '.' or ',' depending on the regional settings! Using ',' always works.
@@ -859,7 +901,11 @@ void VcprojGenerator::initProject()
     }
 
     vcProject.Keyword = project->first("VCPROJ_KEYWORD");
-    vcProject.PlatformName = (vcProject.Configuration.idl.TargetEnvironment == midlTargetWin64 ? "Win64" : "Win32");
+    if (project->isEmpty("CE_SDK") || project->isEmpty("CE_ARCH")) {
+        vcProject.PlatformName = (vcProject.Configuration.idl.TargetEnvironment == midlTargetWin64 ? "Win64" : "Win32");
+    } else {
+        vcProject.PlatformName = project->values("CE_SDK").join(" ") + " (" + project->first("CE_ARCH") + ")";
+    }
     // These are not used by Qt, but may be used by customers
     vcProject.SccProjectName = project->first("SCCPROJECTNAME");
     vcProject.SccLocalPath = project->first("SCCLOCALPATH");
@@ -906,7 +952,11 @@ void VcprojGenerator::initConfiguration()
     conf.Name = project->values("BUILD_NAME").join(" ");
     if (conf.Name.isEmpty())
         conf.Name = isDebug ? "Debug" : "Release";
-    conf.Name += (conf.idl.TargetEnvironment == midlTargetWin64 ? "|Win64" : "|Win32");
+    if (project->isEmpty("CE_SDK") || project->isEmpty("CE_ARCH")) {
+        conf.Name += (conf.idl.TargetEnvironment == midlTargetWin64 ? "|Win64" : "|Win32");
+    } else {
+        conf.Name += "|" + project->values("CE_SDK").join(" ") + " (" + project->first("CE_ARCH") + ")";
+    }
     conf.ATLMinimizesCRunTimeLibraryUsage = (project->first("ATLMinimizesCRunTimeLibraryUsage").isEmpty() ? _False : _True);
     conf.BuildBrowserInformation = triState(temp.isEmpty() ? (short)unset : temp.toShort());
     temp = project->first("CharacterSet");
@@ -929,6 +979,9 @@ void VcprojGenerator::initConfiguration()
     initCustomBuildTool();
     initPreBuildEventTools();
     initPostBuildEventTools();
+    // Only deploy for CE projects
+    if (!project->isEmpty("CE_SDK") && !project->isEmpty("CE_ARCH"))
+        initDeploymentTool();
     initPreLinkEventTools();
 
     // Set definite values in both configurations
@@ -998,6 +1051,9 @@ void VcprojGenerator::initCompilerTool()
     if(projectTarget == SharedLib)
         conf.compiler.PreprocessorDefinitions += "_WINDOWS";
 
+    // Visual Studio will add this define internally.
+    // Get rid of warning for redefinition 
+    project->values("DEFINES").removeAll("_M_ARM");
     conf.compiler.PreprocessorDefinitions += project->values("DEFINES");
     conf.compiler.PreprocessorDefinitions += project->values("PRL_EXPORT_DEFINES");
     conf.compiler.parseOptions(project->values("MSVCPROJ_INCPATH"));
@@ -1098,7 +1154,7 @@ QString VcprojGenerator::fixCommandLine(DotNET version, const QString &input) co
 {
     QString result = input;
 
-    if (version == NET2005)
+    if (version >= NET2005)
         result = result.replace(QLatin1Char('\n'), QLatin1String("&#x000D;&#x000A;"));
 
     return result;
@@ -1114,11 +1170,153 @@ void VcprojGenerator::initPostBuildEventTools()
             cmdline = cmdline.replace("\n", "&&");
         conf.postBuild.Description = cmdline;
     }
+
+    QString signature = !project->isEmpty("SIGNATURE_FILE") ? var("SIGNATURE_FILE") : var("DEFAULT_SIGNATURE");
+    bool useSignature = !signature.isEmpty() && !project->isActiveConfig("staticlib") && 
+                        !project->isEmpty("CE_SDK") && !project->isEmpty("CE_ARCH");
+    if(useSignature)
+        conf.postBuild.CommandLine.prepend(QLatin1String("signtool sign /F ") + signature + " \"$(TargetPath)\"\n" +
+            (!conf.postBuild.CommandLine.isEmpty() ? " && " : ""));
+
     if(!project->values("MSVCPROJ_COPY_DLL").isEmpty()) {
         if(!conf.postBuild.CommandLine.isEmpty())
             conf.postBuild.CommandLine += " && ";
         conf.postBuild.Description += var("MSVCPROJ_COPY_DLL_DESC");
         conf.postBuild.CommandLine += var("MSVCPROJ_COPY_DLL");
+    }
+}
+
+void VcprojGenerator::initDeploymentTool()
+{
+    VCConfiguration &conf = vcProject.Configuration;
+    QString targetPath = project->values("deploy.path").join(" ");
+    if (targetPath.isEmpty())
+        targetPath = QString("%CSIDL_PROGRAM_FILES%\\") + project->first("TARGET");
+    if (targetPath.endsWith("/") || targetPath.endsWith("\\"))
+        targetPath = targetPath.mid(0,targetPath.size()-1);
+
+    // Only deploy Qt libs for shared build
+    if (!project->values("QMAKE_QT_DLL").isEmpty()) {
+        QStringList& arg = project->values("MSVCPROJ_LIBS");
+        for (QStringList::ConstIterator it = arg.constBegin(); it != arg.constEnd(); ++it) {
+            if (it->contains(project->first("QMAKE_LIBDIR"))) {
+                QString dllName = *it;
+
+                if (dllName.contains(QLatin1String("QAxContainer")) || dllName.contains(QLatin1String("qtmain")))
+                    continue;
+                dllName.replace(QLatin1String(".lib") , QLatin1String(".dll"));
+                QFileInfo info(dllName);
+                conf.deployment.AdditionalFiles += info.fileName()
+                                                + "|" + QDir::toNativeSeparators(info.absolutePath())
+                                                + "|" + targetPath
+                                                + "|0;";
+            }
+        }
+    }
+
+    // C-runtime deployment
+    QString runtime = project->values("QT_CE_C_RUNTIME").join(QLatin1String(" "));
+    if (!runtime.isEmpty() && (runtime != QLatin1String("no"))) {
+        QString runtimeVersion = QLatin1String("msvcr");
+        const QString mkspec = project->values("QMAKESPEC").first();
+        if (mkspec.endsWith("2008"))
+            runtimeVersion.append("90");
+        else
+            runtimeVersion.append("80");
+        if (project->isActiveConfig("debug"))
+            runtimeVersion.append("d");
+        runtimeVersion.append(".dll");
+
+        if (runtime == "yes") {
+            // Auto-find C-runtime
+            QString vcInstallDir = qgetenv("VCINSTALLDIR");
+            if (!vcInstallDir.isEmpty()) {
+                vcInstallDir += "\\ce\\dll\\";
+                vcInstallDir += project->values("CE_ARCH").join(QLatin1String(" "));
+                if (!QFileInfo(vcInstallDir + QDir::separator() + runtimeVersion).exists())
+                    runtime.clear();
+                else
+                    runtime = vcInstallDir;
+            }
+        }
+
+        if (!runtime.isEmpty()) {
+            conf.deployment.AdditionalFiles += runtimeVersion
+                                            + "|" + QDir::toNativeSeparators(runtime)
+                                            + "|" + targetPath
+                                            + "|0;";
+        }
+    }
+
+    QStringList& list = project->values("DEPLOYMENT");
+    if (list.isEmpty())
+        return;
+
+    for (int it = 0; it < list.size(); ++it) {
+        QString argSource = list.at(it) + QString(".sources");
+        QString argPath = list.at(it) + QString(".path");
+        if ((project->values(argSource).isEmpty() || project->values(argPath).isEmpty()) && list.at(it) != "deploy") {
+            qWarning( "cannot deploy \"%s\" because of missing data." , list.at(it).toLatin1().data());
+            continue;
+        }
+
+        QString addPath = project->values(argPath).join(QLatin1String(" "));
+        if (addPath == QLatin1String("."))
+            addPath.clear();
+        if (!addPath.startsWith("/") && !addPath.startsWith(QLatin1String("\\")) && !addPath.startsWith(QLatin1String("%CSIDL_PROGRAM_FILES%\\")))
+            addPath = targetPath + "/" + addPath;
+
+        QStringList addSources = project->values(argSource);
+        addSources.replaceInStrings(QLatin1String("/"), QLatin1String("\\"));
+        for(int index=0; index < addSources.size(); ++index) {
+            QString dirstr = qmake_getpwd();
+            QString filestr = Option::fixPathToLocalOS(addSources.at(index), false, false);
+            int slsh = filestr.lastIndexOf(Option::dir_sep);
+            if(slsh != -1) {
+                dirstr = filestr.left(slsh+1);
+                filestr = filestr.right(filestr.length() - slsh - 1);
+            }
+            if(dirstr.right(Option::dir_sep.length()) != Option::dir_sep)
+                dirstr += Option::dir_sep;
+            QFileInfo info(dirstr + filestr);
+
+            static int addQMakeDeployCounter = 0;
+            QStringList entryList = info.absoluteDir().entryList(QStringList() << info.fileName());
+            if (entryList.size() > 1) {
+                foreach(QString s, entryList) {
+                    // We do not include directories when using wildcards
+                    QFileInfo wildInfo(info.absolutePath() + "/" + s);
+                    if (wildInfo.isDir()) {
+                        continue;
+                    }
+                    QString appendedQmakeDeploy = QString::fromLatin1("_q_make_additional_deploy_%1").arg(addQMakeDeployCounter++);
+                    project->parse(appendedQmakeDeploy + QLatin1String(".sources = \"") + wildInfo.absoluteFilePath());
+                    project->parse(appendedQmakeDeploy + QLatin1String(".path    = \"") + addPath);
+                    list.append(appendedQmakeDeploy);
+                }
+                continue;
+            }
+            
+            if (info.isDir()) {
+                QDir additionalDir(dirstr + filestr);
+                QStringList additionalEntries = additionalDir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries | QDir::NoSymLinks);
+                foreach(QString item, additionalEntries) {
+                QString appendedDeploy = QString::fromLatin1("_q_make_additional_deploy_%1").arg(addQMakeDeployCounter++);
+                    project->parse(appendedDeploy + QLatin1String(".sources = \"") + Option::fixPathToLocalOS(additionalDir.absoluteFilePath(item)) + QLatin1String("\""));
+                    QString appendTargetPath = project->values(argPath).join(QLatin1String(" "));
+                    if (appendTargetPath == QLatin1String("."))
+                        appendTargetPath = filestr;
+                    else
+                        appendTargetPath.append(QLatin1String("\\") + filestr);
+                    project->parse(appendedDeploy + QLatin1String(".path = ") + appendTargetPath);
+                    list.append(appendedDeploy);
+                }
+            } else if (entryList.size() == 1)
+                conf.deployment.AdditionalFiles += entryList.at(0)
+                + "|" + info.absolutePath()
+                + "|" + Option::fixPathToLocalOS(addPath)
+                + "|0;";
+        }
     }
 }
 
@@ -1210,7 +1408,7 @@ void VcprojGenerator::initTranslationFiles()
 {
     vcProject.TranslationFiles.Name = "Translation Files";
     vcProject.TranslationFiles.ParseFiles = _False;
-    vcProject.TranslationFiles.Filter = "ts";
+    vcProject.TranslationFiles.Filter = "ts;xlf";
     vcProject.TranslationFiles.Guid = _GUIDTranslationFiles;
 
     vcProject.TranslationFiles.addFiles(project->values("TRANSLATIONS"));
@@ -1241,7 +1439,7 @@ void VcprojGenerator::initResourceFiles()
 {
     vcProject.ResourceFiles.Name = "Resource Files";
     vcProject.ResourceFiles.ParseFiles = _False;
-    vcProject.ResourceFiles.Filter = "qrc;*"; //"rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;ts;qrc";
+    vcProject.ResourceFiles.Filter = "qrc;*"; //"rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;ts;xlf;qrc";
     vcProject.ResourceFiles.Guid = _GUIDResourceFiles;
 
     // Bad hack, please look away -------------------------------------
@@ -1253,7 +1451,7 @@ void VcprojGenerator::initResourceFiles()
             for (int i = 0; i < qrc_files.count(); ++i) {
                 char buff[256];
                 QString dep_cmd = replaceExtraCompilerVariables(rcc_dep_cmd, qrc_files.at(i),"");
-
+                
                 dep_cmd = Option::fixPathToLocalOS(dep_cmd, true, false);
                 if(canExecute(dep_cmd)) {
                     if(FILE *proc = QT_POPEN(dep_cmd.toLatin1().constData(), "r")) {
@@ -1554,6 +1752,10 @@ QString VcprojGenerator::findTemplate(QString file)
     if(!exists((ret = file)) &&
        !exists((ret = QString(Option::mkfile::qmakespec + "/" + file))) &&
        !exists((ret = QString(QLibraryInfo::location(QLibraryInfo::DataPath) + "/win32-msvc.net/" + file))) &&
+       !exists((ret = QString(QLibraryInfo::location(QLibraryInfo::DataPath) + "/win32-msvc2002/" + file))) &&
+       !exists((ret = QString(QLibraryInfo::location(QLibraryInfo::DataPath) + "/win32-msvc2003/" + file))) &&
+       !exists((ret = QString(QLibraryInfo::location(QLibraryInfo::DataPath) + "/win32-msvc2005/" + file))) &&
+       !exists((ret = QString(QLibraryInfo::location(QLibraryInfo::DataPath) + "/win32-msvc2008/" + file))) &&
        !exists((ret = (QString(qgetenv("HOME")) + "/.tmake/" + file))))
         return "";
     debug_msg(1, "Generator: MSVC.NET: Found template \'%s\'", ret.toLatin1().constData());
@@ -1582,4 +1784,6 @@ void VcprojGenerator::outputVariables()
         qDebug("Generator: MSVC.NET: %s => %s", it.key().toLatin1().constData(), it.data().join(" | ").toLatin1().constData());
 #endif
 }
+
+QT_END_NAMESPACE
 

@@ -1,49 +1,42 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 //#define QT_RASTER_PAINTENGINE
 
 #include "qpixmap.h"
-#include "qpixmap_p.h"
 #include "qimage.h"
 #include "qapplication.h"
 #include "qbitmap.h"
@@ -53,6 +46,7 @@
 #include "qvarlengtharray.h"
 #include "qdebug.h"
 #include <private/qdrawhelper_p.h>
+#include <private/qpixmap_mac_p.h>
 #ifdef QT_RASTER_PAINTENGINE
 #  include <private/qpaintengine_raster_p.h>
 #endif
@@ -61,6 +55,8 @@
 
 #include <limits.h>
 #include <string.h>
+
+QT_BEGIN_NAMESPACE
 
 /*****************************************************************************
   Externals
@@ -73,12 +69,32 @@ extern QRegion qt_mac_convert_mac_region(RgnHandle rgn); //qregion_mac.cpp
 
 static int qt_pixmap_serial = 0;
 
-Q_GUI_EXPORT quint32 *qt_mac_pixmap_get_base(const QPixmap *pix) { return pix->data->pixels; }
-Q_GUI_EXPORT int qt_mac_pixmap_get_bytes_per_line(const QPixmap *pix) { return pix->data->nbytes / pix->data->h; }
-
-static void qt_mac_cgimage_data_free(void *memory, const void *, size_t)
+Q_GUI_EXPORT quint32 *qt_mac_pixmap_get_base(const QPixmap *pix)
 {
-    free(memory);
+    return static_cast<QMacPixmapData*>(pix->data)->pixels;
+}
+
+Q_GUI_EXPORT int qt_mac_pixmap_get_bytes_per_line(const QPixmap *pix)
+{
+    return static_cast<QMacPixmapData*>(pix->data)->bytesPerRow;
+}
+
+void qt_mac_cgimage_data_free(void *info, const void *memoryToFree, size_t)
+{
+    QMacPixmapData *pmdata = static_cast<QMacPixmapData *>(info);
+    if (!pmdata) {
+        free(const_cast<void *>(memoryToFree));
+    } else {
+        if (pmdata->pixels == pmdata->pixelsToFree) {
+            // something we aren't expecting, just free it.
+            Q_ASSERT(memoryToFree != pmdata->pixelsToFree);
+            free(const_cast<void *>(memoryToFree));
+        } else {
+            free(pmdata->pixelsToFree);
+            pmdata->pixelsToFree = static_cast<quint32 *>(const_cast<void *>(memoryToFree));
+        }
+        pmdata->cg_dataBeingReleased = 0;
+    }
 }
 
 /*****************************************************************************
@@ -106,35 +122,78 @@ static inline QRgb qt_conv16ToRgb(ushort c) {
     return qRgb(tr,tg,tb);
 }
 
-QPixmap QPixmap::fromImage(const QImage &img, Qt::ImageConversionFlags flags)
+QMacPixmapData::QMacPixmapData(PixelType type)
+    : QPixmapData(type, MacClass), w(0), h(0), d(0), has_alpha(0), has_mask(0),
+      uninit(true), pixels(0), pixelsToFree(0), bytesPerRow(0),
+      cg_data(0), cg_dataBeingReleased(0), cg_mask(0),
+#ifndef QT_MAC_NO_QUICKDRAW
+      qd_data(0), qd_alpha(0),
+#endif
+      pengine(0)
 {
-    QPixmap pixmap;
-    if(img.isNull()) {
-        qWarning("QPixmap::convertFromImage: Cannot convert a null image");
-        return pixmap;
+}
+
+#define BEST_BYTE_ALIGNMENT 16
+#define COMPTUE_BEST_BYTES_PER_ROW(bpr) \
+    (((bpr) + (BEST_BYTE_ALIGNMENT - 1)) & ~(BEST_BYTE_ALIGNMENT - 1))
+
+void QMacPixmapData::resize(int width, int height)
+{
+    setSerialNumber(++qt_pixmap_serial);
+
+    w = width;
+    h = height;
+    d = (pixelType() == BitmapType ? 1 : 32);
+
+    bool make_null = w == 0 || h == 0;                // create null pixmap
+    if (make_null || w < 0 || h < 0 || d == 0) {
+        if (!make_null)
+            qWarning("Qt: QPixmap: Invalid pixmap parameters");
+        return;
     }
 
+    if (w < 1 || h < 1)
+        return;
+
+    //create the pixels
+    bytesPerRow = w * sizeof(quint32);  // Minimum bytes per row.
+
+    // Quartz2D likes things as a multple of 16 (for now).
+    bytesPerRow = COMPTUE_BEST_BYTES_PER_ROW(bytesPerRow);
+    macCreatePixels();
+}
+
+#undef COMPUTE_BEST_BYTES_PER_ROW
+
+void QMacPixmapData::fromImage(const QImage &img,
+                               Qt::ImageConversionFlags flags)
+{
+    setSerialNumber(++qt_pixmap_serial);
+
+    w = img.width();
+    h = img.height();
+    d = (pixelType() == BitmapType ? 1 : img.depth());
+
     QImage image = img;
-    int    d     = image.depth();
-    int    dd    = defaultDepth();
+    int dd = QPixmap::defaultDepth();
     bool force_mono = (dd == 1 ||
                        (flags & Qt::ColorMode_Mask)==Qt::MonoOnly);
-    if(force_mono) {                         // must be monochrome
-        if(d != 1) {
+    if (force_mono) {                         // must be monochrome
+        if (d != 1) {
             image = image.convertToFormat(QImage::Format_MonoLSB, flags);  // dither
             d = 1;
         }
     } else {                                    // can be both
         bool conv8 = false;
         if(d > 8 && dd <= 8) {               // convert to 8 bit
-            if((flags & Qt::DitherMode_Mask) == Qt::AutoDither)
+            if ((flags & Qt::DitherMode_Mask) == Qt::AutoDither)
                 flags = (flags & ~Qt::DitherMode_Mask)
                                    | Qt::PreferDither;
             conv8 = true;
-        } else if((flags & Qt::ColorMode_Mask) == Qt::ColorOnly) {
+        } else if ((flags & Qt::ColorMode_Mask) == Qt::ColorOnly) {
             conv8 = d == 1;                     // native depth wanted
-        } else if(d == 1) {
-            if(image.numColors() == 2) {
+        } else if (d == 1) {
+            if (image.numColors() == 2) {
                 QRgb c0 = image.color(0);       // Auto: convert to best
                 QRgb c1 = image.color(1);
                 conv8 = qMin(c0,c1) != qRgb(0,0,0) || qMax(c0,c1) != qRgb(255,255,255);
@@ -143,68 +202,66 @@ QPixmap QPixmap::fromImage(const QImage &img, Qt::ImageConversionFlags flags)
                 conv8 = true;
             }
         }
-        if(conv8) {
+        if (conv8) {
             image = image.convertToFormat(QImage::Format_Indexed8, flags);
             d = 8;
         }
     }
 
-    if(image.depth()==1) {
+    if (image.depth()==1) {
         image.setColor(0, QColor(Qt::color0).rgba());
         image.setColor(1, QColor(Qt::color1).rgba());
     }
 
     if (d == 16) {
-        QImage im = image.convertToFormat(QImage::Format_RGB32, flags);
-        return fromImage(im);
+        image = image.convertToFormat(QImage::Format_RGB32, flags);
+        fromImage(image, flags);
+        return;
     }
 
-    int w = image.width();
-    int h = image.height();
-
     // different size or depth, make a new pixmap
-    if (d == 1)
-        pixmap = QBitmap(w, h);
-    else
-        pixmap = QPixmap(w, h);
+    resize(w, h);
 
-    quint32 *dptr = pixmap.data->pixels, *drow;
-    const uint dbpr = pixmap.data->nbytes / h;
+    quint32 *dptr = pixels, *drow;
+    const uint dbpr = bytesPerRow;
 
     const QImage::Format sfmt = image.format();
     const unsigned short sbpr = image.bytesPerLine();
-    uchar *sptr = image.bits(), *srow;
 
-    for(int y=0;y<h;y++) {
+    // use const_cast to prevent a detach
+    const uchar *sptr = const_cast<const QImage &>(image).bits(), *srow;
+
+    for (int y = 0; y < h; ++y) {
         drow = dptr + (y * (dbpr / 4));
         srow = sptr + (y * sbpr);
         switch(sfmt) {
         case QImage::Format_MonoLSB:
         case QImage::Format_Mono:{
-            for(int x=0;x<w;++x) {
+            for (int x = 0; x < w; ++x) {
                 char one_bit = *(srow + (x / 8));
-                if(sfmt == QImage::Format_Mono)
+                if (sfmt == QImage::Format_Mono)
                     one_bit = one_bit >> (7 - (x % 8));
                 else
                     one_bit = one_bit >> (x % 8);
-                if((one_bit & 0x01))
+                if ((one_bit & 0x01))
                     *(drow+x) = 0x00000000;
                 else
                     *(drow+x) = 0xFFFFFFFF;
             }
-            break; }
+            break;
+        }
         case QImage::Format_Indexed8:
-            for(int x=0;x<w;++x) {
+            for (int x = 0; x < w; ++x) {
                 *(drow+x) = PREMUL(image.color(*(srow + x)));
             }
             break;
         case QImage::Format_RGB32:
-            for(int x=0;x<w;++x)
+            for (int x = 0; x < w; ++x)
                 *(drow+x) = *(((quint32*)srow) + x) | 0xFF000000;
             break;
         case QImage::Format_ARGB32:
         case QImage::Format_ARGB32_Premultiplied:
-            for(int x=0;x<w;++x) {
+            for (int x = 0; x < w; ++x) {
                 if(sfmt == QImage::Format_RGB32)
                     *(drow+x) = 0xFF000000 | (*(((quint32*)srow) + x) & 0x00FFFFFF);
                 else if(sfmt == QImage::Format_ARGB32_Premultiplied)
@@ -219,7 +276,7 @@ QPixmap QPixmap::fromImage(const QImage &img, Qt::ImageConversionFlags flags)
             break;
         }
     }
-    if(sfmt != QImage::Format_RGB32) { //setup the alpha
+    if (sfmt != QImage::Format_RGB32) { //setup the alpha
         bool alphamap = image.depth() == 32;
         if (sfmt == QImage::Format_Indexed8) {
             const QVector<QRgb> rgb = image.colorTable();
@@ -231,10 +288,9 @@ QPixmap QPixmap::fromImage(const QImage &img, Qt::ImageConversionFlags flags)
                 }
             }
         }
-        pixmap.data->macSetHasAlpha(alphamap);
+        macSetHasAlpha(alphamap);
     }
-    pixmap.data->uninit = false;
-    return pixmap;
+    uninit = false;
 }
 
 int get_index(QImage * qi,QRgb mycol)
@@ -249,22 +305,17 @@ int get_index(QImage * qi,QRgb mycol)
     return qi->numColors();
 }
 
-QImage QPixmap::toImage() const
+QImage QMacPixmapData::toImage() const
 {
-    if(!data->w || !data->h)
-        return QImage(); // null image
-
-    int w = data->w;
-    int h = data->h;
     QImage::Format format = QImage::Format_MonoLSB;
-    if(data->d != 1) //Doesn't support index color modes
-        format = (data->has_alpha ? QImage::Format_ARGB32_Premultiplied :
+    if (d != 1) //Doesn't support index color modes
+        format = (has_alpha ? QImage::Format_ARGB32_Premultiplied :
                   QImage::Format_RGB32);
 
     QImage image(w, h, format);
-    quint32 *sptr = data->pixels, *srow;
-    const uint sbpr = data->nbytes / h;
-    if(format == QImage::Format_MonoLSB) {
+    quint32 *sptr = pixels, *srow;
+    const uint sbpr = bytesPerRow;
+    if (format == QImage::Format_MonoLSB) {
         image.fill(0);
         image.setNumColors(2);
         image.setColor(0, QColor(Qt::color0).rgba());
@@ -278,8 +329,8 @@ QImage QPixmap::toImage() const
             }
         }
     } else {
-        for(int y=0;y<h;y++) {
-            srow = sptr + (y * (sbpr/4));
+        for (int y = 0; y < h; ++y) {
+            srow = sptr + (y * (sbpr / 4));
             memcpy(image.scanLine(y), srow, w * 4);
         }
 
@@ -288,182 +339,132 @@ QImage QPixmap::toImage() const
     return image;
 }
 
-void QPixmap::fill(const QColor &fillColor)
+void QMacPixmapData::fill(const QColor &fillColor)
 
 {
-    if(!width() || !height())
-        return;
-
-    detach();
     { //we don't know what backend to use so we cannot paint here
-        quint32 *dptr = data->pixels;
+        quint32 *dptr = pixels;
         Q_ASSERT_X(dptr, "QPixmap::fill", "No dptr");
         const quint32 colr = PREMUL(fillColor.rgba());
-        if(!colr) {
-            memset(dptr, 0, data->nbytes);
+        const int nbytes = bytesPerRow * h;
+        if (!colr) {
+            memset(dptr, 0, nbytes);
         } else {
-            for(uint i = 0; i < data->nbytes/sizeof(quint32); ++i)
+            for (uint i = 0; i < nbytes / sizeof(quint32); ++i)
                 *(dptr + i) = colr;
         }
     }
-    data->macSetHasAlpha(fillColor.alpha() != 255);
+    macSetHasAlpha(fillColor.alpha() != 255);
 }
 
-QPixmap QPixmap::alphaChannel() const
+QPixmap QMacPixmapData::alphaChannel() const
 {
-    if (!data->has_alpha)
+    if (!has_alpha)
         return QPixmap();
-    QPixmap alpha(width(), height());
-    data->macGetAlphaChannel(&alpha, false);
-    return alpha;
+
+    QMacPixmapData *alpha = new QMacPixmapData(PixmapType);
+    alpha->resize(w, h);
+    macGetAlphaChannel(alpha, false);
+    return QPixmap(alpha);
 }
 
-void QPixmap::setAlphaChannel(const QPixmap &alpha)
+void QMacPixmapData::setAlphaChannel(const QPixmap &alpha)
 {
-    if (paintingActive()) {
-        qWarning("QPixmap::setAlphaChannel: Should not set alpha channel while pixmap is being painted on");
-    }
-
-    if (data == alpha.data) // trying to selfalpha
-        return;
-
-    if (alpha.width() != width() || alpha.height() != height()) {
-        qWarning("QPixmap::setAlphaChannel: The pixmap and the alpha must have the same size");
-        return;
-    }
-
-    detach();
-    data->has_mask = true;
-    data->macSetAlphaChannel(&alpha, false);
+    has_mask = true;
+    QMacPixmapData *alphaData = static_cast<QMacPixmapData*>(alpha.data);
+    macSetAlphaChannel(alphaData, false);
 }
 
-QBitmap QPixmap::mask() const
+QBitmap QMacPixmapData::mask() const
 {
-    if (!data->has_mask && !data->has_alpha)
+    if (!has_mask && !has_alpha)
         return QBitmap();
-    QBitmap mask(width(), height());
-    data->macGetAlphaChannel(&mask, true);
-    return mask;
+
+    QMacPixmapData *mask = new QMacPixmapData(BitmapType);
+    mask->resize(w, h);
+    macGetAlphaChannel(mask, true);
+    return QPixmap(mask);
 }
 
-void QPixmap::setMask(const QBitmap &newmask)
+void QMacPixmapData::setMask(const QBitmap &mask)
 {
-    if (paintingActive()) {
-        qWarning("QPixmap::setMask: Should not set mask while pixmap is being painted on");
-    }
-
-    if (data == newmask.data) // trying to selfmask
-        return;
-
-    if(newmask.isNull()) {
-        detach();
-        QPixmap opaque(width(), height());
+    if (mask.isNull()) {
+        QMacPixmapData opaque(PixmapType);
+        opaque.resize(w, h);
         opaque.fill(QColor(255, 255, 255, 255));
-        data->macSetAlphaChannel(&opaque, true);
-        data->has_alpha = data->has_mask = false;
+        macSetAlphaChannel(&opaque, true);
+        has_alpha = has_mask = false;
         return;
     }
 
-    if (newmask.width() != width() || newmask.height() != height()) {
-        qWarning("QPixmap::setMask: The pixmap and the mask must have the same size");
-        return;
-    }
-    detach();
-    data->has_alpha = false;
-    data->has_mask = true;
-    data->macSetAlphaChannel(&newmask, true);
+    has_alpha = false;
+    has_mask = true;
+    QMacPixmapData *maskData = static_cast<QMacPixmapData*>(mask.data);
+    macSetAlphaChannel(maskData, true);
 }
 
-typedef void (*_qt_pixmap_cleanup_hook_64)(qint64);
-extern _qt_pixmap_cleanup_hook_64 qt_pixmap_cleanup_hook_64;
-
-void QPixmap::detach()
+int QMacPixmapData::metric(QPaintDevice::PaintDeviceMetric metric) const
 {
-    if (qt_pixmap_cleanup_hook_64 && data->count == 1)
-        qt_pixmap_cleanup_hook_64(cacheKey());
-
-    if(data->cg_mask) {
-        CGImageRelease(data->cg_mask);
-        data->cg_mask = 0;
-    }
-    if (data->count != 1) {
-        *this = copy();
-#ifndef QT_MAC_NO_QUICKDRAW
-        data->qd_alpha = 0; //leave it behind
-#endif
-        data->ser_no = ++qt_pixmap_serial;
-    }
-    ++data->detach_no;
-    data->uninit = false;
-}
-
-int QPixmap::metric(PaintDeviceMetric m) const
-{
-    int val=0;
-    switch (m) {
-    case PdmWidth:
-        val = width();
-        break;
-    case PdmHeight:
-        val = height();
-        break;
-    case PdmWidthMM:
-    case PdmHeightMM:
-        break;
-    case PdmNumColors:
-        val = 1 << depth();
-        break;
-    case PdmDpiX:
-    case PdmPhysicalDpiX: {
+    switch (metric) {
+    case QPaintDevice::PdmWidth:
+        return w;
+    case QPaintDevice::PdmHeight:
+        return h;
+    case QPaintDevice::PdmWidthMM:
+    case QPaintDevice::PdmHeightMM:
+        return 0;
+    case QPaintDevice::PdmNumColors:
+        return 1 << d;
+    case QPaintDevice::PdmDpiX:
+    case QPaintDevice::PdmPhysicalDpiX: {
         extern float qt_mac_defaultDpi_x(); //qpaintdevice_mac.cpp
-        val = int(qt_mac_defaultDpi_x());
-        break; }
-    case PdmDpiY:
-    case PdmPhysicalDpiY: {
+        return int(qt_mac_defaultDpi_x());
+    }
+    case QPaintDevice::PdmDpiY:
+    case QPaintDevice::PdmPhysicalDpiY: {
         extern float qt_mac_defaultDpi_y(); //qpaintdevice_mac.cpp
-        val = int(qt_mac_defaultDpi_y());
-        break; }
-    case PdmDepth:
-        val = depth();
-        break;
+        return int(qt_mac_defaultDpi_y());
+    }
+    case QPaintDevice::PdmDepth:
+        return d;
     default:
-        val = 0;
         qWarning("QPixmap::metric: Invalid metric command");
     }
-    return val;
+    return 0;
 }
 
-QPixmapData::~QPixmapData()
+QMacPixmapData::~QMacPixmapData()
 {
 #ifndef QT_MAC_NO_QUICKDRAW
     macQDDisposeAlpha();
-    if(qd_data) {
+    if (qd_data) {
         DisposeGWorld(qd_data);
         qd_data = 0;
     }
 #endif
-    if(cg_mask) {
+    if (cg_mask) {
         CGImageRelease(cg_mask);
         cg_mask = 0;
     }
-    if(cg_data) {
+
+    delete pengine;  // Make sure we aren't drawing on the context anymore.
+    if (cg_data) {
         CGImageRelease(cg_data);
-        cg_data = 0;
-        pixels = 0; //let the cgimage hang onto the pixels if it wants to
+    } else if (!cg_dataBeingReleased && pixels != pixelsToFree) {
+        free(pixels);
     }
-    delete paintEngine;
+    free(pixelsToFree);
 }
 
-void
-QPixmapData::macSetAlphaChannel(const QPixmap *pix, bool asMask)
+void QMacPixmapData::macSetAlphaChannel(const QMacPixmapData *pix, bool asMask)
 {
-    if(!pixels || !h || !w || pix->data->w != w || pix->data->h != h)
+    if (!pixels || !h || !w || pix->w != w || pix->h != h)
         return;
 
     quint32 *dptr = pixels, *drow;
-    const uint dbpr = nbytes / h;
-    const unsigned short sbpr = pix->data->nbytes / pix->data->h;
-    quint32 *sptr = pix->data->pixels, *srow;
+    const uint dbpr = bytesPerRow;
+    const unsigned short sbpr = pix->bytesPerRow;
+    quint32 *sptr = pix->pixels, *srow;
     for (int y=0; y < h; ++y) {
         drow = dptr + (y * (dbpr/4));
         srow = sptr + (y * (sbpr/4));
@@ -501,53 +502,53 @@ QPixmapData::macSetAlphaChannel(const QPixmap *pix, bool asMask)
     macSetHasAlpha(true);
 }
 
-void
-QPixmapData::macGetAlphaChannel(QPixmap *pix, bool asMask) const
+void QMacPixmapData::macGetAlphaChannel(QMacPixmapData *pix, bool asMask) const
 {
-    quint32 *dptr = pix->data->pixels, *drow;
-    const uint dbpr = pix->data->nbytes / pix->data->h;
-    const unsigned short sbpr = nbytes / h;
+    quint32 *dptr = pix->pixels, *drow;
+    const uint dbpr = pix->bytesPerRow;
+    const unsigned short sbpr = bytesPerRow;
     quint32 *sptr = pixels, *srow;
     for(int y=0; y < h; ++y) {
         drow = dptr + (y * (dbpr/4));
         srow = sptr + (y * (sbpr/4));
         if(asMask) {
-            for(int x = 0; x < w; ++x) {
-                if(*(srow+x) & qRgba(0, 0, 0, 255))
-                    *(drow+x) = 0x00000000;
+            for (int x = 0; x < w; ++x) {
+                if (*(srow + x) & qRgba(0, 0, 0, 255))
+                    *(drow + x) = 0x00000000;
                 else
-                    *(drow+x) = 0xFFFFFFFF;
+                    *(drow + x) = 0xFFFFFFFF;
             }
         } else {
-            memcpy(drow, srow, w * 4);
+            for (int x = 0; x < w; ++x) {
+                const int alpha = qAlpha(*(srow + x));
+                *(drow + x) = qRgb(alpha, alpha, alpha);
+            }
         }
     }
 }
 
-void
-QPixmapData::macSetHasAlpha(bool b)
+void QMacPixmapData::macSetHasAlpha(bool b)
 {
     has_alpha = b;
 #ifndef QT_MAC_NO_QUICKDRAW
     macQDDisposeAlpha(); //let it get created lazily
 #endif
+    macReleaseCGImageRef();
 }
 
 #ifndef QT_MAC_NO_QUICKDRAW
-void
-QPixmapData::macQDDisposeAlpha()
+void QMacPixmapData::macQDDisposeAlpha()
 {
-    if(qd_alpha) {
+    if (qd_alpha) {
         DisposeGWorld(qd_alpha);
         qd_alpha = 0;
     }
 }
 
-void
-QPixmapData::macQDUpdateAlpha()
+void QMacPixmapData::macQDUpdateAlpha()
 {
     macQDDisposeAlpha(); // get rid of alpha pixmap
-    if(!has_alpha && !has_mask)
+    if (!has_alpha && !has_mask)
         return;
 
     //setup
@@ -558,9 +559,9 @@ QPixmapData::macQDUpdateAlpha()
     int *dptr = (int *)GetPixBaseAddr(GetGWorldPixMap(qd_alpha)), *drow;
     unsigned short dbpr = GetPixRowBytes(GetGWorldPixMap(qd_alpha));
     const int *sptr = (int*)pixels, *srow;
-    const uint sbpr = nbytes / h;
+    const uint sbpr = bytesPerRow;
     uchar clr;
-    for(int y=0; y < h; y++) {
+    for (int y = 0; y < h; ++y) {
         drow = (int*)((char *)dptr + (y * dbpr));
         srow = (int*)((char *)sptr + (y * sbpr));
         for (int x=0; x < w; x++) {
@@ -571,25 +572,77 @@ QPixmapData::macQDUpdateAlpha()
 }
 #endif
 
-QPixmap QPixmap::transformed(const QMatrix &matrix, Qt::TransformationMode mode) const
+void QMacPixmapData::macCreateCGImageRef()
 {
-    return transformed(QTransform(matrix), mode);
+    Q_ASSERT(cg_data == 0);
+    //create the cg data
+    CGColorSpaceRef colorspace = QCoreGraphicsPaintEngine::macDisplayColorSpace();
+    QCFType<CGDataProviderRef> provider = CGDataProviderCreateWithData(this,
+                                                              pixels, bytesPerRow * h,
+                                                              qt_mac_cgimage_data_free);
+#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
+    uint cgflags = kCGImageAlphaPremultipliedFirst;
+#ifdef kCGBitmapByteOrder32Host //only needed because CGImage.h added symbols in the minor version
+    if(QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4)
+        cgflags |= kCGBitmapByteOrder32Host;
+#endif
+#else
+    CGImageAlphaInfo cgflags = kCGImageAlphaPremultipliedFirst;
+#endif
+    cg_data = CGImageCreate(w, h, 8, 32, bytesPerRow, colorspace,
+                            cgflags, provider, 0, 0, kCGRenderingIntentDefault);
 }
 
-QPixmap QPixmap::transformed(const QTransform &transform, Qt::TransformationMode mode) const
+void QMacPixmapData::macReleaseCGImageRef()
 {
-    if(isNull())
-        return copy();
+    if (!cg_data)
+        return;  // There's nothing we need to do
 
+    cg_dataBeingReleased = cg_data;
+    CGImageRelease(cg_data);
+    cg_data = 0;
+
+    if (pixels != pixelsToFree) {
+        macCreatePixels();
+    } else {
+        pixelsToFree = 0;
+    }
+}
+
+
+// We create our space in memory to paint on here. If we already have existing pixels
+// copy them over. This is to preserve the fact that CGImageRef's are immutable.
+void QMacPixmapData::macCreatePixels()
+{
+    const int numBytes = bytesPerRow * h;
+    quint32 *base_pixels;
+    if (pixelsToFree && pixelsToFree != pixels) {
+        // Reuse unused block of memory lying around from a previous callback.
+        base_pixels = pixelsToFree;
+        pixelsToFree = 0;
+    } else {
+        // We need a block of memory to do stuff with.
+        base_pixels = static_cast<quint32 *>(malloc(numBytes));
+    }
+
+    if (pixels)
+        memcpy(base_pixels, pixels, numBytes);
+    pixels = base_pixels;
+}
+
+#if 0
+QPixmap QMacPixmapData::transformed(const QTransform &transform,
+                                    Qt::TransformationMode mode) const
+{
     int w, h;  // size of target pixmap
     const int ws = width();
     const int hs = height();
 
-    QTransform mat(transform.m11(), transform.m12(), transform.m21(), transform.m22(), 0., 0.);
-    if(transform.m12() == 0.0F  && transform.m21() == 0.0F &&
-         transform.m11() >= 0.0F  && transform.m22() >= 0.0F) {
-        if(mat.m11() == 1.0F && mat.m22() == 1.0F) // identity transform
-            return *this;
+    QTransform mat(transform.m11(), transform.m12(),
+                   transform.m21(), transform.m22(), 0., 0.);
+    if (transform.m12() == 0.0F  && transform.m21() == 0.0F &&
+        transform.m11() >= 0.0F  && transform.m22() >= 0.0F)
+    {
         h = int(qAbs(mat.m22()) * hs + 0.9999);
         w = int(qAbs(mat.m11()) * ws + 0.9999);
         h = qAbs(h);
@@ -601,115 +654,54 @@ QPixmap QPixmap::transformed(const QTransform &transform, Qt::TransformationMode
         w = int(r.width() + 0.9999);
         h = int(r.height() + 0.9999);
     }
-    mat = trueMatrix(mat, ws, hs);
-    if(!h || !w)
+    mat = QPixmap::trueMatrix(mat, ws, hs);
+    if (!h || !w)
         return QPixmap();
 
-    //create destination
-    QPixmap pm = depth() == 1 ? QPixmap(QBitmap(w, h)) : QPixmap(w, h);
+    // create destination
+    QMacPixmapData *pm = new QMacPixmapData(pixelType(), w, h);
+    const quint32 *sptr = pixels;
+    quint32 *dptr = pm->pixels;
+    memset(dptr, 0, (pm->bytesPerRow * pm->h));
 
-    const quint32 *sptr = data->pixels;
-    quint32 *dptr = pm.data->pixels;
-    memset(dptr, 0, pm.data->nbytes);
-
-    //do the transform
-    if(mode == Qt::SmoothTransformation) {
+    // do the transform
+    if (mode == Qt::SmoothTransformation) {
+#warning QMacPixmapData::transformed not properly implemented
+        qWarning("QMacPixmapData::transformed not properly implemented");
+#if 0
         QPainter p(&pm);
         p.setRenderHint(QPainter::Antialiasing);
         p.setRenderHint(QPainter::SmoothPixmapTransform);
         p.setTransform(mat);
         p.drawPixmap(0, 0, *this);
+#endif
     } else {
         bool invertible;
         mat = mat.inverted(&invertible);
-        if(!invertible)
+        if (!invertible)
             return QPixmap();
 
         const int bpp = 32;
         const int xbpl = (w * bpp) / 8;
-        if(!qt_xForm_helper(mat, 0, QT_XFORM_TYPE_MSBFIRST, bpp,
-                            (uchar*)dptr, xbpl, (pm.data->nbytes / pm.data->h) - xbpl,
-                            h, (uchar*)sptr, (data->nbytes / data->h), ws, hs)) {
-            qWarning("Qt: QPixmap::transform: failure");
+        if (!qt_xForm_helper(mat, 0, QT_XFORM_TYPE_MSBFIRST, bpp,
+                             (uchar*)dptr, xbpl, (pm->bytesPerRow) - xbpl,
+                             h, (uchar*)sptr, (bytesPerRow), ws, hs)) {
+            qWarning("QMacPixmapData::transform(): failure");
             return QPixmap();
         }
     }
 
-    //update the alpha
-    pm.data->macSetHasAlpha(true);
-    return pm;
+    // update the alpha
+    pm->macSetHasAlpha(true);
+    return QPixmap(pm);
 }
-
-
-void QPixmap::init(int w, int h, Type type)
-{
-    if (!qApp) {
-        qFatal("QPixmap: Must construct a QApplication before a QPaintDevice");
-        return;
-    }
-    if (qApp->type() == QApplication::Tty)
-        qWarning("QPixmap: Cannot create a QPixmap when no GUI "
-                  "is being used");
-
-    data = new QPixmapData;
-    memset(data, 0, sizeof(QPixmapData));
-    data->count = 1;
-    data->uninit = true;
-    data->ser_no = ++qt_pixmap_serial;
-    data->detach_no = 0;
-    data->type = type;
-    data->cg_mask = 0;
-#ifndef QT_MAC_NO_QUICKDRAW
-    data->qd_data = 0;
-    data->qd_alpha = 0;
 #endif
 
-    bool make_null = w == 0 || h == 0;                // create null pixmap
-    data->d = (type == PixmapType) ? 32 : 1;
-    if(make_null || w < 0 || h < 0 || data->d == 0) {
-        if(!make_null)
-            qWarning("Qt: QPixmap: Invalid pixmap parameters");
-        return;
-    }
-
-    if(w<1 || h<1)
-        return;
-    data->w=w;
-    data->h=h;
-
-    //create the pixels
-    data->nbytes = (w*h*sizeof(quint32));
-    quint32 *base_pixels = (quint32*)malloc(data->nbytes);
-    data->pixels = base_pixels;
-
-    //create the cg data
-    CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();
-    CGDataProviderRef provider = CGDataProviderCreateWithData(base_pixels,
-                                                              data->pixels, data->nbytes,
-                                                              qt_mac_cgimage_data_free);
-#if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
-    uint cgflags = kCGImageAlphaPremultipliedFirst;
-#ifdef kCGBitmapByteOrder32Host //only needed because CGImage.h added symbols in the minor version
-    if(QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4)
-        cgflags |= kCGBitmapByteOrder32Host;
-#endif
-#else
-    CGImageAlphaInfo cgflags = kCGImageAlphaPremultipliedFirst;
-#endif
-    data->cg_data = CGImageCreate(w, h, 8, 32, data->nbytes / h, colorspace,
-                                  cgflags, provider, 0, 0, kCGRenderingIntentDefault);
-
-    CGColorSpaceRelease(colorspace);
-    CGDataProviderRelease(provider);
-}
-
-int QPixmap::defaultDepth()
-{
-    return 32;
-}
-
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
+QT_END_INCLUDE_NAMESPACE
+
 // Load and resolve the symbols we need from OpenGL manually so QtGui doesn't have to link against the OpenGL framework.
 typedef CGLError (*PtrCGLChoosePixelFormat)(const CGLPixelFormatAttribute *, CGLPixelFormatObj *,  long *);
 typedef CGLError (*PtrCGLClearDrawable)(CGLContextObj);
@@ -897,10 +889,10 @@ static QPixmap qt_mac_grabScreenRect(const QRect &rect)
     }
 
     qt_mac_flipPixmap(buffer.data(), bytewidth, rect.height());
-
-    QCFType<CGColorSpaceRef> cSpace = CGColorSpaceCreateDeviceRGB();//CGColorSpaceCreateWithName(kCGColorSpaceUserRGB);
-    QCFType<CGContextRef> bitmap = CGBitmapContextCreate(buffer.data(), rect.width(), rect.height(), 8, bytewidth,
-                                                         cSpace, kCGImageAlphaNoneSkipFirst);
+    QCFType<CGContextRef> bitmap = CGBitmapContextCreate(buffer.data(), rect.width(),
+                                                         rect.height(), 8, bytewidth,
+                                        QCoreGraphicsPaintEngine::macGenericColorSpace(),
+                                        kCGImageAlphaNoneSkipFirst);
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
     if(QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4) {
@@ -978,28 +970,29 @@ QPixmap QPixmap::grabWindow(WId window, int x, int y, int w, int h)
 Qt::HANDLE QPixmap::macQDHandle() const
 {
 #ifndef QT_MAC_NO_QUICKDRAW
-    if(!data->qd_data) { //create the qd data
+    QMacPixmapData *d = static_cast<QMacPixmapData*>(data);
+    if (!d->qd_data) { //create the qd data
         Rect rect;
-        SetRect(&rect, 0, 0, data->w, data->h);
+        SetRect(&rect, 0, 0, d->w, d->h);
         unsigned long qdformat = k32ARGBPixelFormat;
         GWorldFlags qdflags = 0;
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
-        if(QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4) {
+        if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4) {
             //we play such games so we can use the same buffer in CG as QD this
             //makes our merge much simpler, at some point the hacks will go away
             //because QD will be removed, but until that day this keeps them coexisting
-            if(QSysInfo::ByteOrder == QSysInfo::LittleEndian)
+            if (QSysInfo::ByteOrder == QSysInfo::LittleEndian)
                 qdformat = k32BGRAPixelFormat;
 #if 0
             qdflags |= kNativeEndianPixMap;
 #endif
         }
 #endif
-        if(NewGWorldFromPtr(&data->qd_data, qdformat, &rect, 0, 0, qdflags,
-                            (char*)data->pixels, data->nbytes / data->h) != noErr)
+        if(NewGWorldFromPtr(&d->qd_data, qdformat, &rect, 0, 0, qdflags,
+                            (char*)d->pixels, d->bytesPerRow) != noErr)
             qWarning("Qt: internal: QPixmap::init error (%d %d %d %d)", rect.left, rect.top, rect.right, rect.bottom);
     }
-    return data->qd_data;
+    return d->qd_data;
 #else
     return 0;
 #endif
@@ -1017,10 +1010,11 @@ Qt::HANDLE QPixmap::macQDHandle() const
 Qt::HANDLE QPixmap::macQDAlphaHandle() const
 {
 #ifndef QT_MAC_NO_QUICKDRAW
-    if(data->has_alpha || data->has_mask) {
-        if(!data->qd_alpha) //lazily created
-            data->macQDUpdateAlpha();
-        return data->qd_alpha;
+    QMacPixmapData *d = static_cast<QMacPixmapData*>(data);
+    if (d->has_alpha || d->has_mask) {
+        if (!d->qd_alpha) //lazily created
+            d->macQDUpdateAlpha();
+        return d->qd_alpha;
     }
 #endif
     return 0;
@@ -1037,49 +1031,48 @@ Qt::HANDLE QPixmap::macQDAlphaHandle() const
 
 Qt::HANDLE QPixmap::macCGHandle() const
 {
-    CGImageRef ret = (CGImageRef)data->cg_data;
+    QMacPixmapData *d = static_cast<QMacPixmapData*>(data);
+    if (!d->cg_data)
+        d->macCreateCGImageRef();
+    CGImageRef ret = d->cg_data;
     CGImageRetain(ret);
     return ret;
 }
 
-bool QPixmap::hasAlpha() const
+bool QMacPixmapData::hasAlphaChannel() const
 {
-    return data->has_alpha || data->has_mask;
+    return has_alpha;
 }
 
-bool QPixmap::hasAlphaChannel() const
+CGImageRef qt_mac_create_imagemask(const QPixmap &pixmap, const QRectF &sr)
 {
-    return data->has_alpha;
-}
-
-CGImageRef qt_mac_create_imagemask(const QPixmap &px, const QRectF &sr)
-{
-    if(px.data->cg_mask) {
-        if(px.data->cg_mask_rect == sr) {
-            CGImageRetain(px.data->cg_mask); //reference for the caller
-            return px.data->cg_mask;
+    QMacPixmapData *px = static_cast<QMacPixmapData*>(pixmap.data);
+    if (px->cg_mask) {
+        if (px->cg_mask_rect == sr) {
+            CGImageRetain(px->cg_mask); //reference for the caller
+            return px->cg_mask;
         }
-        CGImageRelease(px.data->cg_mask);
-        px.data->cg_mask = 0;
+        CGImageRelease(px->cg_mask);
+        px->cg_mask = 0;
     }
 
     const int sx = qRound(sr.x()), sy = qRound(sr.y()), sw = qRound(sr.width()), sh = qRound(sr.height());
-    const int sbpr = px.data->nbytes / px.data->h;
+    const int sbpr = px->bytesPerRow;
     const uint nbytes = sw * sh;
     //  alpha is always 255 for bitmaps, ignore it in this case.
-    const quint32 mask = px.depth() == 1 ? 0x00ffffff : 0xffffffff;
-    quint8 *dptr = (quint8 *)malloc(nbytes);
-    quint32 *sptr = px.data->pixels, *srow;
+    const quint32 mask = px->depth() == 1 ? 0x00ffffff : 0xffffffff;
+    quint8 *dptr = static_cast<quint8 *>(malloc(nbytes));
+    quint32 *sptr = px->pixels, *srow;
     for(int y = sy, offset=0; y < sh; ++y) {
         srow = sptr + (y * (sbpr / 4));
         for(int x = sx; x < sw; ++x)
             *(dptr+(offset++)) = (*(srow+x) & mask) ? 255 : 0;
     }
-    QCFType<CGDataProviderRef> provider = CGDataProviderCreateWithData(dptr, dptr, nbytes, qt_mac_cgimage_data_free);
-    px.data->cg_mask = CGImageMaskCreate(sw, sh, 8, 8, nbytes / sh, provider, 0, 0);
-    px.data->cg_mask_rect = sr;
-    CGImageRetain(px.data->cg_mask); //reference for the caller
-    return px.data->cg_mask;
+    QCFType<CGDataProviderRef> provider = CGDataProviderCreateWithData(0, dptr, nbytes, qt_mac_cgimage_data_free);
+    px->cg_mask = CGImageMaskCreate(sw, sh, 8, 8, nbytes / sh, provider, 0, 0);
+    px->cg_mask_rect = sr;
+    CGImageRetain(px->cg_mask); //reference for the caller
+    return px->cg_mask;
 }
 
 IconRef qt_mac_create_iconref(const QPixmap &px)
@@ -1090,6 +1083,7 @@ IconRef qt_mac_create_iconref(const QPixmap &px)
 #endif
     if (px.isNull())
         return 0;
+
     QMacSavedPortInfo pi; //save the current state
     //create icon
     IconFamilyHandle iconFamily = reinterpret_cast<IconFamilyHandle>(NewHandle(0));
@@ -1107,8 +1101,9 @@ IconRef qt_mac_create_iconref(const QPixmap &px)
         for(int i = 0; images[i].mac_type; i++) {
             //get QPixmap data
             QPixmap scaled_px = px.scaled(images[i].width, images[i].height);
-            quint32 *sptr = scaled_px.data->pixels, *srow;
-            const uint sbpr = scaled_px.data->nbytes / scaled_px.data->h;
+            QMacPixmapData *scaledData = static_cast<QMacPixmapData*>(scaled_px.data);
+            quint32 *sptr = scaledData->pixels, *srow;
+            const uint sbpr = scaledData->bytesPerRow;
 
             //get Handle data
             const int dbpr = images[i].width * (images[i].depth/8);
@@ -1182,60 +1177,50 @@ QPixmap qt_mac_convert_iconref(const IconRef icon, int width, int height)
 }
 
 /*! \internal */
-QPaintEngine *QPixmap::paintEngine() const
+QPaintEngine* QMacPixmapData::paintEngine() const
 {
-    if (!data->paintEngine) {
+    if (!pengine) {
+        QMacPixmapData *that = const_cast<QMacPixmapData*>(this);
 #ifdef QT_RASTER_PAINTENGINE
-        if(qgetenv("QT_MAC_USE_COREGRAPHICS").isNull())
-            data->paintEngine = new QRasterPaintEngine();
+        if (qgetenv("QT_MAC_USE_COREGRAPHICS").isNull())
+            that->pengine = new QRasterPaintEngine();
         else
-            data->paintEngine = new QCoreGraphicsPaintEngine();
+            that->pengine = new QCoreGraphicsPaintEngine();
 #else
-        data->paintEngine = new QCoreGraphicsPaintEngine();
+        that->pengine = new QCoreGraphicsPaintEngine();
 #endif
     }
-    return data->paintEngine;
+    return pengine;
 }
 
-QPixmap QPixmap::copy(const QRect &rect) const
+void QMacPixmapData::copy(const QPixmapData *data, const QRect &rect)
 {
-    QPixmap pm;
-    if (data->type == BitmapType) {
-        pm = QBitmap::fromImage(toImage().copy(rect));
-    } else {
-        if (rect.isNull()) {
-            pm = QPixmap(size());
-            memcpy(pm.data->pixels, data->pixels, data->nbytes);
-        } else {
-            int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
-            if(x < 0) {
-                w += x;
-                x = 0;
-            }
-            if(y < 0) {
-                h += y;
-                y = 0;
-            }
-            if (w > 0 && h > 0 && x < data->w && y < data->h) {
-                pm = QPixmap(w, h);
-                if (x+w > data->w || y+h > data->h) {
-                    pm.fill(Qt::color0);  // bitBlt will not cover entire image - clear it.
-                    if(x+w > data->w)
-                        w = data->w - x;
-                    if(y+h > data->h)
-                        h = data->h - y;
-                }
-                for (int i = 0; i < h; ++i)
-                    memcpy(pm.data->pixels + i*pm.data->w,
-                           data->pixels + (i + y)*data->w + x, w*4);
-            }
-        }
-        pm.data->has_alpha = data->has_alpha;
-        pm.data->has_mask = data->has_mask;
+    if (data->pixelType() == BitmapType) {
+        QBitmap::fromImage(toImage().copy(rect));
+        return;
     }
-    return pm;
-}
 
+    const QMacPixmapData *macData = static_cast<const QMacPixmapData*>(data);
+
+    resize(rect.width(), rect.height());
+
+    has_alpha = macData->has_alpha;
+    has_mask = macData->has_mask;
+    uninit = false;
+
+    const int x = rect.x();
+    const int y = rect.y();
+    char *dest = reinterpret_cast<char*>(pixels);
+    const char *src = reinterpret_cast<const char*>(macData->pixels + x) + y * macData->bytesPerRow;
+    for (int i = 0; i < h; ++i) {
+        memcpy(dest, src, w * 4);
+        dest += bytesPerRow;
+        src += macData->bytesPerRow;
+    }
+
+    has_alpha = macData->has_alpha;
+    has_mask = macData->has_mask;
+}
 
 /*!
     \since 4.2
@@ -1274,3 +1259,5 @@ QPixmap QPixmap::fromMacCGImageRef(CGImageRef image)
     CGContextRelease(ctx);
     return ret;
 }
+
+QT_END_NAMESPACE

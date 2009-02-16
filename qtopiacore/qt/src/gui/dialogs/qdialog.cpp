@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,8 +51,13 @@
 #ifndef QT_NO_ACCESSIBILITY
 #include "qaccessible.h"
 #endif
-#if defined(Q_OS_TEMP)
+#if defined(Q_OS_WINCE)
 #include "qt_windows.h"
+#include "qguifunctions_wince.h"
+#include "qmenubar.h"
+#include "qpointer.h"
+extern bool qt_wince_is_mobile();     //defined in qguifunctions_wce.cpp
+extern bool qt_wince_is_smartphone(); //is defined in qguifunctions_wce.cpp
 #elif defined(Q_WS_X11)
 #  include "../kernel/qt_x11_p.h"
 #endif
@@ -66,6 +65,8 @@
 #ifndef SPI_GETSNAPTODEFBUTTON
 #  define SPI_GETSNAPTODEFBUTTON  95
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QDialog
@@ -145,7 +146,7 @@
     If you invoke the \l{QWidget::show()}{show()} function after hiding
     a dialog, the dialog will be displayed in its original position. This is
     because the window manager decides the position for windows that
-    have no been explicitly placed by the programmer. To preserve the
+    have not been explicitly placed by the programmer. To preserve the
     position of a dialog that has been moved by the user, save its position
     in your \l{QWidget::closeEvent()}{closeEvent()}  handler and then
     move the dialog to that position, before showing it again.
@@ -189,20 +190,22 @@
     The result is also available from result() if the dialog has not
     been destroyed.
 
+    In order to modify your dialog's close behavior, you can reimplement
+    the functions accept(), reject() or done(). The
+    \l{QWidget::closeEvent()}{closeEvent()} function should only be
+    reimplemented to preserve the dialog's position or to override the
+    standard close or reject behavior.
+
     \target examples
     \section1 Code Examples
 
     A modal dialog:
 
-    \quotefromfile snippets/dialogs/dialogs.cpp
-    \skipto void EditorWindow::countWords()
-    \printuntil /^\}/
+    \snippet doc/src/snippets/dialogs/dialogs.cpp 1
 
     A modeless dialog:
 
-    \quotefromfile snippets/dialogs/dialogs.cpp
-    \skipto void EditorWindow::find()
-    \printuntil /^\}/
+    \snippet doc/src/snippets/dialogs/dialogs.cpp 0
 
     \sa QDialogButtonBox, QTabWidget, QWidget, QProgressDialog,
         {fowler}{GUI Design Handbook: Dialogs, Standard}, {Extension Example},
@@ -244,6 +247,10 @@ QDialog::QDialog(QWidget *parent, Qt::WindowFlags f)
     : QWidget(*new QDialogPrivate, parent,
               f | QFlag((f & Qt::WindowType_Mask) == 0 ? Qt::Dialog : 0))
 {
+#ifdef Q_OS_WINCE
+    if (!qt_wince_is_smartphone())
+        setWindowFlags(windowFlags() | Qt::WindowOkButtonHint | QFlag(qt_wince_is_mobile() ? 0 : Qt::WindowCancelButtonHint));
+#endif
 }
 
 #ifdef QT3_SUPPORT
@@ -269,6 +276,10 @@ QDialog::QDialog(QWidget *parent, const char *name, bool modal, Qt::WindowFlags 
 QDialog::QDialog(QDialogPrivate &dd, QWidget *parent, Qt::WindowFlags f)
     : QWidget(dd, parent, f | QFlag((f & Qt::WindowType_Mask) == 0 ? Qt::Dialog : 0))
 {
+#ifdef Q_OS_WINCE
+    if (!qt_wince_is_smartphone())
+        setWindowFlags(windowFlags() | Qt::WindowOkButtonHint | QFlag(qt_wince_is_mobile() ? 0 : Qt::WindowCancelButtonHint));
+#endif
 }
 
 /*!
@@ -334,47 +345,26 @@ void QDialogPrivate::hideDefault()
     }
 }
 
-#ifdef Q_OS_TEMP
-# include "qmessagebox.h"
-extern const char * mb_texts[]; // Defined in qmessagebox.cpp
-/*!
-  \internal
-  Hides special buttons which are rather shown in the title bar
-  on WinCE, to conserve screen space.
-*/
-void QDialog::hideSpecial()
+#ifdef Q_OS_WINCE
+#ifdef Q_OS_WINCE_WM
+void QDialogPrivate::_q_doneAction()
 {
-    // "OK"     buttons are hidden, and (Ok) shown on title bar
-    // "Cancel" buttons are hidden, and (X)  shown on title bar
-    // "Help"   buttons are hidden, and (?)  shown on title bar
-    bool showOK = false,
-         showX  = false,
-         showQ  = false;
-    QList<QPushButton*> list = qFindChildren<QPushButton*>(this);
-    for (int i=0; i<list.size(); ++i) {
-        QPushButton *pb = list.at(i);
-        if (!showOK && pb->text() == qApp->translate("QMessageBox", mb_texts[QMessageBox::Ok])) {
-            pb->hide();
-            showOK = true;
-        } else if (!showX && pb->text() == qApp->translate("QMessageBox", mb_texts[QMessageBox::Cancel])) {
-            pb->hide();
-            showX = true;
-        } else if (!showQ && pb->text() == qApp->translate("QMessageBox", "Help")) {
-            pb->hide();
-            showQ = true;
-        }
-    }
-    if (showOK || showQ) {
-        DWORD ext = GetWindowLong(winId(), GWL_EXSTYLE);
-        ext |= showOK ? WS_EX_CAPTIONOKBTN : 0;
-        ext |= showQ  ? WS_EX_CONTEXTHELP: 0;
-        SetWindowLong(winId(), GWL_EXSTYLE, ext);
-    }
-    if (!showX) {
-        DWORD ext = GetWindowLong(winId(), GWL_STYLE);
-        ext &= ~WS_SYSMENU;
-        SetWindowLong(winId(), GWL_STYLE, ext);
-    }
+    //Done...
+    QApplication::postEvent(q_func(), new QEvent(QEvent::OkRequest));
+}
+#endif
+
+/*!
+    \reimp
+*/
+bool QDialog::event(QEvent *e)
+{
+    bool result = QWidget::event(e);
+    if (e->type() == QEvent::OkRequest) {
+        accept();
+        result = true;
+     }
+    return result;
 }
 #endif
 
@@ -394,6 +384,9 @@ int QDialog::result() const
   \fn void QDialog::setResult(int i)
 
   Sets the modal dialog's result code to \a i.
+
+  \note We recommend that you use one of the values defined by
+  QDialog::DialogCode.
 */
 void QDialog::setResult(int r)
 {
@@ -432,6 +425,20 @@ int QDialog::exec()
     setAttribute(Qt::WA_ShowModal, true);
     setResult(0);
 
+//On Windows Mobile we create an empty menu to hide the current menu
+#ifdef Q_OS_WINCE_WM
+#ifndef QT_NO_MENUBAR
+    QMenuBar *menuBar = 0;
+    if (!findChild<QMenuBar *>())
+        menuBar = new QMenuBar(this);
+    if (qt_wince_is_smartphone()) {
+        QAction *doneAction = new QAction(tr("Done"), this);
+        menuBar->setDefaultAction(doneAction);
+        connect(doneAction, SIGNAL(triggered()), this, SLOT(_q_doneAction()));
+    }
+#endif //QT_NO_MENUBAR
+#endif //Q_OS_WINCE_WM
+
     show();
 
     QEventLoop eventLoop;
@@ -447,6 +454,12 @@ int QDialog::exec()
     int res = result();
     if (deleteOnClose)
         delete this;
+#ifdef Q_OS_WINCE_WM
+#ifndef QT_NO_MENUBAR
+    else if (menuBar)
+        delete menuBar;
+#endif //QT_NO_MENUBAR
+#endif //Q_OS_WINCE_WM
     return res;
 }
 
@@ -509,6 +522,7 @@ bool QDialog::eventFilter(QObject *o, QEvent *e)
   Event handlers
  *****************************************************************************/
 
+#ifndef QT_NO_CONTEXTMENU
 /*! \reimp */
 void QDialog::contextMenuEvent(QContextMenuEvent *e)
 {
@@ -524,7 +538,7 @@ void QDialog::contextMenuEvent(QContextMenuEvent *e)
     while (w && w->whatsThis().size() == 0 && !w->testAttribute(Qt::WA_CustomWhatsThis))
         w = w->isWindow() ? 0 : w->parentWidget();
     if (w) {
-        QMenu p;
+        QMenu p(this);
         QAction *wt = p.addAction(tr("What's This?"));
         if (p.exec(e->globalPos()) == wt) {
             QHelpEvent e(QEvent::WhatsThis, w->rect().center(),
@@ -534,6 +548,7 @@ void QDialog::contextMenuEvent(QContextMenuEvent *e)
     }
 #endif
 }
+#endif // QT_NO_CONTEXTMENU
 
 /*! \reimp */
 void QDialog::keyPressEvent(QKeyEvent *e)
@@ -602,40 +617,15 @@ void QDialog::closeEvent(QCloseEvent *e)
     if (isModal() && QWhatsThis::inWhatsThisMode())
         QWhatsThis::leaveWhatsThisMode();
 #endif
-    if (isVisible())
+    if (isVisible()) {
+        QPointer<QObject> that = this;
         reject();
-    else
+        if (that && isVisible())
+            e->ignore();
+    } else {
         e->accept();
-}
-
-#ifdef Q_OS_TEMP
-/*! \internal
-    \reimp
-*/
-bool QDialog::event(QEvent *e)
-{
-    switch (e->type()) {
-    case QEvent::OkRequest:
-    case QEvent::HelpRequest: {
-        QString bName =
-            (e->type() == QEvent::OkRequest)
-            ? qApp->translate("QMessageBox", mb_texts[QMessageBox::Ok])
-            : qApp->translate("QMessageBox", "Help");
-        QList<QPushButton*> list = qFindChildren<QPushButton*>(this);
-        for (int i=0; i<list.size(); ++i) {
-            QPushButton *pb = list.at(i);
-            if (pb->text() == bName) {
-                if (pb->isEnabled())
-                    pb->click();
-                return pb->isEnabled();
-            }
-        } }
-    default: break;
     }
-    return QWidget::event(e);
 }
-#endif
-
 
 /*****************************************************************************
   Geometry management.
@@ -650,10 +640,6 @@ void QDialog::setVisible(bool visible)
     if (visible) {
         if (testAttribute(Qt::WA_WState_ExplicitShowHide) && !testAttribute(Qt::WA_WState_Hidden))
             return;
-
-#ifdef Q_OS_TEMP
-        hideSpecial();
-#endif
 
         if (!testAttribute(Qt::WA_Moved)) {
             Qt::WindowStates state = windowState();
@@ -784,7 +770,7 @@ void QDialog::adjustPosition(QWidget* w)
         extraw = 10;
     }
 
-#ifndef Q_OS_TEMP
+
     if (w) {
         // Use mapToGlobal rather than geometry() in case w might
         // be embedded in another application
@@ -795,9 +781,6 @@ void QDialog::adjustPosition(QWidget* w)
         // p = middle of the desktop
         p = QPoint(desk.x() + desk.width()/2, desk.y() + desk.height()/2);
     }
-#else
-    p = QPoint(desk.x() + desk.width()/2, desk.y() + desk.height()/2);
-#endif
 
     // p = origin of this
     p = QPoint(p.x()-width()/2 - extraw,
@@ -968,13 +951,14 @@ void QDialog::showExtension(bool showIt)
 QSize QDialog::sizeHint() const
 {
     Q_D(const QDialog);
-    if (d->extension)
+    if (d->extension) {
         if (d->orientation == Qt::Horizontal)
             return QSize(QWidget::sizeHint().width(),
                         qMax(QWidget::sizeHint().height(),d->extension->sizeHint().height()));
         else
             return QSize(qMax(QWidget::sizeHint().width(), d->extension->sizeHint().width()),
                         QWidget::sizeHint().height());
+    }
 
     return QWidget::sizeHint();
 }
@@ -984,13 +968,14 @@ QSize QDialog::sizeHint() const
 QSize QDialog::minimumSizeHint() const
 {
     Q_D(const QDialog);
-    if (d->extension)
+    if (d->extension) {
         if (d->orientation == Qt::Horizontal)
             return QSize(QWidget::minimumSizeHint().width(),
                         qMax(QWidget::minimumSizeHint().height(), d->extension->minimumSizeHint().height()));
         else
             return QSize(qMax(QWidget::minimumSizeHint().width(), d->extension->minimumSizeHint().width()),
                         QWidget::minimumSizeHint().height());
+    }
 
     return QWidget::minimumSizeHint();
 }
@@ -1114,3 +1099,6 @@ void QDialog::resizeEvent(QResizeEvent *)
 
     \sa finished(), accepted()
 */
+
+QT_END_NAMESPACE
+#include "moc_qdialog.cpp"

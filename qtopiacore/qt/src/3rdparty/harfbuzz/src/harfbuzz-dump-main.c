@@ -28,7 +28,7 @@
 #define N_ELEMENTS(arr) (sizeof(arr)/ sizeof((arr)[0]))
 
 static int
-croak (const char *situation, FT_Error error)
+croak (const char *situation, HB_Error error)
 {
   fprintf (stderr, "%s: Error %d\n", situation, error);
 
@@ -44,7 +44,7 @@ enum {
 };
 
 static void
-print_tag (FT_ULong tag)
+print_tag (HB_UInt tag)
 {
   fprintf (stderr, "%c%c%c%c", 
 	  (unsigned char)(tag >> 24),
@@ -55,12 +55,12 @@ print_tag (FT_ULong tag)
 
 static void
 maybe_add_feature (HB_GSUB  gsub,
-		   FT_UShort script_index,
-		   FT_ULong  tag,
-		   FT_UShort property)
+		   HB_UShort script_index,
+		   HB_UInt  tag,
+		   HB_UShort property)
 {
-  FT_Error error;
-  FT_UShort feature_index;
+  HB_Error error;
+  HB_UShort feature_index;
   
   /* 0xffff == default language system */
   error = HB_GSUB_Select_Feature (gsub, tag, script_index, 0xffff, &feature_index);
@@ -84,8 +84,8 @@ maybe_add_feature (HB_GSUB  gsub,
 static void
 select_cmap (FT_Face face)
 {
-  FT_UShort  i;
-  FT_CharMap cmap = NULL;
+  HB_UShort  i;
+  HB_CharMap cmap = NULL;
   
   for (i = 0; i < face->num_charmaps; i++)
     {
@@ -122,9 +122,9 @@ select_cmap (FT_Face face)
 static void
 add_features (HB_GSUB gsub)
 {
-  FT_Error error;
-  FT_ULong tag = FT_MAKE_TAG ('a', 'r', 'a', 'b');
-  FT_UShort script_index;
+  HB_Error error;
+  HB_UInt tag = HB_MAKE_TAG ('a', 'r', 'a', 'b');
+  HB_UShort script_index;
 
   error = HB_GSUB_Select_Script (gsub, tag, &script_index);
 
@@ -139,10 +139,10 @@ add_features (HB_GSUB gsub)
       croak ("HB_GSUB_Select_Script", error);
     }
 
-  maybe_add_feature (gsub, script_index, FT_MAKE_TAG ('i', 'n', 'i', 't'), I);
-  maybe_add_feature (gsub, script_index, FT_MAKE_TAG ('m', 'e', 'd', 'i'), M);
-  maybe_add_feature (gsub, script_index, FT_MAKE_TAG ('f', 'i', 'n', 'a'), F);
-  maybe_add_feature (gsub, script_index, FT_MAKE_TAG ('l', 'i', 'g', 'a'), L);
+  maybe_add_feature (gsub, script_index, HB_MAKE_TAG ('i', 'n', 'i', 't'), I);
+  maybe_add_feature (gsub, script_index, HB_MAKE_TAG ('m', 'e', 'd', 'i'), M);
+  maybe_add_feature (gsub, script_index, HB_MAKE_TAG ('f', 'i', 'n', 'a'), F);
+  maybe_add_feature (gsub, script_index, HB_MAKE_TAG ('l', 'i', 'g', 'a'), L);
 }
 #endif
 
@@ -150,7 +150,7 @@ add_features (HB_GSUB gsub)
 void 
 dump_string (HB_GSUB_String *str)
 {
-  FT_ULong i;
+  HB_UInt i;
 
   fprintf (stderr, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
   for (i = 0; i < str->length; i++)
@@ -165,18 +165,18 @@ dump_string (HB_GSUB_String *str)
   fprintf (stderr, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 }
 
-FT_UShort arabic_str[]   = { 0x645, 0x643, 0x64a, 0x644, 0x639, 0x20, 0x645, 0x627, 0x644, 0x633, 0x644, 0x627 };
-FT_UShort arabic_props[] = { I|L,   M|L,   M|L,   M|L,   M|L,   F|L,   I|L,  M|L,   M|L,   M|L,   M|L,   F|L };
+HB_UShort arabic_str[]   = { 0x645, 0x643, 0x64a, 0x644, 0x639, 0x20, 0x645, 0x627, 0x644, 0x633, 0x644, 0x627 };
+HB_UShort arabic_props[] = { I|L,   M|L,   M|L,   M|L,   M|L,   F|L,   I|L,  M|L,   M|L,   M|L,   M|L,   F|L };
 
 void
 try_string (FT_Library library,
 	    FT_Face    face,
 	    HB_GSUB   gsub)
 {
-  FT_Error error;
+  HB_Error error;
   HB_GSUB_String *in_str;
   HB_GSUB_String *out_str;
-  FT_ULong i;
+  HB_UInt i;
 
   if ((error = HB_GSUB_String_New (face->memory, &in_str)))
     croak ("HB_GSUB_String_New", error);
@@ -210,7 +210,7 @@ try_string (FT_Library library,
 int 
 main (int argc, char **argv)
 {
-  FT_Error error;
+  HB_Error error;
   FT_Library library;
   FT_Face face;
   HB_GSUB gsub;
@@ -238,7 +238,7 @@ main (int argc, char **argv)
       if ((error = HB_Done_GSUB_Table (gsub)))
 	croak ("HB_Done_GSUB_Table", error);
     }
-  else if (error != FT_Err_Table_Missing)
+  else if (error != HB_Err_Table_Missing)
     fprintf (stderr, "HB_Load_GSUB_Table %x\n", error);
 
   if (!(error = HB_Load_GPOS_Table (face, &gpos, NULL)))
@@ -248,7 +248,7 @@ main (int argc, char **argv)
       if ((error = HB_Done_GPOS_Table (gpos)))
 	croak ("HB_Done_GPOS_Table", error);
     }
-  else if (error != FT_Err_Table_Missing)
+  else if (error != HB_Err_Table_Missing)
     fprintf (stderr, "HB_Load_GPOS_Table %x\n", error);
 
   printf ("</OpenType>\n");

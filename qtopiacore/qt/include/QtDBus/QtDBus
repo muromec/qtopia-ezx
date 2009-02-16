@@ -1,0 +1,16 @@
+#include <QtCore/QtCore>
+#include <QtXml/QtXml>
+#include "qdbusreply.h"
+#include "qdbusargument.h"
+#include "qdbusabstractadaptor.h"
+#include "qdbusabstractinterface.h"
+#include "qdbusmetatype.h"
+#include "qdbusextratypes.h"
+#include "qdbuserror.h"
+#include "qdbusinterface.h"
+#include "qdbusmacros.h"
+#include "qdbuscontext.h"
+#include "qdbusserver.h"
+#include "qdbusmessage.h"
+#include "qdbusconnection.h"
+#include "qdbusconnectioninterface.h"

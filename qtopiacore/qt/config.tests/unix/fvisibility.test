@@ -5,8 +5,18 @@ COMPILER=$1
 VERBOSE=$2
 
 case "$COMPILER" in
-    aCC*)
+aCC*)
     ;;
+
+icpc)
+    ICPC_VERSION=`icpc -dumpversion`
+    case "$ICPC_VERSION" in
+    10.1)
+        FVISIBILITY_SUPPORT=yes
+        ;;
+    esac
+    ;;
+
     *)
 cat >>fvisibility.c << EOF
 __attribute__((visibility("default"))) void blah();

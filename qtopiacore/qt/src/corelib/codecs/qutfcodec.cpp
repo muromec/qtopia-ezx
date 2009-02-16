@@ -1,50 +1,48 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qutfcodec_p.h"
 #include "qlist.h"
+#include "qendian.h"
+#include "qchar.h"
 
 #ifndef QT_NO_TEXTCODEC
+
+QT_BEGIN_NAMESPACE
 
 QUtf8Codec::~QUtf8Codec()
 {
@@ -119,7 +117,7 @@ QByteArray QUtf8Codec::convertFromUnicode(const QChar *uc, int len, ConverterSta
                         *cursor++ = 0x80 | (((uchar) (u >> 12)) & 0x3f);
                     }
                 } else {
-                    *cursor++ = 0xe0 | ((uchar) (u >> 12)) & 0x3f;
+                    *cursor++ = 0xe0 | (((uchar) (u >> 12)) & 0x3f);
                 }
                 *cursor++ = 0x80 | (((uchar) (u >> 6)) & 0x3f);
             }
@@ -327,17 +325,18 @@ QString QUtf16Codec::convertToUnicode(const char *chars, int len, ConverterState
     Endianness endian = e;
     bool half = false;
     uchar buf = 0;
+    bool headerdone = false;
     if (state) {
-        if (endian == Detect) {
-            if ((state->flags & IgnoreHeader) && state->state_data[Endian] == Detect)
-                state->state_data[Endian] = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? BE : LE;
+        headerdone = state->flags & IgnoreHeader;
+        if (endian == Detect)
             endian = (Endianness)state->state_data[Endian];
-        }
         if (state->remainingChars) {
             half = true;
             buf = state->state_data[Data];
         }
     }
+    if (headerdone && endian == Detect)
+        endian = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? BE : LE;
 
     QString result;
     result.resize(len); // worst case
@@ -352,21 +351,26 @@ QString QUtf16Codec::convertToUnicode(const char *chars, int len, ConverterState
                 ch.setRow(buf);
                 ch.setCell(*chars++);
             }
-            if (endian == Detect) {
-                if (ch == QChar::ByteOrderSwapped) {
-                    endian = LE;
-                } else if (ch == QChar::ByteOrderMark) {
-                    // ignore BOM
-                    endian = BE;
-                } else {
-                    if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+            if (!headerdone) {
+                if (endian == Detect) {
+                    if (ch == QChar::ByteOrderSwapped && endian != BE) {
+                        endian = LE;
+                    } else if (ch == QChar::ByteOrderMark && endian != LE) {
+                        // ignore BOM
                         endian = BE;
                     } else {
-                        endian = LE;
-                        ch = QChar((ch.unicode() >> 8) | ((ch.unicode() & 0xff) << 8));
+                        if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+                            endian = BE;
+                        } else {
+                            endian = LE;
+                            ch = QChar((ch.unicode() >> 8) | ((ch.unicode() & 0xff) << 8));
+                        }
+                        *qch++ = ch;
                     }
+                } else if (ch != QChar::ByteOrderMark) {
                     *qch++ = ch;
                 }
+                headerdone = true;
             } else {
                 *qch++ = ch;
             }
@@ -441,5 +445,186 @@ QList<QByteArray> QUtf16LECodec::aliases() const
     QList<QByteArray> list;
     return list;
 }
+
+QUtf32Codec::~QUtf32Codec()
+{
+}
+
+QByteArray QUtf32Codec::convertFromUnicode(const QChar *uc, int len, ConverterState *state) const
+{
+    Endianness endian = e;
+    int length =  4*len;
+    if (!state || (!(state->flags & IgnoreHeader))) {
+        length += 4;
+    }
+    if (e == Detect) {
+        endian = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? BE : LE;
+    }
+
+    QByteArray d;
+    d.resize(length);
+    char *data = d.data();
+    if (!state || !(state->flags & IgnoreHeader)) {
+        if (endian == BE) {
+            data[0] = 0;
+            data[1] = 0;
+            data[2] = (char)0xfe;
+            data[3] = (char)0xff;
+        } else {
+            data[0] = (char)0xff;
+            data[1] = (char)0xfe;
+            data[2] = 0;
+            data[3] = 0;
+        }
+        data += 2;
+    }
+    if (endian == BE) {
+        for (int i = 0; i < len; ++i) {
+            uint cp = uc[i].unicode();
+            if (uc[i].isHighSurrogate() && i < len - 1)
+                cp = QChar::surrogateToUcs4(cp, uc[++i].unicode());
+            *(data++) = cp >> 24;
+            *(data++) = (cp >> 16) & 0xff;
+            *(data++) = (cp >> 8) & 0xff;
+            *(data++) = cp & 0xff;
+        }
+    } else {
+        for (int i = 0; i < len; ++i) {
+            uint cp = uc[i].unicode();
+            if (uc[i].isHighSurrogate() && i < len - 1)
+                cp = QChar::surrogateToUcs4(cp, uc[++i].unicode());
+            *(data++) = cp & 0xff;
+            *(data++) = (cp >> 8) & 0xff;
+            *(data++) = (cp >> 16) & 0xff;
+            *(data++) = cp >> 24;
+        }
+    }
+
+    if (state) {
+        state->remainingChars = 0;
+        state->flags |= IgnoreHeader;
+    }
+    return d;
+}
+
+QString QUtf32Codec::convertToUnicode(const char *chars, int len, ConverterState *state) const
+{
+    Endianness endian = e;
+    uchar tuple[4];
+    int num = 0;
+    bool headerdone = false;
+    if (state) {
+        headerdone = state->flags & IgnoreHeader;
+        if (endian == Detect) {
+            endian = (Endianness)state->state_data[Endian];
+        }
+        num = state->remainingChars;
+        memcpy(tuple, &state->state_data[Data], 4);
+    }
+    if (headerdone && endian == Detect)
+        endian = (QSysInfo::ByteOrder == QSysInfo::BigEndian) ? BE : LE;
+
+    QString result;
+    result.resize((num + len) >> 2 << 1); // worst case
+    QChar *qch = (QChar *)result.unicode();
+    
+    const char *end = chars + len;
+    while (chars < end) {
+        tuple[num++] = *chars++;
+        if (num == 4) {
+            if (!headerdone) {
+                if (endian == Detect) {
+                    if (endian == Detect) {
+                        if (tuple[0] == 0xff && tuple[1] == 0xfe && tuple[2] == 0 && tuple[3] == 0 && endian != BE) {
+                            endian = LE;
+                            num = 0;
+                            continue;
+                        } else if (tuple[0] == 0 && tuple[1] == 0 && tuple[2] == 0xfe && tuple[3] == 0xff && endian != LE) {
+                            endian = BE;
+                            num = 0;
+                            continue;
+                        } else if (QSysInfo::ByteOrder == QSysInfo::BigEndian) {
+                            endian = BE;
+                        } else {
+                            endian = LE;
+                        }
+                    }
+                } else if (((endian == BE) ? qFromBigEndian<quint32>(tuple) : qFromLittleEndian<quint32>(tuple)) == QChar::ByteOrderMark) {
+                    num = 0;
+                    continue;
+                }
+            }
+            uint code = (endian == BE) ? qFromBigEndian<quint32>(tuple) : qFromLittleEndian<quint32>(tuple);
+            if (code >= 0x10000) {
+                *qch++ = QChar::highSurrogate(code);
+                *qch++ = QChar::lowSurrogate(code);
+            } else {
+                *qch++ = code;
+            }
+            num = 0;
+        }
+    }
+    result.truncate(qch - result.unicode());
+    
+    if (state) {
+        if (endian != Detect)
+            state->flags |= IgnoreHeader;
+        state->state_data[Endian] = endian;
+        state->remainingChars = num;
+        memcpy(&state->state_data[Data], tuple, 4);
+    }
+    return result;
+}
+
+int QUtf32Codec::mibEnum() const
+{
+    return 1017;
+}
+
+QByteArray QUtf32Codec::name() const
+{
+    return "UTF-32";
+}
+
+QList<QByteArray> QUtf32Codec::aliases() const
+{
+    QList<QByteArray> list;
+    return list;
+}
+
+int QUtf32BECodec::mibEnum() const
+{
+    return 1018;
+}
+
+QByteArray QUtf32BECodec::name() const
+{
+    return "UTF-32BE";
+}
+
+QList<QByteArray> QUtf32BECodec::aliases() const
+{
+    QList<QByteArray> list;
+    return list;
+}
+
+int QUtf32LECodec::mibEnum() const
+{
+    return 1019;
+}
+
+QByteArray QUtf32LECodec::name() const
+{
+    return "UTF-32LE";
+}
+
+QList<QByteArray> QUtf32LECodec::aliases() const
+{
+    QList<QByteArray> list;
+    return list;
+}
+
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_TEXTCODEC

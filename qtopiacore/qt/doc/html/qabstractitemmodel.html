@@ -2,21 +2,21 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/kernel/qabstractitemmodel.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/kernel/qabstractitemmodel.cpp -->
 <head>
-  <title>Qt 4.3: QAbstractItemModel Class Reference</title>
+  <title>Qt 4.4: QAbstractItemModel Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QAbstractItemModel Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QAbstractItemModel Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QAbstractItemModel class provides the abstract interface for item model classes. <a href="#details">More...</a></p>
 <pre> #include &lt;QAbstractItemModel&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
-<p>Inherited by <a href="qabstractlistmodel.html">QAbstractListModel</a>, <a href="qabstractproxymodel.html">QAbstractProxyModel</a>, <a href="qabstracttablemodel.html">QAbstractTableModel</a>, <a href="qdirmodel.html">QDirModel</a>, <a href="qproxymodel.html" class="obsolete">QProxyModel</a>, and <a href="qstandarditemmodel.html">QStandardItemModel</a>.</p>
+<p>Inherited by <a href="qabstractlistmodel.html">QAbstractListModel</a>, <a href="qabstractproxymodel.html">QAbstractProxyModel</a>, <a href="qabstracttablemodel.html">QAbstractTableModel</a>, <a href="qdirmodel.html">QDirModel</a>, <a href="qfilesystemmodel.html">QFileSystemModel</a>, <a href="qhelpcontentmodel.html">QHelpContentModel</a>, <a href="qproxymodel.html" class="obsolete">QProxyModel</a>, and <a href="qstandarditemmodel.html">QStandardItemModel</a>.</p>
 <ul>
 <li><a href="qabstractitemmodel-members.html">List of all members, including inherited members</a></li>
 <li><a href="qabstractitemmodel-obsolete.html">Obsolete members</a></li>
@@ -153,7 +153,7 @@
 <li>A <a href="qabstractitemmodel.html#removeRows">removeRows</a>() implementation must call <a href="qabstractitemmodel.html#beginRemoveRows">beginRemoveRows</a>() <i>before</i> the rows are removed from the data structure, and it must call <a href="qabstractitemmodel.html#endRemoveRows">endRemoveRows</a>() <i>immediately afterwards</i>.</li>
 <li>A <a href="qabstractitemmodel.html#removeColumns">removeColumns</a>() implementation must call <a href="qabstractitemmodel.html#beginRemoveColumns">beginRemoveColumns</a>() <i>before</i> the columns are removed from the data structure, and it must call <a href="qabstractitemmodel.html#endRemoveColumns">endRemoveColumns</a>() <i>immediately afterwards</i>.</li>
 </ul>
-<p>The <i>private</i> signals that these functions emit give attached components the chance to take action before any data becomes unavailable. The encapsulation of the insert and remove operations with these begin and end functions also enables the model to manage <a href="qpersistentmodelindex.html">persistent model indexes</a> correctly. <b>If you want selections to be handled properly, you must ensure that you call these functions.</b></p>
+<p>The <i>private</i> signals that these functions emit give attached components the chance to take action before any data becomes unavailable. The encapsulation of the insert and remove operations with these begin and end functions also enables the model to manage <a href="qpersistentmodelindex.html">persistent model indexes</a> correctly. <b>If you want selections to be handled properly, you must ensure that you call these functions.</b> If you insert or remove an item with child items, you don't need to call these functions for the child items.</p>
 <p>See also <a href="model-view-model.html">Model Classes</a>, <a href="model-view-model-subclassing.html">Model Subclassing Reference</a>, <a href="qmodelindex.html">QModelIndex</a>, <a href="qabstractitemview.html">QAbstractItemView</a>, <a href="model-view-dnd.html">Using Drag and Drop with Item Views</a>, <a href="itemviews-simpledommodel.html">Simple DOM Model Example</a>, and <a href="itemviews-simpletreemodel.html">Simple Tree Model Example</a>.</p>
 <hr />
 <h2>Member Function Documentation</h2>
@@ -228,7 +228,7 @@
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qabstractitemmodel.html#persistentIndexList">persistentIndexList</a>() and <a href="qabstractitemmodel.html#changePersistentIndex">changePersistentIndex</a>().</p>
 <h3 class="fn"><a name="columnCount"></a>int QAbstractItemModel::columnCount ( const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>parent</i> = QModelIndex() ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
-<p>Returns the number of columns for the children of the given <i>parent</i>. When the parent is valid it means that rowCount is returning the number of children of parent.</p>
+<p>Returns the number of columns for the children of the given <i>parent</i>.</p>
 <p>In most subclasses, the number of columns is independent of the <i>parent</i>. For example:</p>
 <pre> int DomModel::columnCount(const QModelIndex &amp;<span class="comment">/*parent*/</span>) const
  {
@@ -262,6 +262,7 @@
 <p>This function provides a consistent interface that model subclasses must use to create model indexes.</p>
 <h3 class="fn"><a name="data"></a><a href="qvariant.html">QVariant</a> QAbstractItemModel::data ( const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>index</i>, int <i>role</i> = Qt::DisplayRole ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
 <p>Returns the data stored under the given <i>role</i> for the item referred to by the <i>index</i>.</p>
+<p><b>Note:</b> If you do not have a value to return, return an <b>empty</b> QVariant() instead of returning 0.</p>
 <p>See also <a href="qt.html#ItemDataRole-enum">Qt::ItemDataRole</a>, <a href="qabstractitemmodel.html#setData">setData</a>(), and <a href="qabstractitemmodel.html#headerData">headerData</a>().</p>
 <h3 class="fn"><a name="dataChanged"></a>void QAbstractItemModel::dataChanged ( const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>topLeft</i>, const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>bottomRight</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted whenever the data in an existing item changes. The affected items are those between <i>topLeft</i> and <i>bottomRight</i> inclusive (of the same parent).</p>
@@ -306,11 +307,12 @@
 <p>Returns true if the model returns a valid <a href="qmodelindex.html">QModelIndex</a> for <i>row</i> and <i>column</i> with <i>parent</i>, otherwise returns false.</p>
 <h3 class="fn"><a name="headerData"></a><a href="qvariant.html">QVariant</a> QAbstractItemModel::headerData ( int <i>section</i>, <a href="qt.html#Orientation-enum">Qt::Orientation</a> <i>orientation</i>, int <i>role</i> = Qt::DisplayRole ) const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns the data for the given <i>role</i> and <i>section</i> in the header with the specified <i>orientation</i>.</p>
+<p>For horizontal headers, the section number corresponds to the column number of items shown beneath it. For vertical headers, the section number typically to the row number of items shown alongside it.</p>
 <p>See also <a href="qt.html#ItemDataRole-enum">Qt::ItemDataRole</a>, <a href="qabstractitemmodel.html#setHeaderData">setHeaderData</a>(), and <a href="qheaderview.html">QHeaderView</a>.</p>
 <h3 class="fn"><a name="headerDataChanged"></a>void QAbstractItemModel::headerDataChanged ( <a href="qt.html#Orientation-enum">Qt::Orientation</a> <i>orientation</i>, int <i>first</i>, int <i>last</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted whenever a header is changed. The <i>orientation</i> indicates whether the horizontal or vertical header has changed. The sections in the header from the <i>first</i> to the <i>last</i> need to be updated.</p>
 <p>Note that this signal must be emitted explicitly when reimplementing the <a href="qabstractitemmodel.html#setHeaderData">setHeaderData</a>() function.</p>
-<p>If you are changing the number of columns or rows you don't need to emit this signal, but use the begin/end functions.</p>
+<p>If you are changing the number of columns or rows you don't need to emit this signal, but use the begin/end functions (see the section on subclassing in the <a href="qabstractitemmodel.html">QAbstractItemModel</a> class description for details).</p>
 <p>See also <a href="qabstractitemmodel.html#headerData">headerData</a>(), <a href="qabstractitemmodel.html#setHeaderData">setHeaderData</a>(), and <a href="qabstractitemmodel.html#dataChanged">dataChanged</a>().</p>
 <h3 class="fn"><a name="index"></a><a href="qmodelindex.html">QModelIndex</a> QAbstractItemModel::index ( int <i>row</i>, int <i>column</i>, const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>parent</i> = QModelIndex() ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
 <p>Returns the index of the item in the model specified by the given <i>row</i>, <i>column</i> and <i>parent</i> index.</p>
@@ -373,6 +375,7 @@
 <h3 class="fn"><a name="parent"></a><a href="qmodelindex.html">QModelIndex</a> QAbstractItemModel::parent ( const <a href="qmodelindex.html">QModelIndex</a> &amp; <i>index</i> ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
 <p>Returns the parent of the model item with the given <i>index</i>, or QModelIndex() if it has no parent.</p>
 <p>A common convention used in models that expose tree data structures is that only items in the first column have children. For that case, when reimplementing this function in a subclass the column of the returned <a href="qmodelindex.html">QModelIndex</a> would be 0.</p>
+<p><b>Note:</b> When reimplementing this function in a subclass, be careful to avoid calling <a href="qmodelindex.html">QModelIndex</a> member functions, such as <a href="qmodelindex.html#parent">QModelIndex::parent</a>(), since indexes belonging to your model will simply call your implementation, leading to infinite recursion.</p>
 <p>See also <a href="qabstractitemmodel.html#createIndex">createIndex</a>().</p>
 <h3 class="fn"><a name="persistentIndexList"></a><a href="qmodelindex.html#QModelIndexList-typedef">QModelIndexList</a> QAbstractItemModel::persistentIndexList () const&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Returns the list of indexes stored as persistent indexes in the model.</p>
@@ -462,8 +465,8 @@
 <p>See also <a href="qabstractitemmodel.html#dropMimeData">dropMimeData</a>(), <a href="qt.html#DropAction-enum">Qt::DropActions</a>, and <a href="model-view-dnd.html">Using Drag and Drop with Item Views</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

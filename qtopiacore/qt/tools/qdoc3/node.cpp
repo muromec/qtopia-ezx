@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,15 @@
 
 #include "node.h"
 
+QT_BEGIN_NAMESPACE
+
+/*!
+  \class Node
+  \brief A node in a Tree.
+ */
+
+/*!
+ */
 Node::~Node()
 {
     if (par)
@@ -55,7 +58,9 @@ Node::~Node()
 	rel->removeRelated(this);
 }
 
-void Node::setDoc( const Doc& doc, bool replace )
+/*!
+ */
+void Node::setDoc(const Doc& doc, bool replace)
 {
     if (!d.isEmpty() && !replace) {
 	doc.location().warning(tr("Overrides a previous doc"));
@@ -64,24 +69,37 @@ void Node::setDoc( const Doc& doc, bool replace )
     d = doc;
 }
 
-Node::Node( Type type, InnerNode *parent, const QString& name )
-    : typ(type), acc(Public), sta(Commendable), saf(UnspecifiedSafeness), par(parent), rel(0),
+/*!
+ */
+Node::Node(Type type, InnerNode *parent, const QString& name)
+    : typ(type),
+      acc(Public),
+      sta(Commendable),
+      saf(UnspecifiedSafeness),
+      par(parent),
+      rel(0),
       nam(name)
 {
     if (par)
 	par->addChild(this);
 }
 
+/*!
+ */
 QString Node::url() const
 {
     return u;
 }
 
+/*!
+ */
 void Node::setUrl(const QString &url)
 {
     u = url;
 }
 
+/*!
+ */
 void Node::setRelates(InnerNode *pseudoParent)
 {
     if (rel)
@@ -90,6 +108,8 @@ void Node::setRelates(InnerNode *pseudoParent)
     pseudoParent->related.append(this);
 }
 
+/*!
+ */
 void Node::setLink(LinkType linkType, const QString &link, const QString &desc)
 {
     QPair<QString,QString> linkPair;
@@ -98,6 +118,8 @@ void Node::setLink(LinkType linkType, const QString &link, const QString &desc)
     linkMap[linkType] = linkPair;
 }
 
+/*!
+ */
 Node::Status Node::inheritedStatus() const
 {
     Status parentStatus = Commendable;
@@ -106,6 +128,8 @@ Node::Status Node::inheritedStatus() const
     return (Status)qMin((int)sta, (int)parentStatus);
 }
 
+/*!
+ */
 Node::ThreadSafeness Node::threadSafeness() const
 {
     if (par && saf == par->inheritedThreadSafeness())
@@ -113,6 +137,8 @@ Node::ThreadSafeness Node::threadSafeness() const
     return saf;
 }
 
+/*!
+ */
 Node::ThreadSafeness Node::inheritedThreadSafeness() const
 {
     if (par && saf == UnspecifiedSafeness)
@@ -120,13 +146,34 @@ Node::ThreadSafeness Node::inheritedThreadSafeness() const
     return saf;
 }
 
+/*!
+ */
+QString Node::fileBase() const
+{
+    QString base = name();
+    if (base.endsWith(".html"))
+        base.chop(5);
+    base.replace(QRegExp("[^A-Za-z0-9]+"), " ");
+    base = base.trimmed();
+    base.replace(" ", "-");
+    return base.toLower();
+}
+
+/*!
+  \class InnerNode
+ */
+
+/*!
+ */
 InnerNode::~InnerNode()
 {
     deleteChildren();
     removeFromRelated();
 }
 
-Node *InnerNode::findNode( const QString& name )
+/*!
+ */
+Node *InnerNode::findNode(const QString& name)
 {
     Node *node = childMap.value(name);
     if (node)
@@ -134,37 +181,46 @@ Node *InnerNode::findNode( const QString& name )
     return primaryFunctionMap.value(name);
 }
 
-Node *InnerNode::findNode( const QString& name, Type type )
+/*!
+ */
+Node *InnerNode::findNode(const QString& name, Type type)
 {
     if (type == Function) {
 	return primaryFunctionMap.value(name);
-    } else {
+    }
+    else {
 	Node *node = childMap.value(name);
 	if (node && node->type() == type) {
 	    return node;
-        } else {
+        }
+        else {
 	    return 0;
         }
     }
 }
 
-FunctionNode *InnerNode::findFunctionNode( const QString& name )
+/*!
+ */
+FunctionNode *InnerNode::findFunctionNode(const QString& name)
 {
     return static_cast<FunctionNode *>(primaryFunctionMap.value(name));
 }
 
-FunctionNode *InnerNode::findFunctionNode( const FunctionNode *clone )
+/*!
+ */
+FunctionNode *InnerNode::findFunctionNode(const FunctionNode *clone)
 {
     QMap<QString, Node *>::ConstIterator c =
-	    primaryFunctionMap.find( clone->name() );
-    if ( c != primaryFunctionMap.end() ) {
-	if ( isSameSignature(clone, (FunctionNode *) *c) ) {
+	    primaryFunctionMap.find(clone->name());
+    if (c != primaryFunctionMap.end()) {
+	if (isSameSignature(clone, (FunctionNode *) *c)) {
 	    return (FunctionNode *) *c;
-	} else if ( secondaryFunctionMap.contains(clone->name()) ) {
+	}
+        else if (secondaryFunctionMap.contains(clone->name())) {
 	    const NodeList& secs = secondaryFunctionMap[clone->name()];
 	    NodeList::ConstIterator s = secs.begin();
-	    while ( s != secs.end() ) {
-		if ( isSameSignature(clone, (FunctionNode *) *s) )
+	    while (s != secs.end()) {
+		if (isSameSignature(clone, (FunctionNode *) *s))
 		    return (FunctionNode *) *s;
 		++s;
 	    }
@@ -173,23 +229,27 @@ FunctionNode *InnerNode::findFunctionNode( const FunctionNode *clone )
     return 0;
 }
 
-void InnerNode::setOverload( const FunctionNode *func, bool overlode )
+/*!
+ */
+void InnerNode::setOverload(const FunctionNode *func, bool overlode)
 {
     Node *node = (Node *) func;
     Node *&primary = primaryFunctionMap[func->name()];
 
-    if ( secondaryFunctionMap.contains(func->name()) ) {
+    if (secondaryFunctionMap.contains(func->name())) {
 	NodeList& secs = secondaryFunctionMap[func->name()];
-	if ( overlode ) {
-	    if ( primary == node ) {
+	if (overlode) {
+	    if (primary == node) {
 		primary = secs.first();
 		secs.erase(secs.begin());
 		secs.append(node);
-	    } else {
+	    }
+            else {
 		secs.removeAll(node);
                 secs.append(node);
             }
-	} else {
+	}
+        else {
 	    if (primary != node) {
 		secs.removeAll(node);
 		secs.prepend(primary);
@@ -199,25 +259,32 @@ void InnerNode::setOverload( const FunctionNode *func, bool overlode )
     }
 }
 
+/*!
+ */
 void InnerNode::makeUndocumentedChildrenInternal()
 {
     foreach (Node *child, childNodes()) {
-	if (child->doc().isEmpty())
+	if (child->doc().isEmpty()) {
 	    child->setAccess(Node::Private);
+            child->setStatus(Node::Internal);
+        }
     }
 }
 
+/*!
+ */
 void InnerNode::normalizeOverloads()
 {
     QMap<QString, Node *>::Iterator p1 = primaryFunctionMap.begin();
-    while ( p1 != primaryFunctionMap.end() ) {
+    while (p1 != primaryFunctionMap.end()) {
 	FunctionNode *primaryFunc = (FunctionNode *) *p1;
         if (secondaryFunctionMap.contains(primaryFunc->name()) &&
-            (primaryFunc->status() != Commendable || primaryFunc->access() == Private)) {
+            (primaryFunc->status() != Commendable ||
+             primaryFunc->access() == Private)) {
 
 	    NodeList& secs = secondaryFunctionMap[primaryFunc->name()];
 	    NodeList::ConstIterator s = secs.begin();
-	    while ( s != secs.end() ) {
+	    while (s != secs.end()) {
 		FunctionNode *secondaryFunc = (FunctionNode *) *s;
 
                 // Any non-obsolete, non-compatibility, non-private functions
@@ -239,16 +306,16 @@ void InnerNode::normalizeOverloads()
     }
 
     QMap<QString, Node *>::ConstIterator p = primaryFunctionMap.begin();
-    while ( p != primaryFunctionMap.end() ) {
+    while (p != primaryFunctionMap.end()) {
 	FunctionNode *primaryFunc = (FunctionNode *) *p;
-	if ( primaryFunc->isOverload() )
+	if (primaryFunc->isOverload())
 	    primaryFunc->ove = false;
-	if ( secondaryFunctionMap.contains(primaryFunc->name()) ) {
+	if (secondaryFunctionMap.contains(primaryFunc->name())) {
 	    NodeList& secs = secondaryFunctionMap[primaryFunc->name()];
 	    NodeList::ConstIterator s = secs.begin();
-	    while ( s != secs.end() ) {
+	    while (s != secs.end()) {
 		FunctionNode *secondaryFunc = (FunctionNode *) *s;
-		if ( !secondaryFunc->isOverload() )
+		if (!secondaryFunc->isOverload())
 		    secondaryFunc->ove = true;
 		++s;
 	    }
@@ -257,13 +324,15 @@ void InnerNode::normalizeOverloads()
     }
 
     NodeList::ConstIterator c = childNodes().begin();
-    while ( c != childNodes().end() ) {
-	if ( (*c)->isInnerNode() )
+    while (c != childNodes().end()) {
+	if ((*c)->isInnerNode())
 	    ((InnerNode *) *c)->normalizeOverloads();
 	++c;
     }
 }
 
+/*!
+ */
 void InnerNode::removeFromRelated() 
 {
     while (!related.isEmpty()) {
@@ -273,42 +342,56 @@ void InnerNode::removeFromRelated()
     }
 }
 
+/*!
+ */
 void InnerNode::deleteChildren()
 {
-    while (!children.isEmpty())
-	delete children.takeFirst();
+    qDeleteAll(children);
 }
 
+/*!
+  Returns true.
+ */
 bool InnerNode::isInnerNode() const
 {
     return true;
 }
 
-const Node *InnerNode::findNode( const QString& name ) const
+/*!
+ */
+const Node *InnerNode::findNode(const QString& name) const
 {
     InnerNode *that = (InnerNode *) this;
-    return that->findNode( name );
+    return that->findNode(name);
 }
 
-const Node *InnerNode::findNode( const QString& name, Type type ) const
+/*!
+ */
+const Node *InnerNode::findNode(const QString& name, Type type) const
 {
     InnerNode *that = (InnerNode *) this;
-    return that->findNode( name, type );
+    return that->findNode(name, type);
 }
 
-const FunctionNode *InnerNode::findFunctionNode( const QString& name ) const
+/*!
+ */
+const FunctionNode *InnerNode::findFunctionNode(const QString& name) const
 {
     InnerNode *that = (InnerNode *) this;
-    return that->findFunctionNode( name );
+    return that->findFunctionNode(name);
 }
 
+/*!
+ */
 const FunctionNode *InnerNode::findFunctionNode(
-	const FunctionNode *clone ) const
+	const FunctionNode *clone) const
 {
     InnerNode *that = (InnerNode *) this;
-    return that->findFunctionNode( clone );
+    return that->findFunctionNode(clone);
 }
 
+/*!
+ */
 const EnumNode *InnerNode::findEnumNodeForValue(const QString &enumValue) const
 {
     foreach (const Node *node, enumChildren) {
@@ -319,25 +402,33 @@ const EnumNode *InnerNode::findEnumNodeForValue(const QString &enumValue) const
     return 0;
 }
 
-int InnerNode::overloadNumber( const FunctionNode *func ) const
+/*!
+ */
+int InnerNode::overloadNumber(const FunctionNode *func) const
 {
     Node *node = (Node *) func;
-    if ( primaryFunctionMap[func->name()] == node ) {
+    if (primaryFunctionMap[func->name()] == node) {
 	return 1;
-    } else {
+    }
+    else {
 	return secondaryFunctionMap[func->name()].indexOf(node) + 2;
     }
 }
 
-int InnerNode::numOverloads( const QString& funcName ) const
+/*!
+ */
+int InnerNode::numOverloads(const QString& funcName) const
 {
-    if ( primaryFunctionMap.contains(funcName) ) {
+    if (primaryFunctionMap.contains(funcName)) {
 	return secondaryFunctionMap[funcName].count() + 1;
-    } else {
+    }
+    else {
 	return 0;
     }
 }
 
+/*!
+ */
 NodeList InnerNode::overloads(const QString &funcName) const
 {
     NodeList result;
@@ -349,35 +440,42 @@ NodeList InnerNode::overloads(const QString &funcName) const
     return result;
 }
 
-InnerNode::InnerNode( Type type, InnerNode *parent, const QString& name )
-    : Node( type, parent, name )
+/*!
+ */
+InnerNode::InnerNode(Type type, InnerNode *parent, const QString& name)
+    : Node(type, parent, name)
 {
 }
 
-void InnerNode::addInclude( const QString& include )
+/*!
+ */
+void InnerNode::addInclude(const QString& include)
 {
-    inc.append( include );
+    inc.append(include);
 }
 
+/*!
+ */
 void InnerNode::setIncludes(const QStringList& includes)
 {
     inc = includes;
 }
 
-// f1 is always the clone
-bool InnerNode::isSameSignature( const FunctionNode *f1,
-				 const FunctionNode *f2 )
+/*!
+  f1 is always the clone
+ */
+bool InnerNode::isSameSignature(const FunctionNode *f1, const FunctionNode *f2)
 {
-    if ( f1->parameters().count() != f2->parameters().count() )
+    if (f1->parameters().count() != f2->parameters().count())
 	return false;
-    if ( f1->isConst() != f2->isConst() )
+    if (f1->isConst() != f2->isConst())
 	return false;
 
     QList<Parameter>::ConstIterator p1 = f1->parameters().begin();
     QList<Parameter>::ConstIterator p2 = f2->parameters().begin();
-    while ( p2 != f2->parameters().end() ) {
-	if ( (*p1).hasType() && (*p2).hasType() ) {
-            if ( (*p1).rightType() != (*p2).rightType() )
+    while (p2 != f2->parameters().end()) {
+	if ((*p1).hasType() && (*p2).hasType()) {
+            if ((*p1).rightType() != (*p2).rightType())
 		return false;
 
             QString t1 = p1->leftType();
@@ -386,7 +484,10 @@ bool InnerNode::isSameSignature( const FunctionNode *f1,
             if (t1.length() < t2.length())
                 qSwap(t1, t2);
 
-            // ### hack for C++ to handle superfluous "Foo::" prefixes gracefully
+            /*
+              ### hack for C++ to handle superfluous
+              "Foo::" prefixes gracefully
+            */
             if (t1 != t2 && t1 != (f2->parent()->name() + "::" + t2))
                 return false;
 	}
@@ -396,57 +497,66 @@ bool InnerNode::isSameSignature( const FunctionNode *f1,
     return true;
 }
 
-void InnerNode::addChild( Node *child )
+/*!
+ */
+void InnerNode::addChild(Node *child)
 {
-    children.append( child );
-    if ( child->type() == Function ) {
+    children.append(child);
+    if (child->type() == Function) {
 	FunctionNode *func = (FunctionNode *) child;
 	if (!primaryFunctionMap.contains(func->name())) {
             primaryFunctionMap.insert(func->name(), func);
-	} else {
-	    NodeList &secs = secondaryFunctionMap[func->name()];
-	    secs.append( func );
 	}
-    } else {
+        else {
+	    NodeList &secs = secondaryFunctionMap[func->name()];
+	    secs.append(func);
+	}
+    }
+    else {
 	if (child->type() == Enum)
             enumChildren.append(child);
-	childMap.insert( child->name(), child );
+	childMap.insert(child->name(), child);
     }
 }
 
-void InnerNode::removeChild( Node *child )
+/*!
+ */
+void InnerNode::removeChild(Node *child)
 {
     children.removeAll(child);
     enumChildren.removeAll(child);
-    if ( child->type() == Function ) {
+    if (child->type() == Function) {
 	QMap<QString, Node *>::Iterator prim =
-		primaryFunctionMap.find( child->name() );
+		primaryFunctionMap.find(child->name());
 	NodeList& secs = secondaryFunctionMap[child->name()];
-	if ( *prim == child ) {
-	    if ( secs.isEmpty() ) {
+	if (*prim == child) {
+	    if (secs.isEmpty()) {
 		primaryFunctionMap.remove(child->name());
-	    } else {
+	    }
+            else {
 		primaryFunctionMap.insert(child->name(), secs.takeFirst());
 	    }
-	} else {
-	    secs.removeAll( child );
 	}
-    } else {
-	QMap<QString, Node *>::Iterator ent = childMap.find( child->name() );
-	if ( *ent == child )
-	    childMap.erase( ent );
+        else {
+	    secs.removeAll(child);
+	}
+    }
+    else {
+	QMap<QString, Node *>::Iterator ent = childMap.find(child->name());
+	if (*ent == child)
+	    childMap.erase(ent);
     }
 }
 
-/*
-    Find the module (QtCore, QtGui, etc.) to which the class belongs.
-    We do this by obtaining the full path to the header file's location
-    and examine everything between "src/" and the filename.
-    This is semi-dirty because we are assuming a particular directory
-    structure.
+/*!
+  Find the module (QtCore, QtGui, etc.) to which the class belongs.
+  We do this by obtaining the full path to the header file's location
+  and examine everything between "src/" and the filename.  This is
+  semi-dirty because we are assuming a particular directory structure.
 
-    This function is only really useful if the class's module has not
-    been defined with an \inmodule command in the documentation.
+  This function is only really useful if the class's module has not
+  been defined in the header file with a QT_MODULE macro or with an
+  \inmodule command in the documentation.
 */
 QString Node::moduleName() const
 {
@@ -466,65 +576,95 @@ QString Node::moduleName() const
     if (finish == -1)
         return "";
 
-    moduleDir = moduleDir.left(finish);
+    QString moduleName = moduleDir.left(finish);
 
-    if (moduleDir == "corelib")
+    if (moduleName == "corelib")
         return "QtCore";
-    else if (moduleDir == "uitools")
+    else if (moduleName == "uitools")
         return "QtUiTools";
-    else if (moduleDir == "gui")
+    else if (moduleName == "gui")
         return "QtGui";
-    else if (moduleDir == "network")
+    else if (moduleName == "network")
         return "QtNetwork";
-    else if (moduleDir == "opengl")
+    else if (moduleName == "opengl")
         return "QtOpenGL";
-    else if (moduleDir == "qt3support")
+    else if (moduleName == "qt3support")
         return "Qt3Support";
-    else if (moduleDir == "svg")
+    else if (moduleName == "svg")
         return "QtSvg";
-    else if (moduleDir == "sql")
+    else if (moduleName == "sql")
         return "QtSql";
-    else if (moduleDir == "qtestlib")
+    else if (moduleName == "qtestlib")
         return "QtTest";
-    else if (moduleDir == "xml")
+    else if (moduleDir.contains("webkit"))
+        return "QtWebKit";
+    else if (moduleName == "xml")
         return "QtXml";
     else
         return "";
 }
 
+/*!
+ */
 void InnerNode::removeRelated(Node *pseudoChild)
 {       
     related.removeAll(pseudoChild);    
 }
 
+/*!
+  \class LeafNode
+ */
+
+/*!
+  Returns false because this is an InnerNode.
+ */
 bool LeafNode::isInnerNode() const
 {
     return false;
 }
 
-LeafNode::LeafNode( Type type, InnerNode *parent, const QString& name )
-    : Node( type, parent, name )
+/*!
+ */
+LeafNode::LeafNode(Type type, InnerNode *parent, const QString& name)
+    : Node(type, parent, name)
 {
 }
 
-NamespaceNode::NamespaceNode( InnerNode *parent, const QString& name )
-    : InnerNode( Namespace, parent, name )
+/*!
+  \class NamespaceNode
+ */
+
+/*!
+ */
+NamespaceNode::NamespaceNode(InnerNode *parent, const QString& name)
+    : InnerNode(Namespace, parent, name)
 {
 }
 
-ClassNode::ClassNode( InnerNode *parent, const QString& name )
-    : InnerNode( Class, parent, name )
+/*!
+  \class ClassNode
+ */
+
+/*!
+ */
+ClassNode::ClassNode(InnerNode *parent, const QString& name)
+    : InnerNode(Class, parent, name)
 {
     hidden = false;
 }
 
-void ClassNode::addBaseClass(Access access, ClassNode *node,
+/*!
+ */
+void ClassNode::addBaseClass(Access access,
+                             ClassNode *node,
 			     const QString &dataTypeWithTemplateArgs)
 {
     bas.append(RelatedClass(access, node, dataTypeWithTemplateArgs));
     node->der.append(RelatedClass(access, this));
 }
 
+/*!
+ */
 void ClassNode::fixBaseClasses()
 {
     int i;
@@ -538,7 +678,8 @@ void ClassNode::fixBaseClasses()
             const QList<RelatedClass> &basesBases = baseClass->baseClasses();
             for (int j = basesBases.size() - 1; j >= 0; --j)
                 bas.insert(i, basesBases.at(j));
-        } else {
+        }
+        else {
             ++i;
         }
     }
@@ -549,20 +690,30 @@ void ClassNode::fixBaseClasses()
         if (derivedClass->access() == Node::Private) {
             der.removeAt(i);
 
-            const QList<RelatedClass> &dersDers = derivedClass->derivedClasses();
+            const QList<RelatedClass> &dersDers =
+                derivedClass->derivedClasses();
             for (int j = dersDers.size() - 1; j >= 0; --j)
                 der.insert(i, dersDers.at(j));
-        } else {
+        }
+        else {
             ++i;
         }
     }
 }
 
-FakeNode::FakeNode( InnerNode *parent, const QString& name, SubType subType )
-    : InnerNode( Fake, parent, name ), sub( subType )
+/*!
+  \class FakeNode
+ */
+
+/*!
+ */
+FakeNode::FakeNode(InnerNode *parent, const QString& name, SubType subType)
+    : InnerNode(Fake, parent, name), sub(subType)
 {
 }
 
+/*!
+ */
 QString FakeNode::fullTitle() const
 {
     if (sub == File) {
@@ -570,16 +721,20 @@ QString FakeNode::fullTitle() const
             return name().mid(name().lastIndexOf('/') + 1) + " Example File";
         else
             return title();
-    } else if (sub == HeaderFile) {
+    }
+    else if (sub == HeaderFile) {
 	if (title().isEmpty())
 	    return name();
 	else
 	    return name() + " - " + title();
-    } else {
+    }
+    else {
 	return title();
     }
 }
 
+/*!
+ */
 QString FakeNode::subTitle() const
 {
     if (!stle.isEmpty())
@@ -592,26 +747,40 @@ QString FakeNode::subTitle() const
     return QString();
 }
 
-EnumNode::EnumNode( InnerNode *parent, const QString& name )
-    : LeafNode( Enum, parent, name ), ft(0)
+/*!
+  \class EnumNode
+ */
+
+/*!
+ */
+EnumNode::EnumNode(InnerNode *parent, const QString& name)
+    : LeafNode(Enum, parent, name), ft(0)
 {
 }
 
-void EnumNode::addItem( const EnumItem& item )
+/*!
+ */
+void EnumNode::addItem(const EnumItem& item)
 {
-    itms.append( item );
+    itms.append(item);
     names.insert(item.name());
 }
 
+/*!
+ */
 Node::Access EnumNode::itemAccess(const QString &name) const
 {
     if (doc().omitEnumItemNames().contains(name)) {
 	return Private;
-    } else {
+    }
+    else {
 	return Public;
     }
 }
 
+/*!
+  Returns the enum value associated with the enum \a name.
+ */
 QString EnumNode::itemValue(const QString &name) const
 {
     foreach (const EnumItem &item, itms) {
@@ -621,28 +790,48 @@ QString EnumNode::itemValue(const QString &name) const
     return QString();
 }
 
-TypedefNode::TypedefNode( InnerNode *parent, const QString& name )
-    : LeafNode( Typedef, parent, name ), ae(0)
+/*!
+  \class TypedefNode
+ */
+
+/*!
+ */
+TypedefNode::TypedefNode(InnerNode *parent, const QString& name)
+    : LeafNode(Typedef, parent, name), ae(0)
 {
 }
 
+/*!
+ */
 void TypedefNode::setAssociatedEnum(const EnumNode *enume)
 {
     ae = enume;
 }
 
-Parameter::Parameter( const QString& leftType, const QString& rightType,
-		      const QString& name, const QString& defaultValue )
-    : lef( leftType ), rig( rightType ), nam( name ), def( defaultValue )
+/*!
+  \class Parameter
+ */
+
+/*!
+ */
+Parameter::Parameter(const QString& leftType,
+                     const QString& rightType,
+		     const QString& name,
+                     const QString& defaultValue)
+    : lef(leftType), rig(rightType), nam(name), def(defaultValue)
 {
 }
 
-Parameter::Parameter( const Parameter& p )
-    : lef( p.lef ), rig( p.rig ), nam( p.nam ), def( p.def )
+/*!
+ */
+Parameter::Parameter(const Parameter& p)
+    : lef(p.lef), rig(p.rig), nam(p.nam), def(p.def)
 {
 }
 
-Parameter& Parameter::operator=( const Parameter& p )
+/*!
+ */
+Parameter& Parameter::operator=(const Parameter& p)
 {
     lef = p.lef;
     rig = p.rig;
@@ -651,72 +840,105 @@ Parameter& Parameter::operator=( const Parameter& p )
     return *this;
 }
 
-FunctionNode::FunctionNode( InnerNode *parent, const QString& name )
-    : LeafNode( Function, parent, name ), met( Plain ), vir( NonVirtual ),
-      con( false ), sta( false ), ove( false ), rf( 0 ), ap( 0 )
+/*!
+  \class FunctionNode
+ */
+
+/*!
+ */
+FunctionNode::FunctionNode(InnerNode *parent, const QString& name)
+    : LeafNode(Function, parent, name), met(Plain), vir(NonVirtual),
+      con(false), sta(false), ove(false), rf(0), ap(0)
 {
 }
 
-void FunctionNode::setOverload( bool overlode )
+/*!
+ */
+void FunctionNode::setOverload(bool overlode)
 {
-    parent()->setOverload( this, overlode );
+    parent()->setOverload(this, overlode);
     ove = overlode;
 }
 
-void FunctionNode::addParameter( const Parameter& parameter )
+/*!
+ */
+void FunctionNode::addParameter(const Parameter& parameter)
 {
-    params.append( parameter );
+    params.append(parameter);
 }
 
-void FunctionNode::borrowParameterNames( const FunctionNode *source )
+/*!
+ */
+void FunctionNode::borrowParameterNames(const FunctionNode *source)
 {
     QList<Parameter>::Iterator t = params.begin();
     QList<Parameter>::ConstIterator s = source->params.begin();
-    while ( s != source->params.end() && t != params.end() ) {
-	if ( !(*s).name().isEmpty() )
-	    (*t).setName( (*s).name() );
+    while (s != source->params.end() && t != params.end()) {
+	if (!(*s).name().isEmpty())
+	    (*t).setName((*s).name());
 	++s;
 	++t;
     }
 }
 
-void FunctionNode::setReimplementedFrom( FunctionNode *from )
+/*!
+ */
+void FunctionNode::setReimplementedFrom(FunctionNode *from)
 {
     rf = from;
-    from->rb.append( this );
+    from->rb.append(this);
 }
 
-void FunctionNode::setAssociatedProperty( PropertyNode *property )
+/*!
+ */
+void FunctionNode::setAssociatedProperty(PropertyNode *property)
 {
     ap = property;
 }
 
+/*!
+ */
 int FunctionNode::overloadNumber() const
 {
-    return parent()->overloadNumber( this );
+    return parent()->overloadNumber(this);
 }
 
+/*!
+ */
 int FunctionNode::numOverloads() const
 {
-    return parent()->numOverloads( name() );
+    return parent()->numOverloads(name());
 }
 
+/*!
+ */
 QStringList FunctionNode::parameterNames() const
 {
     QStringList names;
     QList<Parameter>::ConstIterator p = parameters().begin();
-    while ( p != parameters().end() ) {
+    while (p != parameters().end()) {
 	names << (*p).name();
 	++p;
     }
     return names;
 }
 
-PropertyNode::PropertyNode( InnerNode *parent, const QString& name )
-    : LeafNode(Property, parent, name), sto(Trool_Default), des(Trool_Default), overrides(0)
+/*!
+  \class PropertyNode
+ */
+
+/*!
+ */
+PropertyNode::PropertyNode(InnerNode *parent, const QString& name)
+    : LeafNode(Property, parent, name),
+      sto(Trool_Default),
+      des(Trool_Default),
+      overrides(0)
 {
 }
 
+/*!
+ */
 void PropertyNode::setOverriddenFrom(const PropertyNode *baseProperty)
 {
     for (int i = 0; i < NumFunctionRoles; ++i) {
@@ -730,29 +952,40 @@ void PropertyNode::setOverriddenFrom(const PropertyNode *baseProperty)
     overrides = baseProperty;
 }
 
+/*!
+ */
 QString PropertyNode::qualifiedDataType() const
 {
     if (setters().isEmpty() && resetters().isEmpty()) {
         if (dt.contains("*") || dt.contains("&")) {
             // 'QWidget *' becomes 'QWidget *' const
             return dt + " const";
-        } else {
-            // 'int' becomes 'const int' ('int const' is correct C++, but looks wrong)
+        }
+        else {
+            /*
+              'int' becomes 'const int' ('int const' is
+              correct C++, but looks wrong)
+            */
             return "const " + dt;
         }
-    } else {
+    }
+    else {
         return dt;
     }
 }
 
-PropertyNode::Trool PropertyNode::toTrool( bool boolean )
+/*!
+ */
+PropertyNode::Trool PropertyNode::toTrool(bool boolean)
 {
     return boolean ? Trool_True : Trool_False;
 }
 
-bool PropertyNode::fromTrool( Trool troolean, bool defaultValue )
+/*!
+ */
+bool PropertyNode::fromTrool(Trool troolean, bool defaultValue)
 {
-    switch ( troolean ) {
+    switch (troolean) {
     case Trool_True:
 	return true;
     case Trool_False:
@@ -762,12 +995,23 @@ bool PropertyNode::fromTrool( Trool troolean, bool defaultValue )
     }
 }
 
-TargetNode::TargetNode( InnerNode *parent, const QString& name )
+/*!
+  \class TargetNode
+ */
+
+/*!
+ */
+TargetNode::TargetNode(InnerNode *parent, const QString& name)
     : LeafNode(Target, parent, name)
 {
 }
 
+/*!
+  Returns false because this is a TargetNode.
+ */
 bool TargetNode::isInnerNode() const
 {
     return false;
 }
+
+QT_END_NAMESPACE

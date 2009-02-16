@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,21 +46,26 @@
 #include "private/qfsfileengine_p.h"
 
 #include <stdlib.h>
-#include <errno.h>
+#if !defined(Q_OS_WINCE)
+#  include <errno.h>
+#  include <sys/stat.h>
+#  include <sys/types.h>
+#else
+#  include <types.h>
+#endif
 
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
-#include <sys/types.h>
 
-#ifdef Q_OS_WIN
-#include <process.h>
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-#include <share.h>
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
+# include <process.h>
+# if defined(_MSC_VER) && _MSC_VER >= 1400
+#  include <share.h>
+# endif
 #endif
-#endif
+
+QT_BEGIN_NAMESPACE
 
 /*
  * Copyright (c) 1987, 1993
@@ -99,9 +98,9 @@
 static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 {
 	char *start, *trv, *suffp;
-	struct stat sbuf;
+	QT_STATBUF sbuf;
 	int rval;
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     int pid;
 #else
 	pid_t pid;
@@ -158,7 +157,18 @@ static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 				break;
 			if (*trv == '/') {
 				*trv = '\0';
-				rval = stat(path, &sbuf);
+#if defined (Q_OS_WIN) && !defined(Q_OS_WINCE)
+                                if (trv - path == 2 && path[1] == ':') {
+                                    // Special case for Windows drives
+                                    // (e.g., "C:" => "C:\").
+                                    // ### Better to use a Windows
+                                    // call for this.
+									char drive[] = "c:\\";
+                                    drive[0] = path[0];
+                                    rval = QT_STAT(drive, &sbuf);
+                                } else
+#endif
+				rval = QT_STAT(path, &sbuf);
 				*trv = '/';
 				if (rval != 0)
 					return(0);
@@ -173,19 +183,32 @@ static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 
 	for (;;) {
 		if (doopen) {
-#if defined(Q_OS_WIN) && defined(_MSC_VER) && _MSC_VER >= 1400
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE) && defined(_MSC_VER) && _MSC_VER >= 1400
                         if (_sopen_s(doopen, path, QT_OPEN_CREAT|O_EXCL|QT_OPEN_RDWR|QT_OPEN_BINARY
 #ifdef QT_LARGEFILE_SUPPORT
                                      |QT_OPEN_LARGEFILE
 #endif
                                      , _SH_DENYNO, _S_IREAD | _S_IWRITE)== 0)
 #else
+#if defined(Q_OS_WINCE)
+            QString targetPath;
+            if (QDir::isAbsolutePath(QString::fromLatin1(path)))
+                targetPath = QLatin1String(path);
+            else
+                targetPath = QDir::currentPath().append(QLatin1String("/")) + QLatin1String(path);
+
+            if ((*doopen =
+                open(targetPath.toLocal8Bit(), O_CREAT|O_EXCL|O_RDWR
+#else
                         if ((*doopen =
                             open(path, QT_OPEN_CREAT|O_EXCL|QT_OPEN_RDWR
+#endif
 #ifdef QT_LARGEFILE_SUPPORT
                                  |QT_OPEN_LARGEFILE
 #endif
-#  if defined(Q_OS_WIN)
+#  if defined(Q_OS_WINCE)
+							     |_O_BINARY
+#  elif defined(Q_OS_WIN)
                                  |O_BINARY
 #  endif
                                  , 0600)) >= 0)
@@ -205,7 +228,7 @@ static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 				return(0);
             }
 #ifndef Q_OS_WIN
-            else if (lstat(path, &sbuf))
+            else if (QT_LSTAT(path, &sbuf))
 			return(errno == ENOENT ? 1 : 0);
 #endif
 
@@ -236,7 +259,7 @@ static int _gettemp(char *path, int *doopen, int domkdir, int slen)
 
 static int qt_mkstemps(char *path, int slen)
 {
-	int fd;
+	int fd = 0;
 	return (_gettemp(path, &fd, 0, slen) ? fd : -1);
 }
 
@@ -354,24 +377,28 @@ QTemporaryFilePrivate::~QTemporaryFilePrivate()
 
     Example:
 
-    \code
-        {
-            QTemporaryFile file;
-            if (file.open()) {
-                // file.fileName() returns the unique file name
-            }
-
-            // the QTemporaryFile destructor removes the temporary file
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qtemporaryfile.cpp 0
 
     Reopening a QTemporaryFile after calling close() is safe. For as long as
     the QTemporaryFile object itself is not destroyed, the unique temporary
     file will exist and be kept open internally by QTemporaryFile.
 
-    A temporary file will have some static part of the name and some part that
-    is calculated to be unique. The default filename qt_temp will be placed
-    into the temporary path as returned by QDir::tempPath().
+    The file name of the temporary file can be found by calling fileName().
+    Note that this is only defined while the file is open; the function returns
+    an empty string before the file is opened and after it is closed.
+
+    A temporary file will have some static part of the name and some
+    part that is calculated to be unique. The default filename \c
+    qt_temp will be placed into the temporary path as returned by
+    QDir::tempPath(). If you specify your own filename, a relative
+    file path will not be placed in the temporary directory by
+    default, but be relative to the current working directory.
+
+    Specified filenames can contain the following template \c XXXXXX,
+    which will be replaced by the auto-generated portion of the
+    filename. Note that the template is case sensitive. If the
+    template is not present in the filename, QTemporaryFile appends
+    the generated part to the filename given.
 
     \sa QDir::tempPath(), QFile
 */
@@ -563,17 +590,19 @@ void QTemporaryFile::setFileTemplate(const QString &name)
 }
 
 /*!
-    \fn QTemporaryFile *QTemporaryFile::createLocalFile(const QString &fileName)
-    \overload
+  \fn QTemporaryFile *QTemporaryFile::createLocalFile(const QString &fileName)
+  \overload
 
-    Works on the given \a fileName rather than an existing QFile
-    object.
+  Works on the given \a fileName rather than an existing QFile
+  object.
 */
 
 
 /*!
-    Creates and returns a local temporary file whose contents are a
-    copy of the contents of the given \a file.
+  If \a file is not on a local disk, a temporary file is created
+  on a local disk, \a file is copied into the temporary local file,
+  and a pointer to the temporary local file is returned. If \a file
+  is already on a local disk, a copy is not created and 0 is returned.
 */
 QTemporaryFile *QTemporaryFile::createLocalFile(QFile &file)
 {
@@ -645,3 +674,5 @@ bool QTemporaryFile::open(OpenMode flags)
 }
 
 #endif // QT_NO_TEMPORARYFILE
+
+QT_END_NAMESPACE

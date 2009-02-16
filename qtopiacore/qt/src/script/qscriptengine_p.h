@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,12 +64,12 @@
 #include "qscriptecmafunction_p.h"
 #include "qscriptextvariant_p.h"
 #include "qscriptextqobject_p.h"
-#include "qscriptclassinfo_p.h"
 #include "qscriptvalue_p.h"
 #include "qscriptcontextfwd_p.h"
-#include "qscriptasm_p.h"
 
 #include <math.h>
+
+QT_BEGIN_NAMESPACE
 
 //
 //  W A R N I N G
@@ -99,7 +93,6 @@ public:
 public: // attributes
     QScriptValueImpl activation;
     uint length;
-    QScriptValueImpl callee;
 };
 
 } // namespace QScript
@@ -129,7 +122,7 @@ inline QString QScriptEnginePrivate::memberName(const QScript::Member &member) c
 inline void QScriptEnginePrivate::newReference(QScriptValueImpl *o, int mode)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_reference);
+    o->m_type = (m_type_reference);
     o->m_int_value = (mode);
 }
 
@@ -142,54 +135,54 @@ inline void QScriptEnginePrivate::newActivation(QScriptValueImpl *o)
 inline void QScriptEnginePrivate::newBoolean(QScriptValueImpl *o, bool b)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_boolean);
+    o->m_type = (m_type_boolean);
     o->m_bool_value = (b);
 }
 
 inline void QScriptEnginePrivate::newNull(QScriptValueImpl *o)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_null);
+    o->m_type = (m_type_null);
 }
 
 inline void QScriptEnginePrivate::newUndefined(QScriptValueImpl *o)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_undefined);
+    o->m_type = (m_type_undefined);
 }
 
 inline void QScriptEnginePrivate::newPointer(QScriptValueImpl *o, void *ptr)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_pointer);
+    o->m_type = (m_type_pointer);
     o->m_ptr_value = ptr;
 }
 
 inline void QScriptEnginePrivate::newInteger(QScriptValueImpl *o, int i)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_int);
+    o->m_type = (m_type_int);
     o->m_int_value = (i);
 }
 
 inline void QScriptEnginePrivate::newNumber(QScriptValueImpl *o, qsreal d)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_double);
+    o->m_type = (m_type_number);
     o->m_number_value = (d);
 }
 
 inline void QScriptEnginePrivate::newNameId(QScriptValueImpl *o, const QString &s)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_string);
+    o->m_type = (m_type_string);
     o->m_string_value = (nameId(s, /*persistent=*/false));
 }
 
 inline void QScriptEnginePrivate::newString(QScriptValueImpl *o, const QString &s)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_string);
+    o->m_type = (m_type_string);
     QScriptNameIdImpl *entry = new QScriptNameIdImpl(s);
     m_tempStringRepository.append(entry);
     o->m_string_value = (entry);
@@ -198,7 +191,7 @@ inline void QScriptEnginePrivate::newString(QScriptValueImpl *o, const QString &
 inline void QScriptEnginePrivate::newNameId(QScriptValueImpl *o, QScriptNameIdImpl *id)
 {
     Q_ASSERT(o);
-    o->m_class = (m_class_string);
+    o->m_type = (m_type_string);
     o->m_string_value = (id);
 }
 
@@ -277,7 +270,7 @@ inline bool QScriptEnginePrivate::convertToNativeBoolean(const QScriptValueImpl 
 {
     Q_ASSERT (object.isValid());
 
-    if (object.type() == QScript::BooleanType)
+    if (object.isBoolean())
         return object.m_bool_value;
 
     return convertToNativeBoolean_helper(object);
@@ -414,11 +407,6 @@ inline void QScriptEnginePrivate::setLexer(QScript::Lexer *lexer)
     m_lexer = lexer;
 }
 
-inline QString QScriptEnginePrivate::errorMessage() const
-{
-    return m_errorMessage;
-}
-
 inline QScriptObject *QScriptEnginePrivate::allocObject()
 {
     return objectAllocator();
@@ -434,24 +422,32 @@ inline QScriptContext *QScriptEnginePrivate::pushContext()
     QScriptContext *context = m_frameRepository.get();
     QScriptContextPrivate::get(context)->init(m_context);
     m_context = context;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    notifyContextPush();
+#endif
     return m_context;
 }
 
 inline void QScriptEnginePrivate::popContext()
 {
     Q_ASSERT(m_context != 0);
-
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    notifyContextPop();
+#endif
     QScriptContext *context = m_context;
     m_context = context->parentContext();
     if (m_context) {
-        // propagate the state
         QScriptContextPrivate *p1 = QScriptContextPrivate::get(m_context);
         QScriptContextPrivate *p2 = QScriptContextPrivate::get(context);
-        p1->m_result = p2->m_result;
-        p1->m_state = p2->m_state;
-        // only update errorLineNumber if there actually was an exception
-        if (p2->state() == QScriptContext::ExceptionState)
-            p1->errorLineNumber = p2->errorLineNumber;
+        if ((p1->m_state != QScriptContext::ExceptionState)
+            || (p2->m_state == QScriptContext::ExceptionState)) {
+            // propagate the state
+            p1->m_result = p2->m_result;
+            p1->m_state = p2->m_state;
+            // only update errorLineNumber if there actually was an exception
+            if (p2->m_state == QScriptContext::ExceptionState)
+                p1->errorLineNumber = p2->errorLineNumber;
+        }
     }
     m_frameRepository.release(context);
 }
@@ -508,32 +504,26 @@ inline QScriptValueImpl QScriptEnginePrivate::newArray(uint length)
     return v;
 }
 
-inline QScriptClassInfo *QScriptEnginePrivate::registerClass(const QString &pname, QScript::Type type)
+inline QScriptClassInfo *QScriptEnginePrivate::registerClass(const QString &pname, int type)
 {
     if (type == -1)
-        type = QScript::Type(QScript::ObjectBased | ++m_class_prev_id);
+        type = ++m_class_prev_id;
 
-    QScriptClassInfo *oc = new QScriptClassInfo();
+    QScriptClassInfo *oc = new QScriptClassInfo(QScriptClassInfo::Type(type), pname);
     m_allocated_classes.append(oc);
-    oc->m_engine = q_func();
-    oc->m_type = type;
-    oc->m_name = pname;
-    oc->m_data = 0;
-
-    m_classes[type] = oc;
 
     return oc;
 }
 
 inline QScriptClassInfo *QScriptEnginePrivate::registerClass(const QString &name)
 {
-    return registerClass(name, QScript::Type(-1));
+    return registerClass(name, -1);
 }
 
 inline QScriptValueImpl QScriptEnginePrivate::createFunction(QScriptInternalFunctionSignature fun,
-                                       int length, QScriptClassInfo *classInfo)
+                                       int length, QScriptClassInfo *classInfo, const QString &name)
 {
-    return createFunction(new QScript::C2Function(fun, length, classInfo));
+    return createFunction(new QScript::C2Function(fun, length, classInfo, name));
 }
 
 inline void QScriptEnginePrivate::newFunction(QScriptValueImpl *o, QScriptFunction *function)
@@ -547,7 +537,7 @@ inline void QScriptEnginePrivate::newFunction(QScriptValueImpl *o, QScriptFuncti
         proto = objectConstructor->publicPrototype;
     }
     newObject(o, proto, m_class_function);
-    o->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(function));
+    o->setObjectData(function);
 }
 
 inline void QScriptEnginePrivate::newConstructor(QScriptValueImpl *ctor,
@@ -555,11 +545,11 @@ inline void QScriptEnginePrivate::newConstructor(QScriptValueImpl *ctor,
                                           QScriptValueImpl &proto)
 {
     newFunction(ctor, function);
-    ctor->setProperty(QLatin1String("prototype"), proto,
+    ctor->setProperty(m_id_table.id_prototype, proto,
                       QScriptValue::Undeletable
                       | QScriptValue::ReadOnly
                       | QScriptValue::SkipInEnumeration);
-    proto.setProperty(QLatin1String("constructor"), *ctor,
+    proto.setProperty(m_id_table.id_constructor, *ctor,
                       QScriptValue::Undeletable
                       | QScriptValue::SkipInEnumeration);
 }
@@ -572,16 +562,18 @@ inline void QScriptEnginePrivate::newArguments(QScriptValueImpl *object,
     QScript::ArgumentsObjectData *data = new QScript::ArgumentsObjectData();
     data->activation = activation;
     data->length = length;
-    data->callee = callee;
-
     newObject(object, m_class_arguments);
-    object->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(data));
+    object->setObjectData(data);
+    object->setProperty(m_id_table.id_callee, callee,
+                        QScriptValue::SkipInEnumeration);
+    object->setProperty(m_id_table.id_length, QScriptValueImpl(this, length),
+                        QScriptValue::SkipInEnumeration);
 }
 
 inline QScriptFunction *QScriptEnginePrivate::convertToNativeFunction(const QScriptValueImpl &object)
 {
     if (object.isFunction())
-        return static_cast<QScriptFunction*> (object.objectData().data());
+        return static_cast<QScriptFunction*> (object.objectData());
     return 0;
 }
 
@@ -620,7 +612,7 @@ inline void QScriptEnginePrivate::newObject(QScriptValueImpl *o, const QScriptVa
 
     QScriptObject *od = allocObject();
     od->reset();
-
+    od->m_id = ++m_next_object_id;
     if (proto.isValid())
         od->m_prototype = proto;
     else {
@@ -628,7 +620,8 @@ inline void QScriptEnginePrivate::newObject(QScriptValueImpl *o, const QScriptVa
         od->m_prototype = objectConstructor->publicPrototype;
     }
 
-    o->m_class = (oc ? oc : m_class_object);
+    o->m_type = m_type_object;
+    od->m_class = (oc ? oc : m_class_object);
     o->m_object_value = od;
 }
 
@@ -644,40 +637,21 @@ inline QScriptValueImpl QScriptEnginePrivate::newObject()
     return v;
 }
 
-inline QScriptValueImpl QScriptEnginePrivate::newVariant(const QVariant &value)
+inline void QScriptEnginePrivate::newVariant(QScriptValueImpl *out,
+                                             const QVariant &value,
+                                             bool setDefaultPrototype)
 {
     Q_ASSERT(variantConstructor != 0);
-    QScriptValueImpl v;
-    variantConstructor->newVariant(&v, value);
-    QScriptValueImpl proto = defaultPrototype(value.userType());
-    if (proto.isValid())
-        v.setPrototype(proto);
-    return v;
+    variantConstructor->newVariant(out, value);
+    if (setDefaultPrototype) {
+        QScriptValueImpl proto = defaultPrototype(value.userType());
+        if (proto.isValid())
+            out->setPrototype(proto);
+    }
 }
 
 #ifndef QT_NO_QOBJECT
-inline QScriptValueImpl QScriptEnginePrivate::newQObject(QObject *object,
-                                                         QScriptEngine::ValueOwnership ownership,
-                                                         const QScriptEngine::QObjectWrapOptions &options)
-{
-    if (!object)
-        return nullValue();
-    Q_ASSERT(qobjectConstructor != 0);
-    QScriptValueImpl v;
-    qobjectConstructor->newQObject(&v, object, ownership, options);
-    // see if we have a default prototype
-    QByteArray typeString = object->metaObject()->className();
-    typeString.append('*');
-    int typeId = QMetaType::type(typeString);
-    if (typeId != 0) {
-        QScriptValueImpl proto = defaultPrototype(typeId);
-        if (proto.isValid())
-            v.setPrototype(proto);
-    }
-    return v;
-}
-
-#ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
+#  ifndef Q_SCRIPT_NO_QMETAOBJECT_CACHE
 inline QScriptMetaObject *QScriptEnginePrivate::cachedMetaObject(const QMetaObject *meta)
 {
     QScriptMetaObject *value = m_cachedMetaObjects.value(meta);
@@ -687,8 +661,7 @@ inline QScriptMetaObject *QScriptEnginePrivate::cachedMetaObject(const QMetaObje
     }
     return value;
 }
-#endif
-
+#  endif
 #endif // !QT_NO_QOBJECT
 
 inline QScriptNameIdImpl *QScriptEnginePrivate::nameId(const QString &str, bool persistent)
@@ -715,7 +688,7 @@ inline QScriptValueImpl QScriptEnginePrivate::valueFromVariant(const QVariant &v
 {
     QScriptValueImpl result = create(v.userType(), v.data());
     if (!result.isValid())
-        result = newVariant(v);
+        newVariant(&result, v);
     return result;
 }
 
@@ -832,5 +805,83 @@ inline void QScriptEnginePrivate::maybeProcessEvents()
     }
 }
 
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+
+inline bool QScriptEnginePrivate::shouldAbort() const
+{
+    return m_abort;
+}
+
+inline void QScriptEnginePrivate::resetAbortFlag()
+{
+    m_abort = false;
+}
+
+inline bool QScriptEnginePrivate::shouldNotify() const
+{
+    return m_agent != 0;
+}
+
+inline void QScriptEnginePrivate::notifyScriptLoad(
+    qint64 id, const QString &program,
+    const QString &fileName, int lineNumber)
+{
+    if (shouldNotify())
+        notifyScriptLoad_helper(id, program, fileName, lineNumber);
+}
+
+inline void QScriptEnginePrivate::notifyScriptUnload(qint64 id)
+{
+    if (shouldNotify())
+        notifyScriptUnload_helper(id);
+}
+
+inline void QScriptEnginePrivate::notifyPositionChange(QScriptContextPrivate *ctx)
+{
+    if (shouldNotify())
+        notifyPositionChange_helper(ctx);
+}
+
+inline void QScriptEnginePrivate::notifyContextPush()
+{
+    if (shouldNotify())
+        notifyContextPush_helper();
+}
+
+inline void QScriptEnginePrivate::notifyContextPop()
+{
+    if (shouldNotify())
+        notifyContextPop_helper();
+}
+
+inline void QScriptEnginePrivate::notifyFunctionEntry(QScriptContextPrivate *ctx)
+{
+    if (shouldNotify())
+        notifyFunctionEntry_helper(ctx);
+}
+
+inline void QScriptEnginePrivate::notifyFunctionExit(QScriptContextPrivate *ctx)
+{
+    if (shouldNotify())
+        notifyFunctionExit_helper(ctx);
+}
+
+inline void QScriptEnginePrivate::notifyException(QScriptContextPrivate *ctx)
+{
+    if (shouldNotify())
+        notifyException_helper(ctx);
+}
+
+inline void QScriptEnginePrivate::notifyExceptionCatch(QScriptContextPrivate *ctx)
+{
+    if (shouldNotify())
+        notifyExceptionCatch_helper(ctx);
+}
+
+#endif // Q_SCRIPT_NO_EVENT_NOTIFY
+
+QT_END_NAMESPACE
+
 #endif // QT_NO_SCRIPT
+
 #endif

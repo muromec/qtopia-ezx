@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -103,8 +97,10 @@
     servers, mail clients and so on.
 
     QUrl conforms to the URI specification from
-    \l{RFC 3986} (Uniform Resource Identifier: Generic Syntax), and includes scheme extensions from
-    \l{RFC 1738} (Uniform Resource Locators).
+    \l{RFC 3986} (Uniform Resource Identifier: Generic Syntax), and includes
+    scheme extensions from \l{RFC 1738} (Uniform Resource Locators). Case
+    folding rules in QUrl conform to \l{RFC 3491} (Nameprep: A Stringprep
+    Profile for Internationalized Domain Names (IDN)).
 
     \sa QUrlInfo
 */
@@ -137,7 +133,7 @@
     characters. In TolerantMode, characters outside this range are
     automatically percent-encoded.
 
-    \o Any occurrence of "[" and "]" following the host part of the
+    \o Any occurrence of "[", "]", "{" or "}" following the host part of the
     URL is percent-encoded.
 
     \endlist
@@ -149,7 +145,7 @@
     The formatting options define how the URL is formatted when written out
     as text.
 
-    \value None          The URL is left unchanged.
+    \value None The format of the URL is unchanged.
     \value RemoveScheme  The scheme is removed from the URL.
     \value RemovePassword  Any password in the URL is removed.
     \value RemoveUserInfo  Any user information in the URL is removed.
@@ -161,6 +157,10 @@
                         is removed.
     \value RemoveFragment
     \value StripTrailingSlash  The trailing slash is removed if one is present.
+
+    Note that the case folding rules in \l{RFC 3491}{Nameprep}, which QUrl
+    conforms to, require host names to always be converted to lower case,
+    regardless of the Qt::FormattingOptions used.
 */
 
 #include "qplatformdefs.h"
@@ -180,6 +180,8 @@
 #if defined QT3_SUPPORT
 #include "qfileinfo.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 // ### Qt 5: Consider accepting empty strings as valid. See task 144227.
 
@@ -202,8 +204,8 @@ static const uint initial_n = 128;
 #define QURL_UNSETFLAG(a, b) { (a) &= ~(b); }
 #define QURL_HASFLAG(a, b) (((a) & (b)) == (b))
 
-struct ErrorInfo {
-    inline ErrorInfo() : _source(0)
+struct QUrlErrorInfo {
+    inline QUrlErrorInfo() : _source(0)
     { }
 
     char *_source;
@@ -229,14 +231,18 @@ public:
 
     bool setUrl(const QString &url);
 
+    QString canonicalHost() const;
+    void ensureEncodedParts() const;
     QString authority(QUrl::FormattingOptions options = QUrl::None) const;
     void setAuthority(const QString &auth);
     void setUserInfo(const QString &userInfo);
     QString userInfo(QUrl::FormattingOptions options = QUrl::None) const;
+    void setEncodedAuthority(const QByteArray &authority);
+    void setEncodedUserInfo(const QByteArray &userInfo);
 
-    QString mergePaths(const QString &relativePath) const;
+    QByteArray mergePaths(const QByteArray &relativePath) const;
 
-    static QString removeDotsFromPath(const QString &path);
+    static QByteArray removeDotsFromPath(const QByteArray &path);
 
     enum ParseOptions {
         ParseAndSet,
@@ -249,23 +255,28 @@ public:
 
     QByteArray toEncoded(QUrl::FormattingOptions options = QUrl::None) const;
 
-    QAtomic ref;
+    QAtomicInt ref;
 
     QString scheme;
     QString userName;
     QString password;
     QString host;
-    int port;
     QString path;
     QByteArray query;
-    bool hasQuery;
     QString fragment;
-    bool hasFragment;
 
     QByteArray encodedOriginal;
+    QByteArray encodedUserName;
+    QByteArray encodedPassword;
+    QByteArray encodedPath;
+    QByteArray encodedFragment;
 
-    bool isValid;
+    int port;
     QUrl::ParsingMode parsingMode;
+
+    bool hasQuery;
+    bool hasFragment;
+    bool isValid;
 
     char valueDelimiter;
     char pairDelimiter;
@@ -273,18 +284,19 @@ public:
     enum State {
         Parsed = 0x1,
         Validated = 0x2,
-        Normalized = 0x4
+        Normalized = 0x4,
+        HostCanonicalized = 0x8
     };
     int stateFlags;
 
     QByteArray encodedNormalized;
     const QByteArray & normalized();
 
-    mutable ErrorInfo errorInfo;
+    mutable QUrlErrorInfo errorInfo;
     QString createErrorString();
 };
 
-static bool QT_FASTCALL _char(char **ptr, char expected, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _char(char **ptr, char expected, QUrlErrorInfo *errorInfo)
 {
     if (*((*ptr)) == expected) {
         ++(*ptr);
@@ -295,7 +307,7 @@ static bool QT_FASTCALL _char(char **ptr, char expected, ErrorInfo *errorInfo)
     return false;
 }
 
-static bool QT_FASTCALL _HEXDIG(char **ptr, char *dig, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _HEXDIG(char **ptr, char *dig, QUrlErrorInfo *errorInfo)
 {
     char ch = **ptr;
     if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) {
@@ -310,7 +322,7 @@ static bool QT_FASTCALL _HEXDIG(char **ptr, char *dig, ErrorInfo *errorInfo)
 }
 
 // pct-encoded = "%" HEXDIG HEXDIG
-static bool QT_FASTCALL _pctEncoded(char **ptr, char pct[], ErrorInfo *errorInfo)
+static bool QT_FASTCALL _pctEncoded(char **ptr, char pct[], QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     if (!_char(ptr, '%', errorInfo)) return false;
@@ -346,7 +358,7 @@ static bool QT_FASTCALL _genDelims(char **ptr, char *c)
 
 // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
 //             / "*" / "+" / "," / ";" / "="
-static bool QT_FASTCALL _subDelims(char **ptr, char *c, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _subDelims(char **ptr, char *c, QUrlErrorInfo *errorInfo)
 {
     char ch = **ptr;
     switch (ch) {
@@ -390,7 +402,7 @@ static bool QT_FASTCALL _DIGIT_(char **ptr, char *c)
 }
 
 // unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
-static bool QT_FASTCALL _unreserved(char **ptr, char *c, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _unreserved(char **ptr, char *c, QUrlErrorInfo *errorInfo)
 {
     if (_ALPHA_(ptr, c) || _DIGIT_(ptr, c))
         return true;
@@ -432,7 +444,7 @@ static bool QT_FASTCALL _scheme(char **ptr, QByteArray *scheme)
 }
 
 // IPvFuture  = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-static bool QT_FASTCALL _IPvFuture(char **ptr, QByteArray *host, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _IPvFuture(char **ptr, QByteArray *host, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     char ch = *((*ptr)++);
@@ -477,7 +489,7 @@ static bool QT_FASTCALL _IPvFuture(char **ptr, QByteArray *host, ErrorInfo *erro
 
 // h16         = 1*4HEXDIG
 //             ; 16 bits of address represented in hexadecimal
-static bool QT_FASTCALL _h16(char **ptr, QByteArray *c, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _h16(char **ptr, QByteArray *c, QUrlErrorInfo *errorInfo)
 {
     char ch;
     if (!_HEXDIG(ptr, &ch, errorInfo))
@@ -498,7 +510,7 @@ static bool QT_FASTCALL _h16(char **ptr, QByteArray *c, ErrorInfo *errorInfo)
 //             / "1" 2DIGIT            ; 100-199
 //             / "2" %x30-34 DIGIT     ; 200-249
 //             / "25" %x30-35          ; 250-255
-static bool QT_FASTCALL _decOctet(char **ptr, QByteArray *octet, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _decOctet(char **ptr, QByteArray *octet, QUrlErrorInfo *errorInfo)
 {
     char c1 = **ptr;
 
@@ -544,7 +556,7 @@ static bool QT_FASTCALL _decOctet(char **ptr, QByteArray *octet, ErrorInfo *erro
 }
 
 // IPv4address = dec-octet "." dec-octet "." dec-octet "." dec-octet
-static bool QT_FASTCALL _IPv4Address(char **ptr, QByteArray *c, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _IPv4Address(char **ptr, QByteArray *c, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     QByteArray tmp1; tmp1.reserve(32);
@@ -577,7 +589,7 @@ static bool QT_FASTCALL _IPv4Address(char **ptr, QByteArray *c, ErrorInfo *error
 
 // ls32        = ( h16 ":" h16 ) / IPv4address
 //             ; least-significant 32 bits of address
-static bool QT_FASTCALL _ls32(char **ptr, QByteArray *c, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _ls32(char **ptr, QByteArray *c, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     QByteArray tmp1;
@@ -602,7 +614,7 @@ static bool QT_FASTCALL _ls32(char **ptr, QByteArray *c, ErrorInfo *errorInfo)
 //             / [ *4( h16 ":" ) h16 ] "::"              ls32 // case 7
 //             / [ *5( h16 ":" ) h16 ] "::"              h16  // case 8
 //             / [ *6( h16 ":" ) h16 ] "::"                   // case 9
-static bool QT_FASTCALL _IPv6Address(char **ptr, QByteArray *host, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _IPv6Address(char **ptr, QByteArray *host, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
 
@@ -718,7 +730,7 @@ static bool QT_FASTCALL _IPv6Address(char **ptr, QByteArray *host, ErrorInfo *er
 }
 
 // IP-literal = "[" ( IPv6address / IPvFuture  ) "]"
-static bool QT_FASTCALL _IPLiteral(char **ptr, QByteArray *host, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _IPLiteral(char **ptr, QByteArray *host, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     if (!_char(ptr, '[', errorInfo))
@@ -742,7 +754,7 @@ static bool QT_FASTCALL _IPLiteral(char **ptr, QByteArray *host, ErrorInfo *erro
 }
 
 // reg-name    = *( unreserved / pct-encoded / sub-delims )
-static bool QT_FASTCALL _regName(char **ptr, QByteArray *host, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _regName(char **ptr, QByteArray *host, QUrlErrorInfo *errorInfo)
 {
     char pctTmp[4];
     for (;;) {
@@ -760,13 +772,13 @@ static bool QT_FASTCALL _regName(char **ptr, QByteArray *host, ErrorInfo *errorI
 }
 
 // host        = IP-literal / IPv4address / reg-name
-static bool QT_FASTCALL _host(char **ptr, QByteArray *host, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _host(char **ptr, QByteArray *host, QUrlErrorInfo *errorInfo)
 {
     return (_IPLiteral(ptr, host, errorInfo) || _IPv4Address(ptr, host, errorInfo) || _regName(ptr, host, errorInfo));
 }
 
 // userinfo    = *( unreserved / pct-encoded / sub-delims / ":" )
-static bool QT_FASTCALL _userInfo(char **ptr, QByteArray *userInfo, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _userInfo(char **ptr, QByteArray *userInfo, QUrlErrorInfo *errorInfo)
 {
     for (;;) {
         char ch;
@@ -813,7 +825,7 @@ static bool QT_FASTCALL _port(char **ptr, int *port)
 }
 
 // authority   = [ userinfo "@" ] host [ ":" port ]
-static bool QT_FASTCALL _authority(char **ptr, QByteArray *userInfo, QByteArray *host, int *port, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _authority(char **ptr, QByteArray *userInfo, QByteArray *host, int *port, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     if (_userInfo(ptr, userInfo, errorInfo)) {
@@ -844,7 +856,7 @@ static bool QT_FASTCALL _authority(char **ptr, QByteArray *userInfo, QByteArray 
 }
 
 // pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
-static bool QT_FASTCALL _pchar(char **ptr, char pc[], ErrorInfo *errorInfo)
+static bool QT_FASTCALL _pchar(char **ptr, char pc[], QUrlErrorInfo *errorInfo)
 {
     char c = *(*ptr);
 
@@ -876,7 +888,7 @@ static bool QT_FASTCALL _pchar(char **ptr, char pc[], ErrorInfo *errorInfo)
 }
 
 // segment       = *pchar
-static bool QT_FASTCALL _segment(char **ptr, QByteArray *segment, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _segment(char **ptr, QByteArray *segment, QUrlErrorInfo *errorInfo)
 {
     for (;;) {
         char pctTmp[4];
@@ -890,7 +902,7 @@ static bool QT_FASTCALL _segment(char **ptr, QByteArray *segment, ErrorInfo *err
 }
 
 // segment       = *pchar
-static bool QT_FASTCALL _segmentNZ(char **ptr, QByteArray *segment, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _segmentNZ(char **ptr, QByteArray *segment, QUrlErrorInfo *errorInfo)
 {
     char pctTmp[4];
     if (!_pchar(ptr, pctTmp, errorInfo))
@@ -909,7 +921,7 @@ static bool QT_FASTCALL _segmentNZ(char **ptr, QByteArray *segment, ErrorInfo *e
 }
 
 // path-abempty  = *( "/" segment )
-static bool QT_FASTCALL _pathAbEmpty(char **ptr, QByteArray *path, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _pathAbEmpty(char **ptr, QByteArray *path, QUrlErrorInfo *errorInfo)
 {
     for (;;) {
         char *ptrBackup = *ptr;
@@ -932,7 +944,7 @@ static bool QT_FASTCALL _pathAbEmpty(char **ptr, QByteArray *path, ErrorInfo *er
 }
 
 // path-abs      = "/" [ segment-nz *( "/" segment ) ]
-static bool QT_FASTCALL _pathAbs(char **ptr, QByteArray *path, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _pathAbs(char **ptr, QByteArray *path, QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     char ch = *((*ptr)++);
@@ -974,7 +986,7 @@ static bool QT_FASTCALL _pathAbs(char **ptr, QByteArray *path, ErrorInfo *errorI
 }
 
 // path-rootless = segment-nz *( "/" segment )
-static bool QT_FASTCALL _pathRootless(char **ptr, QByteArray *path, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _pathRootless(char **ptr, QByteArray *path, QUrlErrorInfo *errorInfo)
 {
     // we might be able to unnest this to gain some performance.
     QByteArray segment;
@@ -1005,7 +1017,7 @@ static bool QT_FASTCALL _pathRootless(char **ptr, QByteArray *path, ErrorInfo *e
 }
 
 // path-empty    = 0<pchar>
-static bool QT_FASTCALL _pathEmpty(char **, QByteArray *path, ErrorInfo *)
+static bool QT_FASTCALL _pathEmpty(char **, QByteArray *path, QUrlErrorInfo *)
 {
     path->truncate(0);
     return true;
@@ -1016,7 +1028,7 @@ static bool QT_FASTCALL _pathEmpty(char **, QByteArray *path, ErrorInfo *)
 //             / path-rootless
 //             / path-empty
 static bool QT_FASTCALL _hierPart(char **ptr, QByteArray *userInfo, QByteArray *host, int *port, QByteArray *path,
-                                  ErrorInfo *errorInfo)
+                                  QUrlErrorInfo *errorInfo)
 {
     char *ptrBackup = *ptr;
     if (*((*ptr)++) == '/' && *((*ptr)++) == '/') {
@@ -1031,7 +1043,7 @@ static bool QT_FASTCALL _hierPart(char **ptr, QByteArray *userInfo, QByteArray *
 }
 
 // query       = *( pchar / "/" / "?" )
-static bool QT_FASTCALL _query(char **ptr, QByteArray *query, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _query(char **ptr, QByteArray *query, QUrlErrorInfo *errorInfo)
 {
     for (;;) {
         char tmp[4];
@@ -1053,7 +1065,7 @@ static bool QT_FASTCALL _query(char **ptr, QByteArray *query, ErrorInfo *errorIn
 }
 
 // fragment    = *( pchar / "/" / "?" )
-static bool QT_FASTCALL _fragment(char **ptr, QByteArray *fragment, ErrorInfo *errorInfo)
+static bool QT_FASTCALL _fragment(char **ptr, QByteArray *fragment, QUrlErrorInfo *errorInfo)
 {
     for (;;) {
         char tmp[4];
@@ -2592,370 +2604,421 @@ static bool isBidirectionalRorAL(const QChar &c)
         || (uc >= 0xFE76 && uc <= 0xFEFC);
 }
 
+
+static bool isBidirectionalL_A(const ushort uc)
+{
+    if ((uc >= 0x0041 && uc <= 0x005A)
+        || (uc >= 0x0061 && uc <= 0x007A)
+        || uc == 0x00AA
+        || uc == 0x00B5
+        || uc == 0x00BA
+        || (uc >= 0x00C0 && uc <= 0x00D6)
+        || (uc >= 0x00D8 && uc <= 0x00F6)
+        || (uc >= 0x00F8 && uc <= 0x0220)
+        || (uc >= 0x0222 && uc <= 0x0233)
+        || (uc >= 0x0250 && uc <= 0x02AD)
+        || (uc >= 0x02B0 && uc <= 0x02B8)
+        || (uc >= 0x02BB && uc <= 0x02C1)
+        || (uc >= 0x02D0 && uc <= 0x02D1)
+        || (uc >= 0x02E0 && uc <= 0x02E4)
+        || uc == 0x02EE
+        || uc == 0x037A
+        || uc == 0x0386
+        || (uc >= 0x0388 && uc <= 0x038A)) {
+        return true;
+    }
+
+    if (uc == 0x038C
+        || (uc >= 0x038E && uc <= 0x03A1)
+        || (uc >= 0x03A3 && uc <= 0x03CE)
+        || (uc >= 0x03D0 && uc <= 0x03F5)
+        || (uc >= 0x0400 && uc <= 0x0482)
+        || (uc >= 0x048A && uc <= 0x04CE)
+        || (uc >= 0x04D0 && uc <= 0x04F5)
+        || (uc >= 0x04F8 && uc <= 0x04F9)
+        || (uc >= 0x0500 && uc <= 0x050F)
+        || (uc >= 0x0531 && uc <= 0x0556)
+        || (uc >= 0x0559 && uc <= 0x055F)
+        || (uc >= 0x0561 && uc <= 0x0587)
+        || uc == 0x0589
+        || uc == 0x0903
+        || (uc >= 0x0905 && uc <= 0x0939)
+        || (uc >= 0x093D && uc <= 0x0940)
+        || (uc >= 0x0949 && uc <= 0x094C)
+        || uc == 0x0950) {
+        return true;
+    }
+
+    if ((uc >= 0x0958 && uc <= 0x0961)
+        || (uc >= 0x0964 && uc <= 0x0970)
+        || (uc >= 0x0982 && uc <= 0x0983)
+        || (uc >= 0x0985 && uc <= 0x098C)
+        || (uc >= 0x098F && uc <= 0x0990)
+        || (uc >= 0x0993 && uc <= 0x09A8)
+        || (uc >= 0x09AA && uc <= 0x09B0)
+        || uc == 0x09B2
+        || (uc >= 0x09B6 && uc <= 0x09B9)
+        || (uc >= 0x09BE && uc <= 0x09C0)
+        || (uc >= 0x09C7 && uc <= 0x09C8)
+        || (uc >= 0x09CB && uc <= 0x09CC)
+        || uc == 0x09D7
+        || (uc >= 0x09DC && uc <= 0x09DD)
+        || (uc >= 0x09DF && uc <= 0x09E1)
+        || (uc >= 0x09E6 && uc <= 0x09F1)
+        || (uc >= 0x09F4 && uc <= 0x09FA)
+        || (uc >= 0x0A05 && uc <= 0x0A0A)
+        || (uc >= 0x0A0F && uc <= 0x0A10)
+        || (uc >= 0x0A13 && uc <= 0x0A28)
+        || (uc >= 0x0A2A && uc <= 0x0A30)
+        || (uc >= 0x0A32 && uc <= 0x0A33)) {
+        return true;
+    }
+
+    return false;
+}
+
 static bool isBidirectionalL(const QChar &ch)
 {
     ushort uc = ch.unicode();
-    return (uc >= 0x0041 && uc <= 0x005A)
-          || (uc >= 0x0061 && uc <= 0x007A)
-          || uc == 0x00AA
-          || uc == 0x00B5
-          || uc == 0x00BA
-          || (uc >= 0x00C0 && uc <= 0x00D6)
-          || (uc >= 0x00D8 && uc <= 0x00F6)
-          || (uc >= 0x00F8 && uc <= 0x0220)
-          || (uc >= 0x0222 && uc <= 0x0233)
-          || (uc >= 0x0250 && uc <= 0x02AD)
-          || (uc >= 0x02B0 && uc <= 0x02B8)
-          || (uc >= 0x02BB && uc <= 0x02C1)
-          || (uc >= 0x02D0 && uc <= 0x02D1)
-          || (uc >= 0x02E0 && uc <= 0x02E4)
-          || uc == 0x02EE
-          || uc == 0x037A
-          || uc == 0x0386
-          || (uc >= 0x0388 && uc <= 0x038A)
-          || uc == 0x038C
-          || (uc >= 0x038E && uc <= 0x03A1)
-          || (uc >= 0x03A3 && uc <= 0x03CE)
-          || (uc >= 0x03D0 && uc <= 0x03F5)
-          || (uc >= 0x0400 && uc <= 0x0482)
-          || (uc >= 0x048A && uc <= 0x04CE)
-          || (uc >= 0x04D0 && uc <= 0x04F5)
-          || (uc >= 0x04F8 && uc <= 0x04F9)
-          || (uc >= 0x0500 && uc <= 0x050F)
-          || (uc >= 0x0531 && uc <= 0x0556)
-          || (uc >= 0x0559 && uc <= 0x055F)
-          || (uc >= 0x0561 && uc <= 0x0587)
-          || uc == 0x0589
-          || uc == 0x0903
-          || (uc >= 0x0905 && uc <= 0x0939)
-          || (uc >= 0x093D && uc <= 0x0940)
-          || (uc >= 0x0949 && uc <= 0x094C)
-          || uc == 0x0950
-          || (uc >= 0x0958 && uc <= 0x0961)
-          || (uc >= 0x0964 && uc <= 0x0970)
-          || (uc >= 0x0982 && uc <= 0x0983)
-          || (uc >= 0x0985 && uc <= 0x098C)
-          || (uc >= 0x098F && uc <= 0x0990)
-          || (uc >= 0x0993 && uc <= 0x09A8)
-          || (uc >= 0x09AA && uc <= 0x09B0)
-          || uc == 0x09B2
-          || (uc >= 0x09B6 && uc <= 0x09B9)
-          || (uc >= 0x09BE && uc <= 0x09C0)
-          || (uc >= 0x09C7 && uc <= 0x09C8)
-          || (uc >= 0x09CB && uc <= 0x09CC)
-          || uc == 0x09D7
-          || (uc >= 0x09DC && uc <= 0x09DD)
-          || (uc >= 0x09DF && uc <= 0x09E1)
-          || (uc >= 0x09E6 && uc <= 0x09F1)
-          || (uc >= 0x09F4 && uc <= 0x09FA)
-          || (uc >= 0x0A05 && uc <= 0x0A0A)
-          || (uc >= 0x0A0F && uc <= 0x0A10)
-          || (uc >= 0x0A13 && uc <= 0x0A28)
-          || (uc >= 0x0A2A && uc <= 0x0A30)
-          || (uc >= 0x0A32 && uc <= 0x0A33)
-          || (uc >= 0x0A35 && uc <= 0x0A36)
-          || (uc >= 0x0A38 && uc <= 0x0A39)
-          || (uc >= 0x0A3E && uc <= 0x0A40)
-          || (uc >= 0x0A59 && uc <= 0x0A5C)
-          || uc == 0x0A5E
-          || (uc >= 0x0A66 && uc <= 0x0A6F)
-          || (uc >= 0x0A72 && uc <= 0x0A74)
-          || uc == 0x0A83
-          || (uc >= 0x0A85 && uc <= 0x0A8B)
-          || uc == 0x0A8D
-          || (uc >= 0x0A8F && uc <= 0x0A91)
-          || (uc >= 0x0A93 && uc <= 0x0AA8)
-          || (uc >= 0x0AAA && uc <= 0x0AB0)
-          || (uc >= 0x0AB2 && uc <= 0x0AB3)
-          || (uc >= 0x0AB5 && uc <= 0x0AB9)
-          || (uc >= 0x0ABD && uc <= 0x0AC0)
-          || uc == 0x0AC9
-          || (uc >= 0x0ACB && uc <= 0x0ACC)
-          || uc == 0x0AD0
-          || uc == 0x0AE0
-          || (uc >= 0x0AE6 && uc <= 0x0AEF)
-          || (uc >= 0x0B02 && uc <= 0x0B03)
-          || (uc >= 0x0B05 && uc <= 0x0B0C)
-          || (uc >= 0x0B0F && uc <= 0x0B10)
-          || (uc >= 0x0B13 && uc <= 0x0B28)
-          || (uc >= 0x0B2A && uc <= 0x0B30)
-          || (uc >= 0x0B32 && uc <= 0x0B33)
-          || (uc >= 0x0B36 && uc <= 0x0B39)
-          || (uc >= 0x0B3D && uc <= 0x0B3E)
-          || uc == 0x0B40
-          || (uc >= 0x0B47 && uc <= 0x0B48)
-          || (uc >= 0x0B4B && uc <= 0x0B4C)
-          || uc == 0x0B57
-          || (uc >= 0x0B5C && uc <= 0x0B5D)
-          || (uc >= 0x0B5F && uc <= 0x0B61)
-          || (uc >= 0x0B66 && uc <= 0x0B70)
-          || uc == 0x0B83
-          || (uc >= 0x0B85 && uc <= 0x0B8A)
-          || (uc >= 0x0B8E && uc <= 0x0B90)
-          || (uc >= 0x0B92 && uc <= 0x0B95)
-          || (uc >= 0x0B99 && uc <= 0x0B9A)
-          || uc == 0x0B9C
-          || (uc >= 0x0B9E && uc <= 0x0B9F)
-          || (uc >= 0x0BA3 && uc <= 0x0BA4)
-          || (uc >= 0x0BA8 && uc <= 0x0BAA)
-          || (uc >= 0x0BAE && uc <= 0x0BB5)
-          || (uc >= 0x0BB7 && uc <= 0x0BB9)
-          || (uc >= 0x0BBE && uc <= 0x0BBF)
-          || (uc >= 0x0BC1 && uc <= 0x0BC2)
-          || (uc >= 0x0BC6 && uc <= 0x0BC8)
-          || (uc >= 0x0BCA && uc <= 0x0BCC)
-          || uc == 0x0BD7
-          || (uc >= 0x0BE7 && uc <= 0x0BF2)
-          || (uc >= 0x0C01 && uc <= 0x0C03)
-          || (uc >= 0x0C05 && uc <= 0x0C0C)
-          || (uc >= 0x0C0E && uc <= 0x0C10)
-          || (uc >= 0x0C12 && uc <= 0x0C28)
-          || (uc >= 0x0C2A && uc <= 0x0C33)
-          || (uc >= 0x0C35 && uc <= 0x0C39)
-          || (uc >= 0x0C41 && uc <= 0x0C44)
-          || (uc >= 0x0C60 && uc <= 0x0C61)
-          || (uc >= 0x0C66 && uc <= 0x0C6F)
-          || (uc >= 0x0C82 && uc <= 0x0C83)
-          || (uc >= 0x0C85 && uc <= 0x0C8C)
-          || (uc >= 0x0C8E && uc <= 0x0C90)
-          || (uc >= 0x0C92 && uc <= 0x0CA8)
-          || (uc >= 0x0CAA && uc <= 0x0CB3)
-          || (uc >= 0x0CB5 && uc <= 0x0CB9)
-          || uc == 0x0CBE
-          || (uc >= 0x0CC0 && uc <= 0x0CC4)
-          || (uc >= 0x0CC7 && uc <= 0x0CC8)
-          || (uc >= 0x0CCA && uc <= 0x0CCB)
-          || (uc >= 0x0CD5 && uc <= 0x0CD6)
-          || uc == 0x0CDE
-          || (uc >= 0x0CE0 && uc <= 0x0CE1)
-          || (uc >= 0x0CE6 && uc <= 0x0CEF)
-          || (uc >= 0x0D02 && uc <= 0x0D03)
-          || (uc >= 0x0D05 && uc <= 0x0D0C)
-          || (uc >= 0x0D0E && uc <= 0x0D10)
-          || (uc >= 0x0D12 && uc <= 0x0D28)
-          || (uc >= 0x0D2A && uc <= 0x0D39)
-          || (uc >= 0x0D3E && uc <= 0x0D40)
-          || (uc >= 0x0D46 && uc <= 0x0D48)
-          || (uc >= 0x0D4A && uc <= 0x0D4C)
-          || uc == 0x0D57
-          || (uc >= 0x0D60 && uc <= 0x0D61)
-          || (uc >= 0x0D66 && uc <= 0x0D6F)
-          || (uc >= 0x0D82 && uc <= 0x0D83)
-          || (uc >= 0x0D85 && uc <= 0x0D96)
-          || (uc >= 0x0D9A && uc <= 0x0DB1)
-          || (uc >= 0x0DB3 && uc <= 0x0DBB)
-          || uc == 0x0DBD
-          || (uc >= 0x0DC0 && uc <= 0x0DC6)
-          || (uc >= 0x0DCF && uc <= 0x0DD1)
-          || (uc >= 0x0DD8 && uc <= 0x0DDF)
-          || (uc >= 0x0DF2 && uc <= 0x0DF4)
-          || (uc >= 0x0E01 && uc <= 0x0E30)
-          || (uc >= 0x0E32 && uc <= 0x0E33)
-          || (uc >= 0x0E40 && uc <= 0x0E46)
-          || (uc >= 0x0E4F && uc <= 0x0E5B)
-          || (uc >= 0x0E81 && uc <= 0x0E82)
-          || uc == 0x0E84
-          || (uc >= 0x0E87 && uc <= 0x0E88)
-          || uc == 0x0E8A
-          || uc == 0x0E8D
-          || (uc >= 0x0E94 && uc <= 0x0E97)
-          || (uc >= 0x0E99 && uc <= 0x0E9F)
-          || (uc >= 0x0EA1 && uc <= 0x0EA3)
-          || uc == 0x0EA5
-          || uc == 0x0EA7
-          || (uc >= 0x0EAA && uc <= 0x0EAB)
-          || (uc >= 0x0EAD && uc <= 0x0EB0)
-          || (uc >= 0x0EB2 && uc <= 0x0EB3)
-          || uc == 0x0EBD
-          || (uc >= 0x0EC0 && uc <= 0x0EC4)
-          || uc == 0x0EC6
-          || (uc >= 0x0ED0 && uc <= 0x0ED9)
-          || (uc >= 0x0EDC && uc <= 0x0EDD)
-          || (uc >= 0x0F00 && uc <= 0x0F17)
-          || (uc >= 0x0F1A && uc <= 0x0F34)
-          || uc == 0x0F36
-          || uc == 0x0F38
-          || (uc >= 0x0F3E && uc <= 0x0F47)
-          || (uc >= 0x0F49 && uc <= 0x0F6A)
-          || uc == 0x0F7F
-          || uc == 0x0F85
-          || (uc >= 0x0F88 && uc <= 0x0F8B)
-          || (uc >= 0x0FBE && uc <= 0x0FC5)
-          || (uc >= 0x0FC7 && uc <= 0x0FCC)
-          || uc == 0x0FCF
-          || (uc >= 0x1000 && uc <= 0x1021)
-          || (uc >= 0x1023 && uc <= 0x1027)
-          || (uc >= 0x1029 && uc <= 0x102A)
-          || uc == 0x102C
-          || uc == 0x1031
-          || uc == 0x1038
-          || (uc >= 0x1040 && uc <= 0x1057)
-          || (uc >= 0x10A0 && uc <= 0x10C5)
-          || (uc >= 0x10D0 && uc <= 0x10F8)
-          || uc == 0x10FB
-          || (uc >= 0x1100 && uc <= 0x1159)
-          || (uc >= 0x115F && uc <= 0x11A2)
-          || (uc >= 0x11A8 && uc <= 0x11F9)
-          || (uc >= 0x1200 && uc <= 0x1206)
-          || (uc >= 0x1208 && uc <= 0x1246)
-          || uc == 0x1248
-          || (uc >= 0x124A && uc <= 0x124D)
-          || (uc >= 0x1250 && uc <= 0x1256)
-          || uc == 0x1258
-          || (uc >= 0x125A && uc <= 0x125D)
-          || (uc >= 0x1260 && uc <= 0x1286)
-          || uc == 0x1288
-          || (uc >= 0x128A && uc <= 0x128D)
-          || (uc >= 0x1290 && uc <= 0x12AE)
-          || uc == 0x12B0
-          || (uc >= 0x12B2 && uc <= 0x12B5)
-          || (uc >= 0x12B8 && uc <= 0x12BE)
-          || uc == 0x12C0
-          || (uc >= 0x12C2 && uc <= 0x12C5)
-          || (uc >= 0x12C8 && uc <= 0x12CE)
-          || (uc >= 0x12D0 && uc <= 0x12D6)
-          || (uc >= 0x12D8 && uc <= 0x12EE)
-          || (uc >= 0x12F0 && uc <= 0x130E)
-          || uc == 0x1310
-          || (uc >= 0x1312 && uc <= 0x1315)
-          || (uc >= 0x1318 && uc <= 0x131E)
-          || (uc >= 0x1320 && uc <= 0x1346)
-          || (uc >= 0x1348 && uc <= 0x135A)
-          || (uc >= 0x1361 && uc <= 0x137C)
-          || (uc >= 0x13A0 && uc <= 0x13F4)
-          || (uc >= 0x1401 && uc <= 0x1676)
-          || (uc >= 0x1681 && uc <= 0x169A)
-          || (uc >= 0x16A0 && uc <= 0x16F0)
-          || (uc >= 0x1700 && uc <= 0x170C)
-          || (uc >= 0x170E && uc <= 0x1711)
-          || (uc >= 0x1720 && uc <= 0x1731)
-          || (uc >= 0x1735 && uc <= 0x1736)
-          || (uc >= 0x1740 && uc <= 0x1751)
-          || (uc >= 0x1760 && uc <= 0x176C)
-          || (uc >= 0x176E && uc <= 0x1770)
-          || (uc >= 0x1780 && uc <= 0x17B6)
-          || (uc >= 0x17BE && uc <= 0x17C5)
-          || (uc >= 0x17C7 && uc <= 0x17C8)
-          || (uc >= 0x17D4 && uc <= 0x17DA)
-          || uc == 0x17DC
-          || (uc >= 0x17E0 && uc <= 0x17E9)
-          || (uc >= 0x1810 && uc <= 0x1819)
-          || (uc >= 0x1820 && uc <= 0x1877)
-          || (uc >= 0x1880 && uc <= 0x18A8)
-          || (uc >= 0x1E00 && uc <= 0x1E9B)
-          || (uc >= 0x1EA0 && uc <= 0x1EF9)
-          || (uc >= 0x1F00 && uc <= 0x1F15)
-          || (uc >= 0x1F18 && uc <= 0x1F1D)
-          || (uc >= 0x1F20 && uc <= 0x1F45)
-          || (uc >= 0x1F48 && uc <= 0x1F4D)
-          || (uc >= 0x1F50 && uc <= 0x1F57)
-          || uc == 0x1F59
-          || uc == 0x1F5B
-          || uc == 0x1F5D
-          || (uc >= 0x1F5F && uc <= 0x1F7D)
-          || (uc >= 0x1F80 && uc <= 0x1FB4)
-          || (uc >= 0x1FB6 && uc <= 0x1FBC)
-          || uc == 0x1FBE
-          || (uc >= 0x1FC2 && uc <= 0x1FC4)
-          || (uc >= 0x1FC6 && uc <= 0x1FCC)
-          || (uc >= 0x1FD0 && uc <= 0x1FD3)
-          || (uc >= 0x1FD6 && uc <= 0x1FDB)
-          || (uc >= 0x1FE0 && uc <= 0x1FEC)
-          || (uc >= 0x1FF2 && uc <= 0x1FF4)
-          || (uc >= 0x1FF6 && uc <= 0x1FFC)
-          || uc == 0x200E
-          || uc == 0x2071
-          || uc == 0x207F
-          || uc == 0x2102
-          || uc == 0x2107
-          || (uc >= 0x210A && uc <= 0x2113)
-          || uc == 0x2115
-          || (uc >= 0x2119 && uc <= 0x211D)
-          || uc == 0x2124
-          || uc == 0x2126
-          || uc == 0x2128
-          || (uc >= 0x212A && uc <= 0x212D)
-          || (uc >= 0x212F && uc <= 0x2131)
-          || (uc >= 0x2133 && uc <= 0x2139)
-          || (uc >= 0x213D && uc <= 0x213F)
-          || (uc >= 0x2145 && uc <= 0x2149)
-          || (uc >= 0x2160 && uc <= 0x2183)
-          || (uc >= 0x2336 && uc <= 0x237A)
-          || uc == 0x2395
-          || (uc >= 0x249C && uc <= 0x24E9)
-          || (uc >= 0x3005 && uc <= 0x3007)
-          || (uc >= 0x3021 && uc <= 0x3029)
-          || (uc >= 0x3031 && uc <= 0x3035)
-          || (uc >= 0x3038 && uc <= 0x303C)
-          || (uc >= 0x3041 && uc <= 0x3096)
-          || (uc >= 0x309D && uc <= 0x309F)
-          || (uc >= 0x30A1 && uc <= 0x30FA)
-          || (uc >= 0x30FC && uc <= 0x30FF)
-          || (uc >= 0x3105 && uc <= 0x312C)
-          || (uc >= 0x3131 && uc <= 0x318E)
-          || (uc >= 0x3190 && uc <= 0x31B7)
-          || (uc >= 0x31F0 && uc <= 0x321C)
-          || (uc >= 0x3220 && uc <= 0x3243)
-          || (uc >= 0x3260 && uc <= 0x327B)
-          || (uc >= 0x327F && uc <= 0x32B0)
-          || (uc >= 0x32C0 && uc <= 0x32CB)
-          || (uc >= 0x32D0 && uc <= 0x32FE)
-          || (uc >= 0x3300 && uc <= 0x3376)
-          || (uc >= 0x337B && uc <= 0x33DD)
-          || (uc >= 0x33E0 && uc <= 0x33FE)
-          || (uc >= 0x3400 && uc <= 0x4DB5)
-          || (uc >= 0x4E00 && uc <= 0x9FA5)
-          || (uc >= 0xA000 && uc <= 0xA48C)
-          || (uc >= 0xAC00 && uc <= 0xD7A3)
-          || (uc >= 0xD800 && uc <= 0xFA2D)
-          || (uc >= 0xFA30 && uc <= 0xFA6A)
-          || (uc >= 0xFB00 && uc <= 0xFB06)
-          || (uc >= 0xFB13 && uc <= 0xFB17)
-          || (uc >= 0xFF21 && uc <= 0xFF3A)
-          || (uc >= 0xFF41 && uc <= 0xFF5A)
-          || (uc >= 0xFF66 && uc <= 0xFFBE)
-          || (uc >= 0xFFC2 && uc <= 0xFFC7)
-          || (uc >= 0xFFCA && uc <= 0xFFCF)
-          || (uc >= 0xFFD2 && uc <= 0xFFD7)
-          || (uc >= 0xFFDA && uc <= 0xFFDC)
-          /* ### Add NAMEPREP support for surrogates
-          || (uc >= 0x10300 && uc <= 0x1031E)
-          || (uc >= 0x10320 && uc <= 0x10323)
-          || (uc >= 0x10330 && uc <= 0x1034A)
-          || (uc >= 0x10400 && uc <= 0x10425)
-          || (uc >= 0x10428 && uc <= 0x1044D)
-          || (uc >= 0x1D000 && uc <= 0x1D0F5)
-          || (uc >= 0x1D100 && uc <= 0x1D126)
-          || (uc >= 0x1D12A && uc <= 0x1D166)
-          || (uc >= 0x1D16A && uc <= 0x1D172)
-          || (uc >= 0x1D183 && uc <= 0x1D184)
-          || (uc >= 0x1D18C && uc <= 0x1D1A9)
-          || (uc >= 0x1D1AE && uc <= 0x1D1DD)
-          || (uc >= 0x1D400 && uc <= 0x1D454)
-          || (uc >= 0x1D456 && uc <= 0x1D49C)
-          || (uc >= 0x1D49E && uc <= 0x1D49F)
-          || uc == 0x1D4A2
-          || (uc >= 0x1D4A5 && uc <= 0x1D4A6)
-          || (uc >= 0x1D4A9 && uc <= 0x1D4AC)
-          || (uc >= 0x1D4AE && uc <= 0x1D4B9)
-          || uc == 0x1D4BB
-          || (uc >= 0x1D4BD && uc <= 0x1D4C0)
-          || (uc >= 0x1D4C2 && uc <= 0x1D4C3)
-          || (uc >= 0x1D4C5 && uc <= 0x1D505)
-          || (uc >= 0x1D507 && uc <= 0x1D50A)
-          || (uc >= 0x1D50D && uc <= 0x1D514)
-          || (uc >= 0x1D516 && uc <= 0x1D51C)
-          || (uc >= 0x1D51E && uc <= 0x1D539)
-          || (uc >= 0x1D53B && uc <= 0x1D53E)
-          || (uc >= 0x1D540 && uc <= 0x1D544)
-          || uc == 0x1D546
-          || (uc >= 0x1D54A && uc <= 0x1D550)
-          || (uc >= 0x1D552 && uc <= 0x1D6A3)
-          || (uc >= 0x1D6A8 && uc <= 0x1D7C9)
-          || (uc >= 0x20000 && uc <= 0x2A6D6)
-          || (uc >= 0x2F800 && uc <= 0x2FA1D)
-          || (uc >= 0xF0000 && uc <= 0xFFFFD)
-          || (uc >= 0x100000 && uc <= 0x10FFFD)*/;
+    if (isBidirectionalL_A(uc)) {
+        return true;
+    }
+
+    if ((uc >= 0x0A35 && uc <= 0x0A36)
+        || (uc >= 0x0A38 && uc <= 0x0A39)
+        || (uc >= 0x0A3E && uc <= 0x0A40)
+        || (uc >= 0x0A59 && uc <= 0x0A5C)
+        || uc == 0x0A5E
+        || (uc >= 0x0A66 && uc <= 0x0A6F)
+        || (uc >= 0x0A72 && uc <= 0x0A74)
+        || uc == 0x0A83
+        || (uc >= 0x0A85 && uc <= 0x0A8B)
+        || uc == 0x0A8D
+        || (uc >= 0x0A8F && uc <= 0x0A91)
+        || (uc >= 0x0A93 && uc <= 0x0AA8)
+        || (uc >= 0x0AAA && uc <= 0x0AB0)
+        || (uc >= 0x0AB2 && uc <= 0x0AB3)
+        || (uc >= 0x0AB5 && uc <= 0x0AB9)
+        || (uc >= 0x0ABD && uc <= 0x0AC0)
+        || uc == 0x0AC9
+        || (uc >= 0x0ACB && uc <= 0x0ACC)
+        || uc == 0x0AD0
+        || uc == 0x0AE0
+        || (uc >= 0x0AE6 && uc <= 0x0AEF)
+        || (uc >= 0x0B02 && uc <= 0x0B03)
+        || (uc >= 0x0B05 && uc <= 0x0B0C)
+        || (uc >= 0x0B0F && uc <= 0x0B10)
+        || (uc >= 0x0B13 && uc <= 0x0B28)
+        || (uc >= 0x0B2A && uc <= 0x0B30)) {
+        return true;
+    }
+
+    if ((uc >= 0x0B32 && uc <= 0x0B33)
+        || (uc >= 0x0B36 && uc <= 0x0B39)
+        || (uc >= 0x0B3D && uc <= 0x0B3E)
+        || uc == 0x0B40
+        || (uc >= 0x0B47 && uc <= 0x0B48)
+        || (uc >= 0x0B4B && uc <= 0x0B4C)
+        || uc == 0x0B57
+        || (uc >= 0x0B5C && uc <= 0x0B5D)
+        || (uc >= 0x0B5F && uc <= 0x0B61)
+        || (uc >= 0x0B66 && uc <= 0x0B70)
+        || uc == 0x0B83
+        || (uc >= 0x0B85 && uc <= 0x0B8A)
+        || (uc >= 0x0B8E && uc <= 0x0B90)
+        || (uc >= 0x0B92 && uc <= 0x0B95)
+        || (uc >= 0x0B99 && uc <= 0x0B9A)
+        || uc == 0x0B9C
+        || (uc >= 0x0B9E && uc <= 0x0B9F)
+        || (uc >= 0x0BA3 && uc <= 0x0BA4)
+        || (uc >= 0x0BA8 && uc <= 0x0BAA)
+        || (uc >= 0x0BAE && uc <= 0x0BB5)
+        || (uc >= 0x0BB7 && uc <= 0x0BB9)
+        || (uc >= 0x0BBE && uc <= 0x0BBF)
+        || (uc >= 0x0BC1 && uc <= 0x0BC2)
+        || (uc >= 0x0BC6 && uc <= 0x0BC8)
+        || (uc >= 0x0BCA && uc <= 0x0BCC)
+        || uc == 0x0BD7
+        || (uc >= 0x0BE7 && uc <= 0x0BF2)
+        || (uc >= 0x0C01 && uc <= 0x0C03)
+        || (uc >= 0x0C05 && uc <= 0x0C0C)
+        || (uc >= 0x0C0E && uc <= 0x0C10)
+        || (uc >= 0x0C12 && uc <= 0x0C28)
+        || (uc >= 0x0C2A && uc <= 0x0C33)
+        || (uc >= 0x0C35 && uc <= 0x0C39)) {
+        return true;
+    }
+    if ((uc >= 0x0C41 && uc <= 0x0C44)
+        || (uc >= 0x0C60 && uc <= 0x0C61)
+        || (uc >= 0x0C66 && uc <= 0x0C6F)
+        || (uc >= 0x0C82 && uc <= 0x0C83)
+        || (uc >= 0x0C85 && uc <= 0x0C8C)
+        || (uc >= 0x0C8E && uc <= 0x0C90)
+        || (uc >= 0x0C92 && uc <= 0x0CA8)
+        || (uc >= 0x0CAA && uc <= 0x0CB3)
+        || (uc >= 0x0CB5 && uc <= 0x0CB9)
+        || uc == 0x0CBE
+        || (uc >= 0x0CC0 && uc <= 0x0CC4)
+        || (uc >= 0x0CC7 && uc <= 0x0CC8)
+        || (uc >= 0x0CCA && uc <= 0x0CCB)
+        || (uc >= 0x0CD5 && uc <= 0x0CD6)
+        || uc == 0x0CDE
+        || (uc >= 0x0CE0 && uc <= 0x0CE1)
+        || (uc >= 0x0CE6 && uc <= 0x0CEF)
+        || (uc >= 0x0D02 && uc <= 0x0D03)
+        || (uc >= 0x0D05 && uc <= 0x0D0C)
+        || (uc >= 0x0D0E && uc <= 0x0D10)
+        || (uc >= 0x0D12 && uc <= 0x0D28)
+        || (uc >= 0x0D2A && uc <= 0x0D39)
+        || (uc >= 0x0D3E && uc <= 0x0D40)
+        || (uc >= 0x0D46 && uc <= 0x0D48)
+        || (uc >= 0x0D4A && uc <= 0x0D4C)
+        || uc == 0x0D57
+        || (uc >= 0x0D60 && uc <= 0x0D61)
+        || (uc >= 0x0D66 && uc <= 0x0D6F)
+        || (uc >= 0x0D82 && uc <= 0x0D83)
+        || (uc >= 0x0D85 && uc <= 0x0D96)
+        || (uc >= 0x0D9A && uc <= 0x0DB1)
+        || (uc >= 0x0DB3 && uc <= 0x0DBB)
+        || uc == 0x0DBD) {
+        return true;
+    }
+    if ((uc >= 0x0DC0 && uc <= 0x0DC6)
+        || (uc >= 0x0DCF && uc <= 0x0DD1)
+        || (uc >= 0x0DD8 && uc <= 0x0DDF)
+        || (uc >= 0x0DF2 && uc <= 0x0DF4)
+        || (uc >= 0x0E01 && uc <= 0x0E30)
+        || (uc >= 0x0E32 && uc <= 0x0E33)
+        || (uc >= 0x0E40 && uc <= 0x0E46)
+        || (uc >= 0x0E4F && uc <= 0x0E5B)
+        || (uc >= 0x0E81 && uc <= 0x0E82)
+        || uc == 0x0E84
+        || (uc >= 0x0E87 && uc <= 0x0E88)
+        || uc == 0x0E8A
+        || uc == 0x0E8D
+        || (uc >= 0x0E94 && uc <= 0x0E97)
+        || (uc >= 0x0E99 && uc <= 0x0E9F)
+        || (uc >= 0x0EA1 && uc <= 0x0EA3)
+        || uc == 0x0EA5
+        || uc == 0x0EA7
+        || (uc >= 0x0EAA && uc <= 0x0EAB)
+        || (uc >= 0x0EAD && uc <= 0x0EB0)
+        || (uc >= 0x0EB2 && uc <= 0x0EB3)
+        || uc == 0x0EBD
+        || (uc >= 0x0EC0 && uc <= 0x0EC4)
+        || uc == 0x0EC6
+        || (uc >= 0x0ED0 && uc <= 0x0ED9)
+        || (uc >= 0x0EDC && uc <= 0x0EDD)
+        || (uc >= 0x0F00 && uc <= 0x0F17)
+        || (uc >= 0x0F1A && uc <= 0x0F34)
+        || uc == 0x0F36
+        || uc == 0x0F38
+        || (uc >= 0x0F3E && uc <= 0x0F47)
+        || (uc >= 0x0F49 && uc <= 0x0F6A)
+        || uc == 0x0F7F
+        || uc == 0x0F85
+        || (uc >= 0x0F88 && uc <= 0x0F8B)
+        || (uc >= 0x0FBE && uc <= 0x0FC5)
+        || (uc >= 0x0FC7 && uc <= 0x0FCC)
+        || uc == 0x0FCF) {
+        return true;
+    }
+
+    if ((uc >= 0x1000 && uc <= 0x1021)
+        || (uc >= 0x1023 && uc <= 0x1027)
+        || (uc >= 0x1029 && uc <= 0x102A)
+        || uc == 0x102C
+        || uc == 0x1031
+        || uc == 0x1038
+        || (uc >= 0x1040 && uc <= 0x1057)
+        || (uc >= 0x10A0 && uc <= 0x10C5)
+        || (uc >= 0x10D0 && uc <= 0x10F8)
+        || uc == 0x10FB
+        || (uc >= 0x1100 && uc <= 0x1159)
+        || (uc >= 0x115F && uc <= 0x11A2)
+        || (uc >= 0x11A8 && uc <= 0x11F9)
+        || (uc >= 0x1200 && uc <= 0x1206)
+        || (uc >= 0x1208 && uc <= 0x1246)
+        || uc == 0x1248
+        || (uc >= 0x124A && uc <= 0x124D)
+        || (uc >= 0x1250 && uc <= 0x1256)
+        || uc == 0x1258
+        || (uc >= 0x125A && uc <= 0x125D)
+        || (uc >= 0x1260 && uc <= 0x1286)
+        || uc == 0x1288
+        || (uc >= 0x128A && uc <= 0x128D)
+        || (uc >= 0x1290 && uc <= 0x12AE)
+        || uc == 0x12B0
+        || (uc >= 0x12B2 && uc <= 0x12B5)
+        || (uc >= 0x12B8 && uc <= 0x12BE)
+        || uc == 0x12C0
+        || (uc >= 0x12C2 && uc <= 0x12C5)
+        || (uc >= 0x12C8 && uc <= 0x12CE)
+        || (uc >= 0x12D0 && uc <= 0x12D6)
+        || (uc >= 0x12D8 && uc <= 0x12EE)
+        || (uc >= 0x12F0 && uc <= 0x130E)
+        || uc == 0x1310) {
+        return true;
+    }
+
+    if ((uc >= 0x1312 && uc <= 0x1315)
+        || (uc >= 0x1318 && uc <= 0x131E)
+        || (uc >= 0x1320 && uc <= 0x1346)
+        || (uc >= 0x1348 && uc <= 0x135A)
+        || (uc >= 0x1361 && uc <= 0x137C)
+        || (uc >= 0x13A0 && uc <= 0x13F4)
+        || (uc >= 0x1401 && uc <= 0x1676)
+        || (uc >= 0x1681 && uc <= 0x169A)
+        || (uc >= 0x16A0 && uc <= 0x16F0)
+        || (uc >= 0x1700 && uc <= 0x170C)
+        || (uc >= 0x170E && uc <= 0x1711)
+        || (uc >= 0x1720 && uc <= 0x1731)
+        || (uc >= 0x1735 && uc <= 0x1736)
+        || (uc >= 0x1740 && uc <= 0x1751)
+        || (uc >= 0x1760 && uc <= 0x176C)
+        || (uc >= 0x176E && uc <= 0x1770)
+        || (uc >= 0x1780 && uc <= 0x17B6)
+        || (uc >= 0x17BE && uc <= 0x17C5)
+        || (uc >= 0x17C7 && uc <= 0x17C8)
+        || (uc >= 0x17D4 && uc <= 0x17DA)
+        || uc == 0x17DC
+        || (uc >= 0x17E0 && uc <= 0x17E9)
+        || (uc >= 0x1810 && uc <= 0x1819)
+        || (uc >= 0x1820 && uc <= 0x1877)
+        || (uc >= 0x1880 && uc <= 0x18A8)
+        || (uc >= 0x1E00 && uc <= 0x1E9B)
+        || (uc >= 0x1EA0 && uc <= 0x1EF9)
+        || (uc >= 0x1F00 && uc <= 0x1F15)
+        || (uc >= 0x1F18 && uc <= 0x1F1D)
+        || (uc >= 0x1F20 && uc <= 0x1F45)
+        || (uc >= 0x1F48 && uc <= 0x1F4D)
+        || (uc >= 0x1F50 && uc <= 0x1F57)
+        || uc == 0x1F59
+        || uc == 0x1F5B
+        || uc == 0x1F5D) {
+        return true;
+    }
+
+    if ((uc >= 0x1F5F && uc <= 0x1F7D)
+        || (uc >= 0x1F80 && uc <= 0x1FB4)
+        || (uc >= 0x1FB6 && uc <= 0x1FBC)
+        || uc == 0x1FBE
+        || (uc >= 0x1FC2 && uc <= 0x1FC4)
+        || (uc >= 0x1FC6 && uc <= 0x1FCC)
+        || (uc >= 0x1FD0 && uc <= 0x1FD3)
+        || (uc >= 0x1FD6 && uc <= 0x1FDB)
+        || (uc >= 0x1FE0 && uc <= 0x1FEC)
+        || (uc >= 0x1FF2 && uc <= 0x1FF4)
+        || (uc >= 0x1FF6 && uc <= 0x1FFC)
+        || uc == 0x200E
+        || uc == 0x2071
+        || uc == 0x207F
+        || uc == 0x2102
+        || uc == 0x2107
+        || (uc >= 0x210A && uc <= 0x2113)
+        || uc == 0x2115
+        || (uc >= 0x2119 && uc <= 0x211D)) {
+        return true;
+    }
+
+    if (uc == 0x2124
+        || uc == 0x2126
+        || uc == 0x2128
+        || (uc >= 0x212A && uc <= 0x212D)
+        || (uc >= 0x212F && uc <= 0x2131)
+        || (uc >= 0x2133 && uc <= 0x2139)
+        || (uc >= 0x213D && uc <= 0x213F)
+        || (uc >= 0x2145 && uc <= 0x2149)
+        || (uc >= 0x2160 && uc <= 0x2183)
+        || (uc >= 0x2336 && uc <= 0x237A)
+        || uc == 0x2395
+        || (uc >= 0x249C && uc <= 0x24E9)
+        || (uc >= 0x3005 && uc <= 0x3007)
+        || (uc >= 0x3021 && uc <= 0x3029)
+        || (uc >= 0x3031 && uc <= 0x3035)
+        || (uc >= 0x3038 && uc <= 0x303C)
+        || (uc >= 0x3041 && uc <= 0x3096)
+        || (uc >= 0x309D && uc <= 0x309F)
+        || (uc >= 0x30A1 && uc <= 0x30FA)) {
+        return true;
+    }
+
+    if ((uc >= 0x30FC && uc <= 0x30FF)
+        || (uc >= 0x3105 && uc <= 0x312C)
+        || (uc >= 0x3131 && uc <= 0x318E)
+        || (uc >= 0x3190 && uc <= 0x31B7)
+        || (uc >= 0x31F0 && uc <= 0x321C)
+        || (uc >= 0x3220 && uc <= 0x3243)) {
+        return true;
+    }
+
+    if ((uc >= 0x3260 && uc <= 0x327B)
+        || (uc >= 0x327F && uc <= 0x32B0)
+        || (uc >= 0x32C0 && uc <= 0x32CB)
+        || (uc >= 0x32D0 && uc <= 0x32FE)
+        || (uc >= 0x3300 && uc <= 0x3376)
+        || (uc >= 0x337B && uc <= 0x33DD)) {
+        return true;
+    }
+    if  ((uc >= 0x33E0 && uc <= 0x33FE)
+         || (uc >= 0x3400 && uc <= 0x4DB5)
+         || (uc >= 0x4E00 && uc <= 0x9FA5)
+         || (uc >= 0xA000 && uc <= 0xA48C)
+         || (uc >= 0xAC00 && uc <= 0xD7A3)
+         || (uc >= 0xD800 && uc <= 0xFA2D)
+         || (uc >= 0xFA30 && uc <= 0xFA6A)
+         || (uc >= 0xFB00 && uc <= 0xFB06)
+         || (uc >= 0xFB13 && uc <= 0xFB17)
+         || (uc >= 0xFF21 && uc <= 0xFF3A)
+         || (uc >= 0xFF41 && uc <= 0xFF5A)
+         || (uc >= 0xFF66 && uc <= 0xFFBE)
+         || (uc >= 0xFFC2 && uc <= 0xFFC7)
+         || (uc >= 0xFFCA && uc <= 0xFFCF)
+         || (uc >= 0xFFD2 && uc <= 0xFFD7)
+         || (uc >= 0xFFDA && uc <= 0xFFDC)) {
+        return true;
+    }
+
+    /* ### Add NAMEPREP support for surrogates
+       || (uc >= 0x10300 && uc <= 0x1031E)
+       || (uc >= 0x10320 && uc <= 0x10323)
+       || (uc >= 0x10330 && uc <= 0x1034A)
+       || (uc >= 0x10400 && uc <= 0x10425)
+       || (uc >= 0x10428 && uc <= 0x1044D)
+       || (uc >= 0x1D000 && uc <= 0x1D0F5)
+       || (uc >= 0x1D100 && uc <= 0x1D126)
+       || (uc >= 0x1D12A && uc <= 0x1D166)
+       || (uc >= 0x1D16A && uc <= 0x1D172)
+       || (uc >= 0x1D183 && uc <= 0x1D184)
+       || (uc >= 0x1D18C && uc <= 0x1D1A9)
+       || (uc >= 0x1D1AE && uc <= 0x1D1DD)
+       || (uc >= 0x1D400 && uc <= 0x1D454)
+       || (uc >= 0x1D456 && uc <= 0x1D49C)
+       || (uc >= 0x1D49E && uc <= 0x1D49F)
+       || uc == 0x1D4A2
+       || (uc >= 0x1D4A5 && uc <= 0x1D4A6)
+       || (uc >= 0x1D4A9 && uc <= 0x1D4AC)
+       || (uc >= 0x1D4AE && uc <= 0x1D4B9)
+       || uc == 0x1D4BB
+       || (uc >= 0x1D4BD && uc <= 0x1D4C0)
+       || (uc >= 0x1D4C2 && uc <= 0x1D4C3)
+       || (uc >= 0x1D4C5 && uc <= 0x1D505)
+       || (uc >= 0x1D507 && uc <= 0x1D50A)
+       || (uc >= 0x1D50D && uc <= 0x1D514)
+       || (uc >= 0x1D516 && uc <= 0x1D51C)
+       || (uc >= 0x1D51E && uc <= 0x1D539)
+       || (uc >= 0x1D53B && uc <= 0x1D53E)
+       || (uc >= 0x1D540 && uc <= 0x1D544)
+       || uc == 0x1D546
+       || (uc >= 0x1D54A && uc <= 0x1D550)
+       || (uc >= 0x1D552 && uc <= 0x1D6A3)
+       || (uc >= 0x1D6A8 && uc <= 0x1D7C9)
+       || (uc >= 0x20000 && uc <= 0x2A6D6)
+       || (uc >= 0x2F800 && uc <= 0x2FA1D)
+       || (uc >= 0xF0000 && uc <= 0xFFFFD)
+       || (uc >= 0x100000 && uc <= 0x10FFFD)*/
+
+    return false;
 }
 
 Q_AUTOTEST_EXPORT QString qt_nameprep(const QString &source)
@@ -3025,13 +3088,13 @@ public:
               << QLatin1String("vn");
     }
 };
-Q_GLOBAL_STATIC(QIdnWhitelist, idnWhitelist)
+Q_GLOBAL_STATIC(QIdnWhitelist, idnWhitelistHelper)
 
 static bool qt_is_idn_enabled(const QStringList &labels)
 {
     const QString &tld = labels.last();
 
-    return idnWhitelist()->contains(tld);
+    return idnWhitelistHelper()->contains(tld);
 }
 
 static QString qt_from_ACE(const QString &domain)
@@ -3073,20 +3136,58 @@ QUrlPrivate::QUrlPrivate(const QUrlPrivate &copy)
       userName(copy.userName),
       password(copy.password),
       host(copy.host),
-      port(copy.port),
       path(copy.path),
       query(copy.query),
-      hasQuery(copy.hasQuery),
       fragment(copy.fragment),
-      hasFragment(copy.hasFragment),
       encodedOriginal(copy.encodedOriginal),
-      isValid(copy.isValid),
+      encodedUserName(copy.encodedUserName),
+      encodedPassword(copy.encodedPassword),
+      encodedPath(copy.encodedPath),
+      encodedFragment(copy.encodedFragment),
+      port(copy.port),
       parsingMode(copy.parsingMode),
+      hasQuery(copy.hasQuery),
+      hasFragment(copy.hasFragment),
+      isValid(copy.isValid),
       valueDelimiter(copy.valueDelimiter),
       pairDelimiter(copy.pairDelimiter),
       stateFlags(copy.stateFlags),
       encodedNormalized(copy.encodedNormalized)
 { ref = 1; }
+
+QString QUrlPrivate::canonicalHost() const
+{
+    if (QURL_HASFLAG(stateFlags, HostCanonicalized))
+        return host;
+
+    QUrlPrivate *that = const_cast<QUrlPrivate *>(this);
+    QURL_SETFLAG(that->stateFlags, HostCanonicalized);
+    that->host = qt_from_ACE(host);
+    return that->host;
+}
+
+static const char userNameExcludeChars[] = "!$&'()*+,;=";
+static const char passwordExcludeChars[] = "!$&'()*+,;=:";
+static const char pathExcludeChars[]     = "!$&'()*+,;=:@/";
+static const char fragmentExcludeChars[] = "!$&'()*+,;=:@/?";
+
+void QUrlPrivate::ensureEncodedParts() const
+{
+    QUrlPrivate *that = const_cast<QUrlPrivate *>(this);
+
+    if (encodedUserName.isNull())
+        // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+        that->encodedUserName = QUrl::toPercentEncoding(userName, userNameExcludeChars);
+    if (encodedPassword.isNull())
+        // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+        that->encodedPassword = QUrl::toPercentEncoding(password, passwordExcludeChars);
+    if (encodedPath.isNull())
+        // pchar = unreserved / pct-encoded / sub-delims / ":" / "@" ... also "/"
+        that->encodedPath = QUrl::toPercentEncoding(path, pathExcludeChars);
+    if (encodedFragment.isNull())
+        // fragment      = *( pchar / "/" / "?" )
+        that->encodedFragment = QUrl::toPercentEncoding(fragment, fragmentExcludeChars);
+}
 
 QString QUrlPrivate::authority(QUrl::FormattingOptions options) const
 {
@@ -3095,7 +3196,7 @@ QString QUrlPrivate::authority(QUrl::FormattingOptions options) const
 
     QString tmp = userInfo(options);
     if (!tmp.isEmpty()) tmp += QLatin1Char('@');
-    tmp += host;
+    tmp += canonicalHost();
     if (!(options & QUrl::RemovePort) && port != -1)
         tmp += QLatin1Char(':') + QString::number(port);
 
@@ -3113,17 +3214,18 @@ void QUrlPrivate::setAuthority(const QString &auth)
     if (portIndex == 0) {
         portIndex = -1;
     } else {
-        short c = auth.at(portIndex).unicode();
+        short c = auth.at(portIndex--).unicode();
         if (c < '0' || c > '9') {
             portIndex = -1;
-        } else while (portIndex > 0) {
-            c = auth.at(--portIndex).unicode();
+        } else while (portIndex >= 0) {
+            c = auth.at(portIndex).unicode();
             if (c == ':') {
                 break;
             } else if (c == '.') {
                 portIndex = -1;
                 break;
             }
+            --portIndex;
         }
     }
 
@@ -3153,6 +3255,9 @@ void QUrlPrivate::setAuthority(const QString &auth)
 
 void QUrlPrivate::setUserInfo(const QString &userInfo)
 {
+    encodedUserName.clear();
+    encodedPassword.clear();
+
     int delimIndex = userInfo.indexOf(QLatin1Char(':'));
     if (delimIndex == -1) {
         userName = userInfo;
@@ -3163,10 +3268,33 @@ void QUrlPrivate::setUserInfo(const QString &userInfo)
     password = userInfo.right(userInfo.length() - delimIndex - 1);
 }
 
+void QUrlPrivate::setEncodedUserInfo(const QByteArray &userInfo)
+{
+    userName.clear();
+    password.clear();
+
+    int delimIndex = userInfo.indexOf(':');
+    if (delimIndex == -1) {
+        encodedUserName = QByteArray::fromPercentEncoding(userInfo).toPercentEncoding(userNameExcludeChars);
+        encodedPassword.clear();
+        return;
+    }
+    encodedUserName = QByteArray::fromPercentEncoding(userInfo.left(delimIndex))
+                      .toPercentEncoding(userNameExcludeChars);
+    encodedPassword = QByteArray::fromPercentEncoding(userInfo.right(userInfo.length() - delimIndex - 1))
+                      .toPercentEncoding(passwordExcludeChars);
+}
+
 QString QUrlPrivate::userInfo(QUrl::FormattingOptions options) const
 {
     if ((options & QUrl::RemoveUserInfo) == QUrl::RemoveUserInfo)
         return QString();
+
+    QUrlPrivate *that = const_cast<QUrlPrivate *>(this);
+    if (userName.isNull())
+        that->userName = QUrl::fromPercentEncoding(encodedUserName);
+    if (password.isNull())
+        that->password = QUrl::fromPercentEncoding(encodedPassword);
 
     QString tmp;
     tmp += userName;
@@ -3183,24 +3311,27 @@ QString QUrlPrivate::userInfo(QUrl::FormattingOptions options) const
     Returns a merge of the current path with the relative path passed
     as argument.
 */
-QString QUrlPrivate::mergePaths(const QString &relativePath) const
+QByteArray QUrlPrivate::mergePaths(const QByteArray &relativePath) const
 {
+    if (encodedPath.isNull())
+        ensureEncodedParts();
+
     // If the base URI has a defined authority component and an empty
     // path, then return a string consisting of "/" concatenated with
     // the reference's path; otherwise,
-    if (!authority().isEmpty() && path.isEmpty())
-        return QLatin1Char('/') + relativePath;
+    if (!authority().isEmpty() && encodedPath.isEmpty())
+        return '/' + relativePath;
 
     // Return a string consisting of the reference's path component
     // appended to all but the last segment of the base URI's path
     // (i.e., excluding any characters after the right-most "/" in the
     // base URI path, or excluding the entire base URI path if it does
     // not contain any "/" characters).
-    QString newPath;
-    if (!path.contains(QLatin1String("/")))
+    QByteArray newPath;
+    if (!encodedPath.contains('/'))
         newPath = relativePath;
     else
-        newPath = path.left(path.lastIndexOf(QLatin1String("/")) + 1) + relativePath;
+        newPath = encodedPath.left(encodedPath.lastIndexOf('/') + 1) + relativePath;
 
     return newPath;
 }
@@ -3212,24 +3343,24 @@ QString QUrlPrivate::mergePaths(const QString &relativePath) const
     Removes unnecessary ../ and ./ from the path. Used for normalizing
     the URL.
 */
-QString QUrlPrivate::removeDotsFromPath(const QString &dottedPath)
+QByteArray QUrlPrivate::removeDotsFromPath(const QByteArray &dottedPath)
 {
     // The input buffer is initialized with the now-appended path
     // components and the output buffer is initialized to the empty
     // string.
-    QString origPath = dottedPath;
-    QString path;
+    QByteArray origPath = dottedPath;
+    QByteArray path;
     path.reserve(origPath.length());
 
-    const QLatin1String Dot(".");
-    const QLatin1Char Slash('/');
-    const QLatin1String DotDot("..");
-    const QLatin1String DotSlash("./");
-    const QLatin1String SlashDot("/.");
-    const QLatin1String DotDotSlash("../");
-    const QLatin1String SlashDotSlash("/./");
-    const QLatin1String SlashDotDotSlash("/../");
-    const QLatin1String SlashDotDot("/..");
+    const char Dot[] = ".";
+    const char Slash[] = "/";
+    const char DotDot[] = "..";
+    const char DotSlash[] = "./";
+    const char SlashDot[] = "/.";
+    const char DotDotSlash[] = "../";
+    const char SlashDotSlash[] = "/./";
+    const char SlashDotDotSlash[] = "/../";
+    const char SlashDotDot[] = "/..";
 
     // While the input buffer is not empty, loop:
     while (!origPath.isEmpty()) {
@@ -3312,6 +3443,8 @@ void QUrlPrivate::validate() const
     if (!isValid)
         return;
 
+    QString auth = authority(); // causes the non-encoded forms to be valid
+
     if (scheme == QLatin1String("mailto")) {
         if (!host.isEmpty() || port != -1 || !userName.isEmpty() || !password.isEmpty()) {
             that->isValid = false;
@@ -3319,7 +3452,7 @@ void QUrlPrivate::validate() const
                                       "port and password")), QLatin1Char('\0'), QLatin1Char('\0'));
         }
     } else if (scheme == QLatin1String("ftp") || scheme == QLatin1String("http")) {
-        if (host.isEmpty() && !path.isEmpty()) {
+        if (host.isEmpty() && !(path.isEmpty() && encodedPath.isEmpty())) {
             that->isValid = false;
             that->errorInfo.setParams(0, QLatin1String(QT_TRANSLATE_NOOP(QUrl, "the host is empty, but not the path")),
                                       QLatin1Char('\0'), QLatin1Char('\0'));
@@ -3401,19 +3534,30 @@ void QUrlPrivate::parse(ParseOptions parseOptions) const
     // parse() is called in ParseOnly mode; we don't want to set all
     // the members over again.
     if (parseOptions == ParseAndSet) {
+        QURL_UNSETFLAG(that->stateFlags, HostCanonicalized);
+
         that->scheme = QUrl::fromPercentEncoding(__scheme);
-        that->setUserInfo(QUrl::fromPercentEncoding(__userInfo));
-        that->host = qt_from_ACE(QUrl::fromPercentEncoding(__host));
+
+        that->userName.clear();
+        that->password.clear();
+        that->setEncodedUserInfo(__userInfo);
+
+        that->host = QUrl::fromPercentEncoding(__host);
         that->port = __port;
-        that->path = QUrl::fromPercentEncoding(__path);
+
+        that->path.clear();
+        that->encodedPath = QByteArray::fromPercentEncoding(__path).toPercentEncoding(pathExcludeChars);
+
         if (that->hasQuery)
             that->query = __query;
         else
             that->query.clear();
+
+        that->fragment.clear();
         if (that->hasFragment)
-            that->fragment = QUrl::fromPercentEncoding(__fragment);
+            that->encodedFragment = QByteArray::fromPercentEncoding(__fragment).toPercentEncoding(fragmentExcludeChars);
         else
-            that->fragment.clear();
+            that->encodedFragment.clear();
     }
 
     that->isValid = true;
@@ -3442,6 +3586,10 @@ void QUrlPrivate::clear()
     fragment.clear();
 
     encodedOriginal.clear();
+    encodedUserName.clear();
+    encodedPassword.clear();
+    encodedPath.clear();
+    encodedFragment.clear();
     encodedNormalized.clear();
 
     isValid = false;
@@ -3451,12 +3599,13 @@ void QUrlPrivate::clear()
     valueDelimiter = '=';
     pairDelimiter = '&';
 
-    QURL_UNSETFLAG(stateFlags, Parsed | Validated | Normalized);
+    QURL_UNSETFLAG(stateFlags, Parsed | Validated | Normalized | HostCanonicalized);
 }
 
 QByteArray QUrlPrivate::toEncoded(QUrl::FormattingOptions options) const
 {
     if (!QURL_HASFLAG(stateFlags, Parsed)) parse();
+    else ensureEncodedParts();
 
     QByteArray url;
 
@@ -3465,19 +3614,17 @@ QByteArray QUrlPrivate::toEncoded(QUrl::FormattingOptions options) const
         url += ":";
     }
     QString auth = authority();
-    bool doFileScheme = scheme == QLatin1String("file") && !path.isEmpty();
+    bool doFileScheme = scheme == QLatin1String("file") && !encodedPath.isEmpty();
     if ((options & QUrl::RemoveAuthority) != QUrl::RemoveAuthority && (!auth.isEmpty() || doFileScheme)) {
-        if (doFileScheme && !path.startsWith(QLatin1Char('/')))
+        if (doFileScheme && !encodedPath.startsWith('/'))
             url += "/";
         url += "//";
 
         if ((options & QUrl::RemoveUserInfo) != QUrl::RemoveUserInfo) {
             if (!userName.isEmpty()) {
-                // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
-                url += QUrl::toPercentEncoding(userName, "!$&'()*+,;=:");
+                url += encodedUserName;
                 if (!(options & QUrl::RemovePassword) && !password.isEmpty())
-                    // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
-                    url += ":" + QUrl::toPercentEncoding(password, "!$&'()*+,;=:");
+                    url += ":" + encodedPassword;
                 url += "@";
             }
         }
@@ -3495,8 +3642,7 @@ QByteArray QUrlPrivate::toEncoded(QUrl::FormattingOptions options) const
             if (!path.startsWith(QLatin1Char('/')))
                 url += '/';
         }
-        // pchar = unreserved / pct-encoded / sub-delims / ":" / "@" ... alos "/"
-        url += QUrl::toPercentEncoding(path, "!$&'()*+,;=:@/");
+        url += encodedPath;
 
         // check if we need to remove trailing slashes
         while ((options & QUrl::StripTrailingSlash) && url.right(1) == "/")
@@ -3506,8 +3652,7 @@ QByteArray QUrlPrivate::toEncoded(QUrl::FormattingOptions options) const
     if (!(options & QUrl::RemoveQuery) && hasQuery)
         url += "?" + query;
     if (!(options & QUrl::RemoveFragment) && hasFragment) {
-        // fragment      = *( pchar / "/" / "?" )
-        url += "#" + QUrl::toPercentEncoding(fragment, "!$&'()*+,;=:@/?");
+        url += "#" + encodedFragment;
     }
 
     return url;
@@ -3524,9 +3669,10 @@ const QByteArray & QUrlPrivate::normalized()
 
     QUrlPrivate tmp = *this;
     tmp.scheme = tmp.scheme.toLower();
-    tmp.host = tmp.host.toLower();
+    tmp.host = tmp.canonicalHost();
+    tmp.ensureEncodedParts();
     if (!tmp.scheme.isEmpty()) // relative test
-        tmp.path = QUrlPrivate::removeDotsFromPath(tmp.path);
+        tmp.encodedPath = QUrlPrivate::removeDotsFromPath(tmp.encodedPath);
 
     int qLen = tmp.query.length();
     for (int i = 0; i < qLen; i++) {
@@ -3581,16 +3727,11 @@ QString QUrlPrivate::createErrorString()
 
     Example:
 
-    \code
-        QUrl url("http://www.example.com/List of holidays.xml");
-        // url.toEncoded() == "http://www.example.com/List%20of%20holidays.xml"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 0
 
     To construct a URL from an encoded string, call fromEncoded():
 
-    \code
-        QUrl url = QUrl::fromEncoded("http://www.trolltech.com/List%20of%20holidays.xml");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 1
 
     \sa setUrl(), setEncodedUrl(), fromEncoded(), TolerantMode
 */
@@ -3646,16 +3787,7 @@ QUrl::~QUrl()
     must conform to the standard encoding rules of the URI standard
     for the URL to be reported as valid.
 
-    \code
-        bool checkUrl(const QUrl &url) {
-            if (!url.isValid()) {
-                qDebug(QString("Invalid URL: %1").arg(url.toString()));
-                return false;
-            }
-
-            return true;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 2
 */
 bool QUrl::isValid() const
 {
@@ -3673,14 +3805,14 @@ bool QUrl::isEmpty() const
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed))
         return d->encodedOriginal.isEmpty();
     else
-        return d->scheme.isEmpty()
-        && d->userName.isEmpty()
-        && d->password.isEmpty()
-        && d->host.isEmpty()
+        return d->scheme.isEmpty()   // no encodedScheme
+        && d->userName.isEmpty() && d->encodedUserName.isEmpty()
+        && d->password.isEmpty() && d->encodedPassword.isEmpty()
+        && d->host.isEmpty()   // no encodedHost
         && d->port == -1
-        && d->path.isEmpty()
+        && d->path.isEmpty() && d->encodedPath.isEmpty()
         && d->query.isEmpty()
-        && d->fragment.isEmpty();
+        && d->fragment.isEmpty() && d->encodedFragment.isEmpty();
 }
 
 /*!
@@ -3731,8 +3863,6 @@ void QUrl::setUrl(const QString &url, ParsingMode parsingMode)
 
     // Allow %20 in the QString variant
     tmp.replace(QLatin1String("%20"), QLatin1String(" "));
-    // Replace stray % with %25
-    tmp.replace(QLatin1String("%([^0-9a-fA-F][^0-9a-fA-F])"), QLatin1String("%25\\1"));
 
     // Percent-encode unsafe ASCII characters after host part
     int start = tmp.indexOf(QLatin1String("//"));
@@ -3822,7 +3952,8 @@ void QUrl::setEncodedUrl(const QByteArray &encodedUrl, ParsingMode parsingMode)
         tmp.clear();
         for (int i = 0; i < copy.size(); ++i) {
             quint8 c = quint8(copy.at(i));
-            if (c < 32 || c > 127 || (start != -1 && i >= start && (c == '[' || c == ']'))) {
+            if (c < 32 || c > 127 || (start != -1 && i >= start &&
+                                      (c == '[' || c == ']' || c == '{' || c == '}'))) {
                 char buf[4];
                 qsnprintf(buf, sizeof(buf), "%%%02hX", quint16(c));
                 buf[3] = '\0';
@@ -3951,7 +4082,7 @@ QString QUrl::userInfo() const
     of the user info element in the authority of the URL, as described
     in setUserInfo().
 
-    \sa userName(), setUserInfo()
+    \sa setEncodedUserName(), userName(), setUserInfo()
 */
 void QUrl::setUserName(const QString &userName)
 {
@@ -3960,19 +4091,62 @@ void QUrl::setUserName(const QString &userName)
     QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
 
     d->userName = userName;
+    d->encodedUserName.clear();
 }
 
 /*!
     Returns the user name of the URL if it is defined; otherwise
     an empty string is returned.
 
-    \sa setUserName()
+    \sa setUserName(), encodedUserName()
 */
 QString QUrl::userName() const
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
+    d->userInfo();              // causes the unencoded form to be set
     return d->userName;
+}
+
+/*!
+    \since 4.4
+
+    Sets the URL's user name to the percent-encoded \a userName. The \a
+    userName is part of the user info element in the authority of the
+    URL, as described in setUserInfo().
+
+    Note: this function does not verify that \a userName is properly
+    encoded. It is the caller's responsibility to ensure that the any
+    delimiters (such as colons or slashes) are properly encoded.
+
+    \sa setUserName(), encodedUserName(), setUserInfo()
+*/
+void QUrl::setEncodedUserName(const QByteArray &userName)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
+
+    d->encodedUserName = userName;
+    d->userName.clear();
+}
+
+/*!
+    \since 4.4
+
+    Returns the user name of the URL if it is defined; otherwise
+    an empty string is returned. The returned value will have its
+    non-ASCII and other control characters percent-encoded, as in
+    toEncoded().
+
+    \sa setEncodedUserName()
+*/
+QByteArray QUrl::encodedUserName() const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    d->ensureEncodedParts();
+    return d->encodedUserName;
 }
 
 /*!
@@ -3989,19 +4163,62 @@ void QUrl::setPassword(const QString &password)
     QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
 
     d->password = password;
+    d->encodedPassword.clear();
 }
 
 /*!
     Returns the password of the URL if it is defined; otherwise
     an empty string is returned.
 
-    \sa setUserName()
+    \sa setPassword()
 */
 QString QUrl::password() const
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
+    d->userInfo();              // causes the unencoded form to be set
     return d->password;
+}
+
+/*!
+    \since 4.4
+
+    Sets the URL's password to the percent-encoded \a password. The \a
+    password is part of the user info element in the authority of the
+    URL, as described in setUserInfo().
+
+    Note: this function does not verify that \a password is properly
+    encoded. It is the caller's responsibility to ensure that the any
+    delimiters (such as colons or slashes) are properly encoded.
+
+    \sa setPassword(), encodedPassword(), setUserInfo()
+*/
+void QUrl::setEncodedPassword(const QByteArray &password)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
+
+    d->encodedPassword = password;
+    d->password.clear();
+}
+
+/*!
+    \since 4.4
+
+    Returns the password of the URL if it is defined; otherwise an
+    empty string is returned. The returned value will have its
+    non-ASCII and other control characters percent-encoded, as in
+    toEncoded().
+
+    \sa setEncodedPassword(), toEncoded()
+*/
+QByteArray QUrl::encodedPassword() const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    d->ensureEncodedParts();
+    return d->encodedPassword;
 }
 
 /*!
@@ -4014,9 +4231,9 @@ void QUrl::setHost(const QString &host)
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
     detach();
-    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
+    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized | QUrlPrivate::HostCanonicalized);
 
-    d->host = qt_nameprep(host.trimmed());
+    d->host = host;
     if (d->host.contains(QLatin1Char(':')))
         d->host = QLatin1Char('[') + d->host + QLatin1Char(']');
 }
@@ -4030,10 +4247,45 @@ QString QUrl::host() const
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
     if (d->host.isEmpty() || d->host.at(0) != QLatin1Char('['))
-        return d->host;
+        return d->canonicalHost();
     QString tmp = d->host.mid(1);
     tmp.truncate(tmp.length() - 1);
     return tmp;
+}
+
+/*!
+    \since 4.4
+
+    Sets the URL's host to the ACE- or percent-encoded \a host. The \a
+    host is part of the user info element in the authority of the
+    URL, as described in setAuthority().
+
+    \sa setHost(), encodedHost(), setAuthority(), fromAce()
+*/
+void QUrl::setEncodedHost(const QByteArray &host)
+{
+    setHost(QUrl::fromPercentEncoding(host));
+}
+
+/*!
+    \since 4.4
+
+    Returns the host part of the URL if it is defined; otherwise
+    an empty string is returned.
+
+    Note: encodedHost() does not return percent-encoded hostnames. Instead,
+    the ACE-encoded (bare ASCII in Punycode encoding) form will be
+    returned for any non-ASCII hostname.
+
+    This function is equivalent to calling QUrl::toAce() on the return
+    value of host().
+
+    \sa setEncodedHost()
+*/
+QByteArray QUrl::encodedHost() const
+{
+    // should we cache this in d->encodedHost?
+    return QUrl::toAce(host());
 }
 
 /*!
@@ -4076,10 +4328,7 @@ int QUrl::port() const
 
     Example:
 
-    \code
-        QFtp ftp;
-        ftp.connectToHost(url.host(), url.port(21));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 3
 */
 int QUrl::port(int defaultPort) const
 {
@@ -4107,6 +4356,7 @@ void QUrl::setPath(const QString &path)
     QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
 
     d->path = path;
+    d->encodedPath.clear();
 }
 
 /*!
@@ -4118,7 +4368,59 @@ QString QUrl::path() const
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
+    if (d->path.isNull()) {
+        QUrlPrivate *that = const_cast<QUrlPrivate *>(d);
+        that->path = QUrl::fromPercentEncoding(d->encodedPath);
+    }
     return d->path;
+}
+
+/*!
+    \since 4.4
+
+    Sets the URL's path to the percent-encoded \a path.  The path is
+    the part of the URL that comes after the authority but before the
+    query string.
+
+    \img qurl-ftppath.png
+
+    For non-hierarchical schemes, the path will be everything
+    following the scheme declaration, as in the following example:
+
+    \img qurl-mailtopath.png
+
+    Note: this function does not verify that \a path is properly
+    encoded. It is the caller's responsibility to ensure that the any
+    delimiters (such as '?' and '#') are properly encoded.
+
+    \sa setPath(), encodedPath(), setUserInfo()
+*/
+void QUrl::setEncodedPath(const QByteArray &path)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
+
+    d->encodedPath = path;
+    d->path.clear();
+}
+
+/*!
+    \since 4.4
+
+    Returns the path of the URL if it is defined; otherwise an
+    empty string is returned. The returned value will have its
+    non-ASCII and other control characters percent-encoded, as in
+    toEncoded().
+
+    \sa setEncodedPath(), toEncoded()
+*/
+QByteArray QUrl::encodedPath() const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    d->ensureEncodedParts();
+    return d->encodedPath;
 }
 
 /*!
@@ -4151,9 +4453,7 @@ bool QUrl::hasQuery() const
     If \a valueDelimiter is set to '-' and \a pairDelimiter is '/',
     the above query string would instead be represented like this:
 
-    \code
-        http://www.example.com/cgi-bin/drawgraph.cgi?type-pie/color-green
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 4
 
     Calling this function does not change the delimiters of the
     current query string. It only affects queryItems(),
@@ -4219,7 +4519,7 @@ void QUrl::setEncodedQuery(const QByteArray &query)
     pairDelimiter(), and the key and value are delimited by
     valueDelimiter().
 
-    \sa setQueryDelimiters(), queryItems()
+    \sa setQueryDelimiters(), queryItems(), setEncodedQueryItems()
 */
 void QUrl::setQueryItems(const QList<QPair<QString, QString> > &query)
 {
@@ -4245,8 +4545,42 @@ void QUrl::setQueryItems(const QList<QPair<QString, QString> > &query)
 }
 
 /*!
+    \since 4.4
+
+    Sets the query string of the URL to the encoded version of \a
+    query. The contents of \a query are converted to a string
+    internally, each pair delimited by the character returned by
+    pairDelimiter(), and the key and value are delimited by
+    valueDelimiter().
+
+    Note: this function does not verify that the key-value pairs
+    are properly encoded. It is the caller's responsibility to ensure
+    that the query delimiters are properly encoded, if any.
+
+    \sa setQueryDelimiters(), encodedQueryItems(), setQueryItems()
+*/
+void QUrl::setEncodedQueryItems(const QList<QPair<QByteArray, QByteArray> > &query)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+
+    QByteArray queryTmp;
+    for (int i = 0; i < query.size(); i++) {
+        if (i) queryTmp += d->pairDelimiter;
+        queryTmp += query.at(i).first;
+        queryTmp += d->valueDelimiter;
+        queryTmp += query.at(i).second;
+    }
+
+    d->query = queryTmp;
+    d->hasQuery = !query.isEmpty();
+}
+
+/*!
     Inserts the pair \a key = \a value into the query string of the
     URL.
+
+    \sa addEncodedQueryItem()
 */
 void QUrl::addQueryItem(const QString &key, const QString &value)
 {
@@ -4270,6 +4604,33 @@ void QUrl::addQueryItem(const QString &key, const QString &value)
 }
 
 /*!
+    \since 4.4
+
+    Inserts the pair \a key = \a value into the query string of the
+    URL.
+
+    Note: this function does not verify that either \a key or \a value
+    are properly encoded. It is the caller's responsibility to ensure
+    that the query delimiters are properly encoded, if any.
+
+    \sa addQueryItem(), setQueryDelimiters()
+*/
+void QUrl::addEncodedQueryItem(const QByteArray &key, const QByteArray &value)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+
+    if (!d->query.isEmpty())
+        d->query += d->pairDelimiter;
+
+    d->query += key;
+    d->query += d->valueDelimiter;
+    d->query += value;
+
+    d->hasQuery = !d->query.isEmpty();
+}
+
+/*!
     Returns the query string of the URL, as a map of keys and values.
 
     \sa setQueryItems(), setEncodedQuery()
@@ -4278,21 +4639,39 @@ QList<QPair<QString, QString> > QUrl::queryItems() const
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
+    QList<QPair<QByteArray, QByteArray> > encodedMap = encodedQueryItems();
     QList<QPair<QString, QString> > itemMap;
+
+    for (int i = 0; i < encodedMap.count(); ++i) {
+        itemMap += qMakePair(fromPercentEncoding(encodedMap.at(i).first),
+                             fromPercentEncoding(encodedMap.at(i).second));
+    }
+
+    return itemMap;
+}
+
+/*!
+    \since 4.4
+
+    Returns the query string of the URL, as a map of encoded keys and values.
+
+    \sa setEncodedQueryItems(), setQueryItems(), setEncodedQuery()
+*/
+QList<QPair<QByteArray, QByteArray> > QUrl::encodedQueryItems() const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    QList<QPair<QByteArray, QByteArray> > itemMap;
 
     if (!d->query.isEmpty()) {
         QList<QByteArray> items = d->query.split(d->pairDelimiter);
         for (int i = 0; i < items.count(); ++i) {
-            QList<QByteArray> keyValuePair = items.at(i).split(d->valueDelimiter);
-            if (keyValuePair.size() == 1) {
-                itemMap += qMakePair(QString(QUrl::fromPercentEncoding(
-                                     keyValuePair.at(0))).replace(QLatin1Char('+'), QLatin1Char(' ')),
-                                     QString());
-            } else if (keyValuePair.size() == 2) {
-                itemMap += qMakePair(QString(QUrl::fromPercentEncoding(
-                                     keyValuePair.at(0))).replace(QLatin1Char('+'), QLatin1Char(' ')),
-                                     QString(QUrl::fromPercentEncoding(
-                                     keyValuePair.at(1))).replace(QLatin1Char('+'), QLatin1Char(' ')));
+            QByteArray item = items.at(i);
+            int delim = item.indexOf(d->valueDelimiter);
+            if ( delim < 0 ) {
+                itemMap += qMakePair(item, QByteArray());
+            } else {
+                itemMap += qMakePair(item.left(delim), item.mid(delim+1));
             }
         }
     }
@@ -4303,6 +4682,8 @@ QList<QPair<QString, QString> > QUrl::queryItems() const
 /*!
     Returns true if there is a query string pair whose key is equal
     to \a key from the URL.
+
+    \sa hasEncodedQueryItem()
 */
 bool QUrl::hasQueryItem(const QString &key) const
 {
@@ -4310,6 +4691,34 @@ bool QUrl::hasQueryItem(const QString &key) const
 
     QList<QPair<QString, QString> > items = queryItems();
     QList<QPair<QString, QString> >::ConstIterator it = items.constBegin();
+    while (it != items.constEnd()) {
+        if ((*it).first == key)
+            return true;
+        ++it;
+    }
+
+    return false;
+}
+
+/*!
+    \since 4.4
+
+    Returns true if there is a query string pair whose key is equal
+    to \a key from the URL.
+
+    Note: if the encoded \a key does not match the encoded version of
+    the query, this function will return false. That is, if the
+    encoded query of this URL is "search=Qt%20Rules", calling this
+    function with \a key = "%73earch" will return false.
+
+    \sa hasQueryItem()
+*/
+bool QUrl::hasEncodedQueryItem(const QByteArray &key) const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    QList<QPair<QByteArray, QByteArray> > items = encodedQueryItems();
+    QList<QPair<QByteArray, QByteArray> >::ConstIterator it = items.constBegin();
     while (it != items.constEnd()) {
         if ((*it).first == key)
             return true;
@@ -4341,6 +4750,34 @@ QString QUrl::queryItemValue(const QString &key) const
 }
 
 /*!
+    \since 4.4
+
+    Returns the first query string value whose key is equal to \a key
+    from the URL.
+
+    Note: if the encoded \a key does not match the encoded version of
+    the query, this function will not work. That is, if the
+    encoded query of this URL is "search=Qt%20Rules", calling this
+    function with \a key = "%73earch" will return an empty string.
+
+    \sa queryItemValue(), allQueryItemValues()
+*/
+QByteArray QUrl::encodedQueryItemValue(const QByteArray &key) const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    QList<QPair<QByteArray, QByteArray> > items = encodedQueryItems();
+    QList<QPair<QByteArray, QByteArray> >::ConstIterator it = items.constBegin();
+    while (it != items.constEnd()) {
+        if ((*it).first == key)
+            return (*it).second;
+        ++it;
+    }
+
+    return QByteArray();
+}
+
+/*!
     Returns the a list of query string values whose key is equal to
     \a key from the URL.
 
@@ -4354,6 +4791,36 @@ QStringList QUrl::allQueryItemValues(const QString &key) const
 
     QList<QPair<QString, QString> > items = queryItems();
     QList<QPair<QString, QString> >::ConstIterator it = items.constBegin();
+    while (it != items.constEnd()) {
+        if ((*it).first == key)
+            values += (*it).second;
+        ++it;
+    }
+
+    return values;
+}
+
+/*!
+    \since 4.4
+
+    Returns the a list of query string values whose key is equal to
+    \a key from the URL.
+
+    Note: if the encoded \a key does not match the encoded version of
+    the query, this function will not work. That is, if the
+    encoded query of this URL is "search=Qt%20Rules", calling this
+    function with \a key = "%73earch" will return an empty list.
+
+    \sa allQueryItemValues(), queryItemValue(), encodedQueryItemValue()
+*/
+QList<QByteArray> QUrl::allEncodedQueryItemValues(const QByteArray &key) const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    QList<QByteArray> values;
+
+    QList<QPair<QByteArray, QByteArray> > items = encodedQueryItems();
+    QList<QPair<QByteArray, QByteArray> >::ConstIterator it = items.constBegin();
     while (it != items.constEnd()) {
         if ((*it).first == key)
             values += (*it).second;
@@ -4387,6 +4854,36 @@ void QUrl::removeQueryItem(const QString &key)
 }
 
 /*!
+    \since 4.4
+
+    Removes the first query string pair whose key is equal to \a key
+    from the URL.
+
+    Note: if the encoded \a key does not match the encoded version of
+    the query, this function will not work. That is, if the
+    encoded query of this URL is "search=Qt%20Rules", calling this
+    function with \a key = "%73earch" will do nothing.
+
+    \sa removeQueryItem(), removeAllQueryItems()
+*/
+void QUrl::removeEncodedQueryItem(const QByteArray &key)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+
+    QList<QPair<QByteArray, QByteArray> > items = encodedQueryItems();
+    QList<QPair<QByteArray, QByteArray> >::Iterator it = items.begin();
+    while (it != items.end()) {
+        if ((*it).first == key) {
+            items.erase(it);
+            break;
+        }
+        ++it;
+    }
+    setEncodedQueryItems(items);
+}
+
+/*!
     Removes all the query string pairs whose key is equal to \a key
     from the URL.
 
@@ -4407,6 +4904,36 @@ void QUrl::removeAllQueryItems(const QString &key)
         ++it;
     }
     setQueryItems(items);
+}
+
+/*!
+    \since 4.4
+
+    Removes all the query string pairs whose key is equal to \a key
+    from the URL.
+
+    Note: if the encoded \a key does not match the encoded version of
+    the query, this function will not work. That is, if the
+    encoded query of this URL is "search=Qt%20Rules", calling this
+    function with \a key = "%73earch" will do nothing.
+
+   \sa removeQueryItem()
+*/
+void QUrl::removeAllEncodedQueryItems(const QByteArray &key)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+
+    QList<QPair<QByteArray, QByteArray> > items = encodedQueryItems();
+    QList<QPair<QByteArray, QByteArray> >::Iterator it = items.begin();
+    while (it != items.end()) {
+        if ((*it).first == key) {
+            it = items.erase(it);
+            continue;
+        }
+        ++it;
+    }
+    setEncodedQueryItems(items);
 }
 
 /*!
@@ -4444,6 +4971,7 @@ void QUrl::setFragment(const QString &fragment)
 
     d->fragment = fragment;
     d->hasFragment = !fragment.isNull();
+    d->encodedFragment.clear();
 }
 
 /*!
@@ -4455,7 +4983,58 @@ QString QUrl::fragment() const
 {
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
+    if (d->fragment.isNull() && !d->encodedFragment.isNull()) {
+        QUrlPrivate *that = const_cast<QUrlPrivate *>(d);
+        that->fragment = QUrl::fromPercentEncoding(d->encodedFragment);
+    }
     return d->fragment;
+}
+
+/*!
+    \since 4.4
+
+    Sets the URL's fragment to the percent-encoded \a fragment. The fragment is the
+    last part of the URL, represented by a '#' followed by a string of
+    characters. It is typically used in HTTP for referring to a
+    certain link or point on a page:
+
+    \img qurl-fragment.png
+
+    The fragment is sometimes also referred to as the URL "reference".
+
+    Passing an argument of QByteArray() (a null QByteArray) will unset
+    the fragment.  Passing an argument of QByteArray("") (an empty but
+    not null QByteArray) will set the fragment to an empty string (as
+    if the original URL had a lone "#").
+
+    \sa setFragment(), encodedFragment()
+*/
+void QUrl::setEncodedFragment(const QByteArray &fragment)
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+    detach();
+    QURL_UNSETFLAG(d->stateFlags, QUrlPrivate::Validated | QUrlPrivate::Normalized);
+
+    d->encodedFragment = fragment;
+    d->fragment.clear();
+}
+
+/*!
+    \since 4.4
+
+    Returns the fragment of the URL if it is defined; otherwise an
+    empty string is returned. The returned value will have its
+    non-ASCII and other control characters percent-encoded, as in
+    toEncoded().
+
+    \sa setEncodedFragment(), toEncoded()
+*/
+QByteArray QUrl::encodedFragment() const
+{
+    if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
+
+    d->ensureEncodedParts();
+    return d->encodedFragment;
 }
 
 /*!
@@ -4482,12 +5061,7 @@ bool QUrl::hasFragment() const
     the base URL, but with the merged path, as in the following
     example:
 
-    \code
-         QUrl baseUrl("http://www.trolltech.com/support");
-         QUrl relativeUrl("../products/solutions");
-         qDebug(baseUrl.resolved(relativeUrl).toString());
-         // prints "http://www.trolltech.com/products/solutions"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 5
 
     Calling resolved() with ".." returns a QUrl whose directory is
     one level higher than the original. Similarly, calling resolved()
@@ -4501,41 +5075,41 @@ QUrl QUrl::resolved(const QUrl &relative) const
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
     QUrl r(relative), t;
+    if (!QURL_HASFLAG(r.d->stateFlags, QUrlPrivate::Parsed)) r.d->parse();
+
+    d->ensureEncodedParts();
+    r.d->ensureEncodedParts();
 
     // be non strict and allow scheme in relative url
-    if (r.scheme() == d->scheme)
-        r.setScheme(QString());
-
-    if (!r.scheme().isEmpty()) {
-        t.setScheme(r.scheme());
-        t.setAuthority(r.authority());
-        t.setPath(r.path());
-        t.d->path = QUrlPrivate::removeDotsFromPath(t.d->path);
-        t.setEncodedQuery(r.encodedQuery());
+    if (!r.scheme().isEmpty() && r.scheme() != d->scheme) {
+        r.d->encodedPath = QUrlPrivate::removeDotsFromPath(r.d->encodedPath);
+        r.d->path.clear();
+        t = r;
     } else {
         if (!r.authority().isEmpty()) {
-            t.setAuthority(r.authority());
-            t.setPath(r.path());
-            t.d->path = QUrlPrivate::removeDotsFromPath(t.d->path);
-            t.setEncodedQuery(r.encodedQuery());
+            r.d->encodedPath = QUrlPrivate::removeDotsFromPath(r.d->encodedPath);
+            r.d->path.clear();
+            t = r;
         } else {
-            if (r.path().isEmpty()) {
-                t.setPath(d->path);
-                if (!r.encodedQuery().isEmpty())
+            if (r.d->encodedPath.isEmpty()) {
+                t.d->encodedPath = d->encodedPath;
+                if (r.hasQuery())
                     t.setEncodedQuery(r.encodedQuery());
                 else
-                    t.setEncodedQuery(d->query);
+                    t.setEncodedQuery(encodedQuery());
             } else {
-                if (r.path().startsWith(QLatin1Char('/'))) {
-                    t.setPath(r.path());
-                    t.d->path = QUrlPrivate::removeDotsFromPath(t.d->path);
+                if (r.d->encodedPath.startsWith('/')) {
+                    t.d->encodedPath = QUrlPrivate::removeDotsFromPath(r.d->encodedPath);
                 } else {
-                    t.setPath(d->mergePaths(r.path()));
-                    t.d->path = QUrlPrivate::removeDotsFromPath(t.d->path);
+                    t.d->encodedPath = d->mergePaths(r.d->encodedPath);
+                    t.d->encodedPath = QUrlPrivate::removeDotsFromPath(t.d->encodedPath);
                 }
                 t.setEncodedQuery(r.encodedQuery());
             }
-            t.setAuthority(d->authority());
+            t.d->encodedUserName = d->encodedUserName;
+            t.d->encodedPassword = d->encodedPassword;
+            t.d->host = d->host;
+            t.d->port = d->port;
         }
         t.setScheme(d->scheme);
     }
@@ -4571,12 +5145,12 @@ QString QUrl::toString(FormattingOptions options) const
 
     if (!(options & QUrl::RemoveScheme) && !d->scheme.isEmpty())
         url += d->scheme + QLatin1Char(':');
+    QString ourPath = path();
     if ((options & QUrl::RemoveAuthority) != QUrl::RemoveAuthority) {
-
-        bool doFileScheme = d->scheme == QLatin1String("file") && !d->path.isEmpty();
-         QString tmp = d->authority(options);
+        bool doFileScheme = d->scheme == QLatin1String("file") && !ourPath.isEmpty();
+        QString tmp = d->authority(options);
         if (!tmp.isEmpty() || doFileScheme) {
-            if (doFileScheme && !d->path.startsWith(QLatin1Char('/')))
+            if (doFileScheme && !ourPath.startsWith(QLatin1Char('/')))
                 url += QLatin1Char('/');
             url += QLatin1String("//");
             url += tmp;
@@ -4585,9 +5159,9 @@ QString QUrl::toString(FormattingOptions options) const
     if (!(options & QUrl::RemovePath)) {
         // check if we need to insert a slash
         if ((options & QUrl::RemoveAuthority) != QUrl::RemoveAuthority
-            && !d->authority(options).isEmpty() && !d->path.isEmpty() && d->path.at(0) != QLatin1Char('/'))
+            && !d->authority(options).isEmpty() && !ourPath.isEmpty() && ourPath.at(0) != QLatin1Char('/'))
             url += QLatin1Char('/');
-        url += d->path;
+        url += ourPath;
         // check if we need to remove trailing slashes
         while ((options & StripTrailingSlash) && url.right(1) == QLatin1String("/"))
             url.chop(1);
@@ -4599,7 +5173,7 @@ QString QUrl::toString(FormattingOptions options) const
     }
     if (!(options & QUrl::RemoveFragment) && d->hasFragment) {
         url += QLatin1Char('#');
-        url += d->fragment;
+        url += fragment();
     }
 
     return url;
@@ -4654,62 +5228,16 @@ QUrl QUrl::fromEncoded(const QByteArray &input, ParsingMode parsingMode)
 */
 QString QUrl::fromPercentEncoding(const QByteArray &input)
 {
-    QVarLengthArray<char> tmp(input.size() + 1);
+    if (input.isNull())
+        return QString();       // preserve null
 
-    char *data = tmp.data();
-    const char *inputPtr = input.constData();
-
-    int i = 0;
-    int len = input.count();
-    int a, b;
-    char c;
-    while (i < len) {
-        c = inputPtr[i];
-        if (c == '%' && i + 2 < len) {
-            a = inputPtr[++i];
-            b = inputPtr[++i];
-
-            if (a >= '0' && a <= '9') a -= '0';
-            else if (a >= 'a' && a <= 'f') a = a - 'a' + 10;
-            else if (a >= 'A' && a <= 'F') a = a - 'A' + 10;
-
-            if (b >= '0' && b <= '9') b -= '0';
-            else if (b >= 'a' && b <= 'f') b  = b - 'a' + 10;
-            else if (b >= 'A' && b <= 'F') b  = b - 'A' + 10;
-
-            *data++ = (char)((a << 4) | b);
-        } else {
-            *data++ = c;
-        }
-
-        ++i;
-    }
-
-    *data = '\0';
+    QByteArray output = QByteArray::fromPercentEncoding(input);
 
 #if defined QURL_DEBUG
-    qDebug("QUrl::fromPercentEncoding(\"%s\") == \"%s\"", input.data(), QString::fromUtf8(tmp.data()).toLatin1().constData());
+    qDebug("QUrl::fromPercentEncoding(\"%s\") == \"%s\"", input.data(), QString::fromUtf8(output).toLatin1().constData());
 #endif
 
-    return QString::fromUtf8(tmp.data());
-}
-
-inline bool q_strchr(const char str[], char chr)
-{
-    if (!str) return false;
-
-    const char *ptr = str;
-    char c;
-    while ((c = *ptr++))
-        if (c == chr)
-            return true;
-    return false;
-}
-
-static const char hexnumbers[] = "0123456789ABCDEF";
-static inline char toHex(char c)
-{
-    return hexnumbers[c & 0xf];
+    return QString::fromUtf8(output, output.length());
 }
 
 /*!
@@ -4722,72 +5250,21 @@ static inline char toHex(char c)
     Unreserved is defined as:
        ALPHA / DIGIT / "-" / "." / "_" / "~"
 
-    \code
-         QByteArray ba = QUrl::toPercentEncoding("{a fishy string?}", "{}", "s");
-         qDebug(ba.constData());
-         // prints "{a fi%73hy %73tring%3F}"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qurl.cpp 6
 */
 QByteArray QUrl::toPercentEncoding(const QString &input, const QByteArray &exclude, const QByteArray &include)
 {
+    if (input.isNull())
+        return QByteArray();    // preserve null
 
     QByteArray tmp = input.toUtf8();
-    QVarLengthArray<char> output(tmp.size() * 3);
-
-    int len = tmp.count();
-    char *data = output.data();
-    const char *inputData = tmp.constData();
-    int length = 0;
-
-    const char * dontEncode = 0;
-    if (!exclude.isEmpty()) dontEncode = exclude.constData();
-
-
-    if (include.isEmpty()) {
-        for (int i = 0; i < len; ++i) {
-            unsigned char c = *inputData++;
-            if (c >= 0x61 && c <= 0x7A // ALPHA
-                || c >= 0x41 && c <= 0x5A // ALPHA
-                || c >= 0x30 && c <= 0x39 // DIGIT
-                || c == 0x2D // -
-                || c == 0x2E // .
-                || c == 0x5F // _
-                || c == 0x7E // ~
-                || q_strchr(dontEncode, c)) {
-                data[length++] = c;
-            } else {
-                data[length++] = '%';
-                data[length++] = toHex((c & 0xf0) >> 4);
-                data[length++] = toHex(c & 0xf);
-            }
-        }
-    } else {
-        const char * alsoEncode = include.constData();
-        for (int i = 0; i < len; ++i) {
-            unsigned char c = *inputData++;
-            if ((c >= 0x61 && c <= 0x7A // ALPHA
-                || c >= 0x41 && c <= 0x5A // ALPHA
-                || c >= 0x30 && c <= 0x39 // DIGIT
-                || c == 0x2D // -
-                || c == 0x2E // .
-                || c == 0x5F // _
-                || c == 0x7E // ~
-                || q_strchr(dontEncode, c))
-                && !q_strchr(alsoEncode, c)) {
-                data[length++] = c;
-            } else {
-                data[length++] = '%';
-                data[length++] = toHex((c & 0xf0) >> 4);
-                data[length++] = toHex(c & 0xf);
-            }
-        }
-    }
+    QByteArray output = tmp.toPercentEncoding(exclude, include);
 
 #if defined QURL_DEBUG
-    qDebug("QUrl::toPercentEncoding(\"%s\") == \"%s\"", input.toLatin1().constData(), QByteArray(output.data(), length).data());
+    qDebug("QUrl::toPercentEncoding(\"%s\") == \"%s\"", input.toLatin1().constData(), output.data());
 #endif
 
-    return QByteArray(output.data(), length);
+    return output;
 }
 
 static inline uint adapt(uint delta, uint numpoints, bool firsttime)
@@ -4807,6 +5284,29 @@ static inline char encodeDigit(uint digit)
   return digit + 22 + 75 * (digit < 26);
 }
 
+static inline void appendEncode(QByteArray& output, uint& delta, uint& bias, uint& b, uint& h)
+{
+    uint qq;
+    uint k;
+    uint t;
+
+    // insert the variable length delta integer; fail on
+    // overflow.
+    for (qq = delta, k = base;; k += base) {
+        // stop generating digits when the threshold is
+        // detected.
+        t = (k <= bias) ? tmin : (k >= bias + tmax) ? tmax : k - bias;
+        if (qq < t) break;
+
+        output += encodeDigit(t + (qq - t) % (base - t));
+        qq = (qq - t) / (base - t);
+    }
+
+    output += encodeDigit(qq);
+    bias = adapt(delta, h + 1, h == b);
+    delta = 0;
+    ++h;
+}
 /*!
     \obsolete
     Returns a \a uc in Punycode encoding.
@@ -4879,26 +5379,7 @@ QByteArray QUrl::toPunycode(const QString &uc)
             // if j is the index of the character with the lowest
             // unicode code...
             if (uc.at(j).unicode() == n) {
-                uint qq;
-                uint k;
-                uint t;
-
-                // insert the variable length delta integer; fail on
-                // overflow.
-                for (qq = delta, k = base;; k += base) {
-                    // stop generating digits when the threshold is
-                    // detected.
-                    t = (k <= bias) ? tmin : (k >= bias + tmax) ? tmax : k - bias;
-                    if (qq < t) break;
-
-                    output += encodeDigit(t + (qq - t) % (base - t));
-                    qq = (qq - t) / (base - t);
-                }
-
-                output += encodeDigit(qq);
-                bias = adapt(delta, h + 1, h == b);
-                delta = 0;
-                ++h;
+                appendEncode(output, delta, bias, b, h);
             }
         }
 
@@ -5051,7 +5532,7 @@ QByteArray QUrl::toAce(const QString &domain)
 */
 QStringList QUrl::idnWhitelist()
 {
-    return *::idnWhitelist();
+    return *idnWhitelistHelper();
 }
 
 /*!
@@ -5074,7 +5555,7 @@ QStringList QUrl::idnWhitelist()
 */
 void QUrl::setIdnWhitelist(const QStringList &list)
 {
-    static_cast<QStringList &>(*::idnWhitelist()) = list;
+    static_cast<QStringList &>(*idnWhitelistHelper()) = list;
 }
 
 /*!
@@ -5186,16 +5667,17 @@ QString QUrl::toLocalFile() const
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
     QString tmp;
+    QString ourPath = path();
     if (d->scheme.isEmpty() || d->scheme.toLower() == QLatin1String("file")) {
 
         // magic for shared drive on windows
         if (!d->host.isEmpty()) {
-            tmp = QLatin1String("//") + d->host + (d->path.length() > 0 && d->path.at(0) != QLatin1Char('/')
-                                                  ? QLatin1String("/") + d->path :  d->path);
+            tmp = QLatin1String("//") + d->host + (ourPath.length() > 0 && ourPath.at(0) != QLatin1Char('/')
+                                                  ? QLatin1String("/") + ourPath :  ourPath);
         } else {
-            tmp = d->path;
+            tmp = ourPath;
             // magic for drives on windows
-            if (d->path.length() > 2 && d->path.at(0) == QLatin1Char('/') && d->path.at(2) == QLatin1Char(':'))
+            if (ourPath.length() > 2 && ourPath.at(0) == QLatin1Char('/') && ourPath.at(2) == QLatin1Char(':'))
                 tmp.remove(0, 1);
         }
     }
@@ -5213,13 +5695,14 @@ bool QUrl::isParentOf(const QUrl &childUrl) const
     if (!QURL_HASFLAG(d->stateFlags, QUrlPrivate::Parsed)) d->parse();
 
     QString childPath = childUrl.path();
+    QString ourPath = path();
 
     return ((childUrl.scheme().isEmpty() || d->scheme == childUrl.scheme())
             && (childUrl.authority().isEmpty() || d->authority() == childUrl.authority())
-            &&  childPath.startsWith(d->path)
-            && ((d->path.endsWith(QLatin1Char('/')) && childPath.length() > d->path.length())
-                || (!d->path.endsWith(QLatin1Char('/'))
-                    && childPath.length() > d->path.length() && childPath.at(d->path.length()) == QLatin1Char('/'))));
+            &&  childPath.startsWith(ourPath)
+            && ((ourPath.endsWith(QLatin1Char('/')) && childPath.length() > ourPath.length())
+                || (!ourPath.endsWith(QLatin1Char('/'))
+                    && childPath.length() > ourPath.length() && childPath.at(ourPath.length()) == QLatin1Char('/'))));
 }
 
 /*!
@@ -5463,3 +5946,5 @@ QString QUrl::errorString() const
     \fn DataPtr &QUrl::data_ptr()
     \internal
 */
+
+QT_END_NAMESPACE

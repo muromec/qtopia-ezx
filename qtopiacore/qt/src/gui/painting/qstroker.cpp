@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,6 +40,9 @@
 #include "private/qmath_p.h"
 #include "qline.h"
 #include "qtransform.h"
+#include <qmath.h>
+
+QT_BEGIN_NAMESPACE
 
 // #define QPP_STROKE_DEBUG
 
@@ -337,7 +334,7 @@ void QStrokerOps::strokeEllipse(const QRectF &rect, void *data, const QTransform
 {
     int count = 0;
     QPointF pts[12];
-    QPointF start = qt_curves_for_arc(rect, 0, 360, pts, &count);
+    QPointF start = qt_curves_for_arc(rect, 0, -360, pts, &count);
     Q_ASSERT(count == 12); // a perfect circle..
 
     if (!matrix.isIdentity()) {
@@ -466,7 +463,8 @@ void QStroker::joinPoints(qfixed focal_x, qfixed focal_y, const QLineF &nextLine
 
             // If we are on the inside, do the short cut...
             QLineF shortCut(prevLine.p2(), nextLine.p1());
-            qreal angle = prevLine.angle(shortCut);
+            qreal angle = shortCut.angleTo(prevLine);
+
             if (type == QLineF::BoundedIntersection || (angle > 90 && !qFuzzyCompare(angle, (qreal)90))) {
                 emitLineTo(qt_real_to_fixed(nextLine.x1()), qt_real_to_fixed(nextLine.y1()));
                 return;
@@ -477,9 +475,11 @@ void QStroker::joinPoints(qfixed focal_x, qfixed focal_y, const QLineF &nextLine
                 QLineF l1(prevLine);
                 l1.setLength(appliedMiterLimit);
                 l1.translate(prevLine.dx(), prevLine.dy());
+
                 QLineF l2(nextLine);
                 l2.setLength(appliedMiterLimit);
                 l2.translate(-l2.dx(), -l2.dy());
+
                 emitLineTo(qt_real_to_fixed(l1.x2()), qt_real_to_fixed(l1.y2()));
                 emitLineTo(qt_real_to_fixed(l2.x1()), qt_real_to_fixed(l2.y1()));
                 emitLineTo(qt_real_to_fixed(nextLine.x1()), qt_real_to_fixed(nextLine.y1()));
@@ -516,7 +516,7 @@ void QStroker::joinPoints(qfixed focal_x, qfixed focal_y, const QLineF &nextLine
             qreal sweepLength = qAbs(l2_on_x - l1_on_x);
 
             int point_count;
-            QPointF curves[12];
+            QPointF curves[15];
 
             QPointF curve_start =
                 qt_curves_for_arc(QRectF(qt_fixed_to_real(focal_x - offset),
@@ -587,7 +587,7 @@ void QStroker::joinPoints(qfixed focal_x, qfixed focal_y, const QLineF &nextLine
                 emitLineTo(qt_real_to_fixed(nextLine.x1()), qt_real_to_fixed(nextLine.y1()));
             }
         } else {
-            qFatal("QStroker::joinPoints(), bad join style...");
+            Q_ASSERT(!"QStroker::joinPoints(), bad join style...");
         }
     }
 }
@@ -682,7 +682,8 @@ template <class Iterator> bool qt_stroke_side(Iterator *it,
 
             if (count) {
                 // If we are starting a new subpath, move to correct starting point
-                QLineF tangent = offsetCurves[0].startTangent();
+                QLineF tangent = bezier.startTangent();
+                tangent.translate(offsetCurves[0].pt1() - bezier.pt1());
                 if (first) {
                     QPointF pt = offsetCurves[0].pt1();
                     if (capFirst) {
@@ -731,6 +732,78 @@ template <class Iterator> bool qt_stroke_side(Iterator *it,
     }
 }
 
+/*!
+    \internal
+
+    For a given angle in the range [0 .. 90], finds the corresponding parameter t
+    of the prototype cubic bezier arc segment
+    b = fromPoints(QPointF(1, 0), QPointF(1, KAPPA), QPointF(KAPPA, 1), QPointF(0, 1));
+
+    From the bezier equation:
+    b.pointAt(t).x() = (1-t)^3 + t*(1-t)^2 + t^2*(1-t)*KAPPA
+    b.pointAt(t).y() = t*(1-t)^2 * KAPPA + t^2*(1-t) + t^3
+
+    Third degree coefficients:
+    b.pointAt(t).x() = at^3 + bt^2 + ct + d
+    where a = 2-3*KAPPA, b = 3*(KAPPA-1), c = 0, d = 1
+
+    b.pointAt(t).y() = at^3 + bt^2 + ct + d
+    where a = 3*KAPPA-2, b = 6*KAPPA+3, c = 3*KAPPA, d = 0
+
+    Newton's method to find the zero of a function:
+    given a function f(x) and initial guess x_0
+    x_1 = f(x_0) / f'(x_0)
+    x_2 = f(x_1) / f'(x_1)
+    etc...
+*/
+
+qreal qt_t_for_arc_angle(qreal angle)
+{
+    if (qFuzzyCompare(angle + 1, qreal(1)))
+        return 0;
+
+    if (qFuzzyCompare(angle, qreal(90)))
+        return 1;
+
+    qreal radians = Q_PI * angle / 180;
+    qreal cosAngle = qCos(radians);
+    qreal sinAngle = qSin(radians);
+
+    // initial guess
+    qreal tc = angle / 90;
+    // do some iterations of newton's method to approximate cosAngle
+    // finds the zero of the function b.pointAt(tc).x() - cosAngle
+    tc -= ((((2-3*QT_PATH_KAPPA) * tc + 3*(QT_PATH_KAPPA-1)) * tc) * tc + 1 - cosAngle) // value
+         / (((6-9*QT_PATH_KAPPA) * tc + 6*(QT_PATH_KAPPA-1)) * tc); // derivative
+    tc -= ((((2-3*QT_PATH_KAPPA) * tc + 3*(QT_PATH_KAPPA-1)) * tc) * tc + 1 - cosAngle) // value
+         / (((6-9*QT_PATH_KAPPA) * tc + 6*(QT_PATH_KAPPA-1)) * tc); // derivative
+
+    // initial guess
+    qreal ts = tc;
+    // do some iterations of newton's method to approximate sinAngle
+    // finds the zero of the function b.pointAt(tc).y() - sinAngle
+    ts -= ((((3*QT_PATH_KAPPA-2) * ts -  6*QT_PATH_KAPPA + 3) * ts + 3*QT_PATH_KAPPA) * ts - sinAngle)
+         / (((9*QT_PATH_KAPPA-6) * ts + 12*QT_PATH_KAPPA - 6) * ts + 3*QT_PATH_KAPPA);
+    ts -= ((((3*QT_PATH_KAPPA-2) * ts -  6*QT_PATH_KAPPA + 3) * ts + 3*QT_PATH_KAPPA) * ts - sinAngle)
+         / (((9*QT_PATH_KAPPA-6) * ts + 12*QT_PATH_KAPPA - 6) * ts + 3*QT_PATH_KAPPA);
+
+    // use the average of the t that best approximates cosAngle
+    // and the t that best approximates sinAngle
+    qreal t = 0.5 * (tc + ts);
+
+#if 0
+    printf("angle: %f, t: %f\n", angle, t);
+    qreal a, b, c, d;
+    bezierCoefficients(t, a, b, c, d);
+    printf("cosAngle: %.10f, value: %.10f\n", cosAngle, a + b + c * QT_PATH_KAPPA);
+    printf("sinAngle: %.10f, value: %.10f\n", sinAngle, b * QT_PATH_KAPPA + c + d);
+#endif
+
+    return t;
+}
+
+void qt_find_ellipse_coords(const QRectF &r, qreal angle, qreal length,
+                            QPointF* startPoint, QPointF *endPoint);
 
 /*!
     \internal
@@ -750,113 +823,145 @@ QPointF qt_curves_for_arc(const QRectF &rect, qreal startAngle, qreal sweepLengt
     Q_ASSERT(point_count);
     Q_ASSERT(curves);
 
-#ifndef QT_NO_DEBUG
-    if (qt_is_nan(rect.x()) || qt_is_nan(rect.y()) || qt_is_nan(rect.width()) || qt_is_nan(rect.height())
-        || qt_is_nan(startAngle) || qt_is_nan(sweepLength))
-        qWarning("QPainterPath::arcTo: Adding arc where a parameter is NaN, results are undefined");
-#endif
     *point_count = 0;
+    if (qt_is_nan(rect.x()) || qt_is_nan(rect.y()) || qt_is_nan(rect.width()) || qt_is_nan(rect.height())
+        || qt_is_nan(startAngle) || qt_is_nan(sweepLength)) {
+        qWarning("QPainterPath::arcTo: Adding arc where a parameter is NaN, results are undefined");
+        return QPointF();
+    }
 
     if (rect.isNull()) {
         return QPointF();
     }
 
+    qreal x = rect.x();
+    qreal y = rect.y();
+
+    qreal w = rect.width();
+    qreal w2 = rect.width() / 2;
+    qreal w2k = w2 * QT_PATH_KAPPA;
+
+    qreal h = rect.height();
+    qreal h2 = rect.height() / 2;
+    qreal h2k = h2 * QT_PATH_KAPPA;
+
+    QPointF points[16] =
+    {
+        // start point
+        QPointF(x + w, y + h2),
+
+        // 0 -> 270 degrees
+        QPointF(x + w, y + h2 + h2k),
+        QPointF(x + w2 + w2k, y + h),
+        QPointF(x + w2, y + h),
+
+        // 270 -> 180 degrees
+        QPointF(x + w2 - w2k, y + h),
+        QPointF(x, y + h2 + h2k),
+        QPointF(x, y + h2),
+
+        // 180 -> 90 degrees
+        QPointF(x, y + h2 - h2k),
+        QPointF(x + w2 - w2k, y),
+        QPointF(x + w2, y),
+
+        // 90 -> 0 degrees
+        QPointF(x + w2 + w2k, y),
+        QPointF(x + w, y + h2 - h2k),
+        QPointF(x + w, y + h2)
+    };
+
     if (sweepLength > 360) sweepLength = 360;
     else if (sweepLength < -360) sweepLength = -360;
 
-    // Special case fast path
-    if (startAngle == 0.0 && sweepLength == 360.0) {
-        qreal x = rect.x();
-        qreal y = rect.y();
-
-        qreal w = rect.width();
-        qreal w2 = rect.width() / 2;
-        qreal w2k = w2 * QT_PATH_KAPPA;
-
-        qreal h = rect.height();
-        qreal h2 = rect.height() / 2;
-        qreal h2k = h2 * QT_PATH_KAPPA;
-
-        // 0 -> 270 degrees
-        curves[(*point_count)++] = QPointF(x + w, y + h2 + h2k);
-        curves[(*point_count)++] = QPointF(x + w2 + w2k, y + h);
-        curves[(*point_count)++] = QPointF(x + w2, y + h);
-
-        // 270 -> 180 degrees
-        curves[(*point_count)++] = QPointF(x + w2 - w2k, y + h);
-        curves[(*point_count)++] = QPointF(x, y + h2 + h2k);
-        curves[(*point_count)++] = QPointF(x, y + h2);
-
-        // 180 -> 90 degrees
-        curves[(*point_count)++] = QPointF(x, y + h2 - h2k);
-        curves[(*point_count)++] = QPointF(x + w2 - w2k, y);
-        curves[(*point_count)++] = QPointF(x + w2, y);
-
-        // 90 -> 0 degrees
-        curves[(*point_count)++] = QPointF(x + w2 + w2k, y);
-        curves[(*point_count)++] = QPointF(x + w, y + h2 - h2k);
-        curves[(*point_count)++] = QPointF(x + w, y + h2);
-
-        return QPointF(x + w, y + h2);
-    }
-
-#define ANGLE(t) ((t) * 2 * Q_PI / 360.0)
-#define SIGN(t) (t > 0 ? 1 : -1)
-    qreal a = rect.width() / 2.0;
-    qreal b = rect.height() / 2.0;
-
-    qreal absSweepLength = (sweepLength < 0 ? -sweepLength : sweepLength);
-    int iterations = qCeil((absSweepLength) / qreal(90.0));
-
-    QPointF first_point;
-
-    if (iterations == 0) {
-        first_point = rect.center() + QPointF(a * qCos(ANGLE(startAngle)),
-                                              -b * qSin(ANGLE(startAngle)));
-    } else {
-        qreal clength = sweepLength / iterations;
-        qreal cosangle1, sinangle1, cosangle2, sinangle2;
-
-        for (int i=0; i<iterations; ++i) {
-            qreal cangle = startAngle + i * clength;
-
-            cosangle1 = qCos(ANGLE(cangle));
-            sinangle1 = qSin(ANGLE(cangle));
-            cosangle2 = qCos(ANGLE(cangle + clength));
-            sinangle2 = qSin(ANGLE(cangle + clength));
-
-            // Find the start and end point of the curve.
-            QPointF startPoint = rect.center() + QPointF(a * cosangle1, -b * sinangle1);
-            QPointF endPoint = rect.center() + QPointF(a * cosangle2, -b * sinangle2);
-
-            // The derived at the start and end point.
-            qreal sdx = -a * sinangle1;
-            qreal sdy = -b * cosangle1;
-            qreal edx = -a * sinangle2;
-            qreal edy = -b * cosangle2;
-
-            // Creating the tangent lines. We need to reverse their direction if the
-            // sweep is negative (clockwise)
-            QLineF controlLine1(startPoint, startPoint + SIGN(sweepLength) * QPointF(sdx, sdy));
-            QLineF controlLine2(endPoint, endPoint - SIGN(sweepLength) * QPointF(edx, edy));
-
-            // We need to scale down the control lines to match that of the current sweeplength.
-            // qAbs because we only want to scale, not change direction.
-            qreal kappa = QT_PATH_KAPPA * qAbs(clength) / 90.0;
-            // Adjust their length to fit the magic KAPPA length.
-            controlLine1.setLength(controlLine1.length() * kappa);
-            controlLine2.setLength(controlLine2.length() * kappa);
-
-            curves[(*point_count)++] = controlLine1.p2();
-            curves[(*point_count)++] = controlLine2.p2();
-            curves[(*point_count)++] = endPoint;
-
-            if (i == 0)
-                first_point = startPoint;
+    // Special case fast paths
+    if (startAngle == 0.0) {
+        if (sweepLength == 360.0) {
+            for (int i = 11; i >= 0; --i)
+                curves[(*point_count)++] = points[i];
+            return points[12];
+        } else if (sweepLength == -360.0) {
+            for (int i = 1; i <= 12; ++i)
+                curves[(*point_count)++] = points[i];
+            return points[0];
         }
     }
 
-    return first_point;
+    int startSegment = int(floor(startAngle / 90));
+    int endSegment = int(floor((startAngle + sweepLength) / 90));
+
+    qreal startT = (startAngle - startSegment * 90) / 90;
+    qreal endT = (startAngle + sweepLength - endSegment * 90) / 90;
+
+    int delta = sweepLength > 0 ? 1 : -1;
+    if (delta < 0) {
+        startT = 1 - startT;
+        endT = 1 - endT;
+    }
+
+    // avoid empty start segment
+    if (qFuzzyCompare(startT, qreal(1))) {
+        startT = 0;
+        startSegment += delta;
+    }
+
+    // avoid empty end segment
+    if (qFuzzyCompare(endT + 1, qreal(1))) {
+        endT = 1;
+        endSegment -= delta;
+    }
+
+    startT = qt_t_for_arc_angle(startT * 90);
+    endT = qt_t_for_arc_angle(endT * 90);
+
+    const bool splitAtStart = !qFuzzyCompare(startT + 1, qreal(1));
+    const bool splitAtEnd = !qFuzzyCompare(endT, qreal(1));
+
+    const int end = endSegment + delta;
+
+    // empty arc?
+    if (startSegment == end) {
+        const int quadrant = 3 - ((startSegment % 4) + 4) % 4;
+        const int j = 3 * quadrant;
+        return delta > 0 ? points[j + 3] : points[j];
+    }
+
+    QPointF startPoint, endPoint;
+    qt_find_ellipse_coords(rect, startAngle, sweepLength, &startPoint, &endPoint);
+
+    for (int i = startSegment; i != end; i += delta) {
+        const int quadrant = 3 - ((i % 4) + 4) % 4;
+        const int j = 3 * quadrant;
+
+        QBezier b;
+        if (delta > 0)
+            b = QBezier::fromPoints(points[j + 3], points[j + 2], points[j + 1], points[j]);
+        else
+            b = QBezier::fromPoints(points[j], points[j + 1], points[j + 2], points[j + 3]);
+
+        // empty arc?
+        if (startSegment == endSegment && qFuzzyCompare(startT, endT))
+            return startPoint;
+
+        if (i == startSegment) {
+            if (i == endSegment && splitAtEnd)
+                b = b.bezierOnInterval(startT, endT);
+            else if (splitAtStart)
+                b = b.bezierOnInterval(startT, 1);
+        } else if (i == endSegment && splitAtEnd) {
+            b = b.bezierOnInterval(0, endT);
+        }
+
+        // push control points
+        curves[(*point_count)++] = b.pt2();
+        curves[(*point_count)++] = b.pt3();
+        curves[(*point_count)++] = b.pt4();
+    }
+
+    Q_ASSERT(*point_count > 0);
+    curves[*(point_count)-1] = endPoint;
+
+    return startPoint;
 }
 
 
@@ -909,7 +1014,7 @@ void QDashStroker::processCurrentSubpath()
         sumLength += dashes[i];
     }
 
-    if (qFuzzyCompare(sumLength, qreal(0)))
+    if (qFuzzyCompare(sumLength + 1, qreal(1)))
         return;
 
     Q_ASSERT(dashCount > 0);
@@ -963,8 +1068,9 @@ void QDashStroker::processCurrentSubpath()
 
         estop = estart + elen;
 
+        bool done = pos >= estop;
         // Dash away...
-        while (pos < estop) {
+        while (!done) {
             QPointF p2;
 
             int idash_incr = 0;
@@ -976,10 +1082,12 @@ void QDashStroker::processCurrentSubpath()
             if (dpos > elen) { // dash extends this line
                 doffset = dashes[idash] - (dpos - elen); // subtract the part already used
                 pos = estop; // move pos to next path element
+                done = true;
                 p2 = cline.p2();
             } else { // Dash is on this line
                 p2 = cline.pointAt(dpos/elen);
                 pos = dpos + estart;
+                done = pos >= estop;
                 idash_incr = 1;
                 doffset = 0; // full segment so no offset on next.
             }
@@ -1020,3 +1128,5 @@ void QDashStroker::processCurrentSubpath()
         prev = e;
     }
 }
+
+QT_END_NAMESPACE

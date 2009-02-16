@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 #include "qvariant.h"
 #include "qline.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 const uchar *qt_patternForBrush(int brushStyle, bool invert)
 {
@@ -171,8 +167,10 @@ struct QTexturedBrushData : public QBrushData
 
 // returns true if the brush has a pixmap (or bitmap) set as the
 // brush texture, false otherwise
-bool hasPixmapTexture(const QBrush& brush)
+bool qHasPixmapTexture(const QBrush& brush)
 {
+    if (brush.style() != Qt::TexturePattern)
+        return false;
     QTexturedBrushData *tx_data = static_cast<QTexturedBrushData *>(brush.d);
     return tx_data->m_has_pixmap_texture;
 }
@@ -218,9 +216,7 @@ struct QGradientBrushData : public QBrushData
     gradients: QLinearGradient, QConicalGradient, and QRadialGradient
     - all of which inherit QGradient.
 
-    \quotefromfile snippets/brush/gradientcreationsnippet.cpp
-    \skipto QRadialGradient
-    \printuntil QBrush
+    \snippet doc/src/snippets/brush/gradientcreationsnippet.cpp 0
 
     The texture() defines the pixmap used when the current style is
     Qt::TexturePattern.  You can create a brush with a texture by
@@ -251,17 +247,7 @@ struct QGradientBrushData : public QBrushData
     QPainter's \l {QPen}{pen} combined with Qt::PenStyle and
     Qt::GlobalColor:
 
-    \code
-        QPainter painter(this);
-
-        painter.setBrush(Qt::cyan);
-        painter.setPen(Qt::darkCyan);
-        painter.drawRect(0, 0, 100,100);
-
-        painter.setBrush(Qt::NoBrush);
-        painter.setPen(Qt::darkGreen);
-        painter.drawRect(40, 40, 100, 100);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qbrush.cpp 0
 
     Note that, by default, QPainter renders the outline (using the
     currently set pen) when drawing shapes. Use \l {Qt::NoPen}{\c
@@ -275,38 +261,34 @@ struct QGradientBrushData : public QBrushData
     \sa Qt::BrushStyle, QPainter, QColor
 */
 
-class QBrushStatic
+#ifndef QT_NO_THREAD
+// Special deleter that only deletes if the ref-count goes to zero
+template <>
+class QGlobalStaticDeleter<QBrushData>
 {
 public:
-    QBrushData *pointer;
-    bool destroyed;
-
-    inline QBrushStatic()
-        : pointer(0), destroyed(false)
+    QGlobalStatic<QBrushData> &globalStatic;
+    QGlobalStaticDeleter(QGlobalStatic<QBrushData> &_globalStatic)
+        : globalStatic(_globalStatic)
     { }
 
-    inline ~QBrushStatic()
+    inline ~QGlobalStaticDeleter()
     {
-        if (!pointer->ref.deref())
-            delete pointer;
-        pointer = 0;
-        destroyed = true;
+        if (!globalStatic.pointer->ref.deref())
+            delete globalStatic.pointer;
+        globalStatic.pointer = 0;
+        globalStatic.destroyed = true;
     }
 };
+#endif
 
-static QBrushData *nullBrushInstance()
-{
-    static QBrushStatic defaultBrush;
-    if (!defaultBrush.pointer && !defaultBrush.destroyed) {
-        QBrushData *x = new QBrushData;
-        x->ref = 1; x->style = Qt::BrushStyle(0); x->color = Qt::black;
-        x->hasTransform = false;
-        x->forceTextureClamp = false;
-        if (!q_atomic_test_and_set_ptr(&defaultBrush.pointer, 0, x))
-            delete x;
-    }
-    return defaultBrush.pointer;
-}
+Q_GLOBAL_STATIC_WITH_INITIALIZER(QBrushData, nullBrushInstance,
+                                 {
+                                     x->ref = 1;
+                                     x->style = Qt::BrushStyle(0);
+                                     x->color = Qt::black;
+                                     x->hasTransform = false;
+                                 })
 
 static bool qbrush_check_type(Qt::BrushStyle style) {
     switch (style) {
@@ -335,10 +317,10 @@ void QBrush::init(const QColor &color, Qt::BrushStyle style)
     case Qt::NoBrush:
         d = nullBrushInstance();
         d->ref.ref();
+        if (d->color != color) setColor(color);
         return;
     case Qt::TexturePattern:
         d = new QTexturedBrushData;
-        static_cast<QTexturedBrushData *>(d)->setPixmap(QPixmap());
         break;
     case Qt::LinearGradientPattern:
     case Qt::RadialGradientPattern:
@@ -353,7 +335,6 @@ void QBrush::init(const QColor &color, Qt::BrushStyle style)
     d->style = style;
     d->color = color;
     d->hasTransform = false;
-    d->forceTextureClamp = false;
 }
 
 /*!
@@ -546,9 +527,13 @@ void QBrush::detach(Qt::BrushStyle newStyle)
     switch(newStyle) {
     case Qt::TexturePattern: {
         QTexturedBrushData *tbd = new QTexturedBrushData;
-        tbd->setPixmap(d->style == Qt::TexturePattern
-                       ? static_cast<QTexturedBrushData *>(d)->pixmap()
-                       : QPixmap());
+        if (d->style == Qt::TexturePattern) {
+            QTexturedBrushData *data = static_cast<QTexturedBrushData *>(d);
+            if (data->m_has_pixmap_texture)
+                tbd->setPixmap(data->pixmap());
+            else
+                tbd->setImage(data->image());
+        }
         x = tbd;
         break;
         }
@@ -568,10 +553,10 @@ void QBrush::detach(Qt::BrushStyle newStyle)
     x->color = d->color;
     x->transform = d->transform;
     x->hasTransform = d->hasTransform;
-    x->forceTextureClamp = d->forceTextureClamp;
-    x = qAtomicSetPtr(&d, x);
-    if (!x->ref.deref())
-        cleanUp(x);
+    x->sourceRect = d->sourceRect;
+    if (!d->ref.deref())
+        cleanUp(d);
+    d = x;
 }
 
 
@@ -584,11 +569,10 @@ void QBrush::detach(Qt::BrushStyle newStyle)
 
 QBrush &QBrush::operator=(const QBrush &b)
 {
-    QBrushData *x = b.d;
-    x->ref.ref();
-    x = qAtomicSetPtr(&d, x);
-    if (!x->ref.deref())
-        cleanUp(x);
+    b.d->ref.ref();
+    if (!d->ref.deref())
+        cleanUp(d);
+    d = b.d;
     return *this;
 }
 
@@ -752,10 +736,14 @@ QImage QBrush::textureImage() const
     Sets the brush image to \a image. The style is set to
     Qt::TexturePattern.
 
-    The current brush color will only have an effect for monochrome
-    images, i.e. for QImage::depth() == 1.
+    Note the current brush color will \e not have any affect on
+    monochrome images, as opposed to calling setTexture() with a
+    QBitmap. If you want to change the color of monochrome image
+    brushes, either convert the image to QBitmap with \c
+    QBitmap::fromImage() and set the resulting QBitmap as a texture,
+    or change the entries in the color table for the image.
 
-    \sa textureImage()
+    \sa textureImage(), setTexture()
 */
 
 void QBrush::setTextureImage(const QImage &image)
@@ -950,12 +938,20 @@ QDebug operator<<(QDebug dbg, const QBrush &b)
 
 QDataStream &operator<<(QDataStream &s, const QBrush &b)
 {
-    s << (quint8)b.style() << b.color();
+    quint8 style = (quint8) b.style();
+    bool gradient_style = false;
+
+    if (style == Qt::LinearGradientPattern || style == Qt::RadialGradientPattern
+        || style == Qt::ConicalGradientPattern)
+        gradient_style = true;
+
+    if (s.version() < QDataStream::Qt_4_0 && gradient_style)
+        style = Qt::NoBrush;
+
+    s << style << b.color();
     if (b.style() == Qt::TexturePattern) {
         s << b.texture();
-    } else if (b.style() == Qt::LinearGradientPattern
-               || b.style() == Qt::RadialGradientPattern
-               || b.style() == Qt::ConicalGradientPattern) {
+    } else if (s.version() >= QDataStream::Qt_4_0 && gradient_style) {
         const QGradient *gradient = b.gradient();
         int type_as_int = int(gradient->type());
         s << type_as_int;
@@ -1142,19 +1138,13 @@ QDataStream &operator>>(QDataStream &s, QBrush &b)
     A diagonal linear gradient from black at (100, 100) to white at
     (200, 200) could be specified like this:
 
-    \quotefromfile snippets/brush/brush.cpp
-    \skipto LINEAR
-    \skipto QLinearGradient
-    \printuntil Qt::white
+    \snippet doc/src/snippets/brush/brush.cpp 0
 
     A gradient can have an arbitrary number of stop points. The
     following would create a radial gradient starting with
     red in the center, blue and then green on the edges:
 
-    \quotefromfile snippets/brush/brush.cpp
-    \skipto RADIAL
-    \skipto QRadialGradient
-    \printuntil Qt::green
+    \snippet doc/src/snippets/brush/brush.cpp 1
 
     It is possible to repeat or reflect the gradient outside its area
     by specifiying the \l {QGradient::Spread}{spread method} using the
@@ -1181,6 +1171,15 @@ QDataStream &operator>>(QDataStream &s, QBrush &b)
     entire circle from 0 - 360 degrees, while the boundary of a radial
     or a linear gradient can be specified through its radius or final
     stop points, respectively.
+
+    The gradient coordinates can be specified in logical coordinates,
+    relative to device coordinates, or relative to object bounding box coordinates.
+    The \l {QGradient::CoordinateMode}{coordinate mode} can be set using the
+    setCoordinateMode() function. The default is LogicalMode, where the
+    gradient coordinates are specified in the same way as the object
+    coordinates. To retrieve the currently set \l {QGradient::CoordinateMode}
+    {coordinate mode} use coordinateMode().
+
 
     \sa {demos/gradients}{The Gradients Demo}, QBrush
 */
@@ -1273,8 +1272,12 @@ void QGradient::setColorAt(qreal pos, const QColor &color)
     }
 
     int index = 0;
-    while (index < m_stops.size() && m_stops.at(index).first <= pos) ++index;
-    m_stops.insert(index, QGradientStop(pos, color));
+    while (index < m_stops.size() && m_stops.at(index).first < pos) ++index;
+
+    if (index < m_stops.size() && m_stops.at(index).first == pos)
+        m_stops[index].second = color;
+    else
+        m_stops.insert(index, QGradientStop(pos, color));
 }
 
 /*!
@@ -1314,18 +1317,25 @@ QGradientStops QGradient::stops() const
 
 /*!
     \enum QGradient::CoordinateMode
-    \internal
+    \since 4.4
 
     This enum specifies how gradient coordinates map to the paint
     device on which the gradient is used.
 
-    \value LogicalMode
-    \value StretchToDeviceMode
-    \value ObjectBoundingMode
+    \value LogicalMode This is the default mode. The gradient coordinates
+    are specified logical space just like the object coordinates.
+    \value StretchToDeviceMode In this mode the gradient coordinates
+    are relative to the bounding rectangle of the paint device,
+    with (0,0) in the top left corner, and (1,1) in the bottom right
+    corner of the paint device.
+    \value ObjectBoundingMode In this mode the gradient coordinates are
+    relative to the bounding rectangle of the object being drawn, with
+    (0,0) in the top left corner, and (1,1) in the bottom right corner
+    of the object's bounding rectangle.
 */
 
 /*!
-    \internal
+    \since 4.4
 
     Returns the coordinate mode of this gradient. The default mode is
     LogicalMode.
@@ -1341,7 +1351,7 @@ QGradient::CoordinateMode QGradient::coordinateMode() const
 }
 
 /*!
-    \internal
+    \since 4.4
 
     Sets the coordinate mode of this gradient to \a mode. The default
     mode is LogicalMode.
@@ -1473,6 +1483,8 @@ QLinearGradient::QLinearGradient()
     Constructs a linear gradient with interpolation area between the
     given \a start point and \a finalStop.
 
+    \note The expected parameter values are in pixels.
+
     \sa QGradient::setColorAt(), QGradient::setStops()
 */
 QLinearGradient::QLinearGradient(const QPointF &start, const QPointF &finalStop)
@@ -1490,6 +1502,8 @@ QLinearGradient::QLinearGradient(const QPointF &start, const QPointF &finalStop)
 
     Constructs a linear gradient with interpolation area between (\a
     x1, \a y1) and (\a x2, \a y2).
+
+    \note The expected parameter values are in pixels.
 
     \sa QGradient::setColorAt(), QGradient::setStops()
 */
@@ -1632,7 +1646,7 @@ static QPointF qt_radial_gradient_adapt_focal_point(const QPointF &center,
     // We have a one pixel buffer zone to avoid numerical instability on the
     // circle border
     //### this is hacky because technically we should adjust based on current matrix
-    const qreal compensated_radius = radius - 0.0000000001;
+    const qreal compensated_radius = radius - radius * 0.001;
     QLineF line(center, focalPoint);
     if (line.length() > (compensated_radius))
         line.setLength(compensated_radius);
@@ -2037,3 +2051,5 @@ void QConicalGradient::setAngle(qreal angle)
 
     \sa setTransform()
 */
+
+QT_END_NAMESPACE

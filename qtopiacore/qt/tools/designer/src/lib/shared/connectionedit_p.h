@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -67,10 +61,12 @@
 #include <QtGui/QPolygonF>
 
 #include <QtGui/QUndoCommand>
-#
+
+QT_BEGIN_NAMESPACE
 
 class QDesignerFormWindowInterface;
 class QUndoStack;
+class QMenu;
 
 namespace qdesigner_internal {
 
@@ -100,8 +96,8 @@ public:
 class QDESIGNER_SHARED_EXPORT Connection : public CETypes
 {
 public:
-    Connection(ConnectionEdit *edit);
-    Connection(ConnectionEdit *edit, QObject *source, QObject *target);
+    explicit Connection(ConnectionEdit *edit);
+    explicit Connection(ConnectionEdit *edit, QObject *source, QObject *target);
     virtual ~Connection() {}
 
     QObject *object(EndPoint::Type type) const
@@ -174,13 +170,10 @@ public:
 
     void setSelected(Connection *con, bool sel);
     bool selected(const Connection *con) const;
-    void selectNone();
 
     int connectionCount() const { return m_con_list.size(); }
     Connection *connection(int i) const { return m_con_list.at(i); }
     int indexOfConnection(Connection *con) const { return m_con_list.indexOf(con); }
-
-    virtual void deleteSelected();
 
     virtual void setSource(Connection *con, const QString &obj_name);
     virtual void setTarget(Connection *con, const QString &obj_name);
@@ -204,6 +197,9 @@ signals:
     void connectionChanged(Connection *con);
 
 public slots:
+    void selectNone();
+    void selectAll();
+    virtual void deleteSelected();
     virtual void setBackground(QWidget *background);
     virtual void updateBackground();
     virtual void widgetRemoved(QWidget *w);
@@ -218,24 +214,34 @@ protected:
     virtual void keyPressEvent(QKeyEvent *e);
     virtual void mouseDoubleClickEvent(QMouseEvent *e);
     virtual void resizeEvent(QResizeEvent *e);
+    virtual void contextMenuEvent(QContextMenuEvent * event);
 
     virtual Connection *createConnection(QWidget *source, QWidget *target);
     virtual void modifyConnection(Connection *con);
 
     virtual QWidget *widgetAt(const QPoint &pos) const;
+    virtual void createContextMenu(QMenu &menu);
     void addConnection(Connection *con);
     QRect widgetRect(QWidget *w) const;
-    
+
     enum State { Editing, Connecting, Dragging };
     State state() const;
 
     virtual void endConnection(QWidget *target, const QPoint &pos);
+
+    const ConnectionList &connectionList() const { return m_con_list; }
+    const ConnectionSet &selection()  const      { return m_sel_con_set; }
+    Connection *takeConnection(Connection *con);
+    Connection *newlyAddedConnection()           { return m_tmp_con; }
+    void clearNewlyAddedConnection();
+
+    void findObjectsUnderMouse(const QPoint &pos);
+
 private:
     void startConnection(QWidget *source, const QPoint &pos);
     void continueConnection(QWidget *target, const QPoint &pos);
     void abortConnection();
 
-    void findObjectsUnderMouse(const QPoint &pos);
     void startDrag(const EndPoint &end_point, const QPoint &pos);
     void continueDrag(const QPoint &pos);
     void endDrag(const QPoint &pos);
@@ -243,11 +249,11 @@ private:
     Connection *connectionAt(const QPoint &pos) const;
     EndPoint endPointAt(const QPoint &pos) const;
     void paintConnection(QPainter *p, Connection *con,
-			 WidgetSet *heavy_highlight_set,
-			 WidgetSet *light_highlight_set) const;
+                         WidgetSet *heavy_highlight_set,
+                         WidgetSet *light_highlight_set) const;
     void paintLabel(QPainter *p, EndPoint::Type type, Connection *con);
 
-    
+
     QPointer<QWidget> m_bg_widget;
     QUndoStack *m_undo_stack;
     bool m_enable_update_background;
@@ -265,7 +271,6 @@ private:
     const QColor m_active_color;
 
 private:
-    friend class BuddyEditor;
     friend class Connection;
     friend class AddConnectionCommand;
     friend class DeleteConnectionsCommand;
@@ -275,7 +280,7 @@ private:
 class QDESIGNER_SHARED_EXPORT CECommand : public QUndoCommand, public CETypes
 {
 public:
-    CECommand(ConnectionEdit *edit)
+   explicit  CECommand(ConnectionEdit *edit)
         : m_edit(edit) {}
 
     virtual bool mergeWith(const QUndoCommand *) { return false; }
@@ -307,5 +312,7 @@ private:
 };
 
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE
 
 #endif // CONNECTIONEDIT_H

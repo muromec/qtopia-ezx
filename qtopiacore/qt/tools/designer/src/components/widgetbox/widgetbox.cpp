@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,6 +40,7 @@ TRANSLATOR qdesigner_internal::WidgetBoxTreeView
 */
 
 #include "widgetbox.h"
+#include "widgetbox_dnditem.h"
 
 // shared
 #include <pluginmanager_p.h>
@@ -71,14 +66,31 @@ TRANSLATOR qdesigner_internal::WidgetBoxTreeView
 #include <QtXml/QDomDocument>
 #include <QtCore/QFile>
 #include <QtCore/qdebug.h>
+#include <QtCore/QSettings>
 
-#include "widgetbox_dnditem.h"
-
+QT_BEGIN_NAMESPACE
 
 namespace {
     enum TopLevelRole  { NORMAL_ITEM, SCRATCHPAD_ITEM=1,CUSTOM_ITEM=2 };
     typedef QList<QDomElement> ElementList;
 }
+
+static const char *widgetBoxRootElementC = "widgetbox";
+static const char *widgetElementC = "widget";
+static const char *uiElementC = "ui";
+static const char *categoryElementC = "category";
+static const char *nameAttributeC = "name";
+static const char *typeAttributeC = "type";
+static const char *iconAttributeC = "icon";
+static const char *defaultTypeValueC = "default";
+static const char *customValueC = "custom";
+static const char *iconPrefixC = "__qt_icon__";
+static const char *scratchPadValueC = "scratchpad";
+static const char *qtLogoC = "qtlogo.png";
+static const char *invisibleNameC = "[invisible]";
+
+static const char *uiOpeningTagC = "<ui>";
+static const char *uiClosingTagC = "</ui>";
 
 /*******************************************************************************
 ** Tools
@@ -149,37 +161,6 @@ static QDomDocument stringToDom(const QString &xml)
     QDomDocument result;
     result.setContent(xml);
     return result;
-}
-
-static DomWidget *xmlToUi(const QString &name, const QString &xml, QString &errorMessage)
-{
-    QDomDocument doc;
-    QString err_msg;
-    int err_line, err_col;
-    if (!doc.setContent(xml, &err_msg, &err_line, &err_col)) {
-        errorMessage = QObject::tr("A parse error occurred at line %1, column %2 of the XML code specified for the widget %3: %4\n%5").
-                                arg(err_line).arg(err_col).arg(name).arg(err_msg).arg( xml);
-        return 0;
-    }
-
-    const QDomElement dom_elt = doc.firstChildElement();
-    if (dom_elt.nodeName() != QLatin1String("widget")) {
-        errorMessage = QObject::tr("The XML code specified for the widget %1 contains an invalid root element %2.\n%3").
-                                      arg(name).arg(dom_elt.nodeName()).arg(xml);
-        return 0;
-    }
-
-    DomWidget *widget = new DomWidget;
-    widget->read(dom_elt);
-    return widget;
-}
-static DomWidget *xmlToUi(const QString &name, const QString &xml)
-{
-    QString errorMessage;
-    DomWidget *rc = xmlToUi(name, xml, errorMessage);
-    if (!rc)
-        qdesigner_internal::designerWarning(errorMessage);
-    return rc;
 }
 
 static void setTopLevelRole(TopLevelRole tlr, QTreeWidgetItem *item)
@@ -279,8 +260,6 @@ private:
     void restoreExpandedState();
 
     static QString widgetDomXml(const Widget &widget);
-
-    static QString qtify(const QString &name);
 };
 
 
@@ -329,7 +308,7 @@ void WidgetBoxTreeView::saveExpandedState() const
         }
     }
     QSettings settings;
-    settings.beginGroup(QLatin1String("WidgetBox"));
+    settings.beginGroup(QLatin1String(widgetBoxRootElementC));
     settings.setValue(QLatin1String("Closed categories"), closedCategories);
     settings.endGroup();
 }
@@ -357,28 +336,6 @@ WidgetBoxTreeView::~WidgetBoxTreeView()
     saveExpandedState();
 }
 
-QString WidgetBoxTreeView::qtify(const QString &name)
-{
-    QString qname = name;
-
-    Q_ASSERT(name.isEmpty() == false);
-
-    if (qname.count() > 1 && qname.at(1).toUpper() == qname.at(1) && (qname.at(0) == QLatin1Char('Q') || qname.at(0) == QLatin1Char('K')))
-        qname = qname.mid(1);
-
-    int i=0;
-    while (i < qname.length()) {
-        if (qname.at(i).toLower() != qname.at(i))
-            qname[i] = qname.at(i).toLower();
-        else
-            break;
-
-        ++i;
-    }
-
-    return qname;
-}
-
 QString WidgetBoxTreeView::widgetDomXml(const Widget &widget)
 {
     QString domXml = widget.domXml();
@@ -386,15 +343,16 @@ QString WidgetBoxTreeView::widgetDomXml(const Widget &widget)
     if (domXml.isEmpty()) {
         const QString defaultVarName = qtify(widget.name());
         const QString typeStr = widget.type() == Widget::Default
-                            ? QLatin1String("default")
-                            : QLatin1String("custom");
+                            ? QLatin1String(defaultTypeValueC)
+                            : QLatin1String(customValueC);
 
-        domXml = QString::fromUtf8("<widget class=\"%1\" name=\"%2\" type=\"%3\"/>")
+        domXml = QLatin1String(uiOpeningTagC);
+        domXml += QString::fromUtf8("<widget class=\"%1\" name=\"%2\" type=\"%3\"/>")
             .arg(widget.name())
             .arg(defaultVarName)
             .arg(typeStr);
+        domXml += QLatin1String(uiClosingTagC);
     }
-
     return domXml;
 }
 
@@ -418,7 +376,8 @@ bool WidgetBoxTreeView::save()
         return false;
 
     CategoryList cat_list;
-    for (int i = 0; i < categoryCount(); ++i)
+    const int count = categoryCount();
+    for (int i = 0; i < count; ++i)
         cat_list.append(category(i));
 
     const QDomDocument doc = categoryListToDom(cat_list);
@@ -441,7 +400,6 @@ void WidgetBoxTreeView::handleMousePress(QTreeWidgetItem *item)
     QDesignerWidgetBoxInterface::Widget wgt = itemToWidget(item);
     if (wgt.isNull())
         return;
-
     emit pressed(wgt.name(), widgetDomXml(wgt), wgt.type() == QDesignerWidgetBoxInterface::Widget::Custom, QCursor::pos());
 }
 
@@ -470,7 +428,8 @@ int WidgetBoxTreeView::indexOfScratchpad() const
 
 int WidgetBoxTreeView::indexOfCategory(const QString &name) const
 {
-    for (int i = 0; i < topLevelItemCount(); ++i) {
+    const int topLevelCount = topLevelItemCount();
+    for (int i = 0; i < topLevelCount; ++i) {
         if (topLevelItem(i)->text(0) == name)
             return i;
     }
@@ -558,36 +517,41 @@ void WidgetBoxTreeView::addCustomCategories(bool replace)
 QDomDocument WidgetBoxTreeView::categoryListToDom(const CategoryList &cat_list) const
 {
     QDomDocument doc;
-    QDomElement root = doc.createElement(QLatin1String("widgetbox"));
+    QDomElement root = doc.createElement(QLatin1String(widgetBoxRootElementC));
     doc.appendChild(root);
 
-    const QString name = QLatin1String("name");
-    const QString type = QLatin1String("type");
-    const QString icon = QLatin1String("icon");
-    const QString defaultType = QLatin1String("default");
-    const QString category = QLatin1String(QLatin1String("category"));
-    const QString iconPrefix = QLatin1String("__qt_icon__");
+    const QString name = QLatin1String(nameAttributeC);
+    const QString type = QLatin1String(typeAttributeC);
+    const QString icon = QLatin1String(iconAttributeC);
+    const QString defaultType = QLatin1String(defaultTypeValueC);
+    const QString category = QLatin1String(categoryElementC);
+    const QString iconPrefix = QLatin1String(iconPrefixC);
+    const QString widgetTag = QLatin1String(widgetElementC);
 
     foreach (Category cat, cat_list) {
-        QDomElement cat_elt = doc.createElement(QLatin1String("category"));
+        QDomElement cat_elt = doc.createElement(category);
         root.appendChild(cat_elt);
         cat_elt.setAttribute(name, cat.name());
         if (cat.type() == Category::Scratchpad)
-            cat_elt.setAttribute(type, QLatin1String("scratchpad"));
-        for (int i = 0; i < cat.widgetCount(); ++i) {
+            cat_elt.setAttribute(type, QLatin1String(scratchPadValueC));
+        const int widgetCount = cat.widgetCount();
+        for (int i = 0; i < widgetCount; ++i) {
            const  Widget wgt = cat.widget(i);
             if (wgt.type() == Widget::Custom)
                 continue;
 
-            const DomWidget *dom_wgt = xmlToUi(wgt.name(), widgetDomXml(wgt));
-            QDomElement wgt_elt = dom_wgt->write(doc);
-            wgt_elt.setAttribute(name, wgt.name());
-            const QString iconName = wgt.iconName();
-            if (!iconName.startsWith(iconPrefix))
-              wgt_elt.setAttribute(icon, wgt.iconName());
-            wgt_elt.setAttribute(type, defaultType);
-            cat_elt.appendChild(wgt_elt);
-            delete dom_wgt;
+            const DomUI *domUI = QDesignerWidgetBox::xmlToUi(wgt.name(), widgetDomXml(wgt), false);
+            QDomElement uiElement = domUI->write(doc);
+            QDomElement widgetElement = uiElement.firstChildElement(widgetTag);
+            if (!widgetElement.isNull()) {
+                widgetElement.setAttribute(name, wgt.name());
+                const QString iconName = wgt.iconName();
+                if (!iconName.startsWith(iconPrefix))
+                    widgetElement.setAttribute(icon, wgt.iconName());
+                widgetElement.setAttribute(type, defaultType);
+            }
+            cat_elt.appendChild(uiElement);
+            delete domUI;
         }
     }
 
@@ -600,14 +564,14 @@ WidgetBoxTreeView::CategoryList
     CategoryList result;
 
     const QDomElement root = doc.firstChildElement();
-    if (root.nodeName() != QLatin1String("widgetbox")) {
+    if (root.nodeName() != QLatin1String(widgetBoxRootElementC)) {
         qdesigner_internal::designerWarning(QObject::tr("The file %1 does not appear to be a widgetbox file.").arg(m_file_name));
         return result;
     }
 
     QDomElement cat_elt = root.firstChildElement();
     for (; !cat_elt.isNull(); cat_elt = cat_elt.nextSiblingElement()) {
-        if (cat_elt.nodeName() != QLatin1String("category")) {
+        if (cat_elt.nodeName() != QLatin1String(categoryElementC)) {
             qdesigner_internal::designerWarning(QObject::tr("An error occurred while parsing the file %1: %2 is not a valid child of the root element.").
                                                 arg(m_file_name).arg( cat_elt.nodeName()));
             return result;
@@ -623,32 +587,42 @@ WidgetBoxTreeView::CategoryList
 
 WidgetBoxTreeView::Category WidgetBoxTreeView::domToCategory(const QDomElement &cat_elt) const
 {
-    const QString nameAttribute = QLatin1String("name");
-    const QString type = QLatin1String("type");
-    const QString icon = QLatin1String("icon");
+    const QString nameAttribute = QLatin1String(nameAttributeC);
+    const QString type = QLatin1String(typeAttributeC);
+    const QString icon = QLatin1String(iconAttributeC);
     const QString name = cat_elt.attribute(nameAttribute);
-    const QString custom = QLatin1String("custom");
+    const QString custom = QLatin1String(customValueC);
+    const QString uiTag = QLatin1String(uiElementC);
+    const QString widgetTag = QLatin1String(widgetElementC);
 
-    if (name == QLatin1String("[invisible]"))
+    if (name == QLatin1String(invisibleNameC))
         return Category();
 
     Category result(name);
 
-    if (cat_elt.attribute(type) == QLatin1String("scratchpad"))
+    if (cat_elt.attribute(type) == QLatin1String(scratchPadValueC))
         result.setType(Category::Scratchpad);
 
-    QDomElement widget_elt = cat_elt.firstChildElement();
-    for (; !widget_elt.isNull(); widget_elt = widget_elt.nextSiblingElement()) {
-        const QString type_attr = widget_elt.attribute(type);
-        const Widget::Type type = type_attr == custom
-                                ? Widget::Custom
-                                : Widget::Default;
-
-        const Widget w(widget_elt.attribute(nameAttribute),
-                    domToString(widget_elt),
-                    widget_elt.attribute(icon),
-                    type);
-        result.addWidget(w);
+    QDomElement childElement = cat_elt.firstChildElement();
+    for (; !childElement.isNull(); childElement = childElement.nextSiblingElement()) {
+        // Support legacy <widget> tags as well as <ui> tags
+        QDomElement widgetElement;
+        QString xml;
+        if (childElement.nodeName() == uiTag) {
+            widgetElement = childElement.firstChildElement(widgetTag);
+            xml = domToString(childElement);
+        } else { // pre 4.4
+            widgetElement = childElement;
+            xml = domToString(widgetElement).trimmed();
+            xml.insert(0, QLatin1String(uiOpeningTagC));
+            xml.append(QLatin1String(uiClosingTagC));
+        }
+        if (!widgetElement.isNull()) {
+            const QString type_attr = widgetElement.attribute(type);
+            const Widget::Type type = type_attr == custom ? Widget::Custom : Widget::Default;
+            const Widget w(widgetElement.attribute(nameAttribute), xml, widgetElement.attribute(icon), type);
+            result.addWidget(w);
+        }
     }
 
     return result;
@@ -674,8 +648,8 @@ WidgetBoxTreeView::CategoryList WidgetBoxTreeView::loadCustomCategoryList() cons
     const QList<QDesignerCustomWidgetInterface*> customWidgets = pm->registeredCustomWidgets();
 
     static const QString customCatName = tr("Custom Widgets");
-    const QString invisible = QLatin1String("[invisible]");
-    const QString iconPrefix = QLatin1String("__qt_icon__");
+    const QString invisible = QLatin1String(invisibleNameC);
+    const QString iconPrefix = QLatin1String(iconPrefixC);
 
     foreach (const QDesignerCustomWidgetInterface *c, customWidgets) {
         const QString dom_xml = c->domXml();
@@ -699,7 +673,7 @@ WidgetBoxTreeView::CategoryList WidgetBoxTreeView::loadCustomCategoryList() cons
 
         QString icon_name;
         if (icon.isNull())
-            icon_name = QLatin1String("qtlogo.png");
+            icon_name = QLatin1String(qtLogoC);
         else {
             icon_name = iconPrefix;
             icon_name += c->name();
@@ -724,7 +698,7 @@ QTreeWidgetItem *WidgetBoxTreeView::widgetToItem(const Widget &wgt,
 
     QString icon_name = wgt.iconName();
     if (icon_name.isEmpty())
-        icon_name = QLatin1String("qtlogo.png");
+        icon_name = QLatin1String(qtLogoC);
 
     const bool block = blockSignals(true);
     item->setText(0, wgt.name());
@@ -733,7 +707,7 @@ QTreeWidgetItem *WidgetBoxTreeView::widgetToItem(const Widget &wgt,
         m_widgetNames.append(wgt.name());
 
     QIcon icon;
-    if (icon_name.startsWith(QLatin1String("__qt_icon__")))
+    if (icon_name.startsWith(QLatin1String(iconPrefixC)))
       icon = m_pluginIcons.value(icon_name);
     if (icon.isNull())
       icon = createIconSet(icon_name);
@@ -754,11 +728,8 @@ QTreeWidgetItem *WidgetBoxTreeView::widgetToItem(const Widget &wgt,
 
     blockSignals(block);
 
-    if (editable) {
-        item->setFlags(Qt::ItemIsSelectable
-                        | Qt::ItemIsEditable
-                        | Qt::ItemIsEnabled);
-    }
+    if (editable)
+        item->setFlags(Qt::ItemIsSelectable|Qt::ItemIsEditable|Qt::ItemIsEnabled);
 
     return item;
 }
@@ -783,7 +754,8 @@ WidgetBoxTreeView::Category WidgetBoxTreeView::category(int cat_idx) const
     QTreeWidgetItem *cat_item = topLevelItem(cat_idx);
     result.setName(cat_item->text(0));
 
-    for (int i = 0; i < cat_item->childCount(); ++i) {
+    const int childCount = cat_item->childCount();
+    for (int i = 0; i < childCount; ++i) {
         QTreeWidgetItem *child = cat_item->child(i);
         result.addWidget(itemToWidget(child));
     }
@@ -827,8 +799,8 @@ void WidgetBoxTreeView::addCategory(const Category &cat)
             cat_item = topLevelItem(existingIndex);
         }
     }
-
-    for (int i = 0; i < cat.widgetCount(); ++i)
+    const int widgetCount = cat.widgetCount();
+    for (int i = 0; i < widgetCount; ++i)
         widgetToItem(cat.widget(i), cat_item, isScratchPad);
 }
 
@@ -931,9 +903,9 @@ void WidgetBoxTreeView::updateItemData(QTreeWidgetItem *item)
 
     widget.setName(item->text(0));
     const QDomDocument doc = stringToDom(widgetDomXml(widget));
-    QDomElement widget_elt = doc.firstChildElement(QLatin1String("widget"));
+    QDomElement widget_elt = doc.firstChildElement(QLatin1String(widgetElementC));
     if (!widget_elt.isNull()) {
-        widget_elt.setAttribute(QLatin1String("name"), item->text(0));
+        widget_elt.setAttribute(QLatin1String(nameAttributeC), item->text(0));
         widget.setDomXml(domToString(widget_elt));
     }
 
@@ -991,11 +963,13 @@ void WidgetBoxTreeView::dropWidgets(const QList<QDesignerDnDItemInterface*> &ite
         QTreeWidgetItem *scratch_item = topLevelItem(scratch_idx);
 
         QDomDocument dom;
-        QDomElement elt = dom_ui->write(dom);
-        QString xml = domToString(elt
-                                    .firstChildElement(QLatin1String("widget"))
-                                    .firstChildElement(QLatin1String("widget")));
-
+        QDomElement uiElement = dom_ui->write(dom);
+        // Remove the fake toplevel in-between
+        const QString widgetElement = QLatin1String(widgetElementC);
+        QDomElement fakeTopLevel = uiElement.firstChildElement(widgetElement);
+        QDomElement firstWidget = fakeTopLevel.firstChildElement(widgetElement);
+        uiElement.replaceChild(firstWidget, fakeTopLevel);
+        const QString xml = domToString(uiElement);
         last_item = widgetToItem(Widget(w->objectName(), xml), scratch_item, true);
         setItemExpanded(scratch_item, true);
     }
@@ -1014,7 +988,7 @@ void WidgetBoxTreeView::dropWidgets(const QList<QDesignerDnDItemInterface*> &ite
 WidgetBox::WidgetBox(QDesignerFormEditorInterface *core, QWidget *parent, Qt::WindowFlags flags)
     : QDesignerWidgetBox(parent, flags),
       m_core(core),
-      m_view(new WidgetBoxTreeView(m_core, this))
+      m_view(new WidgetBoxTreeView(m_core))
 {
 
     QVBoxLayout *l = new QVBoxLayout(this);
@@ -1039,11 +1013,15 @@ QDesignerFormEditorInterface *WidgetBox::core() const
 
 void WidgetBox::handleMousePress(const QString &name, const QString &xml, bool custom, const QPoint &global_mouse_pos)
 {
-    DomWidget *dom_widget = xmlToUi(name, xml);
-    if (dom_widget == 0)
+    if (QApplication::mouseButtons() != Qt::LeftButton)
+        return;
+
+    DomUI *ui = xmlToUi(name, xml, true);
+    if (ui == 0)
         return;
     // Sanity check: Do the names match?
     if (custom) {
+        DomWidget *dom_widget = ui->elementWidget()->elementWidget().front();
         if (dom_widget->hasAttributeClass()) {
             const QString domClassName = dom_widget->attributeClass();
             if (domClassName != name)
@@ -1052,11 +1030,10 @@ void WidgetBox::handleMousePress(const QString &name, const QString &xml, bool c
                 qdesigner_internal::designerWarning(QObject::tr("The class attribute for the class %1 is missing.").arg(name));
         }
     }
-    if (QApplication::mouseButtons() == Qt::LeftButton) {
-        QList<QDesignerDnDItemInterface*> item_list;
-        item_list.append(new WidgetBoxDnDItem(core(), dom_widget, global_mouse_pos));
-        m_core->formWindowManager()->dragItems(item_list);
-    }
+
+    QList<QDesignerDnDItemInterface*> item_list;
+    item_list.append(new WidgetBoxDnDItem(core(), ui, global_mouse_pos));
+    m_core->formWindowManager()->dragItems(item_list);
 }
 
 int WidgetBox::categoryCount() const
@@ -1173,5 +1150,6 @@ void WidgetBox::dropEvent(QDropEvent * event)
 }
 }  // namespace qdesigner_internal
 
+QT_END_NAMESPACE
 
 #include "widgetbox.moc"

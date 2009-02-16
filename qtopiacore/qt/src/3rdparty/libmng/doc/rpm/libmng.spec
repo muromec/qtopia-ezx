@@ -1,6 +1,6 @@
 Summary: A library of functions for manipulating MNG format files.
 Name: libmng
-Version: 1.0.9
+Version: 1.0.10
 Release: 2.1
 Copyright: AS IS
 Group: System Environment/Libraries
@@ -29,6 +29,10 @@ files, you should install libmng-devel.  You'll also need to install
 the libmng package.
 
 %changelog
+* Fri Jul 13 2007 Glenn Randers-Pehrson <glennrp at users.sf.net>
+- updated to 1.0.10
+
+* Thu Aug  5 2004 Gerard Juyn <gerard at libmng.com>
 * Sun Jan 30 2005 Gerard Juyn <gerard at libmng.com>
 - updated to 1.0.9
 

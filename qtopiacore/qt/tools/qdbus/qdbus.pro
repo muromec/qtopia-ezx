@@ -1,4 +1,2 @@
 TEMPLATE = subdirs
-CONFIG += ordered
-SUBDIRS = src tools 
-
+SUBDIRS = qdbus qdbusxml2cpp qdbuscpp2xml qdbusviewer

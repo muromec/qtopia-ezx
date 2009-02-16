@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -74,6 +68,8 @@
 #include "qx11info_x11.h"
 #endif
 
+QT_BEGIN_NAMESPACE
+
 static Q3TextCursor* richTextExportStart = 0;
 static Q3TextCursor* richTextExportEnd = 0;
 
@@ -82,7 +78,9 @@ class Q3TextFormatCollection;
 const int border_tolerance = 2;
 
 #ifdef Q_WS_WIN
+QT_BEGIN_INCLUDE_NAMESPACE
 #include "qt_windows.h"
+QT_END_INCLUDE_NAMESPACE
 #endif
 
 static inline bool is_printer(QPainter *p)
@@ -179,7 +177,7 @@ bool Q3TextCommandHistory::isUndoAvailable()
 
 bool Q3TextCommandHistory::isRedoAvailable()
 {
-   return current > -1 && current < history.count() - 1 || current == -1 && history.count() > 0;
+   return (current > -1 && current < history.count() - 1) || (current == -1 && history.count() > 0);
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1953,6 +1951,15 @@ void Q3TextDocument::setRichTextInternal(const QString &text, Q3TextCursor* curs
                             if (!ok) // be pressmistic
                                 curpar->utm = curpar->ubm = curpar->urm = curpar->ulm = 0;
                         }
+                    } else if (nstyle->name() == QLatin1String("html")) {
+                        it = attr.find(QLatin1String("dir"));
+                        if (it != end) {
+                            QString dir = (*it).toLower();
+                            if (dir == QLatin1String("rtl"))
+                                curtag.direction = QChar::DirR;
+                            else if (dir == QLatin1String("ltr"))
+                                curtag.direction = QChar::DirL;
+                        }
                     }
                 }
             } else {
@@ -2148,11 +2155,12 @@ void Q3TextDocument::setRichTextMarginsInternal(QList< QVector<Q3StyleSheetItem 
             stylesPar->utm = 0;
         } else {
             m = qMax(0, item->margin(Q3StyleSheetItem::MarginTop));
-            if (stylesPar->ldepth)
+            if (stylesPar->ldepth) {
                 if (item->displayMode() == Q3StyleSheetItem::DisplayListItem)
                     m /= stylesPar->ldepth * stylesPar->ldepth;
                 else
                     m = 0;
+            }
         }
         for (i = (int)curStyle->size() - 2 ; i >= 0; --i) {
             item = (*curStyle)[i];
@@ -2176,11 +2184,12 @@ void Q3TextDocument::setRichTextMarginsInternal(QList< QVector<Q3StyleSheetItem 
             stylesPar->ubm = 0;
         } else {
             m = qMax(0, item->margin(Q3StyleSheetItem::MarginBottom));
-            if (stylesPar->ldepth)
+            if (stylesPar->ldepth) {
                 if (item->displayMode() == Q3StyleSheetItem::DisplayListItem)
                     m /= stylesPar->ldepth * stylesPar->ldepth;
                 else
                     m = 0;
+            }
         }
         for (i = (int)curStyle->size() - 2 ; i >= 0; --i) {
             item = (*curStyle)[i];
@@ -2264,8 +2273,8 @@ void Q3TextDocument::setText(const QString &text, const QString &context)
 {
     focusIndicator.parag = 0;
     selections.clear();
-    if (txtFormat == Qt::AutoText && Q3StyleSheet::mightBeRichText(text) ||
-         txtFormat == Qt::RichText)
+    if ((txtFormat == Qt::AutoText && Q3StyleSheet::mightBeRichText(text))
+        || txtFormat == Qt::RichText)
         setRichText(text, context);
     else
         setPlainText(text);
@@ -2487,7 +2496,7 @@ QString Q3TextDocument::richText() const
 
 QString Q3TextDocument::text() const
 {
-    if (txtFormat == Qt::AutoText && preferRichText || txtFormat == Qt::RichText)
+    if ((txtFormat == Qt::AutoText && preferRichText) || txtFormat == Qt::RichText)
         return richText();
     return plainText();
 }
@@ -2498,7 +2507,7 @@ QString Q3TextDocument::text(int parag) const
     if (!p)
         return QString();
 
-    if (txtFormat == Qt::AutoText && preferRichText || txtFormat == Qt::RichText)
+    if ((txtFormat == Qt::AutoText && preferRichText) || txtFormat == Qt::RichText)
         return p->richText();
     else
         return p->string()->toString();
@@ -2637,12 +2646,11 @@ bool Q3TextDocument::setSelectionEnd(int id, const Q3TextCursor &cursor)
             hadOldEnd = true;
 
         if (!sel.swapped &&
-             (hadEnd && !hadStart ||
-               hadEnd && hadStart && start.paragraph() == end.paragraph() && start.index() > end.index()))
+             ((hadEnd && !hadStart)
+              || (hadEnd && hadStart && start.paragraph() == end.paragraph() && start.index() > end.index())))
             sel.swapped = true;
 
-        if (c == end && hadStartParag ||
-             c == start && hadEndParag) {
+        if ((c == end && hadStartParag) || (c == start && hadEndParag)) {
             Q3TextCursor tmp = c;
             tmp.restoreState();
             if (tmp.paragraph() != c.paragraph()) {
@@ -2653,7 +2661,7 @@ bool Q3TextDocument::setSelectionEnd(int id, const Q3TextCursor &cursor)
         }
 
         if (inSelection &&
-             (c == end && hadStart || c == start && hadEnd))
+             ((c == end && hadStart) || (c == start && hadEnd)))
              leftSelection = true;
         else if (!leftSelection && !inSelection && (hadStart || hadEnd))
             inSelection = true;
@@ -3271,7 +3279,7 @@ Q3TextParagraph *Q3TextDocument::draw(QPainter *p, int cx, int cy, int cw, int c
                                      const QPalette &pal, bool onlyChanged, bool drawCursor,
                                      Q3TextCursor *cursor, bool resetChanged)
 {
-    if (withoutDoubleBuffer || par && par->withoutDoubleBuffer) {
+    if (withoutDoubleBuffer || (par && par->withoutDoubleBuffer)) {
         withoutDoubleBuffer = true;
         QRect r;
         draw(p, r, pal);
@@ -3705,6 +3713,7 @@ Q3TextString::Q3TextString()
     bidiDirty = true;
     bidi = false;
     rightToLeft = false;
+    dir = QChar::DirON;
 }
 
 Q3TextString::Q3TextString(const Q3TextString &s)
@@ -3712,6 +3721,7 @@ Q3TextString::Q3TextString(const Q3TextString &s)
     bidiDirty = true;
     bidi = s.bidi;
     rightToLeft = s.rightToLeft;
+    dir = s.dir;
     data = s.data;
     data.detach();
     for (int i = 0; i < (int)data.size(); ++i) {
@@ -3902,8 +3912,18 @@ void Q3TextString::checkBidi() const
     int length = data.size();
     if (!length) {
         that->bidi = rightToLeft;
+        that->rightToLeft = (dir == QChar::DirR);
         return;
     }
+
+    if (dir == QChar::DirR) {
+        that->rightToLeft = true;
+    } else if (dir == QChar::DirL) {
+        that->rightToLeft = false;
+    } else {
+        that->rightToLeft = (QApplication::layoutDirection() == Qt::RightToLeft);
+    }
+
     const Q3TextStringChar *start = data.data();
     const Q3TextStringChar *end = start + length;
 
@@ -3914,7 +3934,7 @@ void Q3TextString::checkBidi() const
     textEngine.text = toString();
     textEngine.option.setTextDirection(rightToLeft ? Qt::RightToLeft : Qt::LeftToRight);
     textEngine.itemize();
-    const QCharAttributes *ca = textEngine.attributes() + length-1;
+    const HB_CharAttributes *ca = textEngine.attributes() + length-1;
     Q3TextStringChar *ch = (Q3TextStringChar *)end - 1;
     QScriptItem *item = &textEngine.layoutData->items[textEngine.layoutData->items.size()-1];
     unsigned char bidiLevel = item->analysis.bidiLevel;
@@ -3928,7 +3948,7 @@ void Q3TextString::checkBidi() const
             if (bidiLevel)
                 that->bidi = true;
         }
-        ch->softBreak = ca->lineBreakType >= QCharAttributes::Break;
+        ch->softBreak = ca->lineBreakType >= HB_Break;
         ch->whiteSpace = ca->whiteSpace;
         ch->charStop = ca->charStop;
         ch->bidiLevel = bidiLevel;
@@ -4794,7 +4814,9 @@ void Q3TextParagraph::drawString(QPainter &painter, const QString &str, int star
     bool plainText = hasdoc ? document()->textFormat() == Qt::PlainText : false;
     Q3TextFormat* format = formatChar->format();
 
-    if (!plainText || hasdoc && format->color() != document()->formatCollection()->defaultFormat()->color())
+    int textFlags = int(rightToLeft ? Qt::TextForceRightToLeft : Qt::TextForceLeftToRight);
+
+    if (!plainText || (hasdoc && format->color() != document()->formatCollection()->defaultFormat()->color()))
         painter.setPen(QPen(format->color()));
     else
         painter.setPen(pal.text().color());
@@ -4837,7 +4859,7 @@ void Q3TextParagraph::drawString(QPainter &painter, const QString &str, int star
         allSelected = (it != mSelections->constEnd() && (*it).start <= start && (*it).end >= start+len);
     }
     if (!allSelected)
-        painter.drawText(xstart, y + baseLine, str.mid(start, len));
+        painter.drawText(QPointF(xstart, y + baseLine), str.mid(start, len), textFlags, /*justificationPadding*/0);
 
 #ifdef BIDI_DEBUG
     painter.save();
@@ -4887,9 +4909,9 @@ void Q3TextParagraph::drawString(QPainter &painter, const QString &str, int star
             }
 
             if (selStart < real_selEnd ||
-                selWrap && fullSelectionWidth && extendRight &&
+                (selWrap && fullSelectionWidth && extendRight &&
                 // don't draw the standard selection on a printer=
-                (it.key() != Q3TextDocument::Standard || !is_printer(&painter))) {
+                (it.key() != Q3TextDocument::Standard || !is_printer(&painter)))) {
                 int selection = it.key();
                 QColor color;
                 setColorForSelection(color, painter, pal, selection);
@@ -4925,7 +4947,7 @@ void Q3TextParagraph::drawString(QPainter &painter, const QString &str, int star
                     tmpw = fullSelectionWidth - xleft;
                 if(color.isValid())
                     painter.fillRect(xleft, y, tmpw, h, color);
-                painter.drawText(xstart, y + baseLine, str.mid(start, len));
+                painter.drawText(QPointF(xstart, y + baseLine), str.mid(start, len), textFlags, /*justificationPadding*/0);
                 if (selStart != start || selEnd != start + len || selWrap)
                     painter.restore();
             }
@@ -4941,10 +4963,10 @@ void Q3TextParagraph::drawString(QPainter &painter, const QString &str, int star
 
     if (hasdoc && formatChar->isAnchor() && !formatChar->anchorHref().isEmpty() &&
          document()->focusIndicator.parag == this &&
-         (document()->focusIndicator.start >= start  &&
-           document()->focusIndicator.start + document()->focusIndicator.len <= start + len ||
-           document()->focusIndicator.start <= start &&
-           document()->focusIndicator.start + document()->focusIndicator.len >= start + len)) {
+         ((document()->focusIndicator.start >= start  &&
+           document()->focusIndicator.start + document()->focusIndicator.len <= start + len)
+          || (document()->focusIndicator.start <= start &&
+              document()->focusIndicator.start + document()->focusIndicator.len >= start + len))) {
         QStyleOptionFocusRect opt;
         opt.rect.setRect(xstart, y, w, h);
         opt.state = QStyle::State_None;
@@ -5416,7 +5438,9 @@ QTextLineStart *Q3TextFormatter::formatLine(Q3TextParagraph *parag, Q3TextString
 #ifndef QT_NO_COMPLEXTEXT
 
 #ifdef BIDI_DEBUG
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <iostream>
+QT_END_INCLUDE_NAMESPACE
 #endif
 
 // collects one line of the paragraph and transforms it to visual order
@@ -5691,8 +5715,8 @@ int Q3TextFormatterBreakInWords::format(Q3TextDocument *doc,Q3TextParagraph *par
 #endif
 
         if (wrapEnabled &&
-             (wrapAtColumn() == -1 && x + ww > w ||
-               wrapAtColumn() != -1 && col >= wrapAtColumn())) {
+             ((wrapAtColumn() == -1 && x + ww > w) ||
+               (wrapAtColumn() != -1 && col >= wrapAtColumn()))) {
             x = doc ? parag->document()->flow()->adjustLMargin(y + parag->rect().y(), parag->rect().height(), left, 4) : left;
             w = dw;
             y += h;
@@ -5838,7 +5862,7 @@ int Q3TextFormatterBreakWords::format(Q3TextDocument *doc, Q3TextParagraph *para
                 x -= rb;
         }
 
-        if (i > 0 && (x > curLeft || ww == 0) || lastWasNonInlineCustom) {
+        if ((i > 0 && (x > curLeft || ww == 0)) || lastWasNonInlineCustom) {
             c->lineStart = 0;
         } else {
             c->lineStart = 1;
@@ -7779,7 +7803,7 @@ void Q3TextTable::draw(QPainter* p, int x, int y, int cx, int cy, int cw, int ch
 
     for (int idx = 0; idx < cells.size(); ++idx) {
         Q3TextTableCell *cell = cells.at(idx);
-        if (cx < 0 && cy < 0 ||
+        if ((cx < 0 && cy < 0) ||
              QRect(cx, cy, cw, ch).intersects(QRect(x + outerborder + cell->geometry().x(),
                                                         y + outerborder + cell->geometry().y(),
                                                         cell->geometry().width(),
@@ -7835,7 +7859,7 @@ void Q3TextTable::draw(QPainter* p, int x, int y, int cx, int cy, int cw, int ch
 
 int Q3TextTable::minimumWidth() const
 {
-    return fixwidth ? fixwidth : ((layout ? layout->minimumSize().width() : 0) + 2 * outerborder);
+    return qMax(fixwidth, ((layout ? layout->minimumSize().width() : 0) + 2 * outerborder));
 }
 
 void Q3TextTable::resize(int nwidth)
@@ -8311,5 +8335,7 @@ void Q3TextTableCell::draw(QPainter* p, int x, int y, int cx, int cy, int cw, in
     p->restore();
 }
 #endif
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_RICHTEXT

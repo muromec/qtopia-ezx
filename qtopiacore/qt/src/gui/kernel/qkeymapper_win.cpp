@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include <qwidget.h>
 #include <qapplication.h>
 #include <ctype.h>
+
+QT_BEGIN_NAMESPACE
 
 // Uncommend, to show debugging information for the keymapper
 //#define DEBUG_KEYMAPPER
@@ -77,7 +73,14 @@ extern Q_CORE_EXPORT QLocale qt_localeFromLCID(LCID id);
 #define VK_OEM_3 0xC0
 #endif
 
-
+#if defined(Q_OS_WINCE)
+bool GetKeyboardState(unsigned char* kbuffer)
+{
+    for (int i=0; i< 256; ++i)
+        kbuffer[i] = GetAsyncKeyState(i);
+    return true;
+}
+#endif
 // Key recorder ------------------------------------------------------------------------[ start ] --
 struct KeyRecord {
     KeyRecord(int c, int a, int s, const QString &t) : code(c), ascii(a), state(s), text(t) {}
@@ -428,6 +431,32 @@ static const Qt::KeyboardModifiers ModsTbl[] = {
     Qt::NoModifier,                                             // Fall-back to raw Key_*
 };
 
+#if defined(Q_OS_WINCE)
+    // Use the KeyTbl to resolve a Qt::Key out of the virtual keys.
+    // In case it is not resolvable, continue using the virtual key itself.
+
+QT_BEGIN_INCLUDE_NAMESPACE
+        
+int ToUnicode(UINT vk, int /*scancode*/, unsigned char* /*kbdBuffer*/, LPWSTR unicodeBuffer, int, int)
+{
+    QT_USE_NAMESPACE
+    QChar* buf = reinterpret_cast< QChar*>(unicodeBuffer);
+    if (KeyTbl[vk] == 0) {
+        buf[0] = vk;
+        return 1;
+    }
+    return 0;
+}
+
+int ToAscii(UINT vk, int scancode, unsigned char *kbdBuffer, LPWORD unicodeBuffer, int flag)
+{
+    return ToUnicode(vk, scancode, kbdBuffer, (LPWSTR) unicodeBuffer, 0, flag);
+
+}
+QT_END_INCLUDE_NAMESPACE
+
+#endif
+
 // Translate a VK into a Qt key code, or unicode character
 static inline int toKeyOrUnicode(int vk, int scancode, unsigned char *kbdBuffer, bool *isDeadkey = 0)
 {
@@ -520,7 +549,7 @@ static void qt_show_system_menu(QWidget* tlw)
 #define enabled (MF_BYCOMMAND | MF_ENABLED)
 #define disabled (MF_BYCOMMAND | MF_GRAYED)
 
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
     EnableMenuItem(menu, SC_MINIMIZE, (tlw->windowFlags() & Qt::WindowMinimizeButtonHint)?enabled:disabled);
     bool maximized = IsZoomed(tlw->internalWinId());
 
@@ -759,6 +788,8 @@ bool QKeyMapperPrivate::isADeadKey(unsigned int vk_key, unsigned int modifiers)
     return false;
 }
 
+extern bool qt_use_rtl_extensions;
+
 QList<int> QKeyMapperPrivate::possibleKeys(QKeyEvent *e)
 {
     QList<int> result;
@@ -798,7 +829,7 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
     bool isNumpad = (msg.wParam >= VK_NUMPAD0 && msg.wParam <= VK_NUMPAD9);
     quint32 nModifiers = 0;
 
-    if (QSysInfo::WindowsVersion < QSysInfo::WV_NT) {
+    if (QSysInfo::WindowsVersion < QSysInfo::WV_NT || QSysInfo::WindowsVersion & QSysInfo::WV_CE_based) {
         nModifiers |= (GetKeyState(VK_SHIFT  ) < 0 ? ShiftAny : 0);
         nModifiers |= (GetKeyState(VK_CONTROL) < 0 ? ControlAny : 0);
         nModifiers |= (GetKeyState(VK_MENU   ) < 0 ? AltAny : 0);
@@ -857,7 +888,6 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
 
     else {
         // handle Directionality changes (BiDi) with RTL extensions
-        extern bool qt_use_rtl_extensions;
         if (qt_use_rtl_extensions) {
             static int dirStatus = 0;
             if (!dirStatus && state == Qt::ControlModifier
@@ -1093,6 +1123,7 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
 
                 bool store = true;
                 // Alt+<alphanumerical> go to the Win32 menu system if unhandled by Qt
+#if !defined(Q_OS_WINCE)
                 if (msgType == WM_SYSKEYDOWN && !k0 && a) {
                     HWND parent = GetParent(widget->internalWinId());
                     while (parent) {
@@ -1105,6 +1136,7 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
                         parent = GetParent(parent);
                     }
                 }
+#endif
                 if (!store)
                     key_recorder.findKey(msg.wParam, true);
             }
@@ -1134,6 +1166,7 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
                                      (rec ? rec->text : QString()), false, 0, scancode, msg.wParam, nModifiers);
 
                 // don't pass Alt to Windows unless we are embedded in a non-Qt window
+#if !defined(Q_OS_WINCE)
                 if (code == Qt::Key_Alt) {
                     k0 = true;
                     HWND parent = GetParent(widget->internalWinId());
@@ -1145,6 +1178,7 @@ bool QKeyMapperPrivate::translateKeyEvent(QWidget *widget, const MSG &msg, bool 
                         parent = GetParent(parent);
                     }
                 }
+#endif
             }
         }
     }
@@ -1161,6 +1195,9 @@ bool QKeyMapper::sendKeyEvent(QWidget *widget, bool grab,
                               const QString &text, bool autorepeat, int count,
                               quint32 nativeScanCode, quint32 nativeVirtualKey, quint32 nativeModifiers)
 {
+#if defined(Q_OS_WINCE)
+    Q_UNUSED(grab);
+#endif
     Q_UNUSED(count);
 #if defined QT3_SUPPORT && !defined(QT_NO_SHORTCUT)
     if (type == QEvent::KeyPress
@@ -1191,3 +1228,5 @@ bool QKeyMapper::sendKeyEvent(QWidget *widget, bool grab,
 
     return e.isAccepted();
 }
+
+QT_END_NAMESPACE

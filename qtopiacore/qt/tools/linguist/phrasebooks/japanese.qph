@@ -1,458 +1,458 @@
 <!DOCTYPE QPH><QPH>
 <phrase>
     <source>About</source>
-    <target>ã«ã¤ãã¦</target>
+    <target>について</target>
 </phrase>
 <phrase>
     <source>access key</source>
-    <target>ã¢ã¯ã»ã¹ã­ã¼</target>
+    <target>アクセスキー</target>
 </phrase>
 <phrase>
     <source>accessibility</source>
-    <target>ã¦ã¼ã¶ã¼è£å©</target>
+    <target>ユーザー補助</target>
 </phrase>
 <phrase>
     <source>action handle</source>
-    <target>ã¢ã¯ã·ã§ã³ãã³ãã«</target>
+    <target>アクションハンドル</target>
 </phrase>
 <phrase>
     <source>active</source>
-    <target>ã¢ã¯ãã£ã</target>
+    <target>アクティブ</target>
 </phrase>
 <phrase>
     <source>active end</source>
-    <target>ã¢ã¯ãã£ãã¨ã³ã</target>
+    <target>アクティブエンド</target>
 </phrase>
 <phrase>
     <source>active object</source>
-    <target>ã¢ã¯ãã£ããªãã¸ã§ã¯ã</target>
+    <target>アクティブオブジェクト</target>
 </phrase>
 <phrase>
     <source>active window</source>
-    <target>ã¢ã¯ãã£ãã¦ã£ã³ãã¦</target>
+    <target>アクティブウィンドウ</target>
 </phrase>
 <phrase>
     <source>adornment</source>
-    <target>è£é£¾</target>
+    <target>装飾</target>
 </phrase>
 <phrase>
     <source>Always on Top</source>
-    <target>å¸¸ã«æåã«è¡¨ç¤º</target>
+    <target>常に手前に表示</target>
 </phrase>
 <phrase>
     <source>anchor point</source>
-    <target>ã¢ã³ã«ã¼ãã¤ã³ã</target>
+    <target>アンカーポイント</target>
 </phrase>
 <phrase>
     <source>Apply</source>
-    <target>é©ç¨</target>
+    <target>適用</target>
 </phrase>
 <phrase>
     <source>auto-exit</source>
-    <target>èªåçµäº</target>
+    <target>自動終了</target>
 </phrase>
 <phrase>
     <source>automatic link</source>
-    <target>ãªã¼ããªã³ã¯</target>
+    <target>オートリンク</target>
 </phrase>
 <phrase>
     <source>automatic scrolling</source>
-    <target>ãªã¼ãã¹ã¯ã­ã¼ã«</target>
+    <target>オートスクロール</target>
 </phrase>
 <phrase>
     <source>auto-repeat</source>
-    <target>èªåç¹°ãè¿ã</target>
+    <target>自動繰り返し</target>
 </phrase>
 <phrase>
     <source>autoscroll</source>
-    <target>èªåã¹ã¯ã­ã¼ã«</target>
+    <target>自動スクロール</target>
 </phrase>
 <phrase>
     <source>Back</source>
-    <target>æ»ã</target>
+    <target>戻る</target>
 </phrase>
 <phrase>
     <source>barrel button</source>
-    <target>ä¸¸ãã¿ã³</target>
+    <target>丸ボタン</target>
 </phrase>
 <phrase>
     <source>Browse</source>
-    <target>åç§</target>
+    <target>参照</target>
 </phrase>
 <phrase>
     <source>Cancel</source>
-    <target>ã­ã£ã³ã»ã«</target>
+    <target>キャンセル</target>
 </phrase>
 <phrase>
     <source>cascading menu</source>
-    <target>ã«ã¹ã±ã¼ãã¡ãã¥ã¼</target>
+    <target>カスケードメニュー</target>
 </phrase>
 <phrase>
     <source>check box</source>
-    <target>ãã§ãã¯ããã¯ã¹</target>
+    <target>チェックボックス</target>
 </phrase>
 <phrase>
     <source>check mark</source>
-    <target>ãã§ãã¯ãã¼ã¯</target>
+    <target>チェックマーク</target>
 </phrase>
 <phrase>
     <source>child window</source>
-    <target>å­ã¦ã£ã³ãã¦</target>
+    <target>子ウィンドウ</target>
 </phrase>
 <phrase>
     <source>choose</source>
-    <target>é¸æ</target>
+    <target>選択</target>
 </phrase>
 <phrase>
     <source>click</source>
-    <target>ã¯ãªãã¯</target>
+    <target>クリック</target>
 </phrase>
 <phrase>
     <source>Clipboard</source>
-    <target>ã¯ãªãããã¼ã</target>
+    <target>クリップボード</target>
 </phrase>
 <phrase>
     <source>Close</source>
-    <target>éãã</target>
+    <target>閉じる</target>
 </phrase>
 <phrase>
     <source>Close button</source>
-    <target>éãããã¿ã³</target>
+    <target>閉じるボタン</target>
 </phrase>
 <phrase>
     <source>collapse</source>
-    <target>éè¡¨ç¤º</target>
-    <definition>ã»ã«ãªã©</definition>
+    <target>非表示</target>
+    <definition>セルなど</definition>
 </phrase>
 <phrase>
     <source>collapse</source>
-    <target>æãããã¿</target>
+    <target>折りたたみ</target>
     <definition>XML</definition>
 </phrase>
 <phrase>
     <source>column heading</source>
-    <target>åè¦åºã</target>
+    <target>列見出し</target>
 </phrase>
 <phrase>
     <source>combo box</source>
-    <target>ã³ã³ãããã¯ã¹</target>
+    <target>コンボボックス</target>
 </phrase>
 <phrase>
     <source>command button</source>
-    <target>ã³ãã³ããã¿ã³</target>
+    <target>コマンドボタン</target>
 </phrase>
 <phrase>
     <source>container</source>
-    <target>ã³ã³ãã</target>
+    <target>コンテナ</target>
 </phrase>
 <phrase>
     <source>context-sensitive Help</source>
-    <target>æèä¾å­ã®ãã«ã</target>
+    <target>文脈依存のヘルプ</target>
 </phrase>
 <phrase>
     <source>contextual</source>
-    <target>æèã®</target>
+    <target>文脈の</target>
 </phrase>
 <phrase>
     <source>control</source>
-    <target>ã³ã³ãã­ã¼ã«</target>
+    <target>コントロール</target>
 </phrase>
 <phrase>
     <source>Copy</source>
-    <target>ã³ãã¼</target>
+    <target>コピー</target>
 </phrase>
 <phrase>
     <source>Copy here</source>
-    <target>ããã«ã³ãã¼</target>
+    <target>ここにコピー</target>
 </phrase>
 <phrase>
     <source>Create Shortcut</source>
-    <target>ã·ã§ã¼ãã«ãããä½æ</target>
+    <target>ショートカットを作成</target>
 </phrase>
 <phrase>
     <source>Create Shortcut Here</source>
-    <target>ã·ã§ã¼ãã«ãããããã«ä½æ</target>
+    <target>ショートカットをここに作成</target>
 </phrase>
 <phrase>
     <source>Cut</source>
-    <target>åãåã</target>
+    <target>切り取り</target>
 </phrase>
 <phrase>
     <source>default</source>
-    <target>æ¢å®</target>
+    <target>既定</target>
 </phrase>
 <phrase>
     <source>default button</source>
-    <target>æ¢å®ã®ãã¿ã³</target>
+    <target>既定のボタン</target>
 </phrase>
 <phrase>
     <source>Delete</source>
-    <target>åé¤</target>
+    <target>削除</target>
 </phrase>
 <phrase>
     <source>desktop</source>
-    <target>ãã¹ã¯ããã</target>
+    <target>デスクトップ</target>
 </phrase>
 <phrase>
     <source>destination</source>
-    <target>ã³ãã¼å</target>
-    <definition>ãã¡ã¤ã«ãªã©</definition>
+    <target>コピー先</target>
+    <definition>ファイルなど</definition>
 </phrase>
 <phrase>
     <source>destination</source>
-    <target>éä¿¡å</target>
-    <definition>FAXããããã¯ã¼ã¯ãªã©</definition>
+    <target>送信先</target>
+    <definition>FAX、ネットワークなど</definition>
 </phrase>
 <phrase>
     <source>destination</source>
-    <target>å¤æå</target>
-    <definition>æå­ã³ã¼ãããã¡ã¤ã«å½¢å¼ãªã©</definition>
+    <target>変換先</target>
+    <definition>文字コード、ファイル形式など</definition>
 </phrase>
 <phrase>
     <source>destination</source>
-    <target>åºåå</target>
-    <definition>ã­ã°ããã¡ã¤ã«ãªã©</definition>
+    <target>出力先</target>
+    <definition>ログ、ファイルなど</definition>
 </phrase>
 <phrase>
     <source>dialog box</source>
-    <target>ãã¤ã¢ã­ã°ããã¯ã¹</target>
+    <target>ダイアログボックス</target>
 </phrase>
 <phrase>
     <source>disability</source>
-    <target>éå®³</target>
+    <target>障害</target>
 </phrase>
 <phrase>
     <source>disjoint selection</source>
-    <target>é¢ããè¤æ°é ç®ãé¸æ</target>
+    <target>離れた複数項目を選択</target>
 </phrase>
 <phrase>
     <source>dock</source>
-    <target>ããã¯</target>
+    <target>ドック</target>
 </phrase>
 <phrase>
     <source>document</source>
-    <target>ãã­ã¥ã¡ã³ã</target>
+    <target>ドキュメント</target>
 </phrase>
 <phrase>
     <source>double-click</source>
-    <target>ããã«ã¯ãªãã¯</target>
+    <target>ダブルクリック</target>
 </phrase>
 <phrase>
     <source>double-tap</source>
-    <target>ããã«ã¿ãã</target>
+    <target>ダブルタップ</target>
 </phrase>
 <phrase>
     <source>drag</source>
-    <target>ãã©ãã°</target>
+    <target>ドラッグ</target>
 </phrase>
 <phrase>
     <source>drag-and-drop</source>
-    <target>ãã©ãã°ã¢ã³ããã­ãã</target>
+    <target>ドラッグアンドドロップ</target>
 </phrase>
 <phrase>
     <source>drop-down combo box</source>
-    <target>ãã­ãããã¦ã³ã³ã³ãããã¯ã¹</target>
+    <target>ドロップダウンコンボボックス</target>
 </phrase>
 <phrase>
     <source>drop-down list box</source>
-    <target>ãã­ãããã¦ã³ãªã¹ãããã¯ã¹</target>
+    <target>ドロップダウンリストボックス</target>
 </phrase>
 <phrase>
     <source>drop-down menu</source>
-    <target>ãã­ãããã¦ã³ã¡ãã¥ã¼</target>
+    <target>ドロップダウンメニュー</target>
 </phrase>
 <phrase>
     <source>Edit</source>
-    <target>ç·¨é</target>
+    <target>編集</target>
 </phrase>
 <phrase>
     <source>Edit menu</source>
-    <target>ç·¨éã¡ãã¥ã¼</target>
+    <target>編集メニュー</target>
 </phrase>
 <phrase>
     <source>ellipsis</source>
-    <target>çç¥</target>
+    <target>省略</target>
 </phrase>
 <phrase>
     <source>embedded object</source>
-    <target>åãè¾¼ã¿ãªãã¸ã§ã¯ã</target>
+    <target>埋め込みオブジェクト</target>
 </phrase>
 <phrase>
     <source>Exit</source>
-    <target>çµäº</target>
+    <target>終了</target>
 </phrase>
 <phrase>
     <source>expand</source>
-    <target>å±éãã</target>
+    <target>展開する</target>
 </phrase>
 <phrase>
     <source>Explore</source>
-    <target>ã¨ã¯ã¹ãã­ã¼ã©</target>
+    <target>エクスプローラ</target>
 </phrase>
 <phrase>
     <source>extended selection</source>
-    <target>æ¡å¼µé¸æ</target>
+    <target>拡張選択</target>
     <definition>F8</definition>
 </phrase>
 <phrase>
     <source>extended selection list box</source>
-    <target>æ¡å¼µé¸æãªã¹ãããã¯ã¹</target>
+    <target>拡張選択リストボックス</target>
 </phrase>
 <phrase>
     <source>file</source>
-    <target>ãã¡ã¤ã«</target>
+    <target>ファイル</target>
 </phrase>
 <phrase>
     <source>File</source>
-    <target>ãã¡ã¤ã«</target>
+    <target>ファイル</target>
 </phrase>
 <phrase>
     <source>Find</source>
-    <target>æ¤ç´¢</target>
+    <target>検索</target>
 </phrase>
 <phrase>
     <source>Find Next</source>
-    <target>æ¬¡ãæ¤ç´¢</target>
+    <target>次を検索</target>
 </phrase>
 <phrase>
     <source>Find What</source>
-    <target>æ¤ç´¢ããæå­å</target>
+    <target>検索する文字列</target>
 </phrase>
 <phrase>
     <source>folder</source>
-    <target>ãã©ã«ã</target>
+    <target>フォルダ</target>
 </phrase>
 <phrase>
     <source>font</source>
-    <target>ãã©ã³ã</target>
+    <target>フォント</target>
 </phrase>
 <phrase>
     <source>font size</source>
-    <target>ãã©ã³ããµã¤ãº</target>
+    <target>フォントサイズ</target>
 </phrase>
 <phrase>
     <source>font style</source>
-    <target>ãã©ã³ãã¹ã¿ã¤ã«</target>
+    <target>フォントスタイル</target>
 </phrase>
 <phrase>
     <source>function key</source>
-    <target>ãã¡ã³ã¯ã·ã§ã³ã­ã¼</target>
+    <target>ファンクションキー</target>
 </phrase>
 <phrase>
     <source>gesture</source>
-    <target>ã¸ã§ã¹ãã£ã¼</target>
+    <target>ジェスチャー</target>
 </phrase>
 <phrase>
     <source>glyph</source>
-    <target>æ¨è­</target>
+    <target>標識</target>
 </phrase>
 <phrase>
     <source>group box</source>
-    <target>ã°ã«ã¼ãããã¯ã¹</target>
+    <target>グループボックス</target>
 </phrase>
 <phrase>
     <source>handle</source>
-    <target>ãã³ãã«</target>
+    <target>ハンドル</target>
 </phrase>
 <phrase>
     <source>Help</source>
-    <target>ãã«ã</target>
+    <target>ヘルプ</target>
 </phrase>
 <phrase>
     <source>Hide</source>
-    <target>éè¡¨ç¤º</target>
+    <target>非表示</target>
 </phrase>
 <phrase>
     <source>hold</source>
-    <target>ä¿ç</target>
+    <target>保留</target>
 </phrase>
 <phrase>
     <source>hot spot</source>
-    <target>ãããã¹ããã</target>
+    <target>ホットスポット</target>
 </phrase>
 <phrase>
     <source>hot zone</source>
-    <target>ãããã¾ã¼ã³</target>
+    <target>ホットゾーン</target>
 </phrase>
 <phrase>
     <source>icon</source>
-    <target>ã¢ã¤ã³ã³</target>
+    <target>アイコン</target>
 </phrase>
 <phrase>
     <source>inactive</source>
-    <target>éã¢ã¯ãã£ã</target>
+    <target>非アクティブ</target>
 </phrase>
 <phrase>
     <source>inactive window</source>
-    <target>éã¢ã¯ãã£ãã¦ã£ã³ãã¦</target>
+    <target>非アクティブウィンドウ</target>
 </phrase>
 <phrase>
     <source>ink</source>
-    <target>ã¤ã³ã¯</target>
+    <target>インク</target>
 </phrase>
 <phrase>
     <source>ink edit</source>
-    <target>ã¤ã³ã¯ã¨ãã£ãã</target>
+    <target>インクエディット</target>
 </phrase>
 <phrase>
     <source>input focus</source>
-    <target>å¥åãã©ã¼ã«ã¹</target>
+    <target>入力フォーカス</target>
 </phrase>
 <phrase>
     <source>Insert</source>
-    <target>æ¿å¥</target>
+    <target>挿入</target>
 </phrase>
 <phrase>
     <source>Insert Object</source>
-    <target>ãªãã¸ã§ã¯ãã®æ¿å¥</target>
+    <target>オブジェクトの挿入</target>
 </phrase>
 <phrase>
     <source>insertion point</source>
-    <target>æ¿å¥ä½ç½®</target>
+    <target>挿入位置</target>
 </phrase>
 <phrase>
     <source>italic</source>
-    <target>æä½</target>
+    <target>斜体</target>
 </phrase>
 <phrase>
     <source>label</source>
-    <target>ã©ãã«</target>
+    <target>ラベル</target>
 </phrase>
 <phrase>
     <source>landscape</source>
-    <target>æ¨ª</target>
+    <target>横</target>
 </phrase>
 <phrase>
     <source>lens</source>
-    <target>ã¬ã³ãº</target>
+    <target>レンズ</target>
 </phrase>
 <phrase>
     <source>link</source>
-    <target>ãªã³ã¯</target>
+    <target>リンク</target>
 </phrase>
 <phrase>
     <source>Link Here</source>
-    <target>ããã«ãªã³ã¯</target>
+    <target>ここにリンク</target>
 </phrase>
 <phrase>
     <source>list box</source>
-    <target>ãªã¹ãããã¯ã¹</target>
+    <target>リストボックス</target>
 </phrase>
 <phrase>
     <source>list view</source>
-    <target>ä¸è¦§ã®è¡¨ç¤º</target>
+    <target>一覧の表示</target>
 </phrase>
 <phrase>
     <source>manual link</source>
-    <target>æåãªã³ã¯</target>
+    <target>手動リンク</target>
 </phrase>
 <phrase>
     <source>Maximize</source>
-    <target>æå¤§å</target>
+    <target>最大化</target>
 </phrase>
 <phrase>
     <source>maximize button</source>
-    <target>æå¤§åãã¿ã³</target>
+    <target>最大化ボタン</target>
 </phrase>
 <phrase>
     <source>MDI</source>
@@ -460,91 +460,91 @@
 </phrase>
 <phrase>
     <source>menu</source>
-    <target>ã¡ãã¥ã¼</target>
+    <target>メニュー</target>
 </phrase>
 <phrase>
     <source>menu bar</source>
-    <target>ã¡ãã¥ã¼ãã¼</target>
+    <target>メニューバー</target>
 </phrase>
 <phrase>
     <source>menu button</source>
-    <target>ã¡ãã¥ã¼ãã¿ã³</target>
+    <target>メニューボタン</target>
 </phrase>
 <phrase>
     <source>menu item</source>
-    <target>ã¡ãã¥ã¼é ç®</target>
+    <target>メニュー項目</target>
 </phrase>
 <phrase>
     <source>menu title</source>
-    <target>ã¡ãã¥ã¼ã¿ã¤ãã«</target>
+    <target>メニュータイトル</target>
 </phrase>
 <phrase>
     <source>message box</source>
-    <target>ã¡ãã»ã¼ã¸ããã¯ã¹</target>
+    <target>メッセージボックス</target>
 </phrase>
 <phrase>
     <source>Minimize</source>
-    <target>æå°å</target>
+    <target>最小化</target>
 </phrase>
 <phrase>
     <source>minimize button</source>
-    <target>æå°åãã¿ã³</target>
+    <target>最小化ボタン</target>
 </phrase>
 <phrase>
     <source>modal</source>
-    <target>ã¢ã¼ãã«</target>
+    <target>モーダル</target>
 </phrase>
 <phrase>
     <source>mode</source>
-    <target>ã¢ã¼ã</target>
+    <target>モード</target>
 </phrase>
 <phrase>
     <source>modeless</source>
-    <target>ã¢ã¼ãã¬ã¹</target>
+    <target>モードレス</target>
 </phrase>
 <phrase>
     <source>modifier key</source>
-    <target>ä¿®é£¾ã­ã¼</target>
+    <target>修飾キー</target>
 </phrase>
 <phrase>
     <source>mouse</source>
-    <target>ãã¦ã¹</target>
+    <target>マウス</target>
 </phrase>
 <phrase>
     <source>Move</source>
-    <target>ç§»å</target>
+    <target>移動</target>
 </phrase>
 <phrase>
     <source>Move Here</source>
-    <target>ããã«ç§»å</target>
+    <target>ここに移動</target>
 </phrase>
 <phrase>
     <source>Multiple Document Interface</source>
-    <target>ãã«ããã­ã¥ã¡ã³ãã¤ã³ã¿ã¼ãã§ã¤ã¹</target>
+    <target>マルチドキュメントインターフェイス</target>
 </phrase>
 <phrase>
     <source>multiple selection list box</source>
-    <target>è¤æ°é¸æãªã¹ãããã¯ã¹</target>
+    <target>複数選択リストボックス</target>
 </phrase>
 <phrase>
     <source>My Computer</source>
-    <target>ãã¤ã³ã³ãã¥ã¼ã¿</target>
+    <target>マイコンピュータ</target>
 </phrase>
 <phrase>
     <source>Network Neighborhood</source>
-    <target>ãããã¯ã¼ã¯ã³ã³ãã¥ã¼ã¿</target>
+    <target>ネットワークコンピュータ</target>
 </phrase>
 <phrase>
     <source>New</source>
-    <target>æ°è¦</target>
+    <target>新規</target>
 </phrase>
 <phrase>
     <source>Next</source>
-    <target>æ¬¡ã¸</target>
+    <target>次へ</target>
 </phrase>
 <phrase>
     <source>object</source>
-    <target>ãªãã¸ã§ã¯ã</target>
+    <target>オブジェクト</target>
 </phrase>
 <phrase>
     <source>OK</source>
@@ -556,296 +556,466 @@
 </phrase>
 <phrase>
     <source>OLE drag and drop</source>
-    <target>OLEãã©ãã°ã¢ã³ããã­ãã</target>
+    <target>OLEドラッグアンドドロップ</target>
 </phrase>
 <phrase>
     <source>OLE embedded object</source>
-    <target>OLE åãè¾¼ã¿ãªãã¸ã§ã¯ã</target>
+    <target>OLE 埋め込みオブジェクト</target>
 </phrase>
 <phrase>
     <source>OLE linked object</source>
-    <target>OLE ãªã³ã¯ãªãã¸ã§ã¯ã</target>
+    <target>OLE リンクオブジェクト</target>
 </phrase>
 <phrase>
     <source>OLE nondefault drag and drop</source>
-    <target>OLE ãã³ããã©ã«ããã©ãã°ã¢ã³ããã­ãã</target>
+    <target>OLE ノンデフォルトドラッグアンドドロップ</target>
 </phrase>
 <phrase>
     <source>Open</source>
-    <target>éã</target>
+    <target>開く</target>
 </phrase>
 <phrase>
     <source>Open With</source>
-    <target>ã¢ããªã±ã¼ã·ã§ã³ããéã</target>
+    <target>アプリケーションから開く</target>
 </phrase>
 <phrase>
     <source>option button</source>
-    <target>ãªãã·ã§ã³ãã¿ã³</target>
+    <target>オプションボタン</target>
 </phrase>
 <phrase>
     <source>option-set</source>
-    <target>ãªãã·ã§ã³ã»ãã</target>
+    <target>オプションセット</target>
 </phrase>
 <phrase>
     <source>package</source>
-    <target>ããã±ã¼ã¸</target>
+    <target>パッケージ</target>
 </phrase>
 <phrase>
     <source>Page Setup</source>
-    <target>ãã¼ã¸è¨­å®</target>
+    <target>ページ設定</target>
 </phrase>
 <phrase>
     <source>palette window</source>
-    <target>ãã¬ããã¦ã£ã³ãã¦</target>
+    <target>パレットウィンドウ</target>
 </phrase>
 <phrase>
     <source>pane</source>
-    <target>ãã¤ã³</target>
+    <target>ペイン</target>
 </phrase>
 <phrase>
     <source>parent window</source>
-    <target>è¦ªã¦ã£ã³ãã¦</target>
+    <target>親ウィンドウ</target>
 </phrase>
 <phrase>
     <source>password</source>
-    <target>ãã¹ã¯ã¼ã</target>
+    <target>パスワード</target>
 </phrase>
 <phrase>
     <source>Paste</source>
-    <target>è²¼ãä»ã</target>
+    <target>貼り付け</target>
 </phrase>
 <phrase>
     <source>Paste Link</source>
-    <target>ãªã³ã¯è²¼ãä»ã</target>
+    <target>リンク貼り付け</target>
 </phrase>
 <phrase>
     <source>Paste Shortcut</source>
-    <target>ã·ã§ã¼ãã«ããã®è²¼ãä»ã</target>
+    <target>ショートカットの貼り付け</target>
 </phrase>
 <phrase>
     <source>Paste Special</source>
-    <target>å½¢å¼ãé¸æãã¦è²¼ãä»ã</target>
+    <target>形式を選択して貼り付け</target>
 </phrase>
 <phrase>
     <source>path</source>
-    <target>ãã¹</target>
+    <target>パス</target>
 </phrase>
 <phrase>
     <source>Pause</source>
-    <target>ä¸æåæ­¢</target>
+    <target>一時停止</target>
 </phrase>
 <phrase>
     <source>pen</source>
-    <target>ãã³</target>
+    <target>ペン</target>
 </phrase>
 <phrase>
     <source>Play</source>
-    <target>åç</target>
+    <target>再生</target>
 </phrase>
 <phrase>
     <source>Plug and Play</source>
-    <target>ãã©ã°ã¢ã³ããã¬ã¤</target>
+    <target>プラグアンドプレイ</target>
 </phrase>
 <phrase>
     <source>point</source>
-    <target>ãã¤ã³ã</target>
+    <target>ポイント</target>
 </phrase>
 <phrase>
     <source>pointer</source>
-    <target>ãã¤ã³ã¿</target>
+    <target>ポインタ</target>
 </phrase>
 <phrase>
     <source>pop-up menu</source>
-    <target>ãããã¢ããã¡ãã¥ã¼</target>
+    <target>ポップアップメニュー</target>
 </phrase>
 <phrase>
     <source>pop-up window</source>
-    <target>ãããã¢ããã¦ã£ã³ãã¦</target>
+    <target>ポップアップウィンドウ</target>
 </phrase>
 <phrase>
     <source>portrait</source>
-    <target>ç¸¦</target>
+    <target>縦</target>
 </phrase>
 <phrase>
     <source>press</source>
-    <target>æ¼ã</target>
+    <target>押す</target>
 </phrase>
 <phrase>
     <source>primary container</source>
-    <target>ãã©ã¤ããªã³ã³ãã</target>
+    <target>プライマリコンテナ</target>
 </phrase>
 <phrase>
     <source>primary window</source>
-    <target>ãã©ã¤ããªã¦ã£ã³ãã¦</target>
+    <target>プライマリウィンドウ</target>
 </phrase>
 <phrase>
     <source>Print</source>
-    <target>å°å·</target>
+    <target>印刷</target>
 </phrase>
 <phrase>
     <source>printer</source>
-    <target>ããªã³ã¿</target>
+    <target>プリンタ</target>
 </phrase>
 <phrase>
     <source>progress indicator</source>
-    <target>é²è¡ç¶æ³ã¤ã³ã¸ã±ã¼ã¿</target>
+    <target>進行状況インジケータ</target>
 </phrase>
 <phrase>
     <source>project</source>
-    <target>ãã­ã¸ã§ã¯ã</target>
+    <target>プロジェクト</target>
 </phrase>
 <phrase>
     <source>Properties</source>
-    <target>ãã­ããã£</target>
+    <target>プロパティ</target>
 </phrase>
 <phrase>
     <source>property inspector</source>
-    <target>ãã­ããã£ã¤ã³ã¹ãã¯ã¿ã¼</target>
+    <target>プロパティインスペクター</target>
 </phrase>
 <phrase>
     <source>property page</source>
-    <target>ãã­ããã£ãã¼ã¸</target>
+    <target>プロパティページ</target>
 </phrase>
 <phrase>
     <source>property sheet</source>
-    <target>ãã­ããã£ã·ã¼ã</target>
+    <target>プロパティシート</target>
 </phrase>
 <phrase>
     <source>property sheet control</source>
-    <target>ãã­ããã£ã·ã¼ãã³ã³ãã­ã¼ã«</target>
+    <target>プロパティシートコントロール</target>
 </phrase>
 <phrase>
     <source>Quick View</source>
-    <target>ã¯ã¤ãã¯ãã¥ã¼ã¢</target>
+    <target>クイックビューア</target>
 </phrase>
 <phrase>
     <source>read-only</source>
-    <target>èª­ã¿åãå°ç¨</target>
+    <target>読み取り専用</target>
 </phrase>
 <phrase>
     <source>recognition</source>
-    <target>èªè­</target>
+    <target>認識</target>
 </phrase>
 <phrase>
     <source>Recycle Bin</source>
-    <target>ãã¿ç®±</target>
+    <target>ごみ箱</target>
 </phrase>
 <phrase>
     <source>Redo</source>
-    <target>ããç´ã</target>
+    <target>やり直す</target>
 </phrase>
 <phrase>
     <source>region selection</source>
-    <target>ç¯å²é¸æ</target>
+    <target>範囲選択</target>
 </phrase>
 <phrase>
     <source>registry</source>
-    <target>ã¬ã¸ã¹ããª</target>
+    <target>レジストリ</target>
 </phrase>
 <phrase>
     <source>Repeat</source>
-    <target>ç¹°ãè¿ã</target>
+    <target>繰り返す</target>
 </phrase>
 <phrase>
     <source>Replace</source>
-    <target>ç½®æ</target>
+    <target>置換</target>
 </phrase>
 <phrase>
     <source>Restore</source>
-    <target>åã«æ»ã</target>
+    <target>元に戻す</target>
 </phrase>
 <phrase>
     <source>Restore button</source>
-    <target>ãªã¹ãã¢ãã¿ã³</target>
+    <target>リストアボタン</target>
 </phrase>
 <phrase>
     <source>Resume</source>
-    <target>åé</target>
+    <target>再開</target>
 </phrase>
 <phrase>
     <source>Retry</source>
-    <target>åè©¦è¡</target>
+    <target>再試行</target>
 </phrase>
 <phrase>
     <source>rich-text box</source>
-    <target>ãªãããã­ã¹ãããã¯ã¹</target>
+    <target>リッチテキストボックス</target>
 </phrase>
 <phrase>
     <source>Run</source>
-    <target>ãã¡ã¤ã«åãæå®ãã¦å®è¡</target>
+    <target>ファイル名を指定して実行</target>
 </phrase>
 <phrase>
     <source>Save</source>
-    <target>ä¿å­</target>
+    <target>保存</target>
 </phrase>
 <phrase>
     <source>Save as</source>
-    <target>ååãä»ãã¦ä¿å­</target>
+    <target>名前を付けて保存</target>
 </phrase>
 <phrase>
     <source>scroll</source>
-    <target>ã¹ã¯ã­ã¼ã«</target>
+    <target>スクロール</target>
 </phrase>
 <phrase>
     <source>scroll arrow</source>
-    <target>ã¹ã¯ã­ã¼ã«ç¢å°</target>
+    <target>スクロール矢印</target>
 </phrase>
 <phrase>
     <source>scroll bar</source>
-    <target>ã¹ã¯ã­ã¼ã«ãã¼</target>
+    <target>スクロールバー</target>
 </phrase>
 <phrase>
     <source>scroll box</source>
-    <target>ã¹ã¯ã­ã¼ã«ããã¯ã¹</target>
+    <target>スクロールボックス</target>
 </phrase>
 <phrase>
     <source>secondary window</source>
-    <target>ã»ã«ã³ããªã¦ã£ã³ãã¦</target>
+    <target>セカンダリウィンドウ</target>
 </phrase>
 <phrase>
     <source>select</source>
-    <target>é¸æ</target>
+    <target>選択</target>
 </phrase>
 <phrase>
     <source>Select All</source>
-    <target>ãã¹ã¦ãé¸æ</target>
+    <target>すべてを選択</target>
 </phrase>
 <phrase>
     <source>selection</source>
-    <target>é¸æããé¨å</target>
+    <target>選択した部分</target>
 </phrase>
 <phrase>
     <source>selection handle</source>
-    <target>ã»ã¬ã¯ã·ã§ã³ãã³ãã«</target>
+    <target>セレクションハンドル</target>
 </phrase>
 <phrase>
     <source>Send To</source>
-    <target>éã</target>
+    <target>送る</target>
 </phrase>
 <phrase>
     <source>separator</source>
-    <target>ã»ãã¬ã¼ã¿</target>
+    <target>セパレータ</target>
 </phrase>
 <phrase>
     <source>Settings</source>
-    <target>è¨­å®</target>
+    <target>設定</target>
 </phrase>
 <phrase>
     <source>Setup</source>
-    <target>è¨­å®</target>
+    <target>設定</target>
 </phrase>
 <phrase>
     <source>shortcut</source>
-    <target>ã·ã§ã¼ãã«ãã</target>
+    <target>ショートカット</target>
 </phrase>
 <phrase>
     <source>shortcut button</source>
-    <target>ã·ã§ã¼ãã«ãããã¿ã³</target>
+    <target>ショートカットボタン</target>
 </phrase>
 <phrase>
     <source>shortcut icon</source>
-    <target>ã·ã§ã¼ãã«ããã¢ã¤ã³ã³</target>
+    <target>ショートカットアイコン</target>
 </phrase>
 <phrase>
     <source>shortcut key</source>
-    <target>ã·ã§ã¼ãã«ããã
+    <target>ショートカットキー</target>
+</phrase>
+<phrase>
+    <source>shortcut key control</source>
+    <target>ショートカットキーコントロール</target>
+</phrase>
+<phrase>
+    <source>Show</source>
+    <target>表示</target>
+</phrase>
+<phrase>
+    <source>Shutdown</source>
+    <target>シャットダウン</target>
+</phrase>
+<phrase>
+    <source>single selection list box</source>
+    <target>単一選択リストボックス</target>
+</phrase>
+<phrase>
+    <source>Size</source>
+    <target>サイズ</target>
+</phrase>
+<phrase>
+    <source>size grip</source>
+    <target>サイズグリップ</target>
+</phrase>
+<phrase>
+    <source>slider</source>
+    <target>スライダー</target>
+</phrase>
+<phrase>
+    <source>spin box</source>
+    <target>スピンボックス</target>
+</phrase>
+<phrase>
+    <source>Split</source>
+    <target>分割</target>
+</phrase>
+<phrase>
+    <source>split bar</source>
+    <target>分割バー</target>
+</phrase>
+<phrase>
+    <source>split box</source>
+    <target>分割ボックス</target>
+</phrase>
+<phrase>
+    <source>Start button</source>
+    <target>スタートボタン</target>
+</phrase>
+<phrase>
+    <source>StartUp folder</source>
+    <target>スタートアップフォルダ</target>
+</phrase>
+<phrase>
+    <source>status bar</source>
+    <target>ステータスバー</target>
+</phrase>
+<phrase>
+    <source>Stop</source>
+    <target>停止</target>
+</phrase>
+<phrase>
+    <source>tab control</source>
+    <target>タブコントロール</target>
+</phrase>
+<phrase>
+    <source>tap</source>
+    <target>タップ</target>
+</phrase>
+<phrase>
+    <source>task bar</source>
+    <target>タスクバー</target>
+</phrase>
+<phrase>
+    <source>task-oriented Help</source>
+    <target>タスク志向のヘルプ</target>
+</phrase>
+<phrase>
+    <source>template</source>
+    <target>テンプレート</target>
+</phrase>
+<phrase>
+    <source>text box</source>
+    <target>テキストボックス</target>
+</phrase>
+<phrase>
+    <source>title bar</source>
+    <target>タイトルバー</target>
+</phrase>
+<phrase>
+    <source>title text</source>
+    <target>タイトルテキスト</target>
+</phrase>
+<phrase>
+    <source>toggle key</source>
+    <target>トグルキー</target>
+</phrase>
+<phrase>
+    <source>toolbar</source>
+    <target>ツールバー</target>
+</phrase>
+<phrase>
+    <source>tooltip</source>
+    <target>ツールチップ</target>
+</phrase>
+<phrase>
+    <source>tree view control</source>
+    <target>ツリービューコントロール</target>
+</phrase>
+<phrase>
+    <source>type</source>
+    <target>タイプ</target>
+</phrase>
+<phrase>
+    <source>unavailable</source>
+    <target>利用不可</target>
+</phrase>
+<phrase>
+    <source>Undo</source>
+    <target>元に戻す</target>
+</phrase>
+<phrase>
+    <source>Uninstall</source>
+    <target>アンインストール</target>
+</phrase>
+<phrase>
+    <source>View</source>
+    <target>表示</target>
+</phrase>
+<phrase>
+    <source>visual editing</source>
+    <target>画面編集</target>
+</phrase>
+<phrase>
+    <source>What&apos;s This?</source>
+    <target>ヘルプ</target>
+</phrase>
+<phrase>
+    <source>window</source>
+    <target>ウィンドウ</target>
+</phrase>
+<phrase>
+    <source>Window</source>
+    <target>ウィンドウ</target>
+</phrase>
+<phrase>
+    <source>Windows Explorer</source>
+    <target>ウィンドウズエクスプローラ</target>
+</phrase>
+<phrase>
+    <source>wizard</source>
+    <target>ウィザード</target>
+</phrase>
+<phrase>
+    <source>workbook</source>
+    <target>ワークブック</target>
+</phrase>
+<phrase>
+    <source>workgroup</source>
+    <target>ワークグループ</target>
+</phrase>
+<phrase>
+    <source>workspace</source>
+    <target>ワークスペース</target>
+</phrase>
+<phrase>
+    <source>Yes</source>
+    <target>はい</target>
+</phrase>
+</QPH>

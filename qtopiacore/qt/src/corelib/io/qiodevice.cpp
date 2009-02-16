@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 #include "qfile.h"
 #include "qstringlist.h"
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 #ifdef QIODEVICE_DEBUG
 void debugBinaryString(const QByteArray &input)
@@ -80,7 +76,9 @@ void debugBinaryString(const char *data, qint64 maxlen)
 }
 #endif
 
-static const qint64 QIODEVICE_BUFFERSIZE = 16384;
+#ifndef QIODEVICE_BUFFERSIZE
+#define QIODEVICE_BUFFERSIZE Q_INT64_C(16384)
+#endif
 
 #define Q_VOID
 
@@ -206,18 +204,7 @@ QIODevicePrivate::~QIODevicePrivate()
     Calling these functions from the main, GUI thread, may cause your
     user interface to freeze. Example:
 
-    \code
-        QProcess gzip;
-        gzip.start("gzip", QStringList() << "-c");
-        if (!gzip.waitForStarted())
-            return false;
-
-        gzip.write("uncompressed data");
-
-        QByteArray compressed;
-        while (gzip.waitForReadyRead())
-            compressed += gzip.readAll();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 0
 
     By subclassing QIODevice, you can provide the same interface to
     your own I/O devices. Subclasses of QIODevice are only required to
@@ -318,6 +305,11 @@ QIODevicePrivate::~QIODevicePrivate()
     the signal will not be reemitted (although waitForReadyRead() may still
     return true).
 
+    Note for developers implementing classes derived from QIODevice:
+    you should always emit readyRead() when new data has arrived (do not
+    emit it only because there's data still to be read in your
+    buffers). Do not emit readyRead() in other conditions.
+
     \sa bytesWritten()
 */
 
@@ -327,6 +319,18 @@ QIODevicePrivate::~QIODevicePrivate()
     this signal if you have operations that need to be performed
     before the device closes (e.g., if you have data in a separate
     buffer that needs to be written to the device).
+*/
+
+/*!
+    \fn QIODevice::readChannelFinished()
+    \since 4.4
+
+    This signal is emitted when the input (reading) stream is closed
+    in this device. It is emitted as soon as the closing is detected,
+    which means that there might still be data available for reading
+    with read().
+
+    \sa atEnd(), read()
 */
 
 #ifdef QT_NO_QOBJECT
@@ -426,7 +430,8 @@ QIODevice::OpenMode QIODevice::openMode() const
 
 /*!
     Sets the OpenMode of the device to \a openMode. Call this
-    function to set the open mode when reimplementing open().
+    function to set the open mode if the flags change after the device
+    has been opened.
 
     \sa openMode() OpenMode
 */
@@ -508,7 +513,8 @@ bool QIODevice::isWritable() const
 
 /*!
     Opens the device and sets its OpenMode to \a mode. Returns true if successful;
-    otherwise returns false.
+    otherwise returns false. This function should be called from any
+    reimplementations of open() or other functions that open the device.
 
     \sa openMode() OpenMode
 */
@@ -517,7 +523,8 @@ bool QIODevice::open(OpenMode mode)
     Q_D(QIODevice);
     d->openMode = mode;
     d->pos = (mode & Append) ? size() : qint64(0);
-    d_func()->accessMode = QIODevicePrivate::Unset;
+    d->buffer.clear();
+    d->accessMode = QIODevicePrivate::Unset;
 #if defined QIODEVICE_DEBUG
     printf("%p QIODevice::open(0x%x)\n", this, quint32(mode));
 #endif
@@ -691,12 +698,7 @@ bool QIODevice::reset()
     Subclasses that reimplement this function must call the base
     implementation in order to include the size of QIODevices' buffer. Example:
 
-    \code
-        qint64 CustomDevice::bytesAvailable() const
-        {
-            return buffer.size() + QIODevice::bytesAvailable();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 1
 
     \sa bytesToWrite(), readyRead(), isSequential()
 */
@@ -726,7 +728,10 @@ qint64 QIODevice::bytesToWrite() const
     attempting to read from a device opened in WriteOnly mode, this
     function returns -1.
 
-    0 is returned when no more data is available for reading.
+    0 is returned when no more data is available for reading. However,
+    reading past the end of the stream is considered an error, so this
+    function returns -1 in those cases (that is, reading on a closed
+    socket or after a process has died).
 
     \sa readData() readLine() write()
 */
@@ -819,8 +824,12 @@ qint64 QIODevice::read(char *data, qint64 maxSize)
                 return qint64(-1);
             qint64 readFromDevice = readData(data + readSoFar, maxSize - readSoFar);
 #if defined QIODEVICE_DEBUG
-            printf("%p \treading %d bytes from device\n", this, int(readFromDevice));
+            printf("%p \treading %d bytes from device (total %d)\n", this, int(readFromDevice), int(readSoFar));
 #endif
+            if (readFromDevice == -1 && readSoFar == 0) {
+                // error and we haven't read anything: return immediately
+                return -1;
+            }
             if (readFromDevice <= 0) {
                 moreToRead = false;
             } else {
@@ -954,9 +963,12 @@ QByteArray QIODevice::readAll()
 }
 
 /*!
-    This function reads a line of ASCII characters from the device, up to a
-    maximum of \a maxSize - 1 bytes, stores the characters in \a data, and
-    returns the number of bytes read. If an error occurred, -1 is returned.
+    This function reads a line of ASCII characters from the device, up
+    to a maximum of \a maxSize - 1 bytes, stores the characters in \a
+    data, and returns the number of bytes read. If a line could not be
+    read but no error ocurred, this function returns 0. If an error
+    occurs, this function returns what it could the length of what
+    could be read, or -1 if nothing was read.
 
     A terminating '\0' byte is always appended to \a data, so \a
     maxSize must be larger than 1.
@@ -972,16 +984,7 @@ QByteArray QIODevice::readAll()
     For example, the following code reads a line of characters from a
     file:
 
-    \code
-        QFile file("box.txt");
-        if (file.open(QFile::ReadOnly)) {
-            char buf[1024];
-            qint64 lineLength = file.readLine(buf, sizeof(buf));
-            if (lineLength != -1) {
-                // the line is available in buf
-            }
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 2
 
     The newline character ('\n') is included in the buffer. If a
     newline is not encountered before maxSize - 1 bytes are read, a
@@ -1048,7 +1051,7 @@ qint64 QIODevice::readLine(char *data, qint64 maxSize)
         debugBinaryString(data, int(readSoFar + readBytes));
     }
 #endif
-    if (readBytes <= 0) {
+    if (readBytes < 0) {
         data[readSoFar] = '\0';
         return readSoFar ? readSoFar : -1;
     }
@@ -1117,7 +1120,10 @@ QByteArray QIODevice::readLine(qint64 maxSize)
              readSoFar + 1 == tmp.size() &&   // +1 due to the ending null
              tmp.at(readSoFar - 1) != '\n');
 
-    tmp.resize(int(readSoFar));
+    if (readSoFar == 0 && readBytes == -1)
+        tmp.clear();            // return Null if we found an error
+    else
+        tmp.resize(int(readSoFar));
     return tmp;
 }
 
@@ -1131,15 +1137,22 @@ QByteArray QIODevice::readLine(qint64 maxSize)
 
     readLine() appends a '\0' byte to \a data; readLineData() does not
     need to do this.
+
+    If you reimplement this function, be careful to return the correct
+    value: it should return the number of bytes read in this line,
+    including the terminating newline, or 0 if there is no line to be
+    read at this point. If an error occurs, it should return -1 if and
+    only if no bytes were read. Reading past EOF is considered an error.
 */
 qint64 QIODevice::readLineData(char *data, qint64 maxSize)
 {
+    Q_D(QIODevice);
     qint64 readSoFar = 0;
     char c;
-    bool lastGetSucceeded = false;
-    d_func()->baseReadLineDataCalled = true;
+    int lastReadReturn = 0;
+    d->baseReadLineDataCalled = true;
 
-    while (readSoFar < maxSize && (lastGetSucceeded = getChar(&c))) {
+    while (readSoFar < maxSize && (lastReadReturn = read(&c, 1)) == 1) {
         *data++ = c;
         ++readSoFar;
         if (c == '\n')
@@ -1147,12 +1160,11 @@ qint64 QIODevice::readLineData(char *data, qint64 maxSize)
     }
 
 #if defined QIODEVICE_DEBUG
-    Q_D(QIODevice);
     printf("%p QIODevice::readLineData(%p, %d), d->pos = %d, d->buffer.size() = %d, returns %d\n",
            this, data, int(maxSize), int(d->pos), int(d->buffer.size()), int(readSoFar));
 #endif
-    if (!lastGetSucceeded && readSoFar == 0)
-        return qint64(-1);
+    if (lastReadReturn != 1 && readSoFar == 0)
+        return isSequential() ? lastReadReturn : -1;
     return readSoFar;
 }
 
@@ -1169,12 +1181,7 @@ qint64 QIODevice::readLineData(char *data, qint64 maxSize)
     Subclasses that reimplement this function must call the base
     implementation in order to include the size of the QIODevice's buffer. Example:
 
-    \code
-        bool CustomDevice::canReadLine() const
-        {
-            return buffer.contains('\n') || QIODevice::canReadLine();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 3
 
     \sa readyRead(), readLine()
 */
@@ -1376,15 +1383,7 @@ bool QIODevice::getChar(char *c)
 
     Example:
 
-    \code
-        bool isExeFile(QFile *file)
-        {
-            char buf[2];
-            if (file->peek(buf, sizeof(buf)) == sizeof(buf))
-                return (buf[0] == 'M' && buf[1] == 'Z');
-            return false;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 4
 
     \sa read()
 */
@@ -1406,12 +1405,7 @@ qint64 QIODevice::peek(char *data, qint64 maxSize)
 
     Example:
 
-    \code
-        bool isExeFile(QFile *file)
-        {
-            return file->peek(2) == "MZ";
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_io_qiodevice.cpp 5
 
     This function has no way of reporting errors; returning an empty
     QByteArray() can mean either that no data was currently available
@@ -1524,7 +1518,10 @@ QString QIODevice::errorString() const
     \fn qint64 QIODevice::readData(char *data, qint64 maxSize)
 
     Reads up to \a maxSize bytes from the device into \a data, and
-    returns the number of bytes read or -1 if an error occurred.
+    returns the number of bytes read or -1 if an error occurred. If
+    there are no bytes to be read, this function should return -1 if
+    there can never be more bytes available (for example: socket
+    closed, pipe closed, sub-process finished).
 
     This function is called by QIODevice. Reimplement this function
     when creating a subclass of QIODevice.
@@ -1722,3 +1719,5 @@ QDebug operator<<(QDebug debug, QIODevice::OpenMode modes)
     return debug;
 }
 #endif
+
+QT_END_NAMESPACE

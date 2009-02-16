@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,11 +56,15 @@
 #endif
 
 #ifndef QT_NO_GEOM_VARIANT
-#include "qsize.h"
-#include "qpoint.h"
-#include "qrect.h"
-#include "qline.h"
+# include "qsize.h"
+# include "qpoint.h"
+# include "qrect.h"
+# include "qline.h"
 #endif
+
+QT_BEGIN_NAMESPACE
+
+#define NS(x) QT_PREPEND_NAMESPACE(x)
 
 /*!
     \macro Q_DECLARE_METATYPE(Type)
@@ -88,40 +86,16 @@
 
     This example shows a typical use case of Q_DECLARE_METATYPE():
 
-    \code
-        struct MyStruct
-        {
-            int i;
-            ...
-        };
-
-        Q_DECLARE_METATYPE(MyStruct)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 0
 
     If \c MyStruct is in a namespace, the Q_DECLARE_METATYPE() macro
     has to be outside the namespace:
 
-    \code
-        namespace MyNamespace
-        {
-            ...
-        }
-
-        Q_DECLARE_METATYPE(MyNamespace::MyStruct)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 1
 
     Since \c{MyStruct} is now known to QMetaType, it can be used in QVariant:
 
-    \code
-        MyStruct s;
-        QVariant var;
-        var.setValue(s); // copy s into the variant
-
-        ...
-
-        // retrieve the value
-        MyStruct s2 = var.value<MyStruct>();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 2
 
     \sa qRegisterMetaType()
 */
@@ -226,15 +200,7 @@
     The following code allocates and destructs an instance of
     \c{MyClass}:
 
-    \code
-        int id = QMetaType::type("MyClass");
-        if (id != -1) {
-            void *myClassPtr = QMetaType::construct(id);
-            ...
-            QMetaType::destroy(id, myClassPtr);
-            myClassPtr = 0;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 3
 
     If we want the stream operators \c operator<<() and \c
     operator>>() to work on QVariant objects that store custom types,
@@ -315,6 +281,8 @@ static const struct { const char * typeName; int type; } types[] = {
     {"unsigned int", QMetaType::UInt},
     {"unsigned short", QMetaType::UShort},
     {"unsigned char", QMetaType::UChar},
+    {"long long", QMetaType::LongLong},
+    {"unsigned long long", QMetaType::ULongLong},
     {"qint8", QMetaType::Char},
     {"quint8", QMetaType::UChar},
     {"qint16", QMetaType::Short},
@@ -403,7 +371,7 @@ const char *QMetaType::typeName(int type)
     } else if (type >= User) {
         const QVector<QCustomTypeInfo> * const ct = customTypes();
         QReadLocker locker(customTypesLock());
-        return ct && ct->count() > type - User
+        return ct && ct->count() > type - User && !ct->at(type - User).typeName.isEmpty()
                 ? ct->at(type - User).typeName.constData()
                 : static_cast<const char *>(0);
     }
@@ -446,9 +414,9 @@ int QMetaType::registerType(const char *typeName, Destructor destructor,
         return -1;
 
 #ifdef QT_NO_QOBJECT
-    ::QByteArray normalizedTypeName = typeName;
+    NS(QByteArray) normalizedTypeName = typeName;
 #else
-    ::QByteArray normalizedTypeName = QMetaObject::normalizedType(typeName);
+    NS(QByteArray) normalizedTypeName = QMetaObject::normalizedType(typeName);
 #endif
 
     QWriteLocker locker(customTypesLock());
@@ -466,6 +434,35 @@ int QMetaType::registerType(const char *typeName, Destructor destructor,
     return idx;
 }
 
+/*! 
+    \since 4.4
+
+    Unregisters a user type, with \a typeName. 
+
+    \sa type(), typeName()
+ */
+void QMetaType::unregisterType(const char *typeName)
+{
+    QVector<QCustomTypeInfo> *ct = customTypes();
+    if (!ct || !typeName)
+        return;
+
+#ifdef QT_NO_QOBJECT
+    NS(QByteArray) normalizedTypeName = typeName;
+#else
+    NS(QByteArray) normalizedTypeName = QMetaObject::normalizedType(typeName);
+#endif
+    QWriteLocker locker(customTypesLock());
+    for (int v = 0; v < ct->count(); ++v) {
+        if (ct->at(v).typeName == typeName) {
+            QCustomTypeInfo &inf = (*ct)[v];
+            inf.typeName.clear();
+            inf.constr = 0;
+            inf.destr = 0;
+        }
+    }
+}
+
 /*!
     Returns true if the datatype with ID \a type is registered;
     otherwise returns false.
@@ -480,7 +477,7 @@ bool QMetaType::isRegistered(int type)
     }
     QReadLocker locker(customTypesLock());
     const QVector<QCustomTypeInfo> * const ct = customTypes();
-    return ((type >= User) && (ct && ct->count() > type - User));
+    return ((type >= User) && (ct && ct->count() > type - User) && !ct->at(type - User).typeName.isEmpty());
 }
 
 /*!
@@ -492,9 +489,9 @@ bool QMetaType::isRegistered(int type)
 int QMetaType::type(const char *typeName)
 {
 #ifdef QT_NO_QOBJECT
-    const ::QByteArray normalizedTypeName = typeName;
+    const NS(QByteArray) normalizedTypeName = typeName;
 #else
-    const ::QByteArray normalizedTypeName = QMetaObject::normalizedType(typeName);
+    const NS(QByteArray) normalizedTypeName = QMetaObject::normalizedType(typeName);
 #endif
 
     QReadLocker locker(customTypesLock());
@@ -568,76 +565,76 @@ bool QMetaType::save(QDataStream &stream, int type, const void *data)
         stream << *static_cast<const double *>(data);
         break;
     case QMetaType::QChar:
-        stream << *static_cast<const ::QChar *>(data);
+        stream << *static_cast<const NS(QChar) *>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QVariantMap:
-        stream << *static_cast<const ::QVariantMap *>(data);
+        stream << *static_cast<const NS(QVariantMap)*>(data);
         break;
     case QMetaType::QVariantList:
-        stream << *static_cast<const ::QVariantList *>(data);
+        stream << *static_cast<const NS(QVariantList)*>(data);
         break;
 #endif
     case QMetaType::QByteArray:
-        stream << *static_cast<const ::QByteArray *>(data);
+        stream << *static_cast<const NS(QByteArray)*>(data);
         break;
     case QMetaType::QString:
-        stream << *static_cast<const ::QString *>(data);
+        stream << *static_cast<const NS(QString)*>(data);
         break;
     case QMetaType::QStringList:
-        stream << *static_cast<const ::QStringList *>(data);
+        stream << *static_cast<const NS(QStringList)*>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QBitArray:
-        stream << *static_cast<const ::QBitArray *>(data);
+        stream << *static_cast<const NS(QBitArray)*>(data);
         break;
 #endif
     case QMetaType::QDate:
-        stream << *static_cast<const ::QDate *>(data);
+        stream << *static_cast<const NS(QDate)*>(data);
         break;
     case QMetaType::QTime:
-        stream << *static_cast<const ::QTime *>(data);
+        stream << *static_cast<const NS(QTime)*>(data);
         break;
     case QMetaType::QDateTime:
-        stream << *static_cast<const ::QDateTime *>(data);
+        stream << *static_cast<const NS(QDateTime)*>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QUrl:
-        stream << *static_cast<const ::QUrl *>(data);
+        stream << *static_cast<const NS(QUrl)*>(data);
         break;
 #endif
     case QMetaType::QLocale:
-        stream << *static_cast<const ::QLocale *>(data);
+        stream << *static_cast<const NS(QLocale)*>(data);
         break;
 #ifndef QT_NO_GEOM_VARIANT
     case QMetaType::QRect:
-        stream << *static_cast<const ::QRect *>(data);
+        stream << *static_cast<const NS(QRect)*>(data);
         break;
     case QMetaType::QRectF:
-        stream << *static_cast<const ::QRectF *>(data);
+        stream << *static_cast<const NS(QRectF)*>(data);
         break;
     case QMetaType::QSize:
-        stream << *static_cast<const ::QSize *>(data);
+        stream << *static_cast<const NS(QSize)*>(data);
         break;
     case QMetaType::QSizeF:
-        stream << *static_cast<const ::QSizeF *>(data);
+        stream << *static_cast<const NS(QSizeF)*>(data);
         break;
     case QMetaType::QLine:
-        stream << *static_cast<const ::QLine *>(data);
+        stream << *static_cast<const NS(QLine)*>(data);
         break;
     case QMetaType::QLineF:
-        stream << *static_cast<const ::QLineF *>(data);
+        stream << *static_cast<const NS(QLineF)*>(data);
         break;
     case QMetaType::QPoint:
-        stream << *static_cast<const ::QPoint *>(data);
+        stream << *static_cast<const NS(QPoint)*>(data);
         break;
     case QMetaType::QPointF:
-        stream << *static_cast<const ::QPointF *>(data);
+        stream << *static_cast<const NS(QPointF)*>(data);
         break;
 #endif
 #ifndef QT_NO_REGEXP
     case QMetaType::QRegExp:
-        stream << *static_cast<const ::QRegExp *>(data);
+        stream << *static_cast<const NS(QRegExp)*>(data);
         break;
 #endif
 #ifdef QT3_SUPPORT
@@ -757,76 +754,76 @@ bool QMetaType::load(QDataStream &stream, int type, void *data)
         stream >> *static_cast<double *>(data);
         break;
     case QMetaType::QChar:
-        stream >> *static_cast< ::QChar *>(data);
+        stream >> *static_cast< NS(QChar)*>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QVariantMap:
-        stream >> *static_cast< ::QVariantMap *>(data);
+        stream >> *static_cast< NS(QVariantMap)*>(data);
         break;
     case QMetaType::QVariantList:
-        stream >> *static_cast< ::QVariantList *>(data);
+        stream >> *static_cast< NS(QVariantList)*>(data);
         break;
 #endif
     case QMetaType::QByteArray:
-        stream >> *static_cast< ::QByteArray *>(data);
+        stream >> *static_cast< NS(QByteArray)*>(data);
         break;
     case QMetaType::QString:
-        stream >> *static_cast< ::QString *>(data);
+        stream >> *static_cast< NS(QString)*>(data);
         break;
     case QMetaType::QStringList:
-        stream >> *static_cast< ::QStringList *>(data);
+        stream >> *static_cast< NS(QStringList)*>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QBitArray:
-        stream >> *static_cast< ::QBitArray *>(data);
+        stream >> *static_cast< NS(QBitArray)*>(data);
         break;
 #endif
     case QMetaType::QDate:
-        stream >> *static_cast< ::QDate *>(data);
+        stream >> *static_cast< NS(QDate)*>(data);
         break;
     case QMetaType::QTime:
-        stream >> *static_cast< ::QTime *>(data);
+        stream >> *static_cast< NS(QTime)*>(data);
         break;
     case QMetaType::QDateTime:
-        stream >> *static_cast< ::QDateTime *>(data);
+        stream >> *static_cast< NS(QDateTime)*>(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QUrl:
-        stream >> *static_cast< ::QUrl *>(data);
+        stream >> *static_cast< NS(QUrl)*>(data);
         break;
 #endif
     case QMetaType::QLocale:
-        stream >> *static_cast< ::QLocale *>(data);
+        stream >> *static_cast< NS(QLocale)*>(data);
         break;
 #ifndef QT_NO_GEOM_VARIANT
     case QMetaType::QRect:
-        stream >> *static_cast< ::QRect *>(data);
+        stream >> *static_cast< NS(QRect)*>(data);
         break;
     case QMetaType::QRectF:
-        stream >> *static_cast< ::QRectF *>(data);
+        stream >> *static_cast< NS(QRectF)*>(data);
         break;
     case QMetaType::QSize:
-        stream >> *static_cast< ::QSize *>(data);
+        stream >> *static_cast< NS(QSize)*>(data);
         break;
     case QMetaType::QSizeF:
-        stream >> *static_cast< ::QSizeF *>(data);
+        stream >> *static_cast< NS(QSizeF)*>(data);
         break;
     case QMetaType::QLine:
-        stream >> *static_cast< ::QLine *>(data);
+        stream >> *static_cast< NS(QLine)*>(data);
         break;
     case QMetaType::QLineF:
-        stream >> *static_cast< ::QLineF *>(data);
+        stream >> *static_cast< NS(QLineF)*>(data);
         break;
     case QMetaType::QPoint:
-        stream >> *static_cast< ::QPoint *>(data);
+        stream >> *static_cast< NS(QPoint)*>(data);
         break;
     case QMetaType::QPointF:
-        stream >> *static_cast< ::QPointF *>(data);
+        stream >> *static_cast< NS(QPointF)*>(data);
         break;
 #endif
 #ifndef QT_NO_REGEXP
     case QMetaType::QRegExp:
-        stream >> *static_cast< ::QRegExp *>(data);
+        stream >> *static_cast< NS(QRegExp)*>(data);
         break;
 #endif
 #ifdef QT3_SUPPORT
@@ -915,56 +912,56 @@ void *QMetaType::construct(int type, const void *copy)
         case QMetaType::Double:
             return new double(*static_cast<const double*>(copy));
         case QMetaType::QChar:
-            return new ::QChar(*static_cast<const ::QChar*>(copy));
+            return new NS(QChar)(*static_cast<const NS(QChar)*>(copy));
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QVariantMap:
-            return new ::QVariantMap(*static_cast<const ::QVariantMap*>(copy));
+            return new NS(QVariantMap)(*static_cast<const NS(QVariantMap)*>(copy));
         case QMetaType::QVariantList:
-            return new ::QVariantList(*static_cast<const ::QVariantList*>(copy));
+            return new NS(QVariantList)(*static_cast<const NS(QVariantList)*>(copy));
 #endif
         case QMetaType::QByteArray:
-            return new ::QByteArray(*static_cast<const ::QByteArray*>(copy));
+            return new NS(QByteArray)(*static_cast<const NS(QByteArray)*>(copy));
         case QMetaType::QString:
-            return new ::QString(*static_cast<const ::QString*>(copy));
+            return new NS(QString)(*static_cast<const NS(QString)*>(copy));
         case QMetaType::QStringList:
-            return new ::QStringList(*static_cast<const ::QStringList *>(copy));
+            return new NS(QStringList)(*static_cast<const NS(QStringList)*>(copy));
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QBitArray:
-            return new ::QBitArray(*static_cast<const ::QBitArray *>(copy));
+            return new NS(QBitArray)(*static_cast<const NS(QBitArray)*>(copy));
 #endif
         case QMetaType::QDate:
-            return new ::QDate(*static_cast<const ::QDate *>(copy));
+            return new NS(QDate)(*static_cast<const NS(QDate)*>(copy));
         case QMetaType::QTime:
-            return new ::QTime(*static_cast<const ::QTime *>(copy));
+            return new NS(QTime)(*static_cast<const NS(QTime)*>(copy));
         case QMetaType::QDateTime:
-            return new ::QDateTime(*static_cast<const ::QDateTime *>(copy));
+            return new NS(QDateTime)(*static_cast<const NS(QDateTime)*>(copy));
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QUrl:
-            return new ::QUrl(*static_cast<const ::QUrl *>(copy));
+            return new NS(QUrl)(*static_cast<const NS(QUrl)*>(copy));
 #endif
         case QMetaType::QLocale:
-            return new ::QLocale(*static_cast<const ::QLocale *>(copy));
+            return new NS(QLocale)(*static_cast<const NS(QLocale)*>(copy));
 #ifndef QT_NO_GEOM_VARIANT
         case QMetaType::QRect:
-            return new ::QRect(*static_cast<const ::QRect *>(copy));
+            return new NS(QRect)(*static_cast<const NS(QRect)*>(copy));
         case QMetaType::QRectF:
-            return new ::QRectF(*static_cast<const ::QRectF *>(copy));
+            return new NS(QRectF)(*static_cast<const NS(QRectF)*>(copy));
         case QMetaType::QSize:
-            return new ::QSize(*static_cast<const ::QSize *>(copy));
+            return new NS(QSize)(*static_cast<const NS(QSize)*>(copy));
         case QMetaType::QSizeF:
-            return new ::QSizeF(*static_cast<const ::QSizeF *>(copy));
+            return new NS(QSizeF)(*static_cast<const NS(QSizeF)*>(copy));
         case QMetaType::QLine:
-            return new ::QLine(*static_cast<const ::QLine *>(copy));
+            return new NS(QLine)(*static_cast<const NS(QLine)*>(copy));
         case QMetaType::QLineF:
-            return new ::QLineF(*static_cast<const ::QLineF *>(copy));
+            return new NS(QLineF)(*static_cast<const NS(QLineF)*>(copy));
         case QMetaType::QPoint:
-            return new ::QPoint(*static_cast<const ::QPoint *>(copy));
+            return new NS(QPoint)(*static_cast<const NS(QPoint)*>(copy));
         case QMetaType::QPointF:
-            return new ::QPointF(*static_cast<const ::QPointF *>(copy));
+            return new NS(QPointF)(*static_cast<const NS(QPointF)*>(copy));
 #endif
 #ifndef QT_NO_REGEXP
         case QMetaType::QRegExp:
-            return new ::QRegExp(*static_cast<const ::QRegExp *>(copy));
+            return new NS(QRegExp)(*static_cast<const NS(QRegExp)*>(copy));
 #endif
         case QMetaType::Void:
             return 0;
@@ -1004,56 +1001,56 @@ void *QMetaType::construct(int type, const void *copy)
         case QMetaType::Double:
             return new double;
         case QMetaType::QChar:
-            return new ::QChar;
+            return new NS(QChar);
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QVariantMap:
-            return new ::QVariantMap;
+            return new NS(QVariantMap);
         case QMetaType::QVariantList:
-            return new ::QVariantList;
+            return new NS(QVariantList);
 #endif
         case QMetaType::QByteArray:
-            return new ::QByteArray;
+            return new NS(QByteArray);
         case QMetaType::QString:
-            return new ::QString;
+            return new NS(QString);
         case QMetaType::QStringList:
-            return new ::QStringList;
+            return new NS(QStringList);
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QBitArray:
-            return new ::QBitArray;
+            return new NS(QBitArray);
 #endif
         case QMetaType::QDate:
-            return new ::QDate;
+            return new NS(QDate);
         case QMetaType::QTime:
-            return new ::QTime;
+            return new NS(QTime);
         case QMetaType::QDateTime:
-            return new ::QDateTime;
+            return new NS(QDateTime);
 #ifndef QT_BOOTSTRAPPED
         case QMetaType::QUrl:
-            return new ::QUrl;
+            return new NS(QUrl);
 #endif
         case QMetaType::QLocale:
-            return new ::QLocale;
+            return new NS(QLocale);
 #ifndef QT_NO_GEOM_VARIANT
         case QMetaType::QRect:
-            return new ::QRect;
+            return new NS(QRect);
         case QMetaType::QRectF:
-            return new ::QRectF;
+            return new NS(QRectF);
         case QMetaType::QSize:
-            return new ::QSize;
+            return new NS(QSize);
         case QMetaType::QSizeF:
-            return new ::QSizeF;
+            return new NS(QSizeF);
         case QMetaType::QLine:
-            return new ::QLine;
+            return new NS(QLine);
         case QMetaType::QLineF:
-            return new ::QLineF;
+            return new NS(QLineF);
         case QMetaType::QPoint:
-            return new ::QPoint;
+            return new NS(QPoint);
         case QMetaType::QPointF:
-            return new ::QPointF;
+            return new NS(QPointF);
 #endif
 #ifndef QT_NO_REGEXP
         case QMetaType::QRegExp:
-            return new ::QRegExp;
+            return new NS(QRegExp);
 #endif
         case QMetaType::Void:
             return 0;
@@ -1072,7 +1069,8 @@ void *QMetaType::construct(int type, const void *copy)
         QReadLocker locker(customTypesLock());
         if (type < User || !ct || ct->count() <= type - User)
             return 0;
-
+        if (ct->at(type - User).typeName.isEmpty())
+            return 0;
         constr = ct->at(type - User).constr;
     }
 
@@ -1134,76 +1132,76 @@ void QMetaType::destroy(int type, void *data)
         delete static_cast<double*>(data);
         break;
     case QMetaType::QChar:
-        delete static_cast< ::QChar*>(data);
+        delete static_cast< NS(QChar)* >(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QVariantMap:
-        delete static_cast< ::QVariantMap*>(data);
+        delete static_cast< NS(QVariantMap)* >(data);
         break;
     case QMetaType::QVariantList:
-        delete static_cast< ::QVariantList*>(data);
+        delete static_cast< NS(QVariantList)* >(data);
         break;
 #endif
     case QMetaType::QByteArray:
-        delete static_cast< ::QByteArray*>(data);
+        delete static_cast< NS(QByteArray)* >(data);
         break;
     case QMetaType::QString:
-        delete static_cast< ::QString*>(data);
+        delete static_cast< NS(QString)* >(data);
         break;
     case QMetaType::QStringList:
-        delete static_cast< ::QStringList*>(data);
+        delete static_cast< NS(QStringList)* >(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QBitArray:
-        delete static_cast< ::QBitArray*>(data);
+        delete static_cast< NS(QBitArray)* >(data);
         break;
 #endif
     case QMetaType::QDate:
-        delete static_cast< ::QDate*>(data);
+        delete static_cast< NS(QDate)* >(data);
         break;
     case QMetaType::QTime:
-        delete static_cast< ::QTime*>(data);
+        delete static_cast< NS(QTime)* >(data);
         break;
     case QMetaType::QDateTime:
-        delete static_cast< ::QDateTime*>(data);
+        delete static_cast< NS(QDateTime)* >(data);
         break;
 #ifndef QT_BOOTSTRAPPED
     case QMetaType::QUrl:
-        delete static_cast< ::QUrl*>(data);
+        delete static_cast< NS(QUrl)* >(data);
 #endif
         break;
     case QMetaType::QLocale:
-        delete static_cast< ::QLocale*>(data);
+        delete static_cast< NS(QLocale)* >(data);
         break;
 #ifndef QT_NO_GEOM_VARIANT
     case QMetaType::QRect:
-        delete static_cast< ::QRect*>(data);
+        delete static_cast< NS(QRect)* >(data);
         break;
     case QMetaType::QRectF:
-        delete static_cast< ::QRectF*>(data);
+        delete static_cast< NS(QRectF)* >(data);
         break;
     case QMetaType::QSize:
-        delete static_cast< ::QSize*>(data);
+        delete static_cast< NS(QSize)* >(data);
         break;
     case QMetaType::QSizeF:
-        delete static_cast< ::QSizeF*>(data);
+        delete static_cast< NS(QSizeF)* >(data);
         break;
     case QMetaType::QLine:
-        delete static_cast< ::QLine*>(data);
+        delete static_cast< NS(QLine)* >(data);
         break;
     case QMetaType::QLineF:
-        delete static_cast< ::QLineF*>(data);
+        delete static_cast< NS(QLineF)* >(data);
         break;
     case QMetaType::QPoint:
-        delete static_cast< ::QPoint*>(data);
+        delete static_cast< NS(QPoint)* >(data);
         break;
     case QMetaType::QPointF:
-        delete static_cast< ::QPointF*>(data);
+        delete static_cast< NS(QPointF)* >(data);
         break;
 #endif
 #ifndef QT_NO_REGEXP
     case QMetaType::QRegExp:
-        delete static_cast< ::QRegExp*>(data);
+        delete static_cast< NS(QRegExp)* >(data);
         break;
 #endif
     case QMetaType::Void:
@@ -1220,6 +1218,8 @@ void QMetaType::destroy(int type, void *data)
         } else {
             QReadLocker locker(customTypesLock());
             if (type < User || !ct || ct->count() <= type - User)
+                break;
+            if (ct->at(type - User).typeName.isEmpty())
                 break;
             destr = ct->at(type - User).destr;
         }
@@ -1243,9 +1243,7 @@ void QMetaType::destroy(int type, void *data)
 
     This example registers the class \c{MyClass}:
 
-    \code
-        qRegisterMetaType<MyClass>("MyClass");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 4
 
     \sa qRegisterMetaTypeStreamOperators(), QMetaType::isRegistered(),
         Q_DECLARE_METATYPE()
@@ -1263,16 +1261,11 @@ void QMetaType::destroy(int type, void *data)
     QMetaType::save(). These functions are used when streaming a
     QVariant.
 
-    \code
-        qRegisterMetaTypeStreamOperators<MyClass>("MyClass");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 5
 
     The stream operators should have the following signatures:
 
-    \code
-        QDataStream &operator<<(QDataStream &out, const MyClass &myObj);
-        QDataStream &operator>>(QDataStream &in, MyClass &myObj);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 6
 
     \sa qRegisterMetaType(), QMetaType::isRegistered(), Q_DECLARE_METATYPE()
 */
@@ -1301,14 +1294,17 @@ void QMetaType::destroy(int type, void *data)
 
     Example:
 
-    \code
-        int id = qRegisterMetaType<MyStruct>();
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 7
 
-    \bold{Note:} To use the type \c T in QVariant, using Q_DECLARE_METATYPE() is
+    To use the type \c T in QVariant, using Q_DECLARE_METATYPE() is
     sufficient. To use the type \c T in queued signal and slot connections,
     \c{qRegisterMetaType<T>()} must be called before the first connection
     is established.
+    
+    Also, to use type \c T with the QObject::property() API,
+    \c{qRegisterMetaType<T>()} must be called before it is used, typically
+    in the constructor of the class that uses \c T, or in the \c{main()}
+    function.
 
     \sa Q_DECLARE_METATYPE()
  */
@@ -1324,10 +1320,7 @@ void QMetaType::destroy(int type, void *data)
 
     Typical usage:
 
-    \code
-        int id = qMetaTypeId<QString>();    // id is now QMetaType::QString
-        id = qMetaTypeId<MyStruct>();       // compile error if MyStruct not declared
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetatype.cpp 8
 
     QMetaType::type() returns the same ID as qMetaTypeId(), but does
     a lookup at runtime based on the name of the type.
@@ -1336,3 +1329,5 @@ void QMetaType::destroy(int type, void *data)
 
     \sa Q_DECLARE_METATYPE(), QMetaType::type()
 */
+
+QT_END_NAMESPACE

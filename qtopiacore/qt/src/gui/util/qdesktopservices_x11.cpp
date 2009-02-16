@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,8 +41,14 @@
 
 #include <qprocess.h>
 #include <qurl.h>
+#include <qdir.h>
+#include <qfile.h>
+#include <qtextstream.h>
 #include <private/qt_x11_p.h>
+#include <qcoreapplication.h>
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 inline static bool launch(const QUrl &url, const QString &client)
 {
@@ -115,141 +115,110 @@ static bool launchWebBrowser(const QUrl &url)
 }
 
 
-/*
-    enum Location {  // -> StandardLocation
-        Desktop, // -> add Path suffix to each value
-        Documents,
-        Fonts,
-        Applications,
-        Music,
-        Movies,
-        Pictures,
-        Temp,
-        Home
-    };
 
-    QString storageLocation(Location type); // -> location() ### Qt 5: rename to path()
-    QString displayName(Location type);
-*/
-/*
-    \enum QDesktopServices::Location
-
-    This enum describes the different locations that can be queried
-    by QDesktopServices::storageLocation and QDesktopServices::displayName.
-
-    \value Desktop Returns the users desktop.
-    \value Documents Returns the users document.
-    \value Fonts Returns the users fonts.
-    \value Applications Returns the users applications.
-    \value Music Returns the users music.
-    \value Movies Returns the users movies.
-    \value Pictures Returns the users pictures.
-    \value Temp Returns the system's temporary directory.
-    \value Home Returns the user's home directory.
-
-    \sa storageLocation() displayName()
-*/
-
-/*
-    Returns the default system directory where file of type belong or an invalid QUrl
-    if it is unable to figure out.
-  */
-/*
-QString QDesktopServices::storageLocation(const Location type)
+QString QDesktopServices::storageLocation(StandardLocation type)
 {
-    QDir emptyDir;
-    switch (type) {
-    case Desktop:
-        return QDir::homePath()+"/Desktop";
-        break;
-
-    case Documents:
-        if (emptyDir.exists(QDir::homePath()+"/Documents"))
-            return QDir::homePath()+"/Documents";
-        break;
-
-    case Pictures:
-        if (emptyDir.exists(QDir::homePath()+"/Pictures"))
-             return QDir::homePath()+"/Pictures";
-        break;
-
-    case Fonts:
-        return QDir::homePath()+"/.fonts";
-        break;
-
-    case Music:
-        if (emptyDir.exists(QDir::homePath()+"/Music"))
-                return QDir::homePath()+"/Music";
-        break;
-
-    case Movies:
-        if (emptyDir.exists(QDir::homePath()+"/Movies"))
-                return QDir::homePath()+"/Movies";
-        break;
-
-    case QDesktopServices::Home:
+    if (type == QDesktopServices::HomeLocation)
         return QDir::homePath();
-        break;
-
-    case QDesktopServices::Temp:
+    if (type == QDesktopServices::TempLocation)
         return QDir::tempPath();
+
+    if (type == QDesktopServices::DataLocation) {
+        // http://standards.freedesktop.org/basedir-spec/basedir-spec-0.6.html
+        QString xdgDataHome = QLatin1String(qgetenv("XDG_DATA_HOME"));
+        if (xdgDataHome.isEmpty())
+            xdgDataHome = QDir::homePath() + QLatin1String("/.local/share");
+        xdgDataHome += QLatin1String("/data/")
+                    + QCoreApplication::organizationName() + QLatin1Char('/')
+                    + QCoreApplication::applicationName();
+        return xdgDataHome;
+    }
+
+    // http://www.freedesktop.org/wiki/Software/xdg-user-dirs
+    QString xdgConfigHome = QLatin1String(qgetenv("XDG_CONFIG_HOME"));
+    if (xdgConfigHome.isEmpty())
+        xdgConfigHome = QDir::homePath() + QLatin1String("/.config");
+    QFile file(xdgConfigHome + QLatin1String("/user-dirs.dirs"));
+    if (file.exists() && file.open(QIODevice::ReadOnly)) {
+        QHash<QString, QString> lines;
+        QTextStream stream(&file);
+        // Only look for lines like: XDG_DESKTOP_DIR="$HOME/Desktop"
+        QRegExp exp(QLatin1String("^XDG_(.*)_DIR=(.*)$"));
+        while (!stream.atEnd()) {
+            QString line = stream.readLine();
+            if (exp.indexIn(line) != -1) {
+                QStringList lst = exp.capturedTexts();
+                QString key = lst.at(1);
+                QString value = lst.at(2);
+                if (value.length() > 2
+                    && value.startsWith(QLatin1String("\""))
+                    && value.endsWith(QLatin1String("\"")))
+                    value = value.mid(1, value.length() - 2);
+                // Store the key and value: "DESKTOP", "$HOME/Desktop"
+                lines[key] = value;
+            }
+        }
+
+        QString key;
+        switch (type) {
+        case DesktopLocation: key = QLatin1String("DESKTOP"); break;
+        case DocumentsLocation: key = QLatin1String("DOCUMENTS"); break;
+        case PicturesLocation: key = QLatin1String("PICTURES"); break;
+        case MusicLocation: key = QLatin1String("MUSIC"); break;
+        case MoviesLocation: key = QLatin1String("VIDEOS"); break;
+        default: break;
+        }
+        if (!key.isEmpty() && lines.contains(key)) {
+            QString value = lines[key];
+            // value can start with $HOME
+            if (value.startsWith(QLatin1String("$HOME")))
+                value = QDir::homePath() + value.mid(5);
+            return value;
+        }
+    }
+
+    QDir emptyDir;
+    QString path;
+    switch (type) {
+    case DesktopLocation:
+        path = QDir::homePath() + QLatin1String("/Desktop");
+        break;
+    case DocumentsLocation:
+        path = QDir::homePath() + QLatin1String("/Documents");
+       break;
+    case PicturesLocation:
+        path = QDir::homePath() + QLatin1String("/Pictures");
         break;
 
-    case Applications:
+    case FontsLocation:
+        path = QDir::homePath() + QLatin1String("/.fonts");
+        break;
+
+    case MusicLocation:
+        path = QDir::homePath() + QLatin1String("/Music");
+        break;
+
+    case MoviesLocation:
+        path = QDir::homePath() + QLatin1String("/Movies");
+        break;
+
+    case ApplicationsLocation:
     default:
         break;
     }
+
+    if (emptyDir.exists(path))
+        return path;
+
     return QString();
 }
-*/
-/*
-    Returns a localized display name for a location type or
-    an empty QString if it is unable to figure out.
-  */
-/*
-QString QDesktopServices::displayName(const Location type)
+
+QString QDesktopServices::displayName(StandardLocation type)
 {
     Q_UNUSED(type);
-    switch (type) {
-    case Desktop:
-        return QObject::tr("Desktop");
-        break;
-
-    case Documents:
-        return QObject::tr("Documents");
-        break;
-
-    case Pictures:
-        return QObject::tr("Pictures");
-        break;
-
-    case Fonts:
-        return QObject::tr("Fonts");
-        break;
-
-    case Music:
-        return QObject::tr("Music");
-        break;
-
-    case Movies:
-        return QObject::tr("Movies");
-        break;
-
-    case QDesktopServices::Home:
-        return QObject::tr("Home");
-        break;
-
-    case QDesktopServices::Temp:
-        return QObject::tr("Temp");
-        break;
-
-    case Applications:
-        return QObject::tr("Applications");
-    default:
-        break;
-    }
     return QString();
 }
-*/
-#endif // QT_NO_DESKTOPSERVICES
 
+QT_END_NAMESPACE
+
+#endif // QT_NO_DESKTOPSERVICES

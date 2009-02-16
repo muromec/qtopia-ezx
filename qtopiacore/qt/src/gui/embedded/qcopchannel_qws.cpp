@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,6 +47,8 @@
 #include "qmutex.h"
 
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 typedef QMap<QString, QList<QWSClient*> > QCopServerMap;
 static QCopServerMap *qcopServerMap = 0;
@@ -110,15 +103,16 @@ public:
     \ingroup qws
 
     \brief The QCopChannel class provides communication capabilities
-    between clients in Qtopia Core.
+    between clients in \l{Qt for Embedded Linux}.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    QCOP is a many-to-many communication protocol for transferring
-    messages on various channels. A channel is identified by a name,
-    and anyone who wants to can listen to it as well as send messages
-    to it. The QCOP protocol allows clients to communicate both within
-    the same address space and between different processes.
+    The Qt COmmunication Protocol (QCOP) is a many-to-many protocol
+    for transferring messages across registered channels. A channel is
+    registered by name, and anyone who wants to can listen to the
+    channel as well as send messages through it. The QCOP protocol
+    allows clients to communicate both within the same address space
+    and between different processes.
 
     To send messages to a given channel, QCopChannel provides the
     static send() function. Using this function alone, the messages
@@ -139,7 +133,7 @@ public:
     data. The default implementation simply emits the received()
     signal.
 
-    \sa QWSServer, QWSClient, {Qtopia Core Architecture}
+    \sa QWSServer, QWSClient, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -271,24 +265,7 @@ QString QCopChannel::channel() const
     requirement, but you must ensure that the sender and receiver
     agree on the argument types. For example:
 
-    \code
-        void MyClass::receive(const QString &message, const QByteArray &data)
-        {
-            QDataStream in(data);
-            if (message == "execute(QString,QString)") {
-                QString cmd;
-                QString arg;
-                in >> cmd >> arg;
-                ...
-            } else if (message == "delete(QString)") {
-                QString fileName;
-                in >> fileName;
-                ...
-            } else {
-                ...
-            }
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qcopchannel_qws.cpp 0
 
     The above code assumes that the \c message is a DCOP-style
     function signature and the \c data contains the function's
@@ -359,12 +336,7 @@ bool QCopChannel::send(const QString& channel, const QString& msg)
     Note that QDataStream provides a convenient way to fill the byte
     array with auxiliary data. For example:
 
-    \code
-        QByteArray data;
-        QDataStream out(&data, QIODevice::WriteOnly);
-        out << QString("cat") << QString("file.txt");
-        QCopChannel::send("System/Shell", "execute(QString,QString)", data);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qcopchannel_qws.cpp 1
 
     In the code above the channel is \c "System/Shell". The \c message
     is an arbitrary string, but in the example we've used the DCOP
@@ -522,6 +494,7 @@ void QCopChannel::answer(QWSClient *cl, const QString& ch,
             s >> c;
             bool known = qcopServerMap && qcopServerMap->contains(c)
                         && !((*qcopServerMap)[c]).isEmpty();
+            // Yes, it's a typo, it's not user-visible, and we choose not to fix it for compatibility
             QLatin1String ans = QLatin1String(known ? "known" : "unkown");
             QWSServerPrivate::sendQCopEvent(cl, QLatin1String(""),
                                             ans, data, true);
@@ -620,6 +593,9 @@ void QCopChannel::sendLocally(const QString& ch, const QString& msg,
 	    channel->receive(msg, data);
     }
 }
+
+QT_END_NAMESPACE
+
 #include "qcopchannel_qws.moc"
 
 #endif

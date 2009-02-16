@@ -1,48 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 2006-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "profileevaluator.h"
 #include "proreader.h"
+#include <QtCore/QDebug>
 #include <QtCore/QString>
 #include <QtCore/QSet>
 #include <QtCore/QRegExp>
@@ -61,6 +56,8 @@
 #else
 #define QT_POPEN popen
 #endif
+
+QT_BEGIN_NAMESPACE
 
 QStringList ProFileEvaluator::qmake_feature_paths(/*QMakeProperty *prop=0*/)
 {
@@ -202,8 +199,30 @@ bool ProFileEvaluator::visitProValue(ProValue *value)
 
     QByteArray varName = m_lastVarName;
 
-    QString v = expandVariableReferences(val);
-    unquote(&v);
+    QStringList v = expandVariableReferences(val);
+
+    // The following two blocks fix bug 180128 by making all "interesting"
+    // file name absolute in each .pro file, not just the top most one
+    if (varName == QByteArray("SOURCES")
+            || varName == QByteArray("HEADERS")
+            || varName == QByteArray("INTERFACES")
+            || varName == QByteArray("FORMS")
+            || varName == QByteArray("FORMS3")
+            || varName == QByteArray("RESOURCES")) {
+        // matches only existent files, expand certain(?) patterns
+        QStringList vv;
+        for (int i = v.count(); --i >= 0; )
+            vv << expandPattern(v[i]);
+        v = vv;
+    }
+
+    if (varName == QByteArray("TRANSLATIONS")) {
+        // also matches non-existent files, but does not expand pattern
+        QString dir = QFileInfo(currentFileName()).absolutePath();
+        dir += '/';
+        for (int i = v.count(); --i >= 0; )
+            v[i] = QFileInfo(dir, v[i]).absoluteFilePath();
+    }
 
     switch (m_variableOperator) {
         case ProVariable::UniqueAddOperator:    // *
@@ -220,7 +239,6 @@ bool ProFileEvaluator::visitProValue(ProValue *value)
         case ProVariable::ReplaceOperator:      // ~
             {
                 // DEFINES ~= s/a/b/?[gqi]
-                QStringList vm = m_valuemap.value(varName);
                 QChar sep = val.at(1);
                 QStringList func = val.split(sep);
                 if (func.count() < 3 || func.count() > 4) {
@@ -327,11 +345,11 @@ bool ProFileEvaluator::visitProCondition(ProCondition * cond)
 }
 
 
-QString ProFileEvaluator::expandVariableReferences(const QString &str)
+QStringList ProFileEvaluator::expandVariableReferences(const QString &str)
 {
     bool fOK;
     bool *ok = &fOK;
-    QString ret;
+    QStringList ret;
     if(ok)
         *ok = true;
     if(str.isEmpty())
@@ -344,7 +362,7 @@ QString ProFileEvaluator::expandVariableReferences(const QString &str)
     const ushort LPAREN = '(';
     const ushort RPAREN = ')';
     const ushort DOLLAR = '$';
-    const ushort SLASH = '\\';
+    const ushort BACKSLASH = '\\';
     const ushort UNDERSCORE = '_';
     const ushort DOT = '.';
     const ushort SPACE = ' ';
@@ -362,7 +380,7 @@ QString ProFileEvaluator::expandVariableReferences(const QString &str)
     for(int i = 0; i < str_len; ++i) {
         unicode = (str_data+i)->unicode();
         const int start_var = i;
-        if(unicode == SLASH) {
+        if (unicode == BACKSLASH) {
             bool escape = false;
             const char *symbols = "[]{}()$\\";
             for(const char *s = symbols; *s; ++s) {
@@ -382,6 +400,7 @@ QString ProFileEvaluator::expandVariableReferences(const QString &str)
         if(unicode == SPACE || unicode == TAB) {
             unicode = 0;
             if(!current.isEmpty()) {
+                unquote(&current);
                 ret.append(current);
                 current.clear();
             }
@@ -441,37 +460,48 @@ QString ProFileEvaluator::expandVariableReferences(const QString &str)
                 if(term) {
                     if(unicode != term) {
                         logMessage(QString::fromAscii(
-                            "Missing %1 terminator [found %2]").arg(QChar(term)).arg(QChar(unicode)), 
+                            "Missing %1 terminator [found %2]").arg(QChar(term)).arg(QChar(unicode)),
                             MT_DebugLevel1);
                         if(ok)
                             *ok = false;
-                        return QString();
+                        return QStringList();
                     }
                     unicode = 0;
                 } else if(i > str_len-1) {
                     unicode = 0;
                 }
 
-                QString replacement;
-                if(var_type == ENVIRON) {
-                    replacement = QString::fromLocal8Bit(qgetenv(var.toLatin1().constData()));
+                QStringList replacement;
+                if (var_type == ENVIRON) {
+                    replacement << QString::fromLocal8Bit(qgetenv(var.toLatin1().constData()));
                 } else if(var_type == PROPERTY) {
-                    replacement = propertyValue(var);
+                    replacement << propertyValue(var);
                     //if(prop)
                     //    replacement = QStringList(prop->value(var));
                 } else if(var_type == FUNCTION) {
-                    replacement = evaluateExpandFunction( var.toAscii(), args );
+                    replacement << evaluateExpandFunction( var.toAscii(), args );
                 } else if(var_type == VAR) {
-                    replacement = values(var).join(QLatin1String(" "));
+                    replacement += values(var);
                 }
-                if(!(replaced++) && start_var)
+                if (!(replaced++) && start_var)
                     current = str.left(start_var);
-                if(!replacement.isEmpty()) {
-                    current.append(replacement);
+                if (!replacement.isEmpty()) {
+                    /* If a list is beteen two strings make sure it expands in such a way
+                     * that the string to the left is prepended to the first string and
+                     * the string to the right is appended to the last string, example:
+                     *  LIST = a b c
+                     *  V3 = x/$$LIST/f.cpp
+                     *  message($$member(V3,0))     # Outputs "x/a"
+                     *  message($$member(V3,1))     # Outputs "b"
+                     *  message($$member(V3,2))     # Outputs "c/f.cpp"
+                     */
+                    current.append(replacement.at(0));
+                    for (int i = 1; i < replacement.count(); ++i) {
+                        unquote(&current);
+                        ret.append(current);
+                        current = replacement.at(i);
+                    }
                 }
-                logMessage(MT_DebugLevel2, "Project Parser [var replace]: %s -> %s",
-                          str.toLatin1().constData(), var.toLatin1().constData(),
-                          replacement.toLatin1().constData());
             } else {
                 if(replaced)
                     current.append(QLatin1String("$"));
@@ -480,10 +510,17 @@ QString ProFileEvaluator::expandVariableReferences(const QString &str)
         if(replaced && unicode)
             current.append(QChar(unicode));
     }
-    if(!replaced)
-        ret = str;
-    else if(!current.isEmpty())
+    if (!replaced) {
+        current = str;
+        unquote(&current);
         ret.append(current);
+    } else if(!current.isEmpty()) {
+        unquote(&current);
+        ret.append(current);
+        logMessage(MT_DebugLevel2, "Project Parser [var replace]: %s -> [%s]\n",
+                  str.toLatin1().constData(), ret.join(QLatin1String(",")).toLatin1().constData());
+
+    }
     return ret;
 }
 
@@ -519,13 +556,12 @@ bool ProFileEvaluator::isActiveConfig(const QByteArray &config, bool regex)
     return false;
 }
 
-QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const QString &arguments)
+QStringList ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const QString &arguments)
 {
-    const char field_sep = ' ';
-
-    QStringList args = split_arg_list(arguments);
-    for (int i = 0; i < args.count(); ++i) {
-        args[i] = expandVariableReferences(args[i]);
+    QStringList argumentsList = split_arg_list(arguments);
+    QStringList args;
+    for (int i = 0; i < argumentsList.count(); ++i) {
+        args +=expandVariableReferences(argumentsList[i]);
     }
     enum ExpandFunc { E_MEMBER=1, E_FIRST, E_LAST, E_CAT, E_FROMFILE, E_EVAL, E_LIST,
                       E_SPRINTF, E_JOIN, E_SPLIT, E_BASENAME, E_DIRNAME, E_SECTION,
@@ -552,7 +588,7 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
         expands->insert("find", E_FIND);
         expands->insert("system", E_SYSTEM);                //v
         expands->insert("unique", E_UNIQUE);
-        expands->insert("quote", E_QUOTE);
+        expands->insert("quote", E_QUOTE);                  //v
         expands->insert("escape_expand", E_ESCAPE_EXPAND);
         expands->insert("upper", E_UPPER);
         expands->insert("lower", E_LOWER);
@@ -563,7 +599,7 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
     }
     ExpandFunc func_t = (ExpandFunc)expands->value(func.toLower());
 
-    QString ret;
+    QStringList ret;
 
     switch(func_t) {
         case E_BASENAME:
@@ -601,13 +637,10 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
             if(!var.isNull()) {
                 const QStringList l = values(var);
                 for(QStringList::ConstIterator it = l.begin(); it != l.end(); ++it) {
-                    QString separator = sep;
-                    if(!ret.isEmpty())
-                        ret += QLatin1Char(field_sep);
                     if(regexp)
-                        ret += (*it).section(QRegExp(separator), beg, end);
+                        ret += (*it).section(QRegExp(sep), beg, end);
                     else
-                        ret += (*it).section(separator, beg, end);
+                        ret += (*it).section(sep, beg, end);
                 }
             }
             break; }
@@ -624,23 +657,19 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
                     after = args[3];
                 const QStringList &var = values(args.first());
                 if(!var.isEmpty())
-                    ret = before + var.join(glue) + after;
+                    ret.append(before + var.join(glue) + after);
             }
             break; }
         case E_SPLIT: {
-            if(args.count() < 2 || args.count() > 3) {
-                logMessage(QString::fromAscii("split(var, sep, join) requires three arguments\n"));
+            if(args.count() < 2 || args.count() > 2) {
+                logMessage(QString::fromAscii("split(var, sep) requires two arguments\n"));
             } else {
-                QString sep = args[1], join = QString(QLatin1Char(field_sep));
-                if(args.count() == 3)
-                    join = args[2];
+                QString sep = args[1];
                 QStringList var = values(args.first());
                 for(QStringList::ConstIterator vit = var.begin(); vit != var.end(); ++vit) {
                     QStringList lst = (*vit).split(sep);
                     for(QStringList::ConstIterator spltit = lst.begin(); spltit != lst.end(); ++spltit) {
-                        if(!ret.isEmpty())
-                            ret += join;
-                        ret += (*spltit);
+                        ret.append(*spltit);
                     }
                 }
             }
@@ -686,14 +715,10 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
                         //nothing
                     } else if(start < end) {
                         for(int i = start; i <= end && (int)var.count() >= i; i++) {
-                            if(!ret.isEmpty())
-                                ret += QLatin1Char(field_sep);
-                            ret += var[i];
+                            ret.append(var[i]);
                         }
                     } else {
                         for(int i = start; i >= end && (int)var.count() >= i && i >= 0; i--) {
-                            if(!ret.isEmpty())
-                                ret += QLatin1Char(field_sep);
                             ret += var[i];
                         }
                     }
@@ -709,9 +734,9 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
                 const QStringList var = values(args.first());
                 if(!var.isEmpty()) {
                     if(func_t == E_FIRST)
-                        ret = var[0];
+                        ret.append(var[0]);
                     else
-                        ret = var[var.size()-1];
+                        ret.append(var.last());
                 }
             }
             break; }
@@ -726,6 +751,7 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
                     bool singleLine = true;
                     if(args.count() > 1)
                         singleLine = (args[1].toLower() == QLatin1String("true"));
+                    QString output;
                     while(proc && !feof(proc)) {
                         int read_in = int(fread(buff, 1, 255, proc));
                         if(!read_in)
@@ -735,11 +761,17 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
                                 buff[i] = ' ';
                         }
                         buff[read_in] = '\0';
-                        ret += QString::fromLatin1(buff);
+                        output += QLatin1String(buff);
                     }
+                    ret += split_value_list(output);
                 }
             }
             break; }
+        case E_QUOTE:
+            for (int i = 0; i < args.count(); ++i) {
+                ret += (QStringList)args.at(i);
+            }
+            break;
         case 0: {
             logMessage(MT_DebugLevel2, "'%s' is not a function\n", func.data());
             break; }
@@ -753,9 +785,13 @@ QString ProFileEvaluator::evaluateExpandFunction(const QByteArray &func, const Q
 
 bool ProFileEvaluator::evaluateConditionalFunction(const QByteArray &function, const QString &arguments, bool *result)
 {
-    QStringList args = split_arg_list(arguments);
-    for (int i = 0; i < args.count(); ++i) {
-        args[i] = expandVariableReferences(args[i]);
+    QStringList argumentsList = split_arg_list(arguments);
+    QString sep;
+    sep.append(QLatin1Char(Option::field_sep));
+
+    QStringList args;
+    for (int i = 0; i < argumentsList.count(); ++i) {
+        args += expandVariableReferences(argumentsList[i]).join(sep);
     }
     enum ConditionFunc { CF_CONFIG = 1, CF_CONTAINS, CF_COUNT, CF_EXISTS, CF_INCLUDE,
         CF_LOAD, CF_ISEMPTY, CF_SYSTEM, CF_MESSAGE};
@@ -1042,9 +1078,158 @@ ProFileEvaluator::TemplateType ProFileEvaluator::templateType()
  *  2. look in vpaths
  *  3. expand wild card files relative from the profiles folder
  **/
+
+// FIXME: This code supports something that I'd consider a flaw in .pro file syntax
+// which is not even documented. So arguably this can be ditched completely...
+QStringList ProFileEvaluator::expandPattern(const QString& pattern)
+{
+    QStringList vpaths = values(QLatin1String("VPATH"))
+        + values(QLatin1String("QMAKE_ABSOLUTE_SOURCE_PATH"))
+        + values(QLatin1String("DEPENDPATH"))
+        + values(QLatin1String("VPATH_SOURCES"));
+
+    QStringList sources_out;
+    ProFile *pro = currentProFile();
+    if (!pro)
+        return QStringList();
+    QFileInfo fi0(pro->fileName());
+    QDir dir0(fi0.absoluteDir());
+    QString absName = QDir::cleanPath(dir0.absoluteFilePath(pattern));
+    QFileInfo fi(absName);
+    bool found = fi.exists();
+    // Search in all vpaths
+    for(QStringList::Iterator vpath_it = vpaths.begin(); vpath_it != vpaths.end() && !found; ++vpath_it) {
+        QDir vpath(*vpath_it);
+        fi.setFile(*vpath_it + QDir::separator() + pattern);
+        if (fi.exists()) {
+            absName = fi.absoluteFilePath();
+            found = true;
+            break;
+        }
+    }
+    if (found) {
+        sources_out+=fi.canonicalFilePath();
+    } else {
+        QString val = pattern;
+        QString dir, regex = val, real_dir;
+        if(regex.lastIndexOf(QLatin1Char('/')) != -1) {
+            dir = regex.left(regex.lastIndexOf(QLatin1Char('/')) + 1);
+            real_dir = dir;
+            regex = regex.right(regex.length() - dir.length());
+        }
+        if(real_dir.isEmpty() || QFileInfo(real_dir).exists()) {
+            QStringList files = QDir(real_dir).entryList(QStringList(regex));
+            if(files.isEmpty()) {
+                logMessage(MT_DebugLevel2, "%s:%d Failure to find %s",
+                          __FILE__, __LINE__,
+                          val.toLatin1().constData());
+            } else {
+                QString a;
+                for(int i = files.count() - 1; i >= 0; --i) {
+                    if(files[i] == QLatin1String(".") || files[i] == QLatin1String(".."))
+                        continue;
+                    a = dir + files[i];
+                    sources_out += a;
+                }
+            }
+        } else {
+            logMessage(MT_DebugLevel2, "%s:%d Cannot match %s%c%s, as %s does not exist.",
+                      __FILE__, __LINE__, real_dir.toLatin1().constData(),
+                      '/',
+                      regex.toLatin1().constData(), real_dir.toLatin1().constData());
+        }
+
+    }
+    return sources_out;
+}
+
+ProFile *ProFileEvaluator::queryProFile(const QString &filename)
+{
+    ProReader pr;
+    pr.setEnableBackSlashFixing(false);
+
+    ProFile *pro = pr.read(filename);
+    if (!pro) {
+        LogMessage msg;
+        msg.m_msg = QLatin1String("parse failure.");
+        msg.m_filename = filename;
+        msg.m_linenumber = pr.currentLine();
+        msg.m_type = MT_Error;
+        logMessage(msg);
+    }
+
+    return pro;
+}
+
+void ProFileEvaluator::releaseProFile(ProFile *pro)
+{
+    delete pro;
+}
+
+QString ProFileEvaluator::propertyValue(const QString &val) const
+{
+    return getPropertyValue(val);
+}
+
+void ProFileEvaluator::logMessage(const ProFileEvaluator::LogMessage &msg)
+{
+    QByteArray locstr = QString(QLatin1String("%1(%2):")).arg(msg.m_filename).arg(msg.m_linenumber).toAscii();
+    QByteArray text = msg.m_msg.toAscii();
+    switch (msg.m_type) {
+        case MT_DebugLevel3:
+            qWarning("%s profileevaluator information:    %s", locstr.data(), text.data());
+            break;
+        case MT_DebugLevel2:
+            qWarning("%s profileevaluator warning:        %s", locstr.data(), text.data());
+            break;
+        case MT_DebugLevel1:
+            qWarning("%s profileevaluator critical error: %s", locstr.data(), text.data());
+            break;
+        case MT_ProMessage:
+            qWarning("%s Project MESSAGE: %s", locstr.data(), text.data());
+            break;
+        case MT_ProError:
+            qWarning("%s Project ERROR: %s", locstr.data(), text.data());
+            break;
+        case MT_Error:
+            qWarning("%s ERROR: %s", locstr.data(), text.data());
+            break;
+    }
+}
+
+void ProFileEvaluator::logMessage(const QString &message, MessageType mt)
+{
+    LogMessage msg;
+    msg.m_msg = message;
+    msg.m_type = mt;
+
+    ProFile *pro = currentProFile();
+    if (pro) {
+        msg.m_filename = pro->fileName();
+        msg.m_linenumber = m_lineNo;
+    } else {
+        msg.m_filename = QLatin1String("Not a file");
+        msg.m_linenumber = 0;
+    }
+
+    logMessage(msg);
+}
+
+void ProFileEvaluator::logMessage(MessageType mt, const char *msg, ...)
+{
+#define MAX_MESSAGE_LENGTH 1024
+    char buf[MAX_MESSAGE_LENGTH];
+    va_list ap;
+    va_start(ap, msg); // use variable arg list
+    qvsnprintf(buf, MAX_MESSAGE_LENGTH - 1, msg, ap);
+    va_end(ap);
+    buf[MAX_MESSAGE_LENGTH - 1] = '\0';
+    logMessage(QString::fromAscii(buf), mt);
+}
+
+// This function is unneeded and still retained. See log message for reason.
 QStringList ProFileEvaluator::absFileNames(const QString &variableName)
 {
-
     QStringList vpaths = values(QLatin1String("VPATH"))
         + values(QLatin1String("QMAKE_ABSOLUTE_SOURCE_PATH"))
         + values(QLatin1String("DEPENDPATH"))
@@ -1105,87 +1290,4 @@ QStringList ProFileEvaluator::absFileNames(const QString &variableName)
     }
     return sources_out;
 }
-
-ProFile *ProFileEvaluator::queryProFile(const QString &filename)
-{
-    ProReader pr;
-    pr.setEnableBackSlashFixing(false);
-
-    ProFile *pro = pr.read(filename);
-    if (!pro) {
-        LogMessage msg;
-        msg.m_msg = QLatin1String("parse failure.");
-        msg.m_filename = filename;
-        msg.m_linenumber = pr.currentLine();
-        msg.m_type = MT_Error;
-        logMessage(msg);
-    }
-
-    return pro;
-}
-
-void ProFileEvaluator::releaseProFile(ProFile *pro)
-{
-    delete pro;
-}
-
-QString ProFileEvaluator::propertyValue(const QString &val) const
-{
-    return getPropertyValue(val);
-}
-
-void ProFileEvaluator::logMessage(const ProFileEvaluator::LogMessage &msg)
-{
-    QByteArray locstr = QString(QLatin1String("%1(%2):")).arg(msg.m_filename).arg(msg.m_linenumber).toAscii();
-    QByteArray text = msg.m_msg.toAscii();
-    switch (msg.m_type) {
-        case MT_DebugLevel3:
-            fprintf(stderr, "%s profileevaluator information:    %s", locstr.data(), text.data());
-            break;
-        case MT_DebugLevel2:
-            fprintf(stderr, "%s profileevaluator warning:        %s", locstr.data(), text.data());
-            break;
-        case MT_DebugLevel1:
-            fprintf(stderr, "%s profileevaluator critical error: %s", locstr.data(), text.data());
-            break;
-        case MT_ProMessage:
-            fprintf(stderr, "%s Project MESSAGE: %s", locstr.data(), text.data());
-            break;
-        case MT_ProError:
-            fprintf(stderr, "%s Project ERROR: %s", locstr.data(), text.data());
-            break;
-        case MT_Error:
-            fprintf(stderr, "%s ERROR: %s", locstr.data(), text.data());
-            break;
-    }
-}
-
-void ProFileEvaluator::logMessage(const QString &message, MessageType mt)
-{
-    LogMessage msg;
-    msg.m_msg = message;
-    msg.m_type = mt;
-
-    ProFile *pro = currentProFile();
-    if (pro) {
-        msg.m_filename = pro->fileName();
-        msg.m_linenumber = m_lineNo;
-    } else {
-        msg.m_filename = QLatin1String("Not a file");
-        msg.m_linenumber = 0;
-    }
-
-    logMessage(msg);
-}
-
-void ProFileEvaluator::logMessage(MessageType mt, const char *msg, ...)
-{
-#define MAX_MESSAGE_LENGTH 1024
-    char buf[MAX_MESSAGE_LENGTH];
-    va_list ap;
-    va_start(ap, msg); // use variable arg list
-    qvsnprintf(buf, MAX_MESSAGE_LENGTH - 1, msg, ap);
-    va_end(ap);
-    buf[MAX_MESSAGE_LENGTH - 1] = '\0';
-    logMessage(QString::fromAscii(buf), mt);
-}
+QT_END_NAMESPACE

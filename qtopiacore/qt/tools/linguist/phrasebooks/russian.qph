@@ -1,223 +1,223 @@
 <!DOCTYPE QPH><QPH>
 <phrase>
     <source>About</source>
-    <target>Ð Ð¿ÑÐ¾Ð³ÑÐ°Ð¼Ð¼Ðµ</target>
+    <target>О программе</target>
 </phrase>
 <phrase>
     <source>access key</source>
-    <target>Ð³Ð¾ÑÑÑÐ°Ñ ÐºÐ»Ð°Ð²Ð¸ÑÐ°</target>
+    <target>горячая клавиша</target>
 </phrase>
 <phrase>
     <source>accessibility</source>
-    <target>ÑÐ´Ð¾Ð±ÑÑÐ²Ð¾</target>
+    <target>удобство</target>
 </phrase>
 <phrase>
     <source>action handle</source>
-    <target>ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð¾Ð²ÐµÐ´ÐµÐ½Ð¸ÐµÐ¼</target>
+    <target>управление поведением</target>
 </phrase>
 <phrase>
     <source>active</source>
-    <target>Ð°ÐºÑÐ¸Ð²Ð½ÑÐ¹</target>
+    <target>активный</target>
 </phrase>
 <phrase>
     <source>active end</source>
-    <target>Ð¾ÐºÐ¾Ð½ÑÐ°Ð½Ð¸Ðµ Ð²ÑÐ±Ð¾ÑÐ°</target>
+    <target>окончание выбора</target>
 </phrase>
 <phrase>
     <source>active object</source>
-    <target>Ð°ÐºÑÐ¸Ð²Ð½ÑÐ¹ Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>активный объект</target>
 </phrase>
 <phrase>
     <source>active window</source>
-    <target>Ð°ÐºÑÐ¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾</target>
+    <target>активное окно</target>
 </phrase>
 <phrase>
     <source>adornment</source>
-    <target>ÑÐºÑÐ°ÑÐµÐ½Ð¸Ðµ</target>
+    <target>украшение</target>
 </phrase>
 <phrase>
     <source>Always on Top</source>
-    <target>ÐÑÐµÐ³Ð´Ð° Ð½Ð°Ð²ÐµÑÑÑ</target>
+    <target>Всегда наверху</target>
 </phrase>
 <phrase>
     <source>anchor point</source>
-    <target>ÑÐ¾ÑÐºÐ° Ð½Ð°ÑÐ°Ð»Ð° Ð²ÑÐ±Ð¾ÑÐ°</target>
+    <target>точка начала выбора</target>
 </phrase>
 <phrase>
     <source>Apply</source>
-    <target>ÐÑÐ¸Ð¼ÐµÐ½Ð¸ÑÑ</target>
+    <target>Применить</target>
 </phrase>
 <phrase>
     <source>auto-exit</source>
-    <target>Ð°Ð²ÑÐ¾Ð¼Ð°ÑÐ¸ÑÐµÑÐºÐ¸Ð¹ Ð²ÑÑÐ¾Ð´</target>
+    <target>автоматический выход</target>
 </phrase>
 <phrase>
     <source>auto-repeat</source>
-    <target>Ð°Ð²ÑÐ¾-Ð¿Ð¾Ð²ÑÐ¾Ñ</target>
+    <target>авто-повтор</target>
 </phrase>
 <phrase>
     <source>automatic link</source>
-    <target>Ð°Ð²ÑÐ¾Ð¼Ð°ÑÐ¸ÑÐµÑÐºÐ¾Ðµ ÑÐ²ÑÐ·ÑÐ²Ð°Ð½Ð¸Ðµ</target>
+    <target>автоматическое связывание</target>
 </phrase>
 <phrase>
     <source>automatic scrolling</source>
-    <target>Ð°Ð²ÑÐ¾Ð¼Ð°ÑÐ¸ÑÐµÑÐºÐ°Ñ Ð¿ÑÐ¾ÐºÑÑÑÐºÐ°</target>
+    <target>автоматическая прокрутка</target>
 </phrase>
 <phrase>
     <source>autoscroll</source>
-    <target>Ð°Ð²ÑÐ¾-Ð¿ÑÐ¾ÐºÑÑÑÐºÐ°</target>
+    <target>авто-прокрутка</target>
 </phrase>
 <phrase>
     <source>Back</source>
-    <target>ÐÐ°Ð·Ð°Ð´</target>
+    <target>Назад</target>
 </phrase>
 <phrase>
     <source>boxed edit</source>
-    <target>Ð¾ÐºÐ½Ð¾ ÑÐµÐ´Ð°ÐºÑÐ¸ÑÐ¾Ð²Ð°Ð½Ð¸Ñ</target>
+    <target>окно редактирования</target>
 </phrase>
 <phrase>
     <source>Browse</source>
-    <target>ÐÐ±Ð·Ð¾Ñ</target>
+    <target>Обзор</target>
 </phrase>
 <phrase>
     <source>Cancel</source>
-    <target>ÐÑÐ¼ÐµÐ½Ð°</target>
+    <target>Отмена</target>
 </phrase>
 <phrase>
     <source>cascading menu</source>
-    <target>Ð½Ð¸ÑÐ¿Ð°Ð´Ð°ÑÑÐµÐµ Ð¼ÐµÐ½Ñ</target>
+    <target>ниспадающее меню</target>
 </phrase>
 <phrase>
     <source>check box</source>
-    <target>ÑÐ»Ð°Ð¶Ð¾Ðº</target>
+    <target>флажок</target>
 </phrase>
 <phrase>
     <source>check mark</source>
-    <target>ÑÐ»Ð°Ð¶Ð¾Ðº</target>
+    <target>флажок</target>
 </phrase>
 <phrase>
     <source>child window</source>
-    <target>Ð´Ð¾ÑÐµÑÐ½ÐµÐµ Ð¾ÐºÐ½Ð¾</target>
+    <target>дочернее окно</target>
 </phrase>
 <phrase>
     <source>choose</source>
-    <target>Ð²ÑÐ±ÑÐ°ÑÑ</target>
+    <target>выбрать</target>
 </phrase>
 <phrase>
     <source>click</source>
-    <target>ÑÐµÐ»ÑÐ¾Ðº</target>
+    <target>щелчок</target>
 </phrase>
 <phrase>
     <source>Clipboard</source>
-    <target>ÐÑÑÐµÑ Ð¾Ð±Ð¼ÐµÐ½Ð°</target>
+    <target>Буфер обмена</target>
 </phrase>
 <phrase>
     <source>Close</source>
-    <target>ÐÐ°ÐºÑÑÑÑ</target>
+    <target>Закрыть</target>
 </phrase>
 <phrase>
     <source>Close button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð·Ð°ÐºÑÑÑÐ¸Ñ</target>
+    <target>кнопка закрытия</target>
 </phrase>
 <phrase>
     <source>collapse</source>
-    <target>ÐºÑÐ°Ñ</target>
+    <target>крах</target>
 </phrase>
 <phrase>
     <source>column heading</source>
-    <target>Ð·Ð°Ð³Ð¾Ð»Ð¾Ð²Ð¾Ðº ÐºÐ¾Ð»Ð¾Ð½ÐºÐ¸</target>
+    <target>заголовок колонки</target>
 </phrase>
 <phrase>
     <source>combo box</source>
-    <target>Ð¿Ð¾Ð»Ðµ ÑÐ¾ ÑÐ¿Ð¸ÑÐºÐ¾Ð¼</target>
+    <target>поле со списком</target>
 </phrase>
 <phrase>
     <source>command button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ°</target>
+    <target>кнопка</target>
 </phrase>
 <phrase>
     <source>container</source>
-    <target>ÐºÐ¾Ð½ÑÐµÐ¹Ð½ÐµÑ</target>
+    <target>контейнер</target>
 </phrase>
 <phrase>
     <source>context-sensitive Help</source>
-    <target>ÐºÐ¾Ð½ÑÐµÐºÑÑÐ½Ð°Ñ Ð¿Ð¾Ð¼Ð¾ÑÑ</target>
+    <target>контекстная помощь</target>
 </phrase>
 <phrase>
     <source>contextual</source>
-    <target>ÐºÐ¾Ð½ÑÐµÐºÑÑÐ½ÑÐ¹</target>
+    <target>контекстный</target>
 </phrase>
 <phrase>
     <source>control</source>
-    <target>ÑÐ»ÐµÐ¼ÐµÐ½Ñ ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ñ</target>
+    <target>элемент управления</target>
 </phrase>
 <phrase>
     <source>Copy</source>
-    <target>ÐÐ¾Ð¿Ð¸ÑÐ¾Ð²Ð°ÑÑ</target>
+    <target>Копировать</target>
 </phrase>
 <phrase>
     <source>Copy here</source>
-    <target>ÐÐ¾Ð¿Ð¸ÑÐ¾Ð²Ð°ÑÑ ÑÑÐ´Ð°</target>
+    <target>Копировать сюда</target>
 </phrase>
 <phrase>
     <source>Create Shortcut</source>
-    <target>Ð¡Ð¾Ð·Ð´Ð°ÑÑ ÑÑÐ»ÑÐº</target>
+    <target>Создать ярлык</target>
 </phrase>
 <phrase>
     <source>Create Shortcut Here</source>
-    <target>Ð¡Ð¾Ð·Ð´Ð°ÑÑ ÑÑÐ»ÑÐº Ð·Ð´ÐµÑÑ</target>
+    <target>Создать ярлык здесь</target>
 </phrase>
 <phrase>
     <source>Cut</source>
-    <target>ÐÑÑÐµÐ·Ð°ÑÑ</target>
+    <target>Вырезать</target>
 </phrase>
 <phrase>
     <source>default</source>
-    <target>Ð¿Ð¾ ÑÐ¼Ð¾Ð»ÑÐ°Ð½Ð¸Ñ</target>
+    <target>по умолчанию</target>
 </phrase>
 <phrase>
     <source>default button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð¿Ð¾ ÑÐ¼Ð¾Ð»ÑÐ°Ð½Ð¸Ñ</target>
+    <target>кнопка по умолчанию</target>
 </phrase>
 <phrase>
     <source>Delete</source>
-    <target>Ð£Ð´Ð°Ð»Ð¸ÑÑ</target>
+    <target>Удалить</target>
 </phrase>
 <phrase>
     <source>desktop</source>
-    <target>ÑÐ°Ð±Ð¾ÑÐ¸Ð¹ ÑÑÐ¾Ð»</target>
+    <target>рабочий стол</target>
 </phrase>
 <phrase>
     <source>destination</source>
-    <target>ÑÐµÐ»Ñ</target>
+    <target>цель</target>
 </phrase>
 <phrase>
     <source>dialog box</source>
-    <target>Ð¾ÐºÐ½Ð¾ Ð´Ð¸Ð°Ð»Ð¾Ð³Ð°</target>
+    <target>окно диалога</target>
 </phrase>
 <phrase>
     <source>disability</source>
-    <target>Ð½ÐµÑÐ¿Ð¾ÑÐ¾Ð±Ð½Ð¾ÑÑÑ</target>
+    <target>неспособность</target>
 </phrase>
 <phrase>
     <source>disjoint selection</source>
-    <target>ÑÐ°Ð·Ð´ÐµÐ»Ð¸ÑÑ Ð²ÑÐ±ÑÐ°Ð½Ð½ÑÐµ ÑÐ»ÐµÐ¼ÐµÐ½ÑÑ</target>
+    <target>разделить выбранные элементы</target>
 </phrase>
 <phrase>
     <source>dock</source>
-    <target>Ð´Ð¾Ðº</target>
+    <target>док</target>
 </phrase>
 <phrase>
     <source>document</source>
-    <target>Ð´Ð¾ÐºÑÐ¼ÐµÐ½Ñ</target>
+    <target>документ</target>
 </phrase>
 <phrase>
     <source>double-click</source>
-    <target>Ð´Ð²Ð¾Ð¹Ð½Ð¾Ð¹ ÑÐµÐ»ÑÐ¾Ðº</target>
+    <target>двойной щелчок</target>
 </phrase>
 <phrase>
     <source>drag</source>
-    <target>Ð¿ÐµÑÐµÑÐ°ÑÐ¸ÑÑ</target>
+    <target>перетащить</target>
 </phrase>
 <phrase>
     <source>drag-and-drop</source>
@@ -225,199 +225,199 @@
 </phrase>
 <phrase>
     <source>drop-down combo box</source>
-    <target>ÑÐ°ÑÐºÑÑÑÑ Ð¿Ð¾Ð»Ðµ ÑÐ¾ ÑÐ¿Ð¸ÑÐºÐ¾Ð¼</target>
+    <target>раскрыть поле со списком</target>
 </phrase>
 <phrase>
     <source>drop-down list box</source>
-    <target>Ð¿ÑÐ¾ÐºÑÑÑÐ¸ÑÑ ÑÐ¿Ð¸ÑÐ¾Ðº</target>
+    <target>прокрутить список</target>
 </phrase>
 <phrase>
     <source>drop-down menu</source>
-    <target>Ð¾ÑÐºÑÑÑÑ Ð¼ÐµÐ½Ñ</target>
+    <target>открыть меню</target>
 </phrase>
 <phrase>
     <source>Edit</source>
-    <target>ÐÑÐ°Ð²ÐºÐ°</target>
+    <target>Правка</target>
 </phrase>
 <phrase>
     <source>Edit menu</source>
-    <target>Ð¼ÐµÐ½Ñ ÐÑÐ°Ð²ÐºÐ°</target>
+    <target>меню Правка</target>
 </phrase>
 <phrase>
     <source>ellipsis</source>
-    <target>ÑÐ»Ð»Ð¸Ð¿Ñ</target>
+    <target>эллипс</target>
 </phrase>
 <phrase>
     <source>embedded object</source>
-    <target>Ð²ÑÑÑÐ¾ÐµÐ½Ð½ÑÐ¹ Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>встроенный объект</target>
 </phrase>
 <phrase>
     <source>Exit</source>
-    <target>ÐÑÑÐ¾Ð´</target>
+    <target>Выход</target>
 </phrase>
 <phrase>
     <source>expand</source>
-    <target>ÑÐ°ÑÑÐ¸ÑÑÑÑ</target>
+    <target>расширять</target>
 </phrase>
 <phrase>
     <source>Explore</source>
-    <target>ÐÑÑÐ»ÐµÐ´Ð¾Ð²Ð°ÑÑ</target>
+    <target>Исследовать</target>
 </phrase>
 <phrase>
     <source>extended selection</source>
-    <target>ÑÐ°ÑÑÐ¸ÑÐµÐ½Ð½ÑÐ¹ Ð²ÑÐ±Ð¾Ñ</target>
+    <target>расширенный выбор</target>
 </phrase>
 <phrase>
     <source>extended selection list box</source>
-    <target>ÑÐ¿Ð¸ÑÐ¾Ðº Ñ ÑÐ°ÑÑÐ¸ÑÐµÐ½Ð½ÑÐ¼ Ð²ÑÐ±Ð¾ÑÐ¾Ð¼</target>
+    <target>список с расширенным выбором</target>
 </phrase>
 <phrase>
     <source>file</source>
-    <target>ÑÐ°Ð¹Ð»</target>
+    <target>файл</target>
 </phrase>
 <phrase>
     <source>File menu</source>
-    <target>Ð¼ÐµÐ½Ñ Ð¤Ð°Ð¹Ð»</target>
+    <target>меню Файл</target>
 </phrase>
 <phrase>
     <source>Find</source>
-    <target>ÐÐ¾Ð¸ÑÐº</target>
+    <target>Поиск</target>
 </phrase>
 <phrase>
     <source>Find Next</source>
-    <target>ÐÑÐ¾Ð´Ð¾Ð»Ð¶Ð¸ÑÑ Ð¿Ð¾Ð¸ÑÐº</target>
+    <target>Продолжить поиск</target>
 </phrase>
 <phrase>
     <source>Find What</source>
-    <target>ÐÐ¾Ð¸ÑÐº</target>
+    <target>Поиск</target>
 </phrase>
 <phrase>
     <source>folder</source>
-    <target>ÐºÐ°ÑÐ°Ð»Ð¾Ð³</target>
+    <target>каталог</target>
 </phrase>
 <phrase>
     <source>font</source>
-    <target>ÑÑÐ¸ÑÑ</target>
+    <target>шрифт</target>
 </phrase>
 <phrase>
     <source>font size</source>
-    <target>ÑÐ°Ð·Ð¼ÐµÑ ÑÑÐ¸ÑÑÐ°</target>
+    <target>размер шрифта</target>
 </phrase>
 <phrase>
     <source>font style</source>
-    <target>ÑÑÐ¸Ð»Ñ ÑÑÐ¸ÑÑÐ°</target>
+    <target>стиль шрифта</target>
 </phrase>
 <phrase>
     <source>function key</source>
-    <target>ÑÑÐ½ÐºÑÐ¸Ð¾Ð½Ð°Ð»ÑÐ½Ð°Ñ ÐºÐ»Ð°Ð²Ð¸ÑÐ°</target>
+    <target>функциональная клавиша</target>
 </phrase>
 <phrase>
     <source>glyph</source>
-    <target>Ð³Ð»Ð¸Ñ</target>
+    <target>глиф</target>
 </phrase>
 <phrase>
     <source>group box</source>
-    <target>ÐºÐ¾Ð½ÑÐµÐ¹Ð½ÐµÑ ÑÐ»ÐµÐ¼ÐµÐ½ÑÐ¾Ð²</target>
+    <target>контейнер элементов</target>
 </phrase>
 <phrase>
     <source>handle</source>
-    <target>ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ðµ</target>
+    <target>управление</target>
 </phrase>
 <phrase>
     <source>Help</source>
-    <target>Ð¡Ð¿ÑÐ°Ð²ÐºÐ°</target>
+    <target>Справка</target>
 </phrase>
 <phrase>
     <source>Hide</source>
-    <target>Ð¡ÐºÑÑÑÑ</target>
+    <target>Скрыть</target>
 </phrase>
 <phrase>
     <source>hierarchical selection</source>
-    <target>Ð¸ÐµÑÐ°ÑÑÐ¸ÑÐµÑÐºÐ¸Ð¹ Ð²ÑÐ±Ð¾Ñ</target>
+    <target>иерархический выбор</target>
 </phrase>
 <phrase>
     <source>hold</source>
-    <target>ÑÐ´ÐµÑÐ¶Ð¸Ð²Ð°ÑÑ</target>
+    <target>удерживать</target>
 </phrase>
 <phrase>
     <source>hot spot</source>
-    <target>ÑÐ¾ÐºÑÑ</target>
+    <target>фокус</target>
 </phrase>
 <phrase>
     <source>hot zone</source>
-    <target>Ð°ÐºÑÐ¸Ð²Ð½Ð°Ñ Ð·Ð¾Ð½Ð°</target>
+    <target>активная зона</target>
 </phrase>
 <phrase>
     <source>icon</source>
-    <target>Ð¿Ð¸ÐºÑÐ¾Ð³ÑÐ°Ð¼Ð¼Ð°</target>
+    <target>пиктограмма</target>
 </phrase>
 <phrase>
     <source>inactive</source>
-    <target>Ð½ÐµÐ°ÐºÑÐ¸Ð²Ð½ÑÐ¹</target>
+    <target>неактивный</target>
 </phrase>
 <phrase>
     <source>inactive window</source>
-    <target>Ð½ÐµÐ°ÐºÑÐ¸Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾</target>
+    <target>неактивное окно</target>
 </phrase>
 <phrase>
     <source>input focus</source>
-    <target>ÑÐ¾ÐºÑÑ Ð²Ð²Ð¾Ð´Ð°</target>
+    <target>фокус ввода</target>
 </phrase>
 <phrase>
     <source>Insert</source>
-    <target>ÐÑÑÐ°Ð²Ð¸ÑÑ</target>
+    <target>Вставить</target>
 </phrase>
 <phrase>
     <source>Insert Object</source>
-    <target>ÐÑÑÐ°Ð²Ð¸ÑÑ Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>Вставить объект</target>
 </phrase>
 <phrase>
     <source>insertion point</source>
-    <target>Ð¼ÐµÑÑÐ¾ Ð²ÑÑÐ°Ð²ÐºÐ¸</target>
+    <target>место вставки</target>
 </phrase>
 <phrase>
     <source>italic</source>
-    <target>ÐºÑÑÑÐ¸Ð²</target>
+    <target>курсив</target>
 </phrase>
 <phrase>
     <source>label</source>
-    <target>Ð½Ð°Ð´Ð¿Ð¸ÑÑ</target>
+    <target>надпись</target>
 </phrase>
 <phrase>
     <source>landscape</source>
-    <target>Ð°Ð»ÑÐ±Ð¾Ð¼</target>
+    <target>альбом</target>
 </phrase>
 <phrase>
     <source>link</source>
-    <target>ÑÑÑÐ»ÐºÐ°</target>
+    <target>ссылка</target>
 </phrase>
 <phrase>
     <source>link</source>
-    <target>ÑÐ²ÑÐ·Ð°ÑÑ</target>
+    <target>связать</target>
 </phrase>
 <phrase>
     <source>Link Here</source>
-    <target>Ð¡Ð¾Ð·Ð´Ð°ÑÑ ÑÑÑÐ»ÐºÑ Ð·Ð´ÐµÑÑ</target>
+    <target>Создать ссылку здесь</target>
 </phrase>
 <phrase>
     <source>list box</source>
-    <target>ÑÐ¿Ð¸ÑÐ¾Ðº</target>
+    <target>список</target>
 </phrase>
 <phrase>
     <source>list view</source>
-    <target>Ð´ÑÐµÐ²Ð¾Ð²Ð¸Ð´Ð½ÑÐ¹ ÑÐ¿Ð¸ÑÐ¾Ðº</target>
+    <target>древовидный список</target>
 </phrase>
 <phrase>
     <source>manual link</source>
-    <target>ÑÑÑÐ½Ð¾Ðµ ÑÐ²ÑÐ·ÑÐ²Ð°Ð½Ð¸Ðµ</target>
+    <target>ручное связывание</target>
 </phrase>
 <phrase>
     <source>Maximize</source>
-    <target>Ð Ð°ÑÐ¿Ð°ÑÐ½ÑÑÑ</target>
+    <target>Распахнуть</target>
 </phrase>
 <phrase>
     <source>maximize button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð¼Ð°ÐºÑÐ¸Ð¼Ð¸Ð·Ð°ÑÐ¸Ð¸</target>
+    <target>кнопка максимизации</target>
 </phrase>
 <phrase>
     <source>MDI</source>
@@ -425,63 +425,63 @@
 </phrase>
 <phrase>
     <source>menu</source>
-    <target>Ð¼ÐµÐ½Ñ</target>
+    <target>меню</target>
 </phrase>
 <phrase>
     <source>menu bar</source>
-    <target>ÑÑÑÐ¾ÐºÐ° Ð¼ÐµÐ½Ñ</target>
+    <target>строка меню</target>
 </phrase>
 <phrase>
     <source>menu button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð¼ÐµÐ½Ñ</target>
+    <target>кнопка меню</target>
 </phrase>
 <phrase>
     <source>menu item</source>
-    <target>ÑÐ»ÐµÐ¼ÐµÐ½Ñ Ð¼ÐµÐ½Ñ</target>
+    <target>элемент меню</target>
 </phrase>
 <phrase>
     <source>menu title</source>
-    <target>Ð·Ð°Ð³Ð¾Ð»Ð¾Ð²Ð¾Ðº Ð¼ÐµÐ½Ñ</target>
+    <target>заголовок меню</target>
 </phrase>
 <phrase>
     <source>message box</source>
-    <target>Ð¾ÐºÐ½Ð¾ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹</target>
+    <target>окно сообщений</target>
 </phrase>
 <phrase>
     <source>Minimize</source>
-    <target>Ð¡Ð²ÐµÑÐ½ÑÑÑ</target>
+    <target>Свернуть</target>
 </phrase>
 <phrase>
     <source>minimize button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð¼Ð¸Ð½Ð¸Ð¼Ð¸Ð·Ð°ÑÐ¸Ð¸</target>
+    <target>кнопка минимизации</target>
 </phrase>
 <phrase>
     <source>modal</source>
-    <target>Ð¼Ð¾Ð´Ð°Ð»ÑÐ½ÑÐ¹</target>
+    <target>модальный</target>
 </phrase>
 <phrase>
     <source>mode</source>
-    <target>ÑÐµÐ¶Ð¸Ð¼</target>
+    <target>режим</target>
 </phrase>
 <phrase>
     <source>modeless</source>
-    <target>Ð½ÐµÐ¼Ð¾Ð´Ð°Ð»ÑÐ½ÑÐ¹</target>
+    <target>немодальный</target>
 </phrase>
 <phrase>
     <source>modifier key</source>
-    <target>ÐºÐ»Ð°Ð²Ð¸ÑÐ°-Ð¼Ð¾Ð´Ð¸ÑÐ¸ÐºÐ°ÑÐ¾Ñ</target>
+    <target>клавиша-модификатор</target>
 </phrase>
 <phrase>
     <source>mouse</source>
-    <target>Ð¼ÑÑÑ</target>
+    <target>мышь</target>
 </phrase>
 <phrase>
     <source>Move</source>
-    <target>ÐÐµÑÐµÐ¼ÐµÑÑÐ¸ÑÑ</target>
+    <target>Переместить</target>
 </phrase>
 <phrase>
     <source>Move Here</source>
-    <target>ÐÐµÑÐµÐ¼ÐµÑÑÐ¸ÑÑ ÑÑÐ´Ð°</target>
+    <target>Переместить сюда</target>
 </phrase>
 <phrase>
     <source>Multiple Document Interface</source>
@@ -489,27 +489,27 @@
 </phrase>
 <phrase>
     <source>multiple selection list box</source>
-    <target>ÑÐ¿Ð¸ÑÐ¾Ðº Ñ Ð¼Ð½Ð¾Ð¶ÐµÑÑÐ²ÐµÐ½Ð½ÑÐ¼ Ð²ÑÐ±Ð¾ÑÐ¾Ð¼</target>
+    <target>список с множественным выбором</target>
 </phrase>
 <phrase>
     <source>My Computer</source>
-    <target>ÐÐ¾Ð¹ ÐºÐ¾Ð¼Ð¿ÑÑÑÐµÑ</target>
+    <target>Мой компьютер</target>
 </phrase>
 <phrase>
     <source>Network Neighborhood</source>
-    <target>Ð¡ÐµÑÐµÐ²Ð¾Ðµ Ð¾ÐºÑÑÐ¶ÐµÐ½Ð¸Ðµ</target>
+    <target>Сетевое окружение</target>
 </phrase>
 <phrase>
     <source>New</source>
-    <target>ÐÐ¾Ð²ÑÐ¹</target>
+    <target>Новый</target>
 </phrase>
 <phrase>
     <source>Next</source>
-    <target>Ð¡Ð»ÐµÐ´ÑÑÑÐ¸Ð¹</target>
+    <target>Следующий</target>
 </phrase>
 <phrase>
     <source>object</source>
-    <target>Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>объект</target>
 </phrase>
 <phrase>
     <source>OK</source>
@@ -521,87 +521,87 @@
 </phrase>
 <phrase>
     <source>OLE drag and drop</source>
-    <target>OLE-Ð¼ÐµÑÐ°Ð½Ð¸Ð·Ð¼</target>
+    <target>OLE-механизм</target>
 </phrase>
 <phrase>
     <source>OLE embedded object</source>
-    <target>Ð²Ð½ÐµÐ´ÑÐµÐ½Ð½ÑÐ¹ OLE-Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>внедренный OLE-объект</target>
 </phrase>
 <phrase>
     <source>OLE linked object</source>
-    <target>ÑÐ²ÑÐ·Ð°Ð½Ð½ÑÐ¹ OLE-Ð¾Ð±ÑÐµÐºÑ</target>
+    <target>связанный OLE-объект</target>
 </phrase>
 <phrase>
     <source>OLE nondefault drag and drop</source>
-    <target>Ð¿ÑÐµÐ´Ð¾Ð¿ÑÐµÐ´ÐµÐ»ÐµÐ½Ð½ÑÐ¹ OLE-Ð¼ÐµÑÐ°Ð½Ð¸Ð·Ð¼</target>
+    <target>предопределенный OLE-механизм</target>
 </phrase>
 <phrase>
     <source>Open</source>
-    <target>ÐÑÐºÑÑÑÑ</target>
+    <target>Открыть</target>
 </phrase>
 <phrase>
     <source>Open With</source>
-    <target>ÐÑÐºÑÑÑÑ Ñ Ð¿Ð¾Ð¼Ð¾ÑÑÑ</target>
+    <target>Открыть с помощью</target>
 </phrase>
 <phrase>
     <source>option button</source>
-    <target>Ð¿ÐµÑÐµÐºÐ»ÑÑÐ°ÑÐµÐ»Ñ</target>
+    <target>переключатель</target>
 </phrase>
 <phrase>
     <source>option-set</source>
-    <target>Ð½Ð°Ð±Ð¾Ñ Ð¿Ð°ÑÐ°Ð¼ÐµÑÑÐ¾Ð²</target>
+    <target>набор параметров</target>
 </phrase>
 <phrase>
     <source>package</source>
-    <target>Ð¿Ð°ÐºÐµÑ</target>
+    <target>пакет</target>
 </phrase>
 <phrase>
     <source>Page Setup</source>
-    <target>ÑÐ°Ð³ ÑÑÑÐ°Ð½Ð¾Ð²ÐºÐ¸</target>
+    <target>шаг установки</target>
 </phrase>
 <phrase>
     <source>palette window</source>
-    <target>Ð¾ÐºÐ½Ð¾ Ð²ÑÐ±Ð¾ÑÐ° Ð¿Ð°Ð»Ð¸ÑÑÑ</target>
+    <target>окно выбора палитры</target>
 </phrase>
 <phrase>
     <source>pane</source>
-    <target>Ð¿Ð°Ð½ÐµÐ»Ñ</target>
+    <target>панель</target>
 </phrase>
 <phrase>
     <source>parent window</source>
-    <target>ÑÐ¾Ð´Ð¸ÑÐµÐ»ÑÑÐºÐ¾Ðµ Ð¾ÐºÐ½Ð¾</target>
+    <target>родительское окно</target>
 </phrase>
 <phrase>
     <source>password</source>
-    <target>Ð¿Ð°ÑÐ¾Ð»Ñ</target>
+    <target>пароль</target>
 </phrase>
 <phrase>
     <source>Paste</source>
-    <target>ÐÑÑÐ°Ð²Ð¸ÑÑ</target>
+    <target>Вставить</target>
 </phrase>
 <phrase>
     <source>Paste Link</source>
-    <target>ÐÑÑÐ°Ð²Ð¸ÑÑ ÑÑÑÐ»ÐºÑ</target>
+    <target>Вставить ссылку</target>
 </phrase>
 <phrase>
     <source>Paste Shortcut</source>
-    <target>ÐÑÑÐ°Ð²Ð¸ÑÑ ÑÑÐ»ÑÐº</target>
+    <target>Вставить ярлык</target>
 </phrase>
 <phrase>
     <source>Paste Special</source>
-    <target>Ð¡Ð¿ÐµÑÐ¸Ð°Ð»ÑÐ½Ð°Ñ Ð²ÑÑÐ°Ð²ÐºÐ°</target>
+    <target>Специальная вставка</target>
 </phrase>
 <phrase>
     <source>path</source>
-    <target>Ð¿ÑÑÑ</target>
+    <target>путь</target>
 </phrase>
 <phrase>
     <source>Pause</source>
-    <target>ÐÐ°ÑÐ·Ð°</target>
+    <target>Пауза</target>
 </phrase>
 <phrase>
     <source>Play</source>
-    <target>ÐÐ¾ÑÐ¿ÑÐ¾Ð¸Ð·Ð²ÐµÐ´ÐµÐ½Ð¸Ðµ</target>
+    <target>Воспроизведение</target>
 </phrase>
 <phrase>
     <source>Plug and Play</source>
@@ -609,192 +609,374 @@
 </phrase>
 <phrase>
     <source>point</source>
-    <target>Ð¿ÑÐ½ÐºÑ</target>
+    <target>пункт</target>
 </phrase>
 <phrase>
     <source>pointer</source>
-    <target>ÑÐºÐ°Ð·Ð°ÑÐµÐ»Ñ</target>
+    <target>указатель</target>
 </phrase>
 <phrase>
     <source>pop-up menu</source>
-    <target>Ð²ÑÐ¿Ð»ÑÐ²Ð°ÑÑÐµÐµ Ð¼ÐµÐ½Ñ</target>
+    <target>всплывающее меню</target>
 </phrase>
 <phrase>
     <source>pop-up window</source>
-    <target>Ð²ÑÐ¿Ð»ÑÐ²Ð°ÑÑÐµÐµ Ð¾ÐºÐ½Ð¾</target>
+    <target>всплывающее окно</target>
 </phrase>
 <phrase>
     <source>portrait</source>
-    <target>Ð¿Ð¾ÑÑÑÐµÑ</target>
+    <target>портрет</target>
 </phrase>
 <phrase>
     <source>press</source>
-    <target>Ð½Ð°Ð¶Ð¸Ð¼Ð°ÑÑ</target>
+    <target>нажимать</target>
 </phrase>
 <phrase>
     <source>primary container</source>
-    <target>ÐºÐ¾ÑÐ½ÐµÐ²Ð¾Ð¹ ÐºÐ¾Ð½ÑÐµÐ¹Ð½ÐµÑ</target>
+    <target>корневой контейнер</target>
 </phrase>
 <phrase>
     <source>primary window</source>
-    <target>Ð³Ð»Ð°Ð²Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾</target>
+    <target>главное окно</target>
 </phrase>
 <phrase>
     <source>Print</source>
-    <target>ÐÐµÑÐ°ÑÑ</target>
+    <target>Печать</target>
 </phrase>
 <phrase>
     <source>printer</source>
-    <target>Ð¿ÑÐ¸Ð½ÑÐµÑ</target>
+    <target>принтер</target>
 </phrase>
 <phrase>
     <source>progress indicator</source>
-    <target>Ð¸Ð½Ð´Ð¸ÐºÐ°ÑÐ¾Ñ ÑÐ¾Ð´Ð° Ð¿ÑÐ¾ÑÐµÑÑÐ°</target>
+    <target>индикатор хода процесса</target>
 </phrase>
 <phrase>
     <source>project</source>
-    <target>Ð¿ÑÐ¾ÐµÐºÑ</target>
+    <target>проект</target>
 </phrase>
 <phrase>
     <source>Properties</source>
-    <target>Ð¡Ð²Ð¾Ð¹ÑÑÐ²Ð°</target>
+    <target>Свойства</target>
 </phrase>
 <phrase>
     <source>property inspector</source>
-    <target>Ð¸Ð½ÑÐ¿ÐµÐºÑÐ¾Ñ ÑÐ²Ð¾Ð¹ÑÑÐ²</target>
+    <target>инспектор свойств</target>
 </phrase>
 <phrase>
     <source>property page</source>
-    <target>ÑÑÑÐ°Ð½Ð¸ÑÐ° ÑÐ²Ð¾Ð¹ÑÑÐ²</target>
+    <target>страница свойств</target>
 </phrase>
 <phrase>
     <source>property sheet</source>
-    <target>Ð³ÑÑÐ¿Ð¿Ð° ÑÐ²Ð¾Ð¹ÑÑÐ²</target>
+    <target>группа свойств</target>
 </phrase>
 <phrase>
     <source>property sheet control</source>
-    <target>ÑÐ¿ÑÐ°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð³ÑÑÐ¿Ð¿Ð¾Ð¹ ÑÐ²Ð¾Ð¹ÑÑÐ²</target>
+    <target>управление группой свойств</target>
 </phrase>
 <phrase>
     <source>Quick View</source>
-    <target>ÐÑÑÑÑÑÐ¹ Ð¿ÑÐ¾ÑÐ¼Ð¾ÑÑ</target>
+    <target>Быстрый просмотр</target>
 </phrase>
 <phrase>
     <source>read-only</source>
-    <target>ÑÐ¾Ð»ÑÐºÐ¾ ÑÑÐµÐ½Ð¸Ðµ</target>
+    <target>только чтение</target>
 </phrase>
 <phrase>
     <source>Recycle Bin</source>
-    <target>ÐÐ¾ÑÐ·Ð¸Ð½Ð°</target>
+    <target>Корзина</target>
 </phrase>
 <phrase>
     <source>Redo</source>
-    <target>ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ</target>
+    <target>Повторить</target>
 </phrase>
 <phrase>
     <source>region selection</source>
-    <target>Ð¾Ð±Ð»Ð°ÑÑÑ Ð²ÑÐ´ÐµÐ»ÐµÐ½Ð¸Ñ</target>
+    <target>область выделения</target>
 </phrase>
 <phrase>
     <source>registry</source>
-    <target>ÑÐµÐµÑÑÑ</target>
+    <target>реестр</target>
 </phrase>
 <phrase>
     <source>Repeat</source>
-    <target>ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ</target>
+    <target>Повторить</target>
 </phrase>
 <phrase>
     <source>Replace</source>
-    <target>ÐÐ°Ð¼ÐµÐ½Ð¸ÑÑ</target>
+    <target>Заменить</target>
 </phrase>
 <phrase>
     <source>Restore</source>
-    <target>ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð¸ÑÑ</target>
+    <target>Восстановить</target>
 </phrase>
 <phrase>
     <source>Restore button</source>
-    <target>ÐÐ½Ð¾Ð¿ÐºÐ° Ð²Ð¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ñ</target>
+    <target>Кнопка восстановления</target>
 </phrase>
 <phrase>
     <source>Resume</source>
-    <target>ÐÑÐ¾Ð´Ð¾Ð»Ð¶Ð¸ÑÑ</target>
+    <target>Продолжить</target>
 </phrase>
 <phrase>
     <source>Retry</source>
-    <target>ÐÐ¾Ð²ÑÐ¾ÑÐ¸ÑÑ</target>
+    <target>Повторить</target>
 </phrase>
 <phrase>
     <source>rich-text box</source>
-    <target>Ð¾ÐºÐ½Ð¾ RTF-ÑÐµÐ´Ð°ÐºÑÐ¾ÑÐ°</target>
+    <target>окно RTF-редактора</target>
 </phrase>
 <phrase>
     <source>Run</source>
-    <target>ÐÑÐ¿Ð¾Ð»Ð½Ð¸ÑÑ</target>
+    <target>Выполнить</target>
 </phrase>
 <phrase>
     <source>Save</source>
-    <target>Ð¡Ð¾ÑÑÐ°Ð½Ð¸ÑÑ</target>
+    <target>Сохранить</target>
 </phrase>
 <phrase>
     <source>Save as</source>
-    <target>Ð¡Ð¾ÑÑÐ°Ð½Ð¸ÑÑ ÐºÐ°Ðº</target>
+    <target>Сохранить как</target>
 </phrase>
 <phrase>
     <source>scroll</source>
-    <target>Ð¿ÑÐ¾ÐºÑÑÑÐ¸ÑÑ</target>
+    <target>прокрутить</target>
 </phrase>
 <phrase>
     <source>scroll arrow</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ° Ð¿ÑÐ¾ÐºÑÑÑÐºÐ¸</target>
+    <target>кнопка прокрутки</target>
 </phrase>
 <phrase>
     <source>scroll bar</source>
-    <target>Ð¿Ð¾Ð»Ð¾ÑÐ° Ð¿ÑÐ¾ÐºÑÑÑÐºÐ¸</target>
+    <target>полоса прокрутки</target>
 </phrase>
 <phrase>
     <source>scroll box</source>
-    <target>Ð¾ÐºÐ½Ð¾ Ñ Ð¿Ð¾Ð»Ð¾ÑÐ°Ð¼Ð¸ Ð¿ÑÐ¾ÐºÑÑÑÐºÐ¸</target>
+    <target>окно с полосами прокрутки</target>
 </phrase>
 <phrase>
     <source>secondary window</source>
-    <target>Ð¿Ð¾Ð´ÑÐ¸Ð½ÐµÐ½Ð½Ð¾Ðµ Ð¾ÐºÐ½Ð¾</target>
+    <target>подчиненное окно</target>
 </phrase>
 <phrase>
     <source>select</source>
-    <target>Ð²ÑÐ±ÑÐ°ÑÑ</target>
+    <target>выбрать</target>
 </phrase>
 <phrase>
     <source>Select All</source>
-    <target>ÐÑÐ´ÐµÐ»Ð¸ÑÑ Ð²ÑÐµ</target>
+    <target>Выделить все</target>
 </phrase>
 <phrase>
     <source>selection</source>
-    <target>Ð²ÑÐ±Ð¾Ñ</target>
+    <target>выбор</target>
 </phrase>
 <phrase>
     <source>selection handle</source>
-    <target>Ð¾ÑÑÑÐµÑÑÐ²Ð»ÐµÐ½Ð¸Ðµ Ð²ÑÐ±Ð¾ÑÐ°</target>
+    <target>осуществление выбора</target>
 </phrase>
 <phrase>
     <source>Send To</source>
-    <target>ÐÑÐ¿ÑÐ°Ð²Ð¸ÑÑ</target>
+    <target>Отправить</target>
 </phrase>
 <phrase>
     <source>separator</source>
-    <target>ÑÐ°Ð·Ð´ÐµÐ»Ð¸ÑÐµÐ»Ñ</target>
+    <target>разделитель</target>
 </phrase>
 <phrase>
     <source>Settings</source>
-    <target>ÐÐ°ÑÑÑÐ¾Ð¹ÐºÐ¸</target>
+    <target>Настройки</target>
 </phrase>
 <phrase>
     <source>Setup</source>
-    <target>Ð£ÑÑÐ°Ð½Ð¾Ð²Ð¸ÑÑ</target>
+    <target>Установить</target>
 </phrase>
 <phrase>
     <source>shortcut</source>
-    <target>ÑÑÐ»ÑÐº</target>
+    <target>ярлык</target>
 </phrase>
 <phrase>
     <source>shortcut button</source>
-    <target>ÐºÐ½Ð¾Ð¿ÐºÐ°</target
+    <target>кнопка</target>
+</phrase>
+<phrase>
+    <source>shortcut icon</source>
+    <target>пиктограмма</target>
+</phrase>
+<phrase>
+    <source>shortcut key</source>
+    <target>комбинация клавиш</target>
+</phrase>
+<phrase>
+    <source>shortcut key control</source>
+    <target>настройка комбинации клавиш</target>
+</phrase>
+<phrase>
+    <source>Show</source>
+    <target>Показать</target>
+</phrase>
+<phrase>
+    <source>Shutdown</source>
+    <target>Выключение</target>
+</phrase>
+<phrase>
+    <source>single selection list box</source>
+    <target>список с одиночным выбором</target>
+</phrase>
+<phrase>
+    <source>Size</source>
+    <target>Размер</target>
+</phrase>
+<phrase>
+    <source>size grip</source>
+    <target>уголок для изменения размера</target>
+</phrase>
+<phrase>
+    <source>slider</source>
+    <target>ползунок</target>
+</phrase>
+<phrase>
+    <source>spin box</source>
+    <target>поле со счетчиком</target>
+</phrase>
+<phrase>
+    <source>Split</source>
+    <target>Разделить</target>
+</phrase>
+<phrase>
+    <source>split bar</source>
+    <target>разделительная черта</target>
+</phrase>
+<phrase>
+    <source>split box</source>
+    <target>разделительная рамка</target>
+</phrase>
+<phrase>
+    <source>Start button</source>
+    <target>кнопка Пуск</target>
+</phrase>
+<phrase>
+    <source>StartUp folder</source>
+    <target>каталог Автозапуска</target>
+</phrase>
+<phrase>
+    <source>status bar</source>
+    <target>статусная строка</target>
+</phrase>
+<phrase>
+    <source>Stop</source>
+    <target>Стоп</target>
+</phrase>
+<phrase>
+    <source>tab control</source>
+    <target>вкладка</target>
+</phrase>
+<phrase>
+    <source>task bar</source>
+    <target>панель задач</target>
+</phrase>
+<phrase>
+    <source>task-oriented Help</source>
+    <target>контекстная справка</target>
+</phrase>
+<phrase>
+    <source>template</source>
+    <target>шаблон</target>
+</phrase>
+<phrase>
+    <source>text box</source>
+    <target>текстовое поле</target>
+</phrase>
+<phrase>
+    <source>title bar</source>
+    <target>заголовок</target>
+</phrase>
+<phrase>
+    <source>title text</source>
+    <target>текст заголовка</target>
+</phrase>
+<phrase>
+    <source>toggle key</source>
+    <target>кнопка-выключатель</target>
+</phrase>
+<phrase>
+    <source>toolbar</source>
+    <target>панель инструментов</target>
+</phrase>
+<phrase>
+    <source>tooltip</source>
+    <target>всплывающая подсказка</target>
+</phrase>
+<phrase>
+    <source>tree view control</source>
+    <target>древовидный список</target>
+</phrase>
+<phrase>
+    <source>type</source>
+    <target>тип</target>
+</phrase>
+<phrase>
+    <source>type</source>
+    <target>набирать</target>
+</phrase>
+<phrase>
+    <source>unavailable</source>
+    <target>недоступный</target>
+</phrase>
+<phrase>
+    <source>Undo</source>
+    <target>Отменить</target>
+</phrase>
+<phrase>
+    <source>Uninstall</source>
+    <target>Удалить</target>
+</phrase>
+<phrase>
+    <source>View</source>
+    <target>Вид</target>
+</phrase>
+<phrase>
+    <source>visual editing</source>
+    <target>визуальное редактирование</target>
+</phrase>
+<phrase>
+    <source>well control</source>
+    <target>элемент графического интерфейса</target>
+</phrase>
+<phrase>
+    <source>What&apos;s This?</source>
+    <target>Что это?</target>
+</phrase>
+<phrase>
+    <source>Window</source>
+    <target>Окно</target>
+</phrase>
+<phrase>
+    <source>window</source>
+    <target>окно</target>
+</phrase>
+<phrase>
+    <source>Windows Explorer</source>
+    <target>Проводник Windows</target>
+</phrase>
+<phrase>
+    <source>wizard</source>
+    <target>мастер</target>
+</phrase>
+<phrase>
+    <source>workbook</source>
+    <target>учебник</target>
+</phrase>
+<phrase>
+    <source>workgroup</source>
+    <target>рабочая группа</target>
+</phrase>
+<phrase>
+    <source>workspace</source>
+    <target>рабочая область</target>
+</phrase>
+<phrase>
+    <source>Yes</source>
+    <target>Да</target>
+</phrase>
+</QPH>

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,11 +41,15 @@
 #include "phrase.h"
 #include "messagestreeview.h"
 #include "ui_mainwindow.h"
+#include "recentfiles.h"
 #include <QMainWindow>
 #include <QHash>
 #include <QPrinter>
 #include <QtCore/QPointer>
 #include <QtCore/QLocale>
+
+QT_BEGIN_NAMESPACE
+
 class QModelIndex;
 class QStringList;
 class QPixmap;
@@ -59,23 +57,27 @@ class QAction;
 class QDialog;
 class QLabel;
 class QMenu;
-class QAssistantClient;
+class QProcess;
 class QIcon;
-
-class TrPreviewTool;
-
+class QSortFilterProxyModel;
+class QTableView;
 class QTreeView;
-class PhraseModel;
-class PhraseItem;
+
+class BatchTranslationDialog;
+class ContextItem;
+class ErrorsView;
+class FindDialog;
+class LanguagesDialog;
+class LanguagesManager;
+class MessageEditor;
 class MessageModel;
 class MessageItem;
-class ContextItem;
-class FindDialog;
-class TranslateDialog;
-class BatchTranslationDialog;
-class TranslationSettingsDialog;
-class MessageEditor;
+class PhraseView;
+class SourceCodeView;
 class Statistics;
+class TranslateDialog;
+class TranslationSettingsDialog;
+class TrPreviewTool;
 
 class TrWindow : public QMainWindow
 {
@@ -83,18 +85,13 @@ class TrWindow : public QMainWindow
 public:
     enum {PhraseCloseMenu, PhraseEditMenu, PhrasePrintMenu};
 
-    static QPixmap *pxOn;
-    static QPixmap *pxOff;
-    static QPixmap *pxObsolete;
-    static QPixmap *pxDanger;
-    static QPixmap *pxWarning;
-    static QPixmap *pxEmpty;
-    static const QPixmap pageCurl();
-
     TrWindow();
     ~TrWindow();
 
     void openFile(const QString &name);
+    static RecentFiles& recentFiles();
+    static const QString& resourcePrefix();
+    static QString friendlyString(const QString &str);
 
 protected:
     void readConfig();
@@ -113,32 +110,39 @@ private slots:
     void release();
     void releaseAs();
     void print();
-    void find();
     void findAgain();
     void showTranslateDialog();
     void showBatchTranslateDialog();
     void showTranslationSettings();
-    void translateAndFindNext(const QString& findWhat, const QString &translateTo, int matchOption, int mode, bool markFinished);
+    void translateAndFindNext(const QString& findWhat, const QString &translateTo,
+                              int matchOption, int mode, bool markFinished);
     void translate(int mode);
     void newPhraseBook();
     void openPhraseBook();
     void closePhraseBook(QAction *action);
     void editPhraseBook(QAction *action);
     void printPhraseBook(QAction *action);
-    void openAltSource();
-    void resetAltSource();
+    void addToPhraseBook();
+    void showLanguagesDialog();
     void manual();
-    void revertSorting();
+    void resetSorting();
     void about();
     void aboutQt();
     void updateViewMenu();
 
+    void showContextDock();
+    void showMessagesDock();
+    void showPhrasesDock();
+    void showSourceCodeDock();
+    void showErrorDock();
+
     void setupPhrase();
     bool maybeSave();
     void updateCaption();
-    void showNewCurrent(const QModelIndex &current, const QModelIndex &old);
-    void showMessages(const QModelIndex &index);
-    
+    void selectedContextChanged(const QModelIndex &sortedIndex, const QModelIndex &oldIndex);
+    void selectedMessageChanged(const QModelIndex &sortedIndex, const QModelIndex &oldIndex);
+    void refreshCurrentMessage();
+
     // To synchronize from the contextmodel to the MetaTranslator...
     // Operates on the selected item
     void updateTranslation(const QStringList &translations);
@@ -147,92 +151,104 @@ private slots:
     void updateTranslation(int context, int message, const QString &translation);
     void updateFinished(int context, int message, bool finished);
 
+    void resetContextView();
     void toggleFinished(const QModelIndex &index);
     void prevUnfinished();
     void nextUnfinished();
-    void findNext(const QString &text, int where, bool matchCase);
+    void findNext(const QString &text, int where, bool matchCase, bool ignoreAccelerators);
     void revalidate();
-    void toggleGuessing();
-    void focusSourceList();
-    void focusPhraseList();
     void toggleStatistics();
     void updateStatistics();
     void onWhatsThis();
     void finishedBatchTranslation();
     void previewForm();
     void updateLanguage(QLocale::Language);
+    void updatePhraseDict();
+
 private:
-
-    typedef QHash<QString, PhraseBook> PBD;
-
-    static QString friendlyString(const QString &str);
-
     int findCurrentContextRow();
-    //bool setNextMessage(int *currentrow, bool checkUnfinished);
-    bool setNextMessage(QModelIndex *currentIndex, bool checkUnfinished);
-    bool setPrevMessage(QModelIndex *currentIndex, bool checkUnfinished);
-    bool setNextContext(int *currentrow, bool checkUnfinished);
-    bool setPrevContext(int *currentrow, bool checkUnfinished);
+    QModelIndex nextContext(const QModelIndex &index) const;
+    QModelIndex prevContext(const QModelIndex &index) const;
+    QModelIndex nextMessage(const QModelIndex &currentIndex, bool checkUnfinished = false) const;
+    QModelIndex prevMessage(const QModelIndex &currentIndex, bool checkUnfinished = false) const;
     bool next(bool checkUnfinished);
     bool prev(bool checkUnfinished);
     QStringList findFormFilesInCurrentTranslationFile();
 
-    void addRecentlyOpenedFile(const QString &fn, QStringList &lst);
     void setupMenuBar();
     void setupToolBars();
+    void setCurrentContext(const QModelIndex &index);
     void setCurrentContextRow(int row);
-    void setCurrentContext(const QModelIndex &indx);
-    void setCurrentMessage(const QModelIndex &indx);
-    PhraseBook phraseBookFromFileName(QString name) const;
-    bool openPhraseBook(const QString &name);
+    void setCurrentMessage(const QModelIndex &index);
+    QModelIndex currentContextIndex() const;
+    QModelIndex currentMessageIndex() const;
+    PhraseBook *openPhraseBook(const QString &name);
     bool phraseBooksContains(QString name);
-    bool savePhraseBook(QString &name, const PhraseBook &pb);
-    void openAltSource(const QString &name);
+    bool savePhraseBook(QString &name, PhraseBook &pb);
+    bool maybeSavePhraseBook(PhraseBook *phraseBook);
+    bool closePhraseBooks();
+    QString pickTranslationFile();
     void updateProgress();
-    void updatePhraseDict();
-    PhraseBook getPhrases(const QString &source);
+    void updatePhraseBookActions();
     bool danger(const MessageItem *message, bool verbose = false);
 
     void printDanger(MessageItem *m);
     bool updateDanger(MessageItem *m, bool verbose = false);
 
-    bool searchItem(const QString &searchWhat, int c, int m);
+    bool searchItem(const QString &searchWhat);
 
-    QAssistantClient *ac;
-    MessagesTreeView *tv;
-    MessageModel *cmdl;
-    MessageModel *altTranslatorModel;
-    QTreeView *stv;
-    QTreeView *ptv;
-    PhraseModel *pmdl;
-    MessageEditor * me;
-    QLabel        * progress;
-    QLabel        * modified;
-    QStringList recentFiles;
-    QString     filename;
-    PBD phraseDict;
-    QMap<QAction *, PhraseBook> phraseBooks[3];
+    MessageModel *mainModel() const;
+
+    QProcess *m_assistantProcess;
+    MessagesTreeView *m_contextView;
+    QTreeView *m_messageView;
+    QSortFilterProxyModel *m_sortedContextsModel;
+    QSortFilterProxyModel *m_sortedMessagesModel;
+    MessageEditor *me;
+    PhraseView *m_phraseView;
+    SourceCodeView *m_sourceCodeView;
+    ErrorsView *m_errorsView;
+    QLabel *progress;
+    QLabel *modified;
+    QString m_filename;
+    QString phraseBookDir;
+    // keyword -> list of appropriate phrases in the phrasebooks
+    QHash<QString, QList<Phrase *> > m_phraseDict;
+    QList<PhraseBook *> m_phraseBooks;
+    QMap<QAction *, PhraseBook *> m_phraseBookMenu[3];
     QPrinter printer;
 
-    FindDialog *finddlg;
+    FindDialog *m_findDialog;
     QString findText;
     int findWhere;
     bool findMatchCase;
+    bool findIgnoreAccelerators;
     int foundWhere;
-    int foundOffset;
-    TranslateDialog *m_translatedlg;
-    BatchTranslationDialog *m_batchTranslateDlg;
+    TranslateDialog *m_translateDialog;
+    BatchTranslationDialog *m_batchTranslateDialog;
     TranslationSettingsDialog *m_translationSettingsDialog;
+    LanguagesDialog *m_languagesDialog;
     QString m_translateTo;
     bool m_findMatchSubstring;
     bool m_markFinished;
-    
+
     // used by the preview tool
     QPointer<TrPreviewTool> m_previewTool;
 
-    QDockWidget *dwScope;
+    QDockWidget *m_contextDock;
+    QDockWidget *m_messagesDock;
+    QDockWidget *m_phrasesDock;
+    QDockWidget *m_sourceCodeDock;
+    QDockWidget *m_errorsDock;
+
     Ui::MainWindow m_ui;    // menus and actions
     Statistics *stats;
+    LanguagesManager *m_languagesManager;
+
+    static const QString m_resourcePrefix;
+    static RecentFiles m_recentFiles;
 };
+
+QT_END_NAMESPACE
 
 #endif

@@ -3,6 +3,8 @@ CONFIG          += qt warn_on uic
 TARGET          = qvfb
 DESTDIR         = ../../bin
 
+!win32:!embedded:!mac:CONFIG += x11
+
 target.path=$$[QT_INSTALL_BINS]
 INSTALLS += target
 
@@ -14,7 +16,6 @@ HEADERS         = qvfb.h \
 		  qvfbratedlg.h \
 		  qanimationwriter.h \
                   gammaview.h \
-		  skin.h \
                   qvfbprotocol.h \
                   qvfbshmem.h \
                   qvfbmmap.h \
@@ -27,12 +28,13 @@ SOURCES         = qvfb.cpp \
 		  qvfbratedlg.cpp \
                   main.cpp \
 		  qanimationwriter.cpp \
-		  skin.cpp \
                   qvfbprotocol.cpp \
                   qvfbshmem.cpp \
                   qvfbmmap.cpp \
 		  qlock.cpp \
  	          qwssignalhandler.cpp
+
+include($$QT_SOURCE_TREE/tools/shared/deviceskin/deviceskin.pri)
 
 contains(QT_CONFIG, opengl) {
 	QT += opengl
@@ -47,6 +49,15 @@ contains(QT_CONFIG, system-zlib) {
 	LIBS += -lz
 } else {
 	INCLUDEPATH     += $$QT_SOURCE_TREE/src/3rdparty/zlib
+}
+
+unix:x11 {
+    HEADERS     += qvfbx11view.h \
+                   x11keyfaker.h \
+                   qtopiakeysym.h
+    SOURCES     += qvfbx11view.cpp \
+                   x11keyfaker.cpp
+    LIBS += -lXtst
 }
 
 RESOURCES	+= qvfb.qrc \

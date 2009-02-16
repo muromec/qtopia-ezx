@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -71,6 +65,8 @@
 
 #include  "qdebug.h"
 
+QT_BEGIN_NAMESPACE
+
 /******************************************************************************
 ** QToolBarPrivate
 */
@@ -89,6 +85,7 @@ void QToolBarPrivate::init()
     q->setSizePolicy(QSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed));
     q->setBackgroundRole(QPalette::Button);
     q->setAttribute(Qt::WA_Hover);
+    q->setAttribute(Qt::WA_X11NetWmWindowTypeToolBar);
 
     QStyle *style = q->style();
     int e = style->pixelMetric(QStyle::PM_ToolBarIconSize, 0, q);
@@ -109,6 +106,7 @@ void QToolBarPrivate::init()
 
     toggleViewAction = new QAction(q);
     toggleViewAction->setCheckable(true);
+    q->setMovable(q->style()->styleHint(QStyle::SH_ToolBar_Movable, 0, q ));
     QObject::connect(toggleViewAction, SIGNAL(triggered(bool)), q, SLOT(_q_toggleView(bool)));
 }
 
@@ -146,6 +144,7 @@ void QToolBarPrivate::setWindowState(bool floating, bool unplug, const QRect &re
 {
     Q_Q(QToolBar);
     bool visible = !q->isHidden();
+    bool wasFloating = q->isFloating(); // ...is also currently using popup menus
 
     q->hide();
 
@@ -153,10 +152,17 @@ void QToolBarPrivate::setWindowState(bool floating, bool unplug, const QRect &re
 
     flags |= Qt::FramelessWindowHint;
 
-    if (unplug)
+    if (unplug) {
         flags |= Qt::X11BypassWindowManagerHint;
+#ifdef Q_WS_MAC
+        flags |= Qt::WindowStaysOnTopHint;
+#endif
+    }
 
     q->setWindowFlags(flags);
+
+    if (floating != wasFloating)
+        layout->checkUsePopupMenu();
 
     if (!rect.isNull())
         q->setGeometry(rect);
@@ -169,6 +175,7 @@ void QToolBarPrivate::initDrag(const QPoint &pos)
 {
     Q_Q(QToolBar);
 
+    
     if (state != 0)
         return;
 
@@ -182,15 +189,20 @@ void QToolBarPrivate::initDrag(const QPoint &pos)
     state = new DragState;
     state->pressPos = pos;
     state->dragging = false;
+    state->moving = false;
     state->widgetItem = 0;
+
+    if (q->layoutDirection() == Qt::RightToLeft)
+        state->pressPos = QPoint(q->width() - state->pressPos.x(), state->pressPos.y());
 }
 
-void QToolBarPrivate::startDrag()
+void QToolBarPrivate::startDrag(bool moving)
 {
     Q_Q(QToolBar);
 
     Q_ASSERT(state != 0);
-    if (state->dragging)
+
+    if ((moving && state->moving) || state->dragging)
         return;
 
     QMainWindow *win = qobject_cast<QMainWindow*>(q->parentWidget());
@@ -198,14 +210,17 @@ void QToolBarPrivate::startDrag()
     QMainWindowLayout *layout = qobject_cast<QMainWindowLayout*>(win->layout());
     Q_ASSERT(layout != 0);
 
-    int w = q->width();
-
-    state->widgetItem = layout->unplug(q);
-    Q_ASSERT(state->widgetItem != 0);
-    state->dragging = true;
-
-    if (q->layoutDirection() == Qt::RightToLeft)
-        state->pressPos = QPoint(w - state->pressPos.x(), state->pressPos.y());
+    if (!moving) {
+        state->widgetItem = layout->unplug(q);
+#ifdef Q_WS_MAC
+        if (q->isWindow()) {
+           setWindowState(true, true); //set it to floating
+        }
+#endif
+        Q_ASSERT(state->widgetItem != 0);
+    }
+    state->dragging = !moving;
+    state->moving = moving;
 }
 
 void QToolBarPrivate::endDrag()
@@ -223,7 +238,7 @@ void QToolBarPrivate::endDrag()
         if (!layout->plug(state->widgetItem)) {
             if (q->isFloatable()) {
                 layout->restore();
-#ifdef Q_WS_X11
+#if defined(Q_WS_X11) || defined(Q_WS_MAC)
                 setWindowState(true); // gets rid of the X11BypassWindowManager window flag
                                       // and activates the resizer
 #endif
@@ -238,45 +253,91 @@ void QToolBarPrivate::endDrag()
     state = 0;
 }
 
-void QToolBarPrivate::mousePressEvent(QMouseEvent *event)
+bool QToolBarPrivate::mousePressEvent(QMouseEvent *event)
 {
+    if (layout->handleRect().contains(event->pos()) == false) {
+#ifdef Q_WS_MAC
+        Q_Q(QToolBar);
+        // When using the unified toolbar on Mac OS X the user can can click and
+        // drag between toolbar contents to move the window. Make this work by
+        // implementing the standard mouse-dragging code and then call
+        // window->move() in mouseMoveEvent below.
+        if (QMainWindow *mainWindow = qobject_cast<QMainWindow *>(q->parentWidget())) {
+            if (mainWindow->toolBarArea(q) == Qt::TopToolBarArea
+                    && mainWindow->unifiedTitleAndToolBarOnMac()
+                    && q->childAt(event->pos()) == 0) {
+                macWindowDragging = true;
+                macWindowDragPressPosition = event->pos();
+                return true;
+            }
+        }
+#endif
+        return false;
+    }
+
     if (event->button() != Qt::LeftButton)
-        return;
+        return true;
 
     if (!layout->movable())
-        return;
+        return true;
 
     initDrag(event->pos());
+    return true;
 }
 
-void QToolBarPrivate::mouseReleaseEvent(QMouseEvent*)
+bool QToolBarPrivate::mouseReleaseEvent(QMouseEvent*)
 {
-    endDrag();
+    if (state != 0) {
+        endDrag();
+        return true;
+    } else {
+#ifdef Q_WS_MAC
+        macWindowDragging = false;
+        macWindowDragPressPosition = QPoint();
+        return true;
+#endif
+        return false;
+    }
 }
 
-void QToolBarPrivate::mouseMoveEvent(QMouseEvent *event)
+bool QToolBarPrivate::mouseMoveEvent(QMouseEvent *event)
 {
     Q_Q(QToolBar);
 
-    if (!state)
-        return;
+    if (!state) {
+#ifdef Q_WS_MAC
+        if (!macWindowDragging)
+            return false;
+        QWidget *w = q->window();
+        const QPoint delta = event->pos() - macWindowDragPressPosition;
+        w->move(w->pos() + delta);
+        return true;
+#endif
+        return false;
+    }
 
     QMainWindow *win = qobject_cast<QMainWindow*>(q->parentWidget());
     if (win == 0)
-        return;
+        return true;
 
     QMainWindowLayout *layout = qobject_cast<QMainWindowLayout*>(win->layout());
     Q_ASSERT(layout != 0);
 
-    if (!state->dragging
-        && layout->pluggingWidget == 0
+    if (layout->pluggingWidget == 0
         && (event->pos() - state->pressPos).manhattanLength() > QApplication::startDragDistance()) {
-            startDrag();
+            const bool wasDragging = state->dragging;
+            const bool moving = !q->isWindow() && (orientation == Qt::Vertical ?
+                event->x() >= 0 && event->x() < q->width() :
+                event->y() >= 0 && event->y() < q->height());
+
+            startDrag(moving);
+            if (!moving && !wasDragging) {
 #ifdef Q_OS_WIN
-            grabMouseWhileInWindow();
+                grabMouseWhileInWindow();
 #else
-            q->grabMouse();
+                q->grabMouse();
 #endif
+            }
     }
 
     if (state->dragging) {
@@ -287,9 +348,29 @@ void QToolBarPrivate::mouseMoveEvent(QMouseEvent *event)
             pos -= state->pressPos;
         else
             pos += QPoint(state->pressPos.x() - q->width(), -state->pressPos.y());
+
         q->move(pos);
         layout->hover(state->widgetItem, event->globalPos());
+    } else if (state->moving) {
+
+        const QPoint rtl(q->width() - state->pressPos.x(), state->pressPos.y()); //for RTL
+        const QPoint globalPressPos = q->mapToGlobal(q->layoutDirection() == Qt::RightToLeft ? rtl : state->pressPos);
+        int pos = 0;
+
+        QPoint delta = event->globalPos() - globalPressPos;
+        if (orientation == Qt::Vertical) {
+            pos = q->y() + delta.y();
+        } else {
+            if (q->layoutDirection() == Qt::RightToLeft) {
+                pos = win->width() - q->width() - q->x()  - delta.x();
+            } else {
+                pos = q->x() + delta.x();
+            }
+        }
+
+        layout->moveToolBar(q, pos);
     }
+    return true;
 }
 
 void QToolBarPrivate::unplug(const QRect &_r)
@@ -525,6 +606,8 @@ void QToolBar::setFloatable(bool floatable)
 /*!
     \property QToolBar::floating
     \brief whether the toolbar is an independent window.
+
+    By default, this property is true.
 
     \sa QWidget::isWindow()
 */
@@ -772,6 +855,8 @@ QAction *QToolBar::insertSeparator(QAction *before)
     Adds the given \a widget to the toolbar as the toolbar's last
     item.
 
+    The toolbar takes ownership of \a widget.
+
     If you add a QToolButton with this method, the tools bar's
     Qt::ToolButtonStyle will not be respected.
 
@@ -1003,21 +1088,17 @@ bool QToolBar::event(QEvent *event)
 #endif
         break;
     case QEvent::ParentChange:
-        d->layout->setUsePopupMenu(qobject_cast<QMainWindow*>(parentWidget()) == 0);
+        d->layout->checkUsePopupMenu();
         break;
+
     case QEvent::MouseButtonPress: {
-        QMouseEvent *e = static_cast<QMouseEvent*>(event);
-        if (d->layout->handleRect().contains(e->pos())) {
-            d->mousePressEvent(e);
+        if (d->mousePressEvent(static_cast<QMouseEvent*>(event)))
             return true;
-        }
         break;
     }
     case QEvent::MouseButtonRelease:
-        if (d->state != 0) {
-            d->mouseReleaseEvent(static_cast<QMouseEvent*>(event));
+         if (d->mouseReleaseEvent(static_cast<QMouseEvent*>(event)))
             return true;
-        }
         break;
     case QEvent::HoverMove: {
 #ifndef QT_NO_CURSOR
@@ -1029,14 +1110,9 @@ bool QToolBar::event(QEvent *event)
 #endif
         break;
     }
-    case QEvent::MouseMove: {
-            QMouseEvent *e = static_cast<QMouseEvent*>(event);
-
-            if (d->state != 0) {
-                d->mouseMoveEvent(e);
-                return true;
-            }
-        }
+    case QEvent::MouseMove:
+        if (d->mouseMoveEvent(static_cast<QMouseEvent*>(event)))
+            return true;
         break;
     case QEvent::Leave:
         if (d->state != 0 && d->state->dragging) {
@@ -1169,6 +1245,8 @@ void QToolBar::resizeEvent(QResizeEvent *event) // ### remove me in 5.0
     QWidget::resizeEvent(event);
 }
 
+QT_END_NAMESPACE
 
 #include "moc_qtoolbar.cpp"
+
 #endif // QT_NO_TOOLBAR

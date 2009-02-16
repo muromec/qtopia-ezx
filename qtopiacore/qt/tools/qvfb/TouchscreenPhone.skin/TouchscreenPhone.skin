@@ -3,6 +3,7 @@ Up=TouchscreenPhone.png
 Down=TouchscreenPhone-pressed.png
 Screen=90 107 176 208
 Areas=9
+HasMouseHover=false
 
 "Context1"   0x01100000  145 321 134 333 132 361 134 374 110 343 109 318
 "Call"	     0x01100004   88 395 130 439

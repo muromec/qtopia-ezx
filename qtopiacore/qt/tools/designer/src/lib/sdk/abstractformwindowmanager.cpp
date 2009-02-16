@@ -1,47 +1,45 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "abstractformwindowmanager.h"
+
+#include <QtCore/QMap>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QDesignerFormWindowManagerInterface
@@ -59,15 +57,7 @@
     the QDesignerFormEditorInterface::formWindowManager()
     function. For example:
 
-    \code
-        QDesignerFormWindowManagerInterface *manager = 0;
-        QDesignerFormWindowInterface *formWindow = 0;
-
-        manager = formEditor->formWindowManager();
-        formWindow = manager->formWindow(0);
-
-        manager->setActiveFormWindow(formWindow);
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_sdk_abstractformwindowmanager.cpp 0
 
     When implementing a custom widget plugin, a pointer to \QD's
     current QDesignerFormEditorInterface object (\c formEditor in the
@@ -103,6 +93,24 @@
     \sa QDesignerFormEditorInterface, QDesignerFormWindowInterface
 */
 
+// ------------- QDesignerFormWindowManagerInterfacePrivate
+
+struct QDesignerFormWindowManagerInterfacePrivate {
+    QDesignerFormWindowManagerInterfacePrivate();
+    QAction *m_simplifyLayoutAction;
+    QAction *m_formLayoutAction;
+};
+
+QDesignerFormWindowManagerInterfacePrivate::QDesignerFormWindowManagerInterfacePrivate() :
+    m_simplifyLayoutAction(0),
+    m_formLayoutAction(0)
+{
+}
+
+typedef QMap<const QDesignerFormWindowManagerInterface *, QDesignerFormWindowManagerInterfacePrivate *> FormWindowManagerPrivateMap;
+
+Q_GLOBAL_STATIC(FormWindowManagerPrivateMap, g_FormWindowManagerPrivateMap)
+
 /*!
     Constructs an interface with the given \a parent for the form window
     manager.
@@ -110,6 +118,7 @@
 QDesignerFormWindowManagerInterface::QDesignerFormWindowManagerInterface(QObject *parent)
     : QObject(parent)
 {
+    g_FormWindowManagerPrivateMap()->insert(this, new QDesignerFormWindowManagerInterfacePrivate);
 }
 
 /*!
@@ -117,6 +126,11 @@ QDesignerFormWindowManagerInterface::QDesignerFormWindowManagerInterface(QObject
 */
 QDesignerFormWindowManagerInterface::~QDesignerFormWindowManagerInterface()
 {
+    FormWindowManagerPrivateMap *fwmpm = g_FormWindowManagerPrivateMap();
+    const FormWindowManagerPrivateMap::iterator it = fwmpm->find(this);
+    Q_ASSERT(it !=  fwmpm->end());
+    delete it.value();
+    fwmpm->erase(it);
 }
 
 /*!
@@ -257,6 +271,35 @@ QAction *QDesignerFormWindowManagerInterface::actionGridLayout() const
 }
 
 /*!
+    Allows you to intervene and control \QD's "form layout" action. The
+    function returns the original action.
+
+FormWindowManagerPrivateMap *fwmpm = g_FormWindowManagerPrivateMap();    \sa QAction
+    \since 4.4
+*/
+
+QAction *QDesignerFormWindowManagerInterface::actionFormLayout() const
+{
+    const QDesignerFormWindowManagerInterfacePrivate *d = g_FormWindowManagerPrivateMap()->value(this);
+    Q_ASSERT(d);
+    return d->m_formLayoutAction;
+}
+
+/*!
+    Sets the "form layout" action to \a action.
+
+    \internal
+    \since 4.4
+*/
+
+void QDesignerFormWindowManagerInterface::setActionFormLayout(QAction *action)
+{
+    QDesignerFormWindowManagerInterfacePrivate *d = g_FormWindowManagerPrivateMap()->value(this);
+    Q_ASSERT(d);
+    d->m_formLayoutAction = action;
+}
+
+/*!
     Allows you to intervene and control \QD's "break layout" action. The
     function returns the original action.
 
@@ -276,6 +319,35 @@ QAction *QDesignerFormWindowManagerInterface::actionBreakLayout() const
 QAction *QDesignerFormWindowManagerInterface::actionAdjustSize() const
 {
     return 0;
+}
+
+/*!
+    Allows you to intervene and control \QD's "simplify layout" action. The
+    function returns the original action.
+
+    \sa QAction
+    \since 4.4
+*/
+
+QAction *QDesignerFormWindowManagerInterface::actionSimplifyLayout() const
+{
+    const QDesignerFormWindowManagerInterfacePrivate *d = g_FormWindowManagerPrivateMap()->value(this);
+    Q_ASSERT(d);
+    return d->m_simplifyLayoutAction;
+}
+
+/*!
+    Sets the "simplify layout" action to \a action.
+
+    \internal
+    \since 4.4
+*/
+
+void QDesignerFormWindowManagerInterface::setActionSimplifyLayout(QAction *action)
+{
+    QDesignerFormWindowManagerInterfacePrivate *d = g_FormWindowManagerPrivateMap()->value(this);
+    Q_ASSERT(d);
+    d->m_simplifyLayoutAction = action;
 }
 
 /*!
@@ -422,3 +494,5 @@ QAction *QDesignerFormWindowManagerInterface::actionRedo() const
 
     \internal
 */
+
+QT_END_NAMESPACE

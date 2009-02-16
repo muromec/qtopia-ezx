@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -78,6 +72,7 @@ static inline int qt_socket_socket(int domain, int type, int protocol)
 #include <errno.h>
 #include <sys/types.h>
 
+QT_BEGIN_NAMESPACE
 
 static inline void qt_socket_getportaddr( struct sockaddr *sa,
 					  Q_UINT16 *port, QHostAddress *addr )
@@ -145,12 +140,6 @@ Q3SocketDevice::Protocol Q3SocketDevice::getProtocol() const
     return Unknown;
 }
 
-/*!
-    Creates a new socket identifier. Returns -1 if there is a failure
-    to create the new identifier; error() explains why.
-
-    \sa setSocket()
-*/
 
 int Q3SocketDevice::createNewSocket()
 {
@@ -188,19 +177,6 @@ int Q3SocketDevice::createNewSocket()
     return -1;
 }
 
-/*!
-    \reimp
-
-    Closes the socket and sets the socket identifier to -1 (invalid).
-
-    (This function ignores errors; if there are any then a file
-    descriptor leakage might result. As far as we know, the only error
-    that can arise is EBADF, and that would of course not cause
-    leakage. There may be OS-specific errors that we haven't come
-    across, however.)
-
-    \sa open()
-*/
 void Q3SocketDevice::close()
 {
     if ( fd == -1 || !isOpen() )		// already closed
@@ -217,17 +193,6 @@ void Q3SocketDevice::close()
 }
 
 
-/*!
-    Returns true if the socket is valid and in blocking mode;
-    otherwise returns false.
-
-    Note that this function does not set error().
-
-    \warning On Windows, this function always returns true since the
-    ioctlsocket() function is broken.
-
-    \sa setBlocking(), isValid()
-*/
 bool Q3SocketDevice::blocking() const
 {
     if ( !isValid() )
@@ -237,20 +202,6 @@ bool Q3SocketDevice::blocking() const
 }
 
 
-/*!
-    Makes the socket blocking if \a enable is true or nonblocking if
-    \a enable is false.
-
-    Sockets are blocking by default, but we recommend using
-    nonblocking socket operations, especially for GUI programs that
-    need to be responsive.
-
-    \warning On Windows, this function should be used with care since
-    whenever you use a QSocketNotifier on Windows, the socket is
-    immediately made nonblocking.
-
-    \sa blocking(), isValid()
-*/
 void Q3SocketDevice::setBlocking( bool enable )
 {
 #if defined(QSOCKETDEVICE_DEBUG)
@@ -287,9 +238,6 @@ void Q3SocketDevice::setBlocking( bool enable )
 }
 
 
-/*!
-    Returns the value of the socket option \a opt.
-*/
 int Q3SocketDevice::option( Option opt ) const
 {
     if ( !isValid() )
@@ -337,9 +285,6 @@ int Q3SocketDevice::option( Option opt ) const
 }
 
 
-/*!
-    Sets the socket option \a opt to \a v.
-*/
 void Q3SocketDevice::setOption( Option opt, int v )
 {
     if ( !isValid() )
@@ -379,15 +324,6 @@ void Q3SocketDevice::setOption( Option opt, int v )
 }
 
 
-/*!
-    Connects to the IP address and port specified by \a addr and \a
-    port. Returns true if it establishes a connection; otherwise returns false.
-    If it returns false, error() explains why.
-
-    Note that error() commonly returns NoError for non-blocking
-    sockets; this just means that you can call connect() again in a
-    little while and it'll probably succeed.
-*/
 bool Q3SocketDevice::connect( const QHostAddress &addr, Q_UINT16 port )
 {
     if ( !isValid() )
@@ -470,15 +406,6 @@ bool Q3SocketDevice::connect( const QHostAddress &addr, Q_UINT16 port )
 }
 
 
-/*!
-    Assigns a name to an unnamed socket. The name is the host address
-    \a address and the port number \a port. If the operation succeeds,
-    bind() returns true; otherwise it returns false without changing
-    what port() and address() return.
-
-    bind() is used by servers for setting up incoming connections.
-    Call bind() before listen().
-*/
 bool Q3SocketDevice::bind( const QHostAddress &address, Q_UINT16 port )
 {
     if ( !isValid() )
@@ -544,17 +471,6 @@ bool Q3SocketDevice::bind( const QHostAddress &address, Q_UINT16 port )
 }
 
 
-/*!
-    Specifies how many pending connections a server socket can have.
-    Returns true if the operation was successful; otherwise returns
-    false. A \a backlog value of 50 is quite common.
-
-    The listen() call only applies to sockets where type() is \c
-    Stream, i.e. not to \c Datagram sockets. listen() must not be
-    called before bind() or after accept().
-
-    \sa bind(), accept()
-*/
 bool Q3SocketDevice::listen( int backlog )
 {
     if ( !isValid() )
@@ -567,13 +483,6 @@ bool Q3SocketDevice::listen( int backlog )
 }
 
 
-/*!
-    Extracts the first connection from the queue of pending
-    connections for this socket and returns a new socket identifier.
-    Returns -1 if the operation failed.
-
-    \sa bind(), listen()
-*/
 int Q3SocketDevice::accept()
 {
     if ( !isValid() )
@@ -643,17 +552,6 @@ int Q3SocketDevice::accept()
 }
 
 
-/*!
-    Returns the number of bytes available for reading, or -1 if an
-    error occurred.
-
-    \warning On Microsoft Windows, we use the ioctlsocket() function
-    to determine the number of bytes queued on the socket. According
-    to Microsoft (KB Q125486), ioctlsocket() sometimes returns an
-    incorrect number. The only safe way to determine the amount of
-    data on the socket is to read it using readBlock(). QSocket has
-    workarounds to deal with this problem.
-*/
 qint64 Q3SocketDevice::bytesAvailable() const
 {
     if ( !isValid() )
@@ -682,24 +580,6 @@ qint64 Q3SocketDevice::bytesAvailable() const
 }
 
 
-/*!
-    Wait up to \a msecs milliseconds for more data to be available. If
-    \a msecs is -1 the call will block indefinitely.
-
-    Returns the number of bytes available for reading, or -1 if an
-    error occurred.
-
-    If \a timeout is non-null and no error occurred (i.e. it does not
-    return -1): this function sets *\a timeout to true, if the reason
-    for returning was that the timeout was reached; otherwise it sets
-    *\a timeout to false. This is useful to find out if the peer
-    closed the connection.
-
-    \warning This is a blocking call and should be avoided in event
-    driven applications.
-
-    \sa bytesAvailable()
-*/
 Q_LONG Q3SocketDevice::waitForMore( int msecs, bool *timeout ) const
 {
     if ( !isValid() )
@@ -732,10 +612,6 @@ Q_LONG Q3SocketDevice::waitForMore( int msecs, bool *timeout ) const
 }
 
 
-/*!
-    Reads \a maxlen bytes from the socket into \a data and returns the
-    number of bytes read. Returns -1 if an error occurred.
-*/
 qint64 Q3SocketDevice::readData( char *data, qint64 maxlen )
 {
 #if defined(QT_CHECK_NULL)
@@ -821,12 +697,6 @@ qint64 Q3SocketDevice::readData( char *data, qint64 maxlen )
 }
 
 
-/*!
-    Writes \a len bytes to the socket from \a data and returns the
-    number of bytes written. Returns -1 if an error occurred.
-
-    This is used for Q3SocketDevice::Stream sockets.
-*/
 qint64 Q3SocketDevice::writeData( const char *data, qint64 len )
 {
     if ( data == 0 && len != 0 ) {
@@ -905,15 +775,6 @@ qint64 Q3SocketDevice::writeData( const char *data, qint64 len )
 }
 
 
-/*!
-    \overload
-
-    Writes \a len bytes to the socket from \a data and returns the
-    number of bytes written. Returns -1 if an error occurred.
-
-    This is used for Q3SocketDevice::Datagram sockets. You must
-    specify the \a host and \a port of the destination of the data.
-*/
 Q_LONG Q3SocketDevice::writeBlock( const char * data, Q_ULONG len,
 			       const QHostAddress & host, Q_UINT16 port )
 {
@@ -1019,10 +880,6 @@ Q_LONG Q3SocketDevice::writeBlock( const char * data, Q_ULONG len,
 }
 
 
-/*!
-    Fetches information about both ends of the connection: whatever is
-    available.
-*/
 void Q3SocketDevice::fetchConnectionParameters()
 {
     if ( !isValid() ) {
@@ -1049,31 +906,17 @@ void Q3SocketDevice::fetchConnectionParameters()
 }
 
 
-/*!
-    Returns the port number of the port this socket device is
-    connected to. This may be 0 for a while, but is set to something
-    sensible as soon as a sensible value is available.
-
-    Note that for Datagram sockets, this is the source port of the
-    last packet received, and that it is in native byte order.
-*/
 Q_UINT16 Q3SocketDevice::peerPort() const
 {
     return pp;
 }
 
 
-/*!
-    Returns the address of the port this socket device is connected
-    to. This may be 0.0.0.0 for a while, but is set to something
-    sensible as soon as a sensible value is available.
-
-    Note that for Datagram sockets, this is the source port of the
-    last packet received.
-*/
 QHostAddress Q3SocketDevice::peerAddress() const
 {
     return pa;
 }
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_NETWORK

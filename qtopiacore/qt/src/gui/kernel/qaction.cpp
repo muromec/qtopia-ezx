@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
         return; \
     }
 
+QT_BEGIN_NAMESPACE
+
 /*
   internal: guesses a descriptive text from a text suited for a menu entry
  */
@@ -81,7 +77,7 @@ static QString qt_strippedText(QString s)
 
 QActionPrivate::QActionPrivate() : group(0), enabled(1), forceDisabled(0),
                                    visible(1), forceInvisible(0), checkable(0), checked(0), separator(0), fontSet(false),
-                                   menuRole(QAction::TextHeuristicRole)
+                                   menuRole(QAction::TextHeuristicRole), iconVisibleInMenu(-1)
 {
 #ifdef QT3_SUPPORT
     static int qt_static_action_id = -1;
@@ -163,6 +159,7 @@ void QActionPrivate::setShortcutEnabled(bool enable, QShortcutMap &map)
 }
 #endif // QT_NO_SHORTCUT
 
+
 /*!
     \class QAction
     \brief The QAction class provides an abstract user interface
@@ -208,13 +205,10 @@ void QActionPrivate::setShortcutEnabled(bool enable, QShortcutMap &map)
     menu and toolbar, then connected to the slot which will perform
     the action. For example:
 
-    \quotefile mainwindows/application/mainwindow.cpp
-    \skipto openAct
-    \printuntil connect
-    \skipto fileMenu->addAction(openAct
-    \printuntil fileMenu->addAction(openAct
-    \skipto fileToolBar->addAction(openAct
-    \printuntil fileToolBar->addAction(openAct
+    \snippet examples/mainwindows/application/mainwindow.cpp 19
+    \codeline
+    \snippet examples/mainwindows/application/mainwindow.cpp 28
+    \snippet examples/mainwindows/application/mainwindow.cpp 31
 
     We recommend that actions are created as children of the window
     they are used in. In most cases actions will be children of
@@ -504,6 +498,8 @@ bool QAction::autoRepeat() const
     QAction. The font will can be considered a hint as it will not be
     consulted in all cases based upon application and style.
 
+    By default, this property contains the application's default font.
+
     \sa QAction::setText() QStyle
 */
 void QAction::setFont(const QFont &font)
@@ -765,7 +761,7 @@ QString QAction::text() const
     If the icon text is not explicitly set, the action's normal text will be
     used for the icon text.
 
-    There is no default icon text.
+    By default, this property contains an empty string.
 
     \sa setToolTip(), setStatusTip()
 */
@@ -787,14 +783,14 @@ QString QAction::iconText() const
     return d->iconText;
 }
 
-
-
 /*!
     \property QAction::toolTip
     \brief the action's tooltip
 
     This text is used for the tooltip. If no tooltip is specified,
     the action's text is used.
+
+    By default, this property contains the action's text.
 
     \sa setStatusTip() setShortcut()
 */
@@ -814,7 +810,7 @@ QString QAction::toolTip() const
     if (d->tooltip.isEmpty()) {
         if (!d->text.isEmpty())
             return qt_strippedText(d->text);
-        return d->iconText;
+        return qt_strippedText(d->iconText);
     }
     return d->tooltip;
 }
@@ -825,6 +821,8 @@ QString QAction::toolTip() const
 
     The status tip is displayed on all status bars provided by the
     action's top-level parent widget.
+
+    By default, this property contains an empty string.
 
     \sa setToolTip() showStatusText()
 */
@@ -964,8 +962,12 @@ bool QAction::isChecked() const
     which indicates that they are unavailable. For example, they might
     be displayed using only shades of gray.
 
-    What's this? help on disabled actions is still available, provided
+    \gui{What's This?} help on disabled actions is still available, provided
     that the QAction::whatsThis property is set.
+
+    By default, this property is true (actions are enabled).
+
+    \sa text
 */
 void QAction::setEnabled(bool b)
 {
@@ -999,6 +1001,8 @@ bool QAction::isEnabled() const
 
     Actions which are not visible are \e not grayed out; they do not
     appear at all.
+
+    By default, this property is true (actions are visible).
 */
 void QAction::setVisible(bool b)
 {
@@ -1308,6 +1312,50 @@ QAction::MenuRole QAction::menuRole() const
     return d->menuRole;
 }
 
-#include "moc_qaction.cpp"
-#endif // QT_NO_ACTION
+/*!
+    \property QAction::iconVisibleInMenu
+    \brief Whether or not an action should show an icon in a menu
+    \since 4.4
 
+    In some applications, it may make sense to have actions with icons in the
+    toolbar, but not in menus. If true, the icon (if valid) is shown in the menu, when it
+    is false, it is not shown.
+
+    The default is to follow whether the Qt::AA_DontShowIconsInMenus attribute
+    is set for the application. Explicitly settings this property overrides
+    the presence (or abscence) of the attribute.
+
+    For example:
+    \snippet doc/src/snippets/code/src_gui_kernel_qaction.cpp 0
+
+    \sa QAction::icon QApplication::setAttribute()
+*/
+void QAction::setIconVisibleInMenu(bool visible)
+{
+    Q_D(QAction);
+    if (visible != (bool)d->iconVisibleInMenu) {
+        int oldValue = d->iconVisibleInMenu;
+        d->iconVisibleInMenu = visible;
+        // Only send data changed if we really need to.
+        if (oldValue != -1
+            || (oldValue == -1
+                && visible == !QApplication::instance()->testAttribute(Qt::AA_DontShowIconsInMenus))) {
+            d->sendDataChanged();
+        }
+    }
+}
+
+bool QAction::isIconVisibleInMenu() const
+{
+    Q_D(const QAction);
+    if (d->iconVisibleInMenu == -1) {
+        return !QApplication::instance()->testAttribute(Qt::AA_DontShowIconsInMenus);
+    }
+    return d->iconVisibleInMenu;
+}
+
+QT_END_NAMESPACE
+
+#include "moc_qaction.cpp"
+
+#endif // QT_NO_ACTION

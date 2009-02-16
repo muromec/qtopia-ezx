@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/itemviews/qtreewidget.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/itemviews/qtreewidget.cpp -->
 <head>
-  <title>Qt 4.3: QTreeWidgetItem Class Reference</title>
+  <title>Qt 4.4: QTreeWidgetItem Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QTreeWidgetItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QTreeWidgetItem Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QTreeWidgetItem class provides an item for use with the <a href="qtreewidget.html">QTreeWidget</a> convenience class. <a href="#details">More...</a></p>
 <pre> #include &lt;QTreeWidgetItem&gt;</pre><ul>
@@ -100,8 +100,8 @@
 <a name="related-non-members"></a>
 <h3>Related Non-Members</h3>
 <ul>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qtreewidgetitem.html#operator-lt-lt-74">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QTreeWidgetItem &amp; <i>item</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qtreewidgetitem.html#operator-gt-gt-44">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QTreeWidgetItem &amp; <i>item</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qtreewidgetitem.html#operator-lt-lt-115">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QTreeWidgetItem &amp; <i>item</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qtreewidgetitem.html#operator-gt-gt-65">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QTreeWidgetItem &amp; <i>item</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -124,15 +124,15 @@
 <a name="subclassing"></a>
 <h3>Subclassing</h3>
 <p>When subclassing QTreeWidgetItem to provide custom items, it is possible to define new types for them so that they can be distinguished from standard items. The constructors for subclasses that require this feature need to call the base class constructor with a new type value equal to or greater than <a href="qtreewidgetitem.html#ItemType-enum">UserType</a>.</p>
-<p>See also <a href="qtreewidget.html">QTreeWidget</a>, <a href="model-view-programming.html">Model/View Programming</a>, <a href="qlistwidgetitem.html">QListWidgetItem</a>, and <a href="qtablewidgetitem.html">QTableWidgetItem</a>.</p>
+<p>See also <a href="qtreewidget.html">QTreeWidget</a>, <a href="qtreewidgetitemiterator.html">QTreeWidgetItemIterator</a>, <a href="model-view-programming.html">Model/View Programming</a>, <a href="qlistwidgetitem.html">QListWidgetItem</a>, and <a href="qtablewidgetitem.html">QTableWidgetItem</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
 <h3 class="fn"><a name="ChildIndicatorPolicy-enum"></a>enum QTreeWidgetItem::ChildIndicatorPolicy</h3>
-<p><table border="1" cellpadding="2" cellspacing="1" width="40%">
-<tr><th width="60%">Constant</th><th width="40%">Value</th></tr>
-<tr><td valign="top"><tt>QTreeWidgetItem::ShowIndicator</tt></td><td align="center" valign="top"><tt>0</tt></td></tr>
-<tr><td valign="top"><tt>QTreeWidgetItem::DontShowIndicator</tt></td><td align="center" valign="top"><tt>1</tt></td></tr>
-<tr><td valign="top"><tt>QTreeWidgetItem::DontShowIndicatorWhenChildless</tt></td><td align="center" valign="top"><tt>2</tt></td></tr>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>QTreeWidgetItem::ShowIndicator</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">The controls for expanding and collapsing will be shown for this item even if there are no children.</td></tr>
+<tr><td valign="top"><tt>QTreeWidgetItem::DontShowIndicator</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">The controls for expanding and collapsing will never be shown even if there are children. If the node is forced open the user will not be able to expand or collapse the item.</td></tr>
+<tr><td valign="top"><tt>QTreeWidgetItem::DontShowIndicatorWhenChildless</tt></td><td align="center" valign="top"><tt>2</tt></td><td valign="top">The controls for expanding and collapsing will be shown if the item contains children.</td></tr>
 </table></p>
 <p>This enum was introduced in Qt 4.3.</p>
 <h3 class="fn"><a name="ItemType-enum"></a>enum QTreeWidgetItem::ItemType</h3>
@@ -330,6 +330,7 @@
 <p>See also <a href="qtreewidgetitem.html#setSizeHint">setSizeHint</a>().</p>
 <h3 class="fn"><a name="sortChildren"></a>void QTreeWidgetItem::sortChildren ( int <i>column</i>, <a href="qt.html#SortOrder-enum">Qt::SortOrder</a> <i>order</i> )</h3>
 <p>Sorts the children of the item using the given <i>order</i>, by the values in the given <i>column</i>.</p>
+<p><b>Note:</b> This function does nothing if the item is not associated with a <a href="qtreewidget.html">QTreeWidget</a>.</p>
 <p>This function was introduced in Qt 4.2.</p>
 <h3 class="fn"><a name="statusTip"></a><a href="qstring.html">QString</a> QTreeWidgetItem::statusTip ( int <i>column</i> ) const</h3>
 <p>Returns the status tip for the contents of the given <i>column</i>.</p>
@@ -366,20 +367,20 @@
 <p>See also <a href="qtreewidgetitem.html#data">data</a>() and <a href="qtreewidgetitem.html#flags">flags</a>().</p>
 <hr />
 <h2>Related Non-Members</h2>
-<h3 class="fn"><a name="operator-lt-lt-74"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QTreeWidgetItem &amp; <i>item</i> )</h3>
+<h3 class="fn"><a name="operator-lt-lt-115"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QTreeWidgetItem &amp; <i>item</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Writes the tree widget item <i>item</i> to stream <i>out</i>.</p>
 <p>This operator uses <a href="qtreewidgetitem.html#write">QTreeWidgetItem::write</a>().</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
-<h3 class="fn"><a name="operator-gt-gt-44"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QTreeWidgetItem &amp; <i>item</i> )</h3>
+<h3 class="fn"><a name="operator-gt-gt-65"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QTreeWidgetItem &amp; <i>item</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Reads a tree widget item from stream <i>in</i> into <i>item</i>.</p>
 <p>This operator uses <a href="qtreewidgetitem.html#read">QTreeWidgetItem::read</a>().</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

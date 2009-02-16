@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,7 @@ static bool allowX11ColorNames = false;
 #include <stdio.h>
 #include <limits.h>
 
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QColor
@@ -159,15 +154,7 @@ static bool allowX11ColorNames = false;
     represents a fully transparent color, while 255 represents a fully
     opaque color. For example:
 
-    \code
-    // Specfiy semi-transparent red
-    painter.setBrush(QColor(255, 0, 0, 127));
-    painter.drawRect(0, 0, width()/2, height());
-
-    // Specify semi-transparend blue
-    painter.setBrush(QColor(0, 0, 255, 127));
-    painter.drawRect(0, 0, width(), height()/2);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qcolor.cpp 0
 
     The code above produces the following output:
 
@@ -510,7 +497,9 @@ QString QColor::name() const
     \i #RRRRGGGGBBBB
     \i A name from the list of colors defined in the list of \l{SVG color keyword names}
        provided by the World Wide Web Consortium; for example, "steelblue" or "gainsboro".
-       These color names work on all platforms.
+       These color names work on all platforms. Note that these color names are \i not the
+       same as defined by the Qt::GlobalColor enums, e.g. "green" and Qt::green does not
+       refer to the same color.
     \i \c transparent - representing the absence of a color.
     \i \e{X11 only}: If allowX11ColorNames() returns true, any valid X11 color name. See
        the documentation for \c XParseColor() for information about valid X11 color names.
@@ -542,7 +531,7 @@ void QColor::setNamedColor(const QString &name)
 #ifndef QT_NO_COLORNAMES
     QRgb rgb;
     if (qt_get_named_rgb(name.constData(), name.length(), &rgb)) {
-        setRgb(rgb);
+        setRgba(rgb);
     } else
 #endif
     {
@@ -1398,7 +1387,7 @@ QColor QColor::toHsv() const
     const qreal min = Q_MIN_3(r, g, b);
     const qreal delta = max - min;
     color.ct.ahsv.value = qRound(max * USHRT_MAX);
-    if (qFuzzyCompare(delta, qreal(0.0))) {
+    if (qFuzzyCompare(delta + 1, 1)) {
         // achromatic case, hue is undefined
         color.ct.ahsv.hue = USHRT_MAX;
         color.ct.ahsv.saturation = 0;
@@ -1913,8 +1902,7 @@ QColor QColor::dark(int factor) const
 }
 
 /*!
-    Assigns a copy of the color \a color to this color, and returns a
-    reference to it.
+    Assigns a copy of \a color to this color, and returns a reference to it.
 */
 QColor &QColor::operator=(const QColor &color)
 {
@@ -1924,7 +1912,7 @@ QColor &QColor::operator=(const QColor &color)
 }
 
 /*! \overload
-    Assigns a copy of the \a color and returns a reference to this color.
+    Assigns a copy of \a color and returns a reference to this color.
  */
 QColor &QColor::operator=(Qt::GlobalColor color)
 {
@@ -1932,8 +1920,8 @@ QColor &QColor::operator=(Qt::GlobalColor color)
 }
 
 /*!
-    Returns true if this color has the same RGB value as the color \a
-    color; otherwise returns false.
+    Returns true if this color has the same RGB and alpha values
+    as \a color; otherwise returns false.
 */
 bool QColor::operator==(const QColor &color) const
 {
@@ -1946,8 +1934,8 @@ bool QColor::operator==(const QColor &color) const
 }
 
 /*!
-    Returns true if this color has a different RGB value from the
-    color \a color; otherwise returns false.
+    Returns true if this color has a different RGB and alpha values from
+    \a color; otherwise returns false.
 */
 bool QColor::operator!=(const QColor &color) const
 { return !operator==(color); }
@@ -1966,7 +1954,7 @@ QColor::operator QVariant() const
     Returns true if setNamedColor() is allowed to look up colors in
     the X11 color database. By default, this function returns false.
 
-    \note This function is only available on the X11 platform.    
+    \note This function is only available on the X11 platform.
     \sa setAllowX11ColorNames()
 */
 bool QColor::allowX11ColorNames()
@@ -2066,6 +2054,8 @@ QDebug operator<<(QDebug dbg, const QColor &c)
 QDataStream &operator<<(QDataStream &stream, const QColor &color)
 {
     if (stream.version() < 7) {
+        if (!color.isValid())
+            return stream << quint32(0x49000000);
         quint32 p = (quint32)color.rgb();
         if (stream.version() == 1) // Swap red and blue
             p = ((p << 16) & 0xff0000) | ((p >> 16) & 0xff) | (p & 0xff00ff00);
@@ -2102,6 +2092,10 @@ QDataStream &operator>>(QDataStream &stream, QColor &color)
     if (stream.version() < 7) {
         quint32 p;
         stream >> p;
+        if (p == 0x49000000) {
+            color.invalidate();
+            return stream;
+        }
         if (stream.version() == 1) // Swap red and blue
             p = ((p << 16) & 0xff0000) | ((p >> 16) & 0xff) | (p & 0xff00ff00);
         color.setRgb(p);
@@ -2254,3 +2248,5 @@ QDataStream &operator>>(QDataStream &stream, QColor &color)
 
     \sa QColor::rgb(), QColor::rgba()
 */
+
+QT_END_NAMESPACE

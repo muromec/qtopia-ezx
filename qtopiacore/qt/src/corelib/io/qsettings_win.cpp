@@ -1,52 +1,51 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsettings.h"
+
+#ifndef QT_NO_SETTINGS
+
 #include "qsettings_p.h"
 #include "qvector.h"
 #include "qmap.h"
 #include "qt_windows.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 /*  Keys are stored in QStrings. If the variable name starts with 'u', this is a "user"
     key, ie. "foo/bar/alpha/beta". If the variable name starts with 'r', this is a "registry"
@@ -55,6 +54,12 @@
 /*******************************************************************************
 ** Some convenience functions
 */
+
+/*
+  We don't use KEY_ALL_ACCESS because it gives more rights than what we
+  need. See task 199061.
+ */
+static const REGSAM registryPermissions = KEY_READ | KEY_WRITE;
 
 static QString keyPath(const QString &rKey)
 {
@@ -122,14 +127,23 @@ static void mergeKeySets(NameSet *dest, const QStringList &src)
 static QString errorCodeToString(DWORD errorCode)
 {
     QString result;
-    char *data = 0;
-    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-                    0, errorCode, 0,
-                    (char*)&data, 0, 0);
-    result = QString::fromLocal8Bit(data);
-    if (data != 0)
-        LocalFree(data);
-
+	QT_WA({
+		wchar_t *data = 0;
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+			0, errorCode, 0,
+			data, 0, 0);
+		result = QString::fromUtf16(reinterpret_cast<const ushort *> (data));
+		if (data != 0)
+			LocalFree(data);
+	},	{
+		char *data = 0;
+		FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+			0, errorCode, 0,
+			(char *)&data, 0, 0);
+		result = QString::fromLocal8Bit(data);
+		if (data != 0)
+			LocalFree(data);
+	})
     if (result.endsWith(QLatin1String("\n")))
         result.truncate(result.length() - 1);
 
@@ -187,7 +201,7 @@ static HKEY createOrOpenKey(HKEY parentHandle, REGSAM perms, const QString &rSub
 static HKEY createOrOpenKey(HKEY parentHandle, const QString &rSubKey, bool *readOnly)
 {
     // try to open or create it read/write
-    HKEY resultHandle = createOrOpenKey(parentHandle, KEY_ALL_ACCESS, rSubKey);
+    HKEY resultHandle = createOrOpenKey(parentHandle, registryPermissions, rSubKey);
     if (resultHandle != 0) {
         if (readOnly != 0)
             *readOnly = false;
@@ -317,7 +331,7 @@ static void deleteChildGroups(HKEY parentHandle)
         QString group = childGroups.at(i);
 
         // delete subgroups in group
-        HKEY childGroupHandle = openKey(parentHandle, KEY_ALL_ACCESS, group);
+        HKEY childGroupHandle = openKey(parentHandle, registryPermissions, group);
         if (childGroupHandle == 0)
             continue;
         deleteChildGroups(childGroupHandle);
@@ -434,6 +448,7 @@ private:
 
 QWinSettingsPrivate::QWinSettingsPrivate(QSettings::Scope scope, const QString &organization,
                                          const QString &application)
+    : QSettingsPrivate(QSettings::NativeFormat, scope, organization, application)
 {
     deleteWriteHandleOnExit = false;
 
@@ -460,6 +475,7 @@ QWinSettingsPrivate::QWinSettingsPrivate(QSettings::Scope scope, const QString &
 }
 
 QWinSettingsPrivate::QWinSettingsPrivate(QString rPath)
+    : QSettingsPrivate(QSettings::NativeFormat)
 {
     deleteWriteHandleOnExit = false;
 
@@ -607,8 +623,11 @@ HKEY QWinSettingsPrivate::writeHandle() const
 QWinSettingsPrivate::~QWinSettingsPrivate()
 {
     if (deleteWriteHandleOnExit && writeHandle() != 0) {
-        QString emptyKey;
+#if defined(Q_OS_WINCE)
+        remove(regList.at(0).key()); 
+#else
         DWORD res;
+        QString emptyKey;
         QT_WA( {
             res = RegDeleteKeyW(writeHandle(), reinterpret_cast<const wchar_t *>(emptyKey.utf16()));
         }, {
@@ -618,6 +637,7 @@ QWinSettingsPrivate::~QWinSettingsPrivate()
             qWarning("QSettings: Failed to delete key \"%s\": %s",
                     regList.at(0).key().toLatin1().data(), errorCodeToString(res).toLatin1().data());
         }
+#endif
     }
 
     for (int i = 0; i < regList.size(); ++i)
@@ -635,7 +655,7 @@ void QWinSettingsPrivate::remove(const QString &uKey)
 
     // try to delete value bar in key foo
     LONG res;
-    HKEY handle = openKey(writeHandle(), KEY_ALL_ACCESS, keyPath(rKey));
+    HKEY handle = openKey(writeHandle(), registryPermissions, keyPath(rKey));
     if (handle != 0) {
         QT_WA( {
             res = RegDeleteValueW(handle, reinterpret_cast<const wchar_t *>(keyName(rKey).utf16()));
@@ -646,7 +666,7 @@ void QWinSettingsPrivate::remove(const QString &uKey)
     }
 
     // try to delete key foo/bar and all subkeys
-    handle = openKey(writeHandle(), KEY_ALL_ACCESS, rKey);
+    handle = openKey(writeHandle(), registryPermissions, rKey);
     if (handle != 0) {
         deleteChildGroups(handle);
 
@@ -668,6 +688,10 @@ void QWinSettingsPrivate::remove(const QString &uKey)
                 }
             }
         } else {
+#if defined(Q_OS_WINCE)
+            // For WinCE always Close the handle first.
+            RegCloseKey(handle);
+#endif
             QT_WA( {
                 res = RegDeleteKeyW(writeHandle(), reinterpret_cast<const wchar_t *>(rKey.utf16()));
             }, {
@@ -701,7 +725,7 @@ void QWinSettingsPrivate::set(const QString &uKey, const QVariant &value)
 
     QString rKey = escapedKey(uKey);
 
-    HKEY handle = createOrOpenKey(writeHandle(), KEY_ALL_ACCESS, keyPath(rKey));
+    HKEY handle = createOrOpenKey(writeHandle(), registryPermissions, keyPath(rKey));
     if (handle == 0) {
         setStatus(QSettings::AccessError);
         return;
@@ -924,3 +948,6 @@ QSettingsPrivate *QSettingsPrivate::create(const QString &fileName, QSettings::F
         return new QConfFileSettingsPrivate(fileName, format);
     }
 }
+
+QT_END_NAMESPACE
+#endif // QT_NO_SETTINGS

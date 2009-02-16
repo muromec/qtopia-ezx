@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 2006-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,8 @@
 #define PROPARSERUTILS_H
 
 #include <QtCore/QLibraryInfo>
+
+QT_BEGIN_NAMESPACE
 
 // Pre- and postcondition macros
 #define PRE(cond) do {if(!(cond))qt_assert(#cond,__FILE__,__LINE__);} while (0)
@@ -73,12 +69,12 @@ struct Option
     static QString dir_sep;
     static QString dirlist_sep;
     static QString qmakespec;
-    
+    static char field_sep;
+
     enum TARG_MODE { TARG_UNIX_MODE, TARG_WIN_MODE, TARG_MACX_MODE, TARG_MAC9_MODE, TARG_QNX6_MODE };
     static TARG_MODE target_mode;
     //static QString pro_ext;
     //static QString res_ext;
-    //static char field_sep;
 
     static void init()
     {
@@ -90,6 +86,7 @@ struct Option
         Option::dir_sep = QLatin1Char(QLatin1Char('/'));
 #endif
         Option::qmakespec = QString::fromLatin1(qgetenv("QMAKESPEC"));
+        Option::field_sep = ' ';
     }
 };
 #if defined(Q_OS_WIN32)
@@ -105,6 +102,7 @@ Option::TARG_MODE Option::target_mode = Option::TARG_UNIX_MODE;
 QString Option::qmakespec;
 QString Option::dirlist_sep;
 QString Option::dir_sep;
+char Option::field_sep;
 
 static void unquote(QString *string)
 {
@@ -117,12 +115,17 @@ static void unquote(QString *string)
     }
 }
 
-
-static void insertUnique(QMap<QByteArray, QStringList> *map, const QByteArray &key, const QString &value, bool unique = true)
+static void insertUnique(QMap<QByteArray, QStringList> *map, const QByteArray &key, const QStringList &value, bool unique = true)
 {
     QStringList &sl = (*map)[key];
-    if (!unique || (unique && !sl.contains(value))) {
-        sl.append(value);
+    if (!unique) {
+        sl+=value;
+    } else {
+        for (int i = 0; i < value.count(); ++i) {
+            if (!sl.contains(value.at(i))) {
+                sl.append(value.at(i));
+            }
+        }
     }
 }
 
@@ -184,6 +187,49 @@ static QStringList split_arg_list(QString params)
     return args;
 }
 
+static QStringList split_value_list(const QString &vals, bool do_semicolon=false)
+{
+    QString build;
+    QStringList ret;
+    QStack<char> quote;
+
+    const ushort LPAREN = '(';
+    const ushort RPAREN = ')';
+    const ushort SINGLEQUOTE = '\'';
+    const ushort DOUBLEQUOTE = '"';
+    const ushort BACKSLASH = '\\';
+    const ushort SEMICOLON = ';';
+
+    ushort unicode;
+    const QChar *vals_data = vals.data();
+    const int vals_len = vals.length();
+    for(int x = 0, parens = 0; x < vals_len; x++) {
+        unicode = (vals_data+x)->unicode();
+        if(x != (int)vals_len-1 && unicode == BACKSLASH &&
+           ((vals_data+(x+1))->unicode() == '\'' || (vals_data+(x+1))->unicode() == DOUBLEQUOTE)) {
+            build += *(vals_data+(x++)); //get that 'escape'
+        } else if(!quote.isEmpty() && unicode == quote.top()) {
+            quote.pop();
+        } else if(unicode == SINGLEQUOTE || unicode == DOUBLEQUOTE) {
+            quote.push(unicode);
+        } else if(unicode == RPAREN) {
+            --parens;
+        } else if(unicode == LPAREN) {
+            ++parens;
+        }
+
+        if(!parens && quote.isEmpty() && ((do_semicolon && unicode == SEMICOLON) ||
+                                          *(vals_data+x) == Option::field_sep)) {
+            ret << build;
+            build = "";
+        } else {
+            build += *(vals_data+x);
+        }
+    }
+    if(!build.isEmpty())
+        ret << build;
+    return ret;
+}
 
 static QStringList qmake_mkspec_paths()
 {
@@ -238,5 +284,7 @@ static QString getPropertyValue(const QString &v)
 }
 
 
+
+QT_END_NAMESPACE
 #endif // PROPARSERUTILS_H
 

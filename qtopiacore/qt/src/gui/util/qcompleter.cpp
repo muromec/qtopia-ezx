@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,25 +56,12 @@
     For example, here's how to provide auto completions from a simple
     word list in a QLineEdit:
 
-    \code
-        QStringList wordList;
-        wordList << "alpha" << "omega" << "omicron" << "zeta";
-
-        QLineEdit *lineEdit = new QLineEdit(this);
-
-        QCompleter *completer = new QCompleter(wordList, this);
-        completer->setCaseSensitivity(Qt::CaseInsensitive);
-        lineEdit->setCompleter(completer);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_util_qcompleter.cpp 0
 
     A QDirModel can be used to provide auto completion of file names.
     For example:
 
-    \code
-        QCompleter *completer = new QCompleter(this);
-        completer->setModel(new QDirModel(completer));
-        lineEdit->setCompleter(completer);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_util_qcompleter.cpp 1
 
     To set the model on which QCompleter should operate, call
     setModel(). By default, QCompleter will attempt to match the \l
@@ -113,10 +94,7 @@
     currentCompletion(). You can iterate through the list of
     completions as below:
 
-    \code
-        for (int i = 0; completer->setCurrentRow(i); i++)
-            qDebug() << completer->currentCompletion() << " is match number " << i;
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_util_qcompleter.cpp 2
 
     completionCount() returns the total number of completions for the
     current prefix. completionCount() should be avoided when possible,
@@ -171,6 +149,8 @@
 #include "QtGui/qevent.h"
 #include "QtGui/qheaderview.h"
 #include "QtGui/qdesktopwidget.h"
+
+QT_BEGIN_NAMESPACE
 
 QCompletionModel::QCompletionModel(QCompleterPrivate *c, QObject *parent)
     : QAbstractProxyModel(*new QCompletionModelPrivate, parent),
@@ -498,8 +478,8 @@ QMatchData QCompletionEngine::filterHistory()
     for (int i = 0; i < source->rowCount(); i++) {
         QString str = source->index(i, c->column).data().toString();
         if (str.startsWith(c->prefix, c->cs)
-#ifndef Q_OS_WIN
-            && (!dirModel || str != QDir::separator())
+#if !defined(Q_OS_WIN) || defined(Q_OS_WINCE)
+            && (!dirModel || QDir::toNativeSeparators(str) != QDir::separator())
 #endif
             )
             m.indices.append(i);
@@ -718,7 +698,7 @@ int QUnsortedModelEngine::buildIndices(const QString& str, const QModelIndex& pa
     for (i = 0; i < indices.count() && count != n; ++i) {
         QModelIndex idx = model->index(indices[i], c->column, parent);
         QString data = model->data(idx, c->role).toString();
-        if (!data.startsWith(str, c->cs))
+        if (!data.startsWith(str, c->cs) || !(model->flags(idx) & Qt::ItemIsSelectable))
             continue;
         m->indices.append(indices[i]);
         ++count;
@@ -1003,7 +983,7 @@ void QCompleter::setModel(QAbstractItemModel *model)
         delete oldModel;
 #ifndef QT_NO_DIRMODEL
     if (qobject_cast<QDirModel *>(model)) {
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
         setCaseSensitivity(Qt::CaseInsensitive);
 #else
         setCaseSensitivity(Qt::CaseSensitive);
@@ -1222,19 +1202,20 @@ bool QCompleter::eventFilter(QObject *o, QEvent *e)
 #endif
                 ))
                 d->popup->hide();
-            return true;
+            if (e->isAccepted())
+                return true;
         }
 
         // default implementation for keys not handled by the widget when popup is open
         switch (key) {
-        case Qt::Key_Return:
-        case Qt::Key_Enter:
-        case Qt::Key_Tab:
 #ifdef QT_KEYPAD_NAVIGATION
         case Qt::Key_Select:
             if (!QApplication::keypadNavigationEnabled())
                 break;
 #endif
+        case Qt::Key_Return:
+        case Qt::Key_Enter:
+        case Qt::Key_Tab:
             d->popup->hide();
             if (curIndex.isValid())
                 d->_q_complete(curIndex);
@@ -1301,6 +1282,7 @@ bool QCompleter::eventFilter(QObject *o, QEvent *e)
         return false;
 
     case QEvent::InputMethod:
+    case QEvent::ShortcutOverride:
         QApplication::sendEvent(d->widget, e);
         break;
 
@@ -1622,7 +1604,7 @@ QString QCompleter::pathFromIndex(const QModelIndex& index) const
         idx = parent.sibling(parent.row(), index.column());
     } while (idx.isValid());
 
-#ifndef Q_OS_WIN
+#if !defined(Q_OS_WIN) || defined(Q_OS_WINCE)
     if (list.count() == 1) // only the separator or some other text
         return list[0];
     list[0].clear() ; // the join below will provide the separator
@@ -1656,7 +1638,7 @@ QStringList QCompleter::splitPath(const QString& path) const
 
     QString pathCopy = QDir::toNativeSeparators(path);
     QString sep = QDir::separator();
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     if (pathCopy == QLatin1String("\\") || pathCopy == QLatin1String("\\\\"))
         return QStringList(pathCopy);
     QString doubleSlash(QLatin1String("\\\\"));
@@ -1669,12 +1651,12 @@ QStringList QCompleter::splitPath(const QString& path) const
     QRegExp re(QLatin1String("[") + QRegExp::escape(sep) + QLatin1String("]"));
     QStringList parts = pathCopy.split(re);
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     if (!doubleSlash.isEmpty())
         parts[0].prepend(doubleSlash);
 #else
-    if (path[0] == sep[0]) // readd the "/" at the beginning as the split removed it
-        parts[0] = sep[0];
+    if (pathCopy[0] == sep[0]) // readd the "/" at the beginning as the split removed it
+        parts[0] = QDir::fromNativeSeparators(QString(sep[0]));
 #endif
 
     return parts;
@@ -1713,6 +1695,8 @@ QStringList QCompleter::splitPath(const QString& path) const
     the user. It is also sent if complete() is called with the completionMode()
     set to QCOmpleter::InlineCompletion. The item's \a text is given.
 */
+
+QT_END_NAMESPACE
 
 #include "moc_qcompleter.cpp"
 

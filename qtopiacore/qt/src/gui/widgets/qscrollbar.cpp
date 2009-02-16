@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,7 @@
 #include "qstyle.h"
 #include "qstyleoption.h"
 #include "qmenu.h"
+#include <QtCore/qdatetime.h>
 
 #ifndef QT_NO_SCROLLBAR
 
@@ -57,6 +52,8 @@
 #endif
 #include <limits.h>
 #include "qabstractslider_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QScrollBar
@@ -119,7 +116,7 @@
     when the user presses the \key{Page Up} and \key{Page Down} keys, and is
     set with setPageStep(). Smaller changes to the value defined by the
     line step are made using the cursor keys, and this quantity is set with
-    setLineStep().
+    \l{QAbstractSlider::}{setSingleStep()}.
 
     Note that the range of values used is independent of the actual size
     of the scroll bar widget. You do not need to take this into account when
@@ -210,6 +207,7 @@ public:
     int clickOffset, snapBackPosition;
 
     void activateControl(uint control, int threshold = 500);
+    void stopRepeatAction();
     int pixelPosToRangeValue(int pos) const;
     void init();
     bool updateHoverControl(const QPoint &pos);
@@ -278,6 +276,22 @@ void QScrollBarPrivate::activateControl(uint control, int threshold)
         q_func()->triggerAction(action);
     }
 }
+
+void QScrollBarPrivate::stopRepeatAction()
+{
+    Q_Q(QScrollBar);
+    QStyle::SubControl tmp = pressedControl;
+    q->setRepeatAction(QAbstractSlider::SliderNoAction);
+    pressedControl = QStyle::SC_None;
+
+    if (tmp == QStyle::SC_ScrollBarSlider)
+        q->setSliderDown(false);
+
+    QStyleOptionSlider opt;
+    q->initStyleOption(&opt);
+    q->repaint(q->style()->subControlRect(QStyle::CC_ScrollBar, &opt, tmp, q));
+}
+
 /*!
     Initialize \a option with the values from this QScrollBar. This method
     is useful for subclasses when they need a QStyleOptionSlider, but don't want
@@ -411,6 +425,7 @@ void QScrollBarPrivate::init()
     q->setAttribute(Qt::WA_OpaquePaintEvent);
 }
 
+#ifndef QT_NO_CONTEXTMENU
 /*! \reimp */
 void QScrollBar::contextMenuEvent(QContextMenuEvent *event)
 {
@@ -459,7 +474,7 @@ void QScrollBar::contextMenuEvent(QContextMenuEvent *event)
         triggerAction(QAbstractSlider::SliderSingleStepAdd);
 #endif // QT_NO_MENU
 }
-
+#endif // QT_NO_CONTEXTMENU
 
 
 /*! \reimp */
@@ -531,6 +546,10 @@ void QScrollBar::paintEvent(QPaintEvent *)
 void QScrollBar::mousePressEvent(QMouseEvent *e)
 {
     Q_D(QScrollBar);
+
+    if (d->repeatActionTimer.isActive())
+        d->stopRepeatAction();
+
     bool midButtonAbsPos = style()->styleHint(QStyle::SH_ScrollBar_MiddleClickAbsolutePosition,
                                              0, this);
     QStyleOptionSlider opt;
@@ -559,16 +578,27 @@ void QScrollBar::mousePressEvent(QMouseEvent *e)
           || d->pressedControl == QStyle::SC_ScrollBarSubPage
           || d->pressedControl == QStyle::SC_ScrollBarSlider)
         && ((midButtonAbsPos && e->button() == Qt::MidButton)
-            || style()->styleHint(QStyle::SH_ScrollBar_LeftClickAbsolutePosition, &opt, this)
-            && e->button() == Qt::LeftButton)) {
+            || (style()->styleHint(QStyle::SH_ScrollBar_LeftClickAbsolutePosition, &opt, this)
+                && e->button() == Qt::LeftButton))) {
         int sliderLength = HORIZONTAL ? sr.width() : sr.height();
         setSliderPosition(d->pixelPosToRangeValue((HORIZONTAL ? e->pos().x()
                                                               : e->pos().y()) - sliderLength / 2));
         d->pressedControl = QStyle::SC_ScrollBarSlider;
         d->clickOffset = sliderLength / 2;
     }
-    d->activateControl(d->pressedControl);
+    const int initialDelay = 500; // default threshold
+    d->activateControl(d->pressedControl, initialDelay);
+    QTime time;
+    time.start();
     repaint(style()->subControlRect(QStyle::CC_ScrollBar, &opt, d->pressedControl, this));
+    if (time.elapsed() >= initialDelay && d->repeatActionTimer.isActive()) {
+        // It took more than 500ms (the initial timer delay) to process the repaint(), we
+        // therefore need to restart the timer in case we have a pending mouse release event;
+        // otherwise we'll get a timer event right before the release event,
+        // causing the repeat action to be invoked twice on a single mouse click.
+        // 50ms is the default repeat time (see activateControl/setRepeatAction).
+        d->repeatActionTimer.start(50, this);
+    }
     if (d->pressedControl == QStyle::SC_ScrollBarSlider)
         setSliderDown(true);
 }
@@ -586,14 +616,7 @@ void QScrollBar::mouseReleaseEvent(QMouseEvent *e)
     if (e->buttons() & (~e->button())) // some other button is still pressed
         return;
 
-    QStyle::SubControl tmp = d->pressedControl;
-    setRepeatAction(SliderNoAction);
-    d->pressedControl = QStyle::SC_None;
-    if (tmp == QStyle::SC_ScrollBarSlider)
-        setSliderDown(false);
-    QStyleOptionSlider opt;
-    initStyleOption(&opt);
-    repaint(style()->subControlRect(QStyle::CC_ScrollBar, &opt, tmp, this));
+    d->stopRepeatAction();
 }
 
 
@@ -711,5 +734,7 @@ Q_GUI_EXPORT QStyleOptionSlider qt_qscrollbarStyleOption(QScrollBar *scrollbar)
     scrollbar->initStyleOption(&opt);
     return opt;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCROLLBAR

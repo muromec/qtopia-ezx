@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,9 +39,17 @@
 
 #include <stdlib.h>
 
+#ifdef QT_QMAP_DEBUG
+# include <qstring.h>
+# include <qvector.h>
+#endif
+
+QT_BEGIN_NAMESPACE
+
 QMapData QMapData::shared_null = {
     &shared_null,
-    { &shared_null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Q_ATOMIC_INIT(1), 0, 0, 0, false, true
+    { &shared_null, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    Q_BASIC_ATOMIC_INITIALIZER(1), 0, 0, 0, false, true
 };
 
 QMapData *QMapData::createData()
@@ -56,7 +58,7 @@ QMapData *QMapData::createData()
     Node *e = reinterpret_cast<Node *>(d);
     e->backward = e;
     e->forward[0] = e;
-    d->ref.init(1);
+    d->ref = 1;
     d->topLevel = 0;
     d->size = 0;
     d->randomBits = 0;
@@ -73,7 +75,7 @@ void QMapData::continueFreeData(int offset)
     while (cur != e) {
         prev = cur;
         cur = cur->forward[0];
-        ::free(reinterpret_cast<char *>(prev) - offset);
+        qFree(reinterpret_cast<char *>(prev) - offset);
     }
     delete this;
 }
@@ -90,7 +92,7 @@ QMapData::Node *QMapData::node_create(Node *update[], int offset)
 
     ++randomBits;
     if (level == 3 && !insertInOrder)
-        randomBits = ::qrand();
+        randomBits = qrand();
 
     if (level > topLevel) {
         Node *e = reinterpret_cast<Node *>(this);
@@ -99,7 +101,7 @@ QMapData::Node *QMapData::node_create(Node *update[], int offset)
         update[level] = e;
     }
 
-    void *concreteNode = ::malloc(offset + sizeof(Node) + level * sizeof(Node *));
+    void *concreteNode = qMalloc(offset + sizeof(Node) + level * sizeof(Node *));
     Node *abstractNode = reinterpret_cast<Node *>(reinterpret_cast<char *>(concreteNode) + offset);
 
     abstractNode->backward = update[0];
@@ -124,12 +126,10 @@ void QMapData::node_delete(Node *update[], int offset, Node *node)
         update[i]->forward[i] = node->forward[i];
     }
     --size;
-    ::free(reinterpret_cast<char *>(node) - offset);
+    qFree(reinterpret_cast<char *>(node) - offset);
 }
 
 #ifdef QT_QMAP_DEBUG
-#include <qstring.h>
-#include <qvector.h>
 
 uint QMapData::adjust_ptr(Node *node)
 {
@@ -211,32 +211,21 @@ void QMapData::dump()
     \endlist
 
     Here's an example QMap with QString keys and \c int values:
-    \code
-        QMap<QString, int> map;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 0
 
     To insert a (key, value) pair into the map, you can use operator[]():
 
-    \code
-        map["one"] = 1;
-        map["three"] = 3;
-        map["seven"] = 7;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 1
 
     This inserts the following three (key, value) pairs into the
     QMap: ("one", 1), ("three", 3), and ("seven", 7). Another way to
     insert items into the map is to use insert():
 
-    \code
-        map.insert("twelve", 12);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 2
 
     To look up a value, use operator[]() or value():
 
-    \code
-        int num1 = map["thirteen"];
-        int num2 = map.value("thirteen");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 3
 
     If there is no item with the specified key in the map, these
     functions return a \l{default-constructed value}.
@@ -244,18 +233,12 @@ void QMapData::dump()
     If you want to check whether the map contains a certain key, use
     contains():
 
-    \code
-        int timeout = 30;
-        if (map.contains("TIMEOUT"))
-            timeout = map.value("TIMEOUT");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 4
 
     There is also a value() overload that uses its second argument as
     a default value if there is no item with the specified key:
 
-    \code
-        int timeout = map.value("TIMEOUT", 30);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 5
 
     In general, we recommend that you use contains() and value()
     rather than operator[]() for looking up a key in a map. The
@@ -264,15 +247,7 @@ void QMapData::dump()
     const). For example, the following code snippet will create 1000
     items in memory:
 
-    \code
-        // WRONG
-        QMap<int, QWidget *> map;
-        ...
-        for (int i = 0; i < 1000; ++i) {
-            if (map[i] == okButton)
-                cout << "Found button at index " << i << endl;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 6
 
     To avoid this problem, replace \c map[i] with \c map.value(i)
     in the code above.
@@ -284,23 +259,11 @@ void QMapData::dump()
     QMap::iterator). Here's how to iterate over a QMap<QString, int>
     using a Java-style iterator:
 
-    \code
-        QMapIterator<QString, int> i(map);
-        while (i.hasNext()) {
-            i.next();
-            cout << i.key() << ": " << i.value() << endl;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 7
 
     Here's the same code, but using an STL-style iterator this time:
 
-    \code
-        QMap<QString, int>::const_iterator i = map.constBegin();
-        while (i != map.constEnd()) {
-            cout << i.key() << ": " << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 8
 
     The items are traversed in ascending key order.
 
@@ -308,11 +271,7 @@ void QMapData::dump()
     insert() with a key that already exists in the QMap, the
     previous value will be erased. For example:
 
-    \code
-        map.insert("plenty", 100);
-        map.insert("plenty", 2000);
-        // map.value("plenty") == 2000
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 9
 
     However, you can store multiple values per key by using
     insertMulti() instead of insert() (or using the convenience
@@ -320,34 +279,19 @@ void QMapData::dump()
     single key, you can use values(const Key &key), which returns a
     QList<T>:
 
-    \code
-        QList<int> values = map.values("plenty");
-        for (int i = 0; i < values.size(); ++i)
-            cout << values.at(i) << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 10
 
     The items that share the same key are available from most
     recently to least recently inserted. Another approach is to call
     find() to get the STL-style iterator for the first item with a
     key and iterate from there:
 
-    \code
-        QMap<QString, int>::iterator i = map.find("plenty");
-        while (i != map.end() && i.key() == "plenty") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 11
 
     If you only need to extract the values from a map (not the keys),
     you can also use \l{foreach}:
 
-    \code
-        QMap<QString, int> map;
-        ...
-        foreach (int value, map)
-            cout << value << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 12
 
     Items can be removed from the map in several ways. One way is to
     call remove(); this will remove any item with the given key.
@@ -363,31 +307,7 @@ void QMapData::dump()
     < y} nor \c{y < x} is true.
 
     Example:
-    \code
-        #ifndef EMPLOYEE_H
-        #define EMPLOYEE_H
-
-        class Employee
-        {
-        public:
-            Employee() {}
-            Employee(const QString &name, const QDate &dateOfBirth);
-            ...
-
-        private:
-            QString myName;
-            QDate myDateOfBirth;
-        };
-
-        inline bool operator<(const Employee &e1, const Employee &e2)
-        {
-            if (e1.name() != e2.name())
-                return e1.name() < e2.name();
-            return e1.dateOfBirth() < e2.dateOfBirth();
-        }
-
-        #endif // EMPLOYEE_H
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 13
 
     In the example, we start by comparing the employees' names. If
     they're equal, we compare their dates of birth to break the tie.
@@ -478,7 +398,7 @@ void QMapData::dump()
     \sa isEmpty(), count()
 */
 
-/*! 
+/*!
     \fn bool QMap::isEmpty() const
 
     Returns true if the map contains no items; otherwise returns
@@ -651,7 +571,7 @@ void QMapData::dump()
     \sa value(), keys()
 */
 
-/*! 
+/*!
     \fn Key QMap::key(const T &value, const Key &defaultKey) const
     \since 4.3
     \overload
@@ -764,15 +684,7 @@ void QMapData::dump()
     the iterator. For example, here's some code that iterates over all
     the items with the same key:
 
-    \code
-        QMap<QString, int> map;
-        ...
-        QMap<QString, int>::const_iterator i = map.find("HDR");
-        while (i != map.end() && i.key() == "HDR") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 14
 
     \sa constFind(), value(), values(), lowerBound(), upperBound(), QMultiMap::find()
 */
@@ -802,18 +714,7 @@ void QMapData::dump()
     key.
 
     Example:
-    \code
-        QMap<int, QString> map;
-        map.insert(1, "one");
-        map.insert(5, "five");
-        map.insert(10, "ten");
-
-        map.lowerBound(0);      // returns iterator to (1, "one")
-        map.lowerBound(1);      // returns iterator to (1, "one")
-        map.lowerBound(2);      // returns iterator to (5, "five")
-        map.lowerBound(10);     // returns iterator to (10, "ten")
-        map.lowerBound(999);    // returns end()
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 15
 
     If the map contains multiple items with key \a key, this
     function returns an iterator that points to the most recently
@@ -821,16 +722,7 @@ void QMapData::dump()
     the iterator. For example, here's some code that iterates over all
     the items with the same key:
 
-    \code
-        QMap<QString, int> map;
-        ...
-        QMap<QString, int>::const_iterator i = map.lowerBound("HDR");
-        QMap<QString, int>::const_iterator upperBound = map.upperBound("HDR");
-        while (i != upperBound) {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 16
 
     \sa qLowerBound(), upperBound(), find()
 */
@@ -848,18 +740,7 @@ void QMapData::dump()
     nearest item with a greater key.
 
     Example:
-    \code
-        QMap<int, QString> map;
-        map.insert(1, "one");
-        map.insert(5, "five");
-        map.insert(10, "ten");
-
-        map.upperBound(0);      // returns iterator to (1, "one")
-        map.upperBound(1);      // returns iterator to (5, "five")
-        map.upperBound(2);      // returns iterator to (5, "five")
-        map.upperBound(10);     // returns end()
-        map.upperBound(999);    // returns end()
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 17
 
     \sa qUpperBound(), lowerBound(), find()
 */
@@ -933,7 +814,7 @@ void QMapData::dump()
     Typedef for int. Provided for STL compatibility.
 */
 
-/*! 
+/*!
     \fn bool QMap::empty() const
 
     This function is provided for STL compatibility. It is equivalent
@@ -964,17 +845,7 @@ void QMapData::dump()
     start iterating. Here's a typical loop that prints all the (key,
     value) pairs stored in a map:
 
-    \code
-        QMap<QString, int> map;
-        map.insert("January", 1);
-        map.insert("February", 2);
-        ...
-        map.insert("December", 12);
-
-        QMap<QString, int>::iterator i;
-        for (i = map.begin(); i != map.end(); ++i)
-            cout << i.key() << ": " << i.value() << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 18
 
     Unlike QHash, which stores its items in an arbitrary order, QMap
     stores its items ordered by key. Items that share the same key
@@ -987,49 +858,22 @@ void QMapData::dump()
     Here's an example that increments every value stored in the QMap
     by 2:
 
-    \code
-        QMap<QString, int>::iterator i;
-        for (i = map.begin(); i != map.end(); ++i)
-            i.value() += 2;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 19
 
     Here's an example that removes all the items whose key is a
     string that starts with an underscore character:
 
-    \code
-        QMap<QString, int>::iterator i = map.begin();
-        while (i != map.end()) {
-            if (i.key().startsWith("_"))
-                i = map.erase(i);
-            else
-                ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 20
 
     The call to QMap::erase() removes the item pointed to by the
     iterator from the map, and returns an iterator to the next item.
     Here's another way of removing an item while iterating:
 
-    \code
-        QMap<QString, int>::iterator i = map.begin();
-        while (i != map.end()) {
-            QMap<QString, int>::iterator prev = i;
-            ++i;
-            if (prev.key().startsWith("_"))
-                map.erase(prev);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 21
 
     It might be tempting to write code like this:
 
-    \code
-        // WRONG
-        while (i != map.end()) {
-            if (i.key().startsWith("_"))
-                map.erase(i);
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 22
 
     However, this will potentially crash in \c{++i}, because \c i is
     a dangling iterator after the call to erase().
@@ -1106,10 +950,7 @@ void QMapData::dump()
     You can change the value of an item by using value() on
     the left side of an assignment, for example:
 
-    \code
-        if (i.key() == "Hello")
-            i.value() = "Bonjour";
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 23
 
     \sa key(), operator*()
 */
@@ -1250,17 +1091,7 @@ void QMapData::dump()
     QMap::find() before you can start iterating. Here's a typical
     loop that prints all the (key, value) pairs stored in a map:
 
-    \code
-        QMap<QString, int> map;
-        map.insert("January", 1);
-        map.insert("February", 2);
-        ...
-        map.insert("December", 12);
-
-        QMap<QString, int>::const_iterator i;
-        for (i = map.constBegin(); i != map.constEnd(); ++i)
-            cout << i.key() << ": " << i.value() << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 24
 
     Unlike QHash, which stores its items in an arbitrary order, QMap
     stores its items ordered by key. Items that share the same key
@@ -1500,19 +1331,7 @@ void QMapData::dump()
     operator+=().
 
     Example:
-    \code
-        QMultiMap<QString, int> map1, map2, map3;
-
-        map1.insert("plenty", 100);
-        map1.insert("plenty", 2000);
-        // map1.size() == 2
-
-        map2.insert("plenty", 5000);
-        // map2.size() == 1
-
-        map3 = map1 + map2;
-        // map3.size() == 3
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 25
 
     Unlike QMap, QMultiMap provides no operator[]. Use value() or
     replace() if you want to access the most recently inserted item
@@ -1521,11 +1340,7 @@ void QMapData::dump()
     If you want to retrieve all the values for a single key, you can
     use values(const Key &key), which returns a QList<T>:
 
-    \code
-        QList<int> values = map.values("plenty");
-        for (int i = 0; i < values.size(); ++i)
-            cout << values.at(i) << endl;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 26
 
     The items that share the same key are available from most
     recently to least recently inserted.
@@ -1534,13 +1349,7 @@ void QMapData::dump()
     the iterator for the first item with a key and iterate from
     there:
 
-    \code
-        QMultiMap<QString, int>::iterator i = map.find("plenty");
-        while (i != map.end() && i.key() == "plenty") {
-            cout << i.value() << endl;
-            ++i;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qmap.cpp 27
 
     QMultiMap's key and value data types must be \l{assignable data
     types}. This covers most data types you are likely to encounter,
@@ -1771,3 +1580,5 @@ void QMapData::dump()
 
     Use remove() then insert().
 */
+
+QT_END_NAMESPACE

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include <qstringlist.h>
 #include <private/qabstractitemmodel_p.h>
 #include <private/qabstractproxymodel_p.h>
+
+QT_BEGIN_NAMESPACE
 
 class QSortFilterProxyModelLessThan
 {
@@ -362,6 +358,8 @@ void QSortFilterProxyModelPrivate::sort_source_rows(
             QSortFilterProxyModelGreaterThan gt(sort_column, source_parent, model, q);
             qStableSort(source_rows.begin(), source_rows.end(), gt);
         }
+    } else { // restore the source model order
+        qStableSort(source_rows.begin(), source_rows.end());
     }
 }
 
@@ -415,7 +413,8 @@ void QSortFilterProxyModelPrivate::remove_source_items(
     const QVector<int> &source_items, const QModelIndex &source_parent,
     Qt::Orientation orient, bool emit_signal)
 {
-    QModelIndex proxy_parent = QSortFilterProxyModelPrivate::source_to_proxy(source_parent);
+    Q_Q(QSortFilterProxyModel);
+    QModelIndex proxy_parent = q->mapFromSource(source_parent);
     if (!proxy_parent.isValid() && source_parent.isValid())
         return; // nothing to do (already removed)
 
@@ -555,7 +554,7 @@ void QSortFilterProxyModelPrivate::insert_source_items(
     Qt::Orientation orient, bool emit_signal)
 {
     Q_Q(QSortFilterProxyModel);
-    QModelIndex proxy_parent = QSortFilterProxyModelPrivate::source_to_proxy(source_parent);
+    QModelIndex proxy_parent = q->mapFromSource(source_parent);
     if (!proxy_parent.isValid() && source_parent.isValid())
         return; // nothing to do (source_parent is not mapped)
 
@@ -625,7 +624,7 @@ void QSortFilterProxyModelPrivate::source_items_inserted(
         }
         it = create_mapping(source_parent);
         Mapping *m = it.value();
-        QModelIndex proxy_parent = source_to_proxy(source_parent);
+        QModelIndex proxy_parent = q->mapFromSource(source_parent);
         if (m->source_rows.count() > 0) {
             q->beginInsertRows(proxy_parent, 0, m->source_rows.count() - 1);
             q->endInsertRows();
@@ -647,6 +646,11 @@ void QSortFilterProxyModelPrivate::source_items_inserted(
     updateChildrenMapping(source_parent, m, orient, start, end, delta_item_count, false);
 
     // Expand source-to-proxy mapping to account for new items
+    if (start < 0 || start > source_to_proxy.size()) {
+        qWarning("QSortFilterProxyModel: invalid inserted rows reported by source model");
+        remove_from_mapping(source_parent);
+        return;
+    }
     source_to_proxy.insert(start, delta_item_count, -1);
 
     if (start < old_item_count) {
@@ -808,8 +812,14 @@ void QSortFilterProxyModelPrivate::updateChildrenMapping(const QModelIndex &sour
 
     // reinsert moved, mapped indexes
     QVector<QPair<QModelIndex, Mapping*> >::iterator it = moved_source_index_mappings.begin();
-    for (; it != moved_source_index_mappings.end(); ++it)
+    for (; it != moved_source_index_mappings.end(); ++it) {
+#ifdef QT_STRICT_ITERATORS
+        source_index_mapping.insert((*it).first, (*it).second);
+        (*it).second->map_iter = source_index_mapping.constFind((*it).first);
+#else
         (*it).second->map_iter = source_index_mapping.insert((*it).first, (*it).second);
+#endif
+    }
 }
 
 /*!
@@ -851,11 +861,12 @@ void QSortFilterProxyModelPrivate::build_source_to_proxy_mapping(
 */
 QModelIndexList QSortFilterProxyModelPrivate::store_persistent_indexes()
 {
+    Q_Q(QSortFilterProxyModel);
     QModelIndexList source_indexes;
     int persistent_count = persistent.indexes.count();
     for (int i = 0; i < persistent_count; ++i) {
         QModelIndex proxy_index = persistent.indexes.at(i)->index;
-        QModelIndex source_index = proxy_to_source(proxy_index);
+        QModelIndex source_index = q->mapToSource(proxy_index);
         source_indexes.append(source_index);
     }
     return source_indexes;
@@ -870,10 +881,11 @@ QModelIndexList QSortFilterProxyModelPrivate::store_persistent_indexes()
 void QSortFilterProxyModelPrivate::update_persistent_indexes(
     const QModelIndexList &source_indexes)
 {
+    Q_Q(QSortFilterProxyModel);
     for (int i = 0; i < source_indexes.count(); ++i) {
         QModelIndex source_index = source_indexes.at(i);
         create_mapping(source_index.parent());
-        QModelIndex proxy_index = source_to_proxy(source_index);
+        QModelIndex proxy_index = q->mapFromSource(source_index);
         persistent.indexes[i]->index = proxy_index;
     }
 }
@@ -1156,20 +1168,15 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     by a custom model. The code to set up the model and the view, \e
     without sorting and filtering, would look like this:
 
-    \quotefromfile snippets/qsortfilterproxymodel-details/main.cpp
-    \skipto QTreeView
-    \printuntil treeView->setModel(model);
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 1
 
     To add sorting and filtering support to \c MyItemModel, we need
     to create a QSortFilterProxyModel, call setSourceModel() with the
     \c MyItemModel as argument, and install the QSortFilterProxyModel
     on the view:
 
-    \quotefromfile snippets/qsortfilterproxymodel-details/main.cpp
-    \skipto QTreeView
-    \printline QTreeView
-    \skipto sourceModel
-    \printuntil  treeView->setModel(proxyModel)
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 0
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 2
 
     At this point, neither sorting nor filtering is enabled; the
     original data is displayed in the view. Any changes made through
@@ -1198,8 +1205,7 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     controls whether the user can sort the view by clicking the
     view's horizontal header. For example:
 
-    \skipto treeView->setSortingEnabled(true)
-    \printline treeView->setSortingEnabled(true)
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 3
 
     When this feature is on (the default is off), clicking on a
     header section sorts the items according to that column. By
@@ -1224,9 +1230,7 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     QSortFilterProxyModel and reimplementing lessThan(), which is
     used to compare items. For example:
 
-    \quotefromfile itemviews/customsortfiltermodel/mysortfilterproxymodel.cpp
-    \skipto ::lessThan
-    \printuntil /^\}/
+    \snippet examples/itemviews/customsortfiltermodel/mysortfilterproxymodel.cpp 5
 
     (This code snippet comes from the
     \l{itemviews/customsortfiltermodel}{Custom Sort/Filter Model}
@@ -1238,9 +1242,7 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     arguments on the QSortFilterProxyModel (or on the original model
     if it implements sort()). For example:
 
-    \quotefromfile snippets/qsortfilterproxymodel-details/main.cpp
-    \skipto proxyModel->sort(2, Qt::AscendingOrder)
-    \printline proxyModel->sort(2, Qt::AscendingOrder)
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 4
 
     \section1 Filtering
 
@@ -1251,8 +1253,7 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     The QRegExp object can be used to match a regular expression, a
     wildcard pattern, or a fixed string. For example:
 
-    \skipto setFilterRegExp
-    \printuntil setFilterKeyColumn
+    \snippet doc/src/snippets/qsortfilterproxymodel-details/main.cpp 5
 
     For hierarchical models, the filter is applied recursively to all
     children. If a parent item doesn't match the filter, none of its
@@ -1270,9 +1271,7 @@ void QSortFilterProxyModelPrivate::_q_sourceColumnsRemoved(
     filterKeyColumn property and performs filtering on columns 0, 1,
     and 2:
 
-    \quotefromfile itemviews/customsortfiltermodel/mysortfilterproxymodel.cpp
-    \skipto ::filterAcceptsRow
-    \printuntil /^\}/
+    \snippet examples/itemviews/customsortfiltermodel/mysortfilterproxymodel.cpp 3
 
     (This code snippet comes from the
     \l{itemviews/customsortfiltermodel}{Custom Sort/Filter Model}
@@ -1430,7 +1429,7 @@ QModelIndex QSortFilterProxyModel::index(int row, int column, const QModelIndex 
     if (row < 0 || column < 0)
         return QModelIndex();
 
-    QModelIndex source_parent = d->proxy_to_source(parent); // parent is already mapped at this point
+    QModelIndex source_parent = mapToSource(parent); // parent is already mapped at this point
     IndexMap::const_iterator it = d->create_mapping(source_parent); // but make sure that the children are mapped
     if (it.value()->source_rows.count() <= row || it.value()->source_columns.count() <= column)
         return QModelIndex();
@@ -1449,7 +1448,7 @@ QModelIndex QSortFilterProxyModel::parent(const QModelIndex &child) const
     IndexMap::const_iterator it = d->index_to_iterator(child);
     Q_ASSERT(it != d->source_index_mapping.constEnd());
     QModelIndex source_parent = it.key();
-    QModelIndex proxy_parent = d->source_to_proxy(source_parent);
+    QModelIndex proxy_parent = mapFromSource(source_parent);
     return proxy_parent;
 }
 
@@ -1459,7 +1458,7 @@ QModelIndex QSortFilterProxyModel::parent(const QModelIndex &child) const
 int QSortFilterProxyModel::rowCount(const QModelIndex &parent) const
 {
     Q_D(const QSortFilterProxyModel);
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return 0;
     IndexMap::const_iterator it = d->create_mapping(source_parent);
@@ -1472,7 +1471,7 @@ int QSortFilterProxyModel::rowCount(const QModelIndex &parent) const
 int QSortFilterProxyModel::columnCount(const QModelIndex &parent) const
 {
     Q_D(const QSortFilterProxyModel);
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return 0;
     IndexMap::const_iterator it = d->create_mapping(source_parent);
@@ -1485,7 +1484,7 @@ int QSortFilterProxyModel::columnCount(const QModelIndex &parent) const
 bool QSortFilterProxyModel::hasChildren(const QModelIndex &parent) const
 {
     Q_D(const QSortFilterProxyModel);
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return false;
     if (!d->model->hasChildren(source_parent))
@@ -1500,7 +1499,7 @@ bool QSortFilterProxyModel::hasChildren(const QModelIndex &parent) const
 QVariant QSortFilterProxyModel::data(const QModelIndex &index, int role) const
 {
     Q_D(const QSortFilterProxyModel);
-    QModelIndex source_index = d->proxy_to_source(index);
+    QModelIndex source_index = mapToSource(index);
     if (index.isValid() && !source_index.isValid())
         return QVariant();
     return d->model->data(source_index, role);
@@ -1512,7 +1511,7 @@ QVariant QSortFilterProxyModel::data(const QModelIndex &index, int role) const
 bool QSortFilterProxyModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     Q_D(QSortFilterProxyModel);
-    QModelIndex source_index = d->proxy_to_source(index);
+    QModelIndex source_index = mapToSource(index);
     if (index.isValid() && !source_index.isValid())
         return false;
     return d->model->setData(source_index, value, role);
@@ -1573,7 +1572,7 @@ QMimeData *QSortFilterProxyModel::mimeData(const QModelIndexList &indexes) const
     Q_D(const QSortFilterProxyModel);
     QModelIndexList source_indexes;
     for (int i = 0; i < indexes.count(); ++i)
-        source_indexes << d->proxy_to_source(indexes.at(i));
+        source_indexes << mapToSource(indexes.at(i));
     return d->model->mimeData(source_indexes);
 }
 
@@ -1603,11 +1602,22 @@ bool QSortFilterProxyModel::dropMimeData(const QMimeData *data, Qt::DropAction a
 {
     Q_D(QSortFilterProxyModel);
     if ((row == -1) && (column == -1))
-        return d->model->dropMimeData(data, action, -1, -1, d->proxy_to_source(parent));
-    QModelIndex proxy_index = index(row, column, parent);
-    QModelIndex source_index = d->proxy_to_source(proxy_index);
-    return d->model->dropMimeData(data, action, source_index.row(), source_index.column(),
-                                  source_index.parent());
+        return d->model->dropMimeData(data, action, -1, -1, mapToSource(parent));
+    int source_destination_row = -1;
+    int source_destination_column = -1;
+    QModelIndex source_parent;
+    if (row == rowCount(parent)) {
+        source_parent = mapToSource(parent);
+        source_destination_row = d->model->rowCount(source_parent);
+    } else {
+        QModelIndex proxy_index = index(row, column, parent);
+        QModelIndex source_index = mapToSource(proxy_index);
+        source_destination_row = source_index.row();
+        source_destination_column = source_index.column();
+        source_parent = source_index.parent();
+    }
+    return d->model->dropMimeData(data, action, source_destination_row,
+                                  source_destination_column, source_parent);
 }
 
 /*!
@@ -1618,7 +1628,7 @@ bool QSortFilterProxyModel::insertRows(int row, int count, const QModelIndex &pa
     Q_D(QSortFilterProxyModel);
     if (row < 0 || count <= 0)
         return false;
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return false;
     QSortFilterProxyModelPrivate::Mapping *m = d->create_mapping(source_parent).value();
@@ -1638,7 +1648,7 @@ bool QSortFilterProxyModel::insertColumns(int column, int count, const QModelInd
     Q_D(QSortFilterProxyModel);
     if (column < 0|| count <= 0)
         return false;
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return false;
     QSortFilterProxyModelPrivate::Mapping *m = d->create_mapping(source_parent).value();
@@ -1658,7 +1668,7 @@ bool QSortFilterProxyModel::removeRows(int row, int count, const QModelIndex &pa
     Q_D(QSortFilterProxyModel);
     if (row < 0 || count <= 0)
         return false;
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return false;
     QSortFilterProxyModelPrivate::Mapping *m = d->create_mapping(source_parent).value();
@@ -1699,7 +1709,7 @@ bool QSortFilterProxyModel::removeColumns(int column, int count, const QModelInd
     Q_D(QSortFilterProxyModel);
     if (column < 0 || count <= 0)
         return false;
-    QModelIndex source_parent = d->proxy_to_source(parent);
+    QModelIndex source_parent = mapToSource(parent);
     if (parent.isValid() && !source_parent.isValid())
         return false;
     QSortFilterProxyModelPrivate::Mapping *m = d->create_mapping(source_parent).value();
@@ -1737,7 +1747,7 @@ void QSortFilterProxyModel::fetchMore(const QModelIndex &parent)
     Q_D(QSortFilterProxyModel);
     QModelIndex source_parent;
     if (d->indexValid(parent))
-        source_parent = d->proxy_to_source(parent);
+        source_parent = mapToSource(parent);
     d->model->fetchMore(source_parent);
 }
 
@@ -1749,7 +1759,7 @@ bool QSortFilterProxyModel::canFetchMore(const QModelIndex &parent) const
     Q_D(const QSortFilterProxyModel);
     QModelIndex source_parent;
     if (d->indexValid(parent))
-        source_parent = d->proxy_to_source(parent);
+        source_parent = mapToSource(parent);
     return d->model->canFetchMore(source_parent);
 }
 
@@ -1761,7 +1771,7 @@ Qt::ItemFlags QSortFilterProxyModel::flags(const QModelIndex &index) const
     Q_D(const QSortFilterProxyModel);
     QModelIndex source_index;
     if (d->indexValid(index))
-        source_index = d->proxy_to_source(index);
+        source_index = mapToSource(index);
     return d->model->flags(source_index);
 }
 
@@ -1773,11 +1783,11 @@ QModelIndex QSortFilterProxyModel::buddy(const QModelIndex &index) const
     Q_D(const QSortFilterProxyModel);
     if (!d->indexValid(index))
         return QModelIndex();
-    QModelIndex source_index = d->proxy_to_source(index);
+    QModelIndex source_index = mapToSource(index);
     QModelIndex source_buddy = d->model->buddy(source_index);
     if (source_index == source_buddy)
         return index;
-    return d->source_to_proxy(source_buddy);
+    return mapFromSource(source_buddy);
 }
 
 /*!
@@ -1796,7 +1806,7 @@ QModelIndexList QSortFilterProxyModel::match(const QModelIndex &start, int role,
 QSize QSortFilterProxyModel::span(const QModelIndex &index) const
 {
     Q_D(const QSortFilterProxyModel);
-    QModelIndex source_index = d->proxy_to_source(index);
+    QModelIndex source_index = mapToSource(index);
     if (index.isValid() && !source_index.isValid())
         return QSize();
     return d->model->span(source_index);
@@ -2132,6 +2142,8 @@ void QSortFilterProxyModel::invalidateFilter()
     \l{QModelIndex}es is used for comparisons. This can be changed by
     setting the \l sortRole property.
 
+    \note The indices passed in correspond to the source model.
+
     \sa sortRole, sortCaseSensitivity, dynamicSortFilter
 */
 bool QSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
@@ -2171,15 +2183,18 @@ bool QSortFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex 
 }
 
 /*!
-    Returns true if the value in the item in the row indicated by the
-    given \a source_row and \a source_parent should be included in
-    the model.
+    Returns true if the item in the row indicated by the given \a source_row
+    and \a source_parent should be included in the model; otherwise returns
+    false.
 
-    By default, the Qt::DisplayRole is used to determine if the row
+    The default implementation returns true if the value held by the relevant item
+    matches the filter string, wildcard string or regular expression.
+
+    \note By default, the Qt::DisplayRole is used to determine if the row
     should be accepted or not. This can be changed by setting the \l
     filterRole property.
 
-    \sa filterRole, filterKeyColumn, filterRegExp, filterAcceptsColumn()
+    \sa filterAcceptsColumn(), setFilterFixedString(), setFilterRegExp(), setFilterWildcard()
 */
 bool QSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
 {
@@ -2204,13 +2219,17 @@ bool QSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelIndex &
 }
 
 /*!
-    Returns true if the value in the item in the column indicated by
-    the given \a source_column and \a source_parent should be included
-    in the model.
+    Returns true if the item in the column indicated by the given \a source_column
+    and \a source_parent should be included in the model; otherwise returns false.
 
-    The default implementation returns true.
+    The default implementation returns true if the value held by the relevant item
+    matches the filter string, wildcard string or regular expression.
 
-    \sa filterAcceptsRow()
+    \note By default, the Qt::DisplayRole is used to determine if the row
+    should be accepted or not. This can be changed by setting the \l
+    filterRole property.
+
+    \sa filterAcceptsRow(), setFilterFixedString(), setFilterRegExp(), setFilterWildcard()
 */
 bool QSortFilterProxyModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const
 {
@@ -2263,6 +2282,8 @@ QItemSelection QSortFilterProxyModel::mapSelectionFromSource(const QItemSelectio
   \fn QObject *QSortFilterProxyModel::parent() const
   \internal
 */
+
+QT_END_NAMESPACE
 
 #include "moc_qsortfilterproxymodel.cpp"
 

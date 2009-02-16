@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,46 +42,12 @@
 #include <qdebug.h>
 #include <QCopChannel>
 
+QT_BEGIN_NAMESPACE
+
 #define MM(n) int((n * 720 + 127) / 254)
 #define IN(n) int(n * 72)
 
-struct PaperSize {
-    int width, height;
-};
-
-static const PaperSize paperSizes[QPrinter::NPageSize] =
-{
-    {  MM(210), MM(297) },      // A4
-    {  MM(176), MM(250) },      // B5
-    {  IN(8.5), IN(11) },       // Letter
-    {  IN(8.5), IN(14) },       // Legal
-    {  IN(7.5), IN(10) },       // Executive
-    {  MM(841), MM(1189) },     // A0
-    {  MM(594), MM(841) },      // A1
-    {  MM(420), MM(594) },      // A2
-    {  MM(297), MM(420) },      // A3
-    {  MM(148), MM(210) },      // A5
-    {  MM(105), MM(148) },      // A6
-    {  MM(74), MM(105)},        // A7
-    {  MM(52), MM(74) },        // A8
-    {  MM(37), MM(52) },        // A9
-    {  MM(1000), MM(1414) },    // B0
-    {  MM(707), MM(1000) },     // B1
-    {  MM(31), MM(44) },        // B10
-    {  MM(500), MM(707) },      // B2
-    {  MM(353), MM(500) },      // B3
-    {  MM(250), MM(353) },      // B4
-    {  MM(125), MM(176) },      // B6
-    {  MM(88), MM(125) },       // B7
-    {  MM(62), MM(88) },        // B8
-    {  MM(44), MM(62) },        // B9
-    {  MM(162),    MM(229) },   // C5E
-    {  IN(4.125),  IN(9.5) },   // Comm10E
-    {  MM(110),    MM(220) },   // DLE
-    {  IN(8.5),    IN(13) },    // Folio
-    {  IN(17),     IN(11) },    // Ledger
-    {  IN(11),     IN(17) }     // Tabloid
-};
+extern QSizeF qt_paperSizeToQSizeF(QPrinter::PaperSize size);
 
 QtopiaPrintEngine::QtopiaPrintEngine(QPrinter::PrinterMode mode)
     : QPaintEngine(*(new QtopiaPrintEnginePrivate( mode )))
@@ -140,9 +97,9 @@ bool QtopiaPrintEngine::end()
     // Output the fax data to a file (TODO: send to the print queuing daemon).
     QString filename;
     if ( !d->outputFileName.isEmpty() )
-        filename = QString(::getenv("HOME")) + "/Documents/" + d->outputFileName;
+        filename = QString::fromLocal8Bit(qgetenv("HOME").constData()) + QLatin1String("/Documents/") + d->outputFileName;
     else
-        filename = QString(::getenv("HOME")) + "/tmp/" + "qwsfax.tiff";
+        filename = QString::fromLocal8Bit(qgetenv("HOME").constData()) + QLatin1String("/tmp/qwsfax.tiff");
 
     setProperty(QPrintEngine::PPK_OutputFileName, filename);
     QFile file( filename );
@@ -169,7 +126,7 @@ bool QtopiaPrintEngine::end()
     QByteArray data;
     QDataStream out(&data, QIODevice::WriteOnly);
     out << variant;
-    QCopChannel::send("QPE/Service/Print", "print(QVariant)", data);
+    QCopChannel::send(QLatin1String("QPE/Service/Print"), QLatin1String("print(QVariant)"), data);
 
     return true;
 }
@@ -201,9 +158,11 @@ void QtopiaPrintEngine::updateState(const QPaintEngineState &state)
 
 QRect QtopiaPrintEngine::paperRect() const
 {
-    PaperSize s = paperSizes[d_func()->pageSize];
-    int w = qRound(s.width*d_func()->resolution/72.);
-    int h = qRound(s.height*d_func()->resolution/72.);
+    QSizeF s = qt_paperSizeToQSizeF(d_func()->paperSize);
+    s.rwidth() = MM(s.width());
+    s.rheight() = MM(s.height());
+    int w = qRound(s.width()*d_func()->resolution/72.);
+    int h = qRound(s.height()*d_func()->resolution/72.);
     if (d_func()->orientation == QPrinter::Portrait)
         return QRect(0, 0, w, h);
     else
@@ -313,8 +272,8 @@ QVariant QtopiaPrintEngine::property(PrintEnginePropertyKey key) const
     case PPK_PageRect:
         ret = pageRect();
         break;
-    case PPK_PageSize:
-        ret = d->pageSize;
+    case PPK_PaperSize:
+        ret = d->paperSize;
         break;
     case PPK_PaperRect:
         ret = paperRect();
@@ -371,8 +330,8 @@ void QtopiaPrintEngine::setProperty(PrintEnginePropertyKey key, const QVariant &
     case PPK_PageOrder:
         d->pageOrder = QPrinter::PageOrder(value.toInt());
         break;
-    case PPK_PageSize:
-        d->pageSize = QPrinter::PageSize(value.toInt());
+    case PPK_PaperSize:
+        d->paperSize = QPrinter::PaperSize(value.toInt());
         break;
     case PPK_PaperSource:
         d->paperSource = QPrinter::PaperSource(value.toInt());
@@ -458,8 +417,6 @@ void QtopiaPrintEnginePrivate::writeG3FaxHeader()
 // are beyond this limit, or pad lines to reach this limit.
 #define	TIFF_FAX_WIDTH			1728
 
-static int yVal;
-
 void QtopiaPrintEnginePrivate::writeG3FaxPage()
 {
     // Pad the image file to a word boundary, just in case.
@@ -518,7 +475,6 @@ void QtopiaPrintEnginePrivate::writeG3FaxPage()
     int width = pageImage->width();
     QImage::Format imageFormat = pageImage->format();
     for ( int y = 0; y < pageImage->height(); ++y ) {
-        yVal = y;
 	unsigned char *scan = pageImage->scanLine(y);
 	int prev, pixel, len;
         writeG3EOL();
@@ -845,7 +801,7 @@ void QtopiaPrintEnginePrivate::writeG3EOL()
         bitToPad = 8 - partialBits + 4;
     }
 
-    partialByte = ( ( partialByte << bitToPad + 12 ) | 0x0001 );
+    partialByte = ((partialByte << (bitToPad + 12)) | 0x0001);
     partialBits += bitToPad + 12;
 
     while ( partialBits >= 8 ) {
@@ -901,5 +857,7 @@ void QtopiaPrintBuffer::pad()
     while ( ( _data.size() % 4 ) != 0 )
 	_data.append( (char)0 );
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_PRINTER

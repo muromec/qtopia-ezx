@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,7 +54,8 @@
 #ifndef QT_NO_SCRIPT
 
 #include "qscriptecmacore_p.h"
-#include "qscriptclassdata_p.h"
+
+QT_BEGIN_NAMESPACE
 
 namespace QScript { namespace Ecma {
 
@@ -70,35 +65,7 @@ public:
     Array(QScriptEnginePrivate *engine);
     virtual ~Array();
 
-    inline QScriptClassInfo *classInfo() const
-        { return m_classInfo; }
-
     virtual void execute(QScriptContextPrivate *context);
-
-    class ArrayClassData: public QScriptClassData
-    {
-        QScriptClassInfo *m_classInfo;
-
-    public:
-        ArrayClassData(QScriptClassInfo *classInfo);
-        virtual ~ArrayClassData();
-
-        inline QScriptClassInfo *classInfo() const
-            { return m_classInfo; }
-
-        virtual void mark(const QScriptValueImpl &object, int generation);
-        virtual bool resolve(const QScriptValueImpl &object,
-                             QScriptNameIdImpl *nameId,
-                             QScript::Member *member,
-                             QScriptValueImpl *base);
-        virtual bool get(const QScriptValueImpl &obj, const Member &m,
-                         QScriptValueImpl *out_value);
-        virtual bool put(QScriptValueImpl *object, const Member &member,
-                         const QScriptValueImpl &value);
-        virtual int extraMemberCount(const QScriptValueImpl &object);
-        virtual bool extraMember(const QScriptValueImpl &object,
-                                 int index, Member *member);
-    };
 
     class Instance: public QScriptObjectData {
     public:
@@ -113,7 +80,7 @@ public:
     };
 
     inline Instance *get(const QScriptValueImpl &object) const
-    { return Instance::get(object, m_classInfo); }
+    { return Instance::get(object, classInfo()); }
 
     void newArray(QScriptValueImpl *result,
                   const QScript::Array &value = QScript::Array());
@@ -155,12 +122,12 @@ protected:
     static QScriptValueImpl method_unshift(QScriptContextPrivate *context,
                                            QScriptEnginePrivate *eng,
                                            QScriptClassInfo *classInfo);
-
-    QScriptClassInfo *m_classInfo;
 };
 
 } } // namespace QScript::Ecma
 
 #endif // QT_NO_SCRIPT
-#endif
 
+QT_END_NAMESPACE
+
+#endif

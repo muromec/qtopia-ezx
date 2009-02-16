@@ -4,7 +4,7 @@
 /*                                                                         */
 /*    Type 1 objects manager (body).                                       */
 /*                                                                         */
-/*  Copyright 1996-2001, 2002, 2003, 2004, 2005, 2006 by                   */
+/*  Copyright 1996-2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 by       */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -191,13 +191,11 @@
   FT_LOCAL_DEF( void )
   T1_Face_Done( T1_Face  face )
   {
-    FT_Memory  memory;
-    T1_Font    type1 = &face->type1;
-
-
     if ( face )
     {
-      memory = face->root.memory;
+      FT_Memory  memory = face->root.memory;
+      T1_Font    type1  = &face->type1;
+
 
 #ifndef T1_CONFIG_OPTION_NO_MM_SUPPORT
       /* release multiple masters information */
@@ -300,7 +298,6 @@
 
     FT_UNUSED( num_params );
     FT_UNUSED( params );
-    FT_UNUSED( face_index );
     FT_UNUSED( stream );
 
 
@@ -363,7 +360,10 @@
       root->family_name = info->family_name;
       /* assume "Regular" style if we don't know better */
       root->style_name = (char *)"Regular";
-      if ( root->family_name )
+
+      if ( info->weight )
+        root->style_name = info->weight;
+      else if ( root->family_name )
       {
         char*  full   = info->full_name;
         char*  family = root->family_name;

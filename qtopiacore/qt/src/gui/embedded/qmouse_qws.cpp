@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,14 +41,16 @@
 #include "qdebug.h"
 #include "qscreen_qws.h"
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QWSPointerCalibrationData
     \ingroup qws
 
     \brief The QWSPointerCalibrationData class is a container for
-    mouse calibration data in Qtopia Core.
+    mouse calibration data in Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
     QWSPointerCalibrationData stores device and screen coordinates in
     the devPoints and screenPoints variables, respectively.
@@ -67,8 +60,7 @@
     device and screen coordinates, and pass the object to the mouse
     driver using the QWSMouseHandler::calibrate() function.
 
-    \sa QWSCalibratedMouseHandler, {qtopiacore/mousecalibration}{Mouse
-    Calibration Example}
+    \sa QWSCalibratedMouseHandler, {Mouse Calibration Example}
 */
 
 /*!
@@ -108,18 +100,18 @@ public:
     \ingroup qws
 
     \brief The QWSMouseHandler class is a base class for mouse drivers in
-    Qtopia Core.
+    Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    \l {Qtopia Core} provides ready-made drivers for several mouse
-    protocols, see the \l {Qtopia Core Pointer Handling}{pointer
+    \l{Qt for Embedded Linux} provides ready-made drivers for several mouse
+    protocols, see the \l{Qt for Embedded Linux Pointer Handling}{pointer
     handling} documentation for details. Custom mouse drivers can be
     implemented by subclassing the QWSMouseHandler class and creating
-    a mouse driver plugin (derived from QMouseDriverPlugin). \l
-    {Qtopia Core}'s implementation of the QMouseDriverFactory class
+    a mouse driver plugin (derived from QMouseDriverPlugin).
+    The default implementation of the QMouseDriverFactory class
     will automatically detect the plugin, and load the driver into the
-    server application at runtime using Qt's \l {How to Create Qt
+    server application at run-time using Qt's \l {How to Create Qt
     Plugins}{plugin system}.
 
     The mouse driver receives mouse events from the system device and
@@ -131,14 +123,14 @@ public:
     QSocketNotifier class provides support for monitoring activity on
     a file descriptor. When the socket notifier receives data, it will
     call the mouse driver's mouseChanged() function to send the event
-    to the \l {Qtopia Core} server application for relaying to
+    to the \l{Qt for Embedded Linux} server application for relaying to
     clients.
 
     If you are creating a driver for a device that needs calibration
     or noise reduction, such as a touchscreen, use the
     QWSCalibratedMouseHandler subclass instead to take advantage of
     the calibrate() and clearCalibration() functions. The \l
-    {qtopiacore/mousecalibration}{Mouse Calibration example}
+    {qws/mousecalibration}{Mouse Calibration}
     demonstrates how to write a simple program using the mechanisms
     provided by the QWSMouseHandler class to calibrate a mouse driver.
 
@@ -156,7 +148,7 @@ public:
     necessary). Finally, QWSMouseHandler provides the pos() function
     returning the current mouse position.
 
-    \sa QMouseDriverPlugin, QMouseDriverFactory, {Qtopia Core Pointer
+    \sa QMouseDriverPlugin, QMouseDriverFactory, {Qt for Embedded Linux Pointer
     Handling}
 */
 
@@ -245,8 +237,8 @@ void QWSMouseHandler::setScreen(const QScreen *screen)
     Notifies the system of a new mouse event.
 
     This function updates the current mouse position and sends the
-    event to the \l {Qtopia Core} server application for delivery to
-    the correct widget.  Note that a custom mouse driver must call
+    event to the \l{Qt for Embedded Linux} server application for
+    delivery to the correct widget. Note that a custom mouse driver must call
     this function whenever it wants to deliver a new mouse event.
 
     The given \a position is the global position of the mouse cursor.
@@ -295,12 +287,12 @@ void QWSMouseHandler::mouseChanged(const QPoint &position, int state, int wheel)
     \ingroup qws
 
     \brief The QWSCalibratedMouseHandler class provides mouse
-    calibration and noise reduction in Qtopia Core.
+    calibration and noise reduction in Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    \l {Qtopia Core} provides ready-made drivers for several mouse
-    protocols, see the \l {Qtopia Core Pointer Handling}{pointer
+    \l{Qt for Embedded Linux} provides ready-made drivers for several mouse
+    protocols, see the \l{Qt for Embedded Linux Pointer Handling}{pointer
     handling} documentation for details. In general, custom mouse
     drivers can be implemented by subclassing the QWSMouseHandler
     class. But when the system device does not have a fixed mapping
@@ -308,11 +300,11 @@ void QWSMouseHandler::mouseChanged(const QPoint &position, int state, int wheel)
     (e.g., a touchscreen), you should derive from the
     QWSCalibratedMouseHandler class instead to take advantage of its
     calibration functionality. As always, you must also create a mouse
-    driver plugin (derived from QMouseDriverPlugin); \l {Qtopia
-    Core}'s implementation of the QMouseDriverFactory class will then
+    driver plugin (derived from QMouseDriverPlugin);
+    the implementation of the QMouseDriverFactory class will then
     automatically detect the plugin, and load the driver into the
-    server application at runtime using Qt's \l {How to Create Qt
-    Plugins}{plugin system}.
+    server application at run-time using Qt's
+    \l{How to Create Qt Plugins}{plugin system}.
 
     QWSCalibratedMouseHandler provides an implementation of the
     calibrate() function to update the calibration parameters based on
@@ -340,7 +332,7 @@ void QWSMouseHandler::mouseChanged(const QPoint &position, int state, int wheel)
     can be manipulated using the setFilterSize() function.
 
     \sa QWSMouseHandler, QWSPointerCalibrationData,
-    {qtopiacore/mousecalibration}{Mouse Calibration Example}
+    {Mouse Calibration Example}
 */
 
 
@@ -551,10 +543,7 @@ void QWSCalibratedMouseHandler::calibrate(const QWSPointerCalibrationData *data)
     device coordinates (\c Xd, \c Yd) into screen coordinates (\c Xs,
     \c Ys) using the following equations:
 
-    \code
-        s*Xs = a*Xd + b*Yd + c
-        s*Ys = d*Xd + e*Yd + f
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qmouse_qws.cpp 0
 
     \sa mouseChanged()
 */
@@ -654,3 +643,4 @@ bool QWSCalibratedMouseHandler::sendFiltered(const QPoint &position, int button)
     return sent;
 }
 
+QT_END_NAMESPACE

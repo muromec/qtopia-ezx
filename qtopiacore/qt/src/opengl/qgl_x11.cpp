@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -68,6 +62,12 @@
 #include <X11/Xutil.h>
 #include <X11/Xos.h>
 #include <X11/Xatom.h>
+
+#if defined(Q_OS_LINUX) || defined(Q_OS_BSD4)
+#include <dlfcn.h>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 extern Drawable qt_x11Handle(const QPaintDevice *pd);
 extern const QX11Info *qt_x11Info(const QPaintDevice *pd);
@@ -431,6 +431,13 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
         if (!d->gpm)
             return false;
     }
+    QString glxExt = QString(QLatin1String(glXGetClientString(QX11Info::display(), GLX_EXTENSIONS)));
+    if (glxExt.contains(QLatin1String("GLX_SGI_video_sync"))) {
+        if (d->glFormat.swapInterval() == -1)
+            d->glFormat.setSwapInterval(0);
+    } else {
+        d->glFormat.setSwapInterval(-1);
+    }
     return true;
 }
 
@@ -450,7 +457,7 @@ bool QGLContext::chooseContext(const QGLContext* shareContext)
 void *QGLContext::chooseVisual()
 {
     Q_D(QGLContext);
-    static int bufDepths[] = { 8, 4, 2, 1 };        // Try 16, 12 also?
+    static const int bufDepths[] = { 8, 4, 2, 1 };        // Try 16, 12 also?
     //todo: if pixmap, also make sure that vi->depth == pixmap->depth
     void* vis = 0;
     int i = 0;
@@ -512,7 +519,6 @@ void *QGLContext::chooseVisual()
 
 
 /*!
-
   \internal
 
   \bold{X11 only:} This virtual function chooses a visual
@@ -685,9 +691,44 @@ void QGLContext::swapBuffers() const
     Q_D(const QGLContext);
     if (!d->valid)
         return;
-    if (!deviceIsPixmap())
+    if (!deviceIsPixmap()) {
+        int interval = d->glFormat.swapInterval();
+        if (interval > 0) {
+            typedef int (*qt_glXGetVideoSyncSGI)(uint *);
+            typedef int (*qt_glXWaitVideoSyncSGI)(int, int, uint *);
+            static qt_glXGetVideoSyncSGI glXGetVideoSyncSGI = 0;
+            static qt_glXWaitVideoSyncSGI glXWaitVideoSyncSGI = 0;
+            static bool resolved = false;
+            if (!resolved) {
+                QString glxExt = QString(QLatin1String(glXGetClientString(QX11Info::display(), GLX_EXTENSIONS)));
+                if (glxExt.contains(QLatin1String("GLX_SGI_video_sync"))) {
+#if defined(Q_OS_LINUX) || defined(Q_OS_BSD4)
+                    void *handle = dlopen(NULL, RTLD_LAZY);
+                    if (handle) {
+                        glXGetVideoSyncSGI = (qt_glXGetVideoSyncSGI) dlsym(handle, "glXGetVideoSyncSGI");
+                        glXWaitVideoSyncSGI = (qt_glXWaitVideoSyncSGI) dlsym(handle, "glXWaitVideoSyncSGI");
+                        dlclose(handle);
+                    }
+                    if (!glXGetVideoSyncSGI)
+#endif
+                    {
+                        extern const QString qt_gl_library_name();
+                        QLibrary lib(qt_gl_library_name());
+                        glXGetVideoSyncSGI = (qt_glXGetVideoSyncSGI) lib.resolve("glXGetVideoSyncSGI");
+                        glXWaitVideoSyncSGI = (qt_glXWaitVideoSyncSGI) lib.resolve("glXWaitVideoSyncSGI");
+                    }
+                }
+                resolved = true;
+            }
+            if (glXGetVideoSyncSGI && glXWaitVideoSyncSGI) {
+                uint counter;
+                if (!glXGetVideoSyncSGI(&counter))
+                    glXWaitVideoSyncSGI(interval + 1, (counter + interval) % (interval + 1), &counter);
+            }
+        }
         glXSwapBuffers(qt_x11Info(d->paintDevice)->display(),
                        static_cast<QWidget *>(d->paintDevice)->winId());
+    }
 }
 
 QColor QGLContext::overlayTransparentColor() const
@@ -895,11 +936,6 @@ void QGLContext::generateFontDisplayLists(const QFont & fnt, int listBase)
         glXUseXFont(static_cast<Font>(f.handle()), 0, 256, listBase);
 }
 
-/*!
-    Returns a function pointer to the GL extension function passed in
-    \a proc. 0 is returned if a pointer to the function could not be
-    obtained.
-*/
 void *QGLContext::getProcAddress(const QString &proc) const
 {
     typedef void *(*qt_glXGetProcAddressARB)(const GLubyte *);
@@ -911,9 +947,19 @@ void *QGLContext::getProcAddress(const QString &proc) const
     if (!glXGetProcAddressARB) {
         QString glxExt = QString(QLatin1String(glXGetClientString(QX11Info::display(), GLX_EXTENSIONS)));
         if (glxExt.contains(QLatin1String("GLX_ARB_get_proc_address"))) {
-            extern const QString qt_gl_library_name();
-            QLibrary lib(qt_gl_library_name());
-            glXGetProcAddressARB = (qt_glXGetProcAddressARB) lib.resolve("glXGetProcAddressARB");
+#if defined(Q_OS_LINUX) || defined(Q_OS_BSD4)
+            void *handle = dlopen(NULL, RTLD_LAZY);
+            if (handle) {
+                glXGetProcAddressARB = (qt_glXGetProcAddressARB) dlsym(handle, "glXGetProcAddressARB");
+                dlclose(handle);
+            }
+            if (!glXGetProcAddressARB)
+#endif
+            {
+                extern const QString qt_gl_library_name();
+                QLibrary lib(qt_gl_library_name());
+                glXGetProcAddressARB = (qt_glXGetProcAddressARB) lib.resolve("glXGetProcAddressARB");
+            }
         }
         resolved = true;
     }
@@ -936,6 +982,7 @@ protected:
     void                initializeGL();
     void                paintGL();
     void                resizeGL(int w, int h);
+    bool                x11Event(XEvent *e) { return realWidget->x11Event(e); }
 
 private:
     QGLWidget*                realWidget;
@@ -979,7 +1026,9 @@ void QGLOverlayWidget::paintGL()
 }
 
 #undef Bool
+QT_BEGIN_INCLUDE_NAMESPACE
 #include "qgl_x11.moc"
+QT_END_INCLUDE_NAMESPACE
 
 /*****************************************************************************
   QGLWidget UNIX/GLX-specific code
@@ -1056,27 +1105,6 @@ void QGLWidgetPrivate::cleanupColormaps()
         cmap.setHandle(0);
     }
 }
-
-/*! \reimp */
-bool QGLWidget::event(QEvent *e)
-{
-    Q_D(QGLWidget);
-    // prevents X errors on some systems, where we get a flush to a
-    // hidden widget
-    if (e->type() == QEvent::Hide) {
-        makeCurrent();
-        glFinish();
-        doneCurrent();
-    } else if (e->type() == QEvent::ParentChange) {
-        if (d->glcx->d_func()->screen != d->xinfo.screen()) {
-            setContext(new QGLContext(d->glcx->requestedFormat(), this));
-            // ### recreating the overlay isn't supported atm
-        }
-    }
-
-    return QWidget::event(e);
-}
-
 
 void QGLWidget::setMouseTracking(bool enable)
 {
@@ -1390,3 +1418,5 @@ void QGLExtensions::init()
         nvidiaFboNeedsFinish = nvidiaDriverVersion >= 90.0 && nvidiaDriverVersion < 100.0;
     }
 }
+
+QT_END_NAMESPACE

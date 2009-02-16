@@ -15,6 +15,16 @@ QLineEdit:no-frame {
     border: none;
 }
 
+QLineEdit[style="QCleanlooksStyle"] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+QLineEdit[style="QWindowsXPStyle"], QLineEdit[style="QWindowsVistaStyle"] {
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
 QFrame {
     border: native;
 }
@@ -53,8 +63,14 @@ QPushButton[style="QWindowsVistaStyle"]
     
 QComboBox {
     border: native;
-    -qt-style-features: background-color;
+    -qt-style-features: background-color background-gradient;
     -qt-background-role: base;
+}
+
+QComboBox[style="QWindowsXPStyle"],
+QComboBox[style="QWindowsVistaStyle"]
+{
+    -qt-style-features: none;
 }
 
 QComboBox[style="QPlastiqueStyle"][readOnly="true"],
@@ -95,4 +111,8 @@ QProgressBar {
 
 QScrollBar {
     -qt-background-role: window;
+}
+
+QDockWidget {
+    border: native;
 }

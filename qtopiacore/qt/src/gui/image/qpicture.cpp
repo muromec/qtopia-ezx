@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,6 +52,8 @@
 #include "qpixmap.h"
 #include "qregion.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 void qt_format_text(const QFont &fnt, const QRectF &_r,
                     int tf, const QTextOption *opt, const QString& str, QRectF *brect,
@@ -90,19 +86,13 @@ void qt_format_text(const QFont &fnt, const QRectF &_r,
     depending on the window system.
 
     Example of how to record a picture:
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto RECORD
-    \skipto QPicture
-    \printuntil save
+    \snippet doc/src/snippets/picture/picture.cpp 0
 
     Note that the list of painter commands is reset on each call to
     the QPainter::begin() function.
 
     Example of how to replay a picture:
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto REPLAY
-    \skipto QPicture
-    \printuntil end();
+    \snippet doc/src/snippets/picture/picture.cpp 1
 
     Pictures can also be drawn using play(). Some basic data about a
     picture is available, for example, size(), isNull() and
@@ -458,12 +448,12 @@ bool QPicture::play(QPainter *painter)
 
 
 //
-// FakeDevice is used to create fonts with a custom DPI
+// QFakeDevice is used to create fonts with a custom DPI
 //
-class FakeDevice : public QPaintDevice
+class QFakeDevice : public QPaintDevice
 {
 public:
-    FakeDevice() { dpi_x = qt_defaultDpiX(); dpi_y = qt_defaultDpiY(); }
+    QFakeDevice() { dpi_x = qt_defaultDpiX(); dpi_y = qt_defaultDpiY(); }
     void setDpiX(int dpi) { dpi_x = dpi; }
     void setDpiY(int dpi) { dpi_y = dpi; }
     QPaintEngine *paintEngine() const { return 0; }
@@ -581,10 +571,10 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
         case QPicturePrivate::PdcDrawRoundRect:
             if (d->formatMajor <= 5) {
                 s >> ir >> i1_16 >> i2_16;
-                painter->drawRoundRect(ir, i1_16, i2_16);
+                painter->drawRoundedRect(ir, i1_16, i2_16, Qt::RelativeSize);
             } else {
                 s >> r >> i1_16 >> i2_16;
-                painter->drawRoundRect(r, i1_16, i2_16);
+                painter->drawRoundedRect(r, i1_16, i2_16, Qt::RelativeSize);
             }
             break;
         case QPicturePrivate::PdcDrawEllipse:
@@ -697,7 +687,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
                 s >> dbl;
                 QFont fnt(font);
                 if (dbl != 1.0) {
-                    FakeDevice fake;
+                    QFakeDevice fake;
                     fake.setDpiX(qRound(dbl*qt_defaultDpiX()));
                     fake.setDpiY(qRound(dbl*qt_defaultDpiY()));
                     fnt = QFont(font, &fake);
@@ -709,7 +699,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
                 int flags = Qt::TextSingleLine | Qt::TextDontClip;
 
                 QTextOption opt;
-                opt.setTextDirection(painter->layoutDirection());
+                opt.setTextDirection(Qt::LeftToRight);
 
                 QSizeF size(1, 1);
                 if (justificationWidth > 0) {
@@ -739,7 +729,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
                 painter->drawPixmap(ir, pixmap);
             } else {
                 QRectF sr;
-                if (d->dont_stream_pixmaps) {
+                if (d->in_memory_only) {
                     int index;
                     s >> r >> index >> sr;
                     Q_ASSERT(index < d->pixmap_list.size());
@@ -753,7 +743,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
             break;
         case QPicturePrivate::PdcDrawTiledPixmap: {
             QPixmap pixmap;
-            if (d->dont_stream_pixmaps) {
+            if (d->in_memory_only) {
                 int index;
                 s >> r >> index >> p;
                 Q_ASSERT(index < d->pixmap_list.size());
@@ -818,7 +808,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
             painter->setFont(font);
             break;
         case QPicturePrivate::PdcSetPen:
-            if (d->dont_stream_pixmaps) {
+            if (d->in_memory_only) {
                 int index;
                 s >> index;
                 Q_ASSERT(index < d->pen_list.size());
@@ -829,7 +819,7 @@ bool QPicture::exec(QPainter *painter, QDataStream &s, int nrecords)
             painter->setPen(pen);
             break;
         case QPicturePrivate::PdcSetBrush:
-            if (d->dont_stream_pixmaps) {
+            if (d->in_memory_only) {
                 int index;
                 s >> index;
                 Q_ASSERT(index < d->brush_list.size());
@@ -1021,9 +1011,9 @@ void QPicture::detach_helper()
     x->formatMinor = d->formatMinor;
     x->brect = d->brect;
     x->override_rect = d->override_rect;
-    x = qAtomicSetPtr(&d_ptr, x);
-    if (!x->ref.deref())
-        delete x;
+    if (!d->ref.deref())
+        delete d;
+    d_ptr = x;
 }
 
 /*!
@@ -1182,9 +1172,12 @@ QDataStream &operator>>(QDataStream &s, QPicture &r)
 
 
 #ifndef QT_NO_PICTUREIO
+
+QT_BEGIN_INCLUDE_NAMESPACE
 #include "qregexp.h"
 #include "qapplication.h"
 #include "qpictureformatplugin.h"
+QT_END_INCLUDE_NAMESPACE
 
 /*!
     \obsolete
@@ -1230,10 +1223,7 @@ static QStringList qToStringList(const QList<QByteArray> arr)
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto FORMATS
-    \skipto QStringList
-    \printuntil myProcessing
+    \snippet doc/src/snippets/picture/picture.cpp 2
 
     \sa outputFormatList() inputFormats() QPictureIO
 */
@@ -1251,10 +1241,7 @@ QStringList QPicture::inputFormatList()
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto OUTPUT
-    \skipto QStringList
-    \printuntil myProcessing
+    \snippet doc/src/snippets/picture/picture.cpp 3
 
     \sa inputFormatList() outputFormats() QPictureIO
 */
@@ -1405,20 +1392,19 @@ QPictureHandler::QPictureHandler(const char *f, const char *h, const QByteArray&
 }
 
 typedef QList<QPictureHandler *> QPHList;
-static QPHList pictureHandlers;
+Q_GLOBAL_STATIC(QPHList, pictureHandlers)
 
 #ifndef QT_NO_LIBRARY
 Q_GLOBAL_STATIC(QMutex, mutex)
-Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
+Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, factoryLoader,
                           (QPictureFormatInterface_iid,
-                           QCoreApplication::libraryPaths(),
                            QLatin1String("/pictureformats")))
 #endif
 void qt_init_picture_plugins()
 {
 #ifndef QT_NO_LIBRARY
     QMutexLocker locker(mutex());
-    QFactoryLoader *loader = ::loader();
+    QFactoryLoader *loader = factoryLoader();
     QStringList keys = loader->keys();
     for (int i = 0; i < keys.count(); ++i)
         if (QPictureFormatInterface *format = qobject_cast<QPictureFormatInterface*>(loader->instance(keys.at(i))))
@@ -1429,26 +1415,29 @@ void qt_init_picture_plugins()
 static void cleanup()
 {
     // make sure that picture handlers are delete before plugin manager
-    while (!pictureHandlers.isEmpty())
-        delete pictureHandlers.takeFirst();
+    if (QPHList *list = pictureHandlers()) {
+        qDeleteAll(*list);
+        list->clear();
+    }
 }
 
 void qt_init_picture_handlers()                // initialize picture handlers
 {
-    static bool done = false;
-    if (done) return;
-    done = true;
-
-    qAddPostRoutine(cleanup);
+    static QBasicAtomicInt done = Q_BASIC_ATOMIC_INITIALIZER(0);
+    if (done.testAndSetRelaxed(0, 1)) {
+        qAddPostRoutine(cleanup);
+    }
 }
 
 static QPictureHandler *get_picture_handler(const char *format)
 {                                                // get pointer to handler
     qt_init_picture_handlers();
     qt_init_picture_plugins();
-    for (int i = 0; i < pictureHandlers.size(); ++i) {
-        if (pictureHandlers.at(i)->format == format)
-            return pictureHandlers.at(i);
+    if (QPHList *list = pictureHandlers()) {
+        for (int i = 0; i < list->size(); ++i) {
+            if (list->at(i)->format == format)
+                return list->at(i);
+        }
     }
     return 0;                                        // no such handler
 }
@@ -1476,16 +1465,11 @@ static QPictureHandler *get_picture_handler(const char *format)
     both are null, the QPictureIO object is valid but useless.
 
     Example:
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto SVG READ
-    \skipto readSVG
-    \printuntil }
-    \skipto SVG WRITE
-    \skipto writeSVG
-    \printuntil }
-    \skipto USE SVG
-    \skipto add
-    \printuntil ...
+    \snippet doc/src/snippets/picture/picture.cpp 6
+    \codeline
+    \snippet doc/src/snippets/picture/picture.cpp 7
+    \codeline
+    \snippet doc/src/snippets/picture/picture.cpp 8
 
     Before the regular expression test, all the 0 bytes in the file header are
     converted to 1 bytes. This is done because when Qt was ASCII-based, QRegExp
@@ -1499,15 +1483,17 @@ static QPictureHandler *get_picture_handler(const char *format)
 */
 
 void QPictureIO::defineIOHandler(const char *format,
-                                const char *header,
-                                const char *flags,
-                                picture_io_handler readPicture,
-                                picture_io_handler writePicture)
+                                 const char *header,
+                                 const char *flags,
+                                 picture_io_handler readPicture,
+                                 picture_io_handler writePicture)
 {
     qt_init_picture_handlers();
-    QPictureHandler *p;
-    p = new QPictureHandler(format, header, QByteArray(flags), readPicture, writePicture);
-    pictureHandlers.prepend(p);
+    if (QPHList *list = pictureHandlers()) {
+        QPictureHandler *p;
+        p = new QPictureHandler(format, header, QByteArray(flags), readPicture, writePicture);
+        list->prepend(p);
+    }
 }
 
 
@@ -1774,10 +1760,12 @@ QByteArray QPictureIO::pictureFormat(QIODevice *d)
     if (rdlen > 0) {
         buf[rdlen - 1] = '\0';
         QString bufStr = QString::fromLatin1(buf);
-        for (int i = 0; i < pictureHandlers.size(); ++i) {
-            if (pictureHandlers.at(i)->header.indexIn(bufStr) != -1) { // try match with headers
-                format = pictureHandlers.at(i)->format;
-                break;
+        if (QPHList *list = pictureHandlers()) {
+            for (int i = 0; i < list->size(); ++i) {
+                if (list->at(i)->header.indexIn(bufStr) != -1) { // try match with headers
+                    format = list->at(i)->format;
+                    break;
+                }
             }
         }
     }
@@ -1796,10 +1784,12 @@ QList<QByteArray> QPictureIO::inputFormats()
     qt_init_picture_handlers();
     qt_init_picture_plugins();
 
-    for (int i = 0; i < pictureHandlers.size(); ++i) {
-        QPictureHandler *p = pictureHandlers.at(i);
-        if (p->read_picture && !p->obsolete  && !result.contains(p->format))
-            result.append(p->format);
+    if (QPHList *list = pictureHandlers()) {
+        for (int i = 0; i < list->size(); ++i) {
+            QPictureHandler *p = list->at(i);
+            if (p->read_picture && !p->obsolete  && !result.contains(p->format))
+                result.append(p->format);
+        }
     }
     qSort(result);
 
@@ -1816,10 +1806,12 @@ QList<QByteArray> QPictureIO::outputFormats()
     qt_init_picture_plugins();
 
     QList<QByteArray> result;
-    for (int i = 0; i < pictureHandlers.size(); ++i) {
-        QPictureHandler *p = pictureHandlers.at(i);
-        if (p->write_picture && !p->obsolete && !result.contains(p->format))
-            result.append(p->format);
+    if (QPHList *list = pictureHandlers()) {
+        for (int i = 0; i < list->size(); ++i) {
+            QPictureHandler *p = list->at(i);
+            if (p->write_picture && !p->obsolete && !result.contains(p->format))
+                result.append(p->format);
+        }
     }
     return result;
 }
@@ -1842,10 +1834,7 @@ QList<QByteArray> QPictureIO::outputFormats()
 
     Example:
 
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto PIC
-    \skipto QPictureIO
-    \printuntil }
+    \snippet doc/src/snippets/picture/picture.cpp 4
 
     \sa setIODevice() setFileName() setFormat() write() QPixmap::load()
 */
@@ -1914,10 +1903,7 @@ bool QPictureIO::read()
     The picture will be written using the specified picture format.
 
     Example:
-    \quotefromfile snippets/picture/picture.cpp
-    \skipto PIC WRITE
-    \skipto QPictureIO
-    \printuntil returned
+    \snippet doc/src/snippets/picture/picture.cpp 5
 
     \sa setIODevice() setFileName() setFormat() read() QPixmap::save()
 */
@@ -1955,6 +1941,8 @@ bool QPictureIO::write()
 
     Use simple assignment instead.
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_PICTURE
 

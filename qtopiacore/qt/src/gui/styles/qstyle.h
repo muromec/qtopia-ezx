@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include <QtGui/qsizepolicy.h>
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Gui)
 
@@ -156,7 +152,8 @@ public:
         PE_FrameGroupBox,
         PE_FrameLineEdit,
         PE_FrameMenu,
-        PE_FrameStatusBar,
+        PE_FrameStatusBar, // obsolete
+        PE_FrameStatusBarItem = PE_FrameStatusBar,
         PE_FrameTabWidget,
         PE_FrameWindow,
         PE_FrameButtonBevel,
@@ -177,6 +174,7 @@ public:
         PE_IndicatorBranch,
         PE_IndicatorButtonDropDown,
         PE_IndicatorViewItemCheck,
+        PE_IndicatorItemViewItemCheck = PE_IndicatorViewItemCheck,
         PE_IndicatorCheckBox,
         PE_IndicatorDockWidgetResizeHandle,
         PE_IndicatorHeaderArrow,
@@ -196,6 +194,12 @@ public:
         PE_Widget,
 
         PE_IndicatorColumnViewArrow,
+        PE_IndicatorItemViewItemDrop,
+
+        PE_PanelItemViewItem,
+        PE_PanelItemViewRow, // ### Qt 5: remove
+
+        PE_PanelStatusBar,
 
         // do not add any values below/greater this
         PE_CustomBase = 0xf000000
@@ -264,6 +268,8 @@ public:
 
         CE_ColumnViewGrip,
 
+        CE_ItemViewItem,
+
         // do not add any values below/greater than this
         CE_CustomBase = 0xf0000000
     };
@@ -318,6 +324,7 @@ public:
         SE_TabWidgetRightCorner,
 
         SE_ViewItemCheckIndicator,
+        SE_ItemViewItemCheckIndicator = SE_ViewItemCheckIndicator,
 
         SE_TabBarTearIndicator,
 
@@ -346,6 +353,10 @@ public:
         SE_FrameLayoutItem,
         SE_GroupBoxLayoutItem,
         SE_TabWidgetLayoutItem,
+
+        SE_ItemViewItemDecoration,
+        SE_ItemViewItemText,
+        SE_ItemViewItemFocusRect,
 
         // do not add any values below/greater than this
         SE_CustomBase = 0xf0000000
@@ -422,7 +433,7 @@ public:
         SC_GroupBoxLabel =         0x00000002,
         SC_GroupBoxContents =      0x00000004,
         SC_GroupBoxFrame =         0x00000008,
-        
+
         SC_MdiMinButton     =      0x00000001,
         SC_MdiNormalButton  =      0x00000002,
         SC_MdiCloseButton   =      0x00000004,
@@ -553,6 +564,9 @@ public:
         PM_LayoutBottomMargin,
         PM_LayoutHorizontalSpacing,
         PM_LayoutVerticalSpacing,
+        PM_TabBar_ScrollButtonOverlap,
+
+        PM_TextCursorWidth,
 
         // do not add any values below/greater than this
         PM_CustomBase = 0xf0000000
@@ -586,6 +600,7 @@ public:
         CT_HeaderSection,
         CT_GroupBox,
         CT_MdiControls,
+        CT_ItemViewItem,
         // do not add any values below/greater than this
         CT_CustomBase = 0xf0000000
     };
@@ -678,6 +693,16 @@ public:
         SH_WizardStyle,
         SH_ItemView_ArrowKeysNavigateIntoChildren,
         SH_Menu_Mask,
+        SH_Menu_FlashTriggeredItem,
+        SH_Menu_FadeOutOnHide,
+        SH_SpinBox_ClickAutoRepeatThreshold,
+        SH_ItemView_PaintAlternatingRowColorsForEmptyArea,
+	    SH_FormLayoutWrapPolicy,
+        SH_TabWidget_DefaultTabPosition,
+        SH_ToolBar_Movable,
+        SH_FormLayoutFieldGrowthPolicy,
+        SH_FormLayoutFormAlignment,
+        SH_FormLayoutLabelAlignment,
 
         // Add new style hint values here
 
@@ -753,6 +778,17 @@ public:
         SP_DirHomeIcon,
         SP_CommandLink,
         SP_VistaShield,
+        SP_BrowserReload,
+        SP_BrowserStop,
+        SP_MediaPlay,
+        SP_MediaStop,
+        SP_MediaPause,
+        SP_MediaSkipForward,
+        SP_MediaSkipBackward,
+        SP_MediaSeekForward,
+        SP_MediaSeekBackward,
+        SP_MediaVolume,
+        SP_MediaVolumeMuted,
         // do not add any values below/greater than this
         SP_CustomBase = 0xf0000000
     };
@@ -789,9 +825,9 @@ protected Q_SLOTS:
     QIcon standardIconImplementation(StandardPixmap standardIcon, const QStyleOption *opt = 0,
                                      const QWidget *widget = 0) const;
     int layoutSpacingImplementation(QSizePolicy::ControlType control1,
-                                    QSizePolicy::ControlType control2, 
+                                    QSizePolicy::ControlType control2,
                                     Qt::Orientation orientation,
-                                    const QStyleOption *option = 0, 
+                                    const QStyleOption *option = 0,
                                     const QWidget *widget = 0) const;
 
 private:
@@ -807,6 +843,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QStyle::SubControls)
 #if !defined(QT_NO_DEBUG_STREAM) && !defined(QT_NO_DEBUG)
 Q_GUI_EXPORT QDebug operator<<(QDebug debug, QStyle::State state);
 #endif
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

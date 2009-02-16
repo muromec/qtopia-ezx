@@ -1,47 +1,39 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qglobal.h"
+#include "qlibrary.h"
 #include "qcursor.h"
 #include "qapplication.h"
 #include "private/qapplication_p.h"
@@ -64,6 +56,7 @@
 #include "private/qwscommand_qws_p.h"
 #include "qwsproperty_qws.h"
 #include "qscreen_qws.h"
+#include "qscreenproxy_qws.h"
 #include "qcopchannel_qws.h"
 #include "private/qlock_p.h"
 #include "private/qwslock_p.h"
@@ -85,7 +78,7 @@
 #include "qdebug.h"
 #include "qeventdispatcher_qws_p.h"
 #if !defined(QT_NO_GLIB)
-#  include "qwseventdispatcher_glib_p.h"
+#  include "qeventdispatcher_glib_qws_p.h"
 #endif
 
 
@@ -114,7 +107,7 @@
 #endif
 #include <sys/socket.h>
 #else
-#include "private/qsharedmemory_p.h"
+#include "private/qwssharedmemory_p.h"
 #endif
 #endif
 
@@ -151,12 +144,17 @@ int *qt_last_y = 0;
 static int mouse_x_root = -1;
 static int mouse_y_root = -1;
 static int mouse_state = 0;
+static int mouse_double_click_distance = 5;
 
 int qt_servershmid = -1;
 
 bool qws_overrideCursor = false;
 #ifndef QT_NO_QWS_MANAGER
 #include "qdecorationfactory_qws.h"
+
+QT_BEGIN_NAMESPACE
+
+QT_USE_NAMESPACE
 static QDecoration *qws_decoration = 0;
 #endif
 
@@ -182,7 +180,7 @@ extern "C" void dumpmem(const char* m)
 */
 #endif
 
-// Get the name of the directory where Qtopia Core temporary data should
+// Get the name of the directory where Qt for Embedded Linux temporary data should
 // live.
 QString qws_dataDir()
 {
@@ -192,23 +190,23 @@ QString qws_dataDir()
     QByteArray dataDir = QString(QLatin1String("/tmp/qtembedded-%1")).arg(qws_display_id).toLocal8Bit();
     if (mkdir(dataDir, 0700)) {
         if (errno != EEXIST) {
-            qFatal("Cannot create Qtopia Core data directory: %s", dataDir.constData());
+            qFatal("Cannot create Qt for Embedded Linux data directory: %s", dataDir.constData());
         }
     }
 
     struct stat buf;
     if (lstat(dataDir, &buf))
-        qFatal("stat failed for Qtopia Core data directory: %s", dataDir.constData());
+        qFatal("stat failed for Qt for Embedded Linux data directory: %s", dataDir.constData());
 
     if (!S_ISDIR(buf.st_mode))
         qFatal("%s is not a directory", dataDir.constData());
 
 #ifndef Q_OS_INTEGRITY
     if (buf.st_uid != getuid())
-        qFatal("Qtopia Core data directory is not owned by user %d", getuid());
+        qFatal("Qt for Embedded Linux data directory is not owned by user %d", getuid());
 
     if ((buf.st_mode & 0677) != 0600)
-        qFatal("Qtopia Core data directory has incorrect permissions: %s", dataDir.constData());
+        qFatal("Qt for Embedded Linux data directory has incorrect permissions: %s", dataDir.constData());
 #endif
     dataDir += "/";
 
@@ -216,7 +214,7 @@ QString qws_dataDir()
     return result;
 }
 
-// Get the filename of the pipe Qtopia Core uses for server/client comms
+// Get the filename of the pipe Qt for Embedded Linux uses for server/client comms
 Q_GUI_EXPORT QString qws_qtePipeFilename()
 {
     return (qws_dataDir() + QString(QLatin1String(QTE_PIPE)).arg(qws_display_id));
@@ -259,6 +257,130 @@ void QApplicationPrivate::setMaxWindowRect(const QScreen *screen, int screenNo,
     if ( qt_desktopWidget ) // XXX workaround crash
         emit QApplication::desktop()->workAreaResized(screenNo);
 }
+
+#ifndef QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+
+typedef void (*TransformFunc)(QScreen *, int);
+#ifndef QT_NO_QWS_TRANSFORMED
+extern "C" void qws_setScreenTransformation(QScreen *, int);
+#endif
+static TransformFunc getTransformationFunction()
+{
+    static TransformFunc func = 0;
+
+    if (!func) {
+#ifdef QT_NO_QWS_TRANSFORMED
+#  ifndef QT_NO_LIBRARY
+        // symbol is not built into the library, search for the plugin
+        const QStringList paths = QApplication::libraryPaths();
+        foreach (QString path, paths) {
+            const QString file = path + QLatin1String("/gfxdrivers/libqgfxtransformed");
+            func = (TransformFunc)QLibrary::resolve(file,
+                                                    "qws_setScreenTransformation");
+            if (func)
+                break;
+        }
+#  endif
+#else
+        func = qws_setScreenTransformation;
+#endif
+        if (!func)
+            func = (TransformFunc)-1;
+    }
+
+    if (func == (TransformFunc)-1)
+        return 0;
+
+    return func;
+}
+
+static void setScreenTransformation(int screenNo, int transformation)
+{
+    QScreen *screen = QScreen::instance();
+    const QList<QScreen*> subScreens = screen->subScreens();
+
+    if (screenNo == -1)
+        screenNo = 0;
+
+    if (screenNo == -1 && !subScreens.isEmpty())
+        screenNo = 0;
+
+    if (subScreens.isEmpty() && screenNo == 0) {
+        // nothing
+    } else if (screenNo < 0 || screenNo >= subScreens.size()) {
+        qWarning("setScreenTransformation: invalid screen %i", screenNo);
+        return;
+    }
+
+    if (screenNo < subScreens.size())
+        screen = subScreens.at(screenNo);
+
+    QApplicationPrivate *ap = QApplicationPrivate::instance();
+    ap->setScreenTransformation(screen, screenNo, transformation);
+}
+
+void QApplicationPrivate::setScreenTransformation(QScreen *screen,
+                                                  int screenNo,
+                                                  int transformation)
+{
+    QScreen *transformed = screen;
+
+    while (transformed->classId() == QScreen::ProxyClass)
+        transformed = static_cast<QProxyScreen*>(transformed)->screen();
+
+    if (transformed->classId() != QScreen::TransformedClass)
+        return;
+
+    TransformFunc setScreenTransformation = getTransformationFunction();
+    if (!setScreenTransformation)
+        return;
+
+    setScreenTransformation(transformed, transformation);
+
+    // need to re-configure() proxies bottom-up
+    if (screen->classId() == QScreen::ProxyClass) {
+        QList<QProxyScreen*> proxies;
+        QScreen *s = screen;
+
+        do {
+            QProxyScreen *proxy = static_cast<QProxyScreen*>(s);
+            proxies.append(proxy);
+            s = proxy->screen();
+        } while (s->classId() == QScreen::ProxyClass);
+
+        do {
+            QProxyScreen *proxy = proxies.takeLast();
+            proxy->setScreen(proxy->screen()); // triggers configure()
+        } while (!proxies.isEmpty());
+    }
+
+    if (qt_desktopWidget) { // XXX workaround crash for early screen transform events
+        QDesktopWidget *desktop = QApplication::desktop();
+
+        emit desktop->resized(screenNo);
+        if (maxWindowRect(screen).isEmpty()) // not explicitly set
+            emit desktop->workAreaResized(screenNo);
+    }
+
+    QWSServer *server = QWSServer::instance();
+    if (server) {
+        server->updateWindowRegions();
+        QRegion r = screen->region();
+        server->refresh(r);
+    }
+
+    // make sure maximized and fullscreen windows are updated
+    QWidgetList list = QApplication::topLevelWidgets();
+    for (int i = list.size() - 1; i >= 0; --i) {
+        QWidget *w = list.at(i);
+        if (w->isFullScreen())
+            w->d_func()->setFullScreenSize_helper();
+        else if (w->isMaximized())
+            w->d_func()->setMaxWindowState_helper();
+    }
+}
+
+#endif // QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
 
 /*****************************************************************************
   Internal variables and functions
@@ -456,17 +578,15 @@ QWSEvent* QWSDisplay::Data::dequeue()
 {
     QWSEvent *r=0;
     if (queue.count()) {
-        r = queue.first(); queue.removeFirst();
+        r = queue.first();
+        queue.removeFirst();
+        if (r->type == QWSEvent::Region)
+            region_events_count--;
     } else if (mouse_event) {
         r = mouse_event;
         mouse_event = 0;
 #ifdef QAPPLICATION_EXTRA_DEBUG
         mouse_event_count = 0;
-#endif
-#if 0
-    } else {
-        r = region_event;
-        region_event = 0;
 #endif
     }
     return r;
@@ -486,14 +606,6 @@ bool QWSDisplay::Data::directServerConnection()
 #endif
 }
 
-#if 0
-void QWSDisplay::Data::offsetPendingExpose(int, const QPoint &);
-void QWSDisplay::Data::translateExpose(QWSRegionModifiedEvent *re, const QPoint &p)
-{
-    for (int i = 0; i < re->simpleData.nrectangles; i++)
-        re->rectangles[i].translate(p.x(), p.y());
-}
-#endif
 void QWSDisplay::Data::create(int n)
 {
     QWSCreateCommand cmd(n);
@@ -574,6 +686,7 @@ void QWSDisplay::Data::reinit( const QString& newAppName )
 
     delete connected_event;
     connected_event = 0;
+    region_events_count = 0;
 //    region_ack = 0;
     delete mouse_event;
     mouse_event = 0;
@@ -669,6 +782,7 @@ void QWSDisplay::Data::reinit( const QString& newAppName )
 void QWSDisplay::Data::init()
 {
     connected_event = 0;
+    region_events_count = 0;
 //    region_ack = 0;
     mouse_event = 0;
     mouse_state = -1;
@@ -782,7 +896,8 @@ void QWSDisplay::Data::init()
 #endif
     {
         //QWS server process
-        qt_screen->initDevice();
+        if (!qt_screen->initDevice())
+            qFatal("Unable to initialize screen driver!");
     }
 
     sharedRamSize -= sizeof(int);
@@ -837,7 +952,6 @@ QWSEvent* QWSDisplay::Data::readMore()
     return 0;
 #endif
 }
-
 
 void QWSDisplay::Data::fillQueue()
 {
@@ -901,41 +1015,10 @@ void QWSDisplay::Data::fillQueue()
 #ifndef QT_NO_QWS_MULTIPROCESS
         } else if (e->type == QWSEvent::Region && clientLock) {
             // not really an unlock, decrements the semaphore
+            region_events_count++;
             clientLock->unlock(QWSLock::RegionEvent);
             queue.append(e);
 #endif
-#if 0
-        } else if (e->type == QWSEvent::RegionModified) {
-            QWSRegionModifiedEvent *re = static_cast<QWSRegionModifiedEvent *>(e);
-            if (re->simpleData.is_ack) {
-                region_ack = re;
-                region_offset = QPoint();
-                region_offset_window = 0;
-            } else {
-                if (region_offset_window == re->window() && !region_offset.isNull()) {
-//                    qDebug("Rgn Adjust a %d, %d", region_offset.x(), region_offset.y());
-                    translateExpose(re, region_offset);
-                }
-                if (!region_event || re->window() == region_event->window()) {
-                    if (region_event) {
-                        QRegion r1;
-                        r1.setRects(re->rectangles, re->simpleData.nrectangles);
-                        QRegion r2;
-                        r2.setRects(region_event->rectangles,
-                                region_event->simpleData.nrectangles);
-                        QRegion ur(r1 + r2);
-                        region_event->setData(reinterpret_cast<const char *>(ur.rects().constData()),
-                                ur.rects().count() * sizeof(QRect), true);
-                        region_event->simpleData.nrectangles = ur.rects().count();
-                        delete e;
-                    } else {
-                        region_event = re;
-                    }
-                } else {
-                    queue.append(e);
-                }
-            }
-#endif // 0 (RegionModified)
 #ifndef QT_NO_QWS_PROPERTIES
         } else if (e->type == QWSEvent::PropertyReply) {
             QWSPropertyReplyEvent *pe = static_cast<QWSPropertyReplyEvent*>(e);
@@ -955,6 +1038,13 @@ void QWSDisplay::Data::fillQueue()
             // Process this ASAP, in case new widgets are created (startup)
             setMaxWindowRect((static_cast<QWSMaxWindowRectEvent*>(e))->simpleData.rect);
             delete e;
+#ifndef QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+        } else if (e->type == QWSEvent::ScreenTransformation) {
+            QWSScreenTransformationEvent *pe = static_cast<QWSScreenTransformationEvent*>(e);
+            setScreenTransformation(pe->simpleData.screen,
+                                    pe->simpleData.transformation);
+            delete e;
+#endif
 #ifndef QT_NO_COP
         } else if (e->type == QWSEvent::QCopMessage) {
             QWSQCopMessageEvent *pe = static_cast<QWSQCopMessageEvent*>(e);
@@ -975,31 +1065,6 @@ void QWSDisplay::Data::fillQueue()
         e = readMore();
     }
 }
-#if 0
-void QWSDisplay::Data::offsetPendingExpose(int window, const QPoint &offset)
-{
-    if (offset.isNull())
-        return;
-
-    region_offset = offset;
-    region_offset_window = window;
-    for (int i = 0; i < queue.size(); ++i) {
-        QWSEvent *e = queue.at(i);
-        if (e->type == QWSEvent::RegionModified) {
-            QWSRegionModifiedEvent *re = static_cast<QWSRegionModifiedEvent *>(e);
-            if (!re->simpleData.is_ack && region_offset_window == re->window()) {
-//                qDebug("Rgn Adjust b %d, %d", region_offset.x(), region_offset.y());
-                translateExpose(re, region_offset);
-            }
-        }
-    }
-
-    if (region_event && region_offset_window == region_event->window()) {
-//        qDebug("Rgn Adjust c %d, %d", region_offset.x(), region_offset.y());
-        translateExpose(region_event, region_offset);
-    }
-}
-#endif
 
 #ifndef QT_NO_QWS_MULTIPROCESS
 
@@ -1017,7 +1082,7 @@ void QWSDisplay::Data::connectToPipe()
     int i = 0;
     while (!csocket->connectToLocalFile(pipe)) {
         if (++i > qws_connection_timeout) {
-            qWarning("No Qtopia Core server appears to be running.");
+            qWarning("No Qt for Embedded Linux server appears to be running.");
             qWarning("If you want to run this program as a server,");
             qWarning("add the \"-qws\" command-line option.");
             exit(1);
@@ -1086,15 +1151,24 @@ void QWSDisplay::Data::waitForRegionAck(int winId)
 
     qApp->qwsProcessEvent(ack);
     delete ack;
+    region_events_count--;
 }
 
-void QWSDisplay::Data::waitForRegionEvents(int winId)
+void QWSDisplay::Data::waitForRegionEvents(int winId, bool ungrabDisplay)
 {
     if (!clientLock)
         return;
 
+    int removedEventsCount = 0;
+
     // fill queue with unreceived region events
     if (!clientLock->hasLock(QWSLock::RegionEvent)) {
+        bool ungrabbed = false;
+        if (ungrabDisplay && QWSDisplay::grabbed()) {
+            QWSDisplay::ungrab();
+            ungrabbed = true;
+        }
+
         for (;;) {
             fillQueue();
             if (clientLock->hasLock(QWSLock::RegionEvent))
@@ -1102,6 +1176,9 @@ void QWSDisplay::Data::waitForRegionEvents(int winId)
             csocket->flush();
             csocket->waitForReadyRead(1000);
         }
+
+        if (ungrabbed)
+            QWSDisplay::grab(true);
     }
 
     // check the queue for pending region events
@@ -1109,18 +1186,33 @@ void QWSDisplay::Data::waitForRegionEvents(int winId)
     for (int i = 0; i < queue.size(); /* nothing */) {
         QWSEvent *e = queue.at(i);
         if (e->type == QWSEvent::Region && e->window() == winId) {
-            delete regionEvent;
-            regionEvent = e;
+            QWSRegionEvent *re = static_cast<QWSRegionEvent*>(e);
+            if (re->simpleData.type == QWSRegionEvent::Allocation) {
+                delete regionEvent;
+                regionEvent = re;
+            }
             queue.removeAt(i);
+            removedEventsCount++;
         } else {
             ++i;
         }
     }
+
     if (regionEvent) {
         qApp->qwsProcessEvent(regionEvent);
         delete regionEvent;
     }
+    region_events_count -= removedEventsCount;
 }
+
+bool QWSDisplay::Data::hasPendingRegionEvents() const
+{
+    if (clientLock && !clientLock->hasLock(QWSLock::RegionEvent))
+        return true;
+
+    return region_events_count > 0;
+}
+
 #endif // QT_NO_QWS_MULTIPROCESS
 
 void QWSDisplay::Data::waitForCreation()
@@ -1170,7 +1262,6 @@ void QWSDisplay::Data::waitForQCopResponse()
     qcop_response = 0;
 }
 #endif
-
 
 /*!
     \class QWSDisplay qwsdisplay_qws.h
@@ -1571,8 +1662,8 @@ void QWSDisplay::convertSelection(int winId, int selectionProperty, const QStrin
 void QWSDisplay::defineCursor(int id, const QBitmap &curs, const QBitmap &mask,
                             int hotX, int hotY)
 {
-    QImage cursImg = curs.toImage();
-    QImage maskImg = mask.toImage();
+    const QImage cursImg = curs.toImage().convertToFormat(QImage::Format_MonoLSB);
+    const QImage maskImg = mask.toImage().convertToFormat(QImage::Format_MonoLSB);
 
     QWSDefineCursorCommand cmd;
     cmd.simpleData.width = curs.width();
@@ -1767,66 +1858,12 @@ void QWSDisplay::setRawMouseEventFilter(void (*filter)(QWSMouseEvent *))
         qt_fbdpy->d->setMouseFilter(filter);
 }
 
-#ifdef QT_QWS_DYNAMIC_TRANSFORMATION
-#ifdef QT_QWS_TRANSFORMED
-extern void qws_setScreenTransformation(int);
-extern void qws_mapPixmaps(bool from);
-#endif
-
-void QWSDisplay::setTransformation(int t)
+void QWSDisplay::setTransformation(int transformation, int screenNo)
 {
-#ifdef QT_QWS_TRANSFORMED
-
-    QApplicationPrivate *ap = QApplicationPrivate::instance();
-    const QRect maxWindowRect = ap->maxWindowRect(qt_screen);
-    bool isFullScreen = maxWindowRect == QRect(0, 0, qt_screen->width(), qt_screen->height());
-
-    QPixmapCache::clear();
-    QFontCache::instance->clear();
-    qws_mapPixmaps(true);
-    qws_setScreenTransformation(t);
-    qws_mapPixmaps(false);
-
-    if (qt_fbdpy->d_func()->directServerConnection()) {
-        qwsServer->d_func()->resetEngine();
-        qwsServer->d_func()->refresh();
-    }
-
-    QSize olds = qApp->desktop()->size();
-    qApp->desktop()->resize(qt_screen->width(), qt_screen->height());
-    // ## why post the resize event?
-    qApp->postEvent(qApp->desktop(), new QResizeEvent(qApp->desktop()->size(), olds));
-    emit QApplication::desktop()->resized(0);
-
-    QWidgetList  list = QApplication::topLevelWidgets();
-    for (int i = list.size()-1; i >= 0; --i) {
-        QWidget *w = (QWidget*)list[i];
-
-        if ((w->windowType() == Qt::Desktop)) {
-            //nothing
-        } else if (w->testAttribute(Qt::WA_WState_FullScreen)) {
-            w->resize(qt_screen->width(), qt_screen->height());
-        } else {
-            QETWidget *etw = static_cast<QETWidget*>(w);
-            etw->updateRegion();
-            if (etw->isVisible()) {
-                etw->repaintHierarchy(etw->geometry(), true);
-                etw->repaintDecoration(qApp->desktop()->rect(), true);
-            }
-        }
-    }
-
-
-    // only update the mwr if it is full screen.
-    if (isFullScreen) {
-        QApplicationPriate *ap = QApplicationPrivate::instance();
-        ap->setMaxWindowRect(qt_screen,
-                             QRect(0,0, qt_screen->width(), qt_screen->height()));
-    }
-
-#endif
+    QWSScreenTransformCommand cmd;
+    cmd.setTransformation(screenNo, transformation);
+    QWSDisplay::instance()->d->sendCommand(cmd);
 }
-#endif
 
 static bool qt_try_modal(QWidget *, QWSEvent *);
 
@@ -2078,14 +2115,13 @@ static void init_display()
 
     qApp->setObjectName(appName);
 
-    if (!QApplicationPrivate::app_font) {
-        QFont f;
+    if (!QApplicationPrivate::sys_font) {
 #ifdef QT_NO_FREETYPE
-        f = QFont(QLatin1String("helvetica"), 10);
+        QFont f = QFont(QLatin1String("helvetica"), 10);
 #else
-        f = QFont(QLatin1String("DejaVu Sans"), 12);
+        QFont f = QFont(QLatin1String("DejaVu Sans"), 12);
 #endif
-        QApplication::setFont(f);
+        QApplicationPrivate::setSystemFont(f);
     }
     qt_set_qws_resources();
 }
@@ -2106,6 +2142,13 @@ static bool read_bool_env_var(const char *var, bool defaultvalue)
     return (x && *x) ? (strcmp(x,"0") != 0) : defaultvalue;
 }
 
+static int read_int_env_var(const char *var, int defaultvalue)
+{
+    bool ok;
+    int r = qgetenv(var).toInt(&ok);
+    return ok ? r : defaultvalue;
+}
+
 void qt_init(QApplicationPrivate *priv, int type)
 {
     if (type == QApplication::GuiServer)
@@ -2119,6 +2162,8 @@ void qt_init(QApplicationPrivate *priv, int type)
 
     //qws_savefonts = qgetenv("QWS_SAVEFONTS") != 0;
     //qws_shared_memory = qgetenv("QWS_NOSHARED") == 0;
+
+    mouse_double_click_distance = read_int_env_var("QWS_DBLCLICK_DISTANCE", 5);
 
     int flags = 0;
     char *p;
@@ -2629,6 +2674,7 @@ void QApplication::alert(QWidget *, int)
 int QApplication::qwsProcessEvent(QWSEvent* event)
 {
     Q_D(QApplication);
+    QScopedLoopLevelCounter loopLevelCounter(d->threadData);
     int oldstate = -1;
     bool isMove = false;
     if (event->type == QWSEvent::Mouse) {
@@ -2671,9 +2717,8 @@ int QApplication::qwsProcessEvent(QWSEvent* event)
 #if !defined(QT_NO_QWS_QPF2)
     else if (event->type == QWSEvent::Font) {
         QWSFontEvent *e = static_cast<QWSFontEvent *>(event);
-        if (e->simpleData.type == QWSFontEvent::FontRemoved
-            && QFontCache::instance) {
-            QFontCache::instance->removeEngineForFont(e->fontName);
+        if (e->simpleData.type == QWSFontEvent::FontRemoved) {
+            QFontCache::instance()->removeEngineForFont(e->fontName);
         }
     }
 #endif
@@ -2741,6 +2786,13 @@ int QApplication::qwsProcessEvent(QWSEvent* event)
         QRect r = static_cast<QWSMaxWindowRectEvent*>(event)->simpleData.rect;
         setMaxWindowRect(r);
         return 0;
+#ifndef QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+    } else if (event->type == QWSEvent::ScreenTransformation) {
+        QWSScreenTransformationEvent *pe = static_cast<QWSScreenTransformationEvent*>(event);
+        setScreenTransformation(pe->simpleData.screen,
+                                pe->simpleData.transformation);
+        return 0;
+#endif
     } else if (widget && event->type==QWSEvent::Mouse) {
         // The mouse event is to one of my top-level widgets
         // which one?
@@ -2999,7 +3051,7 @@ int QApplication::qwsProcessEvent(QWSEvent* event)
 /*!
     \fn bool QApplication::qwsEventFilter(QWSEvent *event)
 
-    This virtual function is only implemented under Qtopia Core.
+    This virtual function is only implemented under Qt for Embedded Linux.
 
     If you create an application that inherits QApplication and
     reimplement this function, you get direct access to all QWS (Q
@@ -3016,9 +3068,9 @@ bool QApplication::qwsEventFilter(QWSEvent *)
 }
 
 /*!
-    Set Qtopia Core custom color table.
+    Set Qt for Embedded Linux custom color table.
 
-    Qtopia Core on 8-bpp displays allocates a standard 216 color cube.
+    Qt for Embedded Linux on 8-bpp displays allocates a standard 216 color cube.
     The remaining 40 colors may be used by setting a custom color
     table in the QWS master process before any clients connect.
 
@@ -3027,7 +3079,7 @@ bool QApplication::qwsEventFilter(QWSEvent *)
     to be set (1-40).
 
     This method is non-portable. It is available \e only in
-    Qtopia Core.
+    Qt for Embedded Linux.
 */
 void QApplication::qwsSetCustomColors(QRgb *colorTable, int start, int numColors)
 {
@@ -3051,7 +3103,7 @@ void QApplication::qwsSetCustomColors(QRgb *colorTable, int start, int numColors
     Return the QWSDecoration used for decorating windows.
 
     \warning This method is non-portable. It is only available in
-    Qtopia Core.
+    Qt for Embedded Linux.
 
     \sa QDecoration
 */
@@ -3064,9 +3116,10 @@ QDecoration &QApplication::qwsDecoration()
     \fn void QApplication::qwsSetDecoration(QDecoration *decoration)
 
     Sets the QDecoration derived class to use for decorating the
-    Qtopia Core windows to \a decoration.
+    windows used by Qt for Embedded Linux to the \a decoration
+    specified.
 
-    This method is non-portable. It is only available in Qtopia Core.
+    This method is non-portable. It is only available in Qt for Embedded Linux.
 
     \sa QDecoration
 */
@@ -3158,11 +3211,6 @@ static bool qt_try_modal(QWidget *widget, QWSEvent *event)
         case QWSEvent::Key:
             block_event         = true;
             break;
-#if 0
-    case QWSEvent::RegionModified:
-            paint_event = true;
-            break;
-#endif
     }
 
     if (top->parentWidget() == 0 && (block_event || paint_event))
@@ -3351,8 +3399,8 @@ bool QETWidget::translateMouseEvent(const QWSMouseEvent *event, int prevstate)
                         mouseButtonPressed == button &&
                         long(mouse.time) -long(mouseButtonPressTime)
                             < QApplication::doubleClickInterval() &&
-                        qAbs(mouse.x_root - mouseXPos) < 5 &&
-                        qAbs(mouse.y_root - mouseYPos) < 5) {
+                        qAbs(mouse.x_root - mouseXPos) < mouse_double_click_distance &&
+                        qAbs(mouse.y_root - mouseYPos) < mouse_double_click_distance ) {
                         type = QEvent::MouseButtonDblClick;
                         mouseButtonPressTime -= 2000;        // no double-click next time
                     } else {
@@ -3440,15 +3488,17 @@ bool QETWidget::translateMouseEvent(const QWSMouseEvent *event, int prevstate)
             QMouseEvent e(type, pos, globalPos, Qt::MouseButton(button), buttonstate, keystate);
             QApplication::sendSpontaneousEvent(popupChild ? popupChild : popup, & e);
         }
+#ifndef QT_NO_CONTEXTMENU
         if (type == QEvent::MouseButtonPress && button == Qt::RightButton && (openPopupCount == oldOpenPopupCount)) {
             QWidget *popupEvent = popup;
             if(popupButtonFocus)
                 popupEvent = popupButtonFocus;
             else if(popupChild)
                 popupEvent = popupChild;
-            QContextMenuEvent e(QContextMenuEvent::Mouse, pos, globalPos);
+            QContextMenuEvent e(QContextMenuEvent::Mouse, pos, globalPos, keystate);
             QApplication::sendSpontaneousEvent(popupEvent, &e);
         }
+#endif // QT_NO_CONTEXTMENU
 
         if (releaseAfter)
             qt_button_down = 0;
@@ -3470,10 +3520,15 @@ bool QETWidget::translateMouseEvent(const QWSMouseEvent *event, int prevstate)
                 return true; //EXIT
         }
 
+        QPointer<QWidget> leaveAfterRelease = 0;
         if (type == QEvent::MouseButtonRelease &&
             (mouse.state & (~button) & (Qt::LeftButton |
                                     Qt::MidButton |
                                     Qt::RightButton)) == 0) {
+            // Button released outside the widget -> leave the widget after the
+            // release event has been delivered.
+            if (widget == qt_button_down && (pos.x() < 0 || pos.y() < 0))
+                leaveAfterRelease = qt_button_down;
             qt_button_down = 0;
         }
 
@@ -3498,11 +3553,18 @@ bool QETWidget::translateMouseEvent(const QWSMouseEvent *event, int prevstate)
                 (*mouseInWidget) = widget;
             }
             QApplication::sendSpontaneousEvent(widget, &e);
+            if (leaveAfterRelease && !QWidget::mouseGrabber()) {
+                *mouseInWidget = QApplication::widgetAt(globalPos);
+                QApplicationPrivate::dispatchEnterLeave(*mouseInWidget, leaveAfterRelease);
+                leaveAfterRelease = 0;
+            }
         }
+#ifndef QT_NO_CONTEXTMENU
         if (type == QEvent::MouseButtonPress && button == Qt::RightButton && (openPopupCount == oldOpenPopupCount)) {
-            QContextMenuEvent e(QContextMenuEvent::Mouse, pos, globalPos);
+            QContextMenuEvent e(QContextMenuEvent::Mouse, pos, globalPos, keystate);
             QApplication::sendSpontaneousEvent(widget, &e);
         }
+#endif // QT_NO_CONTEXTMENU
     }
     return true;
 }
@@ -3511,7 +3573,10 @@ bool QETWidget::translateMouseEvent(const QWSMouseEvent *event, int prevstate)
 bool QETWidget::translateKeyEvent(const QWSKeyEvent *event, bool grab) /* grab is used in the #ifdef */
 {
     int code = -1;
-    Qt::KeyboardModifiers state = event->simpleData.modifiers;
+    //### Qt assumes keyboard state is state *before*, while QWS uses state after the event
+    static Qt::KeyboardModifiers oldstate;
+    Qt::KeyboardModifiers state = oldstate;
+    oldstate = event->simpleData.modifiers;
 
     if (sm_blockUserInput) // block user interaction during session management
         return true;
@@ -3569,6 +3634,11 @@ bool QETWidget::translateRegionEvent(const QWSRegionEvent *event)
     case QWSRegionEvent::Request:
         setGeometry(region.boundingRect());
         break;
+#ifdef QT_QWS_CLIENTBLIT
+    case QWSRegionEvent::DirectPaint:
+        surface->setDirectRegion(region, event->simpleData.id);
+        break;
+#endif
     default:
         break;
     }
@@ -3734,3 +3804,5 @@ void QApplication::setArgs(int c, char **v)
     d->argc = c;
     d->argv = v;
 }
+
+QT_END_NAMESPACE

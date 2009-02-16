@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -65,6 +59,15 @@
 #include <QtDebug>
 
 #include <stdlib.h>
+
+#ifndef QT_NO_GSTREAMER
+#include <gst/gst.h>
+#include <phonon/phononnamespace.h>
+#endif
+
+#include <QtGui/private/qt_x11_p.h>
+
+QT_BEGIN_NAMESPACE
 
 // from qapplication.cpp and qapplication_x11.cpp - These are NOT for
 // external use ignore them
@@ -136,6 +139,12 @@ static const char *printer_text =
 "Qt should search for embeddable font files.  By default, the X "
 "server font path is used.";
 
+static const char *phonon_text =
+"<p><b><font size+=2>Phonon</font></b></p>"
+"<hr>"
+"<p>Use this tab to configure the Phonon GStreamer multimedia backend. "
+"<p>It is reccommended to leave all settings on \"Auto\" to let "
+"Phonon determine your settings automatically.";
 
 static QColorGroup::ColorRole centralFromItem( int item )
 {
@@ -239,6 +248,11 @@ MainWindow::MainWindow()
                 this, SLOT(buildPalette()));
     connect(buttonMainColor2, SIGNAL(colorChanged(QColor)),
                 this, SLOT(buildPalette()));
+
+    if (X11->desktopEnvironment == DE_KDE)
+        colorConfig->hide();
+    else
+        labelKDENote->hide();
 
     QFontDatabase db;
     QStringList families = db.families();
@@ -361,6 +375,63 @@ MainWindow::MainWindow()
     fontpaths = settings.value(QLatin1String("fontPath")).toStringList();
     fontpathlistbox->insertStringList(fontpaths);
 
+    audiosinkCombo->addItem(tr("Auto (default)"), QLatin1String("Auto"));
+    audiosinkCombo->setItemData(audiosinkCombo->findText(tr("Auto (default)")),
+                                tr("Choose audio output automatically."), Qt::ToolTipRole);
+    audiosinkCombo->addItem(tr("aRts"), QLatin1String("artssink"));
+    audiosinkCombo->setItemData(audiosinkCombo->findText(tr("aRts")),
+                                tr("Experimental aRts support for GStreamer."), Qt::ToolTipRole);
+#ifndef QT_NO_GSTREAMER
+    phononVersionLabel->setText(Phonon::phononVersion());
+    if (gst_init_check(0, 0, 0)) {
+        gchar *versionString = gst_version_string();
+        gstversionLabel->setText(versionString);
+        g_free(versionString);
+        GList* factoryList = gst_registry_get_feature_list(gst_registry_get_default (), GST_TYPE_ELEMENT_FACTORY);
+        QString name, klass, description;
+        for (GList* iter = g_list_first(factoryList) ; iter != NULL ; iter = g_list_next(iter)) {
+            GstPluginFeature *feature = GST_PLUGIN_FEATURE(iter->data);
+            klass = gst_element_factory_get_klass(GST_ELEMENT_FACTORY(feature));
+            if ( klass == "Sink/Audio" ) {
+                name = GST_PLUGIN_FEATURE_NAME(feature);
+                if (name == "sfsink")
+                    continue; //useless to output audio to file when you cannot set the file path
+                else if (name == "autoaudiosink")
+                    continue; //This is used implicitly from the auto setting
+                GstElement *sink = gst_element_factory_make (name, NULL);
+                if (sink) {
+                    description = gst_element_factory_get_description (GST_ELEMENT_FACTORY(feature));
+                    audiosinkCombo->addItem(name, name);
+                    audiosinkCombo->setItemData(audiosinkCombo->findText(name), description, Qt::ToolTipRole);
+                    gst_object_unref (sink);
+                }
+            }
+        }
+        g_list_free(factoryList);
+    }
+#else
+    tab4->setEnabled(false);
+    phononLabel->setText(tr("Phonon GStreamer backend not available."));
+#endif
+
+    videomodeCombo->addItem(tr("Auto (default)"), QLatin1String("Auto"));
+    videomodeCombo->setItemData(videomodeCombo->findText(tr("Auto (default)")), tr("Choose render method automatically"), Qt::ToolTipRole);
+#ifdef Q_WS_X11
+    videomodeCombo->addItem(tr("X11"), QLatin1String("X11"));
+    videomodeCombo->setItemData(videomodeCombo->findText(tr("X11")), tr("Use X11 Overlays"), Qt::ToolTipRole);
+#endif
+#ifndef QT_NO_OPENGL
+    videomodeCombo->addItem(tr("OpenGL"), QLatin1String("OpenGL"));
+    videomodeCombo->setItemData(videomodeCombo->findText(tr("OpenGL")), tr("Use OpenGL if avaiable"), Qt::ToolTipRole);
+#endif
+    videomodeCombo->addItem(tr("Software"), QLatin1String("Software"));
+    videomodeCombo->setItemData(videomodeCombo->findText(tr("Software")), tr("Use simple software rendering"), Qt::ToolTipRole);
+
+    QString audioSink = settings.value(QLatin1String("audiosink"), QLatin1String("Auto")).toString();
+    QString videoMode = settings.value(QLatin1String("videomode"), QLatin1String("Auto")).toString();
+    audiosinkCombo->setCurrentItem(audiosinkCombo->findData(audioSink));
+    videomodeCombo->setCurrentItem(videomodeCombo->findData(videoMode));
+
     settings.endGroup(); // Qt
 
     helpview->setText(tr(appearance_text));
@@ -436,6 +507,11 @@ void MainWindow::fileSave()
             str = QLatin1String("Root");
         settings.setValue( QLatin1String("XIMInputStyle"), str );
 #endif
+
+        QString audioSink = settings.value(QLatin1String("audiosink"), QLatin1String("Auto")).toString();
+        QString videoMode = settings.value(QLatin1String("videomode"), QLatin1String("Auto")).toString();
+        settings.setValue(QLatin1String("audiosink"), audiosinkCombo->itemData(audiosinkCombo->currentIndex()));
+        settings.setValue(QLatin1String("videomode"), videomodeCombo->itemData(videomodeCombo->currentIndex()));
 
         QStringList effects;
         if (effectcheckbox->isChecked()) {
@@ -912,7 +988,7 @@ void MainWindow::helpAbout()
                    "Qt Commercial License Agreement. For details, see the file LICENSE "
                    "that came with this software distribution."
 #endif
-                   "<br/><br/>Copyright (C) 2000-2008 Trolltech ASA. All rights reserved."
+                   "<br/><br/>Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies)."
                    "<br/><br/>The program is provided AS IS with NO WARRANTY OF ANY KIND,"
                    " INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A"
                    " PARTICULAR PURPOSE.<br/> ")
@@ -939,6 +1015,8 @@ void MainWindow::pageChanged(QWidget *page)
         helpview->setText(tr(font_text));
     else if (page == tab3)
         helpview->setText(tr(printer_text));
+    else if (page == tab4)
+        helpview->setText(tr(phonon_text));
 }
 
 
@@ -966,3 +1044,5 @@ void MainWindow::closeEvent(QCloseEvent *e)
     } else
         e->accept();
 }
+
+QT_END_NAMESPACE

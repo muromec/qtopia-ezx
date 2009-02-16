@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,6 +42,7 @@
 
 #include <qdatetime.h>
 #include <qdebug.h>
+#include <qdir.h>
 #include <qfileinfo.h>
 #include <qmutex.h>
 #include <qset.h>
@@ -57,9 +52,12 @@
 #  include "qfilesystemwatcher_win_p.h"
 #elif defined(Q_OS_LINUX)
 #  include "qfilesystemwatcher_inotify_p.h"
+#  include "qfilesystemwatcher_dnotify_p.h"
 #elif defined(Q_OS_FREEBSD) || defined(Q_OS_MAC)
 #  include "qfilesystemwatcher_kqueue_p.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 enum { PollingInterval = 1000 };
 
@@ -73,6 +71,7 @@ class QPollingFileSystemWatcherEngine : public QFileSystemWatcherEngine
         uint groupId;
         QFile::Permissions permissions;
         QDateTime lastModified;
+        QStringList entries;
 
     public:
         FileInfo(const QFileInfo &fileInfo)
@@ -80,7 +79,11 @@ class QPollingFileSystemWatcherEngine : public QFileSystemWatcherEngine
               groupId(fileInfo.groupId()),
               permissions(fileInfo.permissions()),
               lastModified(fileInfo.lastModified())
-        { }
+        { 
+            if (fileInfo.isDir()) {
+                entries = fileInfo.absoluteDir().entryList(QDir::AllEntries);
+            }
+        }
         FileInfo &operator=(const QFileInfo &fileInfo)
         {
             *this = FileInfo(fileInfo);
@@ -89,6 +92,8 @@ class QPollingFileSystemWatcherEngine : public QFileSystemWatcherEngine
 
         bool operator!=(const QFileInfo &fileInfo) const
         {
+            if (fileInfo.isDir() && entries != fileInfo.absoluteDir().entryList(QDir::AllEntries))
+                return true;
             return (ownerId != fileInfo.ownerId()
                     || groupId != fileInfo.groupId()
                     || permissions != fileInfo.permissions()
@@ -115,7 +120,9 @@ private slots:
 
 QPollingFileSystemWatcherEngine::QPollingFileSystemWatcherEngine()
 {
+#ifndef QT_NO_THREAD
     moveToThread(this);
+#endif
 }
 
 void QPollingFileSystemWatcherEngine::run()
@@ -141,6 +148,8 @@ QStringList QPollingFileSystemWatcherEngine::addPaths(const QStringList &paths,
         if (fi.isDir()) {
             if (!directories->contains(path))
                 directories->append(path);
+            if (!path.endsWith(QLatin1Char('/')))
+                fi = QFileInfo(path + QLatin1Char('/'));
             this->directories.insert(path, fi);
         } else {
             if (!files->contains(path))
@@ -204,6 +213,8 @@ void QPollingFileSystemWatcherEngine::timeout()
         QHash<QString, FileInfo>::iterator x = dit.next();
         QString path = x.key();
         QFileInfo fi(path);
+        if (!path.endsWith(QLatin1Char('/')))
+            fi = QFileInfo(path + QLatin1Char('/'));
         if (!fi.exists()) {
             dit.remove();
             emit directoryChanged(path, true);
@@ -211,6 +222,7 @@ void QPollingFileSystemWatcherEngine::timeout()
             x.value() = fi;
             emit directoryChanged(path, false);
         }
+        
     }
 }
 
@@ -222,7 +234,10 @@ QFileSystemWatcherEngine *QFileSystemWatcherPrivate::createNativeEngine()
 #if defined(Q_OS_WIN)
     return new QWindowsFileSystemWatcherEngine;
 #elif defined(Q_OS_LINUX)
-    return QInotifyFileSystemWatcherEngine::create();
+    QFileSystemWatcherEngine *eng = QInotifyFileSystemWatcherEngine::create();
+    if(!eng)
+        eng = QDnotifyFileSystemWatcherEngine::create();
+    return eng;
 #elif defined(Q_OS_FREEBSD) || defined(Q_OS_MAC)
     return QKqueueFileSystemWatcherEngine::create();
 #else
@@ -231,7 +246,7 @@ QFileSystemWatcherEngine *QFileSystemWatcherPrivate::createNativeEngine()
 }
 
 QFileSystemWatcherPrivate::QFileSystemWatcherPrivate()
-    : native(0), poller(0)
+    : native(0), poller(0), forced(0)
 {
 }
 
@@ -249,6 +264,52 @@ void QFileSystemWatcherPrivate::init()
                          q,
                          SLOT(_q_directoryChanged(QString,bool)));
     }
+}
+
+void QFileSystemWatcherPrivate::initForcedEngine(const QString &forceName)
+{
+    if(forced)
+        return;
+
+    Q_Q(QFileSystemWatcher);
+
+#if defined(Q_OS_LINUX)
+    if(forceName == QLatin1String("inotify")) {
+        forced = QInotifyFileSystemWatcherEngine::create();
+    } else if(forceName == QLatin1String("dnotify")) {
+        forced = QDnotifyFileSystemWatcherEngine::create();
+    }
+#else
+    Q_UNUSED(forceName);
+#endif
+
+    if(forced) {
+        QObject::connect(forced,
+                         SIGNAL(fileChanged(QString,bool)),
+                         q,
+                         SLOT(_q_fileChanged(QString,bool)));
+        QObject::connect(forced,
+                         SIGNAL(directoryChanged(QString,bool)),
+                         q,
+                         SLOT(_q_directoryChanged(QString,bool)));
+    }
+}
+
+void QFileSystemWatcherPrivate::initPollerEngine()
+{
+    if(poller)
+        return;
+
+    Q_Q(QFileSystemWatcher);
+    poller = new QPollingFileSystemWatcherEngine; // that was a mouthful
+    QObject::connect(poller,
+                     SIGNAL(fileChanged(QString,bool)),
+                     q,
+                     SLOT(_q_fileChanged(QString,bool)));
+    QObject::connect(poller,
+                     SIGNAL(directoryChanged(QString,bool)),
+                     q,
+                     SLOT(_q_directoryChanged(QString,bool)));
 }
 
 void QFileSystemWatcherPrivate::_q_fileChanged(const QString &path, bool removed)
@@ -301,6 +362,25 @@ void QFileSystemWatcherPrivate::_q_directoryChanged(const QString &path, bool re
     Note that QFileSystemWatcher stops monitoring files and directories
     once they have been removed from disk.
 
+    \note On systems running a Linux kernel without inotify support,
+    file systems that contain watched paths cannot be unmounted.
+
+    \note Windows CE does not support directory monitoring by
+    default as this depends on the file system driver installed.
+
+    \note The act of monitoring files and directories for
+    modifications consumes system resources. This implies there is a
+    limit to the number of files and directories your process can
+    monitor simultaneously. On Mac OS and all BSD variants, for
+    example, an open file descriptor is required for each monitored
+    file. The system limits the number of open file descriptors to 256
+    by default. This means that addPath() and addPaths() will fail if
+    your process tries to add more than 256 files or directories to
+    the file system monitor. Also note that your process may have
+    other file descriptors open in addition to the ones for files
+    being monitored, and these other open descriptors also count in
+    the total.
+
     \sa QFile, QDir
 */
 
@@ -343,17 +423,28 @@ QFileSystemWatcher::~QFileSystemWatcher()
         delete d->poller;
         d->poller = 0;
     }
+    if (d->forced) {
+        d->forced->stop();
+        d->forced->wait();
+        delete d->forced;
+        d->forced = 0;
+    }
 }
 
 /*!
-    Adds \a path to the file system watcher if \a path exists. The path is
-    not added if it does not exist, or if it is already being monitored by
-    the file system watcher.
+    Adds \a path to the file system watcher if \a path exists. The
+    path is not added if it does not exist, or if it is already being
+    monitored by the file system watcher.
 
     If \a path specifies a directory, the directoryChanged() signal
     will be emitted when \a path is modified or removed from disk;
     otherwise the fileChanged() signal is emitted when \a path is
     modified or removed.
+
+    \note There is a system dependent limit to the number of files and
+    directories that can be monitored simultaneously. If this limit
+    has been reached, \a path will not be added to the file system
+    watcher, and a warning message will be printed to \e{stderr}.
 
     \sa addPaths(), removePath()
 */
@@ -367,14 +458,20 @@ void QFileSystemWatcher::addPath(const QString &path)
 }
 
 /*!
-    Adds each path in \a paths to the file system watcher. Paths are not
-    added if they not exist, or if they are already being monitored by the
-    file system watcher.
+    Adds each path in \a paths to the file system watcher. Paths are
+    not added if they not exist, or if they are already being
+    monitored by the file system watcher.
 
-    If a path specifies a directory, the directoryChanged() signal will
-    be emitted when the path is modified or removed from disk; otherwise
-    the fileChanged() signal is emitted when the path is modified or
-    removed.
+    If a path specifies a directory, the directoryChanged() signal
+    will be emitted when the path is modified or removed from disk;
+    otherwise the fileChanged() signal is emitted when the path is
+    modified or removed.
+
+    \note There is a system dependent limit to the number of files and
+    directories that can be monitored simultaneously. If this limit
+    has been reached, the excess \a paths will not be added to the
+    file system watcher, and a warning message will be printed to
+    \e{stderr} for each path that could not be added.
 
     \sa addPath(), removePaths()
 */
@@ -385,32 +482,39 @@ void QFileSystemWatcher::addPaths(const QStringList &paths)
         qWarning("QFileSystemWatcher::addPaths: list is empty");
         return;
     }
+
     QStringList p = paths;
-    if (objectName() != QLatin1String("_qt_autotest_force_engine_poller")) {
-        if (d->native)
-            p = d->native->addPaths(p, &d->files, &d->directories);
-        if (p.isEmpty())
-            return;
-    } else {
-        qDebug() << "QFileSystemWatcher: skipping native engine, using only polling engine";
-    }
-    if (objectName() != QLatin1String("_qt_autotest_force_engine_native")) {
-        // try polling instead
-        if (!d->poller) {
-            d->poller = new QPollingFileSystemWatcherEngine; // that was a mouthful
-            QObject::connect(d->poller,
-                             SIGNAL(fileChanged(QString,bool)),
-                             this,
-                             SLOT(_q_fileChanged(QString,bool)));
-            QObject::connect(d->poller,
-                             SIGNAL(directoryChanged(QString,bool)),
-                             this,
-                             SLOT(_q_directoryChanged(QString,bool)));
+    QFileSystemWatcherEngine *engine = 0;
+
+    if(!objectName().startsWith(QLatin1String("_qt_autotest_force_engine_"))) {
+        // Normal runtime case - search intelligently for best engine
+        if(d->native) {
+            engine = d->native;
+        } else {
+            d_func()->initPollerEngine();
+            engine = d->poller;
         }
-        p = d->poller->addPaths(p, &d->files, &d->directories);
-    } else{
-        qDebug("QFileSystemWatcher: skipping polling engine, using only native engine");
+
+    } else {
+        // Autotest override case - use the explicitly selected engine only
+        QString forceName = objectName().mid(26);
+        if(forceName == QLatin1String("poller")) {
+            qDebug() << "QFileSystemWatcher: skipping native engine, using only polling engine";
+            d_func()->initPollerEngine();
+            engine = d->poller;
+        } else if(forceName == QLatin1String("native")) {
+            qDebug() << "QFileSystemWatcher: skipping polling engine, using only native engine";
+            engine = d->native;
+        } else {
+            qDebug() << "QFileSystemWatcher: skipping polling and native engine, using only explicit" << forceName << "engine";
+            d_func()->initForcedEngine(forceName);
+            engine = d->forced;
+        }
     }
+
+    if(engine)
+        p = engine->addPaths(p, &d->files, &d->directories);
+
     if (!p.isEmpty())
         qWarning("QFileSystemWatcher: failed to add paths: %s",
                  qPrintable(p.join(QLatin1String(", "))));
@@ -446,7 +550,9 @@ void QFileSystemWatcher::removePaths(const QStringList &paths)
     if (d->native)
         p = d->native->removePaths(p, &d->files, &d->directories);
     if (d->poller)
-        (void) d->poller->removePaths(p, &d->files, &d->directories);
+        p = d->poller->removePaths(p, &d->files, &d->directories);
+    if (d->forced)
+        p = d->forced->removePaths(p, &d->files, &d->directories);
 }
 
 /*!
@@ -498,7 +604,11 @@ QStringList QFileSystemWatcher::files() const
     return d->files;
 }
 
+QT_END_NAMESPACE
+
 #include "moc_qfilesystemwatcher.cpp"
+
 #include "qfilesystemwatcher.moc"
 
 #endif // QT_NO_FILESYSTEMWATCHER
+

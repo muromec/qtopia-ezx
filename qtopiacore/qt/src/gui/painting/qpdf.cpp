@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 #include "qplatformdefs.h"
@@ -46,10 +40,15 @@
 #include <qfile.h>
 #include <private/qmath_p.h>
 #include "private/qcups_p.h"
+#include "qprinterinfo.h"
+
+QT_BEGIN_NAMESPACE
 
 extern int qt_defaultDpi();
 
 #ifndef QT_NO_PRINTER
+
+extern QSizeF qt_paperSizeToQSizeF(QPrinter::PaperSize size);
 
 /* also adds a space at the end of the number */
 const char *qt_real_to_string(qreal val, char *buf) {
@@ -745,41 +744,7 @@ const char *QPdf::toHex(uchar u, char *buffer)
 #define Q_MM(n) int((n * 720 + 127) / 254)
 #define Q_IN(n) int(n * 72)
 
-static const QPdf::PaperSize paperSizes[QPrinter::NPageSize] =
-{
-    {  Q_MM(210), Q_MM(297) },      // A4
-    {  Q_MM(176), Q_MM(250) },      // B5
-    {  Q_IN(8.5), Q_IN(11) },       // Letter
-    {  Q_IN(8.5), Q_IN(14) },       // Legal
-    {  Q_IN(7.5), Q_IN(10) },       // Executive
-    {  Q_MM(841), Q_MM(1189) },     // A0
-    {  Q_MM(594), Q_MM(841) },      // A1
-    {  Q_MM(420), Q_MM(594) },      // A2
-    {  Q_MM(297), Q_MM(420) },      // A3
-    {  Q_MM(148), Q_MM(210) },      // A5
-    {  Q_MM(105), Q_MM(148) },      // A6
-    {  Q_MM(74), Q_MM(105)},        // A7
-    {  Q_MM(52), Q_MM(74) },        // A8
-    {  Q_MM(37), Q_MM(52) },        // A9
-    {  Q_MM(1000), Q_MM(1414) },    // B0
-    {  Q_MM(707), Q_MM(1000) },     // B1
-    {  Q_MM(31), Q_MM(44) },        // B10
-    {  Q_MM(500), Q_MM(707) },      // B2
-    {  Q_MM(353), Q_MM(500) },      // B3
-    {  Q_MM(250), Q_MM(353) },      // B4
-    {  Q_MM(125), Q_MM(176) },      // B6
-    {  Q_MM(88), Q_MM(125) },       // B7
-    {  Q_MM(62), Q_MM(88) },        // B8
-    {  Q_MM(44), Q_MM(62) },        // B9
-    {  Q_MM(162),    Q_MM(229) },   // C5E
-    {  Q_IN(4.125),  Q_IN(9.5) },   // Comm10E
-    {  Q_MM(110),    Q_MM(220) },   // DLE
-    {  Q_IN(8.5),    Q_IN(13) },    // Folio
-    {  Q_IN(17),     Q_IN(11) },    // Ledger
-    {  Q_IN(11),     Q_IN(17) }     // Tabloid
-};
-
-static const char * const psToStr[QPrinter::NPageSize+1] =
+static const char * const psToStr[QPrinter::NPaperSize+1] =
 {
     "A4", "B5", "Letter", "Legal", "Executive",
     "A0", "A1", "A2", "A3", "A5", "A6", "A7", "A8", "A9", "B0", "B1",
@@ -787,14 +752,16 @@ static const char * const psToStr[QPrinter::NPageSize+1] =
     "DLE", "Folio", "Ledger", "Tabloid", 0
 };
 
-QPdf::PaperSize QPdf::paperSize(QPrinter::PageSize pageSize)
+QPdf::PaperSize QPdf::paperSize(QPrinter::PaperSize paperSize)
 {
-    return paperSizes[pageSize];
+    QSizeF s = qt_paperSizeToQSizeF(paperSize);
+    PaperSize p = { Q_MM(s.width()), Q_MM(s.height()) };
+    return p;
 }
 
-const char *QPdf::paperSizeToString(QPrinter::PageSize pageSize)
+const char *QPdf::paperSizeToString(QPrinter::PaperSize paperSize)
 {
-    return psToStr[pageSize];
+    return psToStr[paperSize];
 }
 
 
@@ -1017,6 +984,8 @@ void QPdfBaseEngine::updateState(const QPaintEngineState &state)
         d->brushOrigin = state.brushOrigin();
         flags |= DirtyBrush;
     }
+    if (flags & DirtyOpacity)
+        d->opacity = state.opacity();
 
     bool ce = d->clipEnabled;
     if (flags & DirtyClipPath) {
@@ -1115,10 +1084,15 @@ void QPdfBaseEngine::setPen()
     Q_ASSERT(b.style() == Qt::SolidPattern && b.isOpaque());
 
     QColor rgba = b.color();
-    *d->currentPage << rgba.redF()
-                   << rgba.greenF()
-                   << rgba.blueF()
-                   << "SCN\n";
+    if (d->colorMode == QPrinter::GrayScale) {
+        qreal gray = qGray(rgba.rgba())/255.;
+        *d->currentPage << gray << gray << gray;
+    } else {
+        *d->currentPage << rgba.redF()
+                        << rgba.greenF()
+                        << rgba.blueF();
+    }
+    *d->currentPage << "SCN\n";
 
     *d->currentPage << d->pen.widthF() << "w ";
 
@@ -1159,7 +1133,11 @@ void QPdfBaseEngine::setPen()
 
 bool QPdfBaseEngine::newPage()
 {
+    Q_D(QPdfBaseEngine);
     setupGraphicsState(DirtyBrush|DirtyPen|DirtyClipPath);
+    QFile *outfile = qobject_cast<QFile*> (d->outDevice);
+    if (outfile && outfile->error() != QFile::NoError)
+        return false;
     return true;
 }
 
@@ -1234,8 +1212,8 @@ void QPdfBaseEngine::setProperty(PrintEnginePropertyKey key, const QVariant &val
     case PPK_PageOrder:
         d->pageOrder = QPrinter::PageOrder(value.toInt());
         break;
-    case PPK_PageSize:
-        d->pageSize = QPrinter::PageSize(value.toInt());
+    case PPK_PaperSize:
+        d->paperSize = QPrinter::PaperSize(value.toInt());
         break;
     case PPK_PaperSource:
         d->paperSource = QPrinter::PaperSource(value.toInt());
@@ -1256,7 +1234,7 @@ void QPdfBaseEngine::setProperty(PrintEnginePropertyKey key, const QVariant &val
         d->embedFonts = value.toBool();
         break;
     case PPK_Duplex:
-        d->duplex = value.toBool();
+        d->duplex = static_cast<QPrinter::DuplexMode> (value.toInt());
         break;
     case PPK_CupsPageRect:
         d->cupsPageRect = value.toRect();
@@ -1270,6 +1248,21 @@ void QPdfBaseEngine::setProperty(PrintEnginePropertyKey key, const QVariant &val
     case PPK_CupsStringPageSize:
         d->cupsStringPageSize = value.toString();
         break;
+    case PPK_CustomPaperSize:
+        d->paperSize = QPrinter::Custom;
+        d->customPaperSize = value.toSizeF();
+        break;
+    case PPK_PageMargins:
+    {
+        QList<QVariant> margins(value.toList());
+        Q_ASSERT(margins.size() == 4);
+        d->leftMargin = margins.at(0).toDouble();
+        d->topMargin = margins.at(1).toDouble();
+        d->rightMargin = margins.at(2).toDouble();
+        d->bottomMargin = margins.at(3).toDouble();
+        d->hasCustomPageMargins = true;
+        break;
+    }
     default:
         break;
     }
@@ -1313,8 +1306,8 @@ QVariant QPdfBaseEngine::property(PrintEnginePropertyKey key) const
     case PPK_PageOrder:
         ret = d->pageOrder;
         break;
-    case PPK_PageSize:
-        ret = d->pageSize;
+    case PPK_PaperSize:
+        ret = d->paperSize;
         break;
     case PPK_PaperSource:
         ret = d->paperSource;
@@ -1358,6 +1351,23 @@ QVariant QPdfBaseEngine::property(PrintEnginePropertyKey key) const
     case PPK_CupsStringPageSize:
         ret = d->cupsStringPageSize;
         break;
+    case PPK_CustomPaperSize:
+        ret = d->customPaperSize;
+        break;
+    case PPK_PageMargins:
+    {
+        QList<QVariant> margins;
+        if (d->hasCustomPageMargins) {
+            margins << d->leftMargin << d->topMargin
+                    << d->rightMargin << d->bottomMargin;
+        } else {
+            const int defaultMargin = 10; // ~3.5 mm
+            margins << defaultMargin << defaultMargin
+                    << defaultMargin << defaultMargin;
+        }
+        ret = margins;
+        break;
+    }
     default:
         break;
     }
@@ -1367,10 +1377,10 @@ QVariant QPdfBaseEngine::property(PrintEnginePropertyKey key) const
 QPdfBaseEnginePrivate::QPdfBaseEnginePrivate(QPrinter::PrinterMode m)
     : clipEnabled(false), allClipped(false), hasPen(true), hasBrush(false), simplePen(false),
       outDevice(0), fd(-1),
-      duplex(false), collate(false), fullPage(false), embedFonts(true), copies(1),
+      duplex(QPrinter::DuplexNone), collate(false), fullPage(false), embedFonts(true), copies(1),
       pageOrder(QPrinter::FirstPageFirst), orientation(QPrinter::Portrait),
-      pageSize(QPrinter::A4), colorMode(QPrinter::Color), paperSource(QPrinter::Auto)
-
+      paperSize(QPrinter::A4), colorMode(QPrinter::Color), paperSource(QPrinter::Auto),
+      hasCustomPageMargins(false)
 {
     resolution = 72;
     if (m == QPrinter::HighResolution)
@@ -1394,6 +1404,7 @@ bool QPdfBaseEngine::begin(QPaintDevice *pdev)
 
     d->currentPage = new QPdfPage;
     d->stroker.stream = d->currentPage;
+    d->opacity = 1.0;
 
     return d->openPrintDevice();
 }
@@ -1439,8 +1450,21 @@ bool QPdfBaseEnginePrivate::openPrintDevice()
 
     if (!outputFileName.isEmpty()) {
         QFile *file = new QFile(outputFileName);
+        if (! file->open(QFile::WriteOnly|QFile::Truncate))
+            return false;
         outDevice = file;
-        file->open(QFile::WriteOnly|QFile::Truncate);
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+    } else if (QCUPSSupport::isAvailable()) {
+        QCUPSSupport cups;
+        QPair<int, QString> ret = cups.tempFd();
+        if (ret.first < 0) {
+            qWarning("QPdfPrinter: Could not open temporary file to print");
+            return false;
+        }
+        cupsTempFile = ret.second;
+        outDevice = new QFile();
+        static_cast<QFile *>(outDevice)->open(ret.first, QIODevice::WriteOnly);
+#endif
 #ifndef QT_NO_LPR
     } else {
         QString pr;
@@ -1448,7 +1472,7 @@ bool QPdfBaseEnginePrivate::openPrintDevice()
             pr = printerName;
         int fds[2];
         if (pipe(fds) != 0) {
-            qWarning("QPSPrinter: Could not open pipe to print");
+            qWarning("QPdfPrinter: Could not open pipe to print");
             return false;
         }
 
@@ -1479,71 +1503,6 @@ bool QPdfBaseEnginePrivate::openPrintDevice()
                     pr.prepend(QLatin1String("-P"));
                 (void)execlp(printProgram.toLocal8Bit().data(), printProgram.toLocal8Bit().data(),
                              pr.toLocal8Bit().data(), (char *)0);
-#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
-            } else if (QCUPSSupport::isAvailable()) {
-
-                QList<QByteArray> cupsArgList;
-
-                cupsArgList << "lpr";
-
-                if (!printerName.isEmpty()) {
-                    cupsArgList << "-P";
-                    cupsArgList << printerName.toLocal8Bit();
-                }
-
-                if (!cupsStringPageSize.isEmpty()) {
-                    cupsArgList << "-o";
-                    cupsArgList << QByteArray("media=") + cupsStringPageSize.toLocal8Bit();
-                }
-
-                if (copies > 1) {
-                    cupsArgList << "-#";
-                    cupsArgList << QByteArray::number(copies);
-                }
-
-                if (collate) {
-                    cupsArgList << "-o";
-                    cupsArgList << "Collate=True";
-                }
-
-                if (duplex) {
-                    cupsArgList << "-o";
-                    if (orientation == QPrinter::Portrait)
-                        cupsArgList << "sides=two-sided-long-edge";
-                    else
-                        cupsArgList << "sides=two-sided-short-edge";
-                }
-
-                if (QCUPSSupport::cupsVersion() >= 10300 && orientation == QPrinter::Landscape) {
-                    cupsArgList << "-o";
-                    cupsArgList << "landscape";
-                }
-
-                if (!title.isEmpty()) {
-                    cupsArgList << "-J";
-                    cupsArgList << title.toLocal8Bit();
-                }
-
-                QStringList::const_iterator it = cupsOptions.constBegin();
-                while (it != cupsOptions.constEnd()) {
-                    cupsArgList << "-o";
-                    cupsArgList << (*it).toLocal8Bit() + "=" + (*(it+1)).toLocal8Bit();
-                    it += 2;
-                }
-
-                char** lprargs = new char*[cupsArgList.count() + 1];
-                int i;
-                for (i = 0; i < cupsArgList.count(); ++i) {
-                    lprargs[i] = cupsArgList[i].data();
-                }
-                lprargs[i] = 0;
-
-                // if the CUPS is available we expect lpr around
-                (void)execvp( "lpr", lprargs );
-                (void)execv( "/bin/lpr", lprargs);
-                (void)execv( "/usr/bin/lpr", lprargs);
-
-#endif
             } else {
                 // if no print program has been specified, be smart
                 // about the option string too.
@@ -1563,24 +1522,29 @@ bool QPdfBaseEnginePrivate::openPrintDevice()
                     lprhack.append(pr.toLocal8Bit());
                     lphack.append(pr.toLocal8Bit());
                 }
+                lphack.append("-s");
+
                 char ** lpargs = new char *[lphack.size()+6];
-                lpargs[0] = "lp";
+                char lp[] = "lp";
+                lpargs[0] = lp;
                 int i;
                 for (i = 0; i < lphack.size(); ++i)
                     lpargs[i+1] = (char *)lphack.at(i).constData();
 #ifndef Q_OS_OSF
-                if (QPdf::paperSizeToString(pageSize)) {
-                    lpargs[++i] = "-o";
-                    lpargs[++i] = (char *)QPdf::paperSizeToString(pageSize);
-                    lpargs[++i] = "-o";
+                if (QPdf::paperSizeToString(paperSize)) {
+                    char dash_o[] = "-o";
+                    lpargs[++i] = dash_o;
+                    lpargs[++i] = const_cast<char *>(QPdf::paperSizeToString(paperSize));
+                    lpargs[++i] = dash_o;
                     media = "media=";
-                    media += QPdf::paperSizeToString(pageSize);
-                    lpargs[++i] = (char *)media.constData();
+                    media += QPdf::paperSizeToString(paperSize);
+                    lpargs[++i] = media.data();
                 }
 #endif
                 lpargs[++i] = 0;
                 char **lprargs = new char *[lprhack.size()+2];
-                lprargs[0] = "lpr";
+                char lpr[] = "lpr";
+                lprargs[0] = lpr;
                 for (int i = 0; i < lprhack.size(); ++i)
                     lprargs[i+1] = (char *)lprhack[i].constData();
                 lprargs[lprhack.size() + 1] = 0;
@@ -1629,6 +1593,85 @@ void QPdfBaseEnginePrivate::closePrintDevice()
     fd = -1;
     delete outDevice;
     outDevice = 0;
+
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+    if (!cupsTempFile.isEmpty()) {
+        QString tempFile = cupsTempFile;
+        cupsTempFile.clear();
+        QCUPSSupport cups;
+
+        // Set up print options.
+        QByteArray prnName;
+        QList<QPair<QByteArray, QByteArray> > options;
+        QVector<cups_option_t> cupsOptStruct;
+
+        if (!printerName.isEmpty()) {
+            prnName = printerName.toLocal8Bit();
+        } else {
+            QPrinterInfo def = QPrinterInfo::defaultPrinter();
+            if (def.isNull()) {
+                qWarning("Could not determine printer to print to");
+                QFile::remove(tempFile);
+                return;
+            }
+            prnName = def.printerName().toLocal8Bit();
+        }
+
+        if (!cupsStringPageSize.isEmpty()) {
+            options.append(QPair<QByteArray, QByteArray>("media", cupsStringPageSize.toLocal8Bit()));
+        }
+
+        if (copies > 1) {
+            options.append(QPair<QByteArray, QByteArray>("copies", QString::number(copies).toLocal8Bit()));
+        }
+
+        if (collate) {
+            options.append(QPair<QByteArray, QByteArray>("Collate", "True"));
+        }
+
+        if (duplex != QPrinter::DuplexNone) {
+            switch(duplex) {
+            case QPrinter::DuplexNone: break;
+            case QPrinter::DuplexAuto:
+                if (orientation == QPrinter::Portrait)
+                    options.append(QPair<QByteArray, QByteArray>("sides", "two-sided-long-edge"));
+                else
+                    options.append(QPair<QByteArray, QByteArray>("sides", "two-sided-short-edge"));
+                break;
+            case QPrinter::DuplexLongSide:
+                options.append(QPair<QByteArray, QByteArray>("sides", "two-sided-long-edge"));
+                break;
+            case QPrinter::DuplexShortSide:
+                options.append(QPair<QByteArray, QByteArray>("sides", "two-sided-short-edge"));
+                break;
+            }
+        }
+
+        if (QCUPSSupport::cupsVersion() >= 10300 && orientation == QPrinter::Landscape) {
+            options.append(QPair<QByteArray, QByteArray>("landscape", ""));
+        }
+
+        QStringList::const_iterator it = cupsOptions.constBegin();
+        while (it != cupsOptions.constEnd()) {
+            options.append(QPair<QByteArray, QByteArray>((*it).toLocal8Bit(), (*(it+1)).toLocal8Bit()));
+            it += 2;
+        }
+
+        for (int c = 0; c < options.size(); ++c) {
+            cups_option_t opt;
+            opt.name = options[c].first.data();
+            opt.value = options[c].second.data();
+            cupsOptStruct.append(opt);
+        }
+
+        // Print the file.
+        cups_option_t* optPtr = cupsOptStruct.size() ? &cupsOptStruct.first() : 0;
+        cups.printFile(prnName.constData(), tempFile.toLocal8Bit().constData(),
+                title.toLocal8Bit().constData(), cupsOptStruct.size(), optPtr);
+
+        QFile::remove(tempFile);
+    }
+#endif
 }
 
 QPdfBaseEnginePrivate::~QPdfBaseEnginePrivate()
@@ -1666,11 +1709,12 @@ void QPdfBaseEnginePrivate::drawTextItem(const QPointF &p, const QTextItemInt &t
     if (!currentPage->fonts.contains(font->object_id))
         currentPage->fonts.append(font->object_id);
 
-    qreal size;
+    qreal size = ti.fontEngine->fontDef.pixelSize;
 #ifdef Q_WS_WIN
-    size = ti.fontEngine->tm.w.tmHeight;
-#else
-    size = ti.fontEngine->fontDef.pixelSize;
+    if (ti.fontEngine->type() == QFontEngine::Win) {
+        QFontEngineWin *fe = static_cast<QFontEngineWin *>(ti.fontEngine);
+        size = fe->tm.w.tmHeight;
+    }
 #endif
 
     QVarLengthArray<glyph_t> glyphs;
@@ -1760,20 +1804,25 @@ QRect QPdfBaseEnginePrivate::paperRect() const
 {
     int w;
     int h;
+    if (paperSize == QPrinter::Custom) {
+        w = qRound(customPaperSize.width()*resolution/72.);
+        h = qRound(customPaperSize.height()*resolution/72.);
+    } else {
 #if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
-    if (QCUPSSupport::isAvailable() && !cupsPaperRect.isNull()) {
-        QRect r = cupsPaperRect;
-        w = r.width();
-        h = r.height();
-    } else
+        if (QCUPSSupport::isAvailable() && !cupsPaperRect.isNull()) {
+            QRect r = cupsPaperRect;
+            w = r.width();
+            h = r.height();
+        } else
 #endif
-    {
-        QPdf::PaperSize s = QPdf::paperSize(pageSize);
-        w = s.width;
-        h = s.height;
+        {
+            QPdf::PaperSize s = QPdf::paperSize(paperSize);
+            w = s.width;
+            h = s.height;
+        }
+        w = qRound(w*resolution/72.);
+        h = qRound(h*resolution/72.);
     }
-    w = qRound(w*resolution/72.);
-    h = qRound(h*resolution/72.);
     if (orientation == QPrinter::Portrait)
         return QRect(0, 0, w, h);
     else
@@ -1790,25 +1839,44 @@ QRect QPdfBaseEnginePrivate::pageRect() const
 #if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
     if (QCUPSSupport::isAvailable() && !cupsPageRect.isNull()) {
         r = cupsPageRect;
-        if (r == cupsPaperRect)
+        if (!hasCustomPageMargins && r == cupsPaperRect) {
             // if cups doesn't define any margins, give it at least approx 3.5 mm
             r = QRect(10, 10, r.width() - 20, r.height() - 20);
+        }
     } else
 #endif
     {
-        QPdf::PaperSize s = QPdf::paperSize(pageSize);
-        r = QRect(72/3, 72/3, s.width - 2*72/3, s.height - 2*72/3);
+        QPdf::PaperSize s;
+        if (paperSize == QPrinter::Custom) {
+            s.width = qRound(customPaperSize.width());
+            s.height = qRound(customPaperSize.height());
+        } else {
+            s = QPdf::paperSize(paperSize);
+        }
+        if (hasCustomPageMargins)
+            r = QRect(0, 0, s.width, s.height);
+        else
+            r = QRect(72/3, 72/3, s.width - 2*72/3, s.height - 2*72/3);
     }
+
     int x = qRound(r.left()*resolution/72.);
     int y = qRound(r.top()*resolution/72.);
     int w = qRound(r.width()*resolution/72.);
     int h = qRound(r.height()*resolution/72.);
     if (orientation == QPrinter::Portrait)
-        return QRect(x, y, w, h);
+        r = QRect(x, y, w, h);
     else
-        return QRect(y, x, h, w);
-}
+        r = QRect(y, x, h, w);
 
+    if (hasCustomPageMargins) {
+        r.adjust(qRound(leftMargin*(resolution/72.)),
+                 qRound(topMargin*(resolution/72.)),
+                 -qRound(rightMargin*(resolution/72.)),
+                 -qRound(bottomMargin*(resolution/72.)));
+    }
+    return r;
+}
 
 #endif
 
+QT_END_NAMESPACE

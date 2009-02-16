@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,8 @@
 #include <private/qt_x11_p.h>
 #include <limits.h>
 
+QT_BEGIN_NAMESPACE
+
 class QColormapPrivate
 {
 public:
@@ -63,7 +59,7 @@ public:
           r_shift(0), g_shift(0), b_shift(0)
     {}
 
-    QAtomic ref;
+    QAtomicInt ref;
 
     QColormap::Mode mode;
     int depth;
@@ -335,31 +331,6 @@ static void init_direct(QColormapPrivate *d, bool ownColormap)
     XStoreColors(X11->display, d->colormap, colorTable.data(), colorTable.count());
 }
 
-/*!
-    \class QColormap
-    \ingroup multimedia
-
-    \brief The QColormap class maps device independent QColors to device dependent pixel values.
-*/
-
-/*! \enum QColormap::Mode
-
-    This enum describes how QColormap maps device independent RGB
-    values to device dependent pixel values.
-
-    \value Direct Pixel values are derived directly from the RGB
-    values, also known as "True Color."
-
-    \value Indexed Pixel values represent indexes into a vector of
-    available colors, i.e. QColormap uses the index of the color that
-    most closely matches an RGB value.
-
-    \value Gray Similar to \c Indexed, pixel values represent a vector
-    of available gray tones.  QColormap uses the index of the gray
-    tone that most closely matches the computed gray tone of an RGB
-    value.
-*/
-
 static QColormap **cmaps = 0;
 
 /*! \internal
@@ -406,7 +377,35 @@ void QColormap::initialize()
         } else if (!X11->custom_cmap) {
             XStandardColormap *stdcmap = 0;
             int ncmaps = 0;
-            if (XGetRGBColormaps(display, RootWindow(display, i),
+
+            bool foundArgbVisual = false;
+#if 0
+#ifndef QT_NO_XRENDER
+            if (X11->use_xrender) {
+                int nvi;
+                XVisualInfo templ;
+                templ.screen  = i;
+                templ.depth   = 32;
+                templ.c_class = TrueColor;
+                XVisualInfo *xvi = XGetVisualInfo(X11->display, VisualScreenMask |
+                                                  VisualDepthMask |
+                                                  VisualClassMask, &templ, &nvi);
+                for (int idx = 0; idx < nvi; ++idx) {
+                    XRenderPictFormat *format = XRenderFindVisualFormat(X11->display,
+                                                                        xvi[idx].visual);
+                    if (format->type == PictTypeDirect && format->direct.alphaMask) {
+                        d->visual = xvi[idx].visual;
+                        d->depth = 32;
+                        d->defaultVisual = false;
+                        foundArgbVisual = true;
+                        break;
+                    }
+                }
+            }
+#endif
+#endif
+            if (!foundArgbVisual &&
+                XGetRGBColormaps(display, RootWindow(display, i),
                                  &stdcmap, &ncmaps, XA_RGB_DEFAULT_MAP)) {
                 if (stdcmap) {
                     for (int c = 0; c < ncmaps; ++c) {
@@ -464,7 +463,6 @@ void QColormap::initialize()
                 }
             }
         }
-
         if (!use_stdcmap) {
             switch (d->visual->c_class) {
             case StaticGray:
@@ -533,10 +531,10 @@ void QColormap::initialize()
             // only use the outside colormap on the default screen
             d->colormap = X11->colormap;
             d->defaultColormap = (d->colormap == DefaultColormap(display, i));
-        } else if (!use_stdcmap
+        } else if ((!use_stdcmap
                    && (((d->visual->c_class & 1) && X11->custom_cmap)
-                       || d->visual != DefaultVisual(display, i))
-                       || d->visual->c_class == DirectColor) {
+                       || d->visual != DefaultVisual(display, i)))
+                   || d->visual->c_class == DirectColor) {
             // allocate custom colormap (we always do this when using DirectColor visuals)
             d->colormap =
                 XCreateColormap(display, RootWindow(display, i), d->visual,
@@ -589,10 +587,7 @@ void QColormap::cleanup()
     cmaps = 0;
 }
 
-/*!
-    Returns the colormap for the specified \a screen.  If \a screen is
-    -1, this function returns the colormap for the default screen.
-*/
+
 QColormap QColormap::instance(int screen)
 {
     if (screen == -1)
@@ -607,16 +602,10 @@ QColormap::QColormap()
     : d(new QColormapPrivate)
 {}
 
-/*!
-    Constructs a copy of another \a colormap.
- */
 QColormap::QColormap(const QColormap &colormap)
     :d (colormap.d)
 { d->ref.ref(); }
 
-/*!
-    Destroys the colormap.
-*/
 QColormap::~QColormap()
 {
     if (!d->ref.deref()) {
@@ -626,28 +615,12 @@ QColormap::~QColormap()
     }
 }
 
-/*!
-    Returns the mode of this colormap.
-
-    \sa QColormap::Mode
-*/
 QColormap::Mode QColormap::mode() const
 { return d->mode; }
 
-/*!
-    Returns the depth of the device.
-
-    \sa size()
-*/
 int QColormap::depth() const
 { return d->depth; }
 
-/*!
-    Returns the size of the colormap for \c Indexed and \c Gray modes;
-    Returns -1 for \c Direct mode.
-
-    \sa colormap()
-*/
 int QColormap::size() const
 {
     return (d->mode == Gray
@@ -657,11 +630,6 @@ int QColormap::size() const
                : -1));
 }
 
-/*!
-    Returns a device dependent pixel value for the \a color.
-
-    \sa colorAt()
-*/
 uint QColormap::pixel(const QColor &color) const
 {
     const QColor c = color.toRgb();
@@ -676,11 +644,6 @@ uint QColormap::pixel(const QColor &color) const
     return (r << d->r_shift) + (g << d->g_shift) + (b << d->b_shift);
 }
 
-/*!
-    Returns a QColor for the \a pixel.
-
-    \sa pixel()
-*/
 const QColor QColormap::colorAt(uint pixel) const
 {
     if (d->mode != Direct) {
@@ -694,34 +657,13 @@ const QColor QColormap::colorAt(uint pixel) const
     return QColor(r, g, b);
 }
 
-/*!
-    Returns a vector of colors which represents the devices colormap
-    for \c Indexed and \c Gray modes.  This function returns an empty
-    vector for \c Direct mode.
-
-    \sa size()
-*/
 const QVector<QColor> QColormap::colormap() const
 { return d->colors; }
 
-/*! \fn HPALETTE QColormap::hPal()
-
-    This function is only available on Windows.
-
-    Returns an handle to the HPALETTE used by this colormap.  If no
-    HPALETTE is being used, this function returns zero.
-*/
-
-
-/*! \since 4.2
-    \fn QColormap &QColormap::operator=(const QColormap &colormap)
-
-    Assigns the given \a colormap to \e this color map and returns
-    a reference to \e this color map.
-*/
 QColormap &QColormap::operator=(const QColormap &colormap)
 {
     qAtomicAssign(d, colormap.d);
     return *this;
 }
 
+QT_END_NAMESPACE

@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -116,6 +107,8 @@
 
 //#define QWS_DEBUG_FONTCLEANUP
 
+QT_BEGIN_NAMESPACE
+
 QWSServer Q_GUI_EXPORT *qwsServer=0;
 static QWSServerPrivate *qwsServerPrivate=0;
 
@@ -167,11 +160,11 @@ static void cleanupFontsDir();
     \ingroup qws
 
     \brief The QWSScreenSaver class is a base class for screensavers
-    in Qtopia Core.
+    in Qt for Embedded Linux.
 
-    When running \l {Qtopia Core} applications, it is the server
-    application that installs and controls the screensaver. \l {Qtopia
-    Core} supports multilevel screen saving, i.e., it is possible to
+    When running \l{Qt for Embedded Linux} applications, it is the server
+    application that installs and controls the screensaver.
+    \l{Qt for Embedded Linux} supports multilevel screen saving; i.e., it is possible to
     specify several different levels of screen responsiveness. For
     example, you can choose to first turn off the light before you
     fully activate the screensaver.
@@ -185,7 +178,7 @@ static void cleanupFontsDir();
     created, you can use the QWSServer::setScreenSaver() function to
     install it.
 
-    \sa QWSServer, QScreen, {Qtopia Core}
+    \sa QWSServer, QScreen, {Qt for Embedded Linux}
 */
 
 /*!
@@ -209,7 +202,7 @@ static void cleanupFontsDir();
     Implement this function to activate the screensaver, saving the
     current screen.
 
-    \l {Qtopia Core} supports multilevel screen saving, i.e., it is
+    \l{Qt for Embedded Linux} supports multilevel screen saving; i.e., it is
     possible to specify several different levels of screen
     responsiveness. For example, you can choose to first turn off the
     light before you fully activate the screensaver. Use the
@@ -227,6 +220,9 @@ class QWSWindowPrivate
 public:
     QWSWindowPrivate();
 
+#ifdef QT_QWS_CLIENTBLIT
+    QRegion directPaintRegion;
+#endif
     QRegion allocatedRegion;
 #ifndef QT_NO_QWSEMBEDWIDGET
     QList<QWSWindow*> embedded;
@@ -252,12 +248,12 @@ QWSWindowPrivate::QWSWindowPrivate()
     \ingroup qws
 
     \brief The QWSWindow class encapsulates a top-level window in
-    Qtopia Core.
+    Qt for Embedded Linux.
 
-    When you run a \l {Qtopia Core} application, it either runs as a
+    When you run a \l{Qt for Embedded Linux} application, it either runs as a
     server or connects to an existing server. As applications add and
     remove windows, the server process maintains information about
-    each window. In \l {Qtopia Core}, top-level windows are
+    each window. In \l{Qt for Embedded Linux}, top-level windows are
     encapsulated as QWSWindow objects. Note that you should never
     construct the QWSWindow class yourself; the current top-level
     windows can be retrieved using the QWSServer::clientWindows()
@@ -276,7 +272,7 @@ QWSWindowPrivate::QWSWindowPrivate()
     requestedRegion() function returns the region of the display the
     window wants to draw on.
 
-    \sa QWSServer, QWSClient, {Qtopia Core Architecture}
+    \sa QWSServer, QWSClient, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -290,7 +286,8 @@ QWSWindowPrivate::QWSWindowPrivate()
 /*!
     \fn const QString &QWSWindow::name() const
 
-    Returns the window's name.
+    Returns the window's name, which is taken from the \l {QWidget::}{objectName()}
+    at the time of \l {QWidget::}{show()}.
 
     \sa caption(), winId()
 */
@@ -543,12 +540,6 @@ void QWSWindow::focus(bool get)
         event.simpleData.get_focus = get;
         c->sendEvent(&event);
     }
-
-#ifndef QT_NO_QWSEMBEDWIDGET
-    const int n = d->embedded.size();
-    for (int i = 0; i < n; ++i)
-        d->embedded.at(i)->focus(get);
-#endif
 }
 
 void QWSWindow::operation(QWSWindowOperationEvent::Operation o)
@@ -605,6 +596,18 @@ QRegion QWSWindow::allocatedRegion() const
 {
     return d->allocatedRegion;
 }
+
+#ifdef QT_QWS_CLIENTBLIT
+QRegion QWSWindow::directPaintRegion() const
+{
+    return d->directPaintRegion;
+}
+
+inline void QWSWindow::setDirectPaintRegion(const QRegion &r)
+{
+    d->directPaintRegion = r;
+}
+#endif
 
 /*!
     \internal
@@ -702,10 +705,9 @@ void QWSClientPrivate::unlockCommunication()
     \class QWSClient
     \ingroup qws
 
-    \brief The QWSClient class encapsulates a client process in Qtopia
-    Core.
+    \brief The QWSClient class encapsulates a client process in Qt for Embedded Linux.
 
-    When you run a \l {Qtopia Core} application, it either runs as a
+    When you run a \l{Qt for Embedded Linux} application, it either runs as a
     server or connects to an existing server. The server and client
     processes have different responsibilities: The client process
     performs all application specific operations. The server process
@@ -715,7 +717,7 @@ void QWSClientPrivate::unlockCommunication()
     methods.
 
     As applications add and remove windows, the server process
-    maintains information about each window. In \l {Qtopia Core},
+    maintains information about each window. In \l{Qt for Embedded Linux},
     top-level windows are encapsulated as QWSWindow objects. A list of
     the current windows can be retrieved using the
     QWSServer::clientWindows() function, and each window can tell
@@ -727,7 +729,7 @@ void QWSClientPrivate::unlockCommunication()
     function which typically returns the name of this client's running
     application.
 
-    \sa QWSServer, QWSWindow, {Qtopia Core Architecture}
+    \sa QWSServer, QWSWindow, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -839,7 +841,11 @@ void QWSClient::sendEvent(QWSEvent* event)
 /*!
    \internal
 */
-void QWSClient::sendRegionEvent(int winid, QRegion rgn, int type)
+void QWSClient::sendRegionEvent(int winid, QRegion rgn, int type
+#ifdef QT_QWS_CLIENTBLIT
+        , int id
+#endif
+        )
 {
 #ifndef QT_NO_QWS_MULTIPROCESS
     Q_D(QWSClient);
@@ -849,21 +855,13 @@ void QWSClient::sendRegionEvent(int winid, QRegion rgn, int type)
 
     QWSRegionEvent event;
     event.setData(winid, rgn, type);
+#ifdef QT_QWS_CLIENTBLIT
+    event.simpleData.id = id;
+#endif
 
 //    qDebug() << "Sending Region event to" << winid << "rgn" << rgn << "type" << type;
 
     sendEvent(&event);
-#ifndef QT_NO_QWS_MULTIPROCESS
-    if (d->clientLock && d->numUnbufferedSurfaces > 0) {
-        while (csocket->bytesToWrite() > 0) {
-            if (!csocket->waitForBytesWritten(-1)) {
-                qCritical("QWSClient::sendRegionEvent: %s",
-                          qPrintable(csocket->errorString()));
-                break;
-            }
-        }
-    }
-#endif
 }
 
 extern int qt_servershmid;
@@ -986,12 +984,11 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
 
 /*!
     \class QWSServer
-    \brief The QWSServer class encapsulates a server process in Qtopia
-    Core.
+    \brief The QWSServer class encapsulates a server process in Qt for Embedded Linux.
 
     \ingroup qws
 
-    When you run a \l {Qtopia Core} application, it either runs as a
+    When you run a \l{Qt for Embedded Linux} application, it either runs as a
     server or connects to an existing server. The server and client
     processes have different responsibilities: The client process
     performs all application specific operations. The server process
@@ -1000,13 +997,13 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     addition, the server provides functionality to handle input
     methods.
 
-    In \l {Qtopia Core}, all system generated events are passed to the
+    In \l{Qt for Embedded Linux}, all system generated events are passed to the
     server application which then propagates the event to the
-    appropriate client. See the \l {Qtopia Core Architecture}
+    appropriate client. See the \l{Qt for Embedded Linux Architecture}
     documentation for details.
 
-    Note that this class is instantiated by QApplication for \l
-    {Qtopia Core} server processes; you should never construct this
+    Note that this class is instantiated by QApplication for
+    \l{Qt for Embedded Linux} server processes; you should never construct this
     class yourself. Use the instance() function to retrieve a pointer
     to the server object.
 
@@ -1018,7 +1015,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     \section1 Client Administration
 
     As applications add and remove windows, the server process
-    maintains information about each window. In \l {Qtopia Core},
+    maintains information about each window. In \l{Qt for Embedded Linux},
     top-level windows are encapsulated as QWSWindow objects. Each
     window can tell which client that owns it through its
     QWSWindow::client() function. Use the clientWindows() function to
@@ -1064,7 +1061,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     In addition, the QWSServer class can control the flow of mouse
     input using the suspendMouse() and resumeMouse() functions.
 
-    See also: QWSMouseHandler and \l {Qtopia Core Pointer Handling}.
+    See also: QWSMouseHandler and \l{Qt for Embedded Linux Pointer Handling}.
 
     \section1 Keyboard Handling
 
@@ -1092,7 +1089,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     physical keyboard drivers, the most recently added filter can be
     removed and deleted using the removeKeyboardFilter() function.
 
-    See also: QWSKeyboardHandler and \l {Qtopia Core Character Input}.
+    See also: QWSKeyboardHandler and \l{Qt for Embedded Linux Character Input}.
 
     \section1 Display Handling
 
@@ -1109,7 +1106,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     enablePainting() function can be used to disable (and enable)
     painting onto the screen. QWSServer also provide the
     setMaxWindowRect() function restricting the area of the screen
-    which \l {Qtopia Core} applications will consider to be the
+    which \l{Qt for Embedded Linux} applications will consider to be the
     maximum area to use for windows. To set the brush used as the
     background in the absence of obscuring windows, QWSServer provides
     the static setBackground() function. The corresponding
@@ -1121,7 +1118,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     screenSaverActivate() function, and the screenSaverActive()
     function returns its current status. Use the
     setScreenSaverInterval() function to specify the timeout interval.
-    \l{Qtopia Core} also supports multilevel screen saving, use the
+    \l{Qt for Embedded Linux} also supports multilevel screen saving, use the
     setScreenSaverIntervals() function to specify the various levels
     and their timeout intervals.
 
@@ -1130,7 +1127,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     cursor, and the isCursorVisible() function to determine whether
     the cursor is visible on the display or not.
 
-    See also: QScreen and \l {Qtopia Core Display Management}.
+    See also: QScreen and \l{Qt for Embedded Linux Display Management}.
 
     \section1 Input Method Handling
 
@@ -1151,7 +1148,7 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     function. The latter function allows subclasses of QWSInputMethod
     to handle mouse events within the preedit text.
 
-    See also: QWSInputMethod
+    \sa QWSInputMethod
 */
 
 /*!
@@ -1267,8 +1264,8 @@ void QWSClient::sendEmbedEvent(int windowid, QWSEmbedEvent::Type type,
     flags are used for keyboard and mouse settings.
 
     \warning This class is instantiated by QApplication for
-    \l {Qtopia Core} server processes. You should never construct this
-    class yourself.
+    \l{Qt for Embedded Linux} server processes. You should never construct
+    this class yourself.
 
     \sa {Running Applications}
 */
@@ -1570,9 +1567,16 @@ void QWSServerPrivate::_q_newConnection()
                 screens.append(qt_screen);
             for (int i = 0; i < screens.size(); ++i) {
                 const QApplicationPrivate *ap = QApplicationPrivate::instance();
-                const QRect rect = ap->maxWindowRect(screens.at(i));
+                QScreen *screen = screens.at(i);
+                const QRect rect = ap->maxWindowRect(screen);
                 if (!rect.isEmpty())
                     client->sendMaxWindowRectEvent(rect);
+                if (screen->isTransformed()) {
+                    QWSScreenTransformationEvent event;
+                    event.simpleData.screen = i;
+                    event.simpleData.transformation = screen->transformOrientation();
+                    client->sendEvent(&event);
+                }
             }
         }
 
@@ -1619,6 +1623,7 @@ void QWSServerPrivate::_q_clientClosed()
     while (i < windows.size()) {
         QWSWindow* w = windows.at(i);
         if (w->forClient(cl)) {
+            windows.takeAt(i);
             w->c = 0; //so we don't send events to it anymore
             releaseMouse(w);
             releaseKeyboard(w);
@@ -1628,7 +1633,6 @@ void QWSServerPrivate::_q_clientClosed()
                 setFocus(focusw,0);
             if (mouseGrabber == w)
                 releaseMouse(w);
-            windows.takeAt(i);
             if (i < nReserved)
                 --nReserved;
 #ifndef QT_NO_QWS_PROPERTIES
@@ -2004,6 +2008,10 @@ void QWSServerPrivate::doClient(QWSClient *client)
                         cs->client);
             break;
 #endif
+        case QWSCommand::ScreenTransform:
+            invokeScreenTransform(static_cast<QWSScreenTransformCommand*>(cs->command),
+                                  cs->client);
+            break;
         }
         delete cs;
     }
@@ -2013,14 +2021,16 @@ void QWSServerPrivate::doClient(QWSClient *client)
 void QWSServerPrivate::showCursor()
 {
 #ifndef QT_NO_QWS_CURSOR
-    qt_screencursor->show();
+    if (qt_screencursor)
+        qt_screencursor->show();
 #endif
 }
 
 void QWSServerPrivate::hideCursor()
 {
 #ifndef QT_NO_QWS_CURSOR
-    qt_screencursor->hide();
+    if (qt_screencursor)
+        qt_screencursor->hide();
 #endif
 }
 
@@ -2030,7 +2040,7 @@ void QWSServerPrivate::hideCursor()
     Enables painting onto the screen if \a enable is true; otherwise
     painting is disabled.
 
-    \sa {Qtopia Core Architecture#Drawing on Screen}{Qtopia Core
+    \sa {Qt for Embedded Linux Architecture#Drawing on Screen}{Qt for Embedded Linux
     Architecture}
 */
 void QWSServer::enablePainting(bool enable)
@@ -2048,6 +2058,9 @@ void QWSServer::enablePainting(bool enable)
         for (int i = 0; i < d->windows.size(); ++i) {
             QWSWindow *w = d->windows.at(i);
             w->setAllocatedRegion(QRegion());
+#ifdef QT_QWS_CLIENTBLIT
+            w->setDirectPaintRegion(QRegion());
+#endif
         }
         d->update_regions();
         d->showCursor();
@@ -2059,6 +2072,10 @@ void QWSServer::enablePainting(bool enable)
             QWSWindow *w = d->windows.at(i);
             w->client()->sendRegionEvent(w->winId(), QRegion(),
                                          QWSRegionEvent::Allocation);
+#ifdef QT_QWS_CLIENTBLIT
+            w->client()->sendRegionEvent(w->winId(), QRegion(),
+                                         QWSRegionEvent::DirectPaint);
+#endif
         }
         d->hideCursor();
     }
@@ -2073,7 +2090,7 @@ void QWSServer::enablePainting(bool enable)
 void QWSServer::refresh()
 {
     Q_D(QWSServer);
-    d->exposeRegion(QRegion(0, 0, d->swidth, d->sheight));
+    d->exposeRegion(QScreen::instance()->region());
 //### send repaint to non-buffered windows
 }
 
@@ -2093,7 +2110,7 @@ void QWSServer::refresh(QRegion & r)
 /*!
     \fn void QWSServer::setMaxWindowRect(const QRect& rectangle)
 
-    Sets the maximum area of the screen that \l {Qtopia Core}
+    Sets the maximum area of the screen that \l{Qt for Embedded Linux}
     applications can use, to be the given \a rectangle.
 
     Note that this function can only be used in the server process.
@@ -2141,7 +2158,7 @@ void QWSServerPrivate::sendMaxWindowRectEvents(const QRect &rect)
     only be used in the server process.
 
 
-    \sa setMouseHandler(), {Qtopia Core Pointer Handling}
+    \sa setMouseHandler(), {Qt for Embedded Linux Pointer Handling}
 */
 void QWSServer::setDefaultMouse(const char *m)
 {
@@ -2158,7 +2175,7 @@ void QWSServer::setDefaultMouse(const char *m)
     Note that the default is platform-dependent. This function can
     only be used in the server process.
 
-    \sa setKeyboardHandler(), {Qtopia Core Character Input}
+    \sa setKeyboardHandler(), {Qt for Embedded Linux Character Input}
 */
 void QWSServer::setDefaultKeyboard(const char *k)
 {
@@ -2189,7 +2206,7 @@ void QWSServer::sendMouseEvent(const QPoint& pos, int state, int wheel)
     qDebug() << "sendMouseEvent" << pos.x() << pos.y() << state << (block?"block":"pass");
 #endif
 
-    if (state)
+    if (state || wheel)
         qwsServerPrivate->_q_screenSaverWake();
 
     if ( block )
@@ -2272,7 +2289,8 @@ void QWSServerPrivate::sendMouseEventUnfiltered(const QPoint &pos, int state, in
     event.simpleData.window = win ? win->id : 0;
 
 #ifndef QT_NO_QWS_CURSOR
-    qt_screencursor->move(pos.x(),pos.y());
+    if (qt_screencursor)
+        qt_screencursor->move(pos.x(),pos.y());
 
     // Arrow cursor over desktop
     // prevWin remembers if the last event was over a window
@@ -2354,9 +2372,9 @@ QWSMouseHandler *QWSServer::mouseHandler()
 
     Sets the primary mouse driver to be the given \a driver.
 
-    \l {Qtopia Core} provides several ready-made mouse drivers, and
+    \l{Qt for Embedded Linux} provides several ready-made mouse drivers, and
     custom drivers are typically added using Qt's plugin
-    mechanism. See the \l {Qtopia Core Pointer Handling} documentation
+    mechanism. See the \l{Qt for Embedded Linux Pointer Handling} documentation
     for details.
 
     Note that this function can only be used in the server process.
@@ -2487,7 +2505,7 @@ static int keyUnicode(int keycode)
 
     Note that this function can only be used in the server process.
 
-    \sa processKeyEvent(), {Qtopia Core Character Input}
+    \sa processKeyEvent(), {Qt for Embedded Linux Character Input}
 */
 void QWSServer::sendKeyEvent(int unicode, int keycode, Qt::KeyboardModifiers modifiers,
                              bool isPress, bool autoRepeat)
@@ -2543,7 +2561,8 @@ void QWSServer::beginDisplayReconfigure()
 {
     qwsServer->enablePainting(false);
 #ifndef QT_NO_QWS_CURSOR
-    qt_screencursor->hide();
+    if (qt_screencursor)
+        qt_screencursor->hide();
 #endif
     QWSDisplay::grab(true);
     qt_screen->disconnect();
@@ -2560,7 +2579,8 @@ void QWSServer::endDisplayReconfigure()
 
     QWSDisplay::ungrab();
 #ifndef QT_NO_QWS_CURSOR
-    qt_screencursor->show();
+    if (qt_screencursor)
+        qt_screencursor->show();
 #endif
     QApplicationPrivate *ap = QApplicationPrivate::instance();
     ap->setMaxWindowRect(qt_screen, 0,
@@ -2576,6 +2596,8 @@ void QWSServer::endDisplayReconfigure()
 void QWSServerPrivate::resetEngine()
 {
 #ifndef QT_NO_QWS_CURSOR
+    if (!qt_screencursor)
+        return;
     qt_screencursor->hide();
     qt_screencursor->show();
 #endif
@@ -2669,7 +2691,7 @@ void QWSServer::sendIMEvent(const QInputMethodEvent *ime)
         win->client()->sendEvent(&event);
 
     current_IM_composing_win = ime->preeditString().isEmpty() ? 0 : win;
-    current_IM_winId = win->winId();
+    current_IM_winId = win ? win->winId() : 0;
 }
 
 
@@ -2761,7 +2783,7 @@ void QWSServerPrivate::invokeRegionName(const QWSRegionNameCommand *cmd, QWSClie
 {
     Q_Q(QWSServer);
     QWSWindow* changingw = findWindow(cmd->simpleData.windowid, client);
-    if (changingw) {
+    if (changingw && (changingw->name() != cmd->name || changingw->caption() !=cmd->caption)) {
         changingw->setName(cmd->name);
         changingw->setCaption(cmd->caption);
         emit q->windowEvent(changingw, QWSServer::Name);
@@ -3248,6 +3270,8 @@ void QWSServerPrivate::invokeEmbed(QWSEmbedCommand *cmd, QWSClient *client)
     switch (cmd->simpleData.type) {
     case QWSEmbedEvent::StartEmbed:
         embedder->startEmbed(embedded);
+        windows.removeAll(embedded);
+        windows.insert(windows.indexOf(embedder), embedded);
         break;
     case QWSEmbedEvent::StopEmbed:
         embedder->stopEmbed(embedded);
@@ -3258,9 +3282,26 @@ void QWSServerPrivate::invokeEmbed(QWSEmbedCommand *cmd, QWSClient *client)
 
     embedded->client()->sendEmbedEvent(embedded->winId(),
                                        cmd->simpleData.type, cmd->region);
+    const QRegion oldAllocated = embedded->allocatedRegion();
     update_regions();
+    exposeRegion(oldAllocated - embedded->allocatedRegion(),
+                 windows.indexOf(embedded));
 }
 #endif // QT_NO_QWSEMBEDWIDGET
+
+void QWSServerPrivate::invokeScreenTransform(const QWSScreenTransformCommand *cmd,
+                                             QWSClient *client)
+{
+    Q_UNUSED(client);
+
+    QWSScreenTransformationEvent event;
+    event.simpleData.screen = cmd->simpleData.screen;
+    event.simpleData.transformation = cmd->simpleData.transformation;
+
+    QMap<int, QWSClient*>::const_iterator it = clientMap.constBegin();
+    for (; it != clientMap.constEnd(); ++it)
+        (*it)->sendEvent(&event);
+}
 
 QWSWindow* QWSServerPrivate::newWindow(int id, QWSClient* client)
 {
@@ -3321,8 +3362,19 @@ void QWSServerPrivate::raiseWindow(QWSWindow *changingw, int /*alt*/)
             expose += (w->allocatedRegion() & bound);
     }
 
+    bool onTop = changingw->onTop;
+
+#ifndef QT_NO_QWSEMBEDWIDGET
+    // an embedded window is on top if the embedder is on top
+    QWSWindow *embedder = changingw->d->embedder;
+    while (!onTop && embedder) {
+        onTop = embedder->onTop;
+        embedder = embedder->d->embedder;
+    }
+#endif
+
     int newPos = -1;
-    if (changingw->onTop) {
+    if (onTop) {
         windows.insert(nReserved, changingw);
         newPos = nReserved;
     } else {
@@ -3386,7 +3438,6 @@ void QWSServerPrivate::update_regions()
     if (disablePainting)
         return;
 
-    static QRegion prevAvailable = QRect(0, 0, qt_screen->width(), qt_screen->height());
     QRegion available = QRect(0, 0, qt_screen->width(), qt_screen->height());
     QRegion transparentRegion;
 
@@ -3403,7 +3454,7 @@ void QWSServerPrivate::update_regions()
         // Subtract regions needed for embedded windows
         const int n = w->d->embedded.size();
         for (int i = 0; i < n; ++i)
-            r -= w->d->embedded.at(i)->requested_region;
+            r -= w->d->embedded.at(i)->allocatedRegion();
 
         // Limited to the embedder region
         if (w->d->embedder)
@@ -3422,18 +3473,27 @@ void QWSServerPrivate::update_regions()
             available -= r;
         }
 
-        if (r == w->allocatedRegion())
-            continue;
+        if (r != w->allocatedRegion()) {
+            w->setAllocatedRegion(r);
+            w->client()->sendRegionEvent(w->winId(), r,
+                                         QWSRegionEvent::Allocation);
+        }
 
-        w->setAllocatedRegion(r);
-        w->client()->sendRegionEvent(w->winId(), r,
-                                     QWSRegionEvent::Allocation);
+#ifdef QT_QWS_CLIENTBLIT
+#ifdef QT_NO_QWS_CURSOR
+        // This optimization only really works when there isn't a crazy cursor
+        // wizzing around.
+        QRegion directPaint = (r - transparentRegion); // in gloal coords
+        if(directPaint != w->directPaintRegion()) {
+            w->setDirectPaintRegion(directPaint);
+            static int id = 0;
+            surface->setDirectRegion(directPaint, ++id);
+            w->client()->sendRegionEvent(w->winId(), directPaint,
+                                         QWSRegionEvent::DirectPaint, id);
+        }
+#endif
+#endif
     }
-
-    QRegion expose = (available - prevAvailable);
-    prevAvailable = available;
-    if (!expose.isEmpty())
-        exposeRegion(expose);
 
     if (doLock)
         QWSDisplay::ungrab();
@@ -3475,7 +3535,7 @@ void QWSServerPrivate::moveWindowRegion(QWSWindow *changingw, int dx, int dy)
     Changes the requested region of window \a changingw to \a r
     If \a changingw is 0, the server's reserved region is changed.
 */
-void QWSServerPrivate::setWindowRegion(QWSWindow* changingw, QRegion r)
+void QWSServerPrivate::setWindowRegion(QWSWindow* changingw, const QRegion &r)
 {
     if (!changingw) {
         qWarning("Not implemented in this release");
@@ -3495,7 +3555,7 @@ void QWSServerPrivate::setWindowRegion(QWSWindow* changingw, QRegion r)
 }
 
 
-void QWSServerPrivate::exposeRegion(QRegion r, int changing)
+void QWSServerPrivate::exposeRegion(const QRegion &r, int changing)
 {
     if (disablePainting)
         return;
@@ -3505,11 +3565,12 @@ void QWSServerPrivate::exposeRegion(QRegion r, int changing)
 
     static bool initial = true;
     if (initial) {
-        r = QRect(0,0,qt_screen->width(), qt_screen->height());
         changing = 0;
         initial = false;
+        qt_screen->exposeRegion(qt_screen->region(), changing);
+    } else {
+        qt_screen->exposeRegion(r, changing);
     }
-    qt_screen->exposeRegion(r, changing);
 }
 
 /*!
@@ -3658,9 +3719,9 @@ QWSKeyboardHandler* QWSServer::keyboardHandler()
 
     Sets the primary keyboard driver to be the given \a driver.
 
-    \l {Qtopia Core} provides several ready-made keyboard drivers, and
+    \l{Qt for Embedded Linux} provides several ready-made keyboard drivers, and
     custom drivers are typically added using Qt's plugin
-    mechanism. See the \l {Qtopia Core Character Input} documentation
+    mechanism. See the \l{Qt for Embedded Linux Character Input} documentation
     for details.
 
     Note that this function can only be used in the server process.
@@ -3747,7 +3808,8 @@ void QWSServerPrivate::set_identity(const QWSIdentifyCommand *cmd)
     invokeIdentify(cmd, clientMap.value(-1));
 }
 
-void QWSServerPrivate::repaint_region(int wid, int windowFlags, bool opaque, QRegion region)
+void QWSServerPrivate::repaint_region(int wid, int windowFlags, bool opaque,
+                                      const QRegion &region)
 {
     QWSWindow* changingw = findWindow(wid, 0);
     if (!changingw) {
@@ -3795,6 +3857,14 @@ void QWSServerPrivate::request_region(int wid, const QString &surfaceKey,
     if (!changingw)
         return;
 
+    Q_Q(QWSServer);
+    QWSWindow::State windowState;
+
+    if (region.isEmpty()) {
+        windowState = QWSWindow::Hiding;
+        emit q->windowEvent(changingw, QWSServer::Hide);
+    }
+
     const bool wasOpaque = changingw->opaque;
 
     changingw->createSurface(surfaceKey, surfaceData);
@@ -3808,10 +3878,7 @@ void QWSServerPrivate::request_region(int wid, const QString &surfaceKey,
     else
         r = region;
 
-    QWSWindow::State windowState;
-    if (region.isEmpty()) {
-        windowState = QWSWindow::Hiding;
-    } else {
+    if (!region.isEmpty())  {
         if (changingw->isVisible())
             windowState = QWSWindow::ChangingGeometry;
         else
@@ -3819,21 +3886,24 @@ void QWSServerPrivate::request_region(int wid, const QString &surfaceKey,
     }
     changingw->d->state = windowState;
 
-    if (!r.isEmpty() && wasOpaque != changingw->opaque && surface->isBuffered()) {
+    if (!r.isEmpty() && wasOpaque != changingw->opaque && surface->isBuffered())
         changingw->requested_region = QRegion(); // XXX: force update_regions
-        changingw->setAllocatedRegion(QRegion()); // XXX: force region events
+
+    const QRegion oldAllocated = changingw->allocatedRegion();
+    setWindowRegion(changingw, r);
+    if (oldAllocated == changingw->allocatedRegion()) {
+        // Always send region event to the requesting window even if the
+        // region didn't change. This is necessary as the client will reset
+        // the clip region until an event is received.
+        changingw->client()->sendRegionEvent(wid, changingw->allocatedRegion(),
+                                             QWSRegionEvent::Allocation);
     }
 
-    setWindowRegion(changingw, r);
     surface->QWindowSurface::setGeometry(r.boundingRect());
-
-    Q_Q(QWSServer);
 
     if (windowState == QWSWindow::Showing)
         emit q->windowEvent(changingw, QWSServer::Show);
-    if (windowState == QWSWindow::Hiding)
-        emit q->windowEvent(changingw, QWSServer::Hide);
-    else
+    else if (windowState == QWSWindow::ChangingGeometry)
         emit q->windowEvent(changingw, QWSServer::Geometry);
     if (windowState == QWSWindow::Hiding) {
         handleWindowClose(changingw);
@@ -4014,7 +4084,7 @@ static QList<QWSServer::KeyboardFilter*> *keyFilters = 0;
     This function is typically called internally by keyboard drivers.
     Note that this function can only be used in the server process.
 
-    \sa sendKeyEvent(), {Qtopia Core Character Input}
+    \sa sendKeyEvent(), {Qt for Embedded Linux Character Input}
 */
 void QWSServer::processKeyEvent(int unicode, int keycode, Qt::KeyboardModifiers modifiers,
                                 bool isPress, bool autoRepeat)
@@ -4105,7 +4175,7 @@ void QWSServer::removeKeyboardFilter()
     Specifies the time \a intervals (in milliseconds) between the
     different levels of screen responsiveness.
 
-    \l {Qtopia Core} supports multilevel screen saving, i.e., it is
+    \l{Qt for Embedded Linux} supports multilevel screen saving, i.e., it is
     possible to specify several different levels of screen
     responsiveness by implementing the QWSScreenSaver::save()
     function. For example, you can choose to first turn off the light
@@ -4141,9 +4211,8 @@ void QWSServer::setScreenSaverIntervals(int* ms)
     qwsServerPrivate->screensaverinterval = 0;
 
     qwsServerPrivate->screensavertimer->stop();
-    qwsServerPrivate->screensavertimer->start( *ms );
-    qwsServerPrivate->screensavertime.start();
-
+    qt_screen->blank(false);
+    qwsServerPrivate->_q_screenSaverWake();
 }
 
 /*!
@@ -4177,51 +4246,7 @@ void QWSServer::setScreenSaverInterval(int ms)
 
   Example usage:
 
-  \code
-    bool MyScreenSaver::save( int level )
-    {
-        switch ( level ) {
-            case 0:
-                if ( dim_enabled ) {
-                    // dim the screen
-                }
-                return true;
-            case 1:
-                if ( screenoff_enabled ) {
-                    // turn off the screen
-                }
-                return true;
-            case 2:
-                if ( suspend_enabled ) {
-                    // suspend
-                }
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    ...
-
-    int timings[4];
-    timings[0] = 5000;  // dim after 5 seconds
-    timings[1] = 10000; // light off after 15 seconds
-    timings[2] = 45000; // suspend after 60 seconds
-    timings[3] = 0;
-    QWSServer::setScreenSaverIntervals( timings );
-
-    // ignore the key/mouse event that turns on the screen
-    int blocklevel = 1;
-    if ( !screenoff_enabled ) {
-        // screenoff is disabled, ignore the key/mouse event that wakes from suspend
-        blocklevel = 2;
-        if ( !suspend_enabled ) {
-            // suspend is disabled, never ignore events
-            blocklevel = -1;
-        }
-    }
-    QWSServer::setScreenSaverBlockLevel( blocklevel );
-  \endcode
+  \snippet doc/src/snippets/code/src_gui_embedded_qwindowsystem_qws.cpp 0
 
     Note that this function can only be used in the server process.
 
@@ -4306,10 +4331,6 @@ void QWSServerPrivate::screenSave(int level)
         }
         int *oldScreensaverinterval = screensaverinterval;
         if (saver->save(level)) {
-
-            if (level == 2) 
-              oldScreensaverinterval = --screensaverinterval;
-
             // only update screensaverinterval if it hasn't already changed
             if (oldScreensaverinterval == screensaverinterval) {
                 if (screensaverinterval && screensaverinterval[1]) {
@@ -4326,15 +4347,8 @@ void QWSServerPrivate::screenSave(int level)
             // for some reason, the saver don't want us to change to the
             // next level, so we'll stay at this level for another interval
             if (screensaverinterval && *screensaverinterval) {
-                if (level == 2) {
-                    screensavertimer->start(5000);
-                    screensavertime.start();
-                }
-                else
-                {
-                    screensavertimer->start(*screensaverinterval);
-                    screensavertime.start();
-                }
+                screensavertimer->start(*screensaverinterval);
+                screensavertime.start();
             }
         }
     } else {
@@ -4349,10 +4363,7 @@ void QWSServerPrivate::_q_screenSaverTimeout()
     if (screensaverinterval) {
         if (screensavertime.elapsed() > *screensaverinterval*2) {
             // bogus (eg. unsuspend, system time changed)
-            
-            screensavertimer->start(5000);
-            screensavertime.start();
-
+            _q_screenSaverWake(); // try again
             return;
         }
         screenSave(screensaverinterval - screensaverintervals);
@@ -4371,6 +4382,14 @@ bool QWSServer::screenSaverActive()
 {
     return qwsServerPrivate->screensaverinterval
         && !qwsServerPrivate->screensavertimer->isActive();
+}
+
+/*!
+    \internal
+*/
+void QWSServer::updateWindowRegions() const
+{
+    qwsServerPrivate->update_regions();
 }
 
 /*!
@@ -4411,11 +4430,11 @@ void QWSServerPrivate::updateClientCursorPos()
     \ingroup qws
 
     \brief The QWSInputMethod class provides international input methods
-    in Qtopia Core.
+    in Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    A \l {Qtopia Core} application requires a server application to be
+    A \l{Qt for Embedded Linux} application requires a server application to be
     running, or to be the server application itself. All system
     generated events, including keyboard and mouse events, are passed
     to the server application which then propagates the event to the
@@ -4478,7 +4497,7 @@ void QWSServerPrivate::updateClientCursorPos()
     encapsulates the event with a QWSEvent instance of the \l
     {QWSEvent::}{IMQuery} type.
 
-    \sa QWSServer, {Qtopia Core Architecture}
+    \sa QWSServer, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -4857,11 +4876,11 @@ void QWSInputMethod::sendMouseEvent( const QPoint &pos, int state, int wheel )
     \ingroup qws
 
     \brief The KeyboardFilter class is a base class for global
-    keyboard event filters in Qtopia Core.
+    keyboard event filters in Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    In \l {Qtopia Core}, all system generated events, including
+    In \l{Qt for Embedded Linux}, all system generated events, including
     keyboard events, are passed to the server application which then
     propagates the event to the appropriate client. The KeyboardFilter
     class is used to implement a global, low-level filter on the
@@ -4881,7 +4900,7 @@ void QWSInputMethod::sendMouseEvent( const QPoint &pos, int state, int wheel )
     function. QWSServer also provides a \l
     {QWSServer::}{removeKeyboardFilter()} function.
 
-    \sa {Qtopia Core Architecture}, QWSServer, QWSInputMethod
+    \sa {Qt for Embedded Linux Architecture}, QWSServer, QWSInputMethod
 */
 
 /*!
@@ -4909,5 +4928,7 @@ void QWSInputMethod::sendMouseEvent( const QPoint &pos, int state, int wheel )
     event is caused by an auto-repeat mechanism and not an actual key
     press.
 */
+
+QT_END_NAMESPACE
 
 #include "moc_qwindowsystem_qws.cpp"

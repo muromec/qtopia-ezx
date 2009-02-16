@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,11 +40,14 @@
 #include "qdatastream.h"
 #include "qvariant.h"
 
+QT_BEGIN_NAMESPACE
+
 static int qt_palette_count = 1;
+
 class QPalettePrivate {
 public:
     QPalettePrivate() : ref(1), ser_no(qt_palette_count++), detach_no(0) { }
-    QAtomic ref;
+    QAtomicInt ref;
     QBrush br[QPalette::NColorGroups][QPalette::NColorRoles];
     int ser_no;
     int detach_no;
@@ -74,8 +71,10 @@ QDataStream &qt_stream_out_qcolorgroup(QDataStream &s, const QColorGroup &g)
           << g.color(QPalette::Mid) << g.color(QPalette::Text) << g.color(QPalette::Base);
     } else {
         int max = QPalette::NColorRoles;
-        if(s.version() <= 3) // Qt 2.x
-            max = 14;
+        if (s.version() <= QDataStream::Qt_2_1)
+            max = QPalette::HighlightedText + 1;
+        else if (s.version() <= QDataStream::Qt_4_3)
+            max = QPalette::AlternateBase + 1;
         for(int r = 0 ; r < max ; r++)
             s << g.brush((QPalette::ColorRole)r);
     }
@@ -98,10 +97,12 @@ QDataStream &qt_stream_in_qcolorgroup(QDataStream &s, QColorGroup &g)
         g.setCurrentColorGroup(QPalette::Active);
     } else {
         int max = QPalette::NColorRoles;
-        if (s.version() <= 3) // Qt 2.x
-            max = 14;
-        else if (s.version() <= 4) // Qt 3.x
-            max = 16;
+        if (s.version() <= QDataStream::Qt_2_1)
+            max = QPalette::HighlightedText + 1;
+        else if (s.version() <= QDataStream::Qt_3_0)
+            max = QPalette::LinkVisited + 1;
+        else if (s.version() <= QDataStream::Qt_4_3)
+            max = QPalette::AlternateBase + 1;
         QBrush tmp;
         for(int r = 0 ; r < max; r++) {
             s >> tmp;
@@ -129,6 +130,7 @@ QDataStream &operator>>(QDataStream &s, QColorGroup &g)
 QPalette::QPalette(const QColorGroup &active, const QColorGroup &disabled,
                    const QColorGroup &inactive)
 {
+    Q_ASSERT(QPalette::NColorRoles == QPalette::ToolTipText + 1);
     init();
     setColorGroup(Active, active);
     setColorGroup(Disabled, disabled);
@@ -149,7 +151,7 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
                   g.brush(Base), g.brush(AlternateBase), g.brush(Window),
                   g.brush(Midlight), g.brush(ButtonText), g.brush(Shadow),
                   g.brush(Highlight), g.brush(HighlightedText), g.brush(Link),
-                  g.brush(LinkVisited));
+                  g.brush(LinkVisited), g.brush(ToolTipBase), g.brush(ToolTipText));
 }
 
 #endif
@@ -293,6 +295,32 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
 */
 
 /*!
+    \fn const QBrush & QPalette::toolTipBase() const
+    \since 4.4
+
+    Returns the tool tip base brush of the current color group. This brush is
+    used by QToolTip and QWhatsThis.
+
+    \note Tool tips use the Inactive color group of QPalette, because tool
+    tips are not active windows.
+
+    \sa ColorRole brush()
+*/
+
+/*!
+    \fn const QBrush & QPalette::toolTipText() const
+    \since 4.4
+
+    Returns the tool tip text brush of the current color group. This brush is
+    used by QToolTip and QWhatsThis.
+
+    \note Tool tips use the Inactive color group of QPalette, because tool
+    tips are not active windows.
+
+    \sa ColorRole brush()
+*/
+
+/*!
     \fn const QBrush & QPalette::background() const
     \obsolete
 
@@ -375,6 +403,7 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
     use their palette to draw themselves. This makes the user
     interface easily configurable and easier to keep consistent.
 
+
     If you create a new widget we strongly recommend that you use the
     colors in the palette rather than hard-coding specific colors.
 
@@ -399,10 +428,10 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
     "base" rather than literal colors like "red" or "turquoise". The color
     roles are enumerated and defined in the \l ColorRole documentation.
 
-				We strongly recommend that you use the default palette of the
-				current style (returned by QApplication::palette()) and
-				modify that as necessary. This is done by Qt's widgets when they
-				are drawn.
+    We strongly recommend that you use the default palette of the
+    current style (returned by QApplication::palette()) and
+    modify that as necessary. This is done by Qt's widgets when they
+    are drawn.
 
     To modify a color group you call the functions
     setColor() and setBrush(), depending on whether you want a pure
@@ -412,11 +441,17 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
     commonly used convenience function to get the ColorRole for the current ColorGroup:
     window(), windowText(), base(), etc.
 
+
     You can copy a palette using the copy constructor and test to see
     if two palettes are \e identical using isCopyOf().
 
     QPalette is optimized by the use of \l{implicit sharing},
     so it is very efficient to pass QPalette objects as arguments.
+
+    \warning Some styles do not use the palette for all drawing, for
+    instance, if they make use of native theme engines. This is the
+    case for both the Windows XP, Windows Vista, and the Mac OS X
+    styles.
 
     \sa QApplication::setPalette(), QWidget::setPalette(), QColor
 */
@@ -460,6 +495,16 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
     \value AlternateBase  Used as the alternate background color in views with
                           alternating row colors (see
                           QAbstractItemView::setAlternatingRowColors()).
+
+    \value ToolTipBase Used as the background color for QToolTip and
+                          QWhatsThis. Tool tips use the Inactive color group
+                          of QPalette, because tool tips are not active
+                          windows.
+
+    \value ToolTipText Used as the foreground color for QToolTip and
+                          QWhatsThis. Tool tips use the Inactive color group
+                          of QPalette, because tool tips are not active
+                          windows.
 
     \value Text  The foreground color used with \c Base. This is usually
                  the same as the \c WindowText, in which case it must provide
@@ -521,12 +566,12 @@ void QPalette::setColorGroup(ColorGroup cg, const QColorGroup &g)
     and the QTextDocument::setDefaultStyleSheet() function to alter
     the appearance of links. For example:
 
-    \quotefromfile doc/src/snippets/textdocument-css/main.cpp
-    \skipto QTextBrowser
-    \printuntil browser.document
+    \snippet doc/src/snippets/textdocument-css/main.cpp 0
+
+    \value NoRole No role; this special role is often used to indicate that a
+    role has not been assigned.
 
     \omitvalue NColorRoles
-    \omitvalue NoRole
 */
 
 /*!
@@ -695,13 +740,12 @@ void QPalette::init() {
 */
 QPalette &QPalette::operator=(const QPalette &p)
 {
-    QPalettePrivate *x = p.d;
-    x->ref.ref();
+    p.d->ref.ref();
     resolve_mask = p.resolve_mask;
     current_group = p.current_group;
-    x = qAtomicSetPtr(&d, x);
-    if(!x->ref.deref())
-        delete x;
+    if(!d->ref.deref())
+        delete d;
+    d = p.d;
     return *this;
 }
 
@@ -808,9 +852,9 @@ void QPalette::detach()
             for(int role = 0; role < (int)NColorRoles; role++)
                 x->br[grp][role] = d->br[grp][role];
         }
-        x = qAtomicSetPtr(&d, x);
-        if(!x->ref.deref())
-            delete x;
+        if(!d->ref.deref())
+            delete d;
+        d = x;
     }
     ++d->detach_no;
 }
@@ -931,7 +975,7 @@ qint64 QPalette::cacheKey() const
 */
 QPalette QPalette::resolve(const QPalette &other) const
 {
-    if (*this == other && resolve_mask == other.resolve_mask
+    if ((*this == other && resolve_mask == other.resolve_mask)
         || resolve_mask == 0) {
         QPalette o = other;
         o.resolve_mask = resolve_mask;
@@ -987,9 +1031,11 @@ QDataStream &operator<<(QDataStream &s, const QPalette &p)
             for (int i = 0; i < NumOldRoles; ++i)
                 s << p.d->br[grp][oldRoles[i]].color();
         } else {
-            int max = QPalette::NColorRoles;
-            if (s.version() <= 3) // Qt 2.x
-                max = 14;
+            int max = QPalette::ToolTipText + 1;
+            if (s.version() <= QDataStream::Qt_2_1)
+                max = QPalette::HighlightedText + 1;
+            else if (s.version() <= QDataStream::Qt_4_3)
+                max = QPalette::AlternateBase + 1;
             for (int r = 0; r < max; r++)
                 s << p.d->br[grp][r];
         }
@@ -1024,9 +1070,12 @@ QDataStream &operator>>(QDataStream &s, QPalette &p)
         readV1ColorGroup(s, p, QPalette::Inactive);
     } else {
         int max = QPalette::NColorRoles;
-        if (s.version() <= 3) { // Qt 2.x
+        if (s.version() <= QDataStream::Qt_2_1) {
             p = QPalette();
-            max = 14;
+            max = QPalette::HighlightedText + 1;
+        } else if (s.version() <= QDataStream::Qt_4_3) {
+            p = QPalette();
+            max = QPalette::AlternateBase + 1;
         }
 
         QBrush tmp;
@@ -1070,10 +1119,14 @@ void QPalette::setColorGroup(ColorGroup cg, const QBrush &windowText, const QBru
 {
     QBrush alt_base = QBrush(qt_mix_colors(base.color(), button.color()));
     QBrush mid_light = QBrush(qt_mix_colors(button.color(), light.color()));
+    QColor toolTipBase(255, 255, 220);
+    QColor toolTipText(0, 0, 0);
+
     setColorGroup(cg, windowText, button, light, dark, mid, text, bright_text, base,
                   alt_base, window, mid_light, text,
                   QBrush(Qt::black), QBrush(Qt::darkBlue), QBrush(Qt::white),
-                  QBrush(Qt::blue), QBrush(Qt::magenta));
+                  QBrush(Qt::blue), QBrush(Qt::magenta), QBrush(toolTipBase),
+                  QBrush(toolTipText));
 
     resolve_mask &= ~(1 << Highlight);
     resolve_mask &= ~(1 << HighlightedText);
@@ -1093,6 +1146,23 @@ QPalette::setColorGroup(ColorGroup cg, const QBrush &foreground, const QBrush &b
                         const QBrush &highlight, const QBrush &highlighted_text,
                         const QBrush &link, const QBrush &link_visited)
 {
+    setColorGroup(cg, foreground, button, light, dark, mid,
+                  text, bright_text, base, alternate_base, background,
+                  midlight, button_text, shadow, highlight, highlighted_text,
+                  link, link_visited, background, foreground);
+}
+
+/*!\internal*/
+void QPalette::setColorGroup(ColorGroup cg, const QBrush &foreground, const QBrush &button,
+                             const QBrush &light, const QBrush &dark, const QBrush &mid,
+                             const QBrush &text, const QBrush &bright_text,
+                             const QBrush &base, const QBrush &alternate_base,
+                             const QBrush &background, const QBrush &midlight,
+                             const QBrush &button_text, const QBrush &shadow,
+                             const QBrush &highlight, const QBrush &highlighted_text,
+                             const QBrush &link, const QBrush &link_visited,
+                             const QBrush &toolTipBase, const QBrush &toolTipText)
+{
     detach();
     setBrush(cg, WindowText, foreground);
     setBrush(cg, Button, button);
@@ -1111,6 +1181,8 @@ QPalette::setColorGroup(ColorGroup cg, const QBrush &foreground, const QBrush &b
     setBrush(cg, HighlightedText, highlighted_text);
     setBrush(cg, Link, link);
     setBrush(cg, LinkVisited, link_visited);
+    setBrush(cg, ToolTipBase, toolTipBase);
+    setBrush(cg, ToolTipText, toolTipText);
 }
 
 /*!
@@ -1299,3 +1371,5 @@ QPalette::setColorGroup(ColorGroup cg, const QBrush &foreground, const QBrush &b
     Returns true if this color group is not equal to \a other;
     otherwise returns false.
 */
+
+QT_END_NAMESPACE

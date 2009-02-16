@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 
 #include <qimage.h>
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 /* WGL_WGLEXT_PROTOTYPES */
 typedef const char * (WINAPI * PFNWGLGETEXTENSIONSSTRINGARBPROC) (HDC hdc);
@@ -169,42 +165,19 @@ typedef BOOL (WINAPI * PFNWGLSETPBUFFERATTRIBARBPROC) (HPBUFFERARB hPbuffer, con
 
 QGLFormat pfiToQGLFormat(HDC hdc, int pfi);
 
-bool QGLPixelBufferPrivate::init(const QSize &size, const QGLFormat &f, QGLWidget *shareWidget)
+static void qt_format_to_attrib_list(bool has_render_texture, const QGLFormat &f, int attribs[])
 {
-    QGLWidget dmy;
-    dmy.makeCurrent(); // needed for wglGetProcAddress() to succeed
-
-    PFNWGLCREATEPBUFFERARBPROC wglCreatePbufferARB =
-        (PFNWGLCREATEPBUFFERARBPROC) wglGetProcAddress("wglCreatePbufferARB");
-    PFNWGLGETPBUFFERDCARBPROC wglGetPbufferDCARB =
-        (PFNWGLGETPBUFFERDCARBPROC) wglGetProcAddress("wglGetPbufferDCARB");
-    PFNWGLQUERYPBUFFERARBPROC wglQueryPbufferARB =
-        (PFNWGLQUERYPBUFFERARBPROC) wglGetProcAddress("wglQueryPbufferARB");
-    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB =
-        (PFNWGLCHOOSEPIXELFORMATARBPROC) wglGetProcAddress("wglChoosePixelFormatARB");
-
-    if (!wglCreatePbufferARB) // assumes that if one can be resolved, all of them can
-        return false;
-
-    dc = GetDC(dmy.winId());
-    Q_ASSERT(dc);
-
-    PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB =
-        (PFNWGLGETEXTENSIONSSTRINGARBPROC) wglGetProcAddress("wglGetExtensionsStringARB");
-
-    if (wglGetExtensionsStringARB) {
-        QString extensions(QLatin1String(wglGetExtensionsStringARB(dc)));
-        has_render_texture = extensions.contains(QLatin1String("WGL_ARB_render_texture"));
-    }
-
-    int attribs[40];
     int i = 0;
     attribs[i++] = WGL_SUPPORT_OPENGL_ARB;
     attribs[i++] = TRUE;
     attribs[i++] = WGL_DRAW_TO_PBUFFER_ARB;
     attribs[i++] = TRUE;
-    attribs[i++] = WGL_BIND_TO_TEXTURE_RGBA_ARB;
-    attribs[i++] = TRUE;
+
+    if (has_render_texture) {
+        attribs[i++] = WGL_BIND_TO_TEXTURE_RGBA_ARB;
+        attribs[i++] = TRUE;
+    }
+
     attribs[i++] = WGL_COLOR_BITS_ARB;
     attribs[i++] = 32;
     attribs[i++] = WGL_DOUBLE_BUFFER_ARB;
@@ -258,11 +231,53 @@ bool QGLPixelBufferPrivate::init(const QSize &size, const QGLFormat &f, QGLWidge
     //     attribs[i++] = f.samples() == -1 ? 16 : f.samples();
     // }
     attribs[i] = 0;
+}
+
+bool QGLPixelBufferPrivate::init(const QSize &size, const QGLFormat &f, QGLWidget *shareWidget)
+{
+    QGLWidget dmy;
+    dmy.makeCurrent(); // needed for wglGetProcAddress() to succeed
+
+    PFNWGLCREATEPBUFFERARBPROC wglCreatePbufferARB =
+        (PFNWGLCREATEPBUFFERARBPROC) wglGetProcAddress("wglCreatePbufferARB");
+    PFNWGLGETPBUFFERDCARBPROC wglGetPbufferDCARB =
+        (PFNWGLGETPBUFFERDCARBPROC) wglGetProcAddress("wglGetPbufferDCARB");
+    PFNWGLQUERYPBUFFERARBPROC wglQueryPbufferARB =
+        (PFNWGLQUERYPBUFFERARBPROC) wglGetProcAddress("wglQueryPbufferARB");
+    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB =
+        (PFNWGLCHOOSEPIXELFORMATARBPROC) wglGetProcAddress("wglChoosePixelFormatARB");
+
+    if (!wglCreatePbufferARB) // assumes that if one can be resolved, all of them can
+        return false;
+
+    dc = GetDC(dmy.winId());
+    Q_ASSERT(dc);
+
+    PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB =
+        (PFNWGLGETEXTENSIONSSTRINGARBPROC) wglGetProcAddress("wglGetExtensionsStringARB");
+
+    if (wglGetExtensionsStringARB) {
+        QString extensions(QLatin1String(wglGetExtensionsStringARB(dc)));
+        has_render_texture = extensions.contains(QLatin1String("WGL_ARB_render_texture"));
+    }
+
+    int attribs[40];
+    qt_format_to_attrib_list(has_render_texture, f, attribs);
 
     // Find pbuffer capable pixel format.
     unsigned int num_formats = 0;
     int pixel_format;
     wglChoosePixelFormatARB(dc, attribs, 0, 1, &pixel_format, &num_formats);
+
+    // some GL implementations don't support pbuffers with accum
+    // buffers, so try that before we give up
+    if (num_formats == 0 && f.accum()) {
+        QGLFormat tmp = f;
+        tmp.setAccum(false);
+        qt_format_to_attrib_list(has_render_texture, tmp, attribs);
+        wglChoosePixelFormatARB(dc, attribs, 0, 1, &pixel_format, &num_formats);
+    }
+
     if (num_formats == 0) {
         qWarning("QGLPixelBuffer: Unable to find a pixel format with pbuffer  - giving up.");
         ReleaseDC(dmy.winId(), dc);
@@ -348,16 +363,24 @@ void QGLPixelBuffer::releaseFromDynamicTexture()
 
 bool QGLPixelBuffer::hasOpenGLPbuffers()
 {
-    QGLWidget dmy;
-    dmy.makeCurrent();
+    bool ret = false;
+    QGLWidget *dmy = 0;
+    if (!QGLContext::currentContext()) {
+        dmy = new QGLWidget;
+        dmy->makeCurrent();
+    }
     PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB =
         (PFNWGLGETEXTENSIONSSTRINGARBPROC) wglGetProcAddress("wglGetExtensionsStringARB");
     if (wglGetExtensionsStringARB) {
         QString extensions(QLatin1String(wglGetExtensionsStringARB(wglGetCurrentDC())));
         if (extensions.contains(QLatin1String("WGL_ARB_pbuffer"))
             && extensions.contains(QLatin1String("WGL_ARB_pixel_format"))) {
-            return true;
+            ret = true;
         }
     }
-    return false;
+    if (dmy)
+        delete dmy;
+    return ret;
 }
+
+QT_END_NAMESPACE

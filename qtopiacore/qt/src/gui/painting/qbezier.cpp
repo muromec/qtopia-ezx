@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,9 +41,12 @@
 #include <qpolygon.h>
 #include <qvector.h>
 #include <qlist.h>
+#include <qmath.h>
 
 #include <private/qnumeric_p.h>
 #include <private/qmath_p.h>
+
+QT_BEGIN_NAMESPACE
 
 //#define QDEBUG_BEZIER
 
@@ -64,7 +61,7 @@
 #define M_SQRT2	1.41421356237309504880
 #endif
 
-#define log2(x) (qLog(x)/qLog(2.))
+#define log2(x) (qLn(x)/qLn(2.))
 
 static inline qreal log4(qreal x)
 {
@@ -126,7 +123,7 @@ static inline void flattenBezierWithoutInflections(QBezier &bez,
         qreal dy = bez.y2 - bez.y1;
 
         qreal normalized = qSqrt(dx * dx + dy * dy);
-        if (qFuzzyCompare(normalized, 0))
+        if (qFuzzyCompare(normalized + 1, 1))
            break;
 
         qreal d = qAbs(dx * (bez.y3 - bez.y2) - dy * (bez.x3 - bez.x2));
@@ -143,19 +140,19 @@ static inline void flattenBezierWithoutInflections(QBezier &bez,
 static inline int quadraticRoots(qreal a, qreal b, qreal c,
                                  qreal *x1, qreal *x2)
 {
-    if (qFuzzyCompare(a, 0)) {
-        if (qFuzzyCompare(b, 0))
+    if (qFuzzyCompare(a + 1, 1)) {
+        if (qFuzzyCompare(b + 1, 1))
             return 0;
         *x1 = *x2 = (-c / b);
         return 1;
     } else {
         const qreal det = b * b - 4 * a * c;
-        if (qFuzzyCompare(det, 0)) {
+        if (qFuzzyCompare(det + 1, 1)) {
             *x1 = *x2 = -b / (2 * a);
             return 1;
         }
         if (det > 0) {
-            if (qFuzzyCompare(b, 0)) {
+            if (qFuzzyCompare(b + 1, 1)) {
                 *x2 = qSqrt(-c / a);
                 *x1 = -(*x2);
                 return 2;
@@ -186,7 +183,7 @@ static inline bool findInflections(qreal a, qreal b, qreal c,
             *t1 = r2;
             *t2 = r1;
         }
-        if (!qFuzzyCompare(a, 0))
+        if (!qFuzzyCompare(a + 1, 1))
             *tCups = 0.5 * (-b / a);
         else
             *tCups = 2;
@@ -242,7 +239,7 @@ void QBezier::addToPolygonMixed(QPolygonF *polygon) const
     qreal b = 6 * (ay * cx - ax * cy);
     qreal c = 2 * (by * cx - bx * cy);
 
-    if ((qFuzzyCompare(a, 0) && qFuzzyCompare(b, 0)) ||
+    if ((qFuzzyCompare(a + 1, 1) && qFuzzyCompare(b + 1, 1)) ||
         (b * b - 4 * a *c) < 0) {
         QBezier bez(*this);
         flattenBezierWithoutInflections(bez, polygon);
@@ -364,27 +361,12 @@ static bool qbezier_is_line(QPointF *points, int pointCount)
     qreal dy12 = points[1].y() - points[0].y();
 
     if (pointCount == 3) {
-        if (dx13 * dx12 != 0)
-            return qFuzzyCompare(dy12 / dx12, dy13 / dx13);
-        else
-            return qFuzzyCompare(dx12 / dy12, dx13 / dy13);
-
+        return qFuzzyCompare(dx12 * dy13, dx13 * dy12);
     } else if (pointCount == 4) {
         qreal dx14 = points[3].x() - points[0].x();
         qreal dy14 = points[3].y() - points[0].y();
 
-        if (dx14*dx13*dx12 != 0) {
-            qreal b14 = dy14 / dx14;
-            qreal b13 = dy13 / dx13;
-            qreal b12 = dy12 / dx12;
-            return qFuzzyCompare(b14, b13) && qFuzzyCompare(b14, b12);
-
-        } else {
-            qreal a14 = dx14 / dy14;
-            qreal a13 = dx13 / dy13;
-            qreal a12 = dx12 / dy12;
-            return qFuzzyCompare(a14, a13) && qFuzzyCompare(a14, a12);
-        }
+        return (qFuzzyCompare(dx12 * dy13, dx13 * dy12) && qFuzzyCompare(dx12 * dy14, dx14 * dy12));
     }
 
     return false;
@@ -423,8 +405,11 @@ static ShiftResult shift(const QBezier *orig, QBezier *shifted, qreal offset, qr
     // We need to specialcase lines of 3 or 4 points due to numerical
     // instability in intersections below
     if (np > 2 && qbezier_is_line(points, np)) {
+        if (points[0] == points[np-1])
+            return Discard;
+
         QLineF l = qline_shifted(points[0], points[np-1], offset);
-        *shifted = QBezier::fromPoints(l.p1(), l.pointAt(0.33), l.pointAt(0.66), l.p2());
+        *shifted = QBezier::fromPoints(l.p1(), l.pointAt(qreal(0.33)), l.pointAt(qreal(0.66)), l.p2());
         return Ok;
     }
 
@@ -458,7 +443,7 @@ static ShiftResult shift(const QBezier *orig, QBezier *shifted, qreal offset, qr
         qreal r = 1.0 + prev_normal.x() * next_normal.x()
                   + prev_normal.y() * next_normal.y();
 
-        if (qFuzzyCompare(r, (qreal)0.0)) {
+        if (qFuzzyCompare(r + 1, 1)) {
             points_shifted[i] = points[i] + offset * prev_normal;
         } else {
             qreal k = offset / r;
@@ -488,12 +473,12 @@ static bool addCircle(const QBezier *b, qreal offset, QBezier *o)
 
     normals[0] = QPointF(b->y2 - b->y1, b->x1 - b->x2);
     qreal dist = qSqrt(normals[0].x()*normals[0].x() + normals[0].y()*normals[0].y());
-    if (qFuzzyCompare(dist, 0))
+    if (qFuzzyCompare(dist + 1, 1))
         return false;
     normals[0] /= dist;
     normals[2] = QPointF(b->y4 - b->y3, b->x3 - b->x4);
     dist = qSqrt(normals[2].x()*normals[2].x() + normals[2].y()*normals[2].y());
-    if (qFuzzyCompare(dist, 0))
+    if (qFuzzyCompare(dist + 1, 1))
         return false;
     normals[2] /= dist;
 
@@ -605,7 +590,7 @@ static inline bool IntersectBB(const QBezier &a, const QBezier &b)
     return a.bounds().intersects(b.bounds());
 }
 #else
-int IntersectBB(const QBezier &a, const QBezier &b)
+static int IntersectBB(const QBezier &a, const QBezier &b)
 {
     // Compute bounding box for a
     qreal minax, maxax, minay, maxay;
@@ -692,9 +677,9 @@ static QDebug operator<<(QDebug dbg, const QBezier &bz)
 }
 #endif
 
-static void RecursivelyIntersect(const QBezier &a, qreal t0, qreal t1, int deptha,
+static bool RecursivelyIntersect(const QBezier &a, qreal t0, qreal t1, int deptha,
                                  const QBezier &b, qreal u0, qreal u1, int depthb,
-                                 QVector<qreal> &ta, QVector<qreal> &tb)
+                                 QVector<QPair<qreal, qreal> > *t)
 {
 #ifdef QDEBUG_BEZIER
     static int I = 0;
@@ -719,41 +704,49 @@ static void RecursivelyIntersect(const QBezier &a, qreal t0, qreal t1, int depth
 	    depthb--;
 	    if (IntersectBB(A[0], B[0])) {
                 //fprintf(stderr, "\t 1 from %d\n", currentD);
-		RecursivelyIntersect(A[0], t0, tmid, deptha,
+		if (RecursivelyIntersect(A[0], t0, tmid, deptha,
 				     B[0], u0, umid, depthb,
-				     ta, tb);
+				     t) && !t)
+                    return true;
             }
 	    if (IntersectBB(A[1], B[0])) {
                 //fprintf(stderr, "\t 2 from %d\n", currentD);
-		RecursivelyIntersect(A[1], tmid, t1, deptha,
+		if (RecursivelyIntersect(A[1], tmid, t1, deptha,
                                      B[0], u0, umid, depthb,
-                                     ta, tb);
+                                     t) && !t)
+                    return true;
             }
 	    if (IntersectBB(A[0], B[1])) {
                 //fprintf(stderr, "\t 3 from %d\n", currentD);
-		RecursivelyIntersect(A[0], t0, tmid, deptha,
+		if (RecursivelyIntersect(A[0], t0, tmid, deptha,
                                      B[1], umid, u1, depthb,
-                                     ta, tb);
+                                     t) && !t)
+                    return true;
             }
 	    if (IntersectBB(A[1], B[1])) {
                 //fprintf(stderr, "\t 4 from %d\n", currentD);
-		RecursivelyIntersect(A[1], tmid, t1, deptha,
+		if (RecursivelyIntersect(A[1], tmid, t1, deptha,
 				     B[1], umid, u1, depthb,
-				     ta, tb);
+				     t) && !t)
+                    return true;
             }
+            return t ? !t->isEmpty() : false;
         } else {
 	    if (IntersectBB(A[0], b)) {
                 //fprintf(stderr, "\t 5 from %d\n", currentD);
-		RecursivelyIntersect(A[0], t0, tmid, deptha,
+		if (RecursivelyIntersect(A[0], t0, tmid, deptha,
 				     b, u0, u1, depthb,
-				     ta, tb);
+				     t) && !t)
+                    return true;
             }
 	    if (IntersectBB(A[1], b)) {
                 //fprintf(stderr, "\t 6 from %d\n", currentD);
-		RecursivelyIntersect(A[1], tmid, t1, deptha,
+		if (RecursivelyIntersect(A[1], tmid, t1, deptha,
                                      b, u0, u1, depthb,
-                                     ta, tb);
+                                     t) && !t)
+                    return true;
             }
+            return t ? !t->isEmpty() : false;
         }
     } else {
 	if (depthb > 0) {
@@ -763,16 +756,19 @@ static void RecursivelyIntersect(const QBezier &a, qreal t0, qreal t1, int depth
 	    depthb--;
 	    if (IntersectBB(a, B[0])) {
                 //fprintf(stderr, "\t 7 from %d\n", currentD);
-		RecursivelyIntersect(a, t0, t1, deptha,
+		if (RecursivelyIntersect(a, t0, t1, deptha,
                                      B[0], u0, umid, depthb,
-                                     ta, tb);
+                                     t) && !t)
+                    return true;
             }
 	    if (IntersectBB(a, B[1])) {
                 //fprintf(stderr, "\t 8 from %d\n", currentD);
-		RecursivelyIntersect(a, t0, t1, deptha,
+		if (RecursivelyIntersect(a, t0, t1, deptha,
                                      B[1], umid, u1, depthb,
-                                     ta, tb);
+                                     t) && !t)
+                    return true;
             }
+            return t ? !t->isEmpty() : false;
         }
 	else {
             // Both segments are fully subdivided; now do line segments
@@ -784,42 +780,36 @@ static void RecursivelyIntersect(const QBezier &a, qreal t0, qreal t1, int depth
 	    qreal ymk = b.y1 - a.y1;
 	    qreal det = xnm * ylk - ynm * xlk;
 	    if (1.0 + det == 1.0) {
-		return;
+		return false;
             } else {
                 qreal detinv = 1.0 / det;
-                qreal s = (xnm * ymk - ynm *xmk) * detinv;
-                qreal t = (xlk * ymk - ylk * xmk) * detinv;
-                if ((s < 0.0) || (s > 1.0) || (t < 0.0) || (t > 1.0))
-                    return;
+                qreal rs = (xnm * ymk - ynm *xmk) * detinv;
+                qreal rt = (xlk * ymk - ylk * xmk) * detinv;
+                if ((rs < 0.0) || (rs > 1.0) || (rt < 0.0) || (rt > 1.0))
+                    return false;
 
-                ta << t0 + s * (t1 - t0);
-                tb << u0 + t * (u1 - u0);
+                if (t) {
+                    const qreal alpha_a = t0 + rs * (t1 - t0);
+                    const qreal alpha_b = u0 + rt * (u1 - u0);
+
+                    *t << qMakePair(alpha_a, alpha_b);
+                }
+
+                return true;
             }
         }
     }
 }
 
-QVector< QList<qreal> > QBezier::findIntersections(const QBezier &a, const QBezier &b)
+QVector< QPair<qreal, qreal> > QBezier::findIntersections(const QBezier &a, const QBezier &b)
 {
-    QVector< QList<qreal> > v(2);
-
-    QVector<qreal> ta;
-    QVector<qreal> tb;
-
-    findIntersections(a, b, ta, tb);
-
-    Q_ASSERT(ta.size() == tb.size());
-
-    for (int i = 0; i < ta.size(); ++i) {
-        v[0] << ta[i];
-        v[1] << tb[i];
-    }
-
+    QVector< QPair<qreal, qreal> > v(2);
+    findIntersections(a, b, &v);
     return v;
 }
 
 bool QBezier::findIntersections(const QBezier &a, const QBezier &b,
-                                QVector<qreal> &ta, QVector<qreal> &tb)
+                                QVector<QPair<qreal, qreal> > *t)
 {
     if (IntersectBB(a, b)) {
         QPointF la1(fabs((a.x3 - a.x2) - (a.x2 - a.x1)),
@@ -856,7 +846,13 @@ bool QBezier::findIntersections(const QBezier &a, const QBezier &b,
 	else
 	    rb = qCeil(log4(M_SQRT2 * 6.0 / 8.0 * INV_EPS * l0));
 
-	RecursivelyIntersect(a, 0., 1., ra, b, 0., 1., rb, ta, tb);
+        // if qreal is float then halve the number of subdivisions
+        if (sizeof(qreal) == 4) {
+            ra /= 2;
+            rb /= 2;
+        }
+
+	return RecursivelyIntersect(a, 0., 1., ra, b, 0., 1., rb, t);
     }
 
     //Don't sort here because it breaks the orders of corresponding
@@ -865,7 +861,7 @@ bool QBezier::findIntersections(const QBezier &a, const QBezier &b,
     //qSort(parameters[0].begin(), parameters[0].end(), qLess<qreal>());
     //qSort(parameters[1].begin(), parameters[1].end(), qLess<qreal>());
 
-    return !ta.isEmpty();
+    return false;
 }
 
 static inline void splitBezierAt(const QBezier &bez, qreal t,
@@ -900,10 +896,15 @@ QVector< QList<QBezier> > QBezier::splitAtIntersections(QBezier &b)
 {
     QVector< QList<QBezier> > curves(2);
 
-    QVector< QList<qreal> > allInters = findIntersections(*this, b);
+    QVector< QPair<qreal, qreal> > allInters = findIntersections(*this, b);
 
-    QList<qreal> &inters1 = allInters[0];
-    QList<qreal> &inters2 = allInters[1];
+    QList<qreal> inters1;
+    QList<qreal> inters2;
+
+    for (int i = 0; i < allInters.size(); ++i) {
+        inters1 << allInters[i].first;
+        inters2 << allInters[i].second;
+    }
 
     qSort(inters1.begin(), inters1.end(), qLess<qreal>());
     qSort(inters2.begin(), inters2.end(), qLess<qreal>());
@@ -980,6 +981,8 @@ qreal QBezier::tForY(qreal t0, qreal t1, qreal y) const
 
     Q_ASSERT(py0 < y && y < py1);
 
+    qreal lt = t0;
+    qreal dt;
     do {
         qreal t = 0.5 * (t0 + t1);
 
@@ -994,7 +997,9 @@ qreal QBezier::tForY(qreal t0, qreal t1, qreal y) const
             t1 = t;
             py1 = yt;
         }
-    } while (qAbs(y - py0) > 0.0000001);
+        dt = lt - t;
+        lt = t;
+    } while (qAbs(dt) > 1e-7);
 
     return t0;
 }
@@ -1013,7 +1018,7 @@ int QBezier::stationaryYPoints(qreal &t0, qreal &t1) const
 
     QList<qreal> result;
 
-    if (qFuzzyCompare(reciprocal, 0)) {
+    if (qFuzzyCompare(reciprocal + 1, 1)) {
         t0 = -b / (2 * a);
         return 1;
     } else if (reciprocal > 0) {
@@ -1046,7 +1051,7 @@ qreal QBezier::tAtLength(qreal l) const
 {
     qreal len = length();
     qreal t   = 1.0;
-    const qreal error = 0.01;
+    const qreal error = (qreal)0.01;
     if (l > len || qFuzzyCompare(l, len))
         return t;
 
@@ -1232,3 +1237,5 @@ void QBezier::addToPolygonIterative(QPolygonF *p) const
 
     p->append(QPointF(x4, y4));
 }
+
+QT_END_NAMESPACE

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,7 @@
 #include <qdesigner_command_p.h>
 #include <qdesigner_utils_p.h>
 #include <qlayout_widget_p.h>
+#include <orderdialog_p.h>
 
 #include <QtDesigner/QExtensionManager>
 #include <QtDesigner/QDesignerFormWindowInterface>
@@ -61,6 +56,10 @@
 #include <QtGui/QMenu>
 #include <QtGui/QApplication>
 
+Q_DECLARE_METATYPE(QWidgetList)
+
+QT_BEGIN_NAMESPACE
+
 namespace {
     enum { VBOX_MARGIN = 1, HBOX_MARGIN = 4, BG_ALPHA = 32 };
 }
@@ -73,7 +72,7 @@ static QRect fixRect(const QRect &r)
 namespace qdesigner_internal {
 
 TabOrderEditor::TabOrderEditor(QDesignerFormWindowInterface *form, QWidget *parent) :
-    QWidget(parent), 
+    QWidget(parent),
     m_form_window(form),
     m_bg_widget(0),
     m_undo_stack(form->commandHistory()),
@@ -232,6 +231,20 @@ void TabOrderEditor::initTabOrder()
     }
 
     // Append any widgets that are in the form but are not in the tab order
+    QList<QWidget *> childQueue;
+    childQueue.append(formWindow()->mainContainer());
+    while (!childQueue.isEmpty()) {
+        QWidget *child = childQueue.takeFirst();
+        childQueue += qVariantValue<QWidgetList>(child->property("_q_widgetOrder"));
+
+        if (skipWidget(child))
+            continue;
+
+        if (!m_tab_order_list.contains(child))
+            m_tab_order_list.append(child);
+    }
+
+    // Just in case we missed some widgets
     QDesignerFormWindowCursorInterface *cursor = formWindow()->cursor();
     for (int i = 0; i < cursor->widgetCount(); ++i) {
 
@@ -258,10 +271,12 @@ void TabOrderEditor::initTabOrder()
 void TabOrderEditor::mouseMoveEvent(QMouseEvent *e)
 {
     e->accept();
+#ifndef QT_NO_CURSOR
     if (m_indicator_region.contains(e->pos()))
         setCursor(Qt::PointingHandCursor);
     else
         setCursor(QCursor());
+#endif
 }
 
 int TabOrderEditor::widgetIndexAt(const QPoint &pos) const
@@ -342,8 +357,13 @@ void TabOrderEditor::contextMenuEvent(QContextMenuEvent *e)
     QMenu menu(this);
     const int target_index = widgetIndexAt(e->pos());
     QAction *setIndex = menu.addAction(tr("Start from Here"));
-    QAction *resetIndex = menu.addAction(tr("Restart"));
     setIndex->setEnabled(target_index >= 0);
+
+    QAction *resetIndex = menu.addAction(tr("Restart"));
+    menu.addSeparator();
+    QAction *showDialog = menu.addAction(tr("Tab Order List..."));
+    showDialog->setEnabled(m_tab_order_list.size() > 1);
+
     QAction *result = menu.exec(e->globalPos());
     if (result == resetIndex) {
         m_current_index = 0;
@@ -355,6 +375,8 @@ void TabOrderEditor::contextMenuEvent(QContextMenuEvent *e)
         if (m_current_index >= m_tab_order_list.size())
             m_current_index = 0;
         update();
+    } else if (result == showDialog) {
+        showTabOrderDialog();
     }
 }
 
@@ -378,4 +400,30 @@ void TabOrderEditor::resizeEvent(QResizeEvent *e)
     QWidget::resizeEvent(e);
 }
 
+void TabOrderEditor::showTabOrderDialog()
+{
+    if (m_tab_order_list.size() < 2)
+        return;
+    OrderDialog dlg(this);
+    dlg.setWindowTitle(tr("Tab Order List"));
+    dlg.setDescription(tr("Tab Order"));
+    dlg.setFormat(OrderDialog::TabOrderFormat);
+    dlg.setPageList(m_tab_order_list);
+
+    if (dlg.exec() == QDialog::Rejected)
+        return;
+
+    const QWidgetList newOrder = dlg.pageList();
+    if (newOrder == m_tab_order_list)
+        return;
+
+    m_tab_order_list = newOrder;
+    TabOrderCommand *cmd = new TabOrderCommand(formWindow());
+    cmd->init(m_tab_order_list);
+    formWindow()->commandHistory()->push(cmd);
+    update();
 }
+
+}
+
+QT_END_NAMESPACE

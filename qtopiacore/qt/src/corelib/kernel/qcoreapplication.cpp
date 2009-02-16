@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,34 +52,56 @@
 #include <private/qprocess_p.h>
 #include <qtextcodec.h>
 #include <qthread.h>
+#include <qthreadpool.h>
 #include <qthreadstorage.h>
 #include <private/qthread_p.h>
 #include <qlibraryinfo.h>
+#include <private/qfactoryloader_p.h>
 
 #ifdef Q_OS_UNIX
-
 #  if !defined(QT_NO_GLIB)
 #    include "qeventdispatcher_glib_p.h"
 #  endif
 #  include "qeventdispatcher_unix_p.h"
 #endif
+
 #ifdef Q_OS_WIN
 #  include "qeventdispatcher_win_p.h"
 #endif
 
-#include <stdlib.h>
-#ifdef Q_OS_UNIX
-#include <locale.h>
+#ifdef Q_OS_MAC
+#  include "qcore_mac_p.h"
 #endif
+
+#include <stdlib.h>
+
+#ifdef Q_OS_UNIX
+#  include <locale.h>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 #if defined(Q_WS_WIN) || defined(Q_WS_MAC)
 extern QString qAppFileName();
 #endif
 
 #if !defined(Q_OS_WIN)
+#ifdef Q_OS_MAC
+QString QCoreApplicationPrivate::macMenuBarName()
+{
+    QString bundleName;
+    CFTypeRef string = CFBundleGetValueForInfoDictionaryKey(CFBundleGetMainBundle(), CFSTR("CFBundleName"));
+    if (string)
+        bundleName = QCFString::toQString(static_cast<CFStringRef>(string));
+    return bundleName;
+}
+#endif
 QString QCoreApplicationPrivate::appName() const
 {
     static QString applName;
+#ifdef Q_OS_MAC
+    applName = macMenuBarName();
+#endif
     if (applName.isEmpty() && argv[0]) {
         char *p = strrchr(argv[0], '/');
         applName = QString::fromLocal8Bit(p ? p + 1 : argv[0]);
@@ -181,8 +197,14 @@ struct QCoreApplicationData {
 #ifndef QT_NO_LIBRARY
         delete app_libpaths;
 #endif
+
+        // cleanup the QAdoptedThread created for the main() thread
+        QThreadData *data = QThreadData::get2(QCoreApplicationPrivate::theMainThread);
+        QCoreApplicationPrivate::theMainThread = 0;
+        data->deref(); // deletes the data and the adopted thread
     }
     QString orgName, orgDomain, application;
+    QString applicationVersion;
 
 #ifndef QT_NO_LIBRARY
     QStringList *app_libpaths;
@@ -267,10 +289,10 @@ void QCoreApplicationPrivate::checkReceiverThread(QObject *receiver)
                "QCoreApplication::sendEvent",
                QString::fromLatin1("Cannot send events to objects owned by a different thread. "
                                    "Current thread %1. Receiver '%2' (of type '%3') was created in thread %4")
-               .arg(QString::number((ulong) currentThread, 16))
+               .arg(QString::number((quintptr) currentThread, 16))
                .arg(receiver->objectName())
                .arg(QLatin1String(receiver->metaObject()->className()))
-               .arg(QString::number((ulong) thr, 16))
+               .arg(QString::number((quintptr) thr, 16))
                .toLocal8Bit().data());
     Q_UNUSED(currentThread);
     Q_UNUSED(thr);
@@ -279,7 +301,7 @@ void QCoreApplicationPrivate::checkReceiverThread(QObject *receiver)
 
 void QCoreApplicationPrivate::appendApplicationPathToLibraryPaths()
 {
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     QStringList *app_libpaths = coreappdata()->app_libpaths;
     Q_ASSERT(app_libpaths);
     QString app_location( QCoreApplication::applicationFilePath() );
@@ -440,7 +462,7 @@ void QCoreApplication::init()
 
     d->threadData->eventDispatcher = QCoreApplicationPrivate::eventDispatcher;
 
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (!coreappdata()->app_libpaths) {
         // make sure that library paths is initialized
         libraryPaths();
@@ -474,7 +496,11 @@ QCoreApplication::~QCoreApplication()
     QCoreApplicationPrivate::is_app_closing = true;
     QCoreApplicationPrivate::is_app_running = false;
 
-#ifndef QT_NO_THREAD
+#if !defined(QT_NO_THREAD)
+#if !defined(QT_NO_CONCURRENT)
+    // Synchronize and stop the global thread pool threads.
+    QThreadPool::globalInstance()->waitForDone();
+#endif
     QThread::cleanup();
 #endif
 
@@ -482,6 +508,11 @@ QCoreApplication::~QCoreApplication()
     if (QCoreApplicationPrivate::eventDispatcher)
         QCoreApplicationPrivate::eventDispatcher->closingDown();
     QCoreApplicationPrivate::eventDispatcher = 0;
+
+#ifndef QT_NO_LIBRARY
+    delete coreappdata()->app_libpaths;
+    coreappdata()->app_libpaths = 0;
+#endif
 }
 
 
@@ -526,7 +557,7 @@ bool QCoreApplication::testAttribute(Qt::ApplicationAttribute attribute)
 */
 bool QCoreApplication::notifyInternal(QObject *receiver, QEvent *event)
 {
-    // Make it possible for Qt JAmbi and QSA to hook into events even
+    // Make it possible for Qt Jambi and QSA to hook into events even
     // though QApplication is subclassed...
     bool result = false;
     void *cbdata[] = { receiver, event, &result };
@@ -534,7 +565,40 @@ bool QCoreApplication::notifyInternal(QObject *receiver, QEvent *event)
         return result;
     }
 
-    return notify(receiver, event);
+    // Qt enforces the rule that events can only be sent to objects in
+    // the current thread, so receiver->d_func()->threadData is
+    // equivalent to QThreadData::current(), just without the function
+    // call overhead.
+    QObjectPrivate *d = receiver->d_func();
+    QThreadData *threadData = d->threadData;
+    ++threadData->loopLevel;
+
+    int deleteWatch = 0;
+    int *oldDeleteWatch = QObjectPrivate::setDeleteWatch(d, &deleteWatch);
+
+    bool inEvent = d->inEventHandler;
+    d->inEventHandler = true;
+
+#if defined(QT_NO_EXCEPTIONS)
+    bool returnValue = notify(receiver, event);
+#else
+    bool returnValue;
+    try {
+        returnValue = notify(receiver, event);
+    } catch(...) {
+        --threadData->loopLevel;
+        throw;
+    }
+#endif
+
+    // Restore the previous state if the object was not deleted..
+    if (!deleteWatch) {
+        d->inEventHandler = inEvent;
+    }
+    QObjectPrivate::resetDeleteWatch(d, oldDeleteWatch, deleteWatch);
+
+    --threadData->loopLevel;
+    return returnValue;
 }
 
 
@@ -599,45 +663,54 @@ bool QCoreApplication::notify(QObject *receiver, QEvent *event)
     return receiver->isWidgetType() ? false : d->notify_helper(receiver, event);
 }
 
+bool QCoreApplicationPrivate::sendThroughApplicationEventFilters(QObject *receiver, QEvent *event)
+{
+    for (int i = 0; i < eventFilters.size(); ++i) {
+        register QObject *obj = eventFilters.at(i);
+        if (!obj)
+            continue;
+        if (obj->d_func()->threadData != threadData) {
+            qWarning("QCoreApplication: Application event filter cannot be in a different thread.");
+            continue;
+        }
+        if (obj->eventFilter(receiver, event))
+            return true;
+    }
+    return false;
+}
+
+bool QCoreApplicationPrivate::sendThroughObjectEventFilters(QObject *receiver, QEvent *event)
+{
+    Q_Q(QCoreApplication);
+   if (receiver != q) {
+        for (int i = 0; i < receiver->d_func()->eventFilters.size(); ++i) {
+            register QObject *obj = receiver->d_func()->eventFilters.at(i);
+            if (!obj)
+                continue;
+            if (obj->d_func()->threadData != receiver->d_func()->threadData) {
+                qWarning("QCoreApplication: Object event filter cannot be in a different thread.");
+                continue;
+            }
+            if (obj->eventFilter(receiver, event))
+                return true;
+        }
+    }
+    return false;
+}
+
 /*!\internal
 
   Helper function called by notify()
  */
 bool QCoreApplicationPrivate::notify_helper(QObject *receiver, QEvent * event)
 {
-    Q_Q(QCoreApplication);
-
-    QReadWriteLock *lock = QObjectPrivate::readWriteLock();
-    if (lock)
-        lock->lockForRead();
-
     // send to all application event filters
-    for (int i = 0; i < eventFilters.size(); ++i) {
-        register QObject *obj = eventFilters.at(i);
-        if (lock)
-            lock->unlock();
-        if (obj && obj->eventFilter(receiver, event))
-            return true;
-        if (lock)
-            lock->lockForRead();
-    }
-
+    if (sendThroughApplicationEventFilters(receiver, event))
+        return true;
     // send to all receiver event filters
-    if (receiver != q) {
-        for (int i = 0; i < receiver->d_func()->eventFilters.size(); ++i) {
-            register QObject *obj = receiver->d_func()->eventFilters.at(i);
-            if (lock)
-                lock->unlock();
-            if (obj && obj->eventFilter(receiver, event))
-                return true;
-            if (lock)
-                lock->lockForRead();
-        }
-    }
-
-    if (lock)
-        lock->unlock();
-
+    if (sendThroughObjectEventFilters(receiver, event))
+        return true;
+    // deliver the event
     return receiver->event(event);
 }
 
@@ -681,7 +754,7 @@ bool QCoreApplication::closingDown()
     events to function properly. An alternative would be to call
     \l{QCoreApplication::sendPostedEvents()}{sendPostedEvents()} from
     within that local loop.
-    
+
     Calling this function processes events only for the calling thread.
 
     \threadsafe
@@ -693,6 +766,8 @@ void QCoreApplication::processEvents(QEventLoop::ProcessEventsFlags flags)
     QThreadData *data = QThreadData::current();
     if (!data->eventDispatcher)
         return;
+    if (flags & QEventLoop::DeferredDeletion)
+        QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
     data->eventDispatcher->processEvents(flags);
 }
 
@@ -719,9 +794,13 @@ void QCoreApplication::processEvents(QEventLoop::ProcessEventsFlags flags, int m
         return;
     QTime start;
     start.start();
+    if (flags & QEventLoop::DeferredDeletion)
+        QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
     while (data->eventDispatcher->processEvents(flags & ~QEventLoop::WaitForMoreEvents)) {
         if (start.elapsed() > maxtime)
             break;
+        if (flags & QEventLoop::DeferredDeletion)
+            QCoreApplication::sendPostedEvents(0, QEvent::DeferredDelete);
     }
 }
 
@@ -816,10 +895,7 @@ void QCoreApplication::exit(int returnCode)
     The event is \e not deleted when the event has been sent. The normal
     approach is to create the event on the stack, for example:
 
-    \code
-        QMouseEvent event(QEvent::MouseButtonPress, pos, 0, 0, 0);
-        QApplication::sendEvent(mainWindow, &event);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 0
 
     \sa postEvent(), notify()
 */
@@ -883,61 +959,62 @@ void QCoreApplication::postEvent(QObject *receiver, QEvent *event, int priority)
         return;
     }
 
-    QReadLocker locker(QObjectPrivate::readWriteLock());
-    if (!QObjectPrivate::isValidObject(receiver)) {
-        qWarning("QCoreApplication::postEvent: Receiver is not a valid QObject");
-        delete event;
-        return;
-    }
-
-    QThreadData *data = receiver->d_func()->threadData;
+    QThreadData * volatile * pdata = &receiver->d_func()->threadData;
+    QThreadData *data = *pdata;
     if (!data) {
         // posting during destruction? just delete the event to prevent a leak
         delete event;
         return;
     }
 
-    {
-        QMutexLocker locker(&data->postEventList.mutex);
+    // lock the post event mutex
+    data->postEventList.mutex.lock();
 
-        // if this is one of the compressible events, do compression
-        if (receiver->d_func()->postedEvents
-            && self && self->compressEvent(event, receiver, &data->postEventList)) {
+    // if object has moved to another thread, follow it
+    while (data != *pdata) {
+        data->postEventList.mutex.unlock();
+
+        data = *pdata;
+        if (!data) {
+            // posting during destruction? just delete the event to prevent a leak
+            delete event;
             return;
         }
 
-        event->posted = true;
-        ++receiver->d_func()->postedEvents;
-        ++data->postEventList.numPostedEvents;
-        if (event->type() == QEvent::DeferredDelete) {
-            if (!data->eventLoops.isEmpty()) {
-                // remember the current running eventloop
-                for (int i = data->eventLoops.size() - 1; i >= 0; --i) {
-                    QEventLoop *eventLoop = data->eventLoops.at(i);
-                    if (eventLoop->isRunning()) {
-                        event->d = reinterpret_cast<QEventPrivate *>(eventLoop);
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (data->postEventList.isEmpty() || data->postEventList.last().priority >= priority) {
-            // optimization: we can simply append if the last event in
-            // the queue has higher or equal priority
-            data->postEventList.append(QPostEvent(receiver, event, priority));
-        } else {
-            // insert event in descending priority order, using upper
-            // bound for a given priority (to ensure proper ordering
-            // of events with the same priority)
-            QPostEventList::iterator begin = data->postEventList.begin()
-                                             + data->postEventList.insertionOffset,
-                                       end = data->postEventList.end();
-            QPostEventList::iterator at = qUpperBound(begin, end, priority);
-            data->postEventList.insert(at, QPostEvent(receiver, event, priority));
-        }
-        data->canWait = false;
+        data->postEventList.mutex.lock();
     }
+
+    // if this is one of the compressible events, do compression
+    if (receiver->d_func()->postedEvents
+        && self && self->compressEvent(event, receiver, &data->postEventList)) {
+        data->postEventList.mutex.unlock();
+        return;
+    }
+
+    event->posted = true;
+    ++receiver->d_func()->postedEvents;
+    if (event->type() == QEvent::DeferredDelete && data == QThreadData::current()) {
+        // remember the current running eventloop for DeferredDelete
+        // events posted in the receiver's thread
+        event->d = reinterpret_cast<QEventPrivate *>(quintptr(data->loopLevel));
+    }
+
+    if (data->postEventList.isEmpty() || data->postEventList.last().priority >= priority) {
+        // optimization: we can simply append if the last event in
+        // the queue has higher or equal priority
+        data->postEventList.append(QPostEvent(receiver, event, priority));
+    } else {
+        // insert event in descending priority order, using upper
+        // bound for a given priority (to ensure proper ordering
+        // of events with the same priority)
+        QPostEventList::iterator begin = data->postEventList.begin()
+                                         + data->postEventList.insertionOffset,
+                                   end = data->postEventList.end();
+        QPostEventList::iterator at = qUpperBound(begin, end, priority);
+        data->postEventList.insert(at, QPostEvent(receiver, event, priority));
+    }
+    data->canWait = false;
+    data->postEventList.mutex.unlock();
 
     if (data->eventDispatcher)
         data->eventDispatcher->wakeUp();
@@ -967,13 +1044,16 @@ bool QCoreApplication::compressEvent(QEvent *event, QObject *receiver, QPostEven
         }
     } else
 #endif
-        if (event->type() == QEvent::DeferredDelete
+        if ((event->type() == QEvent::DeferredDelete
+             || event->type() == QEvent::Quit)
             && receiver->d_func()->postedEvents > 0) {
             for (int i = 0; i < postedEvents->size(); ++i) {
                 const QPostEvent &cur = postedEvents->at(i);
-                if (cur.receiver != receiver || cur.event == 0 || cur.event->type() != event->type())
+                if (cur.receiver != receiver
+                    || cur.event == 0
+                    || cur.event->type() != event->type())
                     continue;
-                // found a DeferredDelete for this receiver
+                // found an event for this receiver
                 delete event;
                 return true;
             }
@@ -993,11 +1073,13 @@ bool QCoreApplication::compressEvent(QEvent *event, QObject *receiver, QPostEven
   with QCoreApplication::postEvent() and which are for the object \a receiver
   and have the event type \a event_type.
 
-  Note that events from the window system are \e not dispatched by this
+  Events from the window system are \e not dispatched by this
   function, but by processEvents().
 
   If \a receiver is null, the events of \a event_type are sent for all
   objects. If \a event_type is 0, all the events are sent for \a receiver.
+
+  \note This method must be called from the same thread as its QObject parameter, \a receiver.
 
   \sa flush(), postEvent()
 */
@@ -1012,13 +1094,10 @@ void QCoreApplication::sendPostedEvents(QObject *receiver, int event_type)
 void QCoreApplicationPrivate::sendPostedEvents(QObject *receiver, int event_type,
                                                QThreadData *data)
 {
-    bool doDeferredDeletion = (event_type == QEvent::DeferredDelete);
     if (event_type == -1) {
-        // we were called by the event dispatcher.
-        doDeferredDeletion = true;
+        // we were called by an obsolete event dispatcher.
         event_type = 0;
     }
-
 
     if (receiver && receiver->d_func()->threadData != data) {
         qWarning("QCoreApplication::sendPostedEvents: Cannot send "
@@ -1078,19 +1157,15 @@ void QCoreApplicationPrivate::sendPostedEvents(QObject *receiver, int event_type
         }
 
         if (pe.event->type() == QEvent::DeferredDelete) {
-            QEventLoop *savedEventLoop = reinterpret_cast<QEventLoop *>(pe.event->d);
-            QEventLoop *currentEventLoop = data->eventLoops.isEmpty() ? 0 : data->eventLoops.top();
-            bool savedEventLoopIsRunning = data->eventLoops.contains(savedEventLoop);
-
-            // DeferredDelete events are only sent when we are explicitly
-            // asked to (s.a. QEventLoop::DeferredDeletion), and then only if
-            // there is no current event loop, or if the current event loop is
-            // equal to the loop in which deleteLater() was called.
-            if (!doDeferredDeletion
-                || (currentEventLoop
-                    && savedEventLoop
-                    && savedEventLoop != currentEventLoop
-                    && savedEventLoopIsRunning)) {
+            // DeferredDelete events are only sent when we are explicitly asked to
+            // (s.a. QEvent::DeferredDelete), and then only if the event loop that
+            // posted the event has returned.
+            const bool allowDeferredDelete =
+                (quintptr(pe.event->d) > unsigned(data->loopLevel)
+                 || (!quintptr(pe.event->d) && data->loopLevel > 0)
+                 || (event_type == QEvent::DeferredDelete
+                     && quintptr(pe.event->d) == unsigned(data->loopLevel)));
+            if (!allowDeferredDelete) {
                 // cannot send deferred delete
                 if (!event_type && !receiver) {
                     // don't lose the event
@@ -1108,7 +1183,6 @@ void QCoreApplicationPrivate::sendPostedEvents(QObject *receiver, int event_type
         QObject * r = pe.receiver;
 
         --r->d_func()->postedEvents;
-        --data->postEventList.numPostedEvents;
         Q_ASSERT(r->d_func()->postedEvents >= 0);
 
         // next, update the data structure so that we're ready
@@ -1211,6 +1285,13 @@ void QCoreApplication::removePostedEvents(QObject *receiver, int eventType)
     // for this object.
     if (receiver && !receiver->d_func()->postedEvents)
         return;
+    QCoreApplicationPrivate::removePostedEvents_unlocked(receiver, eventType, data);
+}
+
+void QCoreApplicationPrivate::removePostedEvents_unlocked(QObject *receiver,
+                                                          int eventType,
+                                                          QThreadData *data)
+{
     int n = data->postEventList.size();
     int j = 0;
 
@@ -1328,10 +1409,7 @@ bool QCoreApplication::event(QEvent *e)
 
     Example:
 
-    \code
-        QPushButton *quitButton = new QPushButton("Quit");
-        connect(quitButton, SIGNAL(clicked()), &app, SLOT(quit()));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 1
 
     \sa exit(), aboutToQuit(), QApplication::lastWindowClosed()
 */
@@ -1366,7 +1444,16 @@ void QCoreApplication::quit()
     the first installed translation file. The search stops as soon as
     a matching translation is found.
 
-  \sa removeTranslator() translate() QTranslator::load()
+    Installing or removing a QTranslator, or changing an installed QTranslator
+    generates a \l{QEvent::LanguageChange}{LanguageChange} event for the 
+    QCoreApplication instance. A QApplication instance will propagate the event 
+    to all toplevel windows, where a reimplementation of changeEvent can 
+    re-translate the user interface by passing user-visible strings via the
+    tr() function to the respective property setters. User-interface classes
+    generated by \l{Qt Designer} provide a \c retranslateUi() function that can be
+    called.
+
+  \sa removeTranslator() translate() QTranslator::load() {Dynamic Translation}
 */
 
 void QCoreApplication::installTranslator(QTranslator *translationFile)
@@ -1540,7 +1627,11 @@ QString QCoreApplication::applicationDirPath()
         qWarning("QCoreApplication::applicationDirPath: Please instantiate the QApplication object first");
         return QString();
     }
-    return QFileInfo(applicationFilePath()).path();
+
+    QCoreApplicationPrivate *d = self->d_func();
+    if (d->cachedApplicationDirPath == QString())
+        d->cachedApplicationDirPath = QFileInfo(applicationFilePath()).path();
+    return d->cachedApplicationDirPath;
 }
 
 /*!
@@ -1562,6 +1653,11 @@ QString QCoreApplication::applicationFilePath()
         qWarning("QCoreApplication::applicationFilePath: Please instantiate the QApplication object first");
         return QString();
     }
+
+    QCoreApplicationPrivate *d = self->d_func();
+    if (d->cachedApplicationFilePath != QString())
+        return d->cachedApplicationFilePath;
+
 #if defined( Q_WS_WIN )
     QFileInfo filePath;
     QT_WA({
@@ -1574,12 +1670,14 @@ QString QCoreApplication::applicationFilePath()
         filePath = QString::fromLocal8Bit(module_name);
     });
 
-    return filePath.filePath();
+    d->cachedApplicationFilePath = filePath.filePath();
+    return d->cachedApplicationFilePath;
 #elif defined(Q_WS_MAC)
     QString qAppFileName_str = qAppFileName();
     if(!qAppFileName_str.isEmpty()) {
         QFileInfo fi(qAppFileName_str);
-        return fi.exists() ? fi.canonicalFilePath() : QString();
+        d->cachedApplicationFilePath = fi.exists() ? fi.canonicalFilePath() : QString();
+        return d->cachedApplicationFilePath;
     }
 #endif
 #if defined( Q_OS_UNIX )
@@ -1587,8 +1685,10 @@ QString QCoreApplication::applicationFilePath()
     // Try looking for a /proc/<pid>/exe symlink first which points to
     // the absolute path of the executable
     QFileInfo pfi(QString::fromLatin1("/proc/%1/exe").arg(getpid()));
-    if (pfi.exists() && pfi.isSymLink())
-        return pfi.canonicalFilePath();
+    if (pfi.exists() && pfi.isSymLink()) {
+        d->cachedApplicationFilePath = pfi.canonicalFilePath();
+        return d->cachedApplicationFilePath;
+    }
 #  endif
 
     QString argv0 = QFile::decodeName(QByteArray(argv()[0]));
@@ -1629,7 +1729,23 @@ QString QCoreApplication::applicationFilePath()
     absPath = QDir::cleanPath(absPath);
 
     QFileInfo fi(absPath);
-    return fi.exists() ? fi.canonicalFilePath() : QString();
+    d->cachedApplicationFilePath = fi.exists() ? fi.canonicalFilePath() : QString();
+    return d->cachedApplicationFilePath;
+#endif
+}
+
+/*!
+    \since 4.4
+
+    Returns the current process ID for the application.
+*/
+qint64 QCoreApplication::applicationPid()
+{
+#if defined(Q_OS_WIN32) || defined(Q_OS_WINCE)
+    return GetCurrentProcessId();
+#else
+    // UNIX
+    return getpid();
 #endif
 }
 
@@ -1681,6 +1797,10 @@ char **QCoreApplication::argv()
     Unicode based.
 
     On NT-based Windows, this limitation does not apply either.
+    On Windows, the arguments() are not built from the contents of argv/argc, as
+    the content does not support Unicode. Instead, the arguments() are constructed
+    from the return value of
+    \l{http://msdn2.microsoft.com/en-us/library/ms683156(VS.85).aspx}{GetCommandLine()}.
 */
 
 QStringList QCoreApplication::arguments()
@@ -1693,6 +1813,13 @@ QStringList QCoreApplication::arguments()
     }
 #ifdef Q_OS_WIN
     QString cmdline = QT_WA_INLINE(QString::fromUtf16((unsigned short *)GetCommandLineW()), QString::fromLocal8Bit(GetCommandLineA()));
+
+#if defined(Q_OS_WINCE)
+    wchar_t tempFilename[512];
+    if (GetModuleFileNameW(0, tempFilename, 512))
+        cmdline.prepend(QString(QLatin1String("\"")) + QString::fromUtf16((unsigned short *)tempFilename) + QString(QLatin1String("\" ")));
+#endif // Q_OS_WINCE
+
     list = qWinCmdArgs(cmdline);
     if (self->d_func()->application_type) { // GUI app? Skip known - see qapplication.cpp
         QStringList stripped;
@@ -1765,7 +1892,7 @@ QString QCoreApplication::organizationName()
     On all other platforms, QSettings uses organizationName() as the
     organization.
 
-    \sa organizationName applicationName
+    \sa organizationName applicationName applicationVersion
 */
 void QCoreApplication::setOrganizationDomain(const QString &orgDomain)
 {
@@ -1785,7 +1912,7 @@ QString QCoreApplication::organizationDomain()
     using the empty constructor. This saves having to repeat this
     information each time a QSettings object is created.
 
-    \sa organizationName organizationDomain
+    \sa organizationName organizationDomain applicationVersion
 */
 void QCoreApplication::setApplicationName(const QString &application)
 {
@@ -1797,9 +1924,24 @@ QString QCoreApplication::applicationName()
     return coreappdata()->application;
 }
 
+/*!
+    \property QCoreApplication::applicationVersion
+    \since 4.4
+    \brief the version of this application
 
+    \sa applicationName organizationName organizationDomain
+*/
+void QCoreApplication::setApplicationVersion(const QString &version)
+{
+    coreappdata()->applicationVersion = version;
+}
 
-#ifndef QT_NO_LIBRARY
+QString QCoreApplication::applicationVersion()
+{
+    return coreappdata()->applicationVersion;
+}
+
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 
 Q_GLOBAL_STATIC_WITH_ARGS(QMutex, libraryPathMutex, (QMutex::Recursive))
 
@@ -1821,10 +1963,7 @@ Q_GLOBAL_STATIC_WITH_ARGS(QMutex, libraryPathMutex, (QMutex::Recursive))
     If you want to iterate over the list, you can use the \l foreach
     pseudo-keyword:
 
-    \code
-        foreach (QString path, app.libraryPaths())
-            do_something(path);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 2
 
     \sa setLibraryPaths(), addLibraryPath(), removeLibraryPath(), QLibrary,
         {How to Create Qt Plugins}
@@ -1832,8 +1971,6 @@ Q_GLOBAL_STATIC_WITH_ARGS(QMutex, libraryPathMutex, (QMutex::Recursive))
 QStringList QCoreApplication::libraryPaths()
 {
     QMutexLocker locker(libraryPathMutex());
-    if (!self)
-        return QStringList();
     if (!coreappdata()->app_libpaths) {
         QStringList *app_libpaths = coreappdata()->app_libpaths = new QStringList;
         QString installPathPlugins =  QLibraryInfo::location(QLibraryInfo::PluginsPath);
@@ -1858,8 +1995,10 @@ QStringList QCoreApplication::libraryPaths()
             QStringList paths = QString::fromLatin1(libPathEnv).split(pathSep, QString::SkipEmptyParts);
             for (QStringList::const_iterator it = paths.constBegin(); it != paths.constEnd(); ++it) {
                 QString canonicalPath = QDir(*it).canonicalPath();
-                if (!app_libpaths->contains(canonicalPath))
+                if (!canonicalPath.isEmpty()
+                    && !app_libpaths->contains(canonicalPath)) {
                     app_libpaths->append(canonicalPath);
+                }
             }
         }
     }
@@ -1878,10 +2017,17 @@ QStringList QCoreApplication::libraryPaths()
  */
 void QCoreApplication::setLibraryPaths(const QStringList &paths)
 {
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
+    QMutexLocker locker(libraryPathMutex());
+    if (!coreappdata()->app_libpaths)
+        coreappdata()->app_libpaths = new QStringList;
     *(coreappdata()->app_libpaths) = paths;
+    QFactoryLoader::refreshAll();
+#endif
 }
+
 /*!
-  Appends \a path to the end of the library path list. If \a path is
+  Prepends \a path to the end of the library path list. If \a path is
   empty or already in the path list, the path list is not changed.
 
   The default path list consists of a single entry, the installation
@@ -1893,15 +2039,22 @@ void QCoreApplication::setLibraryPaths(const QStringList &paths)
  */
 void QCoreApplication::addLibraryPath(const QString &path)
 {
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (path.isEmpty())
         return;
+
+    QMutexLocker locker(libraryPathMutex());
 
     // make sure that library paths is initialized
     libraryPaths();
 
     QString canonicalPath = QDir(path).canonicalPath();
-    if (!coreappdata()->app_libpaths->contains(canonicalPath))
+    if (!canonicalPath.isEmpty()
+        && !coreappdata()->app_libpaths->contains(canonicalPath)) {
         coreappdata()->app_libpaths->prepend(canonicalPath);
+        QFactoryLoader::refreshAll();
+    }
+#endif
 }
 
 /*!
@@ -1912,13 +2065,19 @@ void QCoreApplication::addLibraryPath(const QString &path)
 */
 void QCoreApplication::removeLibraryPath(const QString &path)
 {
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (path.isEmpty())
         return;
+
+    QMutexLocker locker(libraryPathMutex());
 
     // make sure that library paths is initialized
     libraryPaths();
 
-    coreappdata()->app_libpaths->removeAll(path);
+    QString canonicalPath = QDir(path).canonicalPath();
+    coreappdata()->app_libpaths->removeAll(canonicalPath);
+    QFactoryLoader::refreshAll();
+#endif
 }
 
 #endif //QT_NO_LIBRARY
@@ -1929,9 +2088,7 @@ void QCoreApplication::removeLibraryPath(const QString &path)
     A function with the following signature that can be used as an
     event filter:
 
-    \code
-        bool myEventFilter(void *message, long *result);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 3
 
     \sa setEventFilter()
 */
@@ -2128,21 +2285,7 @@ int QCoreApplication::loopLevel()
     The function specified by \a ptr should take no arguments and should
     return nothing. For example:
 
-    \code
-        static int *global_ptr = 0;
-
-        static void cleanup_ptr()
-        {
-            delete [] global_ptr;
-            global_ptr = 0;
-        }
-
-        void init_ptr()
-        {
-            global_ptr = new int[100];      // allocate data
-            qAddPostRoutine(cleanup_ptr);   // delete later
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 4
 
     Note that for an application- or module-wide cleanup,
     qAddPostRoutine() is often not suitable. For example, if the
@@ -2156,32 +2299,7 @@ int QCoreApplication::loopLevel()
     parent-child mechanism to call a cleanup function at the right
     time:
 
-    \code
-        class MyPrivateInitStuff : public QObject
-        {
-        public:
-            static MyPrivateInitStuff *initStuff(QObject *parent)
-            {
-                if (!p)
-                    p = new MyPrivateInitStuff(parent);
-                return p;
-            }
-
-            ~MyPrivateInitStuff()
-            {
-                // cleanup goes here
-            }
-
-        private:
-            MyPrivateInitStuff(QObject *parent)
-                : QObject(parent)
-            {
-                // initialization goes here
-            }
-
-            MyPrivateInitStuff *p;
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 5
 
     By selecting the right parent object, this can often be made to
     clean up the module's data at the right moment.
@@ -2195,12 +2313,7 @@ int QCoreApplication::loopLevel()
     translation functions, \c tr() and \c trUtf8(), with these
     signatures:
 
-    \code
-        static inline QString tr(const char *sourceText,
-                                 const char *comment = 0);
-        static inline QString trUtf8(const char *sourceText,
-                                     const char *comment = 0);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 6
 
     This macro is useful if you want to use QObject::tr() or
     QObject::trUtf8() in classes that don't inherit from QObject.
@@ -2209,19 +2322,12 @@ int QCoreApplication::loopLevel()
     class definition (before the first \c{public:} or \c{protected:}).
     For example:
 
-    \code
-        class MyMfcView : public CView
-        {
-            Q_DECLARE_TR_FUNCTIONS(MyMfcView)
-
-        public:
-            MyMfcView();
-            ...
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qcoreapplication.cpp 7
 
     The \a context parameter is normally the class name, but it can
     be any string.
 
     \sa Q_OBJECT, QObject::tr(), QObject::trUtf8()
 */
+
+QT_END_NAMESPACE

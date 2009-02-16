@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,11 +41,15 @@
 #include "qlayoutengine_p.h"
 #include "qmenubar.h"
 #include "qtoolbar.h"
+#include "qsizegrip.h"
 #include "qevent.h"
 #include "qstyle.h"
 #include "qvariant.h"
 #include "qwidget_p.h"
 #include "qlayout_p.h"
+#include "qformlayout.h"
+
+QT_BEGIN_NAMESPACE
 
 static int menuBarHeightForWidth(QWidget *menubar, int w)
 {
@@ -74,7 +72,7 @@ static int menuBarHeightForWidth(QWidget *menubar, int w)
     \ingroup geomanagement
 
     This is an abstract base class inherited by the concrete classes
-    QBoxLayout, QGridLayout, and QStackedLayout.
+    QBoxLayout, QGridLayout, QFormLayout, and QStackedLayout.
 
     For users of QLayout subclasses or of QMainWindow there is seldom
     any need to use the basic functions provided by QLayout, such as
@@ -170,6 +168,27 @@ void QLayoutPrivate::getMargin(int *result, int userMargin, QStyle::PixelMetric 
     } else {
         *result = 0;
     }
+}
+
+// Static item factory functions that allow for hooking things in Designer
+
+QLayoutPrivate::QWidgetItemFactoryMethod QLayoutPrivate::widgetItemFactoryMethod = 0;
+QLayoutPrivate::QSpacerItemFactoryMethod QLayoutPrivate::spacerItemFactoryMethod = 0;
+
+QWidgetItem *QLayoutPrivate::createWidgetItem(const QLayout *layout, QWidget *widget)
+{
+    if (widgetItemFactoryMethod)
+        if (QWidgetItem *wi = (*widgetItemFactoryMethod)(layout, widget))
+            return wi;
+    return new QWidgetItemV2(widget);
+}
+
+QSpacerItem *QLayoutPrivate::createSpacerItem(const QLayout *layout, int w, int h, QSizePolicy::Policy hPolicy, QSizePolicy::Policy vPolicy)
+{
+    if (spacerItemFactoryMethod)
+        if (QSpacerItem *si = (*spacerItemFactoryMethod)(layout, w, h, hPolicy, vPolicy))
+            return si;
+    return new QSpacerItem(w, h,  hPolicy, vPolicy);
 }
 
 #ifdef QT3_SUPPORT
@@ -283,7 +302,7 @@ bool QLayout::autoAdd() const { Q_D(const QLayout); return d->autoNewChild; }
 void QLayout::addWidget(QWidget *w)
 {
     addChildWidget(w);
-    addItem(new QWidgetItem(w));
+    addItem(QLayoutPrivate::createWidgetItem(this, w));
 }
 
 
@@ -379,7 +398,7 @@ int QLayout::margin() const
     from the parent layout, or from the style settings for the parent
     widget.
 
-    For QGridLayout, it is possible to set different horizontal and
+    For QGridLayout and QFormLayout, it is possible to set different horizontal and
     vertical spacings using \l{QGridLayout::}{setHorizontalSpacing()}
     and \l{QGridLayout::}{setVerticalSpacing()}. In that case,
     spacing() returns -1.
@@ -394,6 +413,8 @@ int QLayout::spacing() const
         return boxlayout->spacing();
     } else if (const QGridLayout* gridlayout = qobject_cast<const QGridLayout*>(this)) {
         return gridlayout->spacing();
+    } else if (const QFormLayout* formlayout = qobject_cast<const QFormLayout*>(this)) {
+        return formlayout->spacing();
     } else {
         Q_D(const QLayout);
         if (d->insideSpacing >=0) {
@@ -419,6 +440,8 @@ void QLayout::setSpacing(int spacing)
         boxlayout->setSpacing(spacing);
     } else if (QGridLayout* gridlayout = qobject_cast<QGridLayout*>(this)) {
         gridlayout->setSpacing(spacing);
+    } else if (QFormLayout* formlayout = qobject_cast<QFormLayout*>(this)) {
+        formlayout->setSpacing(spacing);
     } else {
         Q_D(QLayout);
         d->insideSpacing = spacing;
@@ -444,6 +467,11 @@ void QLayout::setSpacing(int spacing)
 void QLayout::setContentsMargins(int left, int top, int right, int bottom)
 {
     Q_D(QLayout);
+
+    if (d->userLeftMargin == left && d->userTopMargin == top &&
+        d->userRightMargin == right && d->userBottomMargin == bottom)
+        return;
+
     d->userLeftMargin = left;
     d->userTopMargin = top;
     d->userRightMargin = right;
@@ -514,7 +542,7 @@ QWidget *QLayout::parentWidget() const
     Q_D(const QLayout);
     if (!d->topLevel) {
         if (parent()) {
-            QLayout *parentLayout = ::qobject_cast<QLayout*>(parent());
+            QLayout *parentLayout = qobject_cast<QLayout*>(parent());
             Q_ASSERT(parentLayout);
             return parentLayout->parentWidget();
         } else {
@@ -649,12 +677,17 @@ void QLayout::widgetEvent(QEvent *e)
                 QWidget *w = (QWidget *)c->child();
                 if (!w->isWindow()) {
 #if !defined(QT_NO_MENUBAR) && !defined(QT_NO_TOOLBAR)
-                    if (qobject_cast<QMenuBar*>(w) && !::qobject_cast<QToolBar*>(w->parentWidget())) {
+                    if (qobject_cast<QMenuBar*>(w) && !qobject_cast<QToolBar*>(w->parentWidget())) {
                         d->menubar = (QMenuBar *)w;
                         invalidate();
                     } else
 #endif
-                        addItem(new QWidgetItem(w));
+#ifndef QT_NO_SIZEGRIP
+                    if (qobject_cast<QSizeGrip*>(w) ) {
+                        //SizeGrip is handled by the dialog itself.
+                    } else
+#endif
+                        addItem(QLayoutPrivate::createWidgetItem(this, w));
                 }
             }
         }
@@ -664,7 +697,8 @@ void QLayout::widgetEvent(QEvent *e)
         // fall through
 #endif
     case QEvent::LayoutRequest:
-        activate();
+        if (static_cast<QWidget *>(parent())->isVisible())
+            activate();
         break;
     default:
         break;
@@ -1081,8 +1115,7 @@ void QLayout::update()
         if (layout->d_func()->topLevel) {
             Q_ASSERT(layout->parent()->isWidgetType());
             QWidget *mw = static_cast<QWidget*>(layout->parent());
-            if (mw->isVisible())
-                QApplication::postEvent(mw, new QEvent(QEvent::LayoutRequest));
+            QApplication::postEvent(mw, new QEvent(QEvent::LayoutRequest));
             break;
         }
         layout = static_cast<QLayout*>(layout->parent());
@@ -1117,6 +1150,7 @@ bool QLayout::activate()
 
     QWidgetPrivate *md = mw->d_func();
     uint explMin = md->extra ? md->extra->explicitMinSize : 0;
+    uint explMax = md->extra ? md->extra->explicitMaxSize : 0;
 
     switch (d->constraint) {
     case SetFixedSize:
@@ -1168,8 +1202,10 @@ bool QLayout::activate()
 
     d->doResize(mw->size());
 
-    if (md->extra)
+    if (md->extra) {
         md->extra->explicitMinSize = explMin;
+        md->extra->explicitMaxSize = explMax;
+    }
     // ideally only if sizeHint() or sizePolicy() has changed
     mw->updateGeometry();
     return true;
@@ -1185,24 +1221,7 @@ bool QLayout::activate()
     This function can be used to iterate over a layout. The following
     code will draw a rectangle for each layout item in the layout structure of the widget.
 
-    \code
-        static void paintLayout(QPainter *painter, QLayoutItem *item)
-        {
-            QLayout *layout = item->layout();
-            if (layout) {
-                for (int i = 0; i < layout->count(); ++i)
-                    paintLayout(painter, layout->itemAt(i));
-            }
-            painter->drawRect(layout->geometry());
-        }
-
-        void MyWidget::paintEvent(QPaintEvent *)
-        {
-            QPainter painter(this);
-            if (layout())
-                paintLayout(&painter, layout());
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qlayout.cpp 0
 
     \sa count(), takeAt()
 */
@@ -1219,13 +1238,7 @@ bool QLayout::activate()
     The following code fragment shows a safe way to remove all items
     from a layout:
 
-    \code
-        QLayoutItem *child;
-        while ((child = layout->takeAt(0)) != 0) {
-            ...
-            delete child;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qlayout.cpp 1
 
     \sa itemAt(), count()
 */
@@ -1559,3 +1572,5 @@ QDataStream &operator>>(QDataStream &stream, QSizePolicy &policy)
 
 #endif
 
+
+QT_END_NAMESPACE

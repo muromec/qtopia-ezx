@@ -101,6 +101,7 @@ TROBJECTS= jpegtran.obj rdswitch.obj cdjpeg.obj transupp.obj
 all: libjpeg.lib cjpeg.exe djpeg.exe jpegtran.exe rdjpgcom.exe wrjpgcom.exe
 
 libjpeg.lib: $(LIBOBJECTS)
+	$(RM) libjpeg.lib
 	lib -out:libjpeg.lib  $(LIBOBJECTS)
 
 cjpeg.exe: $(COBJECTS) libjpeg.lib

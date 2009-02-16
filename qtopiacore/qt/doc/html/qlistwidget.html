@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/itemviews/qlistwidget.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/itemviews/qlistwidget.cpp -->
 <head>
-  <title>Qt 4.3: QListWidget Class Reference</title>
+  <title>Qt 4.4: QListWidget Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QListWidget Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QListWidget Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QListWidget class provides an item-based list widget. <a href="#details">More...</a></p>
 <pre> #include &lt;QListWidget&gt;</pre><p>Inherits <a href="qlistview.html">QListView</a>.</p>
@@ -29,10 +29,10 @@
 </ul>
 <ul>
 <li><div class="fn"/>13 properties inherited from <a href="qlistview.html#properties">QListView</a></li>
-<li><div class="fn"/>14 properties inherited from <a href="qabstractitemview.html#properties">QAbstractItemView</a></li>
+<li><div class="fn"/>15 properties inherited from <a href="qabstractitemview.html#properties">QAbstractItemView</a></li>
 <li><div class="fn"/>2 properties inherited from <a href="qabstractscrollarea.html#properties">QAbstractScrollArea</a></li>
 <li><div class="fn"/>6 properties inherited from <a href="qframe.html#properties">QFrame</a></li>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -62,7 +62,9 @@
 <li><div class="fn"/>int <b><a href="qlistwidget.html#row">row</a></b> ( const QListWidgetItem * <i>item</i> ) const</li>
 <li><div class="fn"/>QList&lt;QListWidgetItem *&gt; <b><a href="qlistwidget.html#selectedItems">selectedItems</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qlistwidget.html#setCurrentItem">setCurrentItem</a></b> ( QListWidgetItem * <i>item</i> )</li>
+<li><div class="fn"/>void <b><a href="qlistwidget.html#setCurrentItem-2">setCurrentItem</a></b> ( QListWidgetItem * <i>item</i>, QItemSelectionModel::SelectionFlags <i>command</i> )</li>
 <li><div class="fn"/>void <b><a href="qlistwidget.html#currentRow-prop">setCurrentRow</a></b> ( int <i>row</i> )</li>
+<li><div class="fn"/>void <b><a href="qlistwidget.html#currentRow-prop">setCurrentRow</a></b> ( int <i>row</i>, QItemSelectionModel::SelectionFlags <i>command</i> )</li>
 <li><div class="fn"/>void <b><a href="qlistwidget.html#setItemWidget">setItemWidget</a></b> ( QListWidgetItem * <i>item</i>, QWidget * <i>widget</i> )</li>
 <li><div class="fn"/>void <b><a href="qlistwidget.html#sortingEnabled-prop">setSortingEnabled</a></b> ( bool <i>enable</i> )</li>
 <li><div class="fn"/>void <b><a href="qlistwidget.html#sortItems">sortItems</a></b> ( Qt::SortOrder <i>order</i> = Qt::AscendingOrder )</li>
@@ -71,12 +73,12 @@
 </ul>
 <ul>
 <li><div class="fn"/>29 public functions inherited from <a href="qlistview.html#public-functions">QListView</a></li>
-<li><div class="fn"/>52 public functions inherited from <a href="qabstractitemview.html#public-functions">QAbstractItemView</a></li>
+<li><div class="fn"/>54 public functions inherited from <a href="qabstractitemview.html#public-functions">QAbstractItemView</a></li>
 <li><div class="fn"/>15 public functions inherited from <a href="qabstractscrollarea.html#public-functions">QAbstractScrollArea</a></li>
 <li><div class="fn"/>13 public functions inherited from <a href="qframe.html#public-functions">QFrame</a></li>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -132,7 +134,7 @@
 <ul>
 <li><div class="fn"/>4 static public members inherited from <a href="qwidget.html#static-public-members">QWidget</a></li>
 <li><div class="fn"/>5 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
-<li><div class="fn"/>8 protected slots inherited from <a href="qabstractitemview.html#protected-slots">QAbstractItemView</a></li>
+<li><div class="fn"/>9 protected slots inherited from <a href="qabstractitemview.html#protected-slots">QAbstractItemView</a></li>
 <li><div class="fn"/>1 protected slot inherited from <a href="qabstractscrollarea.html#protected-slots">QAbstractScrollArea</a></li>
 <li><div class="fn"/>1 protected slot inherited from <a href="qwidget.html#protected-slots">QWidget</a></li>
 </ul>
@@ -175,11 +177,12 @@
 <ul>
 <li><div class="fn"/><b>int currentRow () const</b></li>
 <li><div class="fn"/><b>void setCurrentRow ( int <i>row</i> )</b></li>
+<li><div class="fn"/><b>void setCurrentRow ( int <i>row</i>, QItemSelectionModel::SelectionFlags <i>command</i> )</b></li>
 </ul>
 <h3 class="fn"><a name="sortingEnabled-prop"></a>sortingEnabled : bool</h3>
 <p>This property holds whether sorting is enabled.</p>
 <p>If this property is true, sorting is enabled for the list; if the property is false, sorting is not enabled. The default value is false.</p>
-<p>This property was introduced in Qt Qt 4.2.</p>
+<p>This property was introduced in Qt 4.2.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>bool isSortingEnabled () const</b></li>
@@ -203,6 +206,7 @@
 <p>See also <a href="qlistwidget.html#insertItems">insertItems</a>().</p>
 <h3 class="fn"><a name="clear"></a>void QListWidget::clear ()&nbsp;&nbsp;<tt> [slot]</tt></h3>
 <p>Removes all items and selections in the view.</p>
+<p><b>Note:</b> All items will be permanently deleted.</p>
 <h3 class="fn"><a name="closePersistentEditor"></a>void QListWidget::closePersistentEditor ( <a href="qlistwidgetitem.html">QListWidgetItem</a> * <i>item</i> )</h3>
 <p>Closes the persistent editor for the given <i>item</i>.</p>
 <p>See also <a href="qlistwidget.html#openPersistentEditor">openPersistentEditor</a>().</p>
@@ -216,7 +220,7 @@
 <h3 class="fn"><a name="currentTextChanged"></a>void QListWidget::currentTextChanged ( const <a href="qstring.html">QString</a> &amp; <i>currentText</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
 <p>This signal is emitted whenever the current item changes. The <i>currentText</i> is the text data in the current item. If there is no current item, the <i>currentText</i> is invalid.</p>
 <h3 class="fn"><a name="dropMimeData"></a>bool QListWidget::dropMimeData ( int <i>index</i>, const <a href="qmimedata.html">QMimeData</a> * <i>data</i>, <a href="qt.html#DropAction-enum">Qt::DropAction</a> <i>action</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
-<p>Handles the <i>data</i> supplied by a drag and drop operation that ended with the given <i>action</i> in the given <i>index</i>. Returns true if the data and action can be handled by the model; otherwise returns false.</p>
+<p>Handles the <i>data</i> supplied by an external drag and drop operation that ended with the given <i>action</i> in the given <i>index</i>. Returns true if the data and action can be handled by the model; otherwise returns false.</p>
 <p>See also <a href="qlistwidget.html#supportedDropActions">supportedDropActions</a>().</p>
 <h3 class="fn"><a name="editItem"></a>void QListWidget::editItem ( <a href="qlistwidgetitem.html">QListWidgetItem</a> * <i>item</i> )</h3>
 <p>Starts editing the <i>item</i> if it is editable.</p>
@@ -291,6 +295,10 @@
 <p>Sets the current item to <i>item</i>.</p>
 <p>Depending on the current selection mode, the item may also be selected.</p>
 <p>See also <a href="qlistwidget.html#currentItem">currentItem</a>().</p>
+<h3 class="fn"><a name="setCurrentItem-2"></a>void QListWidget::setCurrentItem ( <a href="qlistwidgetitem.html">QListWidgetItem</a> * <i>item</i>, <a href="qitemselectionmodel.html#SelectionFlag-enum">QItemSelectionModel::SelectionFlags</a> <i>command</i> )</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
+<p>Set the current item to <i>item</i>, using the given <i>command</i>.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="setItemWidget"></a>void QListWidget::setItemWidget ( <a href="qlistwidgetitem.html">QListWidgetItem</a> * <i>item</i>, <a href="qwidget.html">QWidget</a> * <i>widget</i> )</h3>
 <p>Sets the <i>widget</i> to be displayed in the give <i>item</i>.</p>
 <p>This function should only be used to display static content in the place of a list widget item. If you want to display custom dynamic content or implement a custom editor widget, use <a href="qlistview.html">QListView</a> and subclass <a href="qitemdelegate.html">QItemDelegate</a> instead.</p>
@@ -309,8 +317,8 @@
 <p>Returns the rectangle on the viewport occupied by the item at <i>item</i>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

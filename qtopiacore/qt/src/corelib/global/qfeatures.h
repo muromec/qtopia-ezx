@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,6 +52,9 @@
 
 // QCopChannel
 //#define QT_NO_COP
+
+// CssParser
+//#define QT_NO_CSSPARSER
 
 // QCursor
 //#define QT_NO_CURSOR
@@ -170,8 +167,14 @@
 // Properties
 //#define QT_NO_QWS_PROPERTIES
 
+// QProxyScreen
+//#define QT_NO_QWS_PROXYSCREEN
+
 // Qt Prerendered Font Format
 //#define QT_NO_QWS_QPF
+
+// Raster Paint Engine callback functions
+//#define QT_NO_RASTERCALLBACKS
 
 // Resize Handler
 //#define QT_NO_RESIZEHANDLER
@@ -181,6 +184,9 @@
 
 // Session Manager
 //#define QT_NO_SESSIONMANAGER
+
+// QSharedMemory
+//#define QT_NO_SHAREDMEMORY
 
 // QShortcut
 //#define QT_NO_SHORTCUT
@@ -221,6 +227,9 @@
 // QWindowsStyle
 //#define QT_NO_STYLE_WINDOWS
 
+// QSystemSemaphore
+//#define QT_NO_SYSTEMSEMAPHORE
+
 // QTabletEvent
 //#define QT_NO_TABLETEVENT
 
@@ -232,6 +241,9 @@
 
 // Text Date
 //#define QT_NO_TEXTDATE
+
+// HtmlParser
+//#define QT_NO_TEXTHTMLPARSER
 
 // QTextStream
 //#define QT_NO_TEXTSTREAM
@@ -260,6 +272,9 @@
 // QWheelEvent
 //#define QT_NO_WHEELEVENT
 
+// 
+//#define QT_NO_XMLSTREAM
+
 // Accessibility
 #if !defined(QT_NO_ACCESSIBILITY) && (defined(QT_NO_PROPERTIES))
 #define QT_NO_ACCESSIBILITY
@@ -270,14 +285,14 @@
 #define QT_NO_BUTTONGROUP
 #endif
 
-// QClipboard
-#if !defined(QT_NO_CLIPBOARD) && (defined(QT_NO_QWS_PROPERTIES))
-#define QT_NO_CLIPBOARD
-#endif
-
 // Codecs
 #if !defined(QT_NO_CODECS) && (defined(QT_NO_TEXTCODEC))
 #define QT_NO_CODECS
+#endif
+
+// QtConcurrent
+#if !defined(QT_NO_CONCURRENT) && (defined(QT_NO_THREAD))
+#define QT_NO_CONCURRENT
 #endif
 
 // QDate/QTime/QDateTime
@@ -340,6 +355,11 @@
 #define QT_NO_QWS_DECORATION_WINDOWS
 #endif
 
+// Dynamic screen transformation.
+#if !defined(QT_NO_QWS_DYNAMICSCREENTRANSFORMATION) && (defined(QT_NO_QWS_PROXYSCREEN))
+#define QT_NO_QWS_DYNAMICSCREENTRANSFORMATION
+#endif
+
 // Manager
 #if !defined(QT_NO_QWS_MANAGER) && (defined(QT_NO_QWS_DECORATION_DEFAULT))
 #define QT_NO_QWS_MANAGER
@@ -395,14 +415,34 @@
 #define QT_NO_UNDOSTACK
 #endif
 
+// ActiveQt
+#if !defined(QT_NO_WIN_ACTIVEQT) && (defined(QT_NO_PROPERTIES))
+#define QT_NO_WIN_ACTIVEQT
+#endif
+
 // QWizard
 #if !defined(QT_NO_WIZARD) && (defined(QT_NO_PROPERTIES))
 #define QT_NO_WIZARD
 #endif
 
+// QXmlStreamReader
+#if !defined(QT_NO_XMLSTREAMREADER) && (defined(QT_NO_XMLSTREAM))
+#define QT_NO_XMLSTREAMREADER
+#endif
+
+// QXmlStreamWriter
+#if !defined(QT_NO_XMLSTREAMWRITER) && (defined(QT_NO_XMLSTREAM))
+#define QT_NO_XMLSTREAMWRITER
+#endif
+
 // Context menu
 #if !defined(QT_NO_CONTEXTMENU) && (defined(QT_NO_MENU))
 #define QT_NO_CONTEXTMENU
+#endif
+
+// QFileSystemModel
+#if !defined(QT_NO_FILESYSTEMMODEL) && (defined(QT_NO_FILESYSTEMWATCHER))
+#define QT_NO_FILESYSTEMMODEL
 #endif
 
 // File Transfer Protocol
@@ -423,11 +463,6 @@
 // QScrollArea
 #if !defined(QT_NO_SCROLLAREA) && (defined(QT_NO_SCROLLBAR))
 #define QT_NO_SCROLLAREA
-#endif
-
-// QStyleSheetStyle
-#if !defined(QT_NO_STYLE_STYLESHEET) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_PROPERTIES))
-#define QT_NO_STYLE_STYLESHEET
 #endif
 
 // QToolButton
@@ -470,9 +505,29 @@
 #define QT_NO_STYLE_PLASTIQUE
 #endif
 
+// QStyleSheetStyle
+#if !defined(QT_NO_STYLE_STYLESHEET) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_PROPERTIES) || defined(QT_NO_CSSPARSER))
+#define QT_NO_STYLE_STYLESHEET
+#endif
+
+// QWindowsCEStyle
+#if !defined(QT_NO_STYLE_WINDOWSCE) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_IMAGEFORMAT_XPM))
+#define QT_NO_STYLE_WINDOWSCE
+#endif
+
+// QWindowsMobileStyle
+#if !defined(QT_NO_STYLE_WINDOWSMOBILE) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_IMAGEFORMAT_XPM))
+#define QT_NO_STYLE_WINDOWSMOBILE
+#endif
+
 // QWindowsVistaStyle
 #if !defined(QT_NO_STYLE_WINDOWSVISTA) && (defined(QT_NO_STYLE_WINDOWS) || defined(QT_NO_STYLE_WINDOWSXP))
 #define QT_NO_STYLE_WINDOWSVISTA
+#endif
+
+// QtSvg module
+#if !defined(QT_NO_SVG) && (defined(QT_NO_XMLSTREAMREADER) || defined(QT_NO_CSSPARSER))
+#define QT_NO_SVG
 #endif
 
 // QTabBar
@@ -500,6 +555,16 @@
 #define QT_NO_SCRIPT
 #endif
 
+// QSvgGenerator
+#if !defined(QT_NO_SVGGENERATOR) && (defined(QT_NO_SVG))
+#define QT_NO_SVGGENERATOR
+#endif
+
+// QSvgRenderer
+#if !defined(QT_NO_SVGRENDERER) && (defined(QT_NO_SVG))
+#define QT_NO_SVGRENDERER
+#endif
+
 // Q3TabDialog
 #if !defined(QT_NO_TABDIALOG) && (defined(QT_NO_TABBAR))
 #define QT_NO_TABDIALOG
@@ -518,6 +583,11 @@
 // QWhatsThis
 #if !defined(QT_NO_WHATSTHIS) && (defined(QT_NO_TOOLBUTTON) || defined(QT_NO_ACTION))
 #define QT_NO_WHATSTHIS
+#endif
+
+// QClipboard
+#if !defined(QT_NO_CLIPBOARD) && (defined(QT_NO_QWS_PROPERTIES))
+#define QT_NO_CLIPBOARD
 #endif
 
 // Common UNIX Printing System
@@ -558,6 +628,11 @@
 // QStringListModel
 #if !defined(QT_NO_STRINGLISTMODEL) && (defined(QT_NO_ITEMVIEWS))
 #define QT_NO_STRINGLISTMODEL
+#endif
+
+// QSvgWidget
+#if !defined(QT_NO_SVGWIDGET) && (defined(QT_NO_SVGRENDERER))
+#define QT_NO_SVGWIDGET
 #endif
 
 // QSyntaxHighlighter
@@ -630,6 +705,11 @@
 #define QT_NO_TREEWIDGET
 #endif
 
+// QPrintPreviewWidget
+#if !defined(QT_NO_PRINTPREVIEWWIDGET) && (defined(QT_NO_GRAPHICSVIEW) || defined(QT_NO_PRINTER) || defined(QT_NO_PICTURE))
+#define QT_NO_PRINTPREVIEWWIDGET
+#endif
+
 // QToolBar
 #if !defined(QT_NO_TOOLBAR) && (defined(QT_NO_MAINWINDOW))
 #define QT_NO_TOOLBAR
@@ -648,6 +728,11 @@
 // QUndoView
 #if !defined(QT_NO_UNDOVIEW) && (defined(QT_NO_UNDOSTACK) || defined(QT_NO_LISTVIEW))
 #define QT_NO_UNDOVIEW
+#endif
+
+// QGraphicsSvgItem
+#if !defined(QT_NO_GRAPHICSSVGITEM) && (defined(QT_NO_SVGRENDERER) || defined(QT_NO_GRAPHICSVIEW))
+#define QT_NO_GRAPHICSSVGITEM
 #endif
 
 // QComboBox
@@ -680,18 +765,23 @@
 #define QT_NO_FONTDIALOG
 #endif
 
-// QPrintDialog
-#if !defined(QT_NO_PRINTDIALOG) && (defined(QT_NO_PRINTER) || defined(QT_NO_COMBOBOX) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_SPINBOX) || defined(QT_NO_TREEVIEW) || defined(QT_NO_STACKEDWIDGET))
-#define QT_NO_PRINTDIALOG
-#endif
-
 // QWorkSpace
 #if !defined(QT_NO_WORKSPACE) && (defined(QT_NO_SCROLLBAR) || defined(QT_NO_RESIZEHANDLER) || defined(QT_NO_MENU) || defined(QT_NO_TOOLBUTTON) || defined(QT_NO_MAINWINDOW) || defined(QT_NO_TOOLBAR) || defined(QT_NO_MENUBAR))
 #define QT_NO_WORKSPACE
 #endif
 
+// QPrintDialog
+#if !defined(QT_NO_PRINTDIALOG) && (defined(QT_NO_PRINTER) || defined(QT_NO_COMBOBOX) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_SPINBOX) || defined(QT_NO_TREEVIEW) || defined(QT_NO_STACKEDWIDGET) || defined(QT_NO_TABWIDGET))
+#define QT_NO_PRINTDIALOG
+#endif
+
 // QFileDialog
-#if !defined(QT_NO_FILEDIALOG) && (defined(QT_NO_DIRMODEL) || defined(QT_NO_TREEVIEW) || defined(QT_NO_COMBOBOX) || defined(QT_NO_TOOLBUTTON) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_TOOLTIP) || defined(QT_NO_SPLITTER) || defined(QT_NO_STACKEDWIDGET) || defined(QT_NO_FILESYSTEMWATCHER))
+#if !defined(QT_NO_FILEDIALOG) && (defined(QT_NO_DIRMODEL) || defined(QT_NO_TREEVIEW) || defined(QT_NO_COMBOBOX) || defined(QT_NO_TOOLBUTTON) || defined(QT_NO_BUTTONGROUP) || defined(QT_NO_TOOLTIP) || defined(QT_NO_SPLITTER) || defined(QT_NO_STACKEDWIDGET) || defined(QT_NO_FILESYSTEMMODEL))
 #define QT_NO_FILEDIALOG
+#endif
+
+// QPrintPreviewDialog
+#if !defined(QT_NO_PRINTPREVIEWDIALOG) && (defined(QT_NO_PRINTPREVIEWWIDGET) || defined(QT_NO_PRINTDIALOG))
+#define QT_NO_PRINTPREVIEWDIALOG
 #endif
 

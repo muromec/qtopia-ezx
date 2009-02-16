@@ -9,15 +9,15 @@
 </phrase>
 <phrase>
     <source>Accelerator</source>
-    <target>Klawisz szybkiego dostÄpu</target>
+    <target>Klawisz szybkiego dostępu</target>
 </phrase>
 <phrase>
     <source>Alloc</source>
-    <target>PrzydzieliÄ</target>
+    <target>Przydzielić</target>
 </phrase>
 <phrase>
     <source>Appearance</source>
-    <target>WyglÄd</target>
+    <target>Wygląd</target>
 </phrase>
 <phrase>
     <source>at line</source>
@@ -25,7 +25,7 @@
 </phrase>
 <phrase>
     <source>Background</source>
-    <target>TÅo</target>
+    <target>Tło</target>
 </phrase>
 <phrase>
     <source>Batch</source>
@@ -37,23 +37,23 @@
 </phrase>
 <phrase>
     <source>Cannot create</source>
-    <target>Nie moÅ¼na utworzyÄ</target>
+    <target>Nie można utworzyć</target>
 </phrase>
 <phrase>
     <source>Cannot find</source>
-    <target>Nie moÅ¼na znaleÅÄ</target>
+    <target>Nie można znaleść</target>
 </phrase>
 <phrase>
     <source>Cannot read</source>
-    <target>Nie moÅ¼na odczytaÄ</target>
+    <target>Nie można odczytać</target>
 </phrase>
 <phrase>
     <source>Cannot save</source>
-    <target>Nie moÅ¼na zapisaÄ</target>
+    <target>Nie można zapisać</target>
 </phrase>
 <phrase>
     <source>Case sensitive</source>
-    <target>UwzglÄdniaj wielkoÅÄ liter</target>
+    <target>Uwzględniaj wielkość liter</target>
 </phrase>
 <phrase>
     <source>Child</source>
@@ -61,7 +61,7 @@
 </phrase>
 <phrase>
     <source>Collapse</source>
-    <target>ZwinÄÄ</target>
+    <target>Zwinąć</target>
 </phrase>
 <phrase>
     <source>ComboBox</source>
@@ -69,15 +69,15 @@
 </phrase>
 <phrase>
     <source>Conflicting</source>
-    <target>KolidujÄcy</target>
+    <target>Kolidujący</target>
 </phrase>
 <phrase>
     <source>Content</source>
-    <target>TreÅÄ</target>
+    <target>Treść</target>
 </phrase>
 <phrase>
     <source>Contents</source>
-    <target>TreÅÄ ZawartoÅÄ Spis treÅci</target>
+    <target>Treść Zawartość Spis treści</target>
 </phrase>
 <phrase>
     <source>Copy</source>
@@ -85,7 +85,7 @@
 </phrase>
 <phrase>
     <source>Custom</source>
-    <target>Niestandardowy, uÅ¼ytkownika</target>
+    <target>Niestandardowy, użytkownika</target>
 </phrase>
 <phrase>
     <source>Cut</source>
@@ -93,23 +93,23 @@
 </phrase>
 <phrase>
     <source>Declare</source>
-    <target>DeklarowaÄ</target>
+    <target>Deklarować</target>
 </phrase>
 <phrase>
     <source>Declared</source>
-    <target>ZadeklarowaÄ</target>
+    <target>Zadeklarować</target>
 </phrase>
 <phrase>
     <source>Delete</source>
-    <target>UsuÅ</target>
+    <target>Usuń</target>
 </phrase>
 <phrase>
     <source>Disable</source>
-    <target>WyÅÄcz, zablokuj</target>
+    <target>Wyłącz, zablokuj</target>
 </phrase>
 <phrase>
     <source>Display</source>
-    <target>PokaÅ¼, wyÅwietl</target>
+    <target>Pokaż, wyświetl</target>
 </phrase>
 <phrase>
     <source>Dock</source>
@@ -121,15 +121,15 @@
 </phrase>
 <phrase>
     <source>Down</source>
-    <target>W dÃ³Å</target>
+    <target>W dół</target>
 </phrase>
 <phrase>
     <source>Enable</source>
-    <target>WÅÄcz</target>
+    <target>Włącz</target>
 </phrase>
 <phrase>
     <source>Enabled</source>
-    <target>WÅÄczony</target>
+    <target>Włączony</target>
 </phrase>
 <phrase>
     <source>encoding name</source>
@@ -141,23 +141,23 @@
 </phrase>
 <phrase>
     <source>Exit</source>
-    <target>ZakoÅcz</target>
+    <target>Zakończ</target>
 </phrase>
 <phrase>
     <source>Expand</source>
-    <target>RozszerzyÄ</target>
+    <target>Rozszerzyć</target>
 </phrase>
 <phrase>
     <source>Fade</source>
-    <target>WyÅanianie</target>
+    <target>Wyłanianie</target>
 </phrase>
 <phrase>
     <source>Failed to open</source>
-    <target>Nie moÅ¼na otworzyÄ</target>
+    <target>Nie można otworzyć</target>
 </phrase>
 <phrase>
     <source>Feel</source>
-    <target>dziaÅanie</target>
+    <target>działanie</target>
 </phrase>
 <phrase>
     <source>File</source>
@@ -165,11 +165,11 @@
 </phrase>
 <phrase>
     <source>Find in text</source>
-    <target>ZnajdÅº w tekÅcie</target>
+    <target>Znajdź w tekście</target>
 </phrase>
 <phrase>
     <source>Find next</source>
-    <target>ZnajdÅº nastÄpne</target>
+    <target>Znajdź następne</target>
 </phrase>
 <phrase>
     <source>Focal</source>
@@ -189,16 +189,16 @@
 </phrase>
 <phrase>
     <source>full text search</source>
-    <target>szukanie w treÅci tesktu</target>
+    <target>szukanie w treści tesktu</target>
 </phrase>
 <phrase>
     <source>fulltext search</source>
-    <target>szukanie w treÅci tesktu</target>
+    <target>szukanie w treści tesktu</target>
 </phrase>
 <phrase>
     <source>Go</source>
-    <target>PrzejdÅº</target>
-    <definition>przy przeglÄdarkach</definition>
+    <target>Przejdź</target>
+    <definition>przy przeglądarkach</definition>
 </phrase>
 <phrase>
     <source>Help</source>
@@ -207,7 +207,7 @@
 <phrase>
     <source>Home</source>
     <target>Strona startowa</target>
-    <definition>przy przeglÄdarkach</definition>
+    <definition>przy przeglądarkach</definition>
 </phrase>
 <phrase>
     <source>Illegal</source>
@@ -219,7 +219,7 @@
 </phrase>
 <phrase>
     <source>Invoke</source>
-    <target>WywoÅaj</target>
+    <target>Wywołaj</target>
 </phrase>
 <phrase>
     <source>is missing</source>
@@ -235,25 +235,25 @@
 </phrase>
 <phrase>
     <source>Lay out</source>
-    <target>UÅÃ³Å¼</target>
+    <target>Ułóż</target>
 </phrase>
 <phrase>
     <source>layout</source>
-    <target>uÅoÅ¼enie</target>
+    <target>ułożenie</target>
 </phrase>
 <phrase>
     <source>Link</source>
-    <target>OdnoÅnik</target>
+    <target>Odnośnik</target>
     <definition>(w pliku HTML)</definition>
 </phrase>
 <phrase>
     <source>Link</source>
-    <target>DowiÄzanie</target>
+    <target>Dowiązanie</target>
     <definition>(lokalizacja)</definition>
 </phrase>
 <phrase>
     <source>literal</source>
-    <target>staÅa znakowa</target>
+    <target>stała znakowa</target>
 </phrase>
 <phrase>
     <source>Load</source>
@@ -261,7 +261,7 @@
 </phrase>
 <phrase>
     <source>Look and feel</source>
-    <target>WyglÄd i dziaÅanie</target>
+    <target>Wygląd i działanie</target>
 </phrase>
 <phrase>
     <source>Marker</source>
@@ -281,19 +281,19 @@
 </phrase>
 <phrase>
     <source>Mismatch</source>
-    <target>NiezgodnoÅÄ, niedopasowanie</target>
+    <target>Niezgodność, niedopasowanie</target>
 </phrase>
 <phrase>
     <source>Namespace</source>
-    <target>PrzesteÅ nazw</target>
+    <target>Przesteń nazw</target>
 </phrase>
 <phrase>
     <source>Occure</source>
-    <target>WystÄpiÄ</target>
+    <target>Wystąpić</target>
 </phrase>
 <phrase>
     <source>Occured</source>
-    <target>WystÄpiÅ, pojawiÅ siÄ</target>
+    <target>Wystąpił, pojawił się</target>
 </phrase>
 <phrase>
     <source>Off The Spot</source>
@@ -303,7 +303,7 @@
 <phrase>
     <source>On The Spot</source>
     <target>W oknie dokumentu</target>
-    <definition>Metoda wprowadzania znakÃ³w - bezposrednio w oknie</definition>
+    <definition>Metoda wprowadzania znaków - bezposrednio w oknie</definition>
 </phrase>
 <phrase>
     <source>Open Source Edition</source>
@@ -312,15 +312,15 @@
 <phrase>
     <source>Over The Spot</source>
     <target>Nad oknem dokumentu</target>
-    <definition>Zmiany sÄ wprowadzane z wyÅ¼szej warstwie i renderowane pÃ³Åºniej</definition>
+    <definition>Zmiany są wprowadzane z wyższej warstwie i renderowane później</definition>
 </phrase>
 <phrase>
     <source>Pad</source>
-    <target>DopeÅniÄ, Podstawka, DopeÅnienie</target>
+    <target>Dopełnić, Podstawka, Dopełnienie</target>
 </phrase>
 <phrase>
     <source>Parse</source>
-    <target>PrzetwarzaÄ</target>
+    <target>Przetwarzać</target>
 </phrase>
 <phrase>
     <source>Parsing</source>
@@ -336,7 +336,7 @@
 </phrase>
 <phrase>
     <source>Phrase</source>
-    <target>WyraÅ¼enie, fraza</target>
+    <target>Wyrażenie, fraza</target>
 </phrase>
 <phrase>
     <source>Place</source>
@@ -344,11 +344,11 @@
 </phrase>
 <phrase>
     <source>Preference</source>
-    <target>WyrÃ³Å¼nienie</target>
+    <target>Wyróżnienie</target>
 </phrase>
 <phrase>
     <source>Preferences</source>
-    <target>WyrÃ³Å¼nienia</target>
+    <target>Wyróżnienia</target>
 </phrase>
 <phrase>
     <source>Premature</source>
@@ -360,32 +360,32 @@
 </phrase>
 <phrase>
     <source>Properties</source>
-    <target>WÅaÅciwoÅci</target>
+    <target>Właściwości</target>
 </phrase>
 <phrase>
     <source>Property</source>
-    <target>WÅaÅciwoÅÄ</target>
+    <target>Właściwość</target>
 </phrase>
 <phrase>
     <source>Quotation mark</source>
-    <target>Znak cudzysÅowu</target>
+    <target>Znak cudzysłowu</target>
 </phrase>
 <phrase>
     <source>Reference</source>
-    <target>OdwoÅanie</target>
+    <target>Odwołanie</target>
 </phrase>
 <phrase>
     <source>Refresh</source>
-    <target>OdÅwieÅ¼</target>
+    <target>Odśwież</target>
 </phrase>
 <phrase>
     <source>Render</source>
     <target>Renderuj</target>
-    <definition>odnosi siÄ jedynie do grafiki</definition>
+    <definition>odnosi się jedynie do grafiki</definition>
 </phrase>
 <phrase>
     <source>Reset</source>
-    <target>PrzywrÃ³c ustawienia</target>
+    <target>Przywróc ustawienia</target>
 </phrase>
 <phrase>
     <source>Root</source>
@@ -398,15 +398,15 @@
 </phrase>
 <phrase>
     <source>search word</source>
-    <target>wyraÅ¼enie do szukania</target>
+    <target>wyrażenie do szukania</target>
 </phrase>
 <phrase>
     <source>Search wrapped</source>
-    <target>Szukanie od poczÄtku</target>
+    <target>Szukanie od początku</target>
 </phrase>
 <phrase>
     <source>searchword</source>
-    <target>wyraÅ¼enie do szukania</target>
+    <target>wyrażenie do szukania</target>
 </phrase>
 <phrase>
     <source>Select All</source>
@@ -414,7 +414,7 @@
 </phrase>
 <phrase>
     <source>Sequence</source>
-    <target>CiÄg</target>
+    <target>Ciąg</target>
 </phrase>
 <phrase>
     <source>Sidebar</source>
@@ -434,7 +434,7 @@
 </phrase>
 <phrase>
     <source>Specified</source>
-    <target>OkreÅlony</target>
+    <target>Określony</target>
 </phrase>
 <phrase>
     <source>Status</source>
@@ -454,51 +454,51 @@
 </phrase>
 <phrase>
     <source>superfluous</source>
-    <target>przypadkowe, niecelowe, zbÄdny</target>
+    <target>przypadkowe, niecelowe, zbędny</target>
 </phrase>
 <phrase>
     <source>Support</source>
-    <target>ObsÅuga</target>
+    <target>Obsługa</target>
 </phrase>
 <phrase>
     <source>supported</source>
-    <target>obsÅugiwany</target>
+    <target>obsługiwany</target>
 </phrase>
 <phrase>
     <source>This program is licensed</source>
-    <target>Ten program wydany jest na licencji Qt Commercial. Aby sprawdziÄ szczegÃ³Åy licencji, proszÄ sprawdziÄ plik LICENSE, ktÃ³ry doÅÄczany jest do pakietu Qt.</target>
+    <target>Ten program wydany jest na licencji Qt Commercial. Aby sprawdzić szczegóły licencji, proszę sprawdzić plik LICENSE, który dołączany jest do pakietu Qt.</target>
 </phrase>
 <phrase>
     <source>This version of</source>
-    <target>Ta wersja Qt Assistant jest czÄÅciÄ wydania Qt Open Source, przeznaczonego dla tworzenia i publikowania aplikacji Open Source. Qt jest zaawansowanym zestawem bibliotek wykorzystywanym do pisania aplikacji cross-platformowych.</target>
+    <target>Ta wersja Qt Assistant jest częścią wydania Qt Open Source, przeznaczonego dla tworzenia i publikowania aplikacji Open Source. Qt jest zaawansowanym zestawem bibliotek wykorzystywanym do pisania aplikacji cross-platformowych.</target>
 </phrase>
 <phrase>
     <source>to display</source>
-    <target>pokazywaÄ, wyÅwietlaÄ</target>
+    <target>pokazywać, wyświetlać</target>
 </phrase>
 <phrase>
     <source>Tool tips</source>
-    <target>Etykietki narzÄdzi</target>
+    <target>Etykietki narzędzi</target>
 </phrase>
 <phrase>
     <source>Toolbox</source>
-    <target>NarzÄdzie</target>
+    <target>Narzędzie</target>
 </phrase>
 <phrase>
     <source>ToolTips</source>
-    <target>Etykietki narzÄdzi</target>
+    <target>Etykietki narzędzi</target>
 </phrase>
 <phrase>
     <source>Tune</source>
-    <target>UstawiÄ</target>
+    <target>Ustawić</target>
 </phrase>
 <phrase>
     <source>unsupported</source>
-    <target>nieobsÅugiwany</target>
+    <target>nieobsługiwany</target>
 </phrase>
 <phrase>
     <source>Up</source>
-    <target>W gÃ³rÄ</target>
+    <target>W górę</target>
 </phrase>
 <phrase>
     <source>Update</source>
@@ -506,7 +506,7 @@
 </phrase>
 <phrase>
     <source>Value</source>
-    <target>WartoÅÄ</target>
+    <target>Wartość</target>
 </phrase>
 <phrase>
     <source>Widget</source>
@@ -514,4 +514,14 @@
 </phrase>
 <phrase>
     <source>You need a commercial</source>
-    <target>Aby mÃ³c sprzedawaÄ aplikacjÄ utworzone przy pomocy Qt potrzebujesz wersji komercyjnej. ProszÄ sprawdziÄ &lt;a href=&quot;http://www.trolltech.com/company/model.html&quot
+    <target>Aby móc sprzedawać aplikację utworzone przy pomocy Qt potrzebujesz wersji komercyjnej. Proszę sprawdzić &lt;a href=&quot;http://www.trolltech.com/company/model.html&quot;&gt;www.trolltech.com/company/model.html&lt;/a&gt; dla poznania sposobu licencjonowania Qt.</target>
+</phrase>
+<phrase>
+    <source>Zoom in</source>
+    <target>Zwiększ</target>
+</phrase>
+<phrase>
+    <source>Zoom out</source>
+    <target>Zmniejsz</target>
+</phrase>
+</QPH>

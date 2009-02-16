@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,11 +51,12 @@
 
 #include "shared_global_p.h"
 
-#include <QtCore/QList>
+QT_BEGIN_NAMESPACE
 
 class QWidget;
 class QLayout;
 class QDesignerFormEditorInterface;
+class QFormLayout;
 
 namespace qdesigner_internal {
 
@@ -70,37 +65,35 @@ class QDESIGNER_SHARED_EXPORT LayoutInfo
 public:
     enum Type
     {
+        NoLayout,
+        HSplitter,
+        VSplitter,
         HBox,
         VBox,
         Grid,
-        Stacked,
-        NoLayout
+        Form,
+        UnknownLayout // QDockWindow inside QMainWindow is inside QMainWindowLayout - it doesn't mean there is no layout
     };
 
-    static void deleteLayout(QDesignerFormEditorInterface *core, QWidget *widget);
-    static Type layoutType(QDesignerFormEditorInterface *core, QWidget *w, QLayout *&layout);
-    static Type layoutType(QDesignerFormEditorInterface *core, QLayout *layout);
-    static Type layoutType(QDesignerFormEditorInterface *core, QWidget *w);
-    static QWidget *layoutParent(QDesignerFormEditorInterface *core, QLayout *layout);
-    static bool isWidgetLaidout(QDesignerFormEditorInterface *core, QWidget *widget);
+    static void deleteLayout(const QDesignerFormEditorInterface *core, QWidget *widget);
 
-    static QLayout *managedLayout(QDesignerFormEditorInterface *core, QWidget *widget);
-    static QLayout *managedLayout(QDesignerFormEditorInterface *core, QLayout *layout);
-    static QLayout *internalLayout(QWidget *widget);
+    static Type layoutType(const QDesignerFormEditorInterface *core, const QWidget *w);
+    static Type layoutType(const QDesignerFormEditorInterface *core, const QLayout *layout);
+    static Type layoutType(const QString &typeName);
 
-    class Interval
-    {
-    public:
-        int v1, v2;
-        inline Interval(int _v1 = 0, int _v2 = 0)
-            : v1(_v1), v2(_v2) {}
-        bool operator < (const Interval &other) const
-            { return v1 < other.v1; }
-    };
-    typedef QList<Interval> IntervalList;
-    static void cells(QLayout *layout, IntervalList *rows, IntervalList *columns);
+    static QWidget *layoutParent(const QDesignerFormEditorInterface *core, QLayout *layout);
+
+    static Type laidoutWidgetType(const QDesignerFormEditorInterface *core, QWidget *widget, bool *isManaged = 0);
+    static bool inline isWidgetLaidout(const QDesignerFormEditorInterface *core, QWidget *widget) { return laidoutWidgetType(core, widget) != NoLayout; }
+
+    static QLayout *managedLayout(const QDesignerFormEditorInterface *core, const QWidget *widget);
+    static QLayout *managedLayout(const QDesignerFormEditorInterface *core, QLayout *layout);
+    static QLayout *internalLayout(const QWidget *widget);
 };
 
+QDESIGNER_SHARED_EXPORT void getFormLayoutItemPosition(const QFormLayout *formLayout, int index, int *rowPtr, int *columnPtr = 0, int *rowspanPtr = 0, int *colspanPtr = 0);
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE
 
 #endif // LAYOUTINFO_H

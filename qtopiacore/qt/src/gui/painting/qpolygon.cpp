@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,8 @@
 #include "qbezier_p.h"
 
 #include <stdarg.h>
+
+QT_BEGIN_NAMESPACE
 
 //same as qt_painterpath_isect_line in qpainterpath.cpp
 static void qt_polygon_isect_line(const QPointF &p1, const QPointF &p2, const QPointF &pos,
@@ -98,10 +94,7 @@ static void qt_polygon_isect_line(const QPointF &p1, const QPointF &p2, const QP
     points to a QPolygon is to use QVector's streaming operator, as
     illustrated below:
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto STREAM
-    \skipto QPolygon
-    \printuntil QPoint
+    \snippet doc/src/snippets/polygon/polygon.cpp 0
 
     In addition to the functions provided by QVector, QPolygon
     provides some point-specific functions.
@@ -278,10 +271,7 @@ void QPolygon::point(int index, int *x, int *y) const
     The example code creates a polygon with two points (10, 20) and
     (30, 40):
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto SETPOINTS
-    \skipto static
-    \printuntil setPoints
+    \snippet doc/src/snippets/polygon/polygon.cpp 2
 
     \sa setPoint() putPoints()
 */
@@ -307,10 +297,7 @@ void QPolygon::setPoints(int nPoints, const int *points)
     The example code creates a polygon with two points (10, 20) and
     (30, 40):
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto SETPOINTS2
-    \skipto QPolygon
-    \printuntil setPoints
+    \snippet doc/src/snippets/polygon/polygon.cpp 3
 */
 
 void QPolygon::setPoints(int nPoints, int firstx, int firsty, ...)
@@ -361,18 +348,12 @@ void QPolygon::putPoints(int index, int nPoints, const int *points)
     The example code creates a polygon with three points (4,5), (6,7)
     and (8,9), by expanding the polygon from 1 to 3 points:
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto PUTPOINTS
-    \skipto QPolygon
-    \printuntil putPoints
+    \snippet doc/src/snippets/polygon/polygon.cpp 4
 
     The following code has the same result, but here the putPoints()
     function overwrites rather than extends:
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto PUTPOINTS2
-    \skipto QPolygon
-    \printuntil putPoints(1, 1
+    \snippet doc/src/snippets/polygon/polygon.cpp 5
 
     \sa setPoints()
 */
@@ -404,10 +385,7 @@ void QPolygon::putPoints(int index, int nPoints, int firstx, int firsty, ...)
     default) in \a fromPolygon into this polygon, starting at the
     specified \a index. For example:
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto PUTPOINTS3
-    \skipto QPolygon
-    \printto }
+    \snippet doc/src/snippets/polygon/polygon.cpp 6
 */
 
 void QPolygon::putPoints(int index, int nPoints, const QPolygon & from, int fromIndex)
@@ -485,10 +463,7 @@ QDebug operator<<(QDebug dbg, const QPolygon &a)
     to a QPolygonF is to use its streaming operator, as illustrated
     below:
 
-    \quotefromfile snippets/polygon/polygon.cpp
-    \skipto STREAMF
-    \skipto QPolygonF
-    \printuntil QPointF
+    \snippet doc/src/snippets/polygon/polygon.cpp 1
 
     In addition to the functions provided by QVector, QPolygonF
     provides the boundingRect() and translate() functions for geometry
@@ -668,6 +643,43 @@ QPolygon::operator QVariant() const
 {
     return QVariant(QVariant::Polygon, this);
 }
+
+/*****************************************************************************
+  QPolygon stream functions
+ *****************************************************************************/
+#ifndef QT_NO_DATASTREAM
+/*!
+    \fn QDataStream &operator<<(QDataStream &stream, const QPolygon &polygon)
+    \since 4.4
+    \relates QPolygon
+
+    Writes the given \a polygon to the given \a stream, and returns a
+    reference to the stream.
+
+    \sa {Format of the QDataStream Operators}
+*/
+QDataStream &operator<<(QDataStream &s, const QPolygon &a)
+{
+    const QVector<QPoint> &v = a;
+    return s << v;
+}
+
+/*!
+    \fn QDataStream &operator>>(QDataStream &stream, QPolygon &polygon)
+    \since 4.4
+    \relates QPolygon
+
+    Reads a polygon from the given \a stream into the given \a
+    polygon, and returns a reference to the stream.
+
+    \sa {Format of the QDataStream Operators}
+*/
+QDataStream &operator>>(QDataStream &s, QPolygon &a)
+{
+    QVector<QPoint> &v = a;
+    return s >> v;
+}
+#endif
 
 /*****************************************************************************
   QPolygonF stream functions
@@ -885,6 +897,7 @@ QPolygonF QPolygonF::subtracted(const QPolygonF &r) const
 {
     QPainterPath subject; subject.addPolygon(*this);
     QPainterPath clip; clip.addPolygon(r);
-
     return subject.subtracted(clip).toFillPolygon();
 }
+
+QT_END_NAMESPACE

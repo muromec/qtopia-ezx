@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,18 +39,25 @@
 #define QMDIAREA_CONTAINER_H
 
 #include <QtDesigner/QDesignerContainerExtension>
-#include <QtDesigner/QExtensionFactory>
 
-class QMdiArea;
+
+#include <qdesigner_propertysheet_p.h>
+#include <extensionfactory_p.h>
+
+#include <QtGui/QMdiArea>
+#include <QtGui/QWorkspace>
+
+QT_BEGIN_NAMESPACE
 
 namespace qdesigner_internal {
 
+// Container for QMdiArea
 class QMdiAreaContainer: public QObject, public QDesignerContainerExtension
 {
     Q_OBJECT
     Q_INTERFACES(QDesignerContainerExtension)
 public:
-    QMdiAreaContainer(QMdiArea *widget, QObject *parent = 0);
+    explicit QMdiAreaContainer(QMdiArea *widget, QObject *parent = 0);
 
     virtual int count() const;
     virtual QWidget *widget(int index) const;
@@ -66,20 +67,49 @@ public:
     virtual void insertWidget(int index, QWidget *widget);
     virtual void remove(int index);
 
+    // Semismart positioning of a new MDI child after cascading
+    static void positionNewMdiChild(const QWidget *area, QWidget *mdiChild);
+
 private:
     QMdiArea *m_mdiArea;
 };
 
-class QMdiAreaContainerFactory: public QExtensionFactory
+// PropertySheet for QMdiArea: Fakes window title and name.
+// Also works for a QWorkspace as it relies on the container extension.
+
+class QMdiAreaPropertySheet: public QDesignerPropertySheet
 {
     Q_OBJECT
+    Q_INTERFACES(QDesignerPropertySheetExtension)
 public:
-    QMdiAreaContainerFactory(QExtensionManager *parent = 0);
+    explicit QMdiAreaPropertySheet(QWidget *mdiArea, QObject *parent = 0);
 
-protected:
-    virtual QObject *createExtension(QObject *object, const QString &iid, QObject *parent) const;
+    virtual void setProperty(int index, const QVariant &value);
+    virtual bool reset(int index);
+    virtual bool isEnabled(int index) const;
+    virtual bool isChanged(int index) const;
+    virtual QVariant property(int index) const;
+
+    // Check whether the property is to be saved. Returns false for the page
+    // properties (as the property sheet has no concept of 'stored')
+    static bool checkProperty(const QString &propertyName);
+
+private:
+    const QString m_windowTitleProperty;
+    QWidget *currentWindow() const;
+    QDesignerPropertySheetExtension *currentWindowSheet() const;
+
+    enum MdiAreaProperty { MdiAreaSubWindowName, MdiAreaSubWindowTitle, MdiAreaNone };
+    static MdiAreaProperty mdiAreaProperty(const QString &name);
 };
 
+// Factories
+
+typedef ExtensionFactory<QDesignerContainerExtension,  QMdiArea,  QMdiAreaContainer> QMdiAreaContainerFactory;
+typedef QDesignerPropertySheetFactory<QMdiArea, QMdiAreaPropertySheet> QMdiAreaPropertySheetFactory;
+typedef QDesignerPropertySheetFactory<QWorkspace, QMdiAreaPropertySheet> QWorkspacePropertySheetFactory;
 }  // namespace qdesigner_internal
+
+QT_END_NAMESPACE
 
 #endif // QMDIAREA_CONTAINER_H

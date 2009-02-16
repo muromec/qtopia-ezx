@@ -1,51 +1,45 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
-
 
 #include <qglobal.h>
 
 #include "qpixmap.h"
-#include "qpixmap_p.h"
+#include "qpixmapdata_p.h"
+#include "qpixmapdatafactory_p.h"
 
 #include "qbitmap.h"
 #include "qimage.h"
@@ -63,15 +57,22 @@
 #include "qimagereader.h"
 #include "qimagewriter.h"
 #include "qpaintengine.h"
+#include "qthread.h"
 
 #ifdef Q_WS_MAC
 # include "private/qt_mac_p.h"
+# include "private/qpixmap_mac_p.h"
 #endif
 
 #if defined(Q_WS_X11)
 # include "qx11info_x11.h"
 # include <private/qt_x11_p.h>
+# include <private/qpixmap_x11_p.h>
 #endif
+
+#include "qpixmap_raster_p.h"
+
+QT_BEGIN_NAMESPACE
 
 // ### Qt 5: remove
 typedef void (*_qt_pixmap_cleanup_hook)(int);
@@ -85,6 +86,32 @@ Q_GUI_EXPORT _qt_pixmap_cleanup_hook_64 qt_pixmap_cleanup_hook_64 = 0;
 Q_GUI_EXPORT qint64 qt_pixmap_id(const QPixmap &pixmap)
 {
     return pixmap.cacheKey();
+}
+
+static bool qt_pixmap_thread_test()
+{
+    if (!qApp) {
+        qFatal("QPixmap: Must construct a QApplication before a QPaintDevice");
+        return false;
+    }
+    if (qApp->thread() != QThread::currentThread()) {
+        qWarning("QPixmap: It is not safe to use pixmaps outside the GUI thread");
+        return false;
+    }
+    return true;
+}
+
+void QPixmap::init(int w, int h, Type type)
+{
+    init(w, h, int(type));
+}
+
+void QPixmap::init(int w, int h, int type)
+{
+    QPixmapDataFactory *f = QPixmapDataFactory::instance();
+    data = f->create(static_cast<QPixmapData::PixelType>(type));
+    data->resize(w, h);
+    data->ref.ref();
 }
 
 /*!
@@ -112,16 +139,20 @@ Q_GUI_EXPORT qint64 qt_pixmap_id(const QPixmap &pixmap)
 QPixmap::QPixmap()
     : QPaintDevice()
 {
-    init(0, 0);
+    (void) qt_pixmap_thread_test();
+    init(0, 0, QPixmapData::PixmapType);
 }
 
 /*!
     \fn QPixmap::QPixmap(int width, int height)
 
-    Constructs a pixmap with the given \a width and \a height.
+    Constructs a pixmap with the given \a width and \a height. If
+    either \a width or \a height is zero, a null pixmap is
+    constructed.
 
-    The content of the pixmap is uninitialized.  If either \a width or
-    \a height is zero, a null pixmap is constructed.
+    \warning This will create a QPixmap with uninitialized data. Call
+    fill() to fill the pixmap with an appropriate color before drawing
+    onto it with QPainter.
 
     \sa isNull()
 */
@@ -129,19 +160,29 @@ QPixmap::QPixmap()
 QPixmap::QPixmap(int w, int h)
     : QPaintDevice()
 {
-    init(w, h);
+    if (!qt_pixmap_thread_test())
+        init(0, 0, QPixmapData::PixmapType);
+    else
+        init(w, h, QPixmapData::PixmapType);
 }
 
 /*!
     \overload
 
     Constructs a pixmap of the given \a size.
+
+    \warning This will create a QPixmap with uninitialized data. Call
+    fill() to fill the pixmap with an appropriate color before drawing
+    onto it with QPainter.
 */
 
 QPixmap::QPixmap(const QSize &size)
     : QPaintDevice()
 {
-    init(size.width(), size.height());
+    if (!qt_pixmap_thread_test())
+        init(0, 0, QPixmapData::PixmapType);
+    else
+        init(size.width(), size.height(), QPixmapData::PixmapType);
 }
 
 /*!
@@ -149,7 +190,30 @@ QPixmap::QPixmap(const QSize &size)
 */
 QPixmap::QPixmap(const QSize &s, Type type)
 {
-    init(s.width(), s.height(), type);
+    if (!qt_pixmap_thread_test())
+        init(0, 0, type);
+    else
+        init(s.width(), s.height(), type);
+}
+
+/*!
+  \internal
+*/
+QPixmap::QPixmap(const QSize &s, int type)
+{
+    if (!qt_pixmap_thread_test())
+        init(0, 0, static_cast<QPixmapData::PixelType>(type));
+    else
+        init(s.width(), s.height(), static_cast<QPixmapData::PixelType>(type));
+}
+
+/*!
+    \internal
+*/
+QPixmap::QPixmap(QPixmapData *d)
+    : QPaintDevice(), data(d)
+{
+    data->ref.ref();
 }
 
 /*!
@@ -184,7 +248,10 @@ QPixmap::QPixmap(const QSize &s, Type type)
 QPixmap::QPixmap(const QString& fileName, const char *format, Qt::ImageConversionFlags flags)
     : QPaintDevice()
 {
-    init(0, 0);
+    init(0, 0, QPixmapData::PixmapType);
+    if (!qt_pixmap_thread_test())
+        return;
+
     load(fileName, format, flags);
 }
 
@@ -197,12 +264,16 @@ QPixmap::QPixmap(const QString& fileName, const char *format, Qt::ImageConversio
 QPixmap::QPixmap(const QPixmap &pixmap)
     : QPaintDevice()
 {
+    if (!qt_pixmap_thread_test()) {
+        init(0, 0, QPixmapData::PixmapType);
+        return;
+    }
     if (pixmap.paintingActive()) {                // make a deep copy
         data = 0;
         operator=(pixmap.copy());
     } else {
         data = pixmap.data;
-        data->ref();
+        data->ref.ref();
     }
 }
 
@@ -215,34 +286,29 @@ QPixmap::QPixmap(const QPixmap &pixmap)
     Note that it's possible to squeeze the XPM variable a little bit
     by using an unusual declaration:
 
-    \code
-        static const char * const start_xpm[]={
-            "16 15 8 1",
-            "a c #cec6bd",
-        ....
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qpixmap.cpp 0
 
     The extra \c const makes the entire definition read-only, which is
     slightly more efficient (for example, when the code is in a shared
     library) and ROMable when the application is to be stored in ROM.
 */
-
+#ifndef QT_NO_IMAGEFORMAT_XPM
 QPixmap::QPixmap(const char * const xpm[])
     : QPaintDevice()
 {
-    init(0, 0);
+    init(0, 0, QPixmapData::PixmapType);
     if (!xpm)
         return;
 
     QImage image(xpm);
     if (!image.isNull()) {
-        if (data->type == BitmapType)
-            *this =  QBitmap::fromImage(image);
+        if (data->pixelType() == QPixmapData::BitmapType)
+            *this = QBitmap::fromImage(image);
         else
             *this = fromImage(image);
     }
 }
-
+#endif
 
 
 /*!
@@ -282,18 +348,17 @@ int QPixmap::devType() const
     \sa operator=(), QPixmap(), {QPixmap#Pixmap
     Transformations}{Pixmap Transformations}
 */
-
-#if defined(Q_WS_WIN) || defined(Q_WS_QWS)
 QPixmap QPixmap::copy(const QRect &rect) const
 {
-    QPixmap pm;
-    if (data->type == BitmapType)
-        pm = QBitmap::fromImage(toImage().copy(rect));
-    else
-        pm = fromImage(toImage().copy(rect));
-    return pm;
+    if (isNull())
+        return QPixmap();
+
+    const QRect r = rect.isEmpty() ? QRect(0, 0, width(), height()) : rect;
+    QPixmapDataFactory *f = QPixmapDataFactory::instance();
+    QPixmapData *d = f->create(data->pixelType());
+    d->copy(data, r);
+    return QPixmap(d);
 }
-#endif
 
 /*!
     Assigns the given \a pixmap to this pixmap and returns a reference
@@ -311,7 +376,7 @@ QPixmap &QPixmap::operator=(const QPixmap &pixmap)
     if (pixmap.paintingActive()) {                // make a deep copy
         *this = pixmap.copy();
     } else {
-        pixmap.data->ref();                                // avoid 'x = x'
+        pixmap.data->ref.ref();                                // avoid 'x = x'
         deref();
         data = pixmap.data;
     }
@@ -341,6 +406,28 @@ QPixmap::operator QVariant() const
 
     Use the toImage() function instead.
 */
+
+/*!
+    Converts the pixmap to a QImage. Returns a null image if the
+    conversion fails.
+
+    If the pixmap has 1-bit depth, the returned image will also be 1
+    bit deep. If the pixmap has 2- to 8-bit depth, the returned image
+    has 8-bit depth. If the pixmap has greater than 8-bit depth, the
+    returned image has 32-bit depth.
+
+    Note that for the moment, alpha masks on monochrome images are
+    ignored.
+
+    \sa fromImage(), {QImage#Image Formats}{Image Formats}
+*/
+QImage QPixmap::toImage() const
+{
+    if (isNull())
+        return QImage();
+
+    return data->toImage();
+}
 
 /*!
     \fn QMatrix QPixmap::trueMatrix(const QTransform &matrix, int width, int height)
@@ -392,7 +479,7 @@ QMatrix QPixmap::trueMatrix(const QMatrix &m, int w, int h)
 */
 bool QPixmap::isNull() const
 {
-    return data->w == 0;
+    return data->width() == 0;
 }
 
 /*!
@@ -404,7 +491,7 @@ bool QPixmap::isNull() const
 */
 int QPixmap::width() const
 {
-    return data->w;
+    return data->width();
 }
 
 /*!
@@ -416,7 +503,7 @@ int QPixmap::width() const
 */
 int QPixmap::height() const
 {
-    return data->h;
+    return data->height();
 }
 
 /*!
@@ -429,7 +516,7 @@ int QPixmap::height() const
 */
 QSize QPixmap::size() const
 {
-    return QSize(data->w,data->h);
+    return QSize(data->width(), data->height());
 }
 
 /*!
@@ -441,7 +528,7 @@ QSize QPixmap::size() const
 */
 QRect QPixmap::rect() const
 {
-    return QRect(0,0,data->w,data->h);
+    return QRect(0, 0, data->width(), data->height());
 }
 
 /*!
@@ -457,7 +544,7 @@ QRect QPixmap::rect() const
 */
 int QPixmap::depth() const
 {
-    return data->d;
+    return data->depth();
 }
 
 /*!
@@ -483,35 +570,41 @@ void QPixmap::resize_helper(const QSize &s)
         return;
     }
 
-    int d = data->d;
+    if (size() == s)
+        return;
+
     // Create new pixmap
-    QPixmap pm(QSize(w, h), d == 1 ? BitmapType : PixmapType);
-#ifdef Q_WS_X11
-    pm.x11SetScreen(data->xinfo.screen());
-#endif // Q_WS_X11
-    if (!data->uninit && !isNull()) {                // has existing pixmap
+    QPixmap pm(QSize(w, h), data->type);
+    bool uninit = false;
+#if defined(Q_WS_X11)
+    QX11PixmapData *x11Data = static_cast<QX11PixmapData*>(data);
+    pm.x11SetScreen(x11Data->xinfo.screen());
+    uninit = x11Data->uninit;
+#elif defined(Q_WS_MAC)
+    QMacPixmapData *macData = static_cast<QMacPixmapData*>(data);
+    uninit = macData->uninit;
+#endif
+    if (!uninit && !isNull()) {
         // Copy old pixmap
         QPainter p(&pm);
         p.drawPixmap(0, 0, *this, 0, 0, qMin(width(), w), qMin(height(), h));
     }
+
 #if defined(Q_WS_MAC)
 #ifndef QT_MAC_NO_QUICKDRAW
-    if(data->qd_alpha)
-        data->macQDUpdateAlpha();
+    if(macData->qd_alpha)
+        macData->macQDUpdateAlpha();
 #endif
 #elif defined(Q_WS_X11)
-    if (data->x11_mask) {
-        pm.data->x11_mask = (Qt::HANDLE)XCreatePixmap(X11->display, RootWindow(data->xinfo.display(), data->xinfo.screen()),
+    if (x11Data->x11_mask) {
+        QX11PixmapData *pmData = static_cast<QX11PixmapData*>(pm.data);
+        pmData->x11_mask = (Qt::HANDLE)XCreatePixmap(X11->display,
+                                                     RootWindow(x11Data->xinfo.display(),
+                                                                x11Data->xinfo.screen()),
                                                       w, h, 1);
-        GC gc = XCreateGC(X11->display, pm.data->x11_mask, 0, 0);
-        XCopyArea(X11->display, data->x11_mask, pm.data->x11_mask, gc, 0, 0, qMin(width(), w), qMin(height(), h), 0, 0);
+        GC gc = XCreateGC(X11->display, pmData->x11_mask, 0, 0);
+        XCopyArea(X11->display, x11Data->x11_mask, pmData->x11_mask, gc, 0, 0, qMin(width(), w), qMin(height(), h), 0, 0);
         XFreeGC(X11->display, gc);
-    }
-#else
-    if (data->mask) {
-        QBitmap m = *data->mask;
-        m.resize(w, h);
-        pm.setMask(m);
     }
 #endif
     *this = pm;
@@ -542,6 +635,49 @@ void QPixmap::resize_helper(const QSize &s)
     masking doesn't exists anymore.
 */
 
+/*!
+    Sets a mask bitmap.
+
+    The \a mask bitmap defines the clip mask for this pixmap. Every
+    pixel in \a mask corresponds to a pixel in this pixmap. Pixel
+    value 1 means opaque and pixel value 0 means transparent. The mask
+    must have the same size as this pixmap.
+
+    \warning Setting the mask on a pixmap will cause any alpha channel
+    data to be cleared. For example:
+    \quotefromfile snippets/image/image.cpp
+    \skipto MASK
+    \skipto QPixmap
+    \printuntil setMask
+    Now, alpha and alphacopy are visually different.
+
+    Setting a null mask resets the mask.
+
+    The effect of this function is undefined when the pixmap is being
+    painted on.
+
+    \sa mask(), {QPixmap#Pixmap Transformations}{Pixmap
+    Transformations}, QBitmap
+*/
+void QPixmap::setMask(const QBitmap &mask)
+{
+    if (paintingActive()) {
+        qWarning("QPixmap::setMask: Cannot set mask while pixmap is being painted on");
+        return;
+    }
+
+    if (!mask.isNull() && mask.size() != size()) {
+        qWarning("QPixmap::setMask() mask size differs from pixmap size");
+        return;
+    }
+
+    if (static_cast<const QPixmap &>(mask).data == data) // trying to selfmask
+       return;
+
+    detach();
+    data->setMask(mask);
+}
+
 #ifndef QT_NO_IMAGE_HEURISTIC_MASK
 /*!
     Creates and returns a heuristic mask for this pixmap.
@@ -555,10 +691,7 @@ void QPixmap::resize_helper(const QSize &s)
     The mask may not be perfect but it should be reasonable, so you
     can do things such as the following:
 
-    \code
-        QPixmap myPixmap;
-        myPixmap->setMask(myPixmap->createHeuristicMask());
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qpixmap.cpp 1
 
     This function is slow because it involves converting to/from a
     QImage, and non-trivial computations.
@@ -635,16 +768,17 @@ bool QPixmap::load(const QString &fileName, const char *format, Qt::ImageConvers
         return false;
 
     QFileInfo info(fileName);
-    QString key = QLatin1String("qt_pixmap_") + info.absoluteFilePath() + QLatin1Char('_') + info.lastModified().toString() + QLatin1Char('_') +
-                  QString::number(info.size()) + QLatin1Char('_') + QString::number(data->type);
+    QString key = QLatin1String("qt_pixmap_") + info.absoluteFilePath() + QLatin1Char('_') + QString::number(info.lastModified().toTime_t()) + QLatin1Char('_') +
+                  QString::number(info.size()) + QLatin1Char('_') + QString::number(data->pixelType());
 
     if (QPixmapCache::find(key, *this))
         return true;
+
     QImage image = QImageReader(fileName, format).read();
     if (image.isNull())
         return false;
     QPixmap pm;
-    if (data->type == BitmapType)
+    if (data->pixelType() == QPixmapData::BitmapType)
         pm = QBitmap::fromImage(image, flags);
     else
         pm = fromImage(image, flags);
@@ -683,7 +817,7 @@ bool QPixmap::loadFromData(const uchar *buf, uint len, const char *format, Qt::I
 
     QImage image = QImageReader(&b, format).read();
     QPixmap pm;
-    if (data->type == BitmapType)
+    if (data->pixelType() == QPixmapData::BitmapType)
         pm = QBitmap::fromImage(image, flags);
     else
         pm = fromImage(image, flags);
@@ -735,10 +869,7 @@ bool QPixmap::save(const QString &fileName, const char *format, int quality) con
     specified image file \a format and \a quality factor. This can be
     used, for example, to save a pixmap directly into a QByteArray:
 
-    \quotefromfile snippets/image/image.cpp
-    \skipto PIX SAVE
-    \skipto QPixmap
-    \printuntil save
+    \snippet doc/src/snippets/image/image.cpp 1
 */
 
 bool QPixmap::save(QIODevice* device, const char* format, int quality) const
@@ -751,7 +882,6 @@ bool QPixmap::save(QIODevice* device, const char* format, int quality) const
 
 /*! \internal
 */
-
 bool QPixmap::doImageIO(QImageWriter *writer, int quality) const
 {
     if (quality > 100  || quality < -1)
@@ -776,6 +906,21 @@ bool QPixmap::doImageIO(QImageWriter *writer, int quality) const
     to.
 */
 
+/*!
+    Fills the pixmap with the given \a color.
+
+    \sa {QPixmap#Pixmap Transformations}{Pixmap Transformations}
+*/
+
+void QPixmap::fill(const QColor &color)
+{
+    if (isNull())
+        return;
+
+    detach();
+    data->fill(color);
+}
+
 /*! \obsolete
     Returns a number that identifies the contents of this QPixmap
     object. Distinct QPixmap objects can only have the same serial
@@ -793,8 +938,7 @@ int QPixmap::serialNumber() const
 {
     if (isNull())
         return 0;
-    else
-        return data->ser_no;
+    return data->serialNumber();
 }
 
 /*!
@@ -806,7 +950,12 @@ int QPixmap::serialNumber() const
 */
 qint64 QPixmap::cacheKey() const
 {
-    return (((qint64) data->ser_no) << 32) | ((qint64) (data->detach_no));
+    int classKey = data->classId();
+    if (classKey >= 1024)
+        classKey = -(classKey >> 10);
+    return ((((qint64) classKey) << 56)
+            | (((qint64) data->serialNumber()) << 32)
+            | ((qint64) (data->detach_no)));
 }
 
 static void sendResizeEvents(QWidget *target)
@@ -841,11 +990,13 @@ static void sendResizeEvents(QWidget *target)
     This function actually asks \a widget to paint itself (and its
     children to paint themselves) by calling paintEvent() with painter
     redirection turned on. But QPixmap also provides the grabWindow()
-    function which is a bit faster grabbing pixels directly off the
+    function which is a bit faster by grabbing pixels directly off the
     screen. In addition, if there are overlaying windows,
     grabWindow(), unlike grabWidget(), will see them.
 
-    \warning Do not call this function from QWidget::paintEvent().
+    \warning Do not grab a widget from its QWidget::paintEvent().
+    However, it is safe to grab a widget from another widget's
+    \l {QWidget::}{paintEvent()}.
 
     \sa grabWindow()
 */
@@ -868,7 +1019,7 @@ QPixmap QPixmap::grabWidget(QWidget * widget, const QRect &rect)
         return QPixmap();
 
     QPixmap res(r.size());
-    widget->render(&res, -r.topLeft(), r,
+    widget->render(&res, QPoint(), r,
                    QWidget::DrawWindowBackground | QWidget::DrawChildren | QWidget::IgnoreMask);
     return res;
 }
@@ -882,7 +1033,9 @@ QPixmap QPixmap::grabWidget(QWidget * widget, const QRect &rect)
     Creates a pixmap and paints the given \a widget, restricted by
     QRect(\a x, \a y, \a width, \a height), in it.
 
-    \warning Do not call this function from QWidget::paintEvent().
+    \warning Do not grab a widget from its QWidget::paintEvent().
+    However, it is safe to grab a widget from another widget's
+    \l {QWidget::}{paintEvent()}.
 */
 
 
@@ -902,7 +1055,11 @@ QPixmap QPixmap::grabWidget(QWidget * widget, const QRect &rect)
 
 Qt::HANDLE QPixmap::handle() const
 {
-    return data->hd;
+#if defined(Q_WS_X11)
+    if (data->classId() == QPixmapData::X11Class)
+        return static_cast<QX11PixmapData*>(data)->handle();
+#endif
+    return 0;
 }
 #endif
 
@@ -931,7 +1088,10 @@ static Qt::ImageConversionFlags colorModeToFlags(QPixmap::ColorMode mode)
 QPixmap::QPixmap(const QString& fileName, const char *format, ColorMode mode)
     : QPaintDevice()
 {
-    init(0, 0);
+    init(0, 0, QPixmapData::PixmapType);
+    if (!qt_pixmap_thread_test())
+        return;
+
     load(fileName, format, colorModeToFlags(mode));
 }
 
@@ -940,12 +1100,14 @@ QPixmap::QPixmap(const QString& fileName, const char *format, ColorMode mode)
 
     Use the static fromImage() function instead.
 */
-
 QPixmap::QPixmap(const QImage& image)
     : QPaintDevice()
 {
-    init(0, 0);
-    if (data->type == BitmapType)
+    init(0, 0, QPixmapData::PixmapType);
+    if (!qt_pixmap_thread_test())
+        return;
+
+    if (data->pixelType() == QPixmapData::BitmapType)
         *this = QBitmap::fromImage(image);
     else
         *this = fromImage(image);
@@ -962,7 +1124,7 @@ QPixmap::QPixmap(const QImage& image)
 
 QPixmap &QPixmap::operator=(const QImage &image)
 {
-    if (data->type == BitmapType)
+    if (data->pixelType() == QPixmapData::BitmapType)
         *this = QBitmap::fromImage(image);
     else
         *this = fromImage(image);
@@ -992,7 +1154,7 @@ bool QPixmap::loadFromData(const uchar *buf, uint len, const char *format, Color
 */
 bool QPixmap::convertFromImage(const QImage &image, ColorMode mode)
 {
-    if (data->type == BitmapType)
+    if (data->pixelType() == QPixmapData::BitmapType)
         *this = QBitmap::fromImage(image, colorModeToFlags(mode));
     else
         *this = fromImage(image, colorModeToFlags(mode));
@@ -1079,12 +1241,18 @@ Q_GUI_EXPORT void copyBlt(QPixmap *dst, int dx, int dy,
 
 bool QPixmap::isDetached() const
 {
-    return data->count == 1;
+    return data->ref == 1;
 }
 
 void QPixmap::deref()
 {
-    if(data && data->deref()) { // Destroy image if last ref
+    if (data && !data->ref.deref()) { // Destroy image if last ref
+#if !defined(QT_NO_DIRECT3D) && defined(Q_WS_WIN)
+        QRasterPixmapData *rData = static_cast<QRasterPixmapData*>(data);
+        if (rData->texture)
+            rData->texture->Release();
+        rData->texture = 0;
+#endif
         if (qt_pixmap_cleanup_hook_64)
             qt_pixmap_cleanup_hook_64(cacheKey());
         delete data;
@@ -1230,6 +1398,51 @@ QPixmap QPixmap::scaledToHeight(int h, Qt::TransformationMode mode) const
     wm.scale(factor, factor);
     return transformed(wm, mode);
 }
+
+/*!
+    Returns a copy of the pixmap that is transformed using the given
+    transformation \a transform and transformation \a mode. The original
+    pixmap is not changed.
+
+    The transformation \a transform is internally adjusted to compensate
+    for unwanted translation; i.e. the pixmap produced is the smallest
+    pixmap that contains all the transformed points of the original
+    pixmap. Use the trueMatrix() function to retrieve the actual
+    matrix used for transforming the pixmap.
+
+    This function is slow because it involves transformation to a
+    QImage, non-trivial computations and a transformation back to a
+    QPixmap.
+
+    \sa trueMatrix(), {QPixmap#Pixmap Transformations}{Pixmap
+    Transformations}
+*/
+QPixmap QPixmap::transformed(const QTransform &transform,
+                             Qt::TransformationMode mode) const
+{
+    if (isNull() || transform.type() <= QTransform::TxTranslate)
+        return *this;
+
+    return data->transformed(transform, mode);
+}
+
+/*!
+  \overload
+
+  This convenience function loads the \a matrix into a
+  QTransform and calls the overloaded function.
+ */
+QPixmap QPixmap::transformed(const QMatrix &matrix, Qt::TransformationMode mode) const
+{
+    return transformed(QTransform(matrix), mode);
+}
+
+
+
+
+
+
+
 
 /*!
     \class QPixmap
@@ -1437,3 +1650,276 @@ QPixmap QPixmap::scaledToHeight(int h, Qt::TransformationMode mode) const
     \fn DataPtr &QPixmap::data_ptr()
     \internal
 */
+
+/*!
+    Returns true if this pixmap has an alpha channel, \e or has a
+    mask, otherwise returns false.
+
+    \sa hasAlphaChannel(), alphaChannel(), mask()
+*/
+bool QPixmap::hasAlpha() const
+{
+    return (data->hasAlphaChannel() || !data->mask().isNull());
+}
+
+/*!
+    Returns true if the pixmap has a format that respects the alpha
+    channel, otherwise returns false.
+
+    \sa alphaChannel(), hasAlpha()
+*/
+bool QPixmap::hasAlphaChannel() const
+{
+    return data->hasAlphaChannel();
+}
+
+/*!
+  \reimp
+*/
+int QPixmap::metric(PaintDeviceMetric metric) const
+{
+    return data->metric(metric);
+}
+
+/*!
+    \fn void QPixmap::setAlphaChannel(const QPixmap &alphaChannel)
+
+    Sets the alpha channel of this pixmap to the given \a alphaChannel
+    by converting the \a alphaChannel into 32 bit and using the
+    intensity of the RGB pixel values.
+
+    The effect of this function is undefined when the pixmap is being
+    painted on.
+
+    \sa alphaChannel(), {QPixmap#Pixmap Transformations}{Pixmap
+    Transformations}
+ */
+void QPixmap::setAlphaChannel(const QPixmap &alphaChannel)
+{
+    if (alphaChannel.isNull())
+        return;
+
+    if (paintingActive()) {
+        qWarning("QPixmap::setAlphaChannel: "
+                 "Cannot set alpha channel while pixmap is being painted on");
+        return;
+    }
+
+    if (width() != alphaChannel.width() && height() != alphaChannel.height()) {
+        qWarning("QPixmap::setAlphaChannel: "
+                 "The pixmap and the alpha channel pixmap must have the same size");
+        return;
+    }
+
+    detach();
+    data->setAlphaChannel(alphaChannel);
+}
+
+/*!
+    Returns the alpha channel of the pixmap as a new grayscale QPixmap in which
+    each pixel's red, green, and blue values are given the alpha value of the
+    original pixmap. The color depth of the returned pixmap is the system depth
+    on X11 and 8-bit on Windows and Mac OS X.
+
+    You can use this function while debugging
+    to get a visible image of the alpha channel. If the pixmap doesn't have an
+    alpha channel, i.e., the alpha channel's value for all pixels equals
+    0xff), a null pixmap is returned. You can check this with the \c isNull()
+    function.
+
+    We show an example:
+
+    \snippet doc/src/snippets/alphachannel.cpp 0
+
+    \image alphachannelimage.png The pixmap and channelImage QPixmaps
+
+    \sa setAlphaChannel(), {QPixmap#Pixmap Information}{Pixmap
+    Information}
+*/
+QPixmap QPixmap::alphaChannel() const
+{
+    return data->alphaChannel();
+}
+
+/*!
+  \reimp
+*/
+QPaintEngine *QPixmap::paintEngine() const
+{
+    return data->paintEngine();
+}
+
+/*!
+    \fn QBitmap QPixmap::mask() const
+
+    Returns the mask, or a null bitmap if no mask has been set.
+
+    \sa setMask(), {QPixmap#Pixmap Information}{Pixmap Information}
+*/
+QBitmap QPixmap::mask() const
+{
+    return data->mask();
+}
+
+/*!
+    Returns the default pixmap depth used by the application.
+
+    On Windows and Mac, the default depth is always 32. On X11 and
+    embedded, the depth of the screen will be returned by this
+    function.
+
+    \sa depth(), QColormap::depth(), {QPixmap#Pixmap Information}{Pixmap Information}
+
+*/
+int QPixmap::defaultDepth()
+{
+#if defined(Q_WS_QWS)
+    return QScreen::instance()->depth();
+#elif defined(Q_WS_X11)
+    return QX11Info::appDepth();
+#elif defined(Q_WS_WIN)
+    return 32; // XXX
+#elif defined(Q_WS_MAC)
+    return 32;
+#endif
+}
+
+typedef void (*_qt_pixmap_cleanup_hook_64)(qint64);
+extern _qt_pixmap_cleanup_hook_64 qt_pixmap_cleanup_hook_64;
+
+/*!
+    Detaches the pixmap from shared pixmap data.
+
+    A pixmap is automatically detached by Qt whenever its contents are
+    about to change. This is done in almost all QPixmap member
+    functions that modify the pixmap (fill(), fromImage(),
+    load(), etc.), and in QPainter::begin() on a pixmap.
+
+    There are two exceptions in which detach() must be called
+    explicitly, that is when calling the handle() or the
+    x11PictureHandle() function (only available on X11). Otherwise,
+    any modifications done using system calls, will be performed on
+    the shared data.
+
+    The detach() function returns immediately if there is just a
+    single reference or if the pixmap has not been initialized yet.
+*/
+void QPixmap::detach()
+{
+    if (data->classId() == QPixmapData::RasterClass) {
+        QRasterPixmapData *rasterData = static_cast<QRasterPixmapData*>(data);
+        rasterData->image.detach();
+#if defined(Q_WS_WIN) && !defined(QT_NO_DIRECT3D)
+        if (rasterData->texture) {
+            rasterData->texture->Release();
+            rasterData->texture = 0;
+        }
+#endif
+    }
+
+    if (qt_pixmap_cleanup_hook_64 && data->ref == 1)
+        qt_pixmap_cleanup_hook_64(cacheKey());
+
+#if defined(Q_WS_MAC)
+    QMacPixmapData *macData = static_cast<QMacPixmapData*>(data);
+    if (macData->cg_mask) {
+        CGImageRelease(macData->cg_mask);
+        macData->cg_mask = 0;
+    }
+#endif
+
+    if (data->ref != 1) {
+        *this = copy();
+#if defined(Q_WS_MAC) && !defined(QT_MAC_NO_QUICKDRAW)
+        macData->qd_alpha = 0;
+#endif
+    }
+    ++data->detach_no;
+
+#if defined(Q_WS_X11)
+    QX11PixmapData *d = static_cast<QX11PixmapData*>(data);
+    d->uninit = false;
+
+    // reset the cache data
+    if (d->hd2) {
+        XFreePixmap(X11->display, d->hd2);
+        d->hd2 = 0;
+    }
+#elif defined(Q_WS_MAC)
+    macData->macReleaseCGImageRef();
+    macData->uninit = false;
+#endif
+}
+
+/*!
+    \fn QPixmap QPixmap::fromImage(const QImage &image, Qt::ImageConversionFlags flags)
+
+    Converts the given \a image to a pixmap using the specified \a
+    flags to control the conversion.  The \a flags argument is a
+    bitwise-OR of the \l{Qt::ImageConversionFlags}. Passing 0 for \a
+    flags sets all the default options.
+
+    In case of monochrome and 8-bit images, the image is first
+    converted to a 32-bit pixmap and then filled with the colors in
+    the color table. If this is too expensive an operation, you can
+    use QBitmap::fromImage() instead.
+
+    \sa toImage(), {QPixmap#Pixmap Conversion}{Pixmap Conversion}
+*/
+QPixmap QPixmap::fromImage(const QImage &image, Qt::ImageConversionFlags flags)
+{
+    if (image.isNull())
+        return QPixmap();
+
+    QPixmapDataFactory *f = QPixmapDataFactory::instance();
+    QPixmapData *data = f->create(QPixmapData::PixmapType);
+    data->fromImage(image, flags);
+    return QPixmap(data);
+}
+
+/*!
+    \fn QPixmap QPixmap::grabWindow(WId window, int x, int y, int
+    width, int height)
+
+    Creates and returns a pixmap constructed by grabbing the contents
+    of the given \a window restricted by QRect(\a x, \a y, \a width,
+    \a height).
+
+    The arguments (\a{x}, \a{y}) specify the offset in the window,
+    whereas (\a{width}, \a{height}) specify the area to be copied.  If
+    \a width is negative, the function copies everything to the right
+    border of the window. If \a height is negative, the function
+    copies everything to the bottom of the window.
+
+    The window system identifier (\c WId) can be retrieved using the
+    QWidget::winId() function. The rationale for using a window
+    identifier and not a QWidget, is to enable grabbing of windows
+    that are not part of the application, window system frames, and so
+    on.
+
+    The grabWindow() function grabs pixels from the screen, not from
+    the window, i.e. if there is another window partially or entirely
+    over the one you grab, you get pixels from the overlying window,
+    too. The mouse cursor is generally not grabbed.
+
+    Note on X11that if the given \a window doesn't have the same depth
+    as the root window, and another window partially or entirely
+    obscures the one you grab, you will \e not get pixels from the
+    overlying window.  The contents of the obscured areas in the
+    pixmap will be undefined and uninitialized.
+
+    \warning In general, grabbing an area outside the screen is not
+    safe. This depends on the underlying window system.
+
+    \sa grabWidget(), {Screenshot Example}
+*/
+
+/*!
+  \internal
+*/
+QPixmapData* QPixmap::pixmapData() const
+{
+    return data;
+}
+
+QT_END_NAMESPACE

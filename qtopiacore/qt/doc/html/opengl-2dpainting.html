@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/2dpainting.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/2dpainting.qdoc -->
 <head>
-  <title>Qt 4.3: 2D Painting Example</title>
+  <title>Qt 4.4: 2D Painting Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">2D Painting Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">2D Painting Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -101,51 +101,7 @@
 <a name="widget-class-definition"></a>
 <h2>Widget Class Definition</h2>
 <p>The <tt>Widget</tt> class provides a basic custom widget that we use to display the simple animation painted by the <tt>Helper</tt> class.</p>
-<pre> ** This file is part of the example classes of the Qt Toolkit.
- **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
- **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
- **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
- **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
- **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- **
- ****************************************************************************/</span>
-
- #ifndef WIDGET_H
- #define WIDGET_H
-
- #include &lt;QWidget&gt;
-
- class Helper;
+<pre> class Helper;
  class QPaintEvent;
 
  class Widget : public QWidget
@@ -194,51 +150,7 @@
 <a name="glwidget-class-definition"></a>
 <h2>GLWidget Class Definition</h2>
 <p>The <tt>GLWidget</tt> class definition is basically the same as the <tt>Widget</tt> class except that it is derived from <a href="qglwidget.html">QGLWidget</a>.</p>
-<pre> ** This file is part of the example classes of the Qt Toolkit.
- **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
- **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
- **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
- **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
- **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- **
- ****************************************************************************/</span>
-
- #ifndef GLWIDGET_H
- #define GLWIDGET_H
-
- #include &lt;QGLWidget&gt;
-
- class Helper;
+<pre> class Helper;
  class QPaintEvent;
  class QWidget;
 
@@ -268,6 +180,7 @@
  {
      elapsed = 0;
      setFixedSize(200, 200);
+     setAutoFillBackground(false);
  }</pre>
 <p>As well as initializing the <tt>elapsed</tt> member variable and storing the <tt>Helper</tt> object used to paint the widget, the base class's constructor is called with the format that specifies the <a href="qgl.html#FormatOption-enum">QGL::SampleBuffers</a> flag. This enables anti-aliasing if it is supported by your system's OpenGL driver.</p>
 <p>The <tt>animate()</tt> slot is exactly the same as that provided by the <tt>Widget</tt> class:</p>
@@ -289,56 +202,7 @@
 <a name="window-class-definition"></a>
 <h2>Window Class Definition</h2>
 <p>The <tt>Window</tt> class has a basic, minimal definition:</p>
-<pre> ** This file is part of the example classes of the Qt Toolkit.
- **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
- **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
- **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
- **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
- **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- **
- ****************************************************************************/</span>
-
- #ifndef WINDOW_H
- #define WINDOW_H
-
- #include &lt;QWidget&gt;
-
- #include &quot;helper.h&quot;
-
- class QLabel;
- class QWidget;
-
- class Window : public QWidget
+<pre> class Window : public QWidget
  {
      Q_OBJECT
 
@@ -382,8 +246,8 @@
 <p>The example shows the same painting operations performed at the same time in a <tt>Widget</tt> and a <tt>GLWidget</tt>. The quality and speed of rendering in the <tt>GLWidget</tt> depends on the level of support for multisampling and hardware acceleration that your system's OpenGL driver provides. If support for either of these is lacking, the driver may fall back on a software renderer that may trade quality for speed.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

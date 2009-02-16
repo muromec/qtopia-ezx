@@ -10,5 +10,9 @@ HEADERS		= qeuckrcodec.h \
 SOURCES		= qeuckrcodec.cpp \
 		  main.cpp
 
+wince*: {
+   SOURCES += ../../../corelib/kernel/qfunctions_wince.cpp
+}
+
 target.path += $$[QT_INSTALL_PLUGINS]/codecs
 INSTALLS += target

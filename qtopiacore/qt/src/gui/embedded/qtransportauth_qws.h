@@ -1,48 +1,43 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #ifndef QTRANSPORTAUTH_QWS_H
 #define QTRANSPORTAUTH_QWS_H
+
+#include <QtCore/qglobal.h>
+
+#if !defined(QT_NO_SXE) || defined(SXE_INSTALLER)
 
 #include <QtCore/qobject.h>
 #include <QtCore/qhash.h>
@@ -50,11 +45,11 @@
 #include <QtCore/qbuffer.h>
 #include <QtCore/qpointer.h>
 
-#if !defined(QT_NO_SXE) || defined(SXE_INSTALLER)
-
 #include <sys/types.h>
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Gui)
 
@@ -128,12 +123,12 @@ public:
         void setConnection( bool );
     };
 
-    static const char *errorString( const Data & );
+    static const char *errorString( const QTransportAuth::Data & );
 
-    Data *connectTransport( unsigned char, int );
+    QTransportAuth::Data *connectTransport( unsigned char, int );
 
-    QAuthDevice *authBuf( Data *, QIODevice * );
-    QAuthDevice *recvBuf( Data *, QIODevice * );
+    QAuthDevice *authBuf( QTransportAuth::Data *, QIODevice * );
+    QAuthDevice *recvBuf( QTransportAuth::Data *, QIODevice * );
     QIODevice *passThroughByClient( QWSClient * ) const;
 
     void setKeyFilePath( const QString & );
@@ -170,7 +165,110 @@ private:
     Q_DECLARE_PRIVATE(QTransportAuth)
 };
 
-QT_END_HEADER
-#endif // QT_NO_SXE
+class Q_GUI_EXPORT RequestAnalyzer
+{
+public:
+    RequestAnalyzer();
+    virtual ~RequestAnalyzer();
+    QString operator()( QByteArray *data ) { return analyze( data ); }
+    bool requireMoreData() const { return moreData; }
+    qint64 bytesAnalyzed() const { return dataSize; }
+protected:
+    virtual QString analyze( QByteArray * );
+    bool moreData;
+    qint64 dataSize;
+};
 
+/*!
+  \internal
+  \class QAuthDevice
+
+  \brief Pass-through QIODevice sub-class for authentication.
+
+   Use this class to forward on or receive forwarded data over a real
+   device for authentication.
+*/
+class Q_GUI_EXPORT QAuthDevice : public QIODevice
+{
+    Q_OBJECT
+public:
+    enum AuthDirection {
+        Receive,
+        Send
+    };
+    QAuthDevice( QIODevice *, QTransportAuth::Data *, AuthDirection );
+    ~QAuthDevice();
+    void setTarget( QIODevice *t ) { m_target = t; }
+    QIODevice *target() const { return m_target; }
+    void setClient( QObject* );
+    QObject *client() const;
+    void setRequestAnalyzer( RequestAnalyzer * );
+    bool isSequential() const;
+    bool atEnd() const;
+    qint64 bytesAvailable() const;
+    qint64 bytesToWrite() const;
+    bool seek( qint64 );
+    QByteArray & buffer();
+
+protected:
+    qint64 readData( char *, qint64 );
+    qint64 writeData(const char *, qint64 );
+private Q_SLOTS:
+    void recvReadyRead();
+    void targetBytesWritten( qint64 );
+private:
+    bool authorizeMessage();
+
+    QTransportAuth::Data *d;
+    AuthDirection way;
+    QIODevice *m_target;
+    QObject *m_client;
+    QByteArray msgQueue;
+    qint64 m_bytesAvailable;
+    qint64 m_skipWritten;
+
+    RequestAnalyzer *analyzer;
+};
+
+inline bool QAuthDevice::isSequential() const
+{
+    return true;
+}
+
+inline bool QAuthDevice::seek( qint64 )
+{
+    return false;
+}
+
+inline bool QAuthDevice::atEnd() const
+{
+    return msgQueue.isEmpty();
+}
+
+inline qint64 QAuthDevice::bytesAvailable() const
+{
+    if ( way == Receive )
+        return m_bytesAvailable;
+    else
+        return ( m_target ? m_target->bytesAvailable() : 0 );
+}
+
+inline qint64 QAuthDevice::bytesToWrite() const
+{
+    return msgQueue.size();
+}
+
+inline QByteArray &QAuthDevice::buffer()
+{
+    return msgQueue;
+}
+
+
+
+
+QT_END_NAMESPACE
+
+QT_END_HEADER
+
+#endif // QT_NO_SXE
 #endif // QTRANSPORTAUTH_QWS_H

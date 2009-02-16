@@ -21,9 +21,11 @@ SOURCES += \
     $$PWD/qscriptcontext_p.cpp \
     $$PWD/qscriptengine.cpp \
     $$PWD/qscriptengine_p.cpp \
+    $$PWD/qscriptengineagent.cpp \
     $$PWD/qscriptextenumeration.cpp \
     $$PWD/qscriptextvariant.cpp \
     $$PWD/qscriptcontext.cpp \
+    $$PWD/qscriptcontextinfo.cpp \
     $$PWD/qscriptfunction.cpp \
     $$PWD/qscriptgrammar.cpp \
     $$PWD/qscriptlexer.cpp \
@@ -31,6 +33,10 @@ SOURCES += \
     $$PWD/qscriptparser.cpp \
     $$PWD/qscriptprettypretty.cpp \
     $$PWD/qscriptsyntaxchecker.cpp \
+    $$PWD/qscriptstring.cpp \
+    $$PWD/qscriptclass.cpp \
+    $$PWD/qscriptclasspropertyiterator.cpp \
+    $$PWD/qscriptvalueiteratorimpl.cpp \
     $$PWD/qscriptvalueiterator.cpp \
     $$PWD/qscriptvalueimpl.cpp \
     $$PWD/qscriptvalue.cpp
@@ -46,6 +52,8 @@ HEADERS += \
     $$PWD/qscriptcontext.h \
     $$PWD/qscriptcontextfwd_p.h \
     $$PWD/qscriptcontext_p.h \
+    $$PWD/qscriptcontextinfo.h \
+    $$PWD/qscriptcontextinfo_p.h \
     $$PWD/qscriptecmaarray_p.h \
     $$PWD/qscriptecmaboolean_p.h \
     $$PWD/qscriptecmacore_p.h \
@@ -61,6 +69,8 @@ HEADERS += \
     $$PWD/qscriptengine.h \
     $$PWD/qscriptenginefwd_p.h \
     $$PWD/qscriptengine_p.h \
+    $$PWD/qscriptengineagent.h \
+    $$PWD/qscriptengineagent_p.h \
     $$PWD/qscriptable.h \
     $$PWD/qscriptable_p.h \
     $$PWD/qscriptextenumeration_p.h \
@@ -77,16 +87,24 @@ HEADERS += \
     $$PWD/qscriptmember_p.h \
     $$PWD/qscriptmemorypool_p.h \
     $$PWD/qscriptnodepool_p.h \
+    $$PWD/qscripttypeinfo_p.h \
     $$PWD/qscriptclassinfo_p.h \
     $$PWD/qscriptparser_p.h \
     $$PWD/qscriptprettypretty_p.h \
     $$PWD/qscriptrepository_p.h \
     $$PWD/qscriptsyntaxchecker_p.h \
+    $$PWD/qscriptstring.h \
+    $$PWD/qscriptstring_p.h \
+    $$PWD/qscriptclass.h \
+    $$PWD/qscriptclass_p.h \
+    $$PWD/qscriptclasspropertyiterator.h \
+    $$PWD/qscriptclasspropertyiterator_p.h \
     $$PWD/qscriptvalue.h \
     $$PWD/qscriptvaluefwd_p.h \
     $$PWD/qscriptvalue_p.h \
     $$PWD/qscriptvalueimplfwd_p.h \
     $$PWD/qscriptvalueimpl_p.h \
+    $$PWD/qscriptvalueiteratorimpl_p.h \
     $$PWD/qscriptvalueiterator.h \
     $$PWD/qscriptvalueiterator_p.h \
     $$PWD/qscriptextensioninterface.h \

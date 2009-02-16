@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include "qmime.h"
 #include "qdnd_p.h"
 #include "qevent_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QInputEvent
@@ -216,6 +212,56 @@ QMouseEvent::QMouseEvent(Type type, const QPoint &pos, const QPoint &globalPos,
 {}
 
 /*!
+    \internal
+*/
+QMouseEvent *QMouseEvent::createExtendedMouseEvent(Type type, const QPointF &pos,
+                                                   const QPoint &globalPos, Qt::MouseButton button,
+                                                   Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers)
+{
+    return new QMouseEventEx(type, pos, globalPos, button, buttons, modifiers);
+}
+
+/*!
+    \fn bool QMouseEvent::hasExtendedInfo() const
+    \internal
+*/
+
+/*!
+    \since 4.4
+
+    Returns the position of the mouse cursor as a QPointF, relative to the
+    widget that received the event.
+
+    If you move the widget as a result of the mouse event, use the
+    global position returned by globalPos() to avoid a shaking
+    motion.
+
+    \sa x() y() pos() globalPos()
+*/
+QPointF QMouseEvent::posF() const
+{
+    return hasExtendedInfo() ? reinterpret_cast<const QMouseEventEx *>(this)->posF : QPointF(pos());
+}
+
+/*!
+    \internal
+*/
+QMouseEventEx::QMouseEventEx(Type type, const QPointF &pos, const QPoint &globalPos,
+                             Qt::MouseButton button, Qt::MouseButtons buttons,
+                             Qt::KeyboardModifiers modifiers)
+    : QMouseEvent(type, pos.toPoint(), globalPos, button, buttons, modifiers), posF(pos)
+{
+    d = reinterpret_cast<QEventPrivate *>(this);
+}
+
+/*!
+    \internal
+*/
+QMouseEventEx::~QMouseEventEx()
+{
+}
+
+/*!
     \fn const QPoint &QMouseEvent::pos() const
 
     Returns the position of the mouse cursor, relative to the widget
@@ -323,7 +369,6 @@ QMouseEvent::QMouseEvent(Type type, const QPoint &pos, const QPoint &globalPos,
 
     Use buttons() and/or modifiers() instead.
 */
-
 
 /*!
     \class QHoverEvent
@@ -512,20 +557,7 @@ QWheelEvent::QWheelEvent(const QPoint &pos, const QPoint& globalPos, int delta, 
 
     Example:
 
-    \code
-        void MyWidget::wheelEvent(QWheelEvent *event)
-        {
-            int numDegrees = event->delta() / 8;
-            int numSteps = numDegrees / 15;
-
-            if (event->orientation() == Qt::Horizontal) {
-                scrollHorizontally(numSteps);
-            } else {
-                scrollVertically(numSteps);
-            }
-            event->accept();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qevent.cpp 0
 */
 
 /*!
@@ -603,7 +635,7 @@ QWheelEvent::QWheelEvent(const QPoint &pos, const QPoint& globalPos, int delta, 
 
 /*!
     \class QKeyEvent
-    \brief The QKeyEvent class contains describes a key event.
+    \brief The QKeyEvent class describes a key event.
 
     \ingroup events
 
@@ -671,12 +703,17 @@ QKeyEvent *QKeyEvent::createExtendedKeyEvent(Type type, int key, Qt::KeyboardMod
 */
 
 /*!
-    \since 4.2
+  \since 4.2
 
-    Returns the native scan code of the key event.
-    If the key event does not contain this data 0 is returned.
+  Returns the native scan code of the key event.  If the key event
+  does not contain this data 0 is returned.
 
-    Note: The native scan code may be 0, even if the key event contains extended information.
+  Note: The native scan code may be 0, even if the key event contains
+  extended information.
+
+  Note: On Mac OS/X, this function is not useful, because there is no
+  way to get the scan code from Carbon or Cocoa. The function always
+  returns 1 (or 0 in the case explained above).
 */
 quint32 QKeyEvent::nativeScanCode() const
 {
@@ -1097,7 +1134,6 @@ QUpdateLaterEvent::~QUpdateLaterEvent()
 {
 }
 
-
 /*!
     \class QMoveEvent
     \brief The QMoveEvent class contains event parameters for move events.
@@ -1299,6 +1335,7 @@ QIconDragEvent::~QIconDragEvent()
     handled as a regular input event.
 */
 
+#ifndef QT_NO_CONTEXTMENU
 /*!
     Constructs a context menu event object with the accept parameter
     flag set to false.
@@ -1312,6 +1349,22 @@ QIconDragEvent::~QIconDragEvent()
 */
 QContextMenuEvent::QContextMenuEvent(Reason reason, const QPoint &pos, const QPoint &globalPos)
     : QInputEvent(ContextMenu), p(pos), gp(globalPos), reas(reason)
+{}
+
+/*!
+    Constructs a context menu event object with the accept parameter
+    flag set to false.
+
+    The \a reason parameter must be QContextMenuEvent::Mouse or
+    QContextMenuEvent::Keyboard.
+
+    The \a pos parameter specifies the mouse position relative to the
+    receiving widget. \a globalPos is the mouse position in absolute
+    coordinates. The \a modifiers holds the keyboard modifiers.
+*/
+QContextMenuEvent::QContextMenuEvent(Reason reason, const QPoint &pos, const QPoint &globalPos,
+                                     Qt::KeyboardModifiers modifiers)
+    : QInputEvent(ContextMenu, modifiers), p(pos), gp(globalPos), reas(reason)
 {}
 
 #ifdef QT3_SUPPORT
@@ -1421,6 +1474,7 @@ Qt::ButtonState QContextMenuEvent::state() const
 
     \sa globalX(), globalPos()
 */
+#endif // QT_NO_CONTEXTMENU
 
 /*!
     \fn Qt::ButtonState QContextMenuEvent::state() const
@@ -2177,10 +2231,10 @@ QDropEvent::QDropEvent(const QPoint& pos, Qt::DropActions actions, const QMimeDa
                        Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers, Type type)
     : QEvent(type), p(pos), mouseState(buttons),
       modState(modifiers), act(actions),
-      drop_action(Qt::CopyAction),
       mdata(data)
 {
     default_action = QDragManager::self()->defaultAction(act, modifiers);
+    drop_action = default_action;
     ignore();
 }
 
@@ -2642,12 +2696,9 @@ QHelpEvent::~QHelpEvent()
     \table 100%
     \row
     \o
-    \quotefromfile snippets/qstatustipevent/main.cpp
-    \skipto MainWindow::MainWindow
-    \printuntil setCentralWidget
+    \snippet doc/src/snippets/qstatustipevent/main.cpp 1
     \dots
-    \skipto }
-    \printline }
+    \snippet doc/src/snippets/qstatustipevent/main.cpp 3
     \o
     \image qstatustipevent-widget.png Widget with status tip.
     \endtable
@@ -2658,14 +2709,10 @@ QHelpEvent::~QHelpEvent()
     \table 100%
     \row
     \o
-    \quotefromfile snippets/qstatustipevent/main.cpp
-    \skipto MainWindow::MainWindow
-    \printuntil {
-    \skipto QMenu
-    \printuntil addAction
+    \snippet doc/src/snippets/qstatustipevent/main.cpp 0
+    \snippet doc/src/snippets/qstatustipevent/main.cpp 2
     \dots
-    \skipto }
-    \printline }
+    \snippet doc/src/snippets/qstatustipevent/main.cpp 3
     \o
     \image qstatustipevent-action.png Action with status tip.
     \endtable
@@ -2835,7 +2882,7 @@ QHideEvent::~QHideEvent()
     \ingroup events
 
     There are two kinds of show events: show events caused by the
-    window system (spontaneous), and internal show events. Spontaneous
+    window system (spontaneous), and internal show events. Spontaneous (QEvent::spontaneous())
     show events are sent just after the window system shows the
     window; they are also sent when a top-level window is redisplayed
     after being iconified. Internal show events are delivered just
@@ -2881,6 +2928,8 @@ QShowEvent::~QShowEvent()
 
     This event is only used to notify the application of a request.
     It may be safely ignored.
+
+    \note This class is currently supported for Mac Os X only.
 */
 
 /*!
@@ -3096,6 +3145,138 @@ QDebug operator<<(QDebug dbg, const QEvent *e) {
     case QEvent::FileOpen:
         n = "FileOpen";
         break;
+    case QEvent::Show:
+        n = "Show";
+        break;
+    case QEvent::ShowToParent:
+        n = "ShowToParent";
+        break;
+    case QEvent::Hide:
+        n = "Hide";
+        break;
+    case QEvent::HideToParent:
+        n = "HideToParent";
+        break;
+    case QEvent::None:
+        n = "None";
+        break;
+    case QEvent::ParentChange:
+        n = "ParentChange";
+        break;
+    case QEvent::ParentAboutToChange:
+        n = "ParentAboutToChange";
+        break;
+    case QEvent::HoverEnter:
+        n = "HoverEnter";
+        break;
+    case QEvent::HoverMove:
+        n = "HoverMove";
+        break;
+    case QEvent::HoverLeave:
+        n = "HoverLeave";
+        break;
+    case QEvent::ZOrderChange:
+        n = "ZOrderChange";
+        break;
+    case QEvent::StyleChange:
+        n = "StyleChange";
+        break;
+    case QEvent::DragEnter:
+        n = "DragEnter";
+        break;
+    case QEvent::DragMove:
+        n = "DragMove";
+        break;
+    case QEvent::DragLeave:
+        n = "DragLeave";
+        break;
+    case QEvent::Drop:
+        n = "Drop";
+        break;
+    case QEvent::GraphicsSceneMouseMove:
+        n = "GraphicsSceneMouseMove";
+        break;
+    case QEvent::GraphicsSceneMousePress:
+        n = "GraphicsSceneMousePress";
+        break;
+    case QEvent::GraphicsSceneMouseRelease:
+        n = "GraphicsSceneMouseRelease";
+        break;
+    case QEvent::GraphicsSceneMouseDoubleClick:
+        n = "GraphicsSceneMouseDoubleClick";
+        break;
+    case QEvent::GraphicsSceneContextMenu:
+        n = "GraphicsSceneContextMenu";
+        break;
+    case QEvent::GraphicsSceneHoverEnter:
+        n = "GraphicsSceneHoverEnter";
+        break;
+    case QEvent::GraphicsSceneHoverMove:
+        n = "GraphicsSceneHoverMove";
+        break;
+    case QEvent::GraphicsSceneHoverLeave:
+        n = "GraphicsSceneHoverLeave";
+        break;
+    case QEvent::GraphicsSceneHelp:
+        n = "GraphicsSceneHelp";
+        break;
+    case QEvent::GraphicsSceneDragEnter:
+        n = "GraphicsSceneDragEnter";
+        break;
+    case QEvent::GraphicsSceneDragMove:
+        n = "GraphicsSceneDragMove";
+        break;
+    case QEvent::GraphicsSceneDragLeave:
+        n = "GraphicsSceneDragLeave";
+        break;
+    case QEvent::GraphicsSceneDrop:
+        n = "GraphicsSceneDrop";
+        break;
+    case QEvent::GraphicsSceneWheel:
+        n = "GraphicsSceneWheel";
+        break;
+    case QEvent::GraphicsSceneResize:
+        n = "GraphicsSceneResize";
+        break;
+    case QEvent::GraphicsSceneMove:
+        n = "GraphicsSceneMove";
+        break;
+    case QEvent::CursorChange:
+        n = "CursorChange";
+        break;
+    case QEvent::ToolTipChange:
+        n = "ToolTipChange";
+        break;
+    case QEvent::StatusTip:
+        n = "StatusTip";
+        break;
+    case QEvent::WhatsThis:
+        n = "WhatsThis";
+        break;
+    case QEvent::FontChange:
+        n = "FontChange";
+        break;
+    case QEvent::Style:
+        n = "Style";
+        break;
+    case QEvent::KeyboardLayoutChange:
+        n = "KeyboardLayoutChange";
+        break;
+    case QEvent::DynamicPropertyChange:
+        n = "DynamicPropertyChange";
+        break;
+    case QEvent::GrabMouse:
+        n = "GrabMouse";
+        break;
+    case QEvent::UngrabMouse:
+        n = "UngrabMouse";
+        break;
+    case QEvent::GrabKeyboard:
+        n = "GrabKeyboard";
+        break;
+    case QEvent::UngrabKeyboard:
+        n = "UngrabKeyboard";
+        break;
 #ifdef QT3_SUPPORT
     case QEvent::ChildInserted: n = "ChildInserted";
 #endif
@@ -3299,3 +3480,5 @@ QMenubarUpdatedEvent::QMenubarUpdatedEvent(QMenuBar * const menuBar)
 */
 
 #endif
+
+QT_END_NAMESPACE

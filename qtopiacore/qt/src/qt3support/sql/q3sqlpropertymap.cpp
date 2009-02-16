@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 #include "q3cleanuphandler.h"
 #include "qmetaobject.h"
 #include "qmap.h"
+
+QT_BEGIN_NAMESPACE
 
 class Q3SqlPropertyMapPrivate
 {
@@ -85,44 +81,13 @@ public:
     Q3SqlForm, you must install your own Q3SqlPropertyMap for that table
     or form. Example:
 
-    \code
-    Q3SqlPropertyMap *myMap  = new Q3SqlPropertyMap();
-    Q3SqlForm        *myForm = new Q3SqlForm(this);
-    MyEditor myEditor(this);
-
-    // Set the Q3SqlForm's record buffer to the update buffer of
-    // a pre-existing Q3SqlCursor called 'cur'.
-    myForm->setRecord(cur->primeUpdate());
-
-    // Install the customized map
-    myMap->insert("MyEditor", "content");
-    myForm->installPropertyMap(myMap); // myForm now owns myMap
-    ...
-    // Insert a field into the form that uses a myEditor to edit the
-    // field 'somefield'
-    myForm->insert(&myEditor, "somefield");
-
-    // Update myEditor with the value from the mapped database field
-    myForm->readFields();
-    ...
-    // Let the user edit the form
-    ...
-    // Update the database fields with the values in the form
-    myForm->writeFields();
-    ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlpropertymap.cpp 0
 
     You can also replace the global Q3SqlPropertyMap that is used by
     default. (Bear in mind that Q3SqlPropertyMap takes ownership of the
     new default map.)
 
-    \code
-    Q3SqlPropertyMap *myMap = new Q3SqlPropertyMap;
-
-    myMap->insert("MyEditor", "content");
-    Q3SqlPropertyMap::installDefaultMap(myMap);
-    ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_sql_q3sqlpropertymap.cpp 1
 
     \sa Q3DataTable, Q3SqlForm, Q3SqlEditorFactory
 */
@@ -301,5 +266,7 @@ void Q3SqlPropertyMap::installDefaultMap(Q3SqlPropertyMap * map)
     defaultmap = map;
     qsql_cleanup_property_map.add(&defaultmap);
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SQL_FORM

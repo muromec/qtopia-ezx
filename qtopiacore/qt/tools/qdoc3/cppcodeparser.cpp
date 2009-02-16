@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,7 @@
   cppcodeparser.cpp
 */
 
+#include <QtCore>
 #include <qfile.h>
 
 #include <stdio.h>
@@ -54,6 +49,8 @@
 #include "cppcodeparser.h"
 #include "tokenizer.h"
 #include "tree.h"
+
+QT_BEGIN_NAMESPACE
 
 /* qmake ignore Q_OBJECT */
 
@@ -186,6 +183,13 @@ void CppCodeParser::initializeParser(const Config &config)
 
     exampleFiles = config.getStringList(CONFIG_EXAMPLES);
     exampleDirs = config.getStringList(CONFIG_EXAMPLEDIRS);
+    QStringList exampleFilePatterns = config.getStringList(
+        CONFIG_EXAMPLES + Config::dot + CONFIG_FILEEXTENSIONS);
+
+    if (!exampleFilePatterns.isEmpty())
+        exampleNameFilter = exampleFilePatterns.join(" ");
+    else
+        exampleNameFilter = "*.cpp *.h *.js *.xq *.svg *.xml *.ui";
 }
 
 void CppCodeParser::terminateParser()
@@ -220,7 +224,7 @@ void CppCodeParser::parseHeaderFile( const Location& location,
 
     reset( tree );
     Location fileLocation( filePath );
-    FileTokenizer fileTokenizer( fileLocation, in );
+    Tokenizer fileTokenizer( fileLocation, in );
     tokenizer = &fileTokenizer;
     readToken();
     matchDeclList( tree->root() );
@@ -243,9 +247,10 @@ void CppCodeParser::parseSourceFile( const Location& location,
 
     reset( tree );
     Location fileLocation( filePath );
-    FileTokenizer fileTokenizer( fileLocation, in );
+    Tokenizer fileTokenizer( fileLocation, in );
     tokenizer = &fileTokenizer;
     readToken();
+    usedNamespaces.clear();
     matchDocsAndStuff();
     fclose( in );
 }
@@ -404,9 +409,9 @@ QSet<QString> CppCodeParser::topicCommands()
                            << COMMAND_PROPERTY << COMMAND_SERVICE << COMMAND_TYPEDEF << COMMAND_VARIABLE;
 }
 
-Node *CppCodeParser::processTopicCommand( const Doc& doc,
-					  const QString& command,
-					  const QString& arg )
+Node *CppCodeParser::processTopicCommand(const Doc& doc,
+                                         const QString& command,
+                                         const QString& arg )
 {
     if ( command == COMMAND_FN ) {
 	QStringList parentPath;
@@ -417,26 +422,40 @@ Node *CppCodeParser::processTopicCommand( const Doc& doc,
 	     !makeFunctionNode("void " + arg, &parentPath, &clone) ) {
 	    doc.location().warning( tr("Invalid syntax in '\\%1'")
 				    .arg(COMMAND_FN) );
-	} else {
-	    func = tre->findFunctionNode( parentPath, clone );
-	    if ( func == 0 ) {
+	}
+        else {
+            if (!usedNamespaces.isEmpty()) {
+                foreach (QString usedNamespace, usedNamespaces) {
+                    QStringList newPath = usedNamespace.split("::") + parentPath;
+	            func = tre->findFunctionNode( newPath, clone );
+                    if (func)
+                        break;
+                }
+            }
+            // Search the root namespace if no match was found.
+            if (func == 0)
+	        func = tre->findFunctionNode( parentPath, clone );
+
+	    if (func == 0) {
 		if ( parentPath.isEmpty() && !lastPath.isEmpty() )
 		    func = tre->findFunctionNode( lastPath, clone );
 		if ( func == 0 ) {
 		    doc.location().warning(tr("Cannot find '%1' in '\\%2'")
 					   .arg(clone->name() + "(...)")
 					   .arg(COMMAND_FN),
-                                           tr("I cannot find any function of that name with the "
-                                              "specified signature. Make sure that the signature "
-                                              "is identical to the declaration, including 'const' "
-                                              "qualifiers."));
-		} else {
-		    doc.location().warning( tr("Missing '%1::' for '%2' in '\\%3'")
+                       tr("I cannot find any function of that name with the "
+                          "specified signature. Make sure that the signature "
+                          "is identical to the declaration, including 'const' "
+                          "qualifiers."));
+		}
+                else {
+		    doc.location().warning(tr("Missing '%1::' for '%2' in '\\%3'")
 					    .arg(lastPath.join("::"))
 					    .arg(clone->name() + "()")
 					    .arg(COMMAND_FN) );
 		}
-	    } else {
+	    }
+            else {
 		lastPath = parentPath;
 	    }
 
@@ -445,17 +464,19 @@ Node *CppCodeParser::processTopicCommand( const Doc& doc,
 	    delete clone;
 	}
 	return func;
-    } else if (command == COMMAND_MACRO) {
+    }
+    else if (command == COMMAND_MACRO) {
 	QStringList parentPath;
 	FunctionNode *func = 0;
 
 	if ( makeFunctionNode(arg, &parentPath, &func, tre->root())) {
             if (!parentPath.isEmpty()) {
-	        doc.location().warning( tr("Invalid syntax in '\\%1'")
-				        .arg(COMMAND_MACRO) );
+	        doc.location().warning(tr("Invalid syntax in '\\%1'")
+                                       .arg(COMMAND_MACRO));
                 delete func;
                 func = 0;
-            } else {
+            }
+            else {
                 func->setMetaness(FunctionNode::MacroWithParams);
                 QList<Parameter> params = func->parameters();
                 for (int i = 0; i < params.size(); ++i) {
@@ -467,27 +488,47 @@ Node *CppCodeParser::processTopicCommand( const Doc& doc,
                 func->setParameters(params);
             }
             return func;
-        } else if (QRegExp("[A-Za-z_][A-Za-z0-9_]+").exactMatch(arg)) {
+        }
+        else if (QRegExp("[A-Za-z_][A-Za-z0-9_]+").exactMatch(arg)) {
             func = new FunctionNode(tre->root(), arg);
             func->setAccess(Node::Public);
             func->setLocation(doc.location());
             func->setMetaness(FunctionNode::MacroWithoutParams);
-        } else {
+        }
+        else {
 	    doc.location().warning( tr("Invalid syntax in '\\%1'")
 				    .arg(COMMAND_MACRO) );
 
         }
         return func;
-    } else if ( nodeTypeMap.contains(command) ) {
+    }
+    else if ( nodeTypeMap.contains(command) ) {
+
 	// ### split(" ") hack is there to support header file syntax
 	QStringList path = arg.split(" ")[0].split("::");
-	Node *node = tre->findNode(path, nodeTypeMap[command]);
-	if ( node == 0 ) {
+
+        Node *node = 0;
+        if (!usedNamespaces.isEmpty()) {
+            foreach (QString usedNamespace, usedNamespaces) {
+                QStringList newPath = usedNamespace.split("::") + path;
+	        node = tre->findNode(newPath, nodeTypeMap[command]);
+                if (node) {
+                    path = newPath;
+                    break;
+                }
+            }
+        }
+        // Search the root namespace if no match was found.
+        if (node == 0)
+            node = tre->findNode(path, nodeTypeMap[command]);
+
+	if (node == 0) {
 	    doc.location().warning(tr("Cannot find '%1' specified with '\\%2' in any header file")
 				   .arg(arg).arg(command));
 	    lastPath = path;
 
-	} else if ( command == COMMAND_SERVICE ) {
+	}
+        else if ( command == COMMAND_SERVICE ) {
 	    // If the command is "\service", then we need to tag the
 	    // class with the actual service name.
 	    QStringList args = arg.split(" ");
@@ -496,7 +537,13 @@ Node *CppCodeParser::processTopicCommand( const Doc& doc,
 		cnode->setServiceName( args[1] );
 		cnode->setHideFromMainList( true );
 	    }
-	}
+	} else if (node->isInnerNode()) {
+            if (path.size() > 1) {
+                path.pop_back();
+                usedNamespaces.insert(path.join("::"));
+            }
+        }
+
 	return node;
     } else if ( command == COMMAND_EXAMPLE ) {
 	FakeNode *fake = new FakeNode( tre->root(), arg, FakeNode::Example );
@@ -563,9 +610,13 @@ void CppCodeParser::processOtherMetaCommand( const Doc& doc,
                 doc.location().warning(
                     tr("Base function for '\\%1' in %2() is private or internal")
 		    .arg(COMMAND_REIMP).arg(node->name()));
-            } else
+            }
 #endif
-                func->setAccess(Node::Private);
+            // Note: Setting the access to Private hides the documentation,
+            // but setting the status to Internal makes the node available
+            // in the XML output when the WebXMLGenerator is used.
+            func->setAccess(Node::Private);
+            func->setStatus(Node::Internal);
 	} else {
 	    doc.location().warning(tr("Ignored '\\%1' in %2").arg(COMMAND_REIMP)
                                    .arg(node->name()));
@@ -575,9 +626,10 @@ void CppCodeParser::processOtherMetaCommand( const Doc& doc,
 	if (arg.startsWith("<") || arg.startsWith("\"")) {
 	    pseudoParent = static_cast<InnerNode *>(tre->findNode(QStringList(arg), Node::Fake));
 	} else {
-	    pseudoParent = static_cast<InnerNode *>(tre->findNode(QStringList(arg), Node::Class));
+            QStringList newPath = arg.split("::");
+	    pseudoParent = static_cast<InnerNode *>(tre->findNode(QStringList(newPath), Node::Class));
             if (!pseudoParent)
-                pseudoParent = static_cast<InnerNode *>(tre->findNode(QStringList(arg),
+                pseudoParent = static_cast<InnerNode *>(tre->findNode(QStringList(newPath),
                                                         Node::Namespace));
         }
 	if (!pseudoParent) {
@@ -744,7 +796,7 @@ bool CppCodeParser::matchDataType( CodeChunk *dataType, QString *var )
 
 	if ( virgin ) {
 	    if ( match(Tok_Ident) )
-		dataType->appendBase( previousLexeme() );
+		dataType->append( previousLexeme() );
 	    else if ( match(Tok_void) || match(Tok_int) || match(Tok_char) ||
 		      match(Tok_double) || match(Tok_Ellipsis) )
 		dataType->append( previousLexeme() );
@@ -760,7 +812,7 @@ bool CppCodeParser::matchDataType( CodeChunk *dataType, QString *var )
 	    dataType->append( previousLexeme() );
 
 	if ( match(Tok_Gulbrandsen) )
-	    dataType->appendBase( previousLexeme() );
+	    dataType->append( previousLexeme() );
 	else
 	    break;
     }
@@ -1043,9 +1095,6 @@ bool CppCodeParser::matchBaseSpecifier( ClassNode *classe, bool isClass )
 {
     Node::Access access;
 
-    if ( tok == Tok_virtual )
-	readToken();
-
     switch ( tok ) {
     case Tok_public:
 	access = Node::Public;
@@ -1063,11 +1112,14 @@ bool CppCodeParser::matchBaseSpecifier( ClassNode *classe, bool isClass )
 	access = isClass ? Node::Private : Node::Public;
     }
 
+    if ( tok == Tok_virtual )
+	readToken();
+
     CodeChunk baseClass;
     if (!matchDataType(&baseClass))
 	return false;
 
-    tre->addBaseClass(classe, access, baseClass.toPath(), baseClass.toString());
+    tre->addBaseClass(classe, access, baseClass.toPath(), baseClass.toString(), classe->parent());
     return true;
 }
 
@@ -1151,8 +1203,41 @@ bool CppCodeParser::matchNamespaceDecl(InnerNode *parent)
     }
 
     readToken(); // skip '{'
+    bool matched = matchDeclList(namespasse);
 
-    return matchDeclList(namespasse) && match(Tok_RightBrace);
+    return matched && match(Tok_RightBrace);
+}
+
+bool CppCodeParser::matchUsingDecl()
+{
+    readToken(); // skip 'using'
+
+    // 'namespace'
+    if (tok != Tok_namespace)
+        return false;
+
+    readToken();
+    // identifier
+    if (tok != Tok_Ident)
+        return false;
+
+    QString name;
+    while (tok == Tok_Ident) {
+        name += lexeme();
+        readToken();
+        if (tok == Tok_Semicolon)
+            break;
+        else if (tok != Tok_Gulbrandsen)
+            return false;
+        name += "::";
+        readToken();
+    }
+
+    /*
+        So far, so good. We have 'using namespace Foo;'.
+    */
+    usedNamespaces.insert(name);
+    return true;
 }
 
 bool CppCodeParser::matchEnumItem( InnerNode *parent, EnumNode *enume )
@@ -1332,6 +1417,9 @@ bool CppCodeParser::matchDeclList( InnerNode *parent )
         case Tok_namespace:
             matchNamespaceDecl(parent);
             break;
+        case Tok_using:
+            matchUsingDecl();
+            break;
 	case Tok_template:
 	    templateStuff = matchTemplateHeader();
 	    continue;
@@ -1472,7 +1560,15 @@ bool CppCodeParser::matchDocsAndStuff()
 		FunctionNode *func = 0;
 
 		if ( matchFunctionDecl(0, &parentPath, &clone) ) {
-		    func = tre->findFunctionNode( parentPath, clone );
+                    foreach (QString usedNamespace, usedNamespaces) {
+                        QStringList newPath = usedNamespace.split("::") + parentPath;
+		        func = tre->findFunctionNode(newPath, clone);
+                        if (func)
+                            break;
+                    }
+                    if (func == 0)
+		        func = tre->findFunctionNode( parentPath, clone );
+
 		    if (func) {
 			func->borrowParameterNames( clone );
 			nodes.append( func );
@@ -1517,6 +1613,8 @@ bool CppCodeParser::matchDocsAndStuff()
 		++d;
 		++n;
 	    }
+        } else if (tok == Tok_using) {
+            matchUsingDecl();
 	} else {
 	    QStringList parentPath;
 	    FunctionNode *clone;
@@ -1553,7 +1651,7 @@ bool CppCodeParser::makeFunctionNode(const QString& synopsis, QStringList *paren
 
     Location loc;
     QByteArray latin1 = synopsis.toLatin1();
-    StringTokenizer stringTokenizer(loc, latin1.data(), latin1.size());
+    Tokenizer stringTokenizer(loc, latin1);
     stringTokenizer.setParsingFnOrMacro(true);
     tokenizer = &stringTokenizer;
     readToken();
@@ -1599,7 +1697,7 @@ void CppCodeParser::instantiateIteratorMacro(const QString &container, const QSt
 
     Location loc(includeFile);   // hack to get the include file for free
     QByteArray latin1 = resultingCode.toLatin1();
-    StringTokenizer stringTokenizer(loc, latin1.data(), latin1.size());
+    Tokenizer stringTokenizer(loc, latin1);
     tokenizer = &stringTokenizer;
     readToken();
     matchDeclList(tre->root());
@@ -1610,23 +1708,44 @@ void CppCodeParser::createExampleFileNodes(FakeNode *fake)
     QString examplePath = fake->name();
 
     // we can assume that this file always exists
-    QString proFileName = examplePath + "/" + examplePath.split("/").last() + ".pro";
+    QString proFileName = examplePath + "/" +
+        examplePath.split("/").last() + ".pro";
 
     QString userFriendlyFilePath;
-    QString fullPath = Config::findFile(fake->doc().location(), exampleFiles, exampleDirs,
-                                        proFileName, userFriendlyFilePath);
+    QString fullPath = Config::findFile(fake->doc().location(),
+                                        exampleFiles,
+                                        exampleDirs,
+                                        proFileName,
+                                        userFriendlyFilePath);
     if (fullPath.isEmpty()) {
-        fake->doc().location().warning(tr("Cannot find file '%1'").arg(proFileName));
-        return;
+#if 0        
+        qDebug() << "proFileName = " << proFileName;
+        qDebug() << "fullPath = " << fullPath;
+#endif        
+        QString tmp = proFileName;
+        proFileName = examplePath + "/" + "qbuild.pro";
+        userFriendlyFilePath.clear();
+        fullPath = Config::findFile(fake->doc().location(),
+                                    exampleFiles,
+                                    exampleDirs,
+                                    proFileName,
+                                    userFriendlyFilePath);
+#if 0        
+        qDebug() << "proFileName = " << proFileName;
+        qDebug() << "fullPath = " << fullPath;
+#endif        
+        if (fullPath.isEmpty()) {
+            fake->doc().location().warning(
+               tr("Cannot find file '%1' or '%2'").arg(tmp).arg(proFileName));
+            return;
+        }
     }
 
     int sizeOfBoringPartOfName = fullPath.size() - proFileName.size();
     fullPath.truncate(fullPath.lastIndexOf('/'));
 
-    // should not hardcode the file extensions.
-    // To do: create a new configuration setting and make sure its value
-    // finds its way here.
-    QStringList exampleFiles = Config::getFilesHere(fullPath, "*.cpp *.h *.js");
+    QStringList exampleFiles = Config::getFilesHere(fullPath,
+                                                    exampleNameFilter);
     if (!exampleFiles.isEmpty()) {
         // move main.cpp and to the end, if it exists
         QString mainCpp;
@@ -1637,17 +1756,22 @@ void CppCodeParser::createExampleFileNodes(FakeNode *fake)
             if (fileName.endsWith("/main.cpp")) {
                 mainCpp = fileName;
                 i.remove();
-            } else if (fileName.contains("/qrc_") || fileName.contains("/moc_")
+            }
+            else if (fileName.contains("/qrc_") || fileName.contains("/moc_")
                     || fileName.contains("/ui_"))
                 i.remove();
         }
         if (!mainCpp.isEmpty())
             exampleFiles.append(mainCpp);
 
-        // add any qmake Qt resource files
-        exampleFiles += Config::getFilesHere(fullPath, "*.qrc");
+        // add any qmake Qt resource files and qmake project files
+        exampleFiles += Config::getFilesHere(fullPath, "*.qrc *.pro");
     }
 
     foreach (QString exampleFile, exampleFiles)
-        (void) new FakeNode(fake, exampleFile.mid(sizeOfBoringPartOfName), FakeNode::File);
+        (void) new FakeNode(fake,
+                            exampleFile.mid(sizeOfBoringPartOfName),
+                            FakeNode::File);
 }
+
+QT_END_NAMESPACE

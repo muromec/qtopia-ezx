@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 
 // for normalizeTypeInternal
 #include <private/qmetaobject_p.h>
+
+QT_BEGIN_NAMESPACE
 
 // only moc needs this function
 static QByteArray normalizeType(const char *s, bool fixScope = false)
@@ -391,12 +387,17 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
 
     if (inMacro) {
         next(RPAREN);
+        prev();
     } else {
+        if (test(THROW)) {
+            next(LPAREN);
+            until(RPAREN);
+        }
         if (test(SEMIC))
             ;
         else if ((def->inlineCode = test(LBRACE)))
             until(RBRACE);
-        else if (test(EQ) || test(THROW))
+        else if (test(EQ))
             until(SEMIC);
         else
             error();
@@ -415,6 +416,12 @@ bool Moc::parseFunction(FunctionDef *def, bool inMacro)
 // like parseFunction, but never aborts with an error
 bool Moc::parseMaybeFunction(FunctionDef *def)
 {
+    def->isVirtual = false;
+    while (test(INLINE) || test(STATIC) || test(VIRTUAL)
+           || testFunctionAttribute(def)) {
+        if (lookup() == VIRTUAL)
+            def->isVirtual = true;
+    }
     def->type = parseType();
     if (def->type.name.isEmpty())
         return false;
@@ -426,12 +433,8 @@ bool Moc::parseMaybeFunction(FunctionDef *def)
     } else {
         Type tempType = parseType();;
         while (!tempType.name.isEmpty() && lookup() != LPAREN) {
-            if (def->type.name == "QT_MOC_COMPAT" || def->type.name == "QT3_SUPPORT")
-                def->isCompat = true;
-            else if (def->type.name == "Q_INVOKABLE")
-                def->isInvokable = true;
-            else if (def->type.name == "Q_SCRIPTABLE")
-                def->isInvokable = def->isScriptable = true;
+            if (testFunctionAttribute(def->type.firstToken, def))
+                ; // fine
             else if (def->type.name == "Q_SIGNAL")
                 def->isSignal = true;
             else if (def->type.name == "Q_SLOT")
@@ -741,11 +744,14 @@ void Moc::generate(FILE *out)
             " much.)\"\n", QT_VERSION_STR);
     fprintf(out, "#endif\n\n");
 
+    fprintf(out, "QT_BEGIN_MOC_NAMESPACE\n");
 
     for (i = 0; i < classList.size(); ++i) {
         Generator generator(&classList[i], metaTypes, out);
         generator.generateCode();
     }
+
+    fprintf(out, "QT_END_MOC_NAMESPACE\n");
 }
 
 
@@ -1177,3 +1183,5 @@ void Moc::checkSuperClasses(ClassDef *def)
     }
 }
 
+
+QT_END_NAMESPACE

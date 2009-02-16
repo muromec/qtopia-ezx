@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,8 @@
 #include <new>
 
 #include "qscriptmemorypool_p.h"
+
+QT_BEGIN_NAMESPACE
 
 namespace QScript {
 
@@ -90,7 +86,7 @@ public:
     }
 };
 
-template <typename _Tp>
+template <typename _Tp, typename _FinalizerArg>
 class GCAlloc
 {
 private:
@@ -102,6 +98,7 @@ private:
     GCBlock *m_free;
     bool m_blocked_gc;
     bool m_force_gc;
+    bool m_sweeping;
     MemoryPool pool;
     _Tp trivial;
 
@@ -118,12 +115,14 @@ public:
         m_current(0),
         m_free(0),
         m_blocked_gc(false),
-        m_force_gc(false) {}
+        m_force_gc(false),
+        m_sweeping(false) {}
 
     inline ~GCAlloc() {
     }
 
-    inline void destruct() {
+    inline void destruct(_FinalizerArg farg) {
+        m_sweeping = true;
         GCBlock *blk = m_free;
 
         if (! blk) {
@@ -137,7 +136,7 @@ public:
 
             Q_ASSERT(was->data());
             _Tp *data = reinterpret_cast<_Tp*>(was->data());
-            data->finalize();
+            data->finalize(farg);
             data->~_Tp();
             blk->~GCBlock();
 
@@ -146,6 +145,7 @@ public:
                 m_head = 0;
             }
         }
+        m_sweeping = false;
     }
 
     inline int newAllocatedBlocks() const { return m_new_allocated_blocks; }
@@ -193,6 +193,11 @@ public:
         return m_blocked_gc;
     }
 
+    inline bool sweeping() const
+    {
+        return m_sweeping;
+    }
+
     inline bool blockGC(bool block)
     {
         bool was = m_blocked_gc;
@@ -232,8 +237,9 @@ public:
     inline GCBlock *head() const
     { return m_head; }
 
-    void sweep(int generation)
+    void sweep(int generation, _FinalizerArg farg)
     {
+        m_sweeping = true;
         GCBlock *blk = m_head;
         m_current = 0;
 
@@ -256,7 +262,7 @@ public:
                     m_head = 0;
 
                 _Tp *data = reinterpret_cast<_Tp *>(tmp->data());
-                data->finalize(); // we need it
+                data->finalize(farg); // we need it
                 tmp->~GCBlock();
             } else {
                 m_current = blk;
@@ -266,13 +272,46 @@ public:
 
         if (! m_current)
             m_head = m_current;
+        m_sweeping = false;
     }
 
+    class const_iterator
+    {
+    public:
+        typedef _Tp value_type;
+        typedef const _Tp *pointer;
+        typedef const _Tp &reference;
+        inline const_iterator() : i(0) { }
+        inline const_iterator(GCBlock *block) : i(block) { }
+        inline const_iterator(const const_iterator &o)
+        { i = reinterpret_cast<const const_iterator &>(o).i; }
+
+        inline const _Tp *data() const { return reinterpret_cast<_Tp*>(i->data()); }
+        inline const _Tp &value() const { return *reinterpret_cast<_Tp*>(i->data()); }
+        inline const _Tp &operator*() const { return *reinterpret_cast<_Tp*>(i->data()); }
+        inline const _Tp *operator->() const { return reinterpret_cast<_Tp*>(i->data()); }
+        inline bool operator==(const const_iterator &o) const { return i == o.i; }
+        inline bool operator!=(const const_iterator &o) const { return i != o.i; }
+
+        inline const_iterator &operator++() {
+            i = i->next;
+            return *this;
+        }
+    private:
+        GCBlock *i;
+    };
+    friend class const_iterator;
+
+    inline const_iterator constBegin() const { return const_iterator(m_head); }
+    inline const_iterator constEnd() const { return const_iterator(0); }
+    
 private:
     Q_DISABLE_COPY(GCAlloc)
 };
 
 } // namespace QScript
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT
 #endif // QSCRIPT_GC_H

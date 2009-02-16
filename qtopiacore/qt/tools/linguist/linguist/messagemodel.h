@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,9 @@
 #include <QList>
 #include <QHash>
 #include <QtCore/QLocale>
+#include <QtXml/QXmlDefaultHandler>
+
+QT_BEGIN_NAMESPACE
 
 class ContextItem;
 class QIODevice;
@@ -56,13 +53,14 @@ class QIODevice;
 class MessageItem
 {
 public:
-    MessageItem(const MetaTranslatorMessage &message,
-        const QString &text, const QString &comment, ContextItem *ctxtI);
+    MessageItem(const TranslatorMessage &message,
+                const QString &text, const QString &comment,
+                const QString &fileName, const int lineNumber, ContextItem *ctxtI);
     inline virtual ~MessageItem() {}
 
     inline virtual bool danger() const {return m_danger;}
 
-    void setTranslation(const QString &translation);    
+    void setTranslation(const QString &translation);
     void setFinished(bool finished);
     void setDanger(bool danger);
 
@@ -72,13 +70,15 @@ public:
     inline QString context() const {return QLatin1String(m.context());}
     inline QString sourceText() const {return tx;}
     inline QString comment() const {return com;}
+    inline QString fileName() const { return m_fileName; }
+    inline int lineNumber() const { return m_lineNumber; }
     inline QString translation() const {return m.translation();}
     inline QStringList translations() const { return m.translations(); }
     inline void setTranslations(const QStringList &translations) { m.setTranslations(translations); }
 
-    inline bool finished() const {return m.type() == MetaTranslatorMessage::Finished;}
-    inline bool obsolete() const { return m.type() == MetaTranslatorMessage::Obsolete; }
-    inline MetaTranslatorMessage message() const {return m;}
+    inline bool finished() const {return m.type() == TranslatorMessage::Finished;}
+    inline bool obsolete() const { return m.type() == TranslatorMessage::Obsolete; }
+    inline TranslatorMessage message() const {return m;}
     bool compare(const QString &findText, bool matchSubstring, Qt::CaseSensitivity cs)
     {
         bool found = false;
@@ -102,9 +102,11 @@ public:
     }
 
 private:
-    MetaTranslatorMessage m;
+    TranslatorMessage m;
     QString tx;
     QString com;
+    QString m_fileName;
+    int m_lineNumber;
     bool m_danger;
     ContextItem *cntxtItem;
 };
@@ -112,7 +114,7 @@ private:
 
 class MessageModel;
 
-typedef QList<MetaTranslatorMessage> TML;
+typedef QList<TranslatorMessage> TML;
 
 class ContextItem
 {
@@ -120,63 +122,60 @@ public:
     ContextItem(QString c, MessageModel *model);
     ~ContextItem();
 
-    inline bool danger() const {return dangerCount > 0;}
+    inline bool danger() const { return m_dangerCount > 0;}
 
     void appendToComment(const QString& x);
     void incrementFinishedCount();
     void decrementFinishedCount();
-    inline void incrementDangerCount() {++dangerCount;}
-    inline void decrementDangerCount() {--dangerCount;}
-    inline void incrementObsoleteCount() {++obsoleteCount;}
-    inline bool isContextObsolete() const {return (obsoleteCount == msgItemList.count());}
+    inline void incrementDangerCount() { ++m_dangerCount; }
+    inline void decrementDangerCount() { --m_dangerCount; }
+    inline void incrementObsoleteCount() { ++m_obsoleteCount; }
 
-    inline int finishedCount() const {
-        return m_finishedCount;
-    }
+    inline int finishedCount() const { return m_finishedCount; }
     inline int unFinishedCount() const {
-        return msgItemList.count() - m_finishedCount - obsoleteCount;
+        return msgItemList.count() - m_finishedCount - m_obsoleteCount;
     }
-    inline int obsolete() const {return obsoleteCount;}
+    inline int obsoleteCount() const { return m_obsoleteCount; }
 
-    inline QString context() const {return ctxt;}
-    inline QString comment() const {return com;}
-    inline QString fullContext() const {return com.trimmed();}
-    inline bool isFinished() const {return unFinishedCount() == 0;}
+    inline QString context() const { return ctxt; }
+    inline QString comment() const { return com; }
+    inline QString fullContext() const { return com.trimmed(); }
+
+    inline bool isObsolete() const { return m_obsoleteCount == msgItemList.count(); }
+    inline bool isFinished() const { return unFinishedCount() == 0; }
 
     MessageItem *messageItem(int i);
-    inline const QList<MessageItem *> messageItemList() const {return msgItemList;}
-    inline void appendMessageItem(MessageItem *msgItem) {msgItemList.append(msgItem);}
-    inline int messageItemsInList() const {return msgItemList.count();}
+    inline const QList<MessageItem *> messageItemList() const { return msgItemList; }
+    inline void appendMessageItem(MessageItem *msgItem) { msgItemList.append(msgItem); }
+    inline int messageItemsInList() const { return msgItemList.count(); }
 
-    static bool compare(const MessageItem *left, const MessageItem *right);
-    void sortMessages(int column, Qt::SortOrder order);
-    bool sortParameters(Qt::SortOrder &so, int &sc) const;
-
-    MessageModel *model() {return m_model; }
+    MessageModel *model() { return m_model; }
 
 private:
-    Qt::SortOrder sortOrder;
-    int sortColumn;
     QString com;
     QString ctxt;
     int m_finishedCount;
-    int dangerCount;
-    int obsoleteCount;
+    int m_dangerCount;
+    int m_obsoleteCount;
     QList<MessageItem *> msgItemList;
     MessageModel *m_model;
 };
 
-class ContextList : public QList<ContextItem *> {
+class ContextList : public QObject, public QList<ContextItem *>
+{
+    Q_OBJECT
+
 public:
     ContextList();
     MessageItem *messageItem(int context, int message) const;
     ContextItem *contextItem(int context) const;
 
-    bool isModified();
-    void setModified(bool isModified) 
-    { 
-        m_modified = isModified;
-    }
+    bool isModified() const { return m_modified; }
+    void setModified(bool isModified);
+
+signals:
+    void modifiedChanged(bool);
+
 private:
     bool m_modified;
 };
@@ -187,7 +186,6 @@ class MessageModel : public QAbstractItemModel
     Q_OBJECT
 public:
     MessageModel(QObject *parent = 0);
-    void init();
 
     class iterator
     {
@@ -218,7 +216,7 @@ public:
         int m_contextNo;
         int m_itemNo;
     };
-public:
+
     iterator begin()
     {
         return Iterator(0, 0);
@@ -236,11 +234,9 @@ public:
         return iterator(&cntxtList, contextNo, itemNo);
     }
 
+    enum { SortRole = Qt::UserRole };
 
-    enum {SourceText = 0x1, Translations = 0x2, Comments = 0x4};
-
-    // from QAbstractItemModel
-    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder);
+    enum { SourceText = 0x1, Translations = 0x2, Comments = 0x4 };
 
     // model index functions
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
@@ -255,7 +251,7 @@ public:
     inline const QList<ContextItem *> contextList() const {return cntxtList;}
     inline void appendContextItem(ContextItem *cntxtItem) {cntxtList.append(cntxtItem);}
     inline int contextsInList() const {return cntxtList.count();}
-    bool findMessage(int *contextNo, int *itemNo, const QString &findItem, int where, 
+    bool findMessage(int *contextNo, int *itemNo, const QString &findItem, int where,
         bool matchSubstring, Qt::CaseSensitivity cs = Qt::CaseSensitive);
     MessageItem *findMessage(const char *context, const char *sourcetext, const char *comment = 0) const;
 
@@ -268,9 +264,6 @@ public:
     void updateAll();
     void clearContextList();
 
-    static bool compare(const ContextItem *left, const ContextItem *right);
-    bool sortParameters(Qt::SortOrder &so, int &sc) const;
-
     ContextItem *contextItem(const QModelIndex &indx) const;
     MessageItem *messageItem(const QModelIndex &indx) const;
 
@@ -280,35 +273,21 @@ public:
     QModelIndex modelIndex(int context, int message, int column = 0);
     void setTranslation(const iterator &it, const QString &translation);
 
-    int getMessageCount() const 
-    {
-        return m_numMessages;
-    }
-
-    bool isEmpty() const
-    {
-        return m_numMessages == 0;
-    }
-
-    bool isModified() 
-    {
-        return cntxtList.isModified();
-    }
-
-    void setModified(bool dirty)
-    {
-        cntxtList.setModified(dirty);
-    }
+    int getMessageCount() const { return m_numMessages; }
+    bool isEmpty() const { return m_numMessages == 0; }
+    bool isModified() const { return cntxtList.isModified(); }
+    void setModified(bool dirty) { cntxtList.setModified(dirty); }
 
     bool load(const QString &fileName);
     bool save(const QString &fileName);
-    bool release(const QString& fileName, 
+    bool release(const QString& fileName,
                     bool verbose = false, bool ignoreUnfinished = false,
                     Translator::SaveMode mode = Translator::Stripped );
-    bool release(QIODevice *iod, 
+    bool release(QIODevice *iod,
                     bool verbose = false, bool ignoreUnfinished = false,
                     Translator::SaveMode mode = Translator::Stripped );
-    
+    QString srcFileName() { return m_srcFileName; }
+
     QTranslator *translator();
 
     QLocale::Language language() const;
@@ -320,38 +299,41 @@ public:
     void doCharCounting(const QString& text, int& trW, int& trC, int& trCS);
     void updateStatistics();
 
-    int getNumFinished() { return m_numFinished; }
-    int getNumNonobsolete() { return m_numNonobsolete; }
-    int getSrcWords() { return m_srcWords; }
-    int getSrcChars() { return m_srcChars; }
-    int getSrcCharsSpc() { return m_srcCharsSpc; }
+    int getNumFinished() const { return m_numFinished; }
+    int getNumNonobsolete() const { return m_numNonobsolete; }
+    int getSrcWords() const { return m_srcWords; }
+    int getSrcChars() const { return m_srcChars; }
+    int getSrcCharsSpc() const { return m_srcCharsSpc; }
 
-    void incrementFinishedCount()
-    {
-        ++m_numFinished;
-    }
-
+    void incrementFinishedCount() { ++m_numFinished; }
     void decrementFinishedCount()
     {
         if (m_numFinished > 0)
             --m_numFinished;
     }
 
+    static QPixmap *pxOn;
+    static QPixmap *pxOff;
+    static QPixmap *pxObsolete;
+    static QPixmap *pxDanger;
+    static QPixmap *pxWarning;
+    static QPixmap *pxEmpty;
+
 signals:
     void statsChanged(int words, int characters, int cs, int words2, int characters2, int cs2);
     void progressChanged(int finishedCount, int oldFinishedCount);
     void languageChanged(QLocale::Language lang);
+    void modifiedChanged(bool);
 
 private:
-    Qt::SortOrder sortOrder;
-    int sortColumn;
-
     QTranslator *m_translator;
     ContextList cntxtList;
 
     int m_numFinished;
     int m_numNonobsolete;
     int m_numMessages;
+
+    QString m_srcFileName;
 
     // For statistics
     int m_srcWords;
@@ -362,7 +344,17 @@ private:
     QLocale::Country m_country;
     QByteArray m_codecForTr;
 
+    class SimpleXmlErrorHandler : public QXmlDefaultHandler
+    {
+    public:
+        virtual bool fatalError(const QXmlParseException& exception);
+    };
+
+    SimpleXmlErrorHandler xmlErrorHandler;
+
     friend class iterator;
 };
+
+QT_END_NAMESPACE
 
 #endif //MESSAGEMODEL_H

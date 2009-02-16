@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,8 @@
 #ifndef QT_NO_DEBUG
 #include <qdebug.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QStyleOption
@@ -74,9 +70,7 @@
     The following code snippet shows how to use a specific
     QStyleOption subclass to paint a push button:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyPushButton::paintEvent
-    \printuntil /^\}/
+    \snippet doc/src/snippets/qstyleoption/main.cpp 0
 
     In our example, the control is a QStyle::CE_PushButton, and
     according to the QStyle::drawControl() documentation the
@@ -87,9 +81,7 @@
     For safety, you can use qstyleoption_cast() to ensure that the
     pointer type is correct. For example:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyStyle::drawPrimitive
-    \printuntil /^\}/
+    \snippet doc/src/snippets/qstyleoption/main.cpp 4
 
     The qstyleoption_cast() function will return 0 if the object to
     which \c option points is not of the correct type.
@@ -578,10 +570,7 @@ QStyleOptionFrame::QStyleOptionFrame(int version)
     QStyleOptionFrame and QStyleOptionFrameV2. One way to achieve this
     is to use the QStyleOptionFrameV2 copy constructor. For example:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyStyle()
-    \skipto QStyleOptionFrame
-    \printuntil }
+    \snippet doc/src/snippets/qstyleoption/main.cpp 1
 
     In the example above: If the \c frameOption's version is 1, \l
     FrameFeature is set to \l None for \c frameOptionV2. If \c
@@ -800,6 +789,9 @@ QStyleOptionViewItemV2 &QStyleOptionViewItemV2::operator=(const QStyleOptionView
     \value None      Indicates a normal item.
     \value WrapText  Indicates an item with wrapped text.
     \value Alternate Indicates that the item's background is rendered using alternateBase.
+    \value HasCheckIndicator Indicates that the item has a check state indicator.
+    \value HasDisplay        Indicates that the item has a display role.
+    \value HasDecoration     Indicates that the item has a decoration role.
 */
 
 QStyleOptionViewItemV3::QStyleOptionViewItemV3()
@@ -826,6 +818,120 @@ QStyleOptionViewItemV3::QStyleOptionViewItemV3(int version)
     : QStyleOptionViewItemV2(version)
 {
 }
+
+#ifndef QT_NO_ITEMVIEWS
+
+/*!
+    \class QStyleOptionViewItemV4
+    \brief The QStyleOptionViewItemV4 class is used to describe the
+    parameters necessary for drawing a frame in Qt 4.4 or above.
+    \since 4.4
+
+    QStyleOptionViewItemV4 inherits QStyleOptionViewItemV3.
+
+    An instance of the QStyleOptionViewItemV4 class has \l type SO_ViewItem
+    and \l version 4. The type is used internally by QStyleOption,
+    its subclasses, and qstyleoption_cast() to determine the type of
+    style option. In general you do not need to worry about this
+    unless you want to create your own QStyleOption subclass and your
+    own styles. The version is used by QStyleOption subclasses to
+    implement extensions without breaking compatibility. If you use
+    qstyleoption_cast(), you normally don't need to check it.
+
+    See QStyleOptionViewItemV3's detailed description for a discussion
+    of how to handle "V3" classes.
+
+    \sa QStyleOptionViewItem, QStyleOption
+*/
+
+/*!
+    \enum QStyleOptionViewItemV4::StyleOptionVersion
+
+    This enum is used to hold information about the version of the
+    style option, and is defined for each QStyleOption subclass.
+
+    \value Version 4
+
+    The version is used by QStyleOption subclasses to implement
+    extensions without breaking compatibility. If you use
+    qstyleoption_cast(), you normally don't need to check it.
+
+    \sa StyleOptionType
+*/
+
+/*!
+    \enum QStyleOptionViewItemV4::ViewItemPosition
+
+    This enum is used to represent the placement of the item on
+    a row. This can be used to draw items differently depending
+    on their placement, for example by putting rounded edges at
+    the beginning and end, and straight edges in between.
+
+    \value Invalid   The ViewItemPosition is unknown and should be
+                     disregarded.
+    \value Beginning The item appears at the beginning of the row.
+    \value Middle    The item appears in the middle of the row.
+    \value End       The item appears at the end of the row.
+    \value OnlyOne   The item is the only one on the row, and is
+                     therefore both at the beginning and the end.
+*/
+
+
+/*!
+    Constructs a QStyleOptionViewItemV4 object.
+*/
+QStyleOptionViewItemV4::QStyleOptionViewItemV4()
+: QStyleOptionViewItemV3(Version), checkState(Qt::Unchecked), viewItemPosition(QStyleOptionViewItemV4::Invalid)
+{
+}
+
+/*!
+    \fn QStyleOptionViewItemV4::QStyleOptionViewItemV4(const QStyleOptionViewItemV4 &other)
+
+    Constructs a copy of \a other.
+*/
+
+/*!
+    Constructs a QStyleOptionViewItemV4 copy of the \a other style option
+    which can be either of the QStyleOptionViewItemV3 or
+    QStyleOptionViewItem types.
+
+    \sa version
+*/
+QStyleOptionViewItemV4::QStyleOptionViewItemV4(const QStyleOptionViewItem &other)
+    : QStyleOptionViewItemV3(Version)
+{
+    (void)QStyleOptionViewItemV4::operator=(other);
+}
+
+/*!
+    Assigns the \a other style option to this style option. The \a
+    other style option can be either of the QStyleOptionViewItemV3 or
+    QStyleOptionViewItem types.
+*/
+QStyleOptionViewItemV4 &QStyleOptionViewItemV4::operator = (const QStyleOptionViewItem &other)
+{
+    QStyleOptionViewItemV3::operator=(other);
+    if (const QStyleOptionViewItemV4 *v4 = qstyleoption_cast<const QStyleOptionViewItemV4*>(&other)) {
+        index = v4->index;
+        checkState = v4->checkState;
+        text = v4->text;
+        viewItemPosition = v4->viewItemPosition;
+    } else {
+        viewItemPosition = QStyleOptionViewItemV4::Invalid;
+        checkState = Qt::Unchecked;
+    }
+    return *this;
+}
+
+/*!
+    \internal
+*/
+QStyleOptionViewItemV4::QStyleOptionViewItemV4(int version)
+    : QStyleOptionViewItemV3(version)
+{
+}
+#endif // QT_NO_ITEMVIEWS
 
 /*!
     \class QStyleOptionGroupBox
@@ -1664,10 +1770,7 @@ QStyleOptionTab::QStyleOptionTab(int version)
     QStyleOptionTab and QStyleOptionTabV2. One way to achieve this is
     to use the QStyleOptionTabV2 copy constructor. For example:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyStyle::MyStyle()
-    \skipto *tabOption
-    \printuntil }
+    \snippet doc/src/snippets/qstyleoption/main.cpp 3
 
     In the example above: If \c tabOption's version is 1, the extra
     member (\l iconSize) will be set to an invalid size for \c tabV2.
@@ -1939,10 +2042,7 @@ QStyleOptionProgressBar::QStyleOptionProgressBar(int version)
     to achieve this is to use the QStyleOptionProgressBarV2 copy
     constructor. For example:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyStyle::MyStyle()
-    \skipto *progressBarOption
-    \printuntil }
+    \snippet doc/src/snippets/qstyleoption/main.cpp 2
 
     In the example above: If the \c progressBarOption's version is 1,
     the extra members (\l orientation, \l invertedAppearance, and \l
@@ -4050,9 +4150,7 @@ QStyleOptionViewItem::QStyleOptionViewItem(int version)
 
     Example:
 
-    \quotefromfile snippets/qstyleoption/main.cpp
-    \skipto MyStyle::drawPrimitive
-    \printuntil /^\}/
+    \snippet doc/src/snippets/qstyleoption/main.cpp 4
 
     \sa QStyleOption::type, QStyleOption::version
 */
@@ -4693,20 +4791,7 @@ QStyleHintReturnVariant::QStyleHintReturnVariant() : QStyleHintReturn(Version, T
 
     Example:
 
-    \code
-        int MyStyle::styleHint(StyleHint stylehint, const QStyleOption *opt,
-                               const QWidget *widget, QStyleHintReturn* returnData) const;
-        {
-            if (stylehint == SH_RubberBand_Mask) {
-                const QStyleHintReturnMask *maskReturn =
-                        qstyleoption_cast<const QStyleHintReturnMask *>(hint);
-                if (maskReturn) {
-                    ...
-                }
-            }
-            ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_styles_qstyleoption.cpp 0
 
     \sa QStyleHintReturn::type, QStyleHintReturn::version
 */
@@ -4796,3 +4881,5 @@ QDebug operator<<(QDebug debug, const QStyleOption &option)
     return debug;
 }
 #endif
+
+QT_END_NAMESPACE

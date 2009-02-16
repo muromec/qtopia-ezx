@@ -10,6 +10,7 @@ HEADERS +=  \
 SOURCES += \
 	global/qglobal.cpp \
         global/qlibraryinfo.cpp \
+	global/qmalloc.cpp \
         global/qnumeric.cpp
 
 # qlibraryinfo.cpp includes qconfig.cpp

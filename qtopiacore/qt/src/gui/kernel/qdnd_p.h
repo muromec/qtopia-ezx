@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -71,23 +65,11 @@
 # include <objidl.h>
 #endif
 
-#ifndef QT_NO_DRAGANDDROP
+QT_BEGIN_NAMESPACE
 
 class QEventLoop;
 
-class QDragPrivate : public QObjectPrivate
-{
-public:
-    QWidget *source;
-    QWidget *target;
-    QMimeData *data;
-    QPixmap pixmap;
-    QPoint hotspot;
-    Qt::DropActions possible_actions;
-    Qt::DropAction executed_action;
-    QMap<Qt::DropAction, QPixmap> customCursors;
-    Qt::DropAction defaultDropAction;
-};
+#if !(defined(QT_NO_DRAGANDDROP) && defined(QT_NO_CLIPBOARD))
 
 class QInternalMimeData : public QMimeData
 {
@@ -111,6 +93,91 @@ protected:
     virtual bool hasFormat_sys(const QString &mimeType) const = 0;
     virtual QStringList formats_sys() const = 0;
     virtual QVariant retrieveData_sys(const QString &mimeType, QVariant::Type type) const = 0;
+};
+
+#ifdef Q_WS_WIN
+class QOleDataObject : public IDataObject
+{
+public:
+    explicit QOleDataObject(QMimeData *mimeData);
+    virtual ~QOleDataObject();
+
+    void releaseQt();
+    const QMimeData *mimeData() const;
+    DWORD reportedPerformedEffect() const;
+
+    // IUnknown methods
+    STDMETHOD(QueryInterface)(REFIID riid, void FAR* FAR* ppvObj);
+    STDMETHOD_(ULONG,AddRef)(void);
+    STDMETHOD_(ULONG,Release)(void);
+
+    // IDataObject methods
+    STDMETHOD(GetData)(LPFORMATETC pformatetcIn, LPSTGMEDIUM pmedium);
+    STDMETHOD(GetDataHere)(LPFORMATETC pformatetc, LPSTGMEDIUM pmedium);
+    STDMETHOD(QueryGetData)(LPFORMATETC pformatetc);
+    STDMETHOD(GetCanonicalFormatEtc)(LPFORMATETC pformatetc, LPFORMATETC pformatetcOut);
+    STDMETHOD(SetData)(LPFORMATETC pformatetc, STGMEDIUM FAR * pmedium,
+                       BOOL fRelease);
+    STDMETHOD(EnumFormatEtc)(DWORD dwDirection, LPENUMFORMATETC FAR* ppenumFormatEtc);
+    STDMETHOD(DAdvise)(FORMATETC FAR* pFormatetc, DWORD advf,
+                      LPADVISESINK pAdvSink, DWORD FAR* pdwConnection);
+    STDMETHOD(DUnadvise)(DWORD dwConnection);
+    STDMETHOD(EnumDAdvise)(LPENUMSTATDATA FAR* ppenumAdvise);
+
+private:
+    ULONG m_refs;
+    QPointer<QMimeData> data;
+    int CF_PERFORMEDDROPEFFECT;
+    DWORD performedEffect;
+};
+
+class QOleEnumFmtEtc : public IEnumFORMATETC
+{
+public:
+    explicit QOleEnumFmtEtc(const QVector<FORMATETC> &fmtetcs);
+    explicit QOleEnumFmtEtc(const QVector<LPFORMATETC> &lpfmtetcs);
+    virtual ~QOleEnumFmtEtc();
+
+    bool isNull() const;
+
+    // IUnknown methods
+    STDMETHOD(QueryInterface)(REFIID riid, void FAR* FAR* ppvObj);
+    STDMETHOD_(ULONG,AddRef)(void);
+    STDMETHOD_(ULONG,Release)(void);
+
+    // IEnumFORMATETC methods
+    STDMETHOD(Next)(ULONG celt, LPFORMATETC rgelt, ULONG FAR* pceltFetched);
+    STDMETHOD(Skip)(ULONG celt);
+    STDMETHOD(Reset)(void);
+    STDMETHOD(Clone)(LPENUMFORMATETC FAR* newEnum);
+
+private:
+    bool copyFormatEtc(LPFORMATETC dest, LPFORMATETC src) const;
+
+    ULONG m_dwRefs;
+    ULONG m_nIndex;
+    QVector<LPFORMATETC> m_lpfmtetcs;
+    bool m_isNull;
+};
+
+#endif
+
+#endif //QT_NO_DRAGANDDROP && QT_NO_CLIPBOARD
+
+#ifndef QT_NO_DRAGANDDROP
+
+class QDragPrivate : public QObjectPrivate
+{
+public:
+    QWidget *source;
+    QWidget *target;
+    QMimeData *data;
+    QPixmap pixmap;
+    QPoint hotspot;
+    Qt::DropActions possible_actions;
+    Qt::DropAction executed_action;
+    QMap<Qt::DropAction, QPixmap> customCursors;
+    Qt::DropAction defaultDropAction;
 };
 
 class QDropData : public QInternalMimeData
@@ -204,73 +271,41 @@ private:
 
 #if defined(Q_WS_WIN)
 
-class QOleDataObject : public IDataObject
+class QOleDropTarget : public IDropTarget
 {
 public:
-    explicit QOleDataObject(QMimeData *mimeData);
-    virtual ~QOleDataObject();
+    QOleDropTarget(QWidget* w);
+    virtual ~QOleDropTarget() {}
 
     void releaseQt();
-    const QMimeData *mimeData() const;
-    DWORD reportedPerformedEffect() const;
 
     // IUnknown methods
     STDMETHOD(QueryInterface)(REFIID riid, void FAR* FAR* ppvObj);
-    STDMETHOD_(ULONG,AddRef)(void);
-    STDMETHOD_(ULONG,Release)(void);
+    STDMETHOD_(ULONG, AddRef)(void);
+    STDMETHOD_(ULONG, Release)(void);
 
-    // IDataObject methods
-    STDMETHOD(GetData)(LPFORMATETC pformatetcIn, LPSTGMEDIUM pmedium);
-    STDMETHOD(GetDataHere)(LPFORMATETC pformatetc, LPSTGMEDIUM pmedium);
-    STDMETHOD(QueryGetData)(LPFORMATETC pformatetc);
-    STDMETHOD(GetCanonicalFormatEtc)(LPFORMATETC pformatetc, LPFORMATETC pformatetcOut);
-    STDMETHOD(SetData)(LPFORMATETC pformatetc, STGMEDIUM FAR * pmedium,
-                       BOOL fRelease);
-    STDMETHOD(EnumFormatEtc)(DWORD dwDirection, LPENUMFORMATETC FAR* ppenumFormatEtc);
-    STDMETHOD(DAdvise)(FORMATETC FAR* pFormatetc, DWORD advf,
-                      LPADVISESINK pAdvSink, DWORD FAR* pdwConnection);
-    STDMETHOD(DUnadvise)(DWORD dwConnection);
-    STDMETHOD(EnumDAdvise)(LPENUMSTATDATA FAR* ppenumAdvise);
+    // IDropTarget methods
+    STDMETHOD(DragEnter)(LPDATAOBJECT pDataObj, DWORD grfKeyState, POINTL pt, LPDWORD pdwEffect);
+    STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, LPDWORD pdwEffect);
+    STDMETHOD(DragLeave)();
+    STDMETHOD(Drop)(LPDATAOBJECT pDataObj, DWORD grfKeyState, POINTL pt, LPDWORD pdwEffect);
 
 private:
     ULONG m_refs;
-    QPointer<QMimeData> data;
-    int CF_PERFORMEDDROPEFFECT;
-    DWORD performedEffect;
-};
+    QWidget* widget;
+    QPointer<QWidget> currentWidget;
+    QRect answerRect;
+    QPoint lastPoint;
+    DWORD chosenEffect;
+    DWORD lastKeyState;
 
-
-class QOleEnumFmtEtc : public IEnumFORMATETC
-{
-public:
-    explicit QOleEnumFmtEtc(const QVector<FORMATETC> &fmtetcs);
-    explicit QOleEnumFmtEtc(const QVector<LPFORMATETC> &lpfmtetcs);
-    virtual ~QOleEnumFmtEtc();
-
-    bool isNull() const;
-
-    // IUnknown methods
-    STDMETHOD(QueryInterface)(REFIID riid, void FAR* FAR* ppvObj);
-    STDMETHOD_(ULONG,AddRef)(void);
-    STDMETHOD_(ULONG,Release)(void);
-
-    // IEnumFORMATETC methods
-    STDMETHOD(Next)(ULONG celt, LPFORMATETC rgelt, ULONG FAR* pceltFetched);
-    STDMETHOD(Skip)(ULONG celt);
-    STDMETHOD(Reset)(void);
-    STDMETHOD(Clone)(LPENUMFORMATETC FAR* newEnum);
-
-private:
-    bool copyFormatEtc(LPFORMATETC dest, LPFORMATETC src) const;
-
-    ULONG m_dwRefs;
-    ULONG m_nIndex;
-    QVector<LPFORMATETC> m_lpfmtetcs;
-    bool m_isNull;
+    void sendDragEnterEvent(QWidget *to, DWORD grfKeyState, POINTL pt, LPDWORD pdwEffect);
 };
 
 #endif
 
 #endif // QT_NO_DRAGANDDROP
+
+QT_END_NAMESPACE
 
 #endif // QDND_P_H

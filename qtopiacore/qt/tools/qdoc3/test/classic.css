@@ -16,6 +16,30 @@ a:visited
   text-decoration: none
 }
 
+a.obsolete
+{
+  color: #661100;
+  text-decoration: none
+}
+
+a.compat
+{
+  color: #661100;
+  text-decoration: none
+}
+
+a.obsolete:visited
+{
+  color: #995500;
+  text-decoration: none
+}
+
+a.compat:visited
+{
+  color: #995500;
+  text-decoration: none
+}
+
 td.postheader
 {
   font-family: sans-serif
@@ -89,6 +113,11 @@ span.comment
 span.string,span.char
 {
   color: darkgreen;
+}
+
+.title
+{
+    text-align: center
 }
 
 .subtitle

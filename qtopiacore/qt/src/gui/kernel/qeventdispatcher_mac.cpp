@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 #include "qplatformdefs.h"
@@ -49,9 +43,14 @@
 #include "qsocketnotifier.h"
 #include "private/qwidget_p.h"
 #include "private/qthread_p.h"
+#include "private/qapplication_p.h"
 
 #ifndef QT_NO_THREAD
 #  include "qmutex.h"
+
+QT_BEGIN_NAMESPACE
+
+QT_USE_NAMESPACE
 #endif
 
 
@@ -68,6 +67,11 @@ extern bool qt_is_gui_used; //qapplication.cpp
 
 static EventLoopTimerUPP timerUPP = 0;
 
+static inline CFRunLoopRef runLoopForCarbonLoop(EventLoopRef eventLoop)
+{
+    return reinterpret_cast<CFRunLoopRef>(const_cast<void *>(GetCFRunLoopFromEventLoop(eventLoop)));
+}
+
 /*****************************************************************************
   Timers stuff
  *****************************************************************************/
@@ -82,7 +86,7 @@ static void qt_mac_activate_timer(EventLoopTimerRef, void *data)
            and the return (down 4 lines) */
         QTimerEvent e(tmr->id);
         QApplication::sendEvent(tmr->obj, &e);
-        QApplication::flush();
+        qApp->sendPostedEvents();
         return;
     }
     if(tmr->pending)
@@ -102,7 +106,7 @@ void QEventDispatcherMac::registerTimer(int timerId, int interval, QObject *obj)
         return;
     }
 #endif
-    
+
     Q_D(QEventDispatcherMac);
     if (!d->macTimerList)
         d->macTimerList = new MacTimerList;
@@ -149,7 +153,7 @@ bool QEventDispatcherMac::unregisterTimer(int id)
         return false;
     }
 #endif
-    
+
     Q_D(QEventDispatcherMac);
     if(!d->macTimerList || id <= 0)
         return false;                                // not init'd or invalid timer
@@ -184,7 +188,7 @@ bool QEventDispatcherMac::unregisterTimers(QObject *obj)
         return false;
     }
 #endif
-    
+
     Q_D(QEventDispatcherMac);
     if(!d->macTimerList)                                // not initialized
         return false;
@@ -459,7 +463,8 @@ bool QEventDispatcherMac::processEvents(QEventLoop::ProcessEventsFlags flags)
 
     bool retVal = false;
     for (;;) {
-        QApplication::sendPostedEvents(0, (flags & QEventLoop::DeferredDeletion) ? -1 : 0);
+        QApplicationPrivate::sendPostedEvents(0, 0, d->threadData);
+
         if (d->activateTimers() > 0) //send null timers
             retVal = true;
 
@@ -495,14 +500,15 @@ bool QEventDispatcherMac::processEvents(QEventLoop::ProcessEventsFlags flags)
             ReleaseEvent(event);
         } while(!d->interrupt && GetNumEventsInQueue(GetMainEventQueue()) > 0);
 
-        bool canWait = (!retVal
-                        && d->threadData->canWait
+        bool canWait = (d->threadData->canWait
+                        && !retVal
                         && !d->interrupt
                         && (flags & QEventLoop::WaitForMoreEvents)
                         && !d->zero_timer_count);
         if (canWait) {
             emit aboutToBlock();
             while(CFRunLoopRunInMode(kCFRunLoopDefaultMode, 1.0e20, true) == kCFRunLoopRunTimedOut);
+            flags &= ~QEventLoop::WaitForMoreEvents;
             emit awake();
         } else {
             CFRunLoopRunInMode(kCFRunLoopDefaultMode, kEventDurationNoWait, true);
@@ -538,15 +544,14 @@ int QEventDispatcherMacPrivate::activateTimers()
 
 void QEventDispatcherMac::wakeUp()
 {
-    CFRunLoopStop((CFRunLoopRef)GetCFRunLoopFromEventLoop(GetMainEventLoop()));
+    Q_D(QEventDispatcherMac);
+    CFRunLoopSourceSignal(d->postedEventsSource);
+    CFRunLoopWakeUp(runLoopForCarbonLoop(GetMainEventLoop()));
 }
 
 void QEventDispatcherMac::flush()
 {
-    QMacWindowChangeEvent::exec(true);
-
     if(qApp) {
-        qApp->sendPostedEvents();
         QWidgetList tlws = QApplication::topLevelWidgets();
         for(int i = 0; i < tlws.size(); i++) {
             QWidget *tlw = tlws.at(i);
@@ -568,7 +573,7 @@ int qt_mac_send_zero_timers()
 
 class QMacBlockingFunction::Object : public QObject
 {
-    QAtomic ref;
+    QAtomicInt ref;
 public:
     Object() { startTimer(10); }
 
@@ -579,7 +584,7 @@ protected:
     void timerEvent(QTimerEvent *)
     {
         if(qt_mac_send_zero_timers())
-            QApplication::flush();
+            qApp->sendPostedEvents();
     }
 };
 QMacBlockingFunction::Object *QMacBlockingFunction::block = 0;
@@ -609,7 +614,29 @@ QEventDispatcherMacPrivate::QEventDispatcherMacPrivate()
 
 QEventDispatcherMac::QEventDispatcherMac(QObject *parent)
     : QEventDispatcherUNIX(*new QEventDispatcherMacPrivate, parent)
-{ }
+{
+    Q_D(QEventDispatcherMac);
+    CFRunLoopSourceContext context;
+    bzero(&context, sizeof(CFRunLoopSourceContext));
+    context.info = d->threadData;
+    context.equal = QEventDispatcherMacPrivate::postedEventSourceEqualCallback;
+    context.perform = QEventDispatcherMacPrivate::postedEventsSourcePerformCallback;
+    d->postedEventsSource = CFRunLoopSourceCreate(0, 0, &context);
+    Q_ASSERT(d->postedEventsSource);
+    CFRunLoopAddSource(runLoopForCarbonLoop(GetMainEventLoop()), d->postedEventsSource,
+                       kCFRunLoopCommonModes);
+
+}
+
+
+Boolean QEventDispatcherMacPrivate::postedEventSourceEqualCallback(const void *info1, const void *info2)
+{
+    return info1 == info2;
+}
+
+void QEventDispatcherMacPrivate::postedEventsSourcePerformCallback(void *)
+{
+}
 
 QEventDispatcherMac::~QEventDispatcherMac()
 {
@@ -647,5 +674,10 @@ QEventDispatcherMac::~QEventDispatcherMac()
             CFRelease(socketInfo->socket);
         }
     }
+    CFRunLoopRemoveSource(runLoopForCarbonLoop(GetMainEventLoop()), d->postedEventsSource, kCFRunLoopCommonModes);
+    CFRelease(d->postedEventsSource);
+    d->postedEventsSource = 0;
 }
 
+
+QT_END_NAMESPACE

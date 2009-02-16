@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,14 +44,8 @@
 
 QT_BEGIN_HEADER
 
-QT_MODULE(OpenGL)
-
-#ifdef QT3_SUPPORT
-#define QGL_VERSION        460
-#define QGL_VERSION_STR        "4.6"
-Q_OPENGL_EXPORT inline QT3_SUPPORT const char *qGLVersion() {
-    return QGL_VERSION_STR;
-}
+#if defined(Q_WS_QWS) || defined(Q_OS_WINCE)
+#define QT_OPENGL_ES 1
 #endif
 
 #if defined(Q_WS_WIN)
@@ -67,7 +55,7 @@ Q_OPENGL_EXPORT inline QT3_SUPPORT const char *qGLVersion() {
 #if defined(Q_WS_MAC)
 # include <OpenGL/gl.h>
 # include <OpenGL/glu.h>
-#elif defined(Q_WS_QWS)
+#elif defined(QT_OPENGL_ES)
 # include <GLES/gl.h>
 #ifndef GL_DOUBLE
 # define GL_DOUBLE GL_FLOAT
@@ -81,6 +69,10 @@ typedef GLfloat GLdouble;
 #   include <GL/glu.h>
 # endif
 #endif
+
+QT_BEGIN_NAMESPACE
+
+QT_MODULE(OpenGL)
 
 #if defined(Q_WS_MAC) && defined (QT_BUILD_OPENGL_LIB) && !defined(Q_WS_MAC64) && !defined(QDOC)
 #define Q_MAC_COMPAT_GL_FUNCTIONS
@@ -105,6 +97,14 @@ typedef QMacGLCompatTypes<GLint>::CompatGLint QMacCompatGLint;
 typedef QMacGLCompatTypes<GLint>::CompatGLuint QMacCompatGLuint;
 typedef QMacGLCompatTypes<GLint>::CompatGLenum QMacCompatGLenum;
 
+#endif
+
+#ifdef QT3_SUPPORT
+#define QGL_VERSION        460
+#define QGL_VERSION_STR        "4.6"
+Q_OPENGL_EXPORT inline QT3_SUPPORT const char *qGLVersion() {
+    return QGL_VERSION_STR;
+}
 #endif
 
 #if defined(Q_WS_WIN) || defined(Q_WS_MAC)
@@ -287,6 +287,9 @@ public:
 
     void deleteTexture(GLuint tx_id);
 
+    void drawTexture(const QRectF &target, GLuint textureId, GLenum textureTarget = GL_TEXTURE_2D);
+    void drawTexture(const QPointF &point, GLuint textureId, GLenum textureTarget = GL_TEXTURE_2D);
+
 #ifdef Q_MAC_COMPAT_GL_FUNCTIONS
     GLuint bindTexture(const QImage &image, QMacCompatGLenum = GL_TEXTURE_2D,
                        QMacCompatGLint format = GL_RGBA);
@@ -294,6 +297,9 @@ public:
                        QMacCompatGLint format = GL_RGBA);
 
     void deleteTexture(QMacCompatGLuint tx_id);
+    
+    void drawTexture(const QRectF &target, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget = GL_TEXTURE_2D);
+    void drawTexture(const QPointF &point, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget = GL_TEXTURE_2D);
 #endif
 
     static void setTextureCacheLimit(int size);
@@ -347,11 +353,11 @@ private:
 #ifdef Q_WS_MAC
     friend class QMacGLWindowChangeEvent;
     void updatePaintDevice();
+    friend QGLContextPrivate *qt_phonon_get_dptr(const QGLContext *);
 #endif
 #ifdef Q_WS_WIN
     friend class QGLFramebufferObject;
     friend class QGLFramebufferObjectPrivate;
-    friend QGLContextPrivate *qt_glctx_get_dptr(QGLContext *);
     friend bool qt_resolve_GLSL_functions(QGLContext *ctx);
     friend bool qt_createGLSLProgram(QGLContext *ctx, GLuint &program, const char *shader_src, GLuint &shader);
 #endif
@@ -429,6 +435,9 @@ public:
 
     void deleteTexture(GLuint tx_id);
 
+    void drawTexture(const QRectF &target, GLuint textureId, GLenum textureTarget = GL_TEXTURE_2D);
+    void drawTexture(const QPointF &point, GLuint textureId, GLenum textureTarget = GL_TEXTURE_2D);
+
 #ifdef Q_MAC_COMPAT_GL_FUNCTIONS
     GLuint bindTexture(const QImage &image, QMacCompatGLenum = GL_TEXTURE_2D,
                        QMacCompatGLint format = GL_RGBA);
@@ -436,6 +445,9 @@ public:
                        QMacCompatGLint format = GL_RGBA);
 
     void deleteTexture(QMacCompatGLuint tx_id);
+
+    void drawTexture(const QRectF &target, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget = GL_TEXTURE_2D);
+    void drawTexture(const QPointF &point, QMacCompatGLuint textureId, QMacCompatGLenum textureTarget = GL_TEXTURE_2D);
 #endif
 
 public Q_SLOTS:
@@ -530,6 +542,8 @@ inline bool QGLFormat::sampleBuffers() const
 {
     return testOption(QGL::SampleBuffers);
 }
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

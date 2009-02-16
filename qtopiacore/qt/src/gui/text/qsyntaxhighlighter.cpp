@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,8 @@
 #include <qdebug.h>
 #include <qtextedit.h>
 #include <qtimer.h>
+
+QT_BEGIN_NAMESPACE
 
 class QSyntaxHighlighterPrivate : public QObjectPrivate
 {
@@ -156,7 +152,7 @@ void QSyntaxHighlighterPrivate::_q_reformatBlocks(int from, int charsRemoved, in
     QTextBlock block = doc->findBlock(from);
     if (!block.isValid())
         return;
-    
+
     int endPosition;
     QTextBlock lastBlock = doc->findBlock(from + charsAdded);
     if (lastBlock.isValid())
@@ -199,6 +195,7 @@ void QSyntaxHighlighterPrivate::reformatBlock(QTextBlock block)
 
 /*!
     \class QSyntaxHighlighter
+    \reentrant
 
     \brief The QSyntaxHighlighter class allows you to define syntax
     highlighting rules, and in addition you can use the class to query
@@ -222,10 +219,7 @@ void QSyntaxHighlighterPrivate::reformatBlock(QTextBlock block)
     pass it the QTextEdit or QTextDocument that you want the syntax
     highlighting to be applied to. For example:
 
-    \code
-           QTextEdit *editor = new QTextEdit;
-           MyHighlighter *highlighter = new MyHighlighter(editor->document());
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qsyntaxhighlighter.cpp 0
 
     After this your highlightBlock() function will be called
     automatically whenever necessary. Use your highlightBlock()
@@ -234,23 +228,7 @@ void QSyntaxHighlighterPrivate::reformatBlock(QTextBlock block)
     setFormat() function which applies a given QTextCharFormat on
     the current text block. For example:
 
-    \code
-        void MyHighlighter::highlightBlock(const QString &text)
-        {
-            QTextCharFormat myClassFormat;
-            myClassFormat.setFontWeight(QFont::Bold);
-            myClassFormat.setForeground(Qt::darkMagenta);
-            QString pattern = "\\bMy[A-Za-z]+\\b";
-
-            QRegExp expression(pattern);
-            int index = text.indexOf(expression);
-            while (index >= 0) {
-                int length = expression.matchedLength();
-                setFormat(index, length, myClassFormat);
-                index = text.indexOf(expression, index + length);
-             }
-         }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qsyntaxhighlighter.cpp 1
 
     Some syntaxes can have constructs that span several text
     blocks. For example, a C++ syntax highlighter should be able to
@@ -273,34 +251,7 @@ void QSyntaxHighlighterPrivate::reformatBlock(QTextBlock block)
     For example, if you're writing a simple C++ syntax highlighter,
     you might designate 1 to signify "in comment":
 
-    \code
-        QTextCharFormat multiLineCommentFormat;
-        multiLineCommentFormat.setForeground(Qt::red);
-
-        QRegExp startExpression("/\\*");
-        QRegExp endExpression("\\* /");
-
-        setCurrentBlockState(0);
-
-        int startIndex = 0;
-        if (previousBlockState() != 1)
-            startIndex = text.indexOf(startExpression);
-
-        while (startIndex >= 0) {
-           int endIndex = text.indexOf(endExpression, startIndex);
-           int commentLength;
-           if (endIndex == -1) {
-               setCurrentBlockState(1);
-               commentLength = text.length() - startIndex;
-           } else {
-               commentLength = endIndex - startIndex
-                               + endExpression.matchedLength();
-           }
-           setFormat(startIndex, commentLength, multiLineCommentFormat);
-           startIndex = text.indexOf(startExpression,
-                                     startIndex + commentLength);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qsyntaxhighlighter.cpp 2
 
     In the example above, we first set the current block state to
     0. Then, if the previous block ended within a comment, we higlight
@@ -432,23 +383,7 @@ void QSyntaxHighlighter::rehighlight()
     setFormat() as often as necessary to apply any font and color
     changes that you require. For example:
 
-    \code
-        void MyHighlighter::highlightBlock(const QString &text)
-        {
-            QTextCharFormat myClassFormat;
-            myClassFormat.setFontWeight(QFont::Bold);
-            myClassFormat.setForeground(Qt::darkMagenta);
-            QString pattern = "\\bMy[A-Za-z]+\\b";
-
-            QRegExp expression(pattern);
-            int index = text.indexOf(expression);
-            while (index >= 0) {
-                int length = expression.matchedLength();
-                setFormat(index, length, myClassFormat);
-                index = text.indexOf(expression, index + length);
-             }
-         }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qsyntaxhighlighter.cpp 3
 
     Some syntaxes can have constructs that span several text
     blocks. For example, a C++ syntax highlighter should be able to
@@ -619,18 +554,7 @@ void QSyntaxHighlighter::setCurrentBlockState(int newState)
     and store their relative position and the actual QChar in a simple
     class derived from QTextBlockUserData:
 
-    \code
-        struct ParenthesisInfo
-        {
-            QChar char;
-            int position;
-        };
-
-        struct BlockData : public QTextBlockUserData
-        {
-            QVector<ParenthesisInfo> parentheses;
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qsyntaxhighlighter.cpp 4
 
     During cursor navigation in the associated editor, you can ask the
     current QTextBlock (retrieved using the QTextCursor::block()
@@ -671,6 +595,19 @@ QTextBlockUserData *QSyntaxHighlighter::currentBlockUserData() const
 
     return d->currentBlock.userData();
 }
+
+/*!
+    \since 4.4
+
+    Returns the current text block.
+ */
+QTextBlock QSyntaxHighlighter::currentBlock() const
+{
+    Q_D(const QSyntaxHighlighter);
+    return d->currentBlock;
+}
+
+QT_END_NAMESPACE
 
 #include "moc_qsyntaxhighlighter.cpp"
 

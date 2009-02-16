@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,12 +64,15 @@
 #include <private/qpainterpath_p.h>
 #include <qdebug.h>
 #include <private/qdrawhelper_p.h>
+#include <private/qmutexpool_p.h>
 
 #ifndef Q_OS_WIN
 #include <unistd.h>
 #endif
 #include <stdlib.h>
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 static bool qt_gen_epsf = false;
 
@@ -192,7 +189,9 @@ QPSPrintEnginePrivate::~QPSPrintEnginePrivate()
 {
 }
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <qdebug.h>
+QT_END_INCLUDE_NAMESPACE
 
 static void ps_r7(QPdf::ByteStream& stream, const char * s, int l)
 {
@@ -291,7 +290,7 @@ static const char *const filters[3] = {
     "/DCTDecode filter "
 };
 
-static QByteArray compress(const QImage &img, bool gray, int *format)
+static QByteArray compressHelper(const QImage &img, bool gray, int *format)
 {
     // we can't use premultiplied here
     QImage image = img;
@@ -417,7 +416,7 @@ void QPSPrintEnginePrivate::drawImage(qreal x, qreal y, qreal w, qreal h,
 
         if (!mask.isNull()) {
             int format;
-            out = ::compress(mask, true, &format);
+            out = compressHelper(mask, true, &format);
             size = (width+7)/8*height;
             *currentPage << "/mask currentfile/ASCII85Decode filter"
                          << filters[format]
@@ -437,7 +436,7 @@ void QPSPrintEnginePrivate::drawImage(qreal x, qreal y, qreal w, qreal h,
         }
 
         int format;
-        out = ::compress(img, gray, &format);
+        out = compressHelper(img, gray, &format);
         *currentPage << "/sl currentfile/ASCII85Decode filter"
                      << filters[format]
                      << size << " string readstring\n";
@@ -624,8 +623,16 @@ static void ignoreSigPipe(bool b)
 {
 #ifndef QT_NO_LPR
     static struct sigaction *users_sigpipe_handler = 0;
+    static int lockCount = 0;
+
+#ifndef QT_NO_THREAD
+    QMutexLocker locker(QMutexPool::globalInstanceGet(&users_sigpipe_handler));
+#endif
 
     if (b) {
+        if (lockCount++ > 0)
+            return;
+
         if (users_sigpipe_handler != 0)
             return; // already ignoring sigpipe
 
@@ -641,6 +648,9 @@ static void ignoreSigPipe(bool b)
         }
     }
     else {
+        if (--lockCount > 0)
+            return;
+
         if (users_sigpipe_handler == 0)
             return; // not ignoring sigpipe
 
@@ -744,11 +754,16 @@ void QPSPrintEngine::setBrush()
     *d->currentPage << "scn\n";
 #endif
     QColor rgba = d->brush.color();
-    *d->currentPage << rgba.redF()
-                    << rgba.greenF()
-                    << rgba.blueF()
-                    << "scn\n";
-    *d->currentPage << "/BSt " << d->brush.style() << "def\n";
+    if (d->colorMode == QPrinter::GrayScale) {
+        qreal gray = qGray(rgba.rgba())/255.;
+        *d->currentPage << gray << gray << gray;
+    } else {
+        *d->currentPage << rgba.redF()
+                        << rgba.greenF()
+                        << rgba.blueF();
+    }
+    *d->currentPage << "scn\n"
+                    << "/BSt " << d->brush.style() << "def\n";
 }
 
 void QPSPrintEngine::drawImageInternal(const QRectF &r, QImage image, bool bitmap)
@@ -860,6 +875,6 @@ QPrinter::PrinterState QPSPrintEngine::printerState() const
     return d->printerState;
 }
 
+QT_END_NAMESPACE
+
 #endif // QT_NO_PRINTER
-
-

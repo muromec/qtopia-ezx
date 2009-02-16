@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include "qstyle.h"
 #include "qvariant.h"
 #include "qwidget_p.h"
+
+QT_BEGIN_NAMESPACE
 
 inline static QRect fromLayoutItemRect(QWidgetPrivate *priv, const QRect &rect)
 {
@@ -387,19 +383,7 @@ int QLayoutItem::minimumHeightForWidth(int w) const
 
     Reimplement this function in layout managers that support height
     for width. A typical implementation will look like this:
-    \code
-        int MyLayout::heightForWidth(int w) const
-        {
-            if (cache_dirty || cached_width != w) {
-                // not all C++ compilers support "mutable"
-                MyLayout *that = (MyLayout*)this;
-                int h = calculateHeightForWidth(w);
-                that->cached_hfw = h;
-                return h;
-            }
-            return cached_hfw;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qlayoutitem.cpp 0
 
     Caching is strongly recommended; without it layout will take
     exponential time.
@@ -452,16 +436,37 @@ void QWidgetItem::setGeometry(const QRect &rect)
     QRect r = !wid->testAttribute(Qt::WA_LayoutUsesWidgetRect)
             ? fromLayoutItemRect(wid->d_func(), rect)
             : rect;
-    QSize s = r.size().boundedTo(qSmartMaxSize(this));
+    const QSize widgetRectSurplus = r.size() - rect.size(); 
+
+    /* 
+       For historical reasons, this code is done using widget rect 
+       coordinates, not layout item rect coordinates. However, 
+       QWidgetItem's sizeHint(), maximumSize(), and heightForWidth() 
+       all work in terms of layout item rect coordinates, so we have to 
+       add or subtract widgetRectSurplus here and there. The code could 
+       be much simpler if we did everything using layout item rect 
+       coordinates and did the conversion right before the call to 
+       QWidget::setGeometry(). 
+     */ 
+
+    QSize s = r.size().boundedTo(maximumSize() + widgetRectSurplus);  
     int x = r.x();
     int y = r.y();
     if (align & (Qt::AlignHorizontal_Mask | Qt::AlignVertical_Mask)) {
-        QSize pref = wid->sizeHint().expandedTo(wid->minimumSize()); //###
+        QSize pref(sizeHint());
+        QSizePolicy sp = wid->sizePolicy();
+        if (sp.horizontalPolicy() == QSizePolicy::Ignored)
+            pref.setWidth(wid->sizeHint().expandedTo(wid->minimumSize()).width());
+        if (sp.verticalPolicy() == QSizePolicy::Ignored)
+            pref.setHeight(wid->sizeHint().expandedTo(wid->minimumSize()).height());
+        pref += widgetRectSurplus;
         if (align & Qt::AlignHorizontal_Mask)
             s.setWidth(qMin(s.width(), pref.width()));
         if (align & Qt::AlignVertical_Mask) {
             if (hasHeightForWidth())
-                s.setHeight(qMin(s.height(), heightForWidth(s.width())));
+                s.setHeight(qMin(s.height(), 
+                                 heightForWidth(s.width() - widgetRectSurplus.width()) 
+                                 + widgetRectSurplus.height()));
             else
                 s.setHeight(qMin(s.height(), pref.height()));
         }
@@ -561,9 +566,10 @@ Qt::Orientations QWidgetItem::expandingDirections() const
 
     Qt::Orientations e = wid->sizePolicy().expandingDirections();
     /*
+      ### Qt 4.0:
       If the layout is expanding, we make the widget expanding, even if
       its own size policy isn't expanding. This behavior should be
-      reconsidered in Qt 4.0. (###)
+      reconsidered.
     */
     if (wid->layout()) {
         if (wid->sizePolicy().horizontalPolicy() & QSizePolicy::GrowFlag
@@ -672,3 +678,154 @@ bool QWidgetItem::isEmpty() const
 {
     return wid->isHidden() || wid->isWindow();
 }
+
+/*!
+    \class QWidgetItemV2
+    \internal
+*/
+
+inline bool QWidgetItemV2::useSizeCache() const
+{
+    return wid->d_func()->widgetItem == this;
+}
+
+void QWidgetItemV2::updateCacheIfNecessary() const
+{
+    if (q_cachedMinimumSize.width() != Dirty)
+        return;
+
+    const QSize sizeHint(wid->sizeHint());
+    const QSize minimumSizeHint(wid->minimumSizeHint());
+    const QSize minimumSize(wid->minimumSize());
+    const QSize maximumSize(wid->maximumSize());
+    const QSizePolicy sizePolicy(wid->sizePolicy());
+    const QSize expandedSizeHint(sizeHint.expandedTo(minimumSizeHint));
+
+    const QSize smartMinSize(qSmartMinSize(sizeHint, minimumSizeHint, minimumSize, maximumSize, sizePolicy));
+    const QSize smartMaxSize(qSmartMaxSize(expandedSizeHint, minimumSize, maximumSize, sizePolicy, align));
+
+    const bool useLayoutItemRect = !wid->testAttribute(Qt::WA_LayoutUsesWidgetRect);
+
+    q_cachedMinimumSize = useLayoutItemRect
+           ? toLayoutItemSize(wid->d_func(), smartMinSize)
+           : smartMinSize;
+
+    q_cachedSizeHint = expandedSizeHint;
+    q_cachedSizeHint = q_cachedSizeHint.boundedTo(maximumSize)
+                                       .expandedTo(minimumSize);
+    q_cachedSizeHint = useLayoutItemRect
+           ? toLayoutItemSize(wid->d_func(), q_cachedSizeHint)
+           : q_cachedSizeHint;
+
+    if (wid->sizePolicy().horizontalPolicy() == QSizePolicy::Ignored)
+        q_cachedSizeHint.setWidth(0);
+    if (wid->sizePolicy().verticalPolicy() == QSizePolicy::Ignored)
+        q_cachedSizeHint.setHeight(0);
+
+    q_cachedMaximumSize = useLayoutItemRect
+               ? toLayoutItemSize(wid->d_func(), smartMaxSize)
+               : smartMaxSize;
+}
+
+QWidgetItemV2::QWidgetItemV2(QWidget *widget)
+    : QWidgetItem(widget),
+      q_cachedMinimumSize(Dirty, Dirty),
+      q_cachedSizeHint(Dirty, Dirty),
+      q_cachedMaximumSize(Dirty, Dirty),
+      q_firstCachedHfw(0),
+      q_hfwCacheSize(0),
+      d(0)
+{
+    QWidgetPrivate *wd = wid->d_func();
+    if (!wd->widgetItem)
+        wd->widgetItem = this;
+}
+
+QWidgetItemV2::~QWidgetItemV2()
+{
+    if (wid) {
+        QWidgetPrivate *wd = wid->d_func();
+        if (wd->widgetItem == this)
+            wd->widgetItem = 0;
+    }
+}
+
+QSize QWidgetItemV2::sizeHint() const
+{
+    if (isEmpty())
+        return QSize(0, 0);
+
+    if (useSizeCache()) {
+        updateCacheIfNecessary();
+        return q_cachedSizeHint;
+    } else {
+        return QWidgetItem::sizeHint();
+    }
+}
+
+QSize QWidgetItemV2::minimumSize() const
+{
+    if (isEmpty())
+        return QSize(0, 0);
+
+    if (useSizeCache()) {
+        updateCacheIfNecessary();
+        return q_cachedMinimumSize;
+    } else {
+        return QWidgetItem::minimumSize();
+    }
+}
+
+QSize QWidgetItemV2::maximumSize() const
+{
+    if (isEmpty())
+        return QSize(0, 0);
+
+    if (useSizeCache()) {
+        updateCacheIfNecessary();
+        return q_cachedMaximumSize;
+    } else {
+        return QWidgetItem::maximumSize();
+    }
+}
+
+/*
+    The height-for-width cache is organized as a circular buffer. The entries
+
+        q_hfwCachedHfws[q_firstCachedHfw],
+        ...,
+        q_hfwCachedHfws[(q_firstCachedHfw + q_hfwCacheSize - 1) % HfwCacheMaxSize]
+
+    contain the last cached values. When the cache is full, the first entry to
+    be erased is the entry before q_hfwCachedHfws[q_firstCachedHfw]. When
+    values are looked up, we try to move q_firstCachedHfw to point to that new
+    entry (unless the cache is not full, in which case it would leave the cache
+    in a broken state), so that the most recently used entry is also the last
+    to be erased.
+*/
+
+int QWidgetItemV2::heightForWidth(int width) const
+{
+    if (isEmpty())
+        return -1;
+
+    for (int i = 0; i < q_hfwCacheSize; ++i) {
+        int offset = q_firstCachedHfw + i;
+        const QSize &size = q_cachedHfws[offset % HfwCacheMaxSize];
+        if (size.width() == width) {
+            if (q_hfwCacheSize == HfwCacheMaxSize)
+                q_firstCachedHfw = offset;
+            return size.height();
+        }
+    }
+
+    if (q_hfwCacheSize < HfwCacheMaxSize)
+        ++q_hfwCacheSize;
+    q_firstCachedHfw = (q_firstCachedHfw + HfwCacheMaxSize - 1) % HfwCacheMaxSize;
+
+    int height = QWidgetItem::heightForWidth(width);
+    q_cachedHfws[q_firstCachedHfw] = QSize(width, height);
+    return height;
+}
+
+QT_END_NAMESPACE

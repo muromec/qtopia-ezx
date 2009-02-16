@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,13 @@
 #elif defined(Q_OS_AIX)
 #  define NO_BOM
 #  define UTF16 "UCS-2"
+#elif defined(Q_OS_MAC)
+#  define NO_BOM
+#  if Q_BYTE_ORDER == Q_BIG_ENDIAN
+#    define UTF16 "UTF-16BE"
+#  else
+#    define UTF16 "UTF-16LE"
+#  endif
 #else
 #  define UTF16 "UTF-16"
 #endif
@@ -79,6 +80,8 @@ static Ptr_iconv ptr_iconv = 0;
 static Ptr_iconv_close ptr_iconv_close = 0;
 #endif
 
+QT_BEGIN_NAMESPACE
+
 QIconvCodec::QIconvCodec()
     : utf16Codec(0)
 {
@@ -93,10 +96,17 @@ QIconvCodec::QIconvCodec()
 #ifdef Q_OS_MAC
     if (ptr_iconv_open == 0) {
         QLibrary libiconv(QLatin1String("/usr/lib/libiconv"));
+        libiconv.setLoadHints(QLibrary::ExportExternalSymbolsHint);
 
-        ptr_iconv_open = reinterpret_cast<Ptr_iconv_open>(libiconv.resolve("libiconv_open"));
-        ptr_iconv = reinterpret_cast<Ptr_iconv>(libiconv.resolve("libiconv"));
-        ptr_iconv_close = reinterpret_cast<Ptr_iconv_close>(libiconv.resolve("libiconv_close"));
+        ptr_iconv_open = reinterpret_cast<Ptr_iconv_open>(libiconv.resolve("libiconv_open")); 
+        if (!ptr_iconv_open) 
+            ptr_iconv_open = reinterpret_cast<Ptr_iconv_open>(libiconv.resolve("iconv_open")); 
+        ptr_iconv = reinterpret_cast<Ptr_iconv>(libiconv.resolve("libiconv")); 
+        if (!ptr_iconv) 
+            ptr_iconv = reinterpret_cast<Ptr_iconv>(libiconv.resolve("iconv")); 
+        ptr_iconv_close = reinterpret_cast<Ptr_iconv_close>(libiconv.resolve("libiconv_close")); 
+        if (!ptr_iconv_close) 
+            ptr_iconv_close = reinterpret_cast<Ptr_iconv_close>(libiconv.resolve("iconv_close")); 
 
         Q_ASSERT_X(ptr_iconv_open && ptr_iconv && ptr_iconv_close,
         "QIconvCodec::QIconvCodec()",
@@ -279,7 +289,8 @@ iconv_t QIconvCodec::createIconv_t(const char *to, const char *from)
     iconv_t cd = (iconv_t) -1;
 #if defined(__GLIBC__) || defined(GNU_LIBICONV)
     // both GLIBC and libgnuiconv will use the locale's encoding if from or to is an empty string
-    char *codeset = "";
+    static const char empty_codeset[] = "";
+    const char *codeset = empty_codeset;
     cd = iconv_open(to ? to : codeset, from ? from : codeset);
 #else
     char *codeset = 0;
@@ -350,7 +361,7 @@ iconv_t QIconvCodec::createIconv_t(const char *to, const char *from)
             cd = iconv_open(to ? to : lang, from ? from : lang);
 
         // 5. "@euro"
-        if (cd == (iconv_t) -1 && ctype && strstr(ctype, "@euro") || lang && strstr(lang, "@euro"))
+        if ((cd == (iconv_t) -1 && ctype && strstr(ctype, "@euro")) || (lang && strstr(lang, "@euro")))
             cd = iconv_open(to ? to : "ISO8859-15", from ? from : "ISO8859-15");
 
         delete [] ctype;
@@ -359,3 +370,5 @@ iconv_t QIconvCodec::createIconv_t(const char *to, const char *from)
 
     return cd;
 }
+
+QT_END_NAMESPACE

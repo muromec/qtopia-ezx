@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/linguist-manual.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/linguist-manual.qdoc -->
 <head>
-  <title>Qt 4.3: Qt Linguist Manual: Programmers</title>
+  <title>Qt 4.4: Qt Linguist Manual: Programmers</title>
   <link rel="prev" href="linguist-translators.html" />
   <link rel="contents" href="linguist-manual.html" />
   <link rel="next" href="linguist-ts-file-format.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="linguist-translators.html">Qt Linguist Manual: Translators</a>]
 [<a href="linguist-manual.html">Contents</a>]
 [Next: <a href="linguist-ts-file-format.html">Qt Linguist Manual: TS File Format</a>]
@@ -40,7 +40,8 @@
 <li>When a release of the application is needed <a href="linguist-manager.html#lrelease">lrelease</a> is run to read the <tt>.ts</tt> files and produce the <tt>.qm</tt> files used by the application at runtime.</li>
 </ol>
 <p>For <a href="linguist-manager.html#lupdate">lupdate</a> to work successfully, it must know which translation files to produce. The files are simply listed in the application's <tt>.pro</tt> Qt project file, for example:</p>
-<pre> TRANSLATIONS = arrowpad_fr.ts \</pre>
+<pre> TRANSLATIONS = arrowpad_fr.ts \
+                arrowpad_nl.ts</pre>
 <p>See the <a href="linguist-manager.html#lupdate">lupdate</a> and <a href="linguist-manager.html#lrelease">lrelease</a> sections.</p>
 <a name="loading-translations"></a>
 <h3>Loading Translations</h3>
@@ -74,17 +75,17 @@
 <pre> button = new QPushButton(&quot;&amp;Quit&quot;, this);</pre>
 <p>would become</p>
 <pre> button = new QPushButton(tr(&quot;&amp;Quit&quot;), this);</pre>
-<p>All <a href="qobject.html">QObject</a> subclasses that use the <a href="qobject.html#Q_OBJECT">Q_OBJECT</a> macro implement the <tt>tr()</tt> function.</p>
+<p>All <a href="qobject.html">QObject</a> subclasses that use the <tt>Q_OBJECT</tt> macro implement the <tt>tr()</tt> function.</p>
 <p>Although the <tt>tr()</tt> call is normally made directly since it is usually called as a member function of a <a href="qobject.html">QObject</a> subclass, in other cases an explicit class name can be supplied, for example:</p>
-<pre>     QPushButton::tr(&quot;&amp;Quit&quot;)</pre>
+<pre> QPushButton::tr(&quot;&amp;Quit&quot;)</pre>
 <p>or</p>
-<pre>     QObject::tr(&quot;&amp;Quit&quot;)</pre>
+<pre> QObject::tr(&quot;&amp;Quit&quot;)</pre>
 <a name="distinguishing-identical-strings-that-require-different-translations"></a>
 <h3>Distinguishing Identical Strings That Require Different Translations</h3>
 <p>The <a href="linguist-manager.html#lupdate">lupdate</a> program automatically provides a <i>context</i> for every source text. This context is the class name of the class that contains the <tt>tr()</tt> call. This is sufficient in the vast majority of cases. Sometimes however, the translator will need further information to uniquely identify a source text; for example, a dialog that contained two separate frames, each of which contained an &quot;Enabled&quot; option would need each identified because in some languages the translation would differ between the two. This is easily achieved using the two argument form of the <tt>tr()</tt> call, e.g&#x2e;</p>
-<pre>    rbc = new QRadioButton(tr(&quot;Enabled&quot;, &quot;Color frame&quot;), this);</pre>
+<pre> rbc = new QRadioButton(tr(&quot;Enabled&quot;, &quot;Color frame&quot;), this);</pre>
 <p>and</p>
-<pre>    rbh = new QRadioButton(tr(&quot;Enabled&quot;, &quot;Hue frame&quot;), this);</pre>
+<pre> rbh = new QRadioButton(tr(&quot;Enabled&quot;, &quot;Hue frame&quot;), this);</pre>
 <p>Ctrl key accelerators are also translatable:</p>
 <pre>     exitAct = new QAction(tr(&quot;E&amp;xit&quot;), this);
      exitAct-&gt;setShortcut(tr(&quot;Ctrl+Q&quot;, &quot;Quit&quot;));</pre>
@@ -98,8 +99,18 @@
      Choose Edit|Find from the menu bar or press Ctrl+F to pop up the
      Find dialog.
 
-     ...</pre>
+     ...
+ */</pre>
 <p>These comments are particularly useful for widget classes.</p>
+<a name="handling-plural-forms"></a>
+<h3>Handling Plural Forms</h3>
+<p>Qt includes a <tt>tr()</tt> overload that will make it very easy to write &quot;plural-aware&quot; internationalized applications. This overload has the following signature:</p>
+<pre> QString tr(const char *text, const char *comment, int n);</pre>
+<p>Depending on the value of <tt>n</tt>, the <tt>tr()</tt> function will return a different translation, with the correct grammatical number for the target language. Also, any occurrence of <tt>%n</tt> is replaced with <tt>n</tt>'s value. For example:</p>
+<pre> tr(&quot;%n item(s) replaced&quot;, &quot;&quot;, count);</pre>
+<p>If a French translation is loaded, this will expand to &quot;0 item remplacé&quot;, &quot;1 item remplacé&quot;, &quot;2 items remplacés&quot;, etc., depending on <tt>n</tt>'s value. And if no translation is loaded, the orignal string is used, with <tt>%n</tt> replaced with count's value (e.g&#x2e;, &quot;6 item(s) replaced&quot;).</p>
+<p>To handle plural forms in the native language, you need to load a translation file for this language, too. <a href="linguist-manager.html#lupdate">lupdate</a> has the <tt>-pluralonly</tt> command line option, which allows the creation of <tt>.ts</tt> files containing only entries with plural forms.</p>
+<p>See the <a href="http://doc.trolltech.com/qq/">Qt Quarterly</a> Article <a href="http://doc.trolltech.com/qq/qq19-plurals.html">Plural Forms in Translations</a> for further details on this issue.</p>
 <a name="coping-with-c-namespaces"></a>
 <h3>Coping With C++ Namespaces</h3>
 <p>C++ namespaces and the <tt>using namespace</tt> statement can confuse <a href="linguist-manager.html#lupdate">lupdate</a>. It will interpret <tt>MyClass::tr()</tt> as meaning just that, not as <tt>MyNamespace::MyClass::tr()</tt>, even if <tt>MyClass</tt> is defined in the <tt>MyNamespace</tt> namespace. Runtime translation of these strings will fail because of that.</p>
@@ -109,7 +120,8 @@
 
      Necessary for lupdate.
 
-     ...</pre>
+     ...
+ */</pre>
 <p>After the comment, all references to <tt>MyClass::tr()</tt> will be understood as meaning <tt>MyNamespace::MyClass::tr()</tt>.</p>
 <a name="translating-text-that-is-outside-of-a-qobject-subclass"></a>
 <h3>Translating Text That is Outside of a QObject Subclass</h3>
@@ -174,8 +186,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

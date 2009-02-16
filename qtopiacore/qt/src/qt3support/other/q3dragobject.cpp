@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -66,6 +60,12 @@
 #include <private/qobject_p.h>
 
 #include <ctype.h>
+#if defined(Q_OS_WINCE)
+#include "qfunctions_wince.h"
+#include <winsock.h>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 static QWidget *last_target = 0;
 
@@ -372,23 +372,29 @@ bool Q3DragObject::drag(DragMode mode)
     drag->setPixmap(d->pixmap);
     drag->setHotSpot(d->hot);
 
-    Qt::DropActions op;
+    Qt::DropActions allowedOps;
+    Qt::DropAction defaultOp = Qt::IgnoreAction;
     switch(mode) {
+    default:
     case DragDefault:
     case DragCopyOrMove:
-        op = Qt::CopyAction|Qt::MoveAction;
+        allowedOps = Qt::CopyAction|Qt::MoveAction;
+        defaultOp = Qt::IgnoreAction;
         break;
     case DragCopy:
-        op = Qt::CopyAction;
+        allowedOps = Qt::CopyAction;
+        defaultOp = Qt::CopyAction;
         break;
     case DragMove:
-        op = Qt::MoveAction;
+        allowedOps = Qt::MoveAction;
+        defaultOp = Qt::MoveAction;
         break;
     case DragLink:
-        op = Qt::LinkAction;
+        allowedOps = Qt::LinkAction;
+        defaultOp = Qt::LinkAction;
         break;
     }
-    bool retval = (drag->start(op) == Qt::MoveAction);
+    bool retval = (drag->exec(allowedOps, defaultOp) == Qt::MoveAction);
     last_target = drag->target();
 
     return retval;
@@ -816,6 +822,7 @@ void Q3ImageDrag::setImage(QImage image)
             format = "image/ppm";
         d->ofmts.append(format);
     }
+    d->ofmts.append("application/x-qt-image");
 }
 
 /*!
@@ -833,8 +840,12 @@ const char * Q3ImageDrag::format(int i) const
 QByteArray Q3ImageDrag::encodedData(const char* fmt) const
 {
     Q_D(const Q3ImageDrag);
-    if (qstrnicmp(fmt, "image/", 6)==0) {
-        QByteArray f(fmt+6);
+    QString imgFormat(fmt);
+    if (imgFormat == QLatin1String("application/x-qt-image"))
+        imgFormat = QLatin1String("image/PNG");
+
+    if (imgFormat.startsWith("image/")){
+        QByteArray f(imgFormat.mid(6).toAscii());
         QByteArray dat;
         QBuffer w(&dat);
         w.open(QIODevice::WriteOnly);
@@ -858,14 +869,7 @@ QByteArray Q3ImageDrag::encodedData(const char* fmt) const
 */
 bool Q3ImageDrag::canDecode(const QMimeSource* e)
 {
-    const QList<QByteArray> fileFormats = QImageReader::supportedImageFormats();
-
-    for (int i = 0; i < fileFormats.count(); ++i) {
-        if (e->provides("image" + fileFormats.at(i).toLower()))
-            return true;
-    }
-
-    return false;
+    return e->provides("application/x-qt-image");
 }
 
 /*!
@@ -881,33 +885,14 @@ bool Q3ImageDrag::decode(const QMimeSource* e, QImage& img)
     if (!e)
         return false;
 
-    QByteArray payload;
-    QList<QByteArray> fileFormats = QImageReader::supportedImageFormats();
-
-    // PNG is best of all
-    // (this is a rather strange hack, but it works now)
-    for (int i=0; i < fileFormats.count(); i++) {
-        if (fileFormats.at(i).toLower() == "png") {
-            fileFormats.prepend("png");
-            break ;
-        }
-    } // move to front
-
-    for (int i = 0; i < fileFormats.count(); ++i) {
-        QByteArray type = "image/" + fileFormats.at(i).toLower();
-        if (! e->provides(type))
-            continue;
-        payload = e->encodedData(type);
-        if (!payload.isEmpty())
-            break;
-    }
-
+    QByteArray payload = e->encodedData("application/x-qt-image");
     if (payload.isEmpty())
         return false;
 
     img.loadFromData(payload);
     if (img.isNull())
         return false;
+
     return true;
 }
 
@@ -1239,10 +1224,10 @@ QByteArray Q3UriDrag::unicodeUriToUri(const QString& uuri)
     int n = utf8.length();
     bool isFile = uuri.startsWith(QLatin1String("file://"));
     for (int i=0; i<n; i++) {
-        if (utf8[i] >= 'a' && utf8[i] <= 'z'
+        if ((utf8[i] >= 'a' && utf8[i] <= 'z')
           || utf8[i] == '/'
-          || utf8[i] >= '0' && utf8[i] <= '9'
-          || utf8[i] >= 'A' && utf8[i] <= 'Z'
+          || (utf8[i] >= '0' && utf8[i] <= '9')
+          || (utf8[i] >= 'A' && utf8[i] <= 'Z')
 
           || utf8[i] == '-' || utf8[i] == '_'
           || utf8[i] == '.' || utf8[i] == '!'
@@ -1584,3 +1569,5 @@ bool Q3ColorDrag::decode(QMimeSource *e, QColor &col)
     col.setRgb(r, g, b, a);
     return true;
 }
+
+QT_END_NAMESPACE

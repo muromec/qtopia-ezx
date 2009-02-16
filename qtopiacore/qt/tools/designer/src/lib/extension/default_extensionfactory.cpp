@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,8 @@
 #include "qextensionmanager.h"
 #include <qpointer.h>
 #include <QtCore/qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QExtensionFactory
@@ -80,42 +76,13 @@
     You can either create a new QExtensionFactory and reimplement the
     QExtensionFactory::createExtension() function. For example:
 
-    \code
-        QObject *ANewExtensionFactory::createExtension(QObject *object,
-                const QString &iid, QObject *parent) const
-        {
-            if (iid != Q_TYPEID(QDesignerContainerExtension))
-                return 0;
-
-            if (MyCustomWidget *widget = qobject_cast<MyCustomWidget*>
-                   (object))
-                return new MyContainerExtension(widget, parent);
-
-            return 0;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_extension_default_extensionfactory.cpp 0
 
     Or you can use an existing factory, expanding the
     QExtensionFactory::createExtension() function to make the factory
     able to create your extension as well. For example:
 
-    \code
-        QObject *AGeneralExtensionFactory::createExtension(QObject *object,
-                const QString &iid, QObject *parent) const
-        {
-            MyCustomWidget *widget = qobject_cast<MyCustomWidget*>(object);
-
-            if (widget && (iid == Q_TYPEID(QDesignerTaskMenuExtension))) {
-                return new MyTaskMenuExtension(widget, parent);
-
-            } else if (widget && (iid == Q_TYPEID(QDesignerContainerExtension))) {
-                return new MyContainerExtension(widget, parent);
-
-            } else {
-                return 0;
-            }
-        }
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_extension_default_extensionfactory.cpp 1
 
     For a complete example using the QExtensionFactory class, see the
     \l {designer/taskmenuextension}{Task Menu Extension example}. The
@@ -144,12 +111,13 @@ QObject *QExtensionFactory::extension(QObject *object, const QString &iid) const
 {
     if (!object)
         return 0;
+    const IdObjectKey key = qMakePair(iid, object);
 
-    QPair<QString, QObject*> key = qMakePair(iid, object);
-    if (!m_extensions.contains(key)) {
+    ExtensionMap::iterator it = m_extensions.find(key);
+    if (it == m_extensions.end()) {
         if (QObject *ext = createExtension(object, iid, const_cast<QExtensionFactory*>(this))) {
             connect(ext, SIGNAL(destroyed(QObject*)), this, SLOT(objectDestroyed(QObject*)));
-            m_extensions.insert(key, ext);
+            it = m_extensions.insert(key, ext);
         }
     }
 
@@ -158,12 +126,15 @@ QObject *QExtensionFactory::extension(QObject *object, const QString &iid) const
         m_extended.insert(object, true);
     }
 
-    return m_extensions.value(key);
+    if (it == m_extensions.end())
+        return 0;
+
+    return it.value();
 }
 
 void QExtensionFactory::objectDestroyed(QObject *object)
 {
-    QMutableMapIterator< QPair<QString,QObject*>, QObject*> it(m_extensions);
+    QMutableMapIterator< IdObjectKey, QObject*> it(m_extensions);
     while (it.hasNext()) {
         it.next();
 
@@ -199,3 +170,5 @@ QExtensionManager *QExtensionFactory::extensionManager() const
 {
     return static_cast<QExtensionManager *>(parent());
 }
+
+QT_END_NAMESPACE

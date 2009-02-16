@@ -2,28 +2,34 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/kernel/qstackedlayout.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/kernel/qstackedlayout.cpp -->
 <head>
-  <title>Qt 4.3: QStackedLayout Class Reference</title>
+  <title>Qt 4.4: QStackedLayout Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QStackedLayout Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QStackedLayout Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QStackedLayout class provides a stack of widgets where only one widget is visible at a time. <a href="#details">More...</a></p>
 <pre> #include &lt;QStackedLayout&gt;</pre><p>Inherits <a href="qlayout.html">QLayout</a>.</p>
 <ul>
 <li><a href="qstackedlayout-members.html">List of all members, including inherited members</a></li>
 </ul>
+<a name="public-types"></a>
+<h3>Public Types</h3>
+<ul>
+<li><div class="fn"/>enum <b><a href="qstackedlayout.html#StackingMode-enum">StackingMode</a></b> { StackOne, StackAll }</li>
+</ul>
 <a name="properties"></a>
 <h3>Properties</h3>
 <ul>
 <li><div class="fn"/><b><a href="qstackedlayout.html#count-prop">count</a></b> : const int</li>
 <li><div class="fn"/><b><a href="qstackedlayout.html#currentIndex-prop">currentIndex</a></b> : int</li>
+<li><div class="fn"/><b><a href="qstackedlayout.html#stackingMode-prop">stackingMode</a></b> : StackingMode</li>
 </ul>
 <ul>
 <li><div class="fn"/>2 properties inherited from <a href="qlayout.html#properties">QLayout</a></li>
@@ -41,6 +47,8 @@
 <li><div class="fn"/>int <b><a href="qstackedlayout.html#currentIndex-prop">currentIndex</a></b> () const</li>
 <li><div class="fn"/>QWidget * <b><a href="qstackedlayout.html#currentWidget">currentWidget</a></b> () const</li>
 <li><div class="fn"/>int <b><a href="qstackedlayout.html#insertWidget">insertWidget</a></b> ( int <i>index</i>, QWidget * <i>widget</i> )</li>
+<li><div class="fn"/>void <b><a href="qstackedlayout.html#stackingMode-prop">setStackingMode</a></b> ( StackingMode <i>stackingMode</i> )</li>
+<li><div class="fn"/>StackingMode <b><a href="qstackedlayout.html#stackingMode-prop">stackingMode</a></b> () const</li>
 <li><div class="fn"/>QWidget * <b><a href="qstackedlayout.html#widget">widget</a></b> ( int <i>index</i> ) const</li>
 </ul>
 <ul>
@@ -103,6 +111,16 @@
 <p>Whenever the current widget in the layout changes or a widget is removed from the layout, the <a href="qstackedlayout.html#currentChanged">currentChanged</a>() and <a href="qstackedlayout.html#widgetRemoved">widgetRemoved</a>() signals are emitted respectively.</p>
 <p>See also <a href="qstackedwidget.html">QStackedWidget</a> and <a href="qtabwidget.html">QTabWidget</a>.</p>
 <hr />
+<h2>Member Type Documentation</h2>
+<h3 class="fn"><a name="StackingMode-enum"></a>enum QStackedLayout::StackingMode</h3>
+<p>This enum specifies how the layout handles its child widgets regarding their visibility.</p>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>QStackedLayout::StackOne</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">Only the current widget is visible. This is the default.</td></tr>
+<tr><td valign="top"><tt>QStackedLayout::StackAll</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">All widgets are visible. The current widget is merely raised.</td></tr>
+</table></p>
+<p>This enum was introduced in Qt 4.4.</p>
+<hr />
 <h2>Property Documentation</h2>
 <h3 class="fn"><a name="count-prop"></a>count : const int</h3>
 <p>This property holds the number of widgets contained in the layout.</p>
@@ -120,6 +138,15 @@
 <li><div class="fn"/><b>void setCurrentIndex ( int <i>index</i> )</b></li>
 </ul>
 <p>See also <a href="qstackedlayout.html#currentWidget">currentWidget</a>() and <a href="qlayout.html#indexOf">indexOf</a>().</p>
+<h3 class="fn"><a name="stackingMode-prop"></a>stackingMode : <a href="qstackedlayout.html#StackingMode-enum">StackingMode</a></h3>
+<p>This property determines the way visibility of child widgets are handled.</p>
+<p>The default value is <a href="qstackedlayout.html#StackingMode-enum">StackOne</a>. Setting the property to <a href="qstackedlayout.html#StackingMode-enum">StackAll</a> allows you to make use of the layout for overlay widgets that do additional drawing on top of other widgets, for example, graphical editors.</p>
+<p>This property was introduced in Qt 4.4.</p>
+<p>Access functions:</p>
+<ul>
+<li><div class="fn"/><b>StackingMode stackingMode () const</b></li>
+<li><div class="fn"/><b>void setStackingMode ( StackingMode <i>stackingMode</i> )</b></li>
+</ul>
 <hr />
 <h2>Member Function Documentation</h2>
 <h3 class="fn"><a name="QStackedLayout"></a>QStackedLayout::QStackedLayout ()</h3>
@@ -138,7 +165,7 @@
 <p>If the <a href="qstackedlayout.html">QStackedLayout</a> is empty before this function is called, the given <i>widget</i> becomes the current widget.</p>
 <p>See also <a href="qstackedlayout.html#insertWidget">insertWidget</a>(), <a href="qlayout.html#removeWidget">removeWidget</a>(), and <a href="qstackedlayout.html#setCurrentWidget">setCurrentWidget</a>().</p>
 <h3 class="fn"><a name="currentChanged"></a>void QStackedLayout::currentChanged ( int <i>index</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
-<p>This signal is emitted whenever the current widget in the layout changes. The <i>index</i> specifies the index of the new current widget.</p>
+<p>This signal is emitted whenever the current widget in the layout changes. The <i>index</i> specifies the index of the new current widget, or -1 if there isn't a new one (for example, if there are no widgets in the <a href="qstackedlayout.html">QStackedLayout</a>)</p>
 <p>See also <a href="qstackedlayout.html#currentWidget">currentWidget</a>() and <a href="qstackedlayout.html#setCurrentWidget">setCurrentWidget</a>().</p>
 <h3 class="fn"><a name="currentWidget"></a><a href="qwidget.html">QWidget</a> * QStackedLayout::currentWidget () const</h3>
 <p>Returns the current widget, or 0 if there are no widgets in this layout.</p>
@@ -159,8 +186,8 @@
 <p>See also <a href="qlayout.html#removeWidget">removeWidget</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

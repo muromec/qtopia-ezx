@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,6 +64,8 @@
 
 #define QFONTLOADER_DEBUG
 #define QFONTLOADER_DEBUG_VERBOSE
+
+QT_BEGIN_NAMESPACE
 
 double qt_pixelSize(double pointSize, int dpi)
 {
@@ -138,9 +134,6 @@ int QFontPrivate::defaultEncodingID = -1;
 */
 void QFont::initialize()
 {
-    // create global font cache
-    if (! QFontCache::instance) (void) new QFontCache;
-
     extern int qt_encoding_id_for_mib(int mib); // from qfontdatabase_x11.cpp
     QTextCodec *codec = QTextCodec::codecForLocale();
     // determine the default encoding id using the locale, otherwise
@@ -193,8 +186,7 @@ void QFont::initialize()
 */
 void QFont::cleanup()
 {
-    // delete the global font cache
-    delete QFontCache::instance;
+    QFontCache::cleanup();
 }
 
 /*!
@@ -221,10 +213,6 @@ void QFont::x11SetScreen(int screen)
     d->screen = screen;
 }
 
-/*!
-    Returns the window system handle to the font, for low-level
-    access. Using this function is \e not portable.
-*/
 Qt::HANDLE QFont::handle() const
 {
     QFontEngine *engine = d->engineForScript(QUnicodeTables::Common);
@@ -237,12 +225,6 @@ Qt::HANDLE QFont::handle() const
 }
 
 
-/*!
-  Returns the handle to the primary freetype face of the font. I font merging is not disabled a
-  QFont can contain several physical fonts.
-
-  Returns 0 if the font does not contains a freetype face.
-*/
 FT_Face QFont::freetypeFace() const
 {
 #ifndef QT_NO_FREETYPE
@@ -263,85 +245,40 @@ FT_Face QFont::freetypeFace() const
     return 0;
 }
 
-/*!
-    Returns the name of the font within the underlying window system.
-
-    On Windows and Mac OS X, this is usually just the family name of a TrueType
-    font.
-
-    On X11, depending on whether Qt was built with FontConfig support, it is an
-    XLFD (X Logical Font Description) or a FontConfig pattern. An XLFD may be
-    returned even if FontConfig support is enabled.
-
-    Using the return value of this function is usually \e not \e
-    portable.
-
-    \sa setRawName()
-*/
 QString QFont::rawName() const
 {
     QFontEngine *engine = d->engineForScript(QUnicodeTables::Common);
     Q_ASSERT(engine != 0);
-    return QString::fromLatin1(engine->name());
+    if (engine->type() == QFontEngine::Multi)
+        engine = static_cast<QFontEngineMulti *>(engine)->engine(0);
+    if (engine->type() == QFontEngine::XLFD)
+        return QString::fromLatin1(engine->name());
+    return QString();
 }
+struct QtFontDesc;
 
-/*!
-    Sets a font by its system specific name. The function is
-    particularly useful under X, where system font settings (for
-    example X resources) are usually available in XLFD (X Logical Font
-    Description) form only. You can pass an XLFD as \a name to this
-    function.
-
-    A font set with setRawName() is still a full-featured QFont. It can
-    be queried (for example with italic()) or modified (for example with
-    setItalic()) and is therefore also suitable for rendering rich text.
-
-    If Qt's internal font database cannot resolve the raw name, the
-    font becomes a raw font with \a name as its family.
-
-    Note that the present implementation does not handle wildcards in
-    XLFDs well, and that font aliases (file \c fonts.alias in the font
-    directory on X11) are not supported.
-
-    \sa rawName(), setRawMode(), setFamily()
-*/
 void QFont::setRawName(const QString &name)
 {
     detach();
 
     // from qfontdatabase_x11.cpp
-    extern bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi);
+    extern bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi, QtFontDesc *desc);
 
-    if (!qt_fillFontDef(qt_fixXLFD(name.toLatin1()), &d->request, d->dpi)) {
+    if (!qt_fillFontDef(qt_fixXLFD(name.toLatin1()), &d->request, d->dpi, 0)) {
         qWarning("QFont::setRawName: Invalid XLFD: \"%s\"", name.toLatin1().constData());
 
         setFamily(name);
         setRawMode(true);
     } else {
-        resolve_mask = QFontPrivate::Complete;
+        resolve_mask = QFont::AllPropertiesResolved;
     }
 }
 
-/*!
-    Returns the "last resort" font family name.
-
-    The current implementation tries a wide variety of common fonts,
-    returning the first one it finds. Is is possible that no family is
-    found in which case an empty string is returned.
-
-    \sa lastResortFont()
-*/
 QString QFont::lastResortFamily() const
 {
     return QString::fromLatin1("Helvetica");
 }
 
-/*!
-    Returns the family name that corresponds to the current style
-    hint.
-
-    \sa StyleHint styleHint() setStyleHint()
-*/
 QString QFont::defaultFamily() const
 {
     switch (d->request.styleHint) {
@@ -400,25 +337,6 @@ static bool fontExists(const QString &fontName)
     return count != 0;
 }
 
-/*!
-    Returns a "last resort" font name for the font matching algorithm.
-    This is used if the last resort family is not available. It will
-    always return a name, if necessary returning something like
-    "fixed" or "system".
-
-    The current implementation tries a wide variety of common fonts,
-    returning the first one it finds. The implementation may change
-    at any time, but this function will always return a string
-    containing something.
-
-    It is theoretically possible that there really isn't a
-    lastResortFont() in which case Qt will abort with an error
-    message. We have not been able to identify a case where this
-    happens. Please \link bughowto.html report it as a bug\endlink if
-    it does, preferably with a list of the fonts you have installed.
-
-    \sa lastResortFamily() rawName()
-*/
 QString QFont::lastResortFont() const
 {
     static QString last;
@@ -442,6 +360,7 @@ QString QFont::lastResortFont() const
 #if defined(CHECK_NULL)
     qFatal("QFontPrivate::lastResortFont: Cannot find any reasonable font");
 #endif
-
     return last;
 }
+
+QT_END_NAMESPACE

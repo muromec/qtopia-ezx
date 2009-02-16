@@ -1,7 +1,8 @@
 TARGET     = QtSvg
 QPRO_PWD   = $$PWD
-QT         = core gui xml
+QT         = core gui
 DEFINES   += QT_BUILD_SVG_LIB
+DEFINES   += QT_NO_USING_NAMESPACE
 win32-msvc*|win32-icc:QMAKE_LFLAGS += /BASE:0x66000000
 solaris-cc*:QMAKE_CXXFLAGS_RELEASE -= -O2
 
@@ -35,3 +36,4 @@ SOURCES += \
         qgraphicssvgitem.cpp    \
         qsvggenerator.cpp
 
+INCLUDEPATH += ../3rdparty/harfbuzz/src

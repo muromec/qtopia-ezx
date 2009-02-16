@@ -1,13 +1,13 @@
 /****************************************************************************
 **
-** This file is part of the Qtopia Opensource Edition Package.
+** This file is part of the Qt Extended Opensource Package.
 **
-** Copyright (C) 2008 Trolltech ASA.
+** Copyright (C) 2009 Trolltech ASA.
 **
 ** Contact: Qt Extended Information (info@qtextended.org)
 **
 ** This file may be used under the terms of the GNU General Public License
-** versions 2.0 as published by the Free Software Foundation and appearing
+** version 2.0 as published by the Free Software Foundation and appearing
 ** in the file LICENSE.GPL included in the packaging of this file.
 **
 ** Please review the following information to ensure GNU General Public
@@ -16,6 +16,9 @@
 **
 **
 ****************************************************************************/
+
+#ifndef QCONFIG_QPE_H
+#define QCONFIG_QPE_H
 
 // Data structures
 #ifndef QT_NO_STL
@@ -81,9 +84,6 @@
 #endif
 
 // Networking
-#ifndef QT_NO_NETWORKPROXY
-#  define QT_NO_NETWORKPROXY
-#endif
 #ifndef QT_NO_SOCKS5
 #  define QT_NO_SOCKS5
 #endif
@@ -160,4 +160,6 @@
 #endif
 #ifndef QT_NO_TOOLTIP
 #  define QT_NO_TOOLTIP
+#endif
+
 #endif

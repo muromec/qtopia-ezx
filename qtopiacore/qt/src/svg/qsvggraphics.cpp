@@ -1,47 +1,44 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSVG module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsvggraphics_p.h"
+
+#ifndef QT_NO_SVG
+
 #include "qsvgfont_p.h"
 
 #include "qpainter.h"
@@ -52,6 +49,8 @@
 
 #include <math.h>
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 void QSvgAnimation::draw(QPainter *)
 {
@@ -75,7 +74,7 @@ QSvgCircle::QSvgCircle(QSvgNode *parent, const QRectF &rect)
 QRectF QSvgCircle::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_bounds;
     else {
         QPainterPath path;
@@ -112,7 +111,7 @@ QSvgEllipse::QSvgEllipse(QSvgNode *parent, const QRectF &rect)
 QRectF QSvgEllipse::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_bounds;
     else {
         QPainterPath path;
@@ -177,7 +176,7 @@ void QSvgPath::draw(QPainter *p)
 QRectF QSvgPath::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_cachedBounds;
     else {
         return boundsOnStroke(m_path, sw);
@@ -193,7 +192,7 @@ QSvgPolygon::QSvgPolygon(QSvgNode *parent, const QPolygonF &poly)
 QRectF QSvgPolygon::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_poly.boundingRect();
     else {
         QPainterPath path;
@@ -238,7 +237,7 @@ QSvgRect::QSvgRect(QSvgNode *node, const QRectF &rect, int rx, int ry)
 QRectF QSvgRect::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_rect;
     else {
         QPainterPath path;
@@ -250,9 +249,9 @@ QRectF QSvgRect::bounds() const
 void QSvgRect::draw(QPainter *p)
 {
     applyStyle(p);
-    
+
     if (m_rx || m_ry)
-        p->drawRoundRect(m_rect, m_rx, m_ry);
+        p->drawRoundedRect(m_rect, m_rx, m_ry, Qt::RelativeSize);
     else
         p->drawRect(m_rect);
     revertStyle(p);
@@ -382,12 +381,12 @@ void QSvgUse::draw(QPainter *p)
 
     if (!m_start.isNull()) {
         p->translate(m_start);
-    }   
+    }
     m_link->draw(p);
     if (!m_start.isNull()) {
         p->translate(-m_start);
     }
-    
+
     revertStyle(p);
 }
 
@@ -476,7 +475,7 @@ QRectF QSvgUse::bounds() const
                           m_bounds.y()+m_start.y(),
                           m_bounds.width(),
                           m_bounds.height());
-        
+
         return m_bounds;
     }
     return m_bounds;
@@ -486,8 +485,8 @@ QRectF QSvgUse::transformedBounds(const QMatrix &mat) const
 {
     QRectF bounds;
     QMatrix m = mat;
-    
-    if (m_link)  {       
+
+    if (m_link)  {
         QSvgTransformStyle *trans = m_style.transform;
         if (trans) {
             m = trans->qmatrix() * m;
@@ -495,7 +494,7 @@ QRectF QSvgUse::transformedBounds(const QMatrix &mat) const
         m.translate(m_start.x(), m_start.y());
 
         bounds = m_link->transformedBounds(m);
-        
+
         return bounds;
     }
     return bounds;
@@ -504,7 +503,7 @@ QRectF QSvgUse::transformedBounds(const QMatrix &mat) const
 QRectF QSvgPolyline::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_poly.boundingRect();
     else {
         QPainterPath path;
@@ -516,7 +515,7 @@ QRectF QSvgPolyline::bounds() const
 QRectF QSvgArc::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0))
+    if (qFuzzyCompare(sw + 1, 1))
         return m_cachedBounds;
     else {
         return boundsOnStroke(cubic, sw);
@@ -531,7 +530,7 @@ QRectF QSvgImage::bounds() const
 QRectF QSvgLine::bounds() const
 {
     qreal sw = strokeWidth();
-    if (qFuzzyCompare(sw, 0)) {
+    if (qFuzzyCompare(sw + 1, 1)) {
         qreal minX = qMin(m_bounds.x1(), m_bounds.x2());
         qreal minY = qMin(m_bounds.y1(), m_bounds.y2());
         qreal maxX = qMax(m_bounds.x1(), m_bounds.x2());
@@ -545,3 +544,6 @@ QRectF QSvgLine::bounds() const
     }
 }
 
+QT_END_NAMESPACE
+
+#endif // QT_NO_SVG

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qresource.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qresource.cpp -->
 <head>
-  <title>Qt 4.3: QResource Class Reference</title>
+  <title>Qt 4.4: QResource Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QResource Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QResource Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QResource class provides an interface for reading directly from resources. <a href="#details">More...</a></p>
 <pre> #include &lt;QResource&gt;</pre><p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
@@ -64,7 +64,7 @@
 <p>A resource can be left out of an application's binary and loaded when it is needed at run-time by using the <a href="qresource.html#registerResource">registerResource</a>() function. The resource file passed into <a href="qresource.html#registerResource">registerResource</a>() must be a binary resource as created by rcc. Further information about binary resources can be found in <a href="resources.html">The Qt Resource System</a> documentation.</p>
 <p>This can often be useful when loading a large set of application icons that may change based on a setting, or that can be edited by a user and later recreated. The resource is immediately loaded into memory, either as a result of a single file read operation, or as a memory mapped file.</p>
 <p>This approach can prove to be a significant performance gain as only a single file will be loaded, and pieces of data will be given out via the path requested in <a href="qresource.html#setFileName">setFileName</a>().</p>
-<p>The <a href="qresource.html#unregisterResource">unregisterResource</a>() function removes a reference to a particular file. If there are QResources that currently reference resources related to the unregistered file, they will continue to be valid but the resource file itself will be removed from the resource roots, and thus no further QResource can be created pointing into this resource data. The resource itself will be unmapped from memory when the last QResource points into it.</p>
+<p>The <a href="qresource.html#unregisterResource">unregisterResource</a>() function removes a reference to a particular file. If there are QResources that currently reference resources related to the unregistered file, they will continue to be valid but the resource file itself will be removed from the resource roots, and thus no further QResource can be created pointing into this resource data. The resource itself will be unmapped from memory when the last QResource that points to it is destroyed.</p>
 <p>See also <a href="resources.html">The Qt Resource System</a>, <a href="qfile.html">QFile</a>, <a href="qdir.html">QDir</a>, and <a href="qfileinfo.html">QFileInfo</a>.</p>
 <hr />
 <h2>Member Function Documentation</h2>
@@ -130,8 +130,8 @@
 <p>See also <a href="qresource.html#registerResource">registerResource</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

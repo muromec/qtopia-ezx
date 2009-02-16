@@ -971,7 +971,7 @@ int Q_ZEXPORT gzclose (file)
     return destroy((gz_stream*)file);
 }
 
-#ifdef STDC
+#if defined(STDC) && !defined(_WIN32_WCE)
 #  define zstrerror(errnum) strerror(errnum)
 #else
 #  define zstrerror(errnum) ""

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/sql/kernel/qsqldriver.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/sql/kernel/qsqldriver.cpp -->
 <head>
-  <title>Qt 4.3: QSqlDriver Class Reference</title>
+  <title>Qt 4.4: QSqlDriver Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QSqlDriver Class Reference<br /><span class="small-subtitle">[<a href="qtsql.html">QtSql</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QSqlDriver Class Reference<br /><span class="small-subtitle">[<a href="qtsql.html">QtSql</a> module]</span>
 </h1>
 <p>The QSqlDriver class is an abstract base class for accessing specific SQL databases. <a href="#details">More...</a></p>
 <pre> #include &lt;QSqlDriver&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
@@ -23,7 +23,7 @@
 <a name="public-types"></a>
 <h3>Public Types</h3>
 <ul>
-<li><div class="fn"/>enum <b><a href="qsqldriver.html#DriverFeature-enum">DriverFeature</a></b> { Transactions, QuerySize, BLOB, Unicode, ..., LowPrecisionNumbers }</li>
+<li><div class="fn"/>enum <b><a href="qsqldriver.html#DriverFeature-enum">DriverFeature</a></b> { Transactions, QuerySize, BLOB, Unicode, ..., MultipleResultSets }</li>
 <li><div class="fn"/>enum <b><a href="qsqldriver.html#IdentifierType-enum">IdentifierType</a></b> { FieldName, TableName }</li>
 <li><div class="fn"/>enum <b><a href="qsqldriver.html#StatementType-enum">StatementType</a></b> { WhereStatement, SelectStatement, UpdateStatement, InsertStatement, DeleteStatement }</li>
 </ul>
@@ -48,10 +48,21 @@
 <li><div class="fn"/>virtual QSqlRecord <b><a href="qsqldriver.html#record">record</a></b> ( const QString &amp; <i>tableName</i> ) const</li>
 <li><div class="fn"/>virtual bool <b><a href="qsqldriver.html#rollbackTransaction">rollbackTransaction</a></b> ()</li>
 <li><div class="fn"/>virtual QString <b><a href="qsqldriver.html#sqlStatement">sqlStatement</a></b> ( StatementType <i>type</i>, const QString &amp; <i>tableName</i>, const QSqlRecord &amp; <i>rec</i>, bool <i>preparedStatement</i> ) const</li>
+<li><div class="fn"/>bool <b><a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a></b> ( const QString &amp; <i>name</i> )</li>
+<li><div class="fn"/>QStringList <b><a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a></b> () const</li>
 <li><div class="fn"/>virtual QStringList <b><a href="qsqldriver.html#tables">tables</a></b> ( QSql::TableType <i>tableType</i> ) const</li>
+<li><div class="fn"/>bool <b><a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a></b> ( const QString &amp; <i>name</i> )</li>
 </ul>
 <ul>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"/>void <b><a href="qsqldriver.html#notification">notification</a></b> ( const QString &amp; <i>name</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
 </ul>
 <a name="protected-functions"></a>
 <h3>Protected Functions</h3>
@@ -63,11 +74,17 @@
 <ul>
 <li><div class="fn"/>7 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
 </ul>
+<a name="protected-slots"></a>
+<h3>Protected Slots</h3>
+<ul>
+<li><div class="fn"/>bool <b><a href="qsqldriver.html#subscribeToNotificationImplementation">subscribeToNotificationImplementation</a></b> ( const QString &amp; <i>name</i> )</li>
+<li><div class="fn"/>QStringList <b><a href="qsqldriver.html#subscribedToNotificationsImplementation">subscribedToNotificationsImplementation</a></b> () const</li>
+<li><div class="fn"/>bool <b><a href="qsqldriver.html#unsubscribeFromNotificationImplementation">unsubscribeFromNotificationImplementation</a></b> ( const QString &amp; <i>name</i> )</li>
+</ul>
 <h3>Additional Inherited Members</h3>
 <ul>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 <li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
-<li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
 <li><div class="fn"/>5 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
 </ul>
 <a name="details"></a>
@@ -91,9 +108,12 @@
 <tr><td valign="top"><tt>QSqlDriver::NamedPlaceholders</tt></td><td align="center" valign="top"><tt>5</tt></td><td valign="top">Whether the driver supports the use of named placeholders.</td></tr>
 <tr><td valign="top"><tt>QSqlDriver::PositionalPlaceholders</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">Whether the driver supports the use of positional placeholders.</td></tr>
 <tr><td valign="top"><tt>QSqlDriver::LastInsertId</tt></td><td align="center" valign="top"><tt>7</tt></td><td valign="top">Whether the driver supports returning the Id of the last touched row.</td></tr>
-<tr><td valign="top"><tt>QSqlDriver::BatchOperations</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">Whether the driver supports batched operations, see QSqlResult::execBatch()</td></tr>
+<tr><td valign="top"><tt>QSqlDriver::BatchOperations</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">Whether the driver supports batched operations, see <a href="qsqlquery.html#execBatch">QSqlQuery::execBatch</a>()</td></tr>
 <tr><td valign="top"><tt>QSqlDriver::SimpleLocking</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">Whether the driver disallows a write lock on a table while other queries have a read lock on it.</td></tr>
 <tr><td valign="top"><tt>QSqlDriver::LowPrecisionNumbers</tt></td><td align="center" valign="top"><tt>10</tt></td><td valign="top">Whether the driver allows fetching numerical values with low precision.</td></tr>
+<tr><td valign="top"><tt>QSqlDriver::EventNotifications</tt></td><td align="center" valign="top"><tt>11</tt></td><td valign="top">Whether the driver supports database event notifications.</td></tr>
+<tr><td valign="top"><tt>QSqlDriver::FinishQuery</tt></td><td align="center" valign="top"><tt>12</tt></td><td valign="top">Whether the driver can do any low-level resource cleanup when <a href="qsqlquery.html#finish">QSqlQuery::finish</a>() is called.</td></tr>
+<tr><td valign="top"><tt>QSqlDriver::MultipleResultSets</tt></td><td align="center" valign="top"><tt>13</tt></td><td valign="top">Whether the driver can access multiple result sets returned from batched statements or stored procedures.</td></tr>
 </table></p>
 <p>More information about supported features can be found in the <a href="sql-driver.html">Qt SQL driver</a> documentation.</p>
 <p>See also <a href="qsqldriver.html#hasFeature">hasFeature</a>().</p>
@@ -154,7 +174,7 @@
 <p>This example retrieves the handle for a connection to sqlite:</p>
 <pre> QSqlDatabase db = ...;
  QVariant v = db.driver()-&gt;handle();
- if (v.isValid() &amp;&amp; qstrcmp(v.typeName(), &quot;sqlite3*&quot;)) {
+ if (v.isValid() &amp;&amp; qstrcmp(v.typeName(), &quot;sqlite3*&quot;)==0) {
      <span class="comment">// v.data() returns a pointer to the handle</span>
      sqlite3 *handle = *static_cast&lt;sqlite3 **&gt;(v.data());
      if (handle != 0) { <span class="comment">// check that it is not NULL</span>
@@ -183,6 +203,10 @@
 <h3 class="fn"><a name="lastError"></a><a href="qsqlerror.html">QSqlError</a> QSqlDriver::lastError () const</h3>
 <p>Returns a <a href="qsqlerror.html">QSqlError</a> object which contains information about the last error that occurred on the database.</p>
 <p>See also <a href="qsqldriver.html#setLastError">setLastError</a>().</p>
+<h3 class="fn"><a name="notification"></a>void QSqlDriver::notification ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p>This signal is emitted when the database posts an event notification that the driver subscribes to. <i>name</i> identifies the event notification.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>().</p>
 <h3 class="fn"><a name="open"></a>bool QSqlDriver::open ( const <a href="qstring.html">QString</a> &amp; <i>db</i>, const <a href="qstring.html">QString</a> &amp; <i>user</i> = QString(), const <a href="qstring.html">QString</a> &amp; <i>password</i> = QString(), const <a href="qstring.html">QString</a> &amp; <i>host</i> = QString(), int <i>port</i> = -1, const <a href="qstring.html">QString</a> &amp; <i>options</i> = QString() )&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
 <p>Derived classes must reimplement this pure virtual function to open a database connection on database <i>db</i>, using user name <i>user</i>, password <i>password</i>, host <i>host</i>, port <i>port</i> and connection options <i>options</i>.</p>
 <p>The function must return true on success and false on failure.</p>
@@ -206,13 +230,55 @@
 <h3 class="fn"><a name="sqlStatement"></a><a href="qstring.html">QString</a> QSqlDriver::sqlStatement ( <a href="qsqldriver.html#StatementType-enum">StatementType</a> <i>type</i>, const <a href="qstring.html">QString</a> &amp; <i>tableName</i>, const <a href="qsqlrecord.html">QSqlRecord</a> &amp; <i>rec</i>, bool <i>preparedStatement</i> ) const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns a SQL statement of type <i>type</i> for the table <i>tableName</i> with the values from <i>rec</i>. If <i>preparedStatement</i> is true, the string will contain placeholders instead of values.</p>
 <p>This method can be used to manipulate tables without having to worry about database-dependent SQL dialects. For non-prepared statements, the values will be properly escaped.</p>
+<h3 class="fn"><a name="subscribeToNotification"></a>bool QSqlDriver::subscribeToNotification ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )</h3>
+<p>This function is called to subscribe to event notifications from the database. <i>name</i> identifies the event notification.</p>
+<p>If successful, return true, otherwise return false.</p>
+<p>The database must be open when this function is called. When the database is closed by calling <a href="qsqldriver.html#close">close</a>() all subscribed event notifications are automatically unsubscribed. Note that calling <a href="qsqldriver.html#open">open</a>() on an already open database may implicitly cause <a href="qsqldriver.html#close">close</a>() to be called, which will cause the driver to unsubscribe from all event notifications.</p>
+<p>When an event notification identified by <i>name</i> is posted by the database the <a href="qsqldriver.html#notification">notification</a>() signal is emitted.</p>
+<p><b>Warning:</b> Because of binary compatibility constraints, this function is not virtual. If you want to provide event notification support in your own <a href="qsqldriver.html">QSqlDriver</a> subclass, reimplement the <a href="qsqldriver.html#subscribeToNotificationImplementation">subscribeToNotificationImplementation</a>() slot in your subclass instead. The subscribeToNotification() function will dynamically detect the slot and call it.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a>(), <a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a>(), and <a href="qsqldriver.html#hasFeature">QSqlDriver::hasFeature</a>().</p>
+<h3 class="fn"><a name="subscribeToNotificationImplementation"></a>bool QSqlDriver::subscribeToNotificationImplementation ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [protected slot]</tt></h3>
+<p>This slot is called to subscribe to event notifications from the database. <i>name</i> identifies the event notification.</p>
+<p>If successful, return true, otherwise return false.</p>
+<p>The database must be open when this <i>slot</i> is called. When the database is closed by calling <a href="qsqldriver.html#close">close</a>() all subscribed event notifications are automatically unsubscribed. Note that calling <a href="qsqldriver.html#open">open</a>() on an already open database may implicitly cause <a href="qsqldriver.html#close">close</a>() to be called, which will cause the driver to unsubscribe from all event notifications.</p>
+<p>When an event notification identified by <i>name</i> is posted by the database the <a href="qsqldriver.html#notification">notification</a>() signal is emitted.</p>
+<p>Reimplement this slot to provide your own <a href="qsqldriver.html">QSqlDriver</a> subclass with event notification support; because of binary compatibility constraints, the <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>() function (introduced in Qt 4.4) is not virtual. Instead, <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>() will dynamically detect and call <i>this</i> slot. The default implementation does nothing and returns false.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>().</p>
+<h3 class="fn"><a name="subscribedToNotifications"></a><a href="qstringlist.html">QStringList</a> QSqlDriver::subscribedToNotifications () const</h3>
+<p>Returns a list of the names of the event notifications that are currently subscribed to.</p>
+<p><b>Warning:</b> Because of binary compatibility constraints, this function is not virtual. If you want to provide event notification support in your own <a href="qsqldriver.html">QSqlDriver</a> subclass, reimplement the <a href="qsqldriver.html#subscribedToNotificationsImplementation">subscribedToNotificationsImplementation</a>() slot in your subclass instead. The subscribedToNotifications() function will dynamically detect the slot and call it.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>() and <a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a>().</p>
+<h3 class="fn"><a name="subscribedToNotificationsImplementation"></a><a href="qstringlist.html">QStringList</a> QSqlDriver::subscribedToNotificationsImplementation () const&nbsp;&nbsp;<tt> [protected slot]</tt></h3>
+<p>Returns a list of the names of the event notifications that are currently subscribed to.</p>
+<p>Reimplement this slot to provide your own <a href="qsqldriver.html">QSqlDriver</a> subclass with event notification support; because of binary compatibility constraints, the <a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a>() function (introduced in Qt 4.4) is not virtual. Instead, <a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a>() will dynamically detect and call <i>this</i> slot. The default implementation simply returns an empty <a href="qstringlist.html">QStringList</a>.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a>().</p>
 <h3 class="fn"><a name="tables"></a><a href="qstringlist.html">QStringList</a> QSqlDriver::tables ( <a href="qsql.html#TableType-enum">QSql::TableType</a> <i>tableType</i> ) const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns a list of the names of the tables in the database. The default implementation returns an empty list.</p>
 <p>The <i>tableType</i> argument describes what types of tables should be returned. Due to binary compatibility, the string contains the value of the enum QSql::TableTypes as text. An empty string should be treated as <a href="qsql.html#TableType-enum">QSql::Tables</a> for backward compatibility.</p>
+<h3 class="fn"><a name="unsubscribeFromNotification"></a>bool QSqlDriver::unsubscribeFromNotification ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )</h3>
+<p>This function is called to unsubscribe from event notifications from the database. <i>name</i> identifies the event notification.</p>
+<p>If successful, return true, otherwise return false.</p>
+<p>The database must be open when this function is called. All subscribed event notifications are automatically unsubscribed from when the <a href="qsqldriver.html#close">close</a>() function is called.</p>
+<p>After calling <i>this</i> function the <a href="qsqldriver.html#notification">notification</a>() signal will no longer be emitted when an event notification identified by <i>name</i> is posted by the database.</p>
+<p><b>Warning:</b> Because of binary compatibility constraints, this function is not virtual. If you want to provide event notification support in your own <a href="qsqldriver.html">QSqlDriver</a> subclass, reimplement the <a href="qsqldriver.html#unsubscribeFromNotificationImplementation">unsubscribeFromNotificationImplementation</a>() slot in your subclass instead. The unsubscribeFromNotification() function will dynamically detect the slot and call it.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#subscribeToNotification">subscribeToNotification</a>() and <a href="qsqldriver.html#subscribedToNotifications">subscribedToNotifications</a>().</p>
+<h3 class="fn"><a name="unsubscribeFromNotificationImplementation"></a>bool QSqlDriver::unsubscribeFromNotificationImplementation ( const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [protected slot]</tt></h3>
+<p>This slot is called to unsubscribe from event notifications from the database. <i>name</i> identifies the event notification.</p>
+<p>If successful, return true, otherwise return false.</p>
+<p>The database must be open when <i>this</i> slot is called. All subscribed event notifications are automatically unsubscribed from when the <a href="qsqldriver.html#close">close</a>() function is called.</p>
+<p>After calling <i>this</i> slot the <a href="qsqldriver.html#notification">notification</a>() signal will no longer be emitted when an event notification identified by <i>name</i> is posted by the database.</p>
+<p>Reimplement this slot to provide your own <a href="qsqldriver.html">QSqlDriver</a> subclass with event notification support; because of binary compatibility constraints, the <a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a>() function (introduced in Qt 4.4) is not virtual. Instead, <a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a>() will dynamically detect and call <i>this</i> slot. The default implementation does nothing and returns false.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsqldriver.html#unsubscribeFromNotification">unsubscribeFromNotification</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

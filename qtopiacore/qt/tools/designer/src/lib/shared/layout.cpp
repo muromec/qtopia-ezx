@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,7 @@
 #include "spacer_widget_p.h"
 #include "layoutdecoration.h"
 #include "widgetfactory_p.h"
+#include "qdesigner_widgetitem_p.h"
 
 #include <QtDesigner/QDesignerFormEditorInterface>
 #include <QtDesigner/QDesignerFormWindowInterface>
@@ -54,6 +49,7 @@
 #include <QtDesigner/QExtensionManager>
 #include <QtDesigner/QDesignerPropertySheetExtension>
 #include <QtDesigner/QDesignerWidgetDataBaseInterface>
+#include <QtDesigner/QDesignerMetaDataBaseInterface>
 
 #include <QtCore/qdebug.h>
 #include <QtCore/QVector>
@@ -66,60 +62,27 @@
 #include <QtGui/QMainWindow>
 #include <QtGui/QApplication>
 #include <QtGui/QScrollArea>
+#include <QtGui/QFormLayout>
+#include <QtGui/QLabel>
+#include <QtCore/QDebug>
+#include <QtCore/QSet>
+
+QT_BEGIN_NAMESPACE
+
+namespace {
+    enum { FormLayoutColumns = 2 };
+}
 
 namespace qdesigner_internal {
-
-class FriendlyBoxLayout: public QBoxLayout
-{
-public:
-    inline FriendlyBoxLayout(Direction d) : QBoxLayout(d) { Q_ASSERT(0); }
-
-    friend void insert_into_box_layout(QBoxLayout *box, int index, QWidget *widget);
-};
-
-void add_to_box_layout(QBoxLayout *box, QWidget *widget)
-{
-    if (QLayoutWidget *layoutWidget = qobject_cast<QLayoutWidget*>(widget)) {
-        QLayoutWidgetItem *item = new QLayoutWidgetItem(layoutWidget);
-        item->addTo(box);
-        box->addItem(item);
-    } else {
-        box->addWidget(widget);
-    }
-}
-
-void insert_into_box_layout(QBoxLayout *box, int index, QWidget *widget)
-{
-    if (QLayoutWidget *layoutWidget = qobject_cast<QLayoutWidget*>(widget)) {
-        QLayoutWidgetItem *item = new QLayoutWidgetItem(layoutWidget);
-        item->addTo(box);
-        static_cast<FriendlyBoxLayout*>(box)->insertItem(index, item);
-    } else if (QSplitter *splitter = qobject_cast<QSplitter *>(widget->parent())) {
-        splitter->insertWidget(index, widget);
-    } else {
-        box->insertWidget(index, widget);
-    }
-}
-
-void add_to_grid_layout(QGridLayout *grid, QWidget *widget, int r, int c, int rs, int cs, Qt::Alignment align)
-{
-    if (QLayoutWidget *layoutWidget = qobject_cast<QLayoutWidget*>(widget)) {
-        QLayoutWidgetItem *item = new QLayoutWidgetItem(layoutWidget);
-        item->addTo(grid);
-        grid->addItem(item, r, c, rs, cs, align);
-    } else {
-        grid->addWidget(widget, r, c, rs, cs, align);
-    }
-}
-
-
 /*!
   \class Layout layout.h
-  \brief Baseclass for layouting widgets in the Designer
+  \brief Baseclass for layouting widgets in the Designer (Helper for Layout commands)
+  \internal
 
   Classes derived from this abstract base class are used for layouting
-  operations in the Designer.
+  operations in the Designer (creating/breaking layouts).
 
+  Instances live in the Layout/BreakLayout commands.
 */
 
 /*!  \a p specifies the parent of the layoutBase \a lb. The parent
@@ -131,12 +94,12 @@ void add_to_grid_layout(QGridLayout *grid, QWidget *widget, int r, int c, int rs
   widget is found later by Layout.)
  */
 
-Layout::Layout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter) :
-    m_widgets(wl), 
-    m_parentWidget(p), 
-    m_layoutBase(lb), 
-    m_formWindow(fw), 
-    m_useSplitter(splitter), 
+Layout::Layout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, LayoutInfo::Type layoutType) :
+    m_widgets(wl),
+    m_parentWidget(p),
+    m_layoutBase(lb),
+    m_formWindow(fw),
+    m_layoutType(layoutType),
     m_isBreak(false)
 {
     if (m_layoutBase)
@@ -175,10 +138,10 @@ void Layout::setup()
         lists.insert(p, w);
     }
 
-    QList<QWidget*> lastList;
-    QList<QWidget*> parents = lists.keys();
+    QWidgetList lastList;
+    QWidgetList parents = lists.keys();
     foreach (QWidget *p, parents) {
-        QList<QWidget*> children = lists.values(p);
+        QWidgetList children = lists.values(p);
 
         if (children.count() > lastList.count())
             lastList = children;
@@ -247,13 +210,10 @@ bool Layout::prepareLayout(bool &needMove, bool &needReparent)
     QDesignerMetaDataBaseInterface *metaDataBase = m_formWindow->core()->metaDataBase();
 
     if (m_layoutBase == 0) {
-        QString baseWidgetClassName = QLatin1String("QLayoutWidget");
-
-        if (m_useSplitter)
-            baseWidgetClassName = QLatin1String("QSplitter");
-
+        const bool useSplitter = m_layoutType == LayoutInfo::HSplitter || m_layoutType == LayoutInfo::VSplitter;
+        const QString baseWidgetClassName = useSplitter ? QLatin1String("QSplitter") : QLatin1String("QLayoutWidget");
         m_layoutBase = widgetFactory->createWidget(baseWidgetClassName, widgetFactory->containerOfWidget(m_parentWidget));
-        if (m_useSplitter) {
+        if (useSplitter) {
             m_layoutBase->setObjectName(QLatin1String("splitter"));
             m_formWindow->ensureUniqueObjectName(m_layoutBase);
         }
@@ -334,7 +294,8 @@ void Layout::finishLayout(bool needMove, QLayout *layout)
         m_layoutBase->setGeometry(m_oldGeometry);
 
     m_oldGeometry = g;
-    layout->invalidate();
+    if (layout)
+        layout->invalidate();
     m_layoutBase->show();
 
     if (qobject_cast<QLayoutWidget*>(m_layoutBase) || qobject_cast<QSplitter*>(m_layoutBase)) {
@@ -401,7 +362,6 @@ void Layout::breakLayout()
     foreach (QWidget *w, m_widgets) {
         rects.insert(w, w->geometry());
     }
-
     const QPoint m_layoutBasePos = m_layoutBase->pos();
     QDesignerWidgetDataBaseInterface *widgetDataBase = m_formWindow->core()->widgetDataBase();
 
@@ -445,140 +405,194 @@ void Layout::breakLayout()
     else
         m_formWindow->selectWidget(m_formWindow);
 }
- 
-    
+
+static QString suggestLayoutName(const char *className)
+{
+    // Legacy
+    if (!qstrcmp(className, "QHBoxLayout"))
+        return QLatin1String("horizontalLayout");
+    if (!qstrcmp(className, "QVBoxLayout"))
+        return QLatin1String("verticalLayout");
+    if (!qstrcmp(className, "QGridLayout"))
+        return QLatin1String("gridLayout");
+
+    return qtify(QString::fromUtf8(className));
+}
 QLayout *Layout::createLayout(int type)
 {
-    if (m_useSplitter)
-        return WidgetFactory::createUnmanagedLayout(m_layoutBase, type);
-
+    Q_ASSERT(m_layoutType != LayoutInfo::HSplitter && m_layoutType != LayoutInfo::VSplitter);
     QLayout *layout = m_formWindow->core()->widgetFactory()->createLayout(m_layoutBase, 0, type);
-    if (qobject_cast<QLayoutWidget*>(m_layoutBase)) {
-        QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(m_formWindow->core()->extensionManager(), layout);
-        if (sheet) {
-            sheet->setProperty(sheet->indexOf(QLatin1String("leftMargin")), 0);
-            sheet->setProperty(sheet->indexOf(QLatin1String("topMargin")), 0);
-            sheet->setProperty(sheet->indexOf(QLatin1String("rightMargin")), 0);
-            sheet->setProperty(sheet->indexOf(QLatin1String("bottomMargin")), 0);
-        }
+    // set a name
+    layout->setObjectName(suggestLayoutName(layout->metaObject()->className()));
+    m_formWindow->ensureUniqueObjectName(layout);
+    // QLayoutWidget
+    QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(m_formWindow->core()->extensionManager(), layout);
+    if (sheet && qobject_cast<QLayoutWidget*>(m_layoutBase)) {
+        sheet->setProperty(sheet->indexOf(QLatin1String("leftMargin")), 0);
+        sheet->setProperty(sheet->indexOf(QLatin1String("topMargin")), 0);
+        sheet->setProperty(sheet->indexOf(QLatin1String("rightMargin")), 0);
+        sheet->setProperty(sheet->indexOf(QLatin1String("bottomMargin")), 0);
     }
     return layout;
 }
 
-HorizontalLayout::HorizontalLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter)
-    : Layout(wl, p, fw, lb, splitter)
+void Layout::reparentToLayoutBase(QWidget *w)
+{
+    if (w->parent() != m_layoutBase) {
+        w->setParent(m_layoutBase, 0);
+        w->move(QPoint(0,0));
+    }
+}
+
+namespace { // within qdesigner_internal
+
+// ----- PositionSortPredicate: Predicate to be usable as LessThan function to sort widgets by position
+class PositionSortPredicate {
+public:
+    PositionSortPredicate(Qt::Orientation orientation) : m_orientation(orientation) {}
+    bool operator()(const QWidget* w1, const QWidget* w2) {
+        return m_orientation == Qt::Horizontal ? w1->x() < w2->x() : w1->y() < w2->y();
+    }
+    private:
+    const Qt::Orientation m_orientation;
+};
+
+// -------- BoxLayout
+class BoxLayout : public Layout
+{
+public:
+    BoxLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb,
+              Qt::Orientation orientation);
+
+    virtual void doLayout();
+    virtual void sort();
+
+private:
+    const Qt::Orientation m_orientation;
+};
+
+BoxLayout::BoxLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb,
+                     Qt::Orientation orientation)  :
+    Layout(wl, p, fw, lb, orientation == Qt::Horizontal ? LayoutInfo::HBox : LayoutInfo::VBox),
+    m_orientation(orientation)
 {
 }
 
-void HorizontalLayout::sort()
+void BoxLayout::sort()
 {
-    HorizontalLayoutList l(m_widgets);
-    l.sort();
-    m_widgets = l;
+    QWidgetList wl = widgets();
+    qStableSort(wl.begin(), wl.end(), PositionSortPredicate(m_orientation));
+    setWidgets(wl);
 }
 
-void HorizontalLayout::doLayout()
+void BoxLayout::doLayout()
 {
     bool needMove, needReparent;
     if (!prepareLayout(needMove, needReparent))
         return;
 
-    QHBoxLayout *layout = static_cast<QHBoxLayout *>(createLayout(LayoutInfo::HBox));
+    QBoxLayout *layout = static_cast<QBoxLayout *>(createLayout(m_orientation == Qt::Horizontal ? LayoutInfo::HBox : LayoutInfo::VBox));
 
-    foreach (QWidget *w, m_widgets) {
-        if (needReparent && w->parent() != m_layoutBase) {
-            w->setParent(m_layoutBase, 0);
-            w->move(QPoint(0,0));
-        }
+    QDesignerWidgetItemInstaller wii; // Make sure we use QDesignerWidgetItem.
 
-        if (m_useSplitter) {
-            QSplitter *splitter = qobject_cast<QSplitter*>(m_layoutBase);
-            Q_ASSERT(splitter != 0);
-            splitter->addWidget(w);
-        } else {
-            if (Spacer *spacer = qobject_cast<Spacer*>(w))
-                layout->addWidget(w, 0, spacer->alignment());
-            else
-                add_to_box_layout(layout, w);
-        }
+    const  QWidgetList::const_iterator cend = widgets().constEnd();
+    for (QWidgetList::const_iterator it =  widgets().constBegin(); it != cend; ++it) {
+        QWidget *w = *it;
+        if (needReparent)
+            reparentToLayoutBase(w);
+
+        if (const Spacer *spacer = qobject_cast<const Spacer*>(w))
+            layout->addWidget(w, 0, spacer->alignment());
+        else
+            layout->addWidget(w);
         w->show();
     }
-
-    if (QSplitter *splitter = qobject_cast<QSplitter*>(m_layoutBase))
-        splitter->setOrientation(Qt::Horizontal);
-
     finishLayout(needMove, layout);
 }
 
-VerticalLayout::VerticalLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter)
-    : Layout(wl, p, fw, lb, splitter)
+// --------  SplitterLayout
+class SplitterLayout : public Layout
+{
+public:
+    SplitterLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb,
+                   Qt::Orientation orientation);
+
+    virtual void doLayout();
+    virtual void sort();
+
+private:
+    const Qt::Orientation m_orientation;
+};
+
+SplitterLayout::SplitterLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb,
+                               Qt::Orientation orientation) :
+    Layout(wl, p, fw, lb, orientation == Qt::Horizontal ? LayoutInfo::HSplitter : LayoutInfo::VSplitter),
+    m_orientation(orientation)
 {
 }
 
-void VerticalLayout::sort()
+void SplitterLayout::sort()
 {
-    VerticalLayoutList l(m_widgets);
-    l.sort();
-    m_widgets = l;
+    QWidgetList wl = widgets();
+    qStableSort(wl.begin(), wl.end(), PositionSortPredicate(m_orientation));
+    setWidgets(wl);
 }
 
-void VerticalLayout::doLayout()
+void SplitterLayout::doLayout()
 {
     bool needMove, needReparent;
     if (!prepareLayout(needMove, needReparent))
         return;
 
-    QVBoxLayout *layout = static_cast<QVBoxLayout *>(createLayout(LayoutInfo::VBox));
-    Q_ASSERT(layout != 0);
+    QSplitter *splitter = qobject_cast<QSplitter*>(layoutBaseWidget());
+    Q_ASSERT(splitter != 0);
 
-    foreach (QWidget *w, m_widgets) {
-        if (needReparent && w->parent() != m_layoutBase) {
-            w->setParent(m_layoutBase, 0);
-            w->move(QPoint(0,0));
-        }
 
-        if (m_useSplitter) {
-            QSplitter *splitter = qobject_cast<QSplitter*>(m_layoutBase);
-            Q_ASSERT(splitter != 0);
-            splitter->addWidget(w);
-        } else {
-            if (Spacer *spacer = qobject_cast<Spacer*>(w))
-                layout->addWidget(w, 0, spacer->alignment());
-            else
-                add_to_box_layout(layout, w);
-        }
+    const  QWidgetList::const_iterator cend = widgets().constEnd();
+    for (QWidgetList::const_iterator it =  widgets().constBegin(); it != cend; ++it) {
+        QWidget *w = *it;
+        if (needReparent)
+            reparentToLayoutBase(w);
+        splitter->addWidget(w);
         w->show();
     }
 
-    if (QSplitter *splitter = qobject_cast<QSplitter*>(m_layoutBase)) { // ### m_useSplitter??
-        splitter->setOrientation(Qt::Vertical);
-    }
-
-    finishLayout(needMove, layout);
+    splitter->setOrientation(m_orientation);
+    finishLayout(needMove);
 }
+
+//  ---------- Grid: Helper for laying out grids
 
 class Grid
 {
 public:
-    Grid(int rows, int cols);
+    enum Mode {
+        GridLayout, // Arbitrary size/supports span
+        FormLayout  // 2-column/no span
+    };
+
+    Grid(Mode mode);
+    void resize(int nrows, int ncols);
+
     ~Grid();
 
     QWidget* cell(int row, int col) const { return m_cells[ row * m_ncols + col]; }
-    void setCell(int row, int col, QWidget* w) { m_cells[ row * m_ncols + col] = w; }
-    void setCells(QRect c, QWidget* w) {
-        for (int rows = c.bottom()-c.top(); rows >= 0; rows--)
-            for (int cols = c.right()-c.left(); cols >= 0; cols--) {
-                setCell(c.top()+rows, c.left()+cols, w);
-            }
-    }
+
+    void setCells(const QRect &c, QWidget* w);
+
+    bool empty() const  { return m_nrows * m_ncols; }
     int numRows() const { return m_nrows; }
     int numCols() const { return m_ncols; }
 
     void simplify();
-    bool locateWidget(QWidget* w, int& row, int& col, int& rowspan, int& colspan);
+    bool locateWidget(QWidget* w, int& row, int& col, int& rowspan, int& colspan) const;
+
+    QDebug debug(QDebug str) const;
 
 private:
-    void merge();
+    void setCell(int row, int col, QWidget* w) { m_cells[ row * m_ncols + col] = w; }
+    void shrink();
+    void shrinkToFormLayout();
     int countRow(int r, int c) const;
     int countCol(int r, int c) const;
     void setRow(int r, int c, QWidget* w, int count);
@@ -589,33 +603,75 @@ private:
     bool isWidgetEndRow(int r) const;
     bool isWidgetTopLeft(int r, int c) const;
     void extendLeft();
+    void moveToFormColumns();
     void extendRight();
     void extendUp();
     void extendDown();
-    
-    const int m_nrows;
-    const int m_ncols;
-    
-    QWidget** m_cells;
-    bool* m_cols;
-    bool* m_rows;
+
+    const Mode m_mode;
+    int m_nrows;
+    int m_ncols;
+
+    QWidget** m_cells; // widget matrix w11, w12, w21...
 };
 
-Grid::Grid(int r, int c) :
-    m_nrows(r), 
-    m_ncols(c),
-    m_cells(new QWidget*[ r * c ]),
-    m_cols(new bool[ c ]),
-    m_rows(new bool[ r ])
+Grid::Grid(Mode mode) :
+    m_mode(mode),
+    m_nrows(0),
+    m_ncols(0),
+    m_cells(0)
 {
-    qFill(m_cells, m_cells + r * c,  static_cast<QWidget *>(0));
 }
 
 Grid::~Grid()
 {
     delete [] m_cells;
-    delete [] m_cols;
-    delete [] m_rows;
+}
+
+void Grid::resize(int nrows, int ncols)
+{
+    delete [] m_cells;
+    m_cells = 0;
+    m_nrows = nrows;
+    m_ncols = ncols;
+    if (const int allocSize = m_nrows * m_ncols) {
+        m_cells = new QWidget*[allocSize];
+        qFill(m_cells, m_cells + allocSize, static_cast<QWidget *>(0));
+    }
+}
+
+QDebug Grid::debug(QDebug str) const
+{
+    str << m_nrows << 'x' << m_ncols << '\n';
+    QSet<QWidget *> widgets;
+    const int cellCount = m_nrows * m_ncols;
+    int row, col, rowspan, colspan;
+    for (int c = 0; c < cellCount; c++)
+        if (QWidget *w = m_cells[c])
+            if (!widgets.contains(w)) {
+                widgets.insert(w);
+                locateWidget(w, row, col, rowspan, colspan);
+                str << w << " at " << row <<  col << rowspan << 'x' << colspan << '\n';
+            }
+    for (int r = 0; r < m_nrows; r++)
+        for (int c = 0; c < m_ncols; c++)
+            str << "At " << r << c << cell(r, c) << '\n';
+
+    return str;
+}
+
+static inline QDebug operator<<(QDebug str, const Grid &g) { return g.debug(str); }
+
+void Grid::setCells(const QRect &c, QWidget* w)
+{
+    // We ignore spans in form layout mode
+    const int bottom = c.top() + (m_mode == FormLayout ? 1 : c.height());
+    const int width =  m_mode == FormLayout ? 1 : c.width();
+
+    for (int r = c.top(); r < bottom; r++) {
+        QWidget **pos = m_cells + r * m_ncols + c.left();
+        qFill(pos, pos + width, w);
+    }
 }
 
 int Grid::countRow(int r, int c) const
@@ -650,8 +706,7 @@ void Grid::setRow(int r, int c, QWidget* w, int count)
 
 bool Grid::isWidgetStartCol(int c) const
 {
-    int r;
-    for (r = 0; r < m_nrows; r++) {
+    for (int r = 0; r < m_nrows; r++) {
         if (cell(r, c) && ((c==0) || (cell(r, c)  != cell(r, c-1)))) {
             return true;
         }
@@ -661,8 +716,7 @@ bool Grid::isWidgetStartCol(int c) const
 
 bool Grid::isWidgetEndCol(int c) const
 {
-    int r;
-    for (r = 0; r < m_nrows; r++) {
+    for (int r = 0; r < m_nrows; r++) {
         if (cell(r, c) && ((c == m_ncols-1) || (cell(r, c) != cell(r, c+1))))
             return true;
     }
@@ -671,8 +725,7 @@ bool Grid::isWidgetEndCol(int c) const
 
 bool Grid::isWidgetStartRow(int r) const
 {
-    int c;
-    for (c = 0; c < m_ncols; c++) {
+    for ( int c = 0; c < m_ncols; c++) {
         if (cell(r, c) && ((r==0) || (cell(r, c) != cell(r-1, c))))
             return true;
     }
@@ -681,8 +734,7 @@ bool Grid::isWidgetStartRow(int r) const
 
 bool Grid::isWidgetEndRow(int r) const
 {
-    int c;
-    for (c = 0; c < m_ncols; c++) {
+    for (int c = 0; c < m_ncols; c++) {
         if (cell(r, c) && ((r == m_nrows-1) || (cell(r, c) != cell(r+1, c))))
             return true;
     }
@@ -698,18 +750,79 @@ bool Grid::isWidgetTopLeft(int r, int c) const
     return (!r || cell(r-1, c) != w) && (!c || cell(r, c-1) != w);
 }
 
+// Try to get from
+// ' A'                 'A B'
+//      B'              'C D E'
+// '   C   D E'    ==>  'F G'
+// '  F  G'
+
+void Grid::moveToFormColumns()
+{
+    enum RowState { NoWidgets, HasWidgets, Conflict };
+    // Move all widgets to the left. If it is a label, preferrably column 0, else 1
+    for (int c = 1; c < m_ncols; c++) {
+        for (int r = 0; r < m_nrows; r++) {
+            QWidget* w = cell(r, c);
+            const int leftMost = qobject_cast<QLabel *>(w) ? 0 : 1;
+            if (c > leftMost) {
+                int newColumn = c;
+                for (int nc = c - 1; nc >= leftMost && !cell(r, nc); nc--)
+                    newColumn = nc;
+                if (newColumn != c) {
+                    setCell(r, newColumn, w);
+                    setCell(r, c, 0);
+                }
+            }
+        }
+    }
+    // Move all widgets up to form mostly complete rows
+    // (move widgets up until a conflict occurs at which point start a new row)
+    int newRow = 0;
+    QVector<bool> occupied(m_ncols, false);
+    for (int c = 0; c < m_ncols; c++)
+        occupied[c] = cell(0, c) != 0;
+    for (int r = newRow + 1; r < m_nrows; r++) {
+        // Check row for widgets/conflicts
+        RowState rowState = NoWidgets;
+        for (int c = 0; c < m_ncols; c++)
+            if (cell(r, c)) {
+                rowState = HasWidgets;
+                if (occupied[c]) {
+                    rowState = Conflict;
+                    break;
+                }
+            }
+        switch (rowState) {
+        case NoWidgets:
+            break;
+        case HasWidgets: // move up
+            for (int c = 0; c < m_ncols; c++)
+                if (QWidget *w = cell(r, c)) {
+                    setCell(newRow, c, w);
+                    setCell(r, c, 0);
+                    occupied[c] = true;
+                }
+            break;
+        case Conflict:  // start a new row here
+            for (int c = 0; c < m_ncols; c++)
+                occupied[c] = cell(r, c) != 0;
+            newRow = r;
+            break;
+        }
+    }
+}
+
 void Grid::extendLeft()
 {
-    int r,c,i;
-    for (c = 1; c < m_ncols; c++) {
-        for (r = 0; r < m_nrows; r++) {
+    for (int c = 1; c < m_ncols; c++) {
+        for (int r = 0; r < m_nrows; r++) {
             QWidget* w = cell(r, c);
             if (!w)
                 continue;
 
-            int cc = countCol(r, c);
+            const int cc = countCol(r, c);
             int stretch = 0;
-            for (i = c-1; i >= 0; i--) {
+            for (int i = c-1; i >= 0; i--) {
                 if (cell(r, i))
                     break;
                 if (countCol(r, i) < cc)
@@ -722,7 +835,7 @@ void Grid::extendLeft()
                 }
             }
             if (stretch) {
-                for (i = 0; i < stretch; i++)
+                for (int i = 0; i < stretch; i++)
                     setCol(r, c-i-1, w, cc);
             }
         }
@@ -732,15 +845,14 @@ void Grid::extendLeft()
 
 void Grid::extendRight()
 {
-    int r,c,i;
-    for (c = m_ncols - 2; c >= 0; c--) {
-        for (r = 0; r < m_nrows; r++) {
+    for (int c = m_ncols - 2; c >= 0; c--) {
+        for (int r = 0; r < m_nrows; r++) {
             QWidget* w = cell(r, c);
             if (!w)
                 continue;
-            int cc = countCol(r, c);
+            const int cc = countCol(r, c);
             int stretch = 0;
-            for (i = c+1; i < m_ncols; i++) {
+            for (int i = c+1; i < m_ncols; i++) {
                 if (cell(r, i))
                     break;
                 if (countCol(r, i) < cc)
@@ -753,7 +865,7 @@ void Grid::extendRight()
                 }
             }
             if (stretch) {
-                for (i = 0; i < stretch; i++)
+                for (int i = 0; i < stretch; i++)
                     setCol(r, c+i+1, w, cc);
             }
         }
@@ -763,15 +875,14 @@ void Grid::extendRight()
 
 void Grid::extendUp()
 {
-    int r,c,i;
-    for (r = 1; r < m_nrows; r++) {
-        for (c = 0; c < m_ncols; c++) {
+    for (int r = 1; r < m_nrows; r++) {
+        for (int c = 0; c < m_ncols; c++) {
             QWidget* w = cell(r, c);
             if (!w)
                 continue;
-            int cr = countRow(r, c);
+            const int cr = countRow(r, c);
             int stretch = 0;
-            for (i = r-1; i >= 0; i--) {
+            for (int i = r-1; i >= 0; i--) {
                 if (cell(i, c))
                     break;
                 if (countRow(i, c) < cr)
@@ -784,7 +895,7 @@ void Grid::extendUp()
                 }
             }
             if (stretch) {
-                for (i = 0; i < stretch; i++)
+                for (int i = 0; i < stretch; i++)
                     setRow(r-i-1, c, w, cr);
             }
         }
@@ -793,15 +904,14 @@ void Grid::extendUp()
 
 void Grid::extendDown()
 {
-    int r,c,i;
-    for (r = m_nrows - 2; r >= 0; r--) {
-        for (c = 0; c < m_ncols; c++) {
+    for (int r = m_nrows - 2; r >= 0; r--) {
+        for (int c = 0; c < m_ncols; c++) {
             QWidget* w = cell(r, c);
             if (!w)
                 continue;
-            int cr = countRow(r, c);
+            const int cr = countRow(r, c);
             int stretch = 0;
-            for (i = r+1; i < m_nrows; i++) {
+            for (int i = r+1; i < m_nrows; i++) {
                 if (cell(i, c))
                     break;
                 if (countRow(i, c) < cr)
@@ -814,99 +924,176 @@ void Grid::extendDown()
                 }
             }
             if (stretch) {
-                for (i = 0; i < stretch; i++)
+                for (int i = 0; i < stretch; i++)
                     setRow(r+i+1, c, w, cr);
             }
         }
     }
-
 }
 
 void Grid::simplify()
 {
-    extendLeft();
-    extendRight();
-    extendUp();
-    extendDown();
-    merge();
-}
-
-
-void Grid::merge()
-{
-    int r,c;
-    for (c = 0; c < m_ncols; c++)
-        m_cols[c] = false;
-
-    for (r = 0; r < m_nrows; r++)
-        m_rows[r] = false;
-
-    for (c = 0; c < m_ncols; c++) {
-        for (r = 0; r < m_nrows; r++) {
-            if (isWidgetTopLeft(r, c)) {
-                m_rows[r] = true;
-                m_cols[c] = true;
-            }
-        }
+    // Grid: Extend all widgets to occupy most space and delete
+    // rows/columns that are not bordering on a widget
+    // Form: Do not extend (no span), just simplify and squeeze to 2 columns.
+    switch (m_mode) {
+    case FormLayout:
+        moveToFormColumns();
+        break;
+    case GridLayout:
+        extendLeft();
+        extendRight();
+        extendUp();
+        extendDown();
+        break;
     }
+    shrink();
+    if (m_mode == FormLayout && m_ncols > FormLayoutColumns)
+        shrinkToFormLayout();
 }
 
-bool Grid::locateWidget(QWidget *w, int &row, int &col, int &rowspan, int &colspan)
-{
-    int r, c, r2, c2;
 
-    for (c = 0; c < m_ncols; c++) {
-        for (r = 0; r < m_nrows; r++) {
-            if (cell(r, c) == w) {
-                row = 0;
-                for (r2 = 1; r2 <= r; r2++) {
-                    if (m_rows[r2-1])
-                        row++;
+void Grid::shrink()
+{
+    //  tick off the occupied cols/rows (bordering on widget edges)
+    QVector<bool> columns(m_ncols, false);
+    QVector<bool> rows(m_nrows, false);
+
+    for (int c = 0; c < m_ncols; c++)
+        for (int r = 0; r < m_nrows; r++)
+            if (isWidgetTopLeft(r, c))
+                rows[r] = columns[c] = true;
+
+    // remove empty cols/rows
+    const int simplifiedNCols = columns.count(true);
+    const int simplifiedNRows = rows.count(true);
+    if (simplifiedNCols ==  m_ncols && simplifiedNRows == m_nrows)
+        return;
+    // reallocate and copy omitting the empty cells
+    QWidget **simplifiedCells = new QWidget*[simplifiedNCols * simplifiedNRows];
+    qFill(simplifiedCells, simplifiedCells + simplifiedNCols * simplifiedNRows, static_cast<QWidget *>(0));
+    QWidget **simplifiedPtr = simplifiedCells;
+
+    for (int r = 0; r < m_nrows; r++)
+        if (rows[r])
+            for (int c = 0; c < m_ncols; c++)
+                if (columns[c]) {
+                    if (QWidget *w = cell(r, c))
+                        *simplifiedPtr = w;
+                    simplifiedPtr++;
                 }
-                col = 0;
-                for (c2 = 1; c2 <= c; c2++) {
-                    if (m_cols[c2-1])
-                        col++;
+    Q_ASSERT(simplifiedPtr == simplifiedCells + simplifiedNCols * simplifiedNRows);
+    delete [] m_cells;
+    m_cells = simplifiedCells;
+    m_nrows = simplifiedNRows;
+    m_ncols = simplifiedNCols;
+}
+
+void Grid::shrinkToFormLayout()
+{
+    Q_ASSERT(m_mode == FormLayout);
+    // Count the widgets to the right of column 2
+    int pastRightWidgetCount = 0;
+    for (int c = FormLayoutColumns; c < m_ncols; c++)
+        for (int r = 0; r < m_nrows; r++)
+            if (cell(r, c))
+                pastRightWidgetCount++;
+    if (pastRightWidgetCount == 0)
+        return;
+    // just insert them as fields. reallocate
+    const int formNRows = m_nrows + pastRightWidgetCount;
+
+    QWidget **formCells = new QWidget*[FormLayoutColumns * formNRows];
+    qFill(formCells, formCells + FormLayoutColumns * formNRows, static_cast<QWidget *>(0));
+    QWidget **formPtr = formCells;
+
+    for (int r = 0; r < m_nrows; r++)
+        for (int c = 0; c < m_ncols; c++)
+            if (c < FormLayoutColumns) {
+                *formPtr++ = cell(r, c);   // left of column2: just add
+            } else {
+                // right: start a new form row if there is a widget
+                if (QWidget *w = cell(r, c)) {
+                    formPtr++;
+                    *formPtr++ = w;
                 }
-                rowspan = 0;
-                for (r2 = r ; r2 < m_nrows && cell(r2, c) == w; r2++) {
-                    if (m_rows[r2])
-                        rowspan++;
-                }
-                colspan = 0;
-                for (c2 = c; c2 < m_ncols && cell(r, c2) == w; c2++) {
-                    if (m_cols[c2])
-                        colspan++;
-                }
-                return true;
             }
-        }
-    }
-    return false;
+    Q_ASSERT(formPtr == formCells + FormLayoutColumns * formNRows);
+    delete [] m_cells;
+    m_cells = formCells;
+    m_nrows = formNRows;
+    m_ncols = FormLayoutColumns;
 }
 
+bool Grid::locateWidget(QWidget *w, int &row, int &col, int &rowspan, int &colspan) const
+{
+    const int end = m_nrows * m_ncols;
+    const int startIndex = qFind(m_cells, m_cells + end, w) - m_cells;
+    if (startIndex == end)
+        return false;
 
+    row = startIndex / m_ncols;
+    col = startIndex % m_ncols;
+    for (rowspan = 1; row + rowspan < m_nrows && cell(row + rowspan, col) == w; rowspan++) {}
+    for (colspan = 1; col + colspan < m_ncols && cell(row, col + colspan) == w; colspan++) {}
+    return true;
+}
 
+// QGridLayout/QFormLayout Helpers: get item position/add item (overloads to make templates work)
 
-GridLayout::GridLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, const QSize &res) : 
-    Layout(wl, p, fw, lb),
-    m_resolution(res),
-    m_grid(0)
+void getGridItemPosition(QGridLayout *gridLayout, int index, int *row, int *column, int *rowspan, int *colspan)
+{
+    gridLayout->getItemPosition(index, row, column, rowspan, colspan);
+}
+
+void addWidgetToGrid(QGridLayout *lt, QWidget * widget, int row, int column, int rowSpan, int columnSpan, Qt::Alignment alignment)
+{
+    lt->addWidget(widget, row, column, rowSpan, columnSpan, alignment);
+}
+
+inline void getGridItemPosition(QFormLayout *formLayout, int index, int *row, int *column, int *rowspan, int *colspan)
+{
+    getFormLayoutItemPosition(formLayout, index, row, column, rowspan, colspan);
+}
+
+inline void addWidgetToGrid(QFormLayout *lt, QWidget * widget, int row, int column, int, int, Qt::Alignment)
+{
+    lt->setWidget(row, column == 0 ? QFormLayout::LabelRole : QFormLayout::FieldRole, widget);
+}
+
+// ----------- Base template for grid like layouts
+template <class GridLikeLayout, int LayoutType, int GridMode>
+class GridLayout : public Layout
+{
+public:
+    GridLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb);
+
+    virtual void doLayout();
+    virtual void sort()                  { setWidgets(buildGrid(widgets())); }
+
+protected:
+    QWidget *widgetAt(GridLikeLayout *layout, int row, int column) const;
+
+protected:
+    QWidgetList buildGrid(const QWidgetList &);
+    Grid m_grid;
+};
+
+template <class GridLikeLayout, int LayoutType, int GridMode>
+GridLayout<GridLikeLayout, LayoutType, GridMode>::GridLayout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb) :
+    Layout(wl, p, fw, lb, LayoutInfo::Grid),
+    m_grid(static_cast<Grid::Mode>(GridMode))
 {
 }
 
-GridLayout::~GridLayout()
-{
-    delete m_grid;
-}
-
-QWidget *GridLayout::widgetAt(QGridLayout *layout, int row, int column) const
+template <class GridLikeLayout, int LayoutType, int GridMode>
+QWidget *GridLayout<GridLikeLayout, LayoutType, GridMode>::widgetAt(GridLikeLayout *layout, int row, int column) const
 {
     int index = 0;
     while (QLayoutItem *item = layout->itemAt(index)) {
         if (item->widget()) {
             int r, c, rowspan, colspan;
-            layout->getItemPosition(index, &r, &c, &rowspan, &colspan);
+            getGridItemPosition(layout, index, &r, &c, &rowspan, &colspan);
             if (row == r && column == c)
                 return item->widget();
         }
@@ -915,34 +1102,37 @@ QWidget *GridLayout::widgetAt(QGridLayout *layout, int row, int column) const
     return 0;
 }
 
-void GridLayout::doLayout()
+template <class GridLikeLayout, int LayoutType, int GridMode>
+void GridLayout<GridLikeLayout, LayoutType, GridMode>::doLayout()
 {
     bool needMove, needReparent;
     if (!prepareLayout(needMove, needReparent))
         return;
 
-    QGridLayout *layout =  static_cast<QGridLayout *>(createLayout(LayoutInfo::Grid));
- 
-    if (!m_grid)
-        buildGrid();
+    GridLikeLayout *layout =  static_cast<GridLikeLayout *>(createLayout(LayoutType));
 
-    foreach (QWidget *w, m_widgets) {
+    if (m_grid.empty())
+        sort();
+
+    QDesignerWidgetItemInstaller wii; // Make sure we use QDesignerWidgetItem.
+
+    const  QWidgetList::const_iterator cend = widgets().constEnd();
+    for (QWidgetList::const_iterator it =  widgets().constBegin(); it != cend; ++it) {
+        QWidget *w = *it;
         int r = 0, c = 0, rs = 0, cs = 0;
 
-        if (m_grid->locateWidget(w, r, c, rs, cs)) {
-            if (needReparent && w->parent() != m_layoutBase) {
-                w->setParent(m_layoutBase, 0);
-                w->move(QPoint(0,0));
-            }
+        if (m_grid.locateWidget(w, r, c, rs, cs)) {
+            if (needReparent)
+                reparentToLayoutBase(w);
 
             Qt::Alignment alignment = Qt::Alignment(0);
-            if (Spacer *spacer = qobject_cast<Spacer*>(w))
+            if (const Spacer *spacer = qobject_cast<const Spacer*>(w))
                 alignment = spacer->alignment();
 
             if (rs * cs == 1) {
-                add_to_grid_layout(layout, w, r, c, 1, 1, alignment);
+                addWidgetToGrid(layout, w, r, c, 1, 1, alignment);
             } else {
-                add_to_grid_layout(layout, w, r, c, rs, cs, alignment);
+                addWidgetToGrid(layout, w, r, c, rs, cs, alignment);
             }
 
             w->show();
@@ -956,32 +1146,31 @@ void GridLayout::doLayout()
     finishLayout(needMove, layout);
 }
 
-void GridLayout::sort()
+// Remove duplicate entries (Remove next, if equal to current)
+void removeIntVecDuplicates(QVector<int> &v)
 {
-    buildGrid();
+    if (v.size() < 2)
+        return;
+
+    for (QVector<int>::iterator current = v.begin() ; (current != v.end()) && ((current+1) != v.end()) ; )
+        if ( (*current == *(current+1)) )
+            v.erase(current+1);
+        else
+            ++current;
 }
 
-void GridLayout::buildGrid()
+// Ensure a non-zero size for a widget geometry (squeezed spacers)
+inline QRect expandGeometry(const QRect &rect)
 {
-    if (!m_widgets.count())
-        return;
-#if 0
-    QMap<int, int> x_dict;
-    QMap<int, int> y_dict;
+    return rect.isEmpty() ? QRect(rect.topLeft(), rect.size().expandedTo(QSize(1, 1))) : rect;
+}
 
-    foreach (QWidget *w, m_widgets) {
-        QRect g = w->geometry();
+template <class GridLikeLayout, int LayoutType, int GridMode>
+QWidgetList GridLayout<GridLikeLayout, LayoutType, GridMode>::buildGrid(const QWidgetList &widgetList)
+{
+    if (widgetList.empty())
+        return QWidgetList();
 
-        x_dict.insert(g.left(), g.left());
-        x_dict.insert(g.right(), g.right());
-
-        y_dict.insert(g.top(), g.top());
-        y_dict.insert(g.bottom(), g.bottom());
-    }
-
-    QList<int> x = x_dict.keys();
-    QList<int> y = y_dict.keys();
-#else
     // Pixel to cell conversion:
     // By keeping a list of start'n'stop values (x & y) for each widget,
     // it is possible to create a very small grid of cells to represent
@@ -989,15 +1178,14 @@ void GridLayout::buildGrid()
     // -----------------------------------------------------------------
 
     // We need a list of both start and stop values for x- & y-axis
-    QVector<int> x( m_widgets.count()*2 );
-    QVector<int> y( m_widgets.count()*2 );
+    const int widgetCount = widgetList.size();
+    QVector<int> x( widgetCount * 2 );
+    QVector<int> y( widgetCount * 2 );
 
     // Using push_back would look nicer, but operator[] is much faster
     int index  = 0;
-    QWidget* w = 0;
-    for (int i = 0; i < m_widgets.size(); ++i) {
-        w = m_widgets.at(i);
-        QRect widgetPos = w->geometry();
+    for (int i = 0; i < widgetCount; ++i) {
+        const QRect widgetPos = expandGeometry(widgetList.at(i)->geometry());
         x[index]   = widgetPos.left();
         x[index+1] = widgetPos.right();
         y[index]   = widgetPos.top();
@@ -1008,66 +1196,83 @@ void GridLayout::buildGrid()
     qSort(x);
     qSort(y);
 
-    // Remove duplicate x enteries (Remove next, if equal to current)
-    if ( !x.empty() ) {
-        for (QVector<int>::iterator current = x.begin() ;
-             (current != x.end()) && ((current+1) != x.end()) ; )
-            if ( (*current == *(current+1)) )
-                x.erase(current+1);
-            else
-                current++;
-    }
+    // Remove duplicate x entries (Remove next, if equal to current)
+    removeIntVecDuplicates(x);
+    removeIntVecDuplicates(y);
 
-    // Remove duplicate y enteries (Remove next, if equal to current)
-    if ( !y.empty() ) {
-        for (QVector<int>::iterator current = y.begin() ;
-             (current != y.end()) && ((current+1) != y.end()) ; )
-            if ( (*current == *(current+1)) )
-                y.erase(current+1);
-            else
-                current++;
-    }
-#endif
+    // Note that left == right and top == bottom for size 1 items; reserve
+    // enough space
+    m_grid.resize(y.size(), x.size());
 
-    delete m_grid;
-    m_grid = new Grid(y.size() - 1, x.size() - 1);
-
-    // Mark the cells in the grid that contains a widget
-    foreach (QWidget *w, m_widgets) {
-        QRect widgetPos = w->geometry();
-
-        QRect c(0, 0, 0, 0);
+    const  QWidgetList::const_iterator cend = widgetList.constEnd();
+    for (QWidgetList::const_iterator it = widgetList.constBegin(); it != cend; ++it) {
+        QWidget *w = *it;
+        // Mark the cells in the grid that contains a widget
+        const QRect widgetPos = expandGeometry(w->geometry());
+        QRect c(0, 0, 0, 0); // rect of columns/rows
 
         // From left til right (not including)
-        for (int cw=0; cw<x.size(); cw++) {
-            if (x[cw] == widgetPos.left())
-                c.setLeft(cw);
+        const int leftIdx = x.indexOf(widgetPos.left());
+        Q_ASSERT(leftIdx != -1);
+        c.setLeft(leftIdx);
+        c.setRight(leftIdx);
+        for (int cw=leftIdx; cw<x.size(); cw++)
             if (x[cw] <  widgetPos.right())
                 c.setRight(cw);
-        }
-
+            else
+                break;
         // From top til bottom (not including)
-        for (int ch=0; ch<y.size(); ch++) {
-            if (y[ch] == widgetPos.top()   )
-                c.setTop(ch);
+        const int topIdx = y.indexOf(widgetPos.top());
+        Q_ASSERT(topIdx != -1);
+        c.setTop(topIdx);
+        c.setBottom(topIdx);
+        for (int ch=topIdx; ch<y.size(); ch++)
             if (y[ch] <  widgetPos.bottom())
                 c.setBottom(ch);
-        }
-
-        m_grid->setCells(c, w); // Mark cellblock
+            else
+                break;
+        m_grid.setCells(c, w); // Mark cellblock
     }
 
-    m_grid->simplify();
+    m_grid.simplify();
 
-    QList<QWidget *> widgets;
-    for (int i = 0; i < m_grid->numRows(); i++)
-        for (int j = 0; j < m_grid->numCols(); j++) {
-            QWidget *w = m_grid->cell(i, j);
-            if (w && !widgets.contains(w))
-                widgets.append(w);
+    QWidgetList ordered;
+    for (int i = 0; i < m_grid.numRows(); i++)
+        for (int j = 0; j < m_grid.numCols(); j++) {
+            QWidget *w = m_grid.cell(i, j);
+            if (w && !ordered.contains(w))
+                ordered.append(w);
         }
-    m_widgets = widgets;
+    return ordered;
+}
+} // anonymous
+
+Layout* Layout::createLayout(const QWidgetList &widgets,  QWidget *parentWidget,
+                             QDesignerFormWindowInterface *fw,
+                             QWidget *layoutBase, LayoutInfo::Type layoutType)
+{
+    switch (layoutType) {
+    case LayoutInfo::Grid:
+        return new GridLayout<QGridLayout, LayoutInfo::Grid, Grid::GridLayout>(widgets, parentWidget, fw, layoutBase);
+    case LayoutInfo::HBox:
+    case LayoutInfo::VBox: {
+        const Qt::Orientation orientation = layoutType == LayoutInfo::HBox ? Qt::Horizontal : Qt::Vertical;
+        return new BoxLayout(widgets, parentWidget, fw, layoutBase, orientation);
+    }
+    case LayoutInfo::HSplitter:
+    case LayoutInfo::VSplitter: {
+        const Qt::Orientation orientation = layoutType == LayoutInfo::HSplitter ? Qt::Horizontal : Qt::Vertical;
+        return new SplitterLayout(widgets, parentWidget, fw, layoutBase, orientation);
+    }
+    case LayoutInfo::Form:
+        return new GridLayout<QFormLayout, LayoutInfo::Form, Grid::FormLayout>(widgets, parentWidget, fw, layoutBase);
+    default:
+        break;
+    }
+    Q_ASSERT(0);
+    return 0;
 }
 
-
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE

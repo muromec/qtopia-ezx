@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,10 @@
 #include <QtGui/QFont>
 #include <QtGui/QPalette>
 #include <QtGui/QIcon>
+
+#ifndef QT_NO_CSSPARSER
+
+QT_BEGIN_NAMESPACE
 
 namespace QCss
 {
@@ -156,6 +154,18 @@ enum Property {
     ListStyle,
     QtImageAlignment,
     TextAlignment,
+    Outline,
+    OutlineOffset,
+    OutlineWidth,
+    OutlineColor,
+    OutlineStyle,
+    OutlineRadius,
+    OutlineTopLeftRadius,
+    OutlineTopRightRadius,
+    OutlineBottomLeftRadius,
+    OutlineBottomRightRadius,
+    FontVariant,
+    TextTransform,
     NumProperties
 };
 
@@ -206,6 +216,9 @@ enum KnownValue {
     Value_Decimal,
     Value_LowerAlpha,
     Value_UpperAlpha,
+    Value_SmallCaps,
+    Value_Uppercase,
+    Value_Lowercase,
 
     /* keep these in same order as QPalette::ColorRole */
     Value_FirstColorRole,
@@ -227,6 +240,12 @@ enum KnownValue {
     Value_LinkVisited,
     Value_AlternateBase,
     Value_LastColorRole = Value_AlternateBase,
+
+    Value_Disabled,
+    Value_Active,
+    Value_Selected,
+    Value_On,
+    Value_Off,
 
     NumKnownValues
 };
@@ -375,52 +394,60 @@ struct Q_GUI_EXPORT Declaration
     void borderImageValue(QString *image, int *cuts, TileMode *h, TileMode *v) const;
 };
 
-enum PseudoClass
-{
-    PseudoClass_Unknown         = 0x00000000,
-    PseudoClass_Enabled         = 0x00000001,
-    PseudoClass_Disabled        = 0x00000002,
-    PseudoClass_Pressed         = 0x00000004,
-    PseudoClass_Focus           = 0x00000008,
-    PseudoClass_Hover           = 0x00000010,
-    PseudoClass_Checked         = 0x00000020,
-    PseudoClass_On              = PseudoClass_Checked,
-    PseudoClass_Unchecked       = 0x00000040,
-    PseudoClass_Off             = PseudoClass_Unchecked,
-    PseudoClass_Indeterminate   = 0x00000080,
-    PseudoClass_Editable        = PseudoClass_Indeterminate,
-    PseudoClass_Unspecified     = 0x00000100,
-    PseudoClass_Selected        = 0x00000200,
-    PseudoClass_Horizontal      = 0x00000400,
-    PseudoClass_Vertical        = 0x00000800,
-    PseudoClass_Open            = 0x00001000,
-    PseudoClass_Children        = 0x00002000,
-    PseudoClass_Sibling         = 0x00004000,
-    PseudoClass_Default         = 0x00008000,
-    PseudoClass_Item            = PseudoClass_Default,
-    PseudoClass_First           = 0x00010000,
-    PseudoClass_Last            = 0x00020000,
-    PseudoClass_Middle          = 0x00040000,
-    PseudoClass_OnlyOne         = 0x00080000,
-    PseudoClass_PreviousSelected = 0x00100000,
-    PseudoClass_NextSelected     = 0x00200000,
-    PseudoClass_Flat             = 0x00400000,
-    PseudoClass_Left             = 0x00800000,
-    PseudoClass_Right            = 0x01000000,
-    PseudoClass_Top              = 0x02000000,
-    PseudoClass_Bottom           = 0x04000000,
-    PseudoClass_Exclusive        = 0x08000000,
-    PseudoClass_NonExclusive     = 0x10000000,
-    PseudoClass_Frameless        = 0x20000000,
-    PseudoClass_ReadOnly         = 0x40000000,
-    PseudoClass_Closed           = 0x80000000,
-    NumPseudos = 36
-};
+const quint64 PseudoClass_Unknown          = Q_UINT64_C(0x0000000000000000);
+const quint64 PseudoClass_Enabled          = Q_UINT64_C(0x0000000000000001);
+const quint64 PseudoClass_Disabled         = Q_UINT64_C(0x0000000000000002);
+const quint64 PseudoClass_Pressed          = Q_UINT64_C(0x0000000000000004);
+const quint64 PseudoClass_Focus            = Q_UINT64_C(0x0000000000000008);
+const quint64 PseudoClass_Hover            = Q_UINT64_C(0x0000000000000010);
+const quint64 PseudoClass_Checked          = Q_UINT64_C(0x0000000000000020);
+const quint64 PseudoClass_Unchecked        = Q_UINT64_C(0x0000000000000040);
+const quint64 PseudoClass_Indeterminate    = Q_UINT64_C(0x0000000000000080);
+const quint64 PseudoClass_Unspecified      = Q_UINT64_C(0x0000000000000100);
+const quint64 PseudoClass_Selected         = Q_UINT64_C(0x0000000000000200);
+const quint64 PseudoClass_Horizontal       = Q_UINT64_C(0x0000000000000400);
+const quint64 PseudoClass_Vertical         = Q_UINT64_C(0x0000000000000800);
+const quint64 PseudoClass_Window           = Q_UINT64_C(0x0000000000001000);
+const quint64 PseudoClass_Children         = Q_UINT64_C(0x0000000000002000);
+const quint64 PseudoClass_Sibling          = Q_UINT64_C(0x0000000000004000);
+const quint64 PseudoClass_Default          = Q_UINT64_C(0x0000000000008000);
+const quint64 PseudoClass_First            = Q_UINT64_C(0x0000000000010000);
+const quint64 PseudoClass_Last             = Q_UINT64_C(0x0000000000020000);
+const quint64 PseudoClass_Middle           = Q_UINT64_C(0x0000000000040000);
+const quint64 PseudoClass_OnlyOne          = Q_UINT64_C(0x0000000000080000);
+const quint64 PseudoClass_PreviousSelected = Q_UINT64_C(0x0000000000100000);
+const quint64 PseudoClass_NextSelected     = Q_UINT64_C(0x0000000000200000);
+const quint64 PseudoClass_Flat             = Q_UINT64_C(0x0000000000400000);
+const quint64 PseudoClass_Left             = Q_UINT64_C(0x0000000000800000);
+const quint64 PseudoClass_Right            = Q_UINT64_C(0x0000000001000000);
+const quint64 PseudoClass_Top              = Q_UINT64_C(0x0000000002000000);
+const quint64 PseudoClass_Bottom           = Q_UINT64_C(0x0000000004000000);
+const quint64 PseudoClass_Exclusive        = Q_UINT64_C(0x0000000008000000);
+const quint64 PseudoClass_NonExclusive     = Q_UINT64_C(0x0000000010000000);
+const quint64 PseudoClass_Frameless        = Q_UINT64_C(0x0000000020000000);
+const quint64 PseudoClass_ReadOnly         = Q_UINT64_C(0x0000000040000000);
+const quint64 PseudoClass_Active           = Q_UINT64_C(0x0000000080000000);
+const quint64 PseudoClass_Closable         = Q_UINT64_C(0x0000000100000000);
+const quint64 PseudoClass_Movable          = Q_UINT64_C(0x0000000200000000);
+const quint64 PseudoClass_Floatable        = Q_UINT64_C(0x0000000400000000);
+const quint64 PseudoClass_Minimized        = Q_UINT64_C(0x0000000800000000);
+const quint64 PseudoClass_Maximized        = Q_UINT64_C(0x0000001000000000);
+const quint64 PseudoClass_On               = Q_UINT64_C(0x0000002000000000);
+const quint64 PseudoClass_Off              = Q_UINT64_C(0x0000004000000000);
+const quint64 PseudoClass_Editable         = Q_UINT64_C(0x0000008000000000);
+const quint64 PseudoClass_Item             = Q_UINT64_C(0x0000010000000000);
+const quint64 PseudoClass_Closed           = Q_UINT64_C(0x0000020000000000);
+const quint64 PseudoClass_Open             = Q_UINT64_C(0x0000040000000000);
+const quint64 PseudoClass_EditFocus        = Q_UINT64_C(0x0000080000000000);
+const quint64 PseudoClass_Alternate        = Q_UINT64_C(0x0000100000000000);
+// The Any specifier is never generated, but can be used as a wildcard in searches.
+const quint64 PseudoClass_Any              = Q_UINT64_C(0x0000200000000000);
+const int NumPseudos = 46;
 
 struct Q_GUI_EXPORT Pseudo
 {
     Pseudo() : negated(false) { }
-    PseudoClass type;
+    quint64 type;
     QString name;
     QString function;
     bool negated;
@@ -465,7 +492,7 @@ struct Q_GUI_EXPORT Selector
 {
     QVector<BasicSelector> basicSelectors;
     int specificity() const;
-    int pseudoClass(int *negated = 0) const;
+    quint64 pseudoClass(quint64 *negated = 0) const;
     QString pseudoElement() const;
 };
 
@@ -486,14 +513,16 @@ struct Q_GUI_EXPORT ValueExtractor
                          QCss::PositionMode *, Qt::Alignment *);
     bool extractBox(int *margins, int *paddings, int *spacing = 0);
     bool extractBorder(int *borders, QBrush *colors, BorderStyle *Styles, QSize *radii);
+    bool extractOutline(int *borders, QBrush *colors, BorderStyle *Styles, QSize *radii, int *offsets);
     bool extractPalette(QBrush *fg, QBrush *sfg, QBrush *sbg, QBrush *abg);
     int  extractStyleFeatures();
     bool extractImage(QIcon *icon, Qt::Alignment *a, QSize *size);
 
+    int lengthValue(const Declaration &decl);
+
 private:
     void extractFont();
     void borderValue(const Declaration &decl, int *width, QCss::BorderStyle *style, QBrush *color);
-    int lengthValue(const Declaration &decl);
     int lengthValue(const Value& v);
     void lengthValues(const Declaration &decl, int *m);
     QSize sizeValue(const Declaration &decl);
@@ -651,9 +680,9 @@ class Q_GUI_EXPORT Parser
 {
 public:
     Parser();
-    Parser(QString css, bool file = false);
+    Parser(const QString &css, bool file = false);
 
-    void init(const QString &css);
+    void init(const QString &css, bool file = false);
     bool parse(StyleSheet *styleSheet);
     Symbol errorSymbol();
 
@@ -707,7 +736,7 @@ public:
 
     inline bool lookupElementName() const { return lookup() == IDENT || lookup() == STAR; }
 
-    inline void skipSpace() { while (test(S)); }
+    inline void skipSpace() { while (test(S)) {}; }
 
     inline bool hasNext() const { return index < symbols.count(); }
     inline TokenType next() { return symbols.at(index++).token; }
@@ -734,6 +763,9 @@ public:
     QString sourcePath;
 };
 
-}
+} // namespace QCss
+
+QT_END_NAMESPACE
+#endif // QT_NO_CSSPARSER
 
 #endif

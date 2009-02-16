@@ -1,52 +1,50 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qvfb.h"
 #include "qvfbview.h"
+#ifdef Q_WS_X11
+#include "qvfbx11view.h"
+#endif
 #include "qvfbratedlg.h"
 #include "ui_config.h"
-#include "skin.h"
 #include "qanimationwriter.h"
+
+#include <deviceskin.h>
 
 #include <QMenuBar>
 #include <QMenu>
@@ -69,11 +67,14 @@
 #include <QPushButton>
 #include <QTextStream>
 #include <QFile>
+#include <QFileInfo>
 #include <QDebug>
 
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
+QT_BEGIN_NAMESPACE
 
 // =====================================================================
 
@@ -127,12 +128,26 @@ static const char *red_off_led_xpm[] = {
 "   ;==&$   ",
 "           "};
 
+static bool copyButtonConfiguration(const QString &prefix, int displayId)
+{
+    const QString destDir = QString(QLatin1String("/tmp/qtembedded-%1/")).arg(displayId);
+    const QFileInfo src(prefix + QLatin1String("defaultbuttons.conf"));
+    const QFileInfo dst(destDir + QLatin1String("defaultbuttons.conf"));
+    unlink(dst.absoluteFilePath().toLatin1().constData());
+    if (!src.exists())
+        return false;
+    const bool rc = QFile::copy(src.absoluteFilePath(), dst.absoluteFilePath());
+    if (!rc)
+        qWarning() << "Failed to copy the button configuration file " << src.absoluteFilePath() << " to " <<  dst.absoluteFilePath() << '.';
+    return rc;
+}
+
 // =====================================================================
 
 class AnimationSaveWidget : public QWidget {
     Q_OBJECT
 public:
-    AnimationSaveWidget(QVFbView *v);
+    AnimationSaveWidget(QVFbAbstractView *v);
     ~AnimationSaveWidget();
     bool detectPpmtoMpegCommand();
     void timerEvent(QTimerEvent *te);
@@ -143,7 +158,7 @@ protected slots:
     void reset();
     void save();
 private:
-    QVFbView *view;
+    QVFbAbstractView *view;
     QProgressBar *progressBar;
     QLabel *statusText;
     bool haveMpeg, savingAsMpeg, recording;
@@ -183,9 +198,10 @@ void Zoomer::zoom(int z)
 
 // =====================================================================
 
-QVFb::QVFb( int display_id, int w, int h, int d, int r, const QString &skin, QWidget *parent, Qt::WindowFlags flags )
+QVFb::QVFb( int display_id, int w, int h, int d, int r, const QString &skin, DisplayType displayType, QWidget *parent, Qt::WindowFlags flags )
     : QMainWindow( parent, flags )
 {
+    this->displayType = displayType;
     view = 0;
     secondaryView = 0;
     scroller = 0;
@@ -237,19 +253,38 @@ void QVFb::init( int display_id, int pw, int ph, int d, int r, const QString& sk
 			     ((r == 270) ? QVFbView::Rot270 :
 					   QVFbView::Rot0 )));
     if ( !skin_name.isEmpty() ) {
-	bool vis = isVisible();
-	int sw, sh;
-	skin = new Skin( this, skin_name, sw, sh );
-	if (skin && skin->isValid()){
+	const bool vis = isVisible();
+	DeviceSkinParameters parameters;
+	QString readError;
+	if (parameters.read(skin_name,DeviceSkinParameters::ReadAll, &readError)) {
+	    skin = new DeviceSkin(parameters, this);
+	    connect(skin, SIGNAL(popupMenu()), this, SLOT(popupMenu()));
+	    const int sw = parameters.screenSize().width();
+	    const int sh = parameters.screenSize().height();
+	    const int sd = parameters.screenDepth;
             if ( !pw ) pw = sw;
             if ( !ph ) ph = sh;
+            if ( d < 0 )
+                if ( sd )
+                    d = sd;
+                else
+                    d = -d;
     	    if ( vis ) hide();
     	    menuBar()->hide();
 	    scroller = 0;
-	    view = new QVFbView( display_id, pw, ph, d, rot, skin );
+#ifdef Q_WS_X11
+	    if (displayType == X11)
+		view = new QVFbX11View( display_id, pw, ph, d, rot, skin );
+	    else
+#endif
+		view = new QVFbView( display_id, pw, ph, d, rot, skin );
 	    skin->setView( view );
 	    view->setContentsMargins( 0, 0, 0, 0 );
-	    view->setFixedSize( sw, sh );
+            view->setTouchscreenEmulation(!parameters.hasMouseHover);
+	    connect(skin, SIGNAL(skinKeyPressEvent(int,QString,bool)), view, SLOT(skinKeyPressEvent(int,QString,bool)));
+	    connect(skin, SIGNAL(skinKeyReleaseEvent(int,QString,bool)), view, SLOT(skinKeyReleaseEvent(int,QString,bool)));
+
+	    copyButtonConfiguration(skin->prefix(), view->displayId());
 
 	    setCentralWidget( skin );
 	    adjustSize();
@@ -259,18 +294,22 @@ void QVFb::init( int display_id, int pw, int ph, int d, int r, const QString& sk
 		setZoom(skinscaleH);
 	    view->show();
 
-            if (Skin::hasSecondaryScreen(skin_name)) {
-                QSize ssize = Skin::secondaryScreenSize(skin_name);
+            if (parameters.hasSecondaryScreen()) {
+                const QSize ssize = parameters.secondaryScreenSize();
                 // assumes same depth and rotation
-                secondaryView = new QVFbView( display_id+1, ssize.width(), ssize.height(), d, rot, skin );
+#ifdef Q_WS_X11
+		if (displayType == X11)
+		    secondaryView = new QVFbX11View( display_id+1, ssize.width(), ssize.height(), d, rot, skin );
+		else
+#endif
+		    secondaryView = new QVFbView( display_id+1, ssize.width(), ssize.height(), d, rot, skin );
                 skin->setSecondaryView(secondaryView);
                 secondaryView->show();
             }
 
 	    if ( vis ) show();
 	} else {
-	    delete skin;
-	    skin = 0;
+	    qWarning(readError.toUtf8().constData());
 	}
     }
 
@@ -278,11 +317,17 @@ void QVFb::init( int display_id, int pw, int ph, int d, int r, const QString& sk
     //	    with one then fallback to a framebuffer without
     //	    a skin
     if (!skin){
-	// Default size
-	if ( !pw ) pw = 240;
-	if ( !ph ) ph = 320;
+	// Default values
+	if (!pw)
+            pw = 240;
+	if (!ph)
+            ph = 320;
+        if (!d)
+            d = 32;
+        else if (d < 0)
+            d = -d;
 
-     	if ( currentSkinIndex!=-1 ) {
+     	if (currentSkinIndex != -1) {
 	    clearMask();
             setParent( 0, 0 );
             move( pos() );
@@ -293,7 +338,13 @@ void QVFb::init( int display_id, int pw, int ph, int d, int r, const QString& sk
 	}
 	menuBar()->show();
 	scroller = new QScrollArea(this);
-	view = new QVFbView( display_id, pw, ph, d, rot, scroller );
+	scroller->setFocusPolicy(Qt::NoFocus); // don't steal key events from the embedded app
+#ifdef Q_WS_X11
+	if (displayType == X11)
+	    view = new QVFbX11View( display_id, pw, ph, d, rot, scroller );
+	else
+#endif
+	    view = new QVFbView( display_id, pw, ph, d, rot, scroller );
 	scroller->setWidget(view);
 	view->setContentsMargins( 0, 0, 0, 0 );
 	setCentralWidget(scroller);
@@ -348,7 +399,7 @@ void QVFb::createMenu(T *menu)
 
 QMenu* QVFb::createFileMenu()
 {
-    QMenu *file = new QMenu( "&File", this );
+    QMenu *file = new QMenu( "File", this );
     file->addAction( "Configure...", this, SLOT(configure()), 0 );
     file->addSeparator();
     file->addAction( "&Save image...", this, SLOT(saveImage()), 0 );
@@ -360,13 +411,18 @@ QMenu* QVFb::createFileMenu()
 
 QMenu* QVFb::createViewMenu()
 {
-    viewMenu = new QMenu( "&View", this );
+    viewMenu = new QMenu( "View", this );
     cursorAction = viewMenu->addAction( "Show &Cursor", this,
                                         SLOT(toggleCursor()) );
     cursorAction->setCheckable(true);
     if ( view )
 	enableCursor(true);
     viewMenu->addAction( "&Refresh Rate...", this, SLOT(changeRate()) );
+    viewMenu->addSeparator();
+    viewMenu->addAction( "No rotation", this, SLOT(setRot0()) );
+    viewMenu->addAction( "90\260 rotation", this, SLOT(setRot90()) );
+    viewMenu->addAction( "180\260 rotation", this, SLOT(setRot180()) );
+    viewMenu->addAction( "270\260 rotation", this, SLOT(setRot270()) );
     viewMenu->addSeparator();
     viewMenu->addAction( "Zoom scale &0.5", this, SLOT(setZoomHalf()) );
     viewMenu->addAction( "Zoom scale 0.75", this, SLOT(setZoom075()) );
@@ -382,7 +438,7 @@ QMenu* QVFb::createViewMenu()
 
 QMenu* QVFb::createHelpMenu()
 {
-    QMenu *help = new QMenu( "&Help", this );
+    QMenu *help = new QMenu( "Help", this );
     help->addAction("About...", this, SLOT(about()));
     return help;
 }
@@ -394,15 +450,40 @@ void QVFb::setZoom(double z)
         secondaryView->setZoom(z,z*skinscaleV/skinscaleH);
 
     if (skin) {
-	skin->setZoom(z/skinscaleH);
-	view->setFixedSize(
-	    int(view->displayWidth()*z),
-	    int(view->displayHeight()*z*skinscaleV/skinscaleH));
+	skin->setTransform(QMatrix().scale(z/skinscaleH,z/skinscaleV).rotate(90*view->displayRotation()));
         if (secondaryView)
             secondaryView->setFixedSize(
                     int(secondaryView->displayWidth()*z),
                     int(secondaryView->displayHeight()*z*skinscaleV/skinscaleH));
     }
+}
+
+void QVFb::setRotation(QVFbView::Rotation r)
+{
+    view->setRotation(r);
+    if (secondaryView)
+        secondaryView->setRotation(r);
+    setZoom(view->zoomH());
+}
+
+void QVFb::setRot0()
+{
+    setRotation(QVFbView::Rot0);
+}
+
+void QVFb::setRot90()
+{
+    setRotation(QVFbView::Rot90);
+}
+
+void QVFb::setRot180()
+{
+    setRotation(QVFbView::Rot180);
+}
+
+void QVFb::setRot270()
+{
+    setRotation(QVFbView::Rot270);
 }
 
 void QVFb::setZoomHalf()
@@ -495,7 +576,7 @@ void QVFb::about()
 {
     QMessageBox::about(this, "About QVFB",
 	"<h2>The Qtopia Core Virtual X11 Framebuffer</h2>"
-	"<p>This application runs under Qt/X11, emulating a simple framebuffer, "
+	"<p>This application runs under Qt for X11, emulating a simple framebuffer, "
 	"which the Qtopia Core server and clients can attach to just as if "
 	"it was a hardware Linux framebuffer. "
 	"<p>With the aid of this development tool, you can develop Qtopia Core "
@@ -551,14 +632,7 @@ void QVFb::configure()
     config->skin->addItem(tr("Browse..."));
     config->touchScreen->setChecked(view->touchScreenEmulation());
     config->lcdScreen->setChecked(view->lcdScreenEmulation());
-    config->depth_1->setChecked(view->displayDepth()==1);
-    config->depth_4gray->setChecked(view->displayDepth()==4);
-    config->depth_8->setChecked(view->displayDepth()==8);
-    config->depth_12->setChecked(view->displayDepth()==12);
-    config->depth_16->setChecked(view->displayDepth()==16);
-    config->depth_18->setChecked(view->displayDepth()==18);
-    config->depth_24->setChecked(view->displayDepth()==24);
-    config->depth_32->setChecked(view->displayDepth()==32);
+    chooseDepth(view->displayDepth(), view->displayFormat());
     connect(config->skin, SIGNAL(activated(int)), this, SLOT(skinConfigChosen(int)));
     if ( view->gammaRed() == view->gammaGreen() && view->gammaGreen() == view->gammaBlue() ) {
 	config->gammaslider->setValue(int(view->gammaRed()*400));
@@ -608,6 +682,8 @@ void QVFb::configure()
 	    d=8;
 	else if ( config->depth_12->isChecked() )
 	    d=12;
+	else if ( config->depth_15->isChecked() )
+	    d = 15;
 	else if ( config->depth_16->isChecked() )
 	    d=16;
 	else if ( config->depth_18->isChecked() )
@@ -616,6 +692,8 @@ void QVFb::configure()
 	    d=24;
 	else
 	    d=32;
+	QVFbView::PixelFormat displayFormat = config->depth_32_argb->isChecked()
+					      ? QVFbView::ARGBFormat : QVFbView::DefaultFormat;
 	int skinIndex = config->skin->currentIndex();
 	if ( w != view->displayWidth() || h != view->displayHeight()
 		|| d != view->displayDepth() || skinIndex != currentSkinIndex ) {
@@ -626,6 +704,7 @@ void QVFb::configure()
 	    currentSkinIndex = skinIndex;
 	    init( id, w, h, d, r, skinIndex > 0 ? skinfiles[skinIndex-1] : QString::null );
 	}
+	view->setViewFormat(displayFormat);
 	view->setTouchscreenEmulation( config->touchScreen->isChecked() );
 	bool lcdEmulation = config->lcdScreen->isChecked();
 	view->setLcdScreenEmulation( lcdEmulation );
@@ -657,6 +736,20 @@ void QVFb::chooseSize(const QSize& sz)
     config->size_1024_768->setChecked(sz == QSize(1024,768));
 }
 
+void QVFb::chooseDepth(int depth, QVFbView::PixelFormat displayFormat)
+{
+    config->depth_1->setChecked(depth==1);
+    config->depth_4gray->setChecked(depth==4);
+    config->depth_8->setChecked(depth==8);
+    config->depth_12->setChecked(depth==12);
+    config->depth_15->setChecked(depth==15);
+    config->depth_16->setChecked(depth==16);
+    config->depth_18->setChecked(depth==18);
+    config->depth_24->setChecked(depth==24);
+    config->depth_32->setChecked(depth==32 && displayFormat != QVFbView::ARGBFormat);
+    config->depth_32_argb->setChecked(depth==32 && displayFormat == QVFbView::ARGBFormat);
+}
+
 void QVFb::skinConfigChosen(int i)
 {
     if (i == config->skin->count() - 1) { // Browse... ?
@@ -675,7 +768,16 @@ void QVFb::skinConfigChosen(int i)
         }
     }
     if ( i ) {
-	chooseSize(Skin::screenSize(skinfiles[i-1]));
+	DeviceSkinParameters parameters;
+	QString readError;
+	if (parameters.read(skinfiles[i-1], DeviceSkinParameters::ReadSizeOnly, &readError)) {
+	    chooseSize(parameters.screenSize());
+            if (parameters.screenDepth)
+                chooseDepth(parameters.screenDepth,QVFbView::ARGBFormat);
+            config->touchScreen->setChecked(!parameters.hasMouseHover);
+	} else {
+	    qWarning(readError.toUtf8().constData());
+	}
     }
 }
 
@@ -730,7 +832,7 @@ QSize QVFb::sizeHint() const
 
 // =====================================================================
 
-AnimationSaveWidget::AnimationSaveWidget(QVFbView *v) :
+AnimationSaveWidget::AnimationSaveWidget(QVFbAbstractView *v) :
 	QWidget((QWidget*)0,0),
 	view(v), recording(false), animation(0),
 	timerId(-1), progressTimerId(-1),
@@ -915,6 +1017,7 @@ void AnimationSaveWidget::convertToMpeg(QString filename)
     file.close();
 
     // ### can't use QProcess, not in Qt 2.3
+    // ### but it's certainly in Qt 4! use it?
     // Execute the ppmtompeg command as a seperate process to do the encoding
     pid_t pid = ::fork();
     if ( !pid ) {
@@ -1018,5 +1121,7 @@ void AnimationSaveWidget::save()
 	}
     }
 }
+
+QT_END_NAMESPACE
 
 #include "qvfb.moc"

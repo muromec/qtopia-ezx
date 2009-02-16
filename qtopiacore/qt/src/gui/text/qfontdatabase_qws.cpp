@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,9 +61,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
+QT_BEGIN_NAMESPACE
+
 #ifndef QT_NO_LIBRARY
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-    (QFontEngineFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/fontengines"), Qt::CaseInsensitive))
+    (QFontEngineFactoryInterface_iid, QLatin1String("/fontengines"), Qt::CaseInsensitive))
 #endif
 
 const quint8 DatabaseVersion = 4;
@@ -136,10 +129,8 @@ void QFontDatabasePrivate::addQPF2File(const QByteArray &file)
 
             if (!fontName.isEmpty() && pixelSize) {
                 int fontWeight = 50;
-                if (weight.type() == QVariant::Int)
+                if (weight.type() == QVariant::Int || weight.type() == QVariant::UInt)
                     fontWeight = weight.toInt();
-                else if (weight.type() == QVariant::UInt)
-                    fontWeight = (int)weight.toUInt();
 
                 bool italic = static_cast<QFont::Style>(style.toInt()) & QFont::StyleItalic;
 
@@ -746,6 +737,8 @@ static void registerFont(QFontDatabasePrivate::ApplicationFont *fnt)
 
 bool QFontDatabase::removeApplicationFont(int handle)
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     if (handle < 0 || handle >= db->applicationFonts.count())
         return false;
@@ -759,12 +752,19 @@ bool QFontDatabase::removeApplicationFont(int handle)
 
 bool QFontDatabase::removeAllApplicationFonts()
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     if (db->applicationFonts.isEmpty())
         return false;
 
     db->applicationFonts.clear();
     db->invalidate();
+    return true;
+}
+
+bool QFontDatabase::supportsThreadedFontRendering()
+{
     return true;
 }
 
@@ -775,6 +775,8 @@ QFontEngine *
 QFontDatabase::findFont(int script, const QFontPrivate *fp,
                         const QFontDef &request)
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     const int force_encoding_id = -1;
 
     if (!privateDb()->count)
@@ -792,7 +794,7 @@ QFontDatabase::findFont(int script, const QFontPrivate *fp,
         }
 
         QFontCache::Key key(request, script);
-        fe = QFontCache::instance->findEngine(key);
+        fe = QFontCache::instance()->findEngine(key);
         if (fe)
             return fe;
     }
@@ -860,19 +862,19 @@ QFontDatabase::findFont(int script, const QFontPrivate *fp,
                 def.family = def.family.left(def.family.indexOf(QLatin1Char(',')));
             }
             QFontCache::Key key(def, script);
-            QFontCache::instance->insertEngine(key, fe);
+            QFontCache::instance()->insertEngine(key, fe);
         }
 
-        if (scriptRequiresOpenType(script)) {
 #ifndef QT_NO_FREETYPE
-            QOpenType *ot = fe->openType();
-            if (!ot || !ot->supportsScript(script))
-#endif
-            {
-                FM_DEBUG("  OpenType support missing for script");
+        if (scriptRequiresOpenType(script) && fe->type() == QFontEngine::Freetype) {
+            HB_Face hbFace = static_cast<QFontEngineFT *>(fe)->harfbuzzFace();
+            if (!hbFace || !hbFace->supported_scripts[script]) {
+                FM_DEBUG("  OpenType support missing for script\n");
+                delete fe;
                 fe = 0;
             }
         }
+#endif
     }
 
     if (!fe) {
@@ -885,7 +887,7 @@ QFontDatabase::findFont(int script, const QFontPrivate *fp,
 
         if (fp) {
             QFontCache::Key key(request, script);
-            QFontCache::instance->insertEngine(key, fe);
+            QFontCache::instance()->insertEngine(key, fe);
         }
     }
 
@@ -911,12 +913,12 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
         QFontCache::Key key(req, script);
 
         // look for the requested font in the engine data cache
-        d->engineData = QFontCache::instance->findEngineData(key);
+        d->engineData = QFontCache::instance()->findEngineData(key);
 
         if (!d->engineData) {
             // create a new one
             d->engineData = new QFontEngineData;
-            QFontCache::instance->insertEngineData(key, d->engineData);
+            QFontCache::instance()->insertEngineData(key, d->engineData);
         } else {
             d->engineData->ref.ref();
         }
@@ -978,3 +980,5 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
     d->engineData->engines[script] = engine;
 }
 
+
+QT_END_NAMESPACE

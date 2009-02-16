@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -59,7 +53,7 @@
 
 #include "qfiledialog.h"
 #include "private/qdialog_p.h"
-
+#include "qplatformdefs.h"
 
 #include "qfilesystemmodel_p.h"
 #include <qlistview.h>
@@ -81,6 +75,8 @@
 #if defined (Q_OS_UNIX)
 #include <unistd.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 class QFileDialogListView;
 class QFileDialogTreeView;
@@ -105,13 +101,12 @@ struct QFileDialogArgs
 
 #define UrlRole (Qt::UserRole + 1)
 
-class QFileDialogPrivate : public QDialogPrivate
+class Q_AUTOTEST_EXPORT QFileDialogPrivate : public QDialogPrivate
 {
     Q_DECLARE_PUBLIC(QFileDialog)
 
 public:
     QFileDialogPrivate() :
-    urlModel(0),
 #ifndef QT_NO_PROXYMODEL
     proxyModel(0),
 #endif
@@ -125,6 +120,7 @@ public:
     showHiddenAction(0),
     useDefaultCaption(true),
     defaultFileTypes(true),
+    showNameFilterDetails(true),
     qFileDialogUi(0)
     {};
 
@@ -139,6 +135,7 @@ public:
     static QString workingDirectory(const QString &path);
     static QString initialSelection(const QString &path);
     QStringList typedFiles() const;
+    static bool removeDirectory(const QString &path);
 
     inline QModelIndex mapToSource(const QModelIndex &index) const;
     inline QModelIndex mapFromSource(const QModelIndex &index) const;
@@ -153,6 +150,7 @@ public:
 #if defined(Q_OS_UNIX)
         return ::pathconf(QFile::encodeName(path).data(), _PC_NAME_MAX);
 #elif defined(Q_OS_WIN)
+#ifndef Q_OS_WINCE
         DWORD maxLength;
         QString drive = path.left(3);
         if (QT_WA_INLINE(::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(drive.utf16()), NULL, 0, NULL, &maxLength, NULL, NULL, 0),
@@ -161,23 +159,31 @@ public:
         return maxLength;
 #else
         Q_UNUSED(path);
+        return MAX_PATH;
+#endif //Q_OS_WINCE
+#else
+        Q_UNUSED(path);
 #endif
         return -1;
     }
 
-    QString basename(const QString &path)
+    QString basename(const QString &path) const
     {
-        int separator = path.lastIndexOf(QDir::separator());
+        int separator = QDir::toNativeSeparators(path).lastIndexOf(QDir::separator());
         if (separator != -1)
             return path.mid(separator + 1);
         return path;
     }
 
-    static inline QDir::Filters filterForMode(QFileDialog::FileMode mode)
+    QDir::Filters filterForMode(QDir::Filters filters) const
     {
-        if (mode == QFileDialog::DirectoryOnly)
-            return QDir::Drives | QDir::AllDirs | QDir::NoDotAndDotDot;
-        return QDir::Drives | QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot;
+        if (fileMode == QFileDialog::DirectoryOnly) {
+            filters |= QDir::Drives | QDir::AllDirs | QDir::Dirs;
+            filters &= ~QDir::Files;
+        } else {
+            filters |= QDir::Drives | QDir::AllDirs | QDir::Files | QDir::Dirs;
+        }
+        return filters;
     }
 
     QAbstractItemView *currentView() const;
@@ -187,7 +193,11 @@ public:
 #if defined(Q_FS_FAT) || defined(Q_OS_OS2EMX)
         QString n(path);
         for (int i = 0; i < (int)n.length(); ++i)
-            if (n[i] == '\\') n[i] = '/';
+            if (n[i] == QLatin1Char('\\')) n[i] = QLatin1Char('/');
+#if defined(Q_OS_WINCE)
+        if ((n.size() > 1) && (n.startsWith(QLatin1String("//"))))
+            n = n.mid(1);
+#endif
         return n;
 #else // the compile should optimize away this
         return path;
@@ -214,14 +224,14 @@ public:
     void _q_currentChanged(const QModelIndex &index);
     void _q_enterDirectory(const QModelIndex &index);
     void _q_goToDirectory(const QString &);
-    void _q_useNameFilter(const QString &nameFilter);
+    void _q_useNameFilter(int index);
     void _q_selectionChanged();
     void _q_goToUrl(const QUrl &url);
     void _q_autoCompleteFileName(const QString &);
     void _q_rowsInserted(const QModelIndex & parent);
+    void _q_fileRenamed(const QString &path, const QString oldName, const QString newName);
 
     // layout
-    QUrlModel *urlModel;
 #ifndef QT_NO_PROXYMODEL
     QAbstractProxyModel *proxyModel;
 #endif
@@ -237,8 +247,6 @@ public:
     QString defaultSuffix;
     QString setWindowTitle;
 
-    QStringList history;
-
     QStringList currentHistory;
     int currentHistoryLocation;
 
@@ -249,8 +257,12 @@ public:
 
     bool useDefaultCaption;
     bool defaultFileTypes;
+    QStringList nameFilters;
+    bool showNameFilterDetails;
 
     Ui_QFileDialog *qFileDialogUi;
+
+    QString acceptLabel;
 };
 
 class QFileDialogLineEdit : public QLineEdit
@@ -262,6 +274,22 @@ public:
     bool hideOnEsc;
 private:
     QFileDialogPrivate *d_ptr;
+};
+
+class QFileDialogComboBox : public QComboBox
+{
+public:
+    QFileDialogComboBox(QWidget *parent = 0) : QComboBox(parent), urlModel(0) {}
+    void init(QFileDialogPrivate *d_pointer);
+    void showPopup();
+    void setHistory(const QStringList &paths);
+    QStringList history() const { return m_history; }
+    void paintEvent(QPaintEvent *);
+
+private:
+    QUrlModel *urlModel;
+    QFileDialogPrivate *d_ptr;
+    QStringList m_history;
 };
 
 class QFileDialogListView : public QListView
@@ -320,6 +348,8 @@ public:
 };
 #endif // QT_NO_COMPLETER
 
-#endif
+QT_END_NAMESPACE
 
-#endif
+#endif // QT_NO_FILEDIALOG
+
+#endif // QFILEDIALOG_P_H

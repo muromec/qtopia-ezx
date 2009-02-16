@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,12 +44,17 @@
 #include "qapplication.h"
 #include "qvector.h"
 #include "qmenu.h"
+#include "qmenubar.h"
 #include "qshortcut.h"
 #include "qapplication_p.h"
 #include <private/qaction_p.h>
 #include <private/qkeymapper_p.h>
 
 #ifndef QT_NO_SHORTCUT
+
+QT_BEGIN_NAMESPACE
+
+extern bool qt_mac_no_native_menubar; // qmenu_mac.cpp
 
 // To enable verbose output uncomment below
 //#define DEBUG_QSHORTCUTMAP
@@ -331,12 +330,14 @@ bool QShortcutMap::tryShortcutEvent(QWidget *w, QKeyEvent *e)
     Q_D(QShortcutMap);
 
     bool wasAccepted = e->isAccepted();
+    bool wasSpontaneous = e->spont;
     if (d->currentState == QKeySequence::NoMatch) {
         ushort orgType = e->t;
         e->t = QEvent::ShortcutOverride;
         e->ignore();
-        QApplication::sendSpontaneousEvent(w, e);
+        QApplication::sendEvent(w, e);
         e->t = orgType;
+        e->spont = wasSpontaneous;
         if (e->isAccepted()) {
             if (!wasAccepted)
                 e->ignore();
@@ -513,9 +514,7 @@ QKeySequence::SequenceMatch QShortcutMap::find(QKeyEvent *e)
 /*! \internal
     Clears \a seq to an empty QKeySequence.
     Same as doing (the slower)
-    \code
-        key = QKeySequence();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qshortcutmap.cpp 0
 */
 void QShortcutMap::clearSequence(QVector<QKeySequence> &ksl)
 {
@@ -587,9 +586,9 @@ QKeySequence::SequenceMatch QShortcutMap::matches(const QKeySequence &seq1,
         int userKey = seq1[i],
             sequenceKey = seq2[i];
         if ((userKey & Qt::Key_unknown) == Qt::Key_hyphen)
-            userKey = userKey & Qt::KeyboardModifierMask | Qt::Key_Minus;
+            userKey = (userKey & Qt::KeyboardModifierMask) | Qt::Key_Minus;
         if ((sequenceKey & Qt::Key_unknown) == Qt::Key_hyphen)
-            sequenceKey = sequenceKey & Qt::KeyboardModifierMask | Qt::Key_Minus;
+            sequenceKey = (sequenceKey & Qt::KeyboardModifierMask) | Qt::Key_Minus;
         if (userKey != sequenceKey)
             return QKeySequence::NoMatch;
     }
@@ -627,7 +626,13 @@ bool QShortcutMap::correctContext(const QShortcutEntry &item) {
 
 bool QShortcutMap::correctContext(Qt::ShortcutContext context, QWidget *w, QWidget *active_window)
 {
-    if (!w->isVisible() || !w->isEnabled())
+    bool visible = w->isVisible();    
+#ifdef Q_WS_MAC
+    if (!qt_mac_no_native_menubar && qobject_cast<QMenuBar *>(w))
+        visible = true;
+#endif
+
+    if (!visible || !w->isEnabled())
         return false;
 
     if (context == Qt::ApplicationShortcut)
@@ -636,6 +641,14 @@ bool QShortcutMap::correctContext(Qt::ShortcutContext context, QWidget *w, QWidg
     if (context == Qt::WidgetShortcut)
         return w == QApplication::focusWidget();
 
+    if (context == Qt::WidgetWithChildrenShortcut) {
+        const QWidget *tw = QApplication::focusWidget();
+        while (tw && tw != w && (tw->windowType() == Qt::Widget || tw->windowType() == Qt::Popup))
+            tw = tw->parentWidget();
+        return tw == w;
+    }
+
+    // Below is Qt::WindowShortcut context
     QWidget *tlw = w->window();
 
     /* if a floating tool window is active, keep shortcuts on the
@@ -770,5 +783,7 @@ void QShortcutMap::dumpMap() const
         qDebug().nospace() << &(d->sequences.at(i));
 }
 #endif
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SHORTCUT

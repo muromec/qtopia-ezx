@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/dialogs/qwizard.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/dialogs/qwizard.cpp -->
 <head>
-  <title>Qt 4.3: QWizardPage Class Reference</title>
+  <title>Qt 4.4: QWizardPage Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QWizardPage Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QWizardPage Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QWizardPage class is the base class for wizard pages. <a href="#details">More...</a></p>
 <pre> #include &lt;QWizardPage&gt;</pre><p>Inherits <a href="qwidget.html">QWidget</a>.</p>
@@ -27,7 +27,7 @@
 <li><div class="fn"/><b><a href="qwizardpage.html#title-prop">title</a></b> : QString</li>
 </ul>
 <ul>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -53,9 +53,9 @@
 <li><div class="fn"/>virtual bool <b><a href="qwizardpage.html#validatePage">validatePage</a></b> ()</li>
 </ul>
 <ul>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="signals"></a>
 <h3>Signals</h3>
@@ -110,6 +110,7 @@
 <p>This property holds the subtitle of the page.</p>
 <p>The subtitle is shown by the <a href="qwizard.html">QWizard</a>, between the title and the actual page. Subtitles are optional. In <a href="qwizard.html#WizardStyle-enum">ClassicStyle</a> and <a href="qwizard.html#WizardStyle-enum">ModernStyle</a>, using subtitles is necessary to make the header appear. In <a href="qwizard.html#WizardStyle-enum">MacStyle</a>, the subtitle is shown as a text label just above the actual page.</p>
 <p>The subtitle may be plain text or HTML, depending on the value of the <a href="qwizard.html#subTitleFormat-prop">QWizard::subTitleFormat</a> property.</p>
+<p>By default, this property contains an empty string.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QString subTitle () const</b></li>
@@ -120,6 +121,7 @@
 <p>This property holds the title of the page.</p>
 <p>The title is shown by the <a href="qwizard.html">QWizard</a>, above the actual page. All pages should have a title.</p>
 <p>The title may be plain text or HTML, depending on the value of the <a href="qwizard.html#titleFormat-prop">QWizard::titleFormat</a> property.</p>
+<p>By default, this property contains an empty string.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>QString title () const</b></li>
@@ -138,7 +140,7 @@
 <p>By default, the text on buttons depends on the <a href="qwizard.html#wizardStyle-prop">QWizard::wizardStyle</a>. For example, on Mac OS X, the <b>Next</b> button is called <b>Continue</b>.</p>
 <p>See also <a href="qwizardpage.html#setButtonText">setButtonText</a>(), <a href="qwizard.html#buttonText">QWizard::buttonText</a>(), and <a href="qwizard.html#setButtonText">QWizard::setButtonText</a>().</p>
 <h3 class="fn"><a name="cleanupPage"></a>void QWizardPage::cleanupPage ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>This virtual function is called by <a href="qwizard.html#cleanupPage">QWizard::cleanupPage</a>() when the user clicks <b>Back</b> (unless the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set).</p>
+<p>This virtual function is called by <a href="qwizard.html#cleanupPage">QWizard::cleanupPage</a>() when the user leaves the page by clicking <b>Back</b> (unless the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set).</p>
 <p>The default implementation resets the page's fields to their original values (the values they had before <a href="qwizardpage.html#initializePage">initializePage</a>() was called).</p>
 <p>See also <a href="qwizard.html#cleanupPage">QWizard::cleanupPage</a>(), <a href="qwizardpage.html#initializePage">initializePage</a>(), and <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a>.</p>
 <h3 class="fn"><a name="completeChanged"></a>void QWizardPage::completeChanged ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
@@ -158,7 +160,7 @@
  }</pre>
 <p>See also <a href="qwizard.html#field">QWizard::field</a>(), <a href="qwizardpage.html#setField">setField</a>(), and <a href="qwizardpage.html#registerField">registerField</a>().</p>
 <h3 class="fn"><a name="initializePage"></a>void QWizardPage::initializePage ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>This virtual function is called by <a href="qwizard.html#initializePage">QWizard::initializePage</a>() to prepare the page just before it is shown. (However, if the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set, this function is only called the first time the page is shown.)</p>
+<p>This virtual function is called by <a href="qwizard.html#initializePage">QWizard::initializePage</a>() to prepare the page just before it is shown as a result of the user clicking <b>Next</b>. (However, if the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set, this function is only called the first time the page is shown.)</p>
 <p>By reimplementing this function, you can ensure that the page's fields are properly initialized based on fields from previous pages. For example:</p>
 <pre> void OutputFilesPage::initializePage()
  {
@@ -175,7 +177,7 @@
 <h3 class="fn"><a name="isComplete"></a>bool QWizardPage::isComplete () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>This virtual function is called by <a href="qwizard.html">QWizard</a> to determine whether the <b>Next</b> or <b>Finish</b> button should be enabled or disabled.</p>
 <p>The default implementation returns true if all <a href="qwizard.html#mandatory-fields">mandatory fields</a> are filled; otherwise, it returns false.</p>
-<p>If you reimplement this function, make sure to emit <a href="qwizardpage.html#completeChanged">completeChanged</a>() whenever the value of isComplete() changes, to ensure that <a href="qwizard.html">QWizard</a> updates the enabled or disabled state of its buttons.</p>
+<p>If you reimplement this function, make sure to emit <a href="qwizardpage.html#completeChanged">completeChanged</a>(), from the rest of your implementation, whenever the value of isComplete() changes. This ensures that <a href="qwizard.html">QWizard</a> updates the enabled or disabled state of its buttons. An example of the reimplementation is available <a href="http://doc.trolltech.com/qq/qq22-qwizard.html#validatebeforeitstoolate">here</a>.</p>
 <p>See also <a href="qwizardpage.html#completeChanged">completeChanged</a>() and <a href="qwizardpage.html#isFinalPage">isFinalPage</a>().</p>
 <h3 class="fn"><a name="isFinalPage"></a>bool QWizardPage::isFinalPage () const</h3>
 <p>This function is called by <a href="qwizard.html">QWizard</a> to determine whether the <b>Finish</b> button should be shown for this page or not.</p>
@@ -252,8 +254,8 @@
 <p>See also <a href="qwizard.html#addPage">QWizard::addPage</a>() and <a href="qwizard.html#setPage">QWizard::setPage</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

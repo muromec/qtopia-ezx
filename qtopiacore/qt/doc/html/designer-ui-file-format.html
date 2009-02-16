@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/designer-manual.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/designer-manual.qdoc -->
 <head>
-  <title>Qt 4.3: Qt Designer's UI File Format</title>
+  <title>Qt 4.4: Qt Designer's UI File Format</title>
   <link rel="prev" href="designer-creating-custom-widgets-extensions.html" />
   <link rel="contents" href="designer-manual.html" />
   <link href="classic.css" rel="stylesheet" type="text/css" />
@@ -12,9 +12,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="designer-creating-custom-widgets-extensions.html">Creating Custom Widget Extensions</a>]
 [<a href="designer-manual.html">Contents</a>]
 </p>
@@ -43,6 +43,7 @@
                          &lt;xs:element name=&quot;resources&quot; type=&quot;Resources&quot; /&gt;
                          &lt;xs:element name=&quot;connections&quot; type=&quot;Connections&quot; /&gt;
                          &lt;xs:element name=&quot;designerdata&quot; type=&quot;DesignerData&quot; /&gt;
+                         &lt;xs:element name=&quot;slots&quot; type=&quot;Slots&quot; /&gt;
                  &lt;/xs:sequence&gt;
                  &lt;xs:attribute name=&quot;version&quot; type=&quot;xs:string&quot; /&gt;
                  &lt;xs:attribute name=&quot;language&quot; type=&quot;xs:string&quot; /&gt;
@@ -141,11 +142,13 @@
                          &lt;xs:element name=&quot;extends&quot; type=&quot;xs:string&quot; /&gt;
                          &lt;xs:element name=&quot;header&quot; type=&quot;Header&quot; /&gt;
                          &lt;xs:element name=&quot;sizeHint&quot; type=&quot;Size&quot; /&gt;
+                         &lt;xs:element name=&quot;addPageMethod&quot; type=&quot;xs:string&quot; /&gt;
                          &lt;xs:element name=&quot;container&quot; type=&quot;xs:integer&quot; /&gt;
                          &lt;xs:element name=&quot;sizePolicy&quot; type=&quot;SizePolicyData&quot; /&gt;
                          &lt;xs:element name=&quot;pixmap&quot; type=&quot;xs:string&quot; /&gt;
                          &lt;xs:element name=&quot;script&quot; type=&quot;Script&quot; /&gt;
                          &lt;xs:element name=&quot;properties&quot; type=&quot;Properties&quot; /&gt;
+                         &lt;xs:element name=&quot;slots&quot; type=&quot;Slots&quot; /&gt;
                  &lt;/xs:sequence&gt;
          &lt;/xs:complexType&gt;
 
@@ -194,6 +197,7 @@
                          &lt;xs:element name=&quot;item&quot; type=&quot;LayoutItem&quot; /&gt;
                  &lt;/xs:sequence&gt;
                  &lt;xs:attribute name=&quot;class&quot; type=&quot;xs:string&quot; /&gt;
+                 &lt;xs:attribute name=&quot;name&quot; type=&quot;xs:string&quot; /&gt;
          &lt;/xs:complexType&gt;
 
          &lt;xs:complexType name=&quot;LayoutItem&quot;&gt;
@@ -248,6 +252,7 @@
                          &lt;xs:element name=&quot;action&quot; type=&quot;Action&quot; /&gt;
                          &lt;xs:element name=&quot;actionGroup&quot; type=&quot;ActionGroup&quot; /&gt;
                          &lt;xs:element name=&quot;addAction&quot; type=&quot;ActionRef&quot; /&gt;
+                         &lt;xs:element name=&quot;zOrder&quot; type=&quot;xs:string&quot; /&gt;
                  &lt;/xs:sequence&gt;
                  &lt;xs:attribute name=&quot;class&quot; type=&quot;xs:string&quot; /&gt;
                  &lt;xs:attribute name=&quot;name&quot; type=&quot;xs:string&quot; /&gt;
@@ -420,6 +425,20 @@
                  &lt;xs:attribute name=&quot;alias&quot; type=&quot;xs:string&quot; /&gt;
          &lt;/xs:complexType&gt;
 
+         &lt;xs:complexType name=&quot;ResourceIcon&quot;&gt;
+                 &lt;xs:attribute name=&quot;resource&quot; type=&quot;xs:string&quot; /&gt; &lt;!-- pre 4.4 legacy support --&gt;
+                 &lt;xs:sequence&gt;
+                         &lt;xs:element name=&quot;normalOff&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;normalOn&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;disabledOff&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;disabledOn&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;activeOff&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;activeOn&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;selectedOff&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;selectedOn&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                 &lt;/xs:sequence&gt;
+         &lt;/xs:complexType&gt;
+
          &lt;xs:complexType name=&quot;String&quot;&gt;
                  &lt;xs:sequence/&gt;
                  &lt;xs:attribute name=&quot;notr&quot; type=&quot;xs:string&quot; /&gt;
@@ -470,7 +489,7 @@
                          &lt;xs:element name=&quot;cursorShape&quot; type=&quot;xs:string&quot; /&gt;
                          &lt;xs:element name=&quot;enum&quot; type=&quot;xs:string&quot; /&gt;
                          &lt;xs:element name=&quot;font&quot; type =&quot;Font&quot; /&gt;
-                         &lt;xs:element name=&quot;iconSet&quot; type=&quot;ResourcePixmap&quot; /&gt;
+                         &lt;xs:element name=&quot;iconSet&quot; type=&quot;ResourceIcon&quot;/&gt;
                          &lt;xs:element name=&quot;pixmap&quot; type=&quot;ResourcePixmap&quot; /&gt;
                          &lt;xs:element name=&quot;palette&quot; type=&quot;Palette&quot; /&gt;
                          &lt;xs:element name=&quot;point&quot; type=&quot;Point&quot; /&gt;
@@ -495,6 +514,7 @@
                          &lt;xs:element name=&quot;url&quot; type=&quot;Url&quot; /&gt;
                          &lt;xs:element name=&quot;uInt&quot; type=&quot;xs:unsignedInt&quot; /&gt;
                          &lt;xs:element name=&quot;uLongLong&quot; type=&quot;xs:unsignedLong&quot; /&gt;
+                         &lt;xs:element name=&quot;brush&quot; type=&quot;Brush&quot; /&gt;
                  &lt;/xs:choice&gt;
                  &lt;xs:attribute name=&quot;name&quot; type=&quot;xs:string&quot; /&gt;
                  &lt;xs:attribute name=&quot;stdset&quot; type=&quot;xs:integer&quot; /&gt;
@@ -546,6 +566,16 @@
                  &lt;xs:element name=&quot;property&quot; type=&quot;Property&quot; /&gt;
              &lt;/xs:sequence&gt;
          &lt;/xs:complexType&gt;
+
+         &lt;xs:complexType name=&quot;Slots&quot;&gt;
+             &lt;xs:sequence maxOccurs=&quot;unbounded&quot;&gt;
+                     &lt;xs:element name=&quot;slot&quot; type=&quot;xs:string&quot; /&gt;
+             &lt;/xs:sequence&gt;
+             &lt;xs:sequence maxOccurs=&quot;unbounded&quot;&gt;
+                     &lt;xs:element name=&quot;signal&quot; type=&quot;xs:string&quot; /&gt;
+             &lt;/xs:sequence&gt;
+         &lt;/xs:complexType&gt;
+
  &lt;/xs:schema&gt;</pre>
 <p>
 [Previous: <a href="designer-creating-custom-widgets-extensions.html">Creating Custom Widget Extensions</a>]
@@ -553,8 +583,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

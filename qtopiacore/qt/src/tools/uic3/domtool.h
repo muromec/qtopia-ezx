@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,8 @@
 #define DOMTOOL_H
 
 #include <QVariant>
+
+QT_BEGIN_NAMESPACE
 
 class QDomElement;
 class QDomDocument;
@@ -69,7 +65,6 @@ struct Common
     inline void init()
     { kind = Kind_Unknown; }
 };
-Q_DECLARE_METATYPE(Common)
 
 struct Color
 {
@@ -87,7 +82,6 @@ struct Color
     inline bool operator == (const Color &other) const
     { return red == other.red && green == other.green && blue == other.blue; }
 };
-Q_DECLARE_METATYPE(Color)
 
 struct Point
 {
@@ -101,7 +95,6 @@ struct Point
         this->y = y;
     }
 };
-Q_DECLARE_METATYPE(Point)
 
 struct Size
 {
@@ -118,7 +111,6 @@ struct Size
         this->height = height;
     }
 };
-Q_DECLARE_METATYPE(Size)
 
 struct Rect
 {
@@ -135,7 +127,6 @@ struct Rect
         this->height = height;
     }
 };
-Q_DECLARE_METATYPE(Rect)
 
 struct Font
 {
@@ -158,7 +149,6 @@ struct Font
         strikeout = false;
     }
 };
-Q_DECLARE_METATYPE(Font)
 
 struct SizePolicy
 {
@@ -177,7 +167,6 @@ struct SizePolicy
         verstretch = 0;
     }
 };
-Q_DECLARE_METATYPE(SizePolicy)
 
 struct Cursor
 {
@@ -190,7 +179,6 @@ struct Cursor
         this->shape = shape;
     }
 };
-Q_DECLARE_METATYPE(Cursor)
 
 union Variant
 {
@@ -238,7 +226,6 @@ union Variant
     inline Variant &createCursor(int shape)
     { cursor.init(shape); return *this; }
 };
-Q_DECLARE_METATYPE(Variant)
 
 class DomTool
 {
@@ -258,11 +245,27 @@ public:
     static void fixAttribute(QDomNode&, double);
 };
 
+QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(Size)
+Q_DECLARE_METATYPE(Rect)
+Q_DECLARE_METATYPE(Font)
+Q_DECLARE_METATYPE(SizePolicy)
+Q_DECLARE_METATYPE(Cursor)
+Q_DECLARE_METATYPE(Color)
+Q_DECLARE_METATYPE(Point)
+Q_DECLARE_METATYPE(Common)
+Q_DECLARE_METATYPE(Variant)
+
+QT_BEGIN_NAMESPACE
+
 inline Variant asVariant(const QVariant &v)
 {
     Variant var;
     var = qVariantValue<Variant>(v);
     return var;
 }
+
+QT_END_NAMESPACE
 
 #endif // DOMTOOL_H

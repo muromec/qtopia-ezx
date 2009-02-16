@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,8 @@
 #include <qdebug.h>
 #include <qurl.h>
 #include "qlabel_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QLabel
@@ -91,31 +87,29 @@
     When the content is changed using any of these functions, any
     previous content is cleared.
 
-    The look of a QLabel can be tuned in several ways. All the
-    settings of QFrame are available for specifying a widget frame.
+    By default, labels display \l{alignment}{left-aligned, vertically-centered}
+    text and images, where any tabs in the text to be displayed are
+    \l{Qt::TextExpandTabs}{automatically expanded}. However, the look
+    of a QLabel can be adjusted and fine-tuned in several ways.
+
     The positioning of the content within the QLabel widget area can
     be tuned with setAlignment() and setIndent(). Text content can
-    also wrap lines along word bounderies with setWordWrap(). For
+    also wrap lines along word boundaries with setWordWrap(). For
     example, this code sets up a sunken panel with a two-line text in
     the bottom right corner (both lines being flush with the right
     side of the label):
 
-    \code
-    QLabel *label = new QLabel(this);
-    label->setFrameStyle(QFrame::Panel | QFrame::Sunken);
-    label->setText("first line\nsecond line");
-    label->setAlignment(Qt::AlignBottom | Qt::AlignRight);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qlabel.cpp 0
+
+    The properties and functions QLabel inherits from QFrame can also
+    be used to specify the widget frame to be used for any given label.
 
     A QLabel is often used as a label for an interactive widget. For
     this use QLabel provides a useful mechanism for adding an
-    mnemonic (see QKeysequence) that will set the keyboard focus to
+    mnemonic (see QKeySequence) that will set the keyboard focus to
     the other widget (called the QLabel's "buddy"). For example:
-    \code
-    QLineEdit* phoneEdit = new QLineEdit(this);
-    QLabel* phoneLabel = new QLabel("&Phone:", this);
-    phoneLabel->setBuddy(phoneEdit);
-    \endcode
+
+    \snippet doc/src/snippets/code/src_gui_widgets_qlabel.cpp 1
 
     In this example, keyboard focus is transferred to the label's
     buddy (the QLineEdit) when the user presses Alt+P. If the buddy
@@ -482,6 +476,8 @@ void QLabel::setNum(double num)
     \property QLabel::alignment
     \brief the alignment of the label's contents
 
+    By default, the contents of the label are left-aligned and vertically-centered.
+
     \sa text
 */
 
@@ -524,6 +520,10 @@ Qt::Alignment QLabel::alignment() const
 
     If this property is true then label text is wrapped where
     necessary at word-breaks; otherwise it is not wrapped at all.
+
+    By default, word wrap is disabled.
+
+    \sa text
 */
 void QLabel::setWordWrap(bool on)
 {
@@ -556,6 +556,9 @@ bool QLabel::wordWrap() const
     the effective indent becomes 0. If frameWidth() is greater than 0,
     the effective indent becomes half the width of the "x" character
     of the widget's current font().
+
+    By default, the indent is -1, meaning that an effective indent is
+    calculating in the manner described above.
 
     \sa alignment, margin, frameWidth(), font()
 */
@@ -607,6 +610,8 @@ void QLabel::setMargin(int margin)
 QSize QLabelPrivate::sizeForWidth(int w) const
 {
     Q_Q(const QLabel);
+    if(q->minimumWidth() > 0)
+        w = qMax(w, q->minimumWidth());
     QSize contentsMargin(leftmargin + rightmargin, topmargin + bottommargin);
 
     QRect br;
@@ -658,7 +663,9 @@ QSize QLabelPrivate::sizeForWidth(int w) const
             // restore state
             control->setTextWidth(oldTextWidth);
         } else {
-            int flags = align;
+            // Turn off center alignment in order to avoid rounding errors for centering,
+            // since centering involves a division by 2. At the end, all we want is the size.
+            int flags = align & ~(Qt::AlignVCenter | Qt::AlignHCenter);
             if (hasShortcut) {
                 flags |= Qt::TextShowMnemonic;
                 QStyleOption opt;
@@ -684,7 +691,7 @@ QSize QLabelPrivate::sizeForWidth(int w) const
     }
 
     const QSize contentsSize(br.width() + hextra, br.height() + vextra);
-    return contentsSize + contentsMargin;
+    return (contentsSize + contentsMargin).expandedTo(q->minimumSize());
 }
 
 
@@ -706,7 +713,7 @@ int QLabel::heightForWidth(int w) const
 
     Specifies whether QLabel should automatically open links using
     QDesktopServices::openUrl() instead of emitting the
-    anchorClicked() signal.
+    linkActivated() signal.
 
     \bold{Note:} The textInteractionFlags set on the label need to include
     either LinksAccessibleByMouse or LinksAccessibleByKeyboard.
@@ -1085,23 +1092,15 @@ void QLabelPrivate::updateLabel()
     the keyboard focus is transferred to the label's buddy widget.
 
     The buddy mechanism is only available for QLabels that contain
-    text in which one character is prefixed with an ampersand,
-    '&'.  This character is set as the shortcut key. See the \l
-    {QShortcut#mnemonic}{QShortcut} documentation for details (to
-    display an actual ampersand, use '&&').
+    text in which one character is prefixed with an ampersand, '&'.
+    This character is set as the shortcut key. See the \l
+    QKeySequence::mnemonic() documentation for details (to display an
+    actual ampersand, use '&&').
 
     In a dialog, you might create two data entry widgets and a label
     for each, and set up the geometry layout so each label is just to
     the left of its data entry widget (its "buddy"), for example:
-    \code
-    QLineEdit *nameEd  = new QLineEdit(this);
-    QLabel    *nameLb  = new QLabel("&Name:", this);
-    nameLb->setBuddy(nameEd);
-    QLineEdit *phoneEd = new QLineEdit(this);
-    QLabel    *phoneLb = new QLabel("&Phone:", this);
-    phoneLb->setBuddy(phoneEd);
-    // (layout setup not shown)
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qlabel.cpp 2
 
     With the code above, the focus jumps to the Name field when the
     user presses Alt+N, and to the Phone field when the user presses
@@ -1423,10 +1422,14 @@ void QLabelPrivate::ensureTextPopulated() const
     if (control) {
         QTextDocument *doc = control->document();
         if (textDirty) {
+#ifndef QT_NO_TEXTHTMLPARSER
             if (isRichText)
                 doc->setHtml(text);
             else
                 doc->setPlainText(text);
+#else
+            doc->setPlainText(text);
+#endif
             doc->setUndoRedoEnabled(false);
         }
     }
@@ -1443,8 +1446,7 @@ void QLabelPrivate::ensureTextLayouted() const
         QTextDocument *doc = control->document();
         QTextOption opt = doc->defaultTextOption();
 
-        Qt::Alignment align = QStyle::visualAlignment(q->layoutDirection(), QFlag(this->align));
-        opt.setAlignment(align);
+        opt.setAlignment(QFlag(this->align));
 
         if (this->align & Qt::TextWordWrap)
             opt.setWrapMode(QTextOption::WordWrap);
@@ -1582,5 +1584,7 @@ QMenu *QLabelPrivate::createStandardContextMenu(const QPoint &pos)
 
     \sa linkHovered()
 */
+
+QT_END_NAMESPACE
 
 #include "moc_qlabel.cpp"

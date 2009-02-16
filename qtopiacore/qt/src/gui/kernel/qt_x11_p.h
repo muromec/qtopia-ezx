@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -191,6 +185,23 @@ typedef char *XPointer;
 // ### #define QT_NO_XIM
 #endif // QT_NO_XIM
 
+#ifndef QT_NO_XFIXES
+typedef Bool (*PtrXFixesQueryExtension)(Display *, int *, int *);
+typedef Status (*PtrXFixesQueryVersion)(Display *, int *, int *);
+typedef void (*PtrXFixesSetCursorName)(Display *dpy, Cursor cursor, const char *name);
+#endif // QT_NO_XFIXES
+
+#ifndef QT_NO_XCURSOR
+#include <X11/Xcursor/Xcursor.h>
+typedef Cursor (*PtrXcursorLibraryLoadCursor)(Display *, const char *);
+#endif // QT_NO_XCURSOR
+
+#ifndef QT_NO_XINERAMA
+typedef Bool (*PtrXineramaQueryExtension)(Display *dpy, int *event_base, int *error_base);
+typedef Bool (*PtrXineramaIsActive)(Display *dpy);
+typedef XineramaScreenInfo *(*PtrXineramaQueryScreens)(Display *dpy, int *number);
+#endif // QT_NO_XINERAMA
+
 
 /*
  * Solaris patch 108652-47 and higher fixes crases in
@@ -252,12 +263,12 @@ extern "C" char *XSetIMValues(XIM /* im */, ...);
 
 
 #ifdef QT_MITSHM
-
 #  include <X11/extensions/XShm.h>
 #endif // QT_MITSHM
 
-class QWidget;
+QT_BEGIN_NAMESPACE
 
+class QWidget;
 
 struct QX11InfoData {
     uint ref;
@@ -367,6 +378,12 @@ struct QX11Data
     int xfixes_major;
     int xfixes_eventbase;
     int xfixes_errorbase;
+
+#ifndef QT_NO_XFIXES
+    PtrXFixesQueryExtension ptrXFixesQueryExtension;
+    PtrXFixesQueryVersion ptrXFixesQueryVersion;
+    PtrXFixesSetCursorName ptrXFixesSetCursorName;
+#endif
 
     // true if Qt is compiled w/ Tablet support and we have a tablet.
     bool use_xinput;
@@ -528,13 +545,21 @@ struct QX11Data
         _NET_WM_FULL_PLACEMENT,
 
         _NET_WM_WINDOW_TYPE,
-        _NET_WM_WINDOW_TYPE_DIALOG,
+        _NET_WM_WINDOW_TYPE_DESKTOP,
+        _NET_WM_WINDOW_TYPE_DOCK,
+        _NET_WM_WINDOW_TYPE_TOOLBAR,
         _NET_WM_WINDOW_TYPE_MENU,
+        _NET_WM_WINDOW_TYPE_UTILITY,
+        _NET_WM_WINDOW_TYPE_SPLASH,
+        _NET_WM_WINDOW_TYPE_DIALOG,
+        _NET_WM_WINDOW_TYPE_DROPDOWN_MENU,
+        _NET_WM_WINDOW_TYPE_POPUP_MENU,
+        _NET_WM_WINDOW_TYPE_TOOLTIP,
+        _NET_WM_WINDOW_TYPE_NOTIFICATION,
+        _NET_WM_WINDOW_TYPE_COMBO,
+        _NET_WM_WINDOW_TYPE_DND,
         _NET_WM_WINDOW_TYPE_NORMAL,
         _KDE_NET_WM_WINDOW_TYPE_OVERRIDE,
-        _NET_WM_WINDOW_TYPE_SPLASH,
-        _NET_WM_WINDOW_TYPE_TOOLBAR,
-        _NET_WM_WINDOW_TYPE_UTILITY,
 
         _KDE_NET_WM_FRAME_STRUT,
 
@@ -542,6 +567,8 @@ struct QX11Data
         _NET_STARTUP_INFO_BEGIN,
 
         _NET_SUPPORTING_WM_CHECK,
+
+        _NET_WM_CM_S0,
 
         // Property formats
         COMPOUND_TEXT,
@@ -581,6 +608,10 @@ struct QX11Data
         // Xkb
         _XKB_RULES_NAMES,
 
+        // XEMBED
+        _XEMBED,
+        _XEMBED_INFO,
+
         NPredefinedAtoms,
 
         _QT_SETTINGS_TIMESTAMP = NPredefinedAtoms,
@@ -589,6 +620,19 @@ struct QX11Data
     Atom atoms[NAtoms];
 
     bool isSupportedByWM(Atom atom);
+
+    bool compositingManagerRunning;
+
+#ifndef QT_NO_XCURSOR
+    PtrXcursorLibraryLoadCursor ptrXcursorLibraryLoadCursor;
+#endif // QT_NO_XCURSOR
+
+#ifndef QT_NO_XINERAMA
+    PtrXineramaQueryExtension ptrXineramaQueryExtension;
+    PtrXineramaIsActive ptrXineramaIsActive;
+    PtrXineramaQueryScreens ptrXineramaQueryScreens;
+#endif // QT_NO_XINERAMA
+
 };
 
 extern QX11Data *qt_x11Data;
@@ -626,5 +670,8 @@ Q_DECLARE_TYPEINFO(XChar2b, Q_PRIMITIVE_TYPE);
 #ifndef QT_NO_XRENDER
 Q_DECLARE_TYPEINFO(XGlyphElt32, Q_PRIMITIVE_TYPE);
 #endif
+
+
+QT_END_NAMESPACE
 
 #endif // QT_X11_P_H

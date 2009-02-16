@@ -1,52 +1,47 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsystemtrayicon_p.h"
+#ifndef QT_NO_SYSTEMTRAYICON
 //#define _WIN32_IE 0x0500
 #define _WIN32_IE 0x0600 //required for NOTIFYICONDATAW_V2_SIZE
 
 //missing defines for MINGW :
-#ifndef NIN_BALLOONSHOW
+#ifndef NIN_BALLOONTIMEOUT
 #define NIN_BALLOONTIMEOUT  (WM_USER + 4)
 #endif
 #ifndef NIN_BALLOONUSERCLICK
@@ -62,6 +57,18 @@
 #include <QToolTip>
 #include <QDesktopWidget>
 
+#if defined(Q_OS_WINCE) && !defined(STANDARDSHELL_UI_MODEL) 
+#   include <streams.h>
+#endif
+
+QT_BEGIN_NAMESPACE
+
+#if defined(Q_OS_WINCE)
+static const UINT q_uNOTIFYICONID = 13;     // IDs from 0 to 12 are reserved on WinCE.
+#else
+static const UINT q_uNOTIFYICONID = 0;
+#endif
+
 static uint MYWM_TASKBARCREATED = 0;
 #define MYWM_NOTIFYICON	(WM_APP+101)
 
@@ -71,10 +78,17 @@ static PtrShell_NotifyIcon ptrShell_NotifyIcon = 0;
 static void resolveLibs()
 {
     static bool triedResolve = false;
+#if defined Q_OS_WINCE
+    QString libName(QLatin1String("coredll"));
+    const char* funcName = "Shell_NotifyIcon";
+#else
+    QString libName(QLatin1String("shell32"));
+    const char* funcName = "Shell_NotifyIconW";
+#endif
     if (!triedResolve) {
-        QLibrary lib(QLatin1String("shell32"));
+        QLibrary lib(libName);
 	    triedResolve = true;
-	    ptrShell_NotifyIcon = (PtrShell_NotifyIcon) lib.resolve("Shell_NotifyIconW");
+	    ptrShell_NotifyIcon = (PtrShell_NotifyIcon) lib.resolve(funcName);
     }
 }
 
@@ -121,29 +135,27 @@ bool QSystemTrayIconSys::supportsMessages()
 //Returns the runtime major version of the shell32 dll
 int QSystemTrayIconSys::detectShellVersion() const
 {
-    HMODULE hmod = LoadLibraryA("shell32.dll");
+#ifndef Q_OS_WINCE
     int shellVersion = 4; //NT 4.0 and W95
-    if (hmod)
+    DLLGETVERSIONPROC pDllGetVersion = (DLLGETVERSIONPROC)QLibrary::resolve(
+            QLatin1String("shell32"), "DllGetVersion");
+    if (pDllGetVersion)
     {
-        DLLGETVERSIONPROC pDllGetVersion;
-        pDllGetVersion = (DLLGETVERSIONPROC)GetProcAddress(hmod,
-            "DllGetVersion");
-        if (pDllGetVersion)
-        {
-            DLLVERSIONINFO dvi;
-            HRESULT hr;
-            ZeroMemory(&dvi, sizeof(dvi));
-            dvi.cbSize = sizeof(dvi);
-            hr = (*pDllGetVersion)(&dvi);
-            if (SUCCEEDED(hr)) {
-                if (dvi.dwMajorVersion >= 5)
-                {
-                    shellVersion = dvi.dwMajorVersion;
-                }
+        DLLVERSIONINFO dvi;
+        HRESULT hr;
+        ZeroMemory(&dvi, sizeof(dvi));
+        dvi.cbSize = sizeof(dvi);
+        hr = (*pDllGetVersion)(&dvi);
+        if (SUCCEEDED(hr)) {
+            if (dvi.dwMajorVersion >= 5)
+            {
+                shellVersion = dvi.dwMajorVersion;
             }
         }
     }
     return shellVersion;
+#endif
+    return 4; //No ballonMessages and MaxTipLength = 64 for WindowsCE
 }
 
 QSystemTrayIconSys::QSystemTrayIconSys(QSystemTrayIcon *object)
@@ -164,7 +176,7 @@ QSystemTrayIconSys::QSystemTrayIconSys(QSystemTrayIcon *object)
 
     // For restoring the tray icon after explorer crashes
     if (!MYWM_TASKBARCREATED) {
-        MYWM_TASKBARCREATED = RegisterWindowMessageA("TaskbarCreated");
+        MYWM_TASKBARCREATED = QT_WA_INLINE(RegisterWindowMessageW(L"TaskbarCreated"),RegisterWindowMessageA("TaskbarCreated"));
     }
 }
 
@@ -184,7 +196,11 @@ void QSystemTrayIconSys::setIconContentsW(NOTIFYICONDATAW &tnd)
     if (!tip.isNull()) {
         // Tip is limited to maxTipLength - NULL; lstrcpyn appends a NULL terminator.
         tip = tip.left(maxTipLength - 1) + QChar();
+#if defined(Q_OS_WINCE)
+        wcsncpy(tnd.szTip, reinterpret_cast<const wchar_t *> (tip.utf16()), qMin(tip.length()+1, maxTipLength));
+#else
         lstrcpynW(tnd.szTip, (TCHAR*)tip.utf16(), qMin(tip.length()+1, maxTipLength));
+#endif
     }
 }
 
@@ -198,7 +214,11 @@ void QSystemTrayIconSys::setIconContentsA(NOTIFYICONDATAA &tnd)
     if (!tip.isNull()) {
         // Tip is limited to maxTipLength - NULL; lstrcpyn appends a NULL terminator.
         tip = tip.left(maxTipLength - 1) + QChar();
+#if defined(Q_OS_WINCE)
+        strncpy(tnd.szTip, tip.toLocal8Bit().constData(), qMin(tip.length()+1, maxTipLength));
+#else
         lstrcpynA(tnd.szTip, tip.toLocal8Bit().constData(), qMin(tip.length()+1, maxTipLength));
+#endif
     }
 }
 
@@ -219,6 +239,8 @@ int iconFlag( QSystemTrayIcon::MessageIcon icon )
         default : // fall through
             flag = NIIF_INFO;
     }
+#else
+    Q_UNUSED(icon);
 #endif
     return flag;
 }
@@ -231,17 +253,25 @@ bool QSystemTrayIconSys::showMessageW(const QString &title, const QString &messa
     Q_ASSERT(testAttribute(Qt::WA_WState_Created));
 
     setIconContentsW(tnd);
+#if defined(Q_OS_WINCE)
+    wcsncpy(tnd.szInfo, message.utf16(), qMin(message.length() + 1, 256));
+    wcsncpy(tnd.szInfoTitle, title.utf16(), qMin(title.length()+1, 64));
+#else
     lstrcpynW(tnd.szInfo, (TCHAR*)message.utf16(), qMin(message.length() + 1, 256));
     lstrcpynW(tnd.szInfoTitle, (TCHAR*)title.utf16(), qMin(title.length() + 1, 64));
-    tnd.uID = 0;
+#endif
+    tnd.uID = q_uNOTIFYICONID;
     tnd.dwInfoFlags = iconFlag(type);
     tnd.cbSize = notifyIconSizeW;
     tnd.hWnd = winId();
     tnd.uTimeout = uSecs;
     tnd.uFlags = NIF_INFO;
-    tnd.uVersion = NOTIFYICON_VERSION;
     return ptrShell_NotifyIcon(NIM_MODIFY, &tnd);
 #else
+    Q_UNUSED(title);
+    Q_UNUSED(message);
+    Q_UNUSED(type);
+    Q_UNUSED(uSecs);
     return false;
 #endif
 }
@@ -254,25 +284,35 @@ bool QSystemTrayIconSys::showMessageA(const QString &title, const QString &messa
     Q_ASSERT(testAttribute(Qt::WA_WState_Created));
 
     setIconContentsA(tnd);
+#if defined(Q_OS_WINCE)
+    strncpy(tnd.szInfo, message.toLocal8Bit().constData(), qMin(message.length() + 1, 256));
+    strncpy(tnd.szInfoTitle, title.toLocal8Bit().constData(), qMin(title.length()+1, 64));
+#else
     lstrcpynA(tnd.szInfo, message.toLocal8Bit().constData(), qMin(message.length() + 1, 256));
     lstrcpynA(tnd.szInfoTitle, title.toLocal8Bit().constData(), qMin(title.length() + 1, 64));
-    tnd.uID = 0;
+#endif
+    tnd.uID = q_uNOTIFYICONID;
     tnd.dwInfoFlags = iconFlag(type);
     tnd.cbSize = notifyIconSizeA;
     tnd.hWnd = winId();
     tnd.uTimeout = uSecs;
     tnd.uFlags = NIF_INFO;
-    tnd.uVersion = NOTIFYICON_VERSION;
     return Shell_NotifyIconA(NIM_MODIFY, &tnd);
 #else
+    Q_UNUSED(title);
+    Q_UNUSED(message);
+    Q_UNUSED(type);
+    Q_UNUSED(uSecs);
     return false;
 #endif
 }
 
 bool QSystemTrayIconSys::trayMessageA(DWORD msg)
 {
+#if !defined(Q_OS_WINCE)
     NOTIFYICONDATAA tnd;
     memset(&tnd, 0, notifyIconSizeA);
+    tnd.uID = q_uNOTIFYICONID;
     tnd.cbSize = notifyIconSizeA;
     tnd.hWnd = winId();
     Q_ASSERT(testAttribute(Qt::WA_WState_Created));
@@ -281,12 +321,17 @@ bool QSystemTrayIconSys::trayMessageA(DWORD msg)
         setIconContentsA(tnd);
     }
     return Shell_NotifyIconA(msg, &tnd);
+#else
+    Q_UNUSED(msg);
+    return false;
+#endif
 }
 
 bool QSystemTrayIconSys::trayMessageW(DWORD msg)
 {
     NOTIFYICONDATAW tnd;
     memset(&tnd, 0, notifyIconSizeW);
+    tnd.uID = q_uNOTIFYICONID;
     tnd.cbSize = notifyIconSizeW;
     tnd.hWnd = winId();
     Q_ASSERT(testAttribute(Qt::WA_WState_Created));
@@ -342,7 +387,9 @@ void QSystemTrayIconSys::createIcon()
     if (icon.isNull())
         return;
 
-    QSize size = icon.actualSize(QSize(16, 16));
+    const int iconSizeX = GetSystemMetrics(SM_CXSMICON);
+    const int iconSizeY = GetSystemMetrics(SM_CYSMICON);
+    QSize size = icon.actualSize(QSize(iconSizeX, iconSizeY));
     QPixmap pm = icon.pixmap(size);
     if (pm.isNull())
         return;
@@ -389,12 +436,13 @@ bool QSystemTrayIconSys::winEvent( MSG *m, long *result )
             QPoint gpos = QCursor::pos();
 
             switch (m->lParam) {
-            case WM_LBUTTONDBLCLK:
-                emit q->activated(QSystemTrayIcon::DoubleClick);
-                break;
-
             case WM_LBUTTONUP:
                 emit q->activated(QSystemTrayIcon::Trigger);
+                break;
+
+#if !defined(Q_OS_WINCE)
+            case WM_LBUTTONDBLCLK:
+                emit q->activated(QSystemTrayIcon::DoubleClick);
                 break;
 
             case WM_RBUTTONUP:
@@ -413,7 +461,7 @@ bool QSystemTrayIconSys::winEvent( MSG *m, long *result )
             case WM_MBUTTONUP:
                 emit q->activated(QSystemTrayIcon::MiddleClick);
                 break;
-
+#endif
             default:
 		        break;
 	    }
@@ -450,10 +498,17 @@ QRect QSystemTrayIconSys::findTrayGeometry()
     //Use lower right corner as fallback
     QPoint brCorner = qApp->desktop()->screenGeometry().bottomRight();
     QRect ret(brCorner.x() - 10, brCorner.y() - 10, 10, 10);
-
+#if defined(Q_OS_WINCE)
+    HWND trayHandle = FindWindowW(L"Shell_TrayWnd", NULL);
+#else
     HWND trayHandle = FindWindowA("Shell_TrayWnd", NULL);
+#endif
     if (trayHandle) {
+#if defined(Q_OS_WINCE)
+        trayHandle = FindWindowW(L"TrayNotifyWnd", NULL);
+#else
         trayHandle = FindWindowExA(trayHandle, NULL, "TrayNotifyWnd", NULL);
+#endif
         if (trayHandle) {
             RECT r;
             if (GetWindowRect(trayHandle, &r)) {
@@ -475,16 +530,31 @@ QRect QSystemTrayIconSys::findIconGeometry(const int iconId)
     
     TBBUTTON buttonData;
     DWORD processID = 0;
-
+#if defined(Q_OS_WINCE)
+    HWND trayHandle = FindWindowW(L"Shell_TrayWnd", NULL);
+#else
     HWND trayHandle = FindWindowA("Shell_TrayWnd", NULL);
+#endif
 
     //find the toolbar used in the notification area
     if (trayHandle) {
+#if defined(Q_OS_WINCE)
+        trayHandle = FindWindowW(L"TrayNotifyWnd", NULL);
+#else
         trayHandle = FindWindowExA(trayHandle, NULL, "TrayNotifyWnd", NULL);
+#endif
         if (trayHandle) {
+#if defined(Q_OS_WINCE)
+            HWND hwnd = FindWindowW(L"SysPager", NULL);
+#else
             HWND hwnd = FindWindowEx(trayHandle, NULL, L"SysPager", NULL);
+#endif
             if (hwnd) {
+#if defined(Q_OS_WINCE)
+                hwnd = FindWindow(L"ToolbarWindow32", NULL);
+#else
                 hwnd = FindWindowEx(hwnd, NULL, L"ToolbarWindow32", NULL);
+#endif
                 if (hwnd)
                     trayHandle = hwnd;
             }
@@ -503,7 +573,11 @@ QRect QSystemTrayIconSys::findIconGeometry(const int iconId)
         return ret;
 
     int buttonCount = SendMessage(trayHandle, TB_BUTTONCOUNT, 0, 0);
+#if defined(Q_OS_WINCE)
+    LPVOID data = VirtualAlloc(NULL, sizeof(TBBUTTON), MEM_COMMIT, PAGE_READWRITE);
+#else
     LPVOID data = VirtualAllocEx(trayProcess, NULL, sizeof(TBBUTTON), MEM_COMMIT, PAGE_READWRITE);
+#endif
 
     if ( buttonCount < 1 || !data ) {
 	CloseHandle(trayProcess);
@@ -541,7 +615,11 @@ QRect QSystemTrayIconSys::findIconGeometry(const int iconId)
             }
         }
     }
+#if defined(Q_OS_WINCE)
+    VirtualFree(data, 0, MEM_RELEASE);
+#else
     VirtualFreeEx(trayProcess, data, 0, MEM_RELEASE);
+#endif
     CloseHandle(trayProcess);
     return ret;
 }
@@ -610,11 +688,13 @@ void QSystemTrayIconPrivate::updateIcon_sys()
     if (!sys)
 	return;
 
-    if (sys->hIcon)
-	DestroyIcon(sys->hIcon);
+    HICON hIconToDestroy = sys->hIcon;
 
     sys->createIcon();
     sys->trayMessage(NIM_MODIFY);
+
+    if (hIconToDestroy)
+        DestroyIcon(hIconToDestroy);
 }
 
 void QSystemTrayIconPrivate::updateMenu_sys()
@@ -624,13 +704,23 @@ void QSystemTrayIconPrivate::updateMenu_sys()
 
 void QSystemTrayIconPrivate::updateToolTip_sys()
 {
+#ifdef Q_OS_WINCE
+    // Calling sys->trayMessage(NIM_MODIFY) on an existing icon is broken on Windows CE.
+    // So we need to call updateIcon_sys() which creates a new icon handle.
+    updateIcon_sys();
+#else
     if (!sys)
 	return;
 
     sys->trayMessage(NIM_MODIFY);
+#endif
 }
 
 bool QSystemTrayIconPrivate::isSystemTrayAvailable_sys()
 {
     return true;
 }
+
+QT_END_NAMESPACE
+
+#endif

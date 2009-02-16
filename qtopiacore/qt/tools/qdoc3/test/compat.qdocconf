@@ -1,7 +1,5 @@
 alias.i				= e
 alias.include			= input
-alias.quotefile			= include
-alias.quotefromfile		= quotefile
 
 macro.0                         = "\\\\0"
 macro.b                         = "\\\\b"
@@ -26,8 +24,6 @@ macro.i71                       = "\\o{7,1}"
 macro.i81                       = "\\o{8,1}"
 macro.i91                       = "\\o{9,1}"
 macro.img                       = "\\image"
-macro.quotefromfile             = "\\quotefile"
-macro.quote                     = "\\quotation"
 macro.endquote                  = "\\endquotation"
 
 spurious			= "Missing comma in .*" \

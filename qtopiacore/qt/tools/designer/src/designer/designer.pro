@@ -1,7 +1,6 @@
 
 DESTDIR = ../../../../bin
 QT += xml network script
-CONFIG += qt assistant
 build_all:!build_pass {
     CONFIG -= build_all
     CONFIG += release
@@ -28,6 +27,7 @@ contains(CONFIG, static) {
 TARGET = designer
 
 include($$QT_SOURCE_TREE/tools/shared/fontpanel/fontpanel.pri)
+include($$QT_SOURCE_TREE/tools/shared/qttoolbardialog/qttoolbardialog.pri)
 
 HEADERS += \
     qdesigner.h \
@@ -56,7 +56,8 @@ HEADERS += \
     extra/oublietteview.h \
     designer_enums.h \
     preferencesdialog.h \
-    preferences.h
+    preferences.h \
+    assistantclient.h
 
 SOURCES += main.cpp \
     qdesigner.cpp \
@@ -82,14 +83,10 @@ SOURCES += main.cpp \
     extra/itemdialog.cpp \
     extra/oubliette.cpp \
     extra/oublietteplan.cpp \
-    extra/oublietteresource.cpp \
-    extra/oublietteresource1.cpp \
-    extra/oublietteresource2.cpp \
-    extra/oublietteresource3.cpp \
     extra/oublietteview.cpp \
     preferencesdialog.cpp \
-    preferences.cpp
-
+    preferences.cpp \
+    assistantclient.cpp
 
 PRECOMPILED_HEADER=qdesigner_pch.h
 

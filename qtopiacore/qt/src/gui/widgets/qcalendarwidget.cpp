@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,9 @@
 #include <qapplication.h>
 #include <qbasictimer.h>
 #include <qstylepainter.h>
+#include <private/qcalendartextnavigator_p.h>
+
+QT_BEGIN_NAMESPACE
 
 enum {
     RowCount = 6,
@@ -671,55 +668,29 @@ void QCalendarDateValidator::handleKeyEvent(QKeyEvent *keyEvent)
         toPreviousToken();
 }
 
-class QCalendarTextNavigator: public QObject
+QWidget *QCalendarTextNavigator::widget() const
 {
-    Q_OBJECT
-public:
-    QCalendarTextNavigator(QObject *parent = 0)
-        : QObject(parent), m_dateText(0), m_dateFrame(0), m_dateValidator(0), m_calendar(0), m_editDelay(1500) { }
-
-    QCalendarWidget *calendar() const;
-    void setCalendar(QCalendarWidget *calendar);
-    void applyDate();
-    void updateDateLabel();
-    void createDateLabel();
-    void removeDateLabel();
-    int dateEditAcceptDelay() const;
-    void setDateEditAcceptDelay(int delay);
-
-    bool eventFilter(QObject *o, QEvent *e);
-    void timerEvent(QTimerEvent *e);
-
-    void setLocale(const QLocale &locale);
-
-signals:
-    void changeDate(const QDate &date, bool changeMonth);
-    void editingFinished();
-
-private:
-    QLabel *m_dateText;
-    QFrame *m_dateFrame;
-    QBasicTimer m_acceptTimer;
-    QCalendarDateValidator *m_dateValidator;
-    QCalendarWidget *m_calendar;
-    int m_editDelay;
-
-    QLocale m_locale;
-};
-
-QCalendarWidget *QCalendarTextNavigator::calendar() const
-{
-    return m_calendar;
+    return m_widget;
 }
 
-void QCalendarTextNavigator::setCalendar(QCalendarWidget *calendar)
+void QCalendarTextNavigator::setWidget(QWidget *widget)
 {
-    m_calendar = calendar;
+    m_widget = widget;
+}
+
+QDate QCalendarTextNavigator::date() const
+{
+    return m_date;
+}
+
+void QCalendarTextNavigator::setDate(const QDate &date)
+{
+    m_date = date;
 }
 
 void QCalendarTextNavigator::updateDateLabel()
 {
-    if (!m_calendar)
+    if (!m_widget)
         return;
 
     m_acceptTimer.start(m_editDelay, this);
@@ -727,7 +698,7 @@ void QCalendarTextNavigator::updateDateLabel()
     m_dateText->setText(m_dateValidator->currentText());
 
     QSize s = m_dateFrame->sizeHint();
-    QRect r = m_calendar->geometry(); // later, just the table section
+    QRect r = m_widget->geometry(); // later, just the table section
     QRect newRect((r.width() - s.width()) / 2, (r.height() - s.height()) / 2, s.width(), s.height());
     m_dateFrame->setGeometry(newRect);
     // need to set palette after geometry update as phonestyle sets transparency
@@ -743,23 +714,18 @@ void QCalendarTextNavigator::updateDateLabel()
 void QCalendarTextNavigator::applyDate()
 {
     QDate date = m_dateValidator->currentDate();
-    emit changeDate(date, true);
-}
+    if (m_date == date)
+        return;
 
-void QCalendarTextNavigator::setLocale(const QLocale &locale)
-{
-    m_locale = locale;
-    if (m_dateValidator != 0) {
-        m_dateValidator->setLocale(locale);
-        updateDateLabel();
-    }
+    m_date = date;
+    emit dateChanged(date);
 }
 
 void QCalendarTextNavigator::createDateLabel()
 {
     if (m_dateFrame)
         return;
-    m_dateFrame = new QFrame(m_calendar);
+    m_dateFrame = new QFrame(m_widget);
     QVBoxLayout *vl = new QVBoxLayout;
     m_dateText = new QLabel;
     vl->addWidget(m_dateText);
@@ -767,9 +733,9 @@ void QCalendarTextNavigator::createDateLabel()
     m_dateFrame->setFrameShadow(QFrame::Plain);
     m_dateFrame->setFrameShape(QFrame::Box);
     m_dateValidator = new QCalendarDateValidator();
-    m_dateValidator->setLocale(m_locale);
-    m_dateValidator->setFormat(m_locale.dateFormat(QLocale::ShortFormat));
-    m_dateValidator->setInitialDate(m_calendar->selectedDate());
+    m_dateValidator->setLocale(m_widget->locale());
+    m_dateValidator->setFormat(m_widget->locale().dateFormat(QLocale::ShortFormat));
+    m_dateValidator->setInitialDate(m_date);
 
     m_dateFrame->setAutoFillBackground(true);
     m_dateFrame->setBackgroundRole(QPalette::Window);
@@ -790,10 +756,10 @@ void QCalendarTextNavigator::removeDateLabel()
 
 bool QCalendarTextNavigator::eventFilter(QObject *o, QEvent *e)
 {
-    if (m_calendar && m_calendar->selectionMode() != QCalendarWidget::NoSelection) {
+    if (m_widget) {
         if (e->type() == QEvent::KeyPress || e->type() == QEvent::KeyRelease) {
             QKeyEvent* ke = (QKeyEvent*)e;
-            if (ke->text().length() > 0 && ke->text()[0].isPrint() || m_dateFrame) {
+            if ((ke->text().length() > 0 && ke->text()[0].isPrint()) || m_dateFrame) {
                 if (ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter || ke->key() == Qt::Key_Select) {
                     applyDate();
                     emit editingFinished();
@@ -808,6 +774,16 @@ bool QCalendarTextNavigator::eventFilter(QObject *o, QEvent *e)
                 ke->accept();
                 return true;
             }
+            // If we are navigating let the user finish his date in old locate.
+            // If we change our mind and want it to update immediately simply uncomment below
+            /*
+        } else if (e->type() == QEvent::LocaleChange) {
+            if (m_dateValidator) {
+                m_dateValidator->setLocale(m_widget->locale());
+                m_dateValidator->setFormat(m_widget->locale().dateFormat(QLocale::ShortFormat));
+                updateDateLabel();
+            }
+            */
         }
     }
     return QObject::eventFilter(o,e);
@@ -898,16 +874,18 @@ public:
         { m_view = view; }
 
     void internalUpdate();
+    QDate referenceDate() const;
+    int columnForFirstOfMonth(const QDate &date) const;
 
     int m_firstColumn;
     int m_firstRow;
-    QDate date;
-    QDate minimumDate;
-    QDate maximumDate;
-    int shownYear;
-    int shownMonth;
+    QDate m_date;
+    QDate m_minimumDate;
+    QDate m_maximumDate;
+    int m_shownYear;
+    int m_shownMonth;
     Qt::DayOfWeek m_firstDay;
-    QCalendarWidget::HorizontalHeaderFormat horizontalHeaderFormat;
+    QCalendarWidget::HorizontalHeaderFormat m_horizontalHeaderFormat;
     bool m_weekNumbersShown;
     QMap<Qt::DayOfWeek, QTextCharFormat> m_dayFormats;
     QMap<QDate, QTextCharFormat> m_dateFormats;
@@ -951,13 +929,13 @@ private:
 QCalendarModel::QCalendarModel(QObject *parent)
     : QAbstractTableModel(parent)
 {
-    date = QDate::currentDate();
-    minimumDate = QDate::fromJulianDay(0);
-    maximumDate = QDate(7999, 12, 31);
-    shownYear = date.year();
-    shownMonth = date.month();
+    m_date = QDate::currentDate();
+    m_minimumDate = QDate::fromJulianDay(1);
+    m_maximumDate = QDate(7999, 12, 31);
+    m_shownYear = m_date.year();
+    m_shownMonth = m_date.month();
     m_firstDay = Qt::Sunday;
-    horizontalHeaderFormat = QCalendarWidget::ShortDayNames;
+    m_horizontalHeaderFormat = QCalendarWidget::ShortDayNames;
     m_weekNumbersShown = true;
     m_firstColumn = 1;
     m_firstRow = 1;
@@ -985,87 +963,100 @@ int QCalendarModel::columnForDayOfWeek(Qt::DayOfWeek day) const
     return column + m_firstColumn;
 }
 
+/*
+This simple algorithm tries to generate a valid date from the month shown.
+Some months don't contain a first day (e.g. Jan of -4713 year,
+so QDate (-4713, 1, 1) would be invalid). In that case we try to generate
+another valid date for that month. Later, returned date's day is the number of cells
+calendar widget will reserve for days before referenceDate. (E.g. if returned date's
+day is 16, that day will be placed in 3rd or 4th row, not in the 1st or 2nd row).
+Depending on referenceData we can change behaviour of Oct 1582. If referenceDate is 1st
+of Oct we render 1 Oct in 1st or 2nd row. If referenceDate is 17 of Oct we show always 16
+dates before 17 of Oct, and since this month contains the hole 5-14 Oct, the first of Oct
+will be rendered in 2nd or 3rd row, showing more dates from previous month.
+*/
+QDate QCalendarModel::referenceDate() const
+{
+    int refDay = 1;
+    while (refDay <= 31) {
+        QDate refDate(m_shownYear, m_shownMonth, refDay);
+        if (refDate.isValid())
+            return refDate;
+        refDay += 1;
+    }
+    return QDate();
+}
+
+int QCalendarModel::columnForFirstOfMonth(const QDate &date) const
+{
+    return (columnForDayOfWeek(static_cast<Qt::DayOfWeek>(date.dayOfWeek())) - (date.day() % 7) + 8) % 7;
+}
+
 QDate QCalendarModel::dateForCell(int row, int column) const
 {
     if (row < m_firstRow || row > m_firstRow + RowCount - 1 ||
                 column < m_firstColumn || column > m_firstColumn + ColumnCount - 1)
         return QDate();
-    QDate firstDate(shownYear, shownMonth, 15);
-    if (!firstDate.isValid()) {
+    const QDate refDate = referenceDate();
+    if (!refDate.isValid())
         return QDate();
-    }
-    int columnForFirstOfShownMonth = columnForDayOfWeek(static_cast<Qt::DayOfWeek>(firstDate.dayOfWeek()));
+
+    const int columnForFirstOfShownMonth = columnForFirstOfMonth(refDate);
     if (columnForFirstOfShownMonth - m_firstColumn < MinimumDayOffset)
         row -= 1;
-    int daysInShownMonth = firstDate.daysInMonth();
-    int requestedDay = 7 * (row - m_firstRow) + column - columnForFirstOfShownMonth + 1;
-    if (requestedDay > daysInShownMonth) {
-        QDate nextMonth = firstDate.addMonths(1);
-        if (!nextMonth.isValid()) {
-            return QDate();
-        }
-        return QDate(nextMonth.year(), nextMonth.month(),
-                    requestedDay - daysInShownMonth);
-    } else if (requestedDay <= 0) {
-        QDate previousMonth = firstDate.addMonths(-1);
-        if (!previousMonth.isValid()) {
-            return QDate();
-        }
-        int daysInMonth = previousMonth.daysInMonth();
-        return QDate(previousMonth.year(), previousMonth.month(),
-                    daysInMonth + requestedDay);
-    }
-    return QDate(shownYear, shownMonth, requestedDay);
+
+    const int requestedDay = 7 * (row - m_firstRow) + column - columnForFirstOfShownMonth - refDate.day() + 1;
+    return refDate.addDays(requestedDay);
 }
 
 void QCalendarModel::cellForDate(const QDate &date, int *row, int *column) const
 {
-    int day = date.day();
-    QDate firstDate(shownYear, shownMonth, 15);
-    int columnForFirstOfShownMonth = columnForDayOfWeek(static_cast<Qt::DayOfWeek>(firstDate.dayOfWeek()));
-    int daysInShownMonth = firstDate.daysInMonth();
-
-    QDate previousMonth = firstDate.addMonths(-1);
-    QDate nextMonth = firstDate.addMonths(1);
-
-    if (date.year() == shownYear && date.month() == shownMonth) {
-        *column = (day + columnForFirstOfShownMonth - m_firstColumn - 1) % 7;
-        *row = (day + columnForFirstOfShownMonth - m_firstColumn - 1) / 7;
-    } else if (previousMonth.isValid() &&
-            date.year() == previousMonth.year() && date.month() == previousMonth.month()) {
-        int daysInMonth = previousMonth.daysInMonth();
-        *column = (day - daysInMonth + columnForFirstOfShownMonth - m_firstColumn - 1) % 7;
-        *row = (day - daysInMonth + columnForFirstOfShownMonth - m_firstColumn - 1) / 7;
-        if (*column < 0) {
-            *column += 7;
-            *row -= 1;
-        }
-    } else if (nextMonth.isValid() &&
-            date.year() == nextMonth.year() && date.month() == nextMonth.month()) {
-        *column = (day + daysInShownMonth + columnForFirstOfShownMonth - m_firstColumn - 1) % 7;
-        *row = (day + daysInShownMonth + columnForFirstOfShownMonth - m_firstColumn - 1) / 7;
-    } else {
-        *row = -1;
-        *column = -1;
+    if (!row && !column)
         return;
+
+    if (row)
+        *row = -1;
+    if (column)
+        *column = -1;
+
+    const QDate refDate = referenceDate();
+    if (!refDate.isValid())
+        return;
+
+    const int columnForFirstOfShownMonth = columnForFirstOfMonth(refDate);
+    const int requestedPosition = refDate.daysTo(date) - m_firstColumn + columnForFirstOfShownMonth + refDate.day() - 1;
+
+    int c = requestedPosition % 7;
+    int r = requestedPosition / 7;
+    if (c < 0) {
+        c += 7;
+        r -= 1;
     }
+
     if (columnForFirstOfShownMonth - m_firstColumn < MinimumDayOffset)
-        *row += 1;
-    if (*row < 0 || *row > RowCount - 1 || *column < 0 || *column > ColumnCount - 1) {
-        *row = -1;
-        *column = -1;
+        r += 1;
+
+    if (r < 0 || r > RowCount - 1 || c < 0 || c > ColumnCount - 1)
         return;
-    }
-    *row += m_firstRow;
-    *column += m_firstColumn;
+
+    if (row)
+        *row = r + m_firstRow;
+    if (column)
+        *column = c + m_firstColumn;
 }
 
 QString QCalendarModel::dayName(Qt::DayOfWeek day) const
 {
-    switch (horizontalHeaderFormat) {
+    switch (m_horizontalHeaderFormat) {
         case QCalendarWidget::SingleLetterDayNames:
-            if (m_view->locale().language() == QLocale::Chinese)
+            if (m_view->locale().language() == QLocale::Chinese) {
                 return m_view->locale().dayName(day, QLocale::ShortFormat).right(1);
+            } else if (m_view->locale().language() == QLocale::Arabic) {
+                //some Arabic locales have the same letter at beginning which
+                //makes the various days indistinguishable
+                QLocale l(QLocale::Arabic, QLocale::Egypt);
+                return l.dayName(day, QLocale::ShortFormat).left(1);
+            }
             return m_view->locale().dayName(day, QLocale::ShortFormat).left(1);
         case QCalendarWidget::ShortDayNames:
             return m_view->locale().dayName(day, QLocale::ShortFormat);
@@ -1092,7 +1083,7 @@ QTextCharFormat QCalendarModel::formatForCell(int row, int col) const
     QTextCharFormat format;
     format.setFont(m_view->font());
     bool header = (m_weekNumbersShown && col == HeaderColumn)
-                  || (horizontalHeaderFormat != QCalendarWidget::NoHorizontalHeader && row == HeaderRow);
+                  || (m_horizontalHeaderFormat != QCalendarWidget::NoHorizontalHeader && row == HeaderRow);
     format.setBackground(pal.brush(cg, header ? QPalette::AlternateBase : QPalette::Base));
     format.setForeground(pal.brush(cg, QPalette::Text));
     if (header) {
@@ -1105,12 +1096,12 @@ QTextCharFormat QCalendarModel::formatForCell(int row, int col) const
             format.merge(m_dayFormats.value(dayOfWeek));
     }
 
-    if(!header) {
+    if (!header) {
         QDate date = dateForCell(row, col);
         format.merge(m_dateFormats.value(date));
-        if(date < minimumDate || date > maximumDate)
+        if(date < m_minimumDate || date > m_maximumDate)
             format.setBackground(pal.brush(cg, QPalette::Window));
-        if (shownMonth != date.month())
+        if (m_shownMonth != date.month())
             format.setForeground(pal.brush(QPalette::Disabled, QPalette::Text));
     }
     return format;
@@ -1131,7 +1122,7 @@ QVariant QCalendarModel::data(const QModelIndex &index, int role) const
             if (date.isValid())
                 return date.weekNumber();
         }
-        if (horizontalHeaderFormat != QCalendarWidget::NoHorizontalHeader && row == HeaderRow
+        if (m_horizontalHeaderFormat != QCalendarWidget::NoHorizontalHeader && row == HeaderRow
             && column >= m_firstColumn && column < m_firstColumn + ColumnCount)
             return dayName(dayOfWeekForColumn(column));
         QDate date = dateForCell(row, column);
@@ -1147,6 +1138,8 @@ QVariant QCalendarModel::data(const QModelIndex &index, int role) const
         return fmt.foreground().color();
     if (role == Qt::FontRole)
         return fmt.font();
+    if (role == Qt::ToolTipRole)
+        return fmt.toolTip();
     return QVariant();
 }
 
@@ -1155,69 +1148,69 @@ Qt::ItemFlags QCalendarModel::flags(const QModelIndex &index) const
     QDate date = dateForCell(index.row(), index.column());
     if (!date.isValid())
         return QAbstractTableModel::flags(index);
-    if (date < minimumDate)
+    if (date < m_minimumDate)
         return 0;
-    if (date > maximumDate)
+    if (date > m_maximumDate)
         return 0;
     return QAbstractTableModel::flags(index);
 }
 
 void QCalendarModel::setDate(const QDate &d)
 {
-    date = d;
-    if (date < minimumDate)
-        date = minimumDate;
-    else if (date > maximumDate)
-        date = maximumDate;
+    m_date = d;
+    if (m_date < m_minimumDate)
+        m_date = m_minimumDate;
+    else if (m_date > m_maximumDate)
+        m_date = m_maximumDate;
 }
 
 void QCalendarModel::showMonth(int year, int month)
 {
-    if (shownYear == year && shownMonth == month)
+    if (m_shownYear == year && m_shownMonth == month)
         return;
 
-    shownYear = year;
-    shownMonth = month;
+    m_shownYear = year;
+    m_shownMonth = month;
 
     internalUpdate();
 }
 
 void QCalendarModel::setMinimumDate(const QDate &d)
 {
-    if (!d.isValid() || d == minimumDate)
+    if (!d.isValid() || d == m_minimumDate)
         return;
 
-    minimumDate = d;
-    if (maximumDate < minimumDate)
-        maximumDate = minimumDate;
-    if (date < minimumDate)
-        date = minimumDate;
+    m_minimumDate = d;
+    if (m_maximumDate < m_minimumDate)
+        m_maximumDate = m_minimumDate;
+    if (m_date < m_minimumDate)
+        m_date = m_minimumDate;
     internalUpdate();
 }
 
 void QCalendarModel::setMaximumDate(const QDate &d)
 {
-    if (!d.isValid() || d == maximumDate)
+    if (!d.isValid() || d == m_maximumDate)
         return;
 
-    maximumDate = d;
-    if (minimumDate > maximumDate)
-        minimumDate = maximumDate;
-    if (date > maximumDate)
-        date = maximumDate;
+    m_maximumDate = d;
+    if (m_minimumDate > m_maximumDate)
+        m_minimumDate = m_maximumDate;
+    if (m_date > m_maximumDate)
+        m_date = m_maximumDate;
     internalUpdate();
 }
 
 void QCalendarModel::setRange(const QDate &min, const QDate &max)
 {
-    minimumDate = min;
-    maximumDate = max;
-    if(minimumDate > maximumDate)
-        qSwap(minimumDate, maximumDate);
-    if (date < minimumDate)
-        date = minimumDate;
-    if (date > maximumDate)
-        date = maximumDate;
+    m_minimumDate = min;
+    m_maximumDate = max;
+    if (m_minimumDate > m_maximumDate)
+        qSwap(m_minimumDate, m_maximumDate);
+    if (m_date < m_minimumDate)
+        m_date = m_minimumDate;
+    if (m_date > m_maximumDate)
+        m_date = m_maximumDate;
     internalUpdate();
 }
 
@@ -1232,15 +1225,15 @@ void QCalendarModel::internalUpdate()
 
 void QCalendarModel::setHorizontalHeaderFormat(QCalendarWidget::HorizontalHeaderFormat format)
 {
-    if (horizontalHeaderFormat == format)
+    if (m_horizontalHeaderFormat == format)
         return;
 
-    int oldFormat = horizontalHeaderFormat;
-    horizontalHeaderFormat = format;
+    int oldFormat = m_horizontalHeaderFormat;
+    m_horizontalHeaderFormat = format;
     if (oldFormat == QCalendarWidget::NoHorizontalHeader) {
         m_firstRow = 1;
         insertRow(0);
-    } else if (horizontalHeaderFormat == QCalendarWidget::NoHorizontalHeader) {
+    } else if (m_horizontalHeaderFormat == QCalendarWidget::NoHorizontalHeader) {
         m_firstRow = 0;
         removeRow(0);
     }
@@ -1297,7 +1290,7 @@ QCalendarView::QCalendarView(QWidget *parent)
 
 QModelIndex QCalendarView::moveCursor(CursorAction cursorAction, Qt::KeyboardModifiers modifiers)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel)
         return QTableView::moveCursor(cursorAction, modifiers);
 
@@ -1314,10 +1307,10 @@ QModelIndex QCalendarView::moveCursor(CursorAction cursorAction, Qt::KeyboardMod
             currentDate = currentDate.addDays(7);
             break;
         case QAbstractItemView::MoveLeft:
-            currentDate = currentDate.addDays(-1);
+            currentDate = currentDate.addDays(isRightToLeft() ? 1 : -1);
             break;
         case QAbstractItemView::MoveRight:
-            currentDate = currentDate.addDays(1);
+            currentDate = currentDate.addDays(isRightToLeft() ? -1 : 1);
             break;
         case QAbstractItemView::MoveHome:
             currentDate = QDate(currentDate.year(), currentDate.month(), 1);
@@ -1353,7 +1346,7 @@ void QCalendarView::keyPressEvent(QKeyEvent *event)
         }
     } else if (event->key() == Qt::Key_Back) {
         if (QApplication::keypadNavigationEnabled() && hasEditFocus()) {
-            if (QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model())) {
+            if (qobject_cast<QCalendarModel *>(model())) {
                 emit changeDate(origDate, true); //changes selection back to origDate, but doesn't activate
                 setEditFocus(false);
                 return;
@@ -1381,7 +1374,7 @@ bool QCalendarView::event(QEvent *event)
 #ifdef QT_KEYPAD_NAVIGATION
     if (event->type() == QEvent::FocusIn) {
         if (QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model())) {
-            origDate = calendarModel->date;
+            origDate = calendarModel->m_date;
         }
     }
 #endif
@@ -1391,15 +1384,15 @@ bool QCalendarView::event(QEvent *event)
 
 QDate QCalendarView::handleMouseEvent(QMouseEvent *event)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel)
         return QDate();
 
     QPoint pos = event->pos();
     QModelIndex index = indexAt(pos);
     QDate date = calendarModel->dateForCell(index.row(), index.column());
-    if (date.isValid() && date >= calendarModel->minimumDate
-            && date <= calendarModel->maximumDate) {
+    if (date.isValid() && date >= calendarModel->m_minimumDate
+            && date <= calendarModel->m_maximumDate) {
         return date;
     }
     return QDate();
@@ -1407,7 +1400,7 @@ QDate QCalendarView::handleMouseEvent(QMouseEvent *event)
 
 void QCalendarView::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel) {
         QTableView::mouseDoubleClickEvent(event);
         return;
@@ -1418,14 +1411,14 @@ void QCalendarView::mouseDoubleClickEvent(QMouseEvent *event)
 
     QDate date = handleMouseEvent(event);
     validDateClicked = false;
-    if (date == calendarModel->date && !style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick)) {
+    if (date == calendarModel->m_date && !style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick)) {
         emit editingFinished();
     }
 }
 
 void QCalendarView::mousePressEvent(QMouseEvent *event)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel) {
         QTableView::mousePressEvent(event);
         return;
@@ -1453,7 +1446,7 @@ void QCalendarView::mousePressEvent(QMouseEvent *event)
 
 void QCalendarView::mouseMoveEvent(QMouseEvent *event)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel) {
         QTableView::mouseMoveEvent(event);
         return;
@@ -1478,7 +1471,7 @@ void QCalendarView::mouseMoveEvent(QMouseEvent *event)
 
 void QCalendarView::mouseReleaseEvent(QMouseEvent *event)
 {
-    QCalendarModel *calendarModel = ::qobject_cast<QCalendarModel *>(model());
+    QCalendarModel *calendarModel = qobject_cast<QCalendarModel *>(model());
     if (!calendarModel) {
         QTableView::mouseReleaseEvent(event);
         return;
@@ -1514,9 +1507,10 @@ public:
     virtual void paint(QPainter *painter, const QStyleOptionViewItem &option,
                 const QModelIndex &index) const;
     void paintCell(QPainter *painter, const QRect &rect, const QDate &date) const;
+
 private:
     QCalendarWidgetPrivate *calendarWidgetPrivate;
-    mutable QStyleOptionViewItemV3 storedOption;
+    mutable QStyleOptionViewItemV4 storedOption;
 };
 
 //Private tool button class
@@ -1524,56 +1518,27 @@ class QCalToolButton: public QToolButton
 {
 public:
     QCalToolButton(QWidget * parent)
-        :QToolButton(parent), hover(false) ,oldState(false)
-         {  }
-private:
-    bool hover, oldState;
+        : QToolButton(parent)
+          {  }
 protected:
-    void enterEvent(QEvent * e)
-    {
-        hover = true;
-        QToolButton::enterEvent(e);
-    }
-
-    void leaveEvent(QEvent * e)
-    {
-        hover = false;
-        QToolButton::leaveEvent(e);
-    }
-
-    void mousePressEvent(QMouseEvent * e)
-    {
-        hover = true;
-        QToolButton::mousePressEvent(e);
-    }
-
-    void mouseReleaseEvent(QMouseEvent * e)
-    {
-        hover = true;
-        QToolButton::mouseReleaseEvent(e);
-    }
-
     void paintEvent(QPaintEvent *e)
     {
         Q_UNUSED(e)
-        QPalette toolPalette = parentWidget()->palette();
-        bool newState = (menu()) ? menu()->isVisible():isDown();
 
 #ifndef Q_WS_MAC
-        if (newState || hover) //act as normal button
-            setPalette(toolPalette);
-        else {
+        QStyleOptionToolButton opt;
+        initStyleOption(&opt);
+
+        if (opt.state & QStyle::State_MouseOver || isDown()) {
+            //act as normal button
+            setPalette(QPalette());
+        } else {
             //set the highlight color for button text
+            QPalette toolPalette = palette();
             toolPalette.setColor(QPalette::ButtonText, toolPalette.color(QPalette::HighlightedText));
             setPalette(toolPalette);
         }
 #endif
-        if (newState != oldState) {
-            //update the hover if the button is released
-            hover = oldState ? false : hover;
-            oldState = newState;
-        }
-
         QToolButton::paintEvent(e);
     }
 };
@@ -1603,6 +1568,7 @@ public:
     void update();
     void paintCell(QPainter *painter, const QRect &rect, const QDate &date) const;
 
+    void _q_slotChangeDate(const QDate &date);
     void _q_slotChangeDate(const QDate &date, bool changeMonth);
     void _q_editingFinished();
     void _q_monthChanged(QAction*);
@@ -1612,17 +1578,20 @@ public:
     void _q_yearClicked();
 
     void createNavigationBar(QWidget *widget);
+    void updateButtonIcons();
     void updateMonthMenu();
     void updateMonthMenuNames();
     void updateNavigationBar();
     void updateCurrentPage(QDate &newDate);
     inline QDate getCurrentDate();
+    void setNavigatorEnabled(bool enable);
 
     QCalendarModel *m_model;
     QCalendarView *m_view;
     QCalendarDelegate *m_delegate;
     QItemSelectionModel *m_selection;
     QCalendarTextNavigator *m_navigator;
+    bool m_dateEditEnabled;
 
     QToolButton *nextMonth;
     QToolButton *prevMonth;
@@ -1669,7 +1638,33 @@ QCalendarWidgetPrivate::QCalendarWidgetPrivate()
     m_delegate = 0;
     m_selection = 0;
     m_navigator = 0;
+    m_dateEditEnabled = false;
     navBarVisible = true;
+}
+
+void QCalendarWidgetPrivate::setNavigatorEnabled(bool enable)
+{
+    Q_Q(QCalendarWidget);
+
+    bool navigatorEnabled = (m_navigator->widget() != 0);
+    if (enable == navigatorEnabled)
+        return;
+
+    if (enable) {
+        m_navigator->setWidget(q);
+        q->connect(m_navigator, SIGNAL(dateChanged(QDate)),
+                q, SLOT(_q_slotChangeDate(QDate)));
+        q->connect(m_navigator, SIGNAL(editingFinished()),
+                q, SLOT(_q_editingFinished()));
+        m_view->installEventFilter(m_navigator);
+    } else {
+        m_navigator->setWidget(0);
+        q->disconnect(m_navigator, SIGNAL(dateChanged(QDate)),
+                q, SLOT(_q_slotChangeDate(QDate)));
+        q->disconnect(m_navigator, SIGNAL(editingFinished()),
+                q, SLOT(_q_editingFinished()));
+        m_view->removeEventFilter(m_navigator);
+    }
 }
 
 void QCalendarWidgetPrivate::createNavigationBar(QWidget *widget)
@@ -1687,8 +1682,7 @@ void QCalendarWidgetPrivate::createNavigationBar(QWidget *widget)
     prevMonth->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     nextMonth->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     nextMonth->setAutoRaise(true);
-    prevMonth->setIcon(q->style()->standardIcon(QStyle::SP_ArrowLeft));
-    nextMonth->setIcon(q->style()->standardIcon(QStyle::SP_ArrowRight));
+    updateButtonIcons();
     prevMonth->setAutoRepeat(true);
     nextMonth->setAutoRepeat(true);
     prevMonth->setFocusProxy(m_view);
@@ -1717,8 +1711,8 @@ void QCalendarWidgetPrivate::createNavigationBar(QWidget *widget)
     monthButton->setFont(font);
     yearButton->setFont(font);
     yearEdit->setFrame(false);
-    yearEdit->setMinimum(m_model->minimumDate.year());
-    yearEdit->setMaximum(m_model->maximumDate.year());
+    yearEdit->setMinimum(m_model->m_minimumDate.year());
+    yearEdit->setMaximum(m_model->m_maximumDate.year());
     yearEdit->hide();
     spaceHolder = new QSpacerItem(0,0);
 
@@ -1748,7 +1742,14 @@ void QCalendarWidgetPrivate::createNavigationBar(QWidget *widget)
     yearEdit->setObjectName(QLatin1String("qt_calendar_yearedit"));
 
     updateMonthMenu();
-    showMonth(m_model->date.year(),m_model->date.month());
+    showMonth(m_model->m_date.year(), m_model->m_date.month());
+}
+
+void QCalendarWidgetPrivate::updateButtonIcons()
+{
+    Q_Q(QCalendarWidget);
+    prevMonth->setIcon(q->style()->standardIcon(q->isRightToLeft() ? QStyle::SP_ArrowRight : QStyle::SP_ArrowLeft, 0, q));
+    nextMonth->setIcon(q->style()->standardIcon(q->isRightToLeft() ? QStyle::SP_ArrowLeft : QStyle::SP_ArrowRight, 0, q));
 }
 
 void QCalendarWidgetPrivate::updateMonthMenu()
@@ -1756,14 +1757,14 @@ void QCalendarWidgetPrivate::updateMonthMenu()
     int beg = 1, end = 12;
     bool prevEnabled = true;
     bool nextEnabled = true;
-    if (m_model->shownYear == m_model->minimumDate.year()) {
-        beg = m_model->minimumDate.month();
-        if (m_model->shownMonth == m_model->minimumDate.month())
+    if (m_model->m_shownYear == m_model->m_minimumDate.year()) {
+        beg = m_model->m_minimumDate.month();
+        if (m_model->m_shownMonth == m_model->m_minimumDate.month())
             prevEnabled = false;
     }
-    if (m_model->shownYear == m_model->maximumDate.year()) {
-        end = m_model->maximumDate.month();
-        if (m_model->shownMonth == m_model->maximumDate.month())
+    if (m_model->m_shownYear == m_model->m_maximumDate.year()) {
+        end = m_model->m_maximumDate.month();
+        if (m_model->m_shownMonth == m_model->m_maximumDate.month())
             nextEnabled = false;
     }
     prevMonth->setEnabled(prevEnabled);
@@ -1858,7 +1859,7 @@ void QCalendarWidgetPrivate::_q_yearClicked()
 
 void QCalendarWidgetPrivate::showMonth(int year, int month)
 {
-    if (m_model->shownYear == year && m_model->shownMonth == month)
+    if (m_model->m_shownYear == year && m_model->m_shownMonth == month)
         return;
     Q_Q(QCalendarWidget);
     m_model->showMonth(year, month);
@@ -1874,16 +1875,16 @@ void QCalendarWidgetPrivate::updateNavigationBar()
 {
     Q_Q(QCalendarWidget);
 
-    QString monthName = q->locale().monthName(m_model->shownMonth, QLocale::LongFormat);
+    QString monthName = q->locale().monthName(m_model->m_shownMonth, QLocale::LongFormat);
 
     monthButton->setText(monthName);
-    yearButton->setText(QString::number(m_model->shownYear));
-    yearEdit->setValue(m_model->shownYear);
+    yearButton->setText(QString::number(m_model->m_shownYear));
+    yearEdit->setValue(m_model->m_shownYear);
 }
 
 void QCalendarWidgetPrivate::update()
 {
-    QDate currentDate = m_model->date;
+    QDate currentDate = m_model->m_date;
     int row, column;
     m_model->cellForDate(currentDate, &row, &column);
     QModelIndex idx;
@@ -1900,16 +1901,22 @@ void QCalendarWidgetPrivate::paintCell(QPainter *painter, const QRect &rect, con
     q->paintCell(painter, rect, date);
 }
 
+void QCalendarWidgetPrivate::_q_slotChangeDate(const QDate &date)
+{
+    _q_slotChangeDate(date, true);
+}
+
 void QCalendarWidgetPrivate::_q_slotChangeDate(const QDate &date, bool changeMonth)
 {
-    QDate oldDate = m_model->date;
+    QDate oldDate = m_model->m_date;
     m_model->setDate(date);
-    QDate newDate = m_model->date;
+    QDate newDate = m_model->m_date;
     if (changeMonth)
         showMonth(newDate.year(), newDate.month());
     if (oldDate != newDate) {
         update();
         Q_Q(QCalendarWidget);
+        m_navigator->setDate(newDate);
         emit q->selectionChanged();
     }
 }
@@ -1917,7 +1924,7 @@ void QCalendarWidgetPrivate::_q_slotChangeDate(const QDate &date, bool changeMon
 void QCalendarWidgetPrivate::_q_editingFinished()
 {
     Q_Q(QCalendarWidget);
-    emit q->activated(m_model->date);
+    emit q->activated(m_model->m_date);
 }
 
 /*!
@@ -1926,6 +1933,7 @@ void QCalendarWidgetPrivate::_q_editingFinished()
     calendar widget allowing the user to select a date.
     \since 4.2
     \mainclass
+    \ingroup advanced
 
     \image cleanlooks-calendarwidget.png
 
@@ -1966,10 +1974,7 @@ void QCalendarWidgetPrivate::_q_editingFinished()
     \row \o
         \image qcalendarwidget-grid.png
     \row \o
-        \code
-            QCalendarWidget *calendar;
-            calendar->setGridVisible(true);
-        \endcode
+        \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 0
     \endtable
 
     Finally, the day in the first column can be altered using the
@@ -2071,7 +2076,6 @@ QCalendarWidget::QCalendarWidget(QWidget *parent)
     layoutV->addWidget(d->m_view);
 
     d->m_navigator = new QCalendarTextNavigator(this);
-    d->m_navigator->setLocale(locale());
     setDateEditEnabled(true);
 }
 
@@ -2199,13 +2203,13 @@ void QCalendarWidget::paintCell(QPainter *painter, const QRect &rect, const QDat
 QDate QCalendarWidget::selectedDate() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->date;
+    return d->m_model->m_date;
 }
 
 void QCalendarWidget::setSelectedDate(const QDate &date)
 {
     Q_D(QCalendarWidget);
-    if (d->m_model->date == date && date == d->getCurrentDate())
+    if (d->m_model->m_date == date && date == d->getCurrentDate())
         return;
 
     if (!date.isValid())
@@ -2213,8 +2217,9 @@ void QCalendarWidget::setSelectedDate(const QDate &date)
 
     d->m_model->setDate(date);
     d->update();
-    QDate newDate = d->m_model->date;
+    QDate newDate = d->m_model->m_date;
     d->showMonth(newDate.year(), newDate.month());
+    emit selectionChanged();
 }
 
 /*!
@@ -2227,7 +2232,7 @@ void QCalendarWidget::setSelectedDate(const QDate &date)
 int QCalendarWidget::yearShown() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->shownYear;
+    return d->m_model->m_shownYear;
 }
 
 /*!
@@ -2240,7 +2245,7 @@ int QCalendarWidget::yearShown() const
 int QCalendarWidget::monthShown() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->shownMonth;
+    return d->m_model->m_shownMonth;
 }
 
 /*!
@@ -2367,11 +2372,7 @@ void QCalendarWidget::showToday()
     \o \image qcalendarwidget-minimum.png
     \row
     \o
-    \code
-    QCalendarWidget *calendar;
-    calendar->setGridVisible(true);
-    calendar->setMinimumDate(QDate(2006, 6, 19));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 1
     \endtable
 
     By default, the minimum date is the earliest date that the QDate
@@ -2388,23 +2389,24 @@ void QCalendarWidget::showToday()
 QDate QCalendarWidget::minimumDate() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->minimumDate;
+    return d->m_model->m_minimumDate;
 }
 
 void QCalendarWidget::setMinimumDate(const QDate &date)
 {
     Q_D(QCalendarWidget);
-    if (!date.isValid() || d->m_model->minimumDate == date)
+    if (!date.isValid() || d->m_model->m_minimumDate == date)
         return;
 
-    QDate oldDate = d->m_model->date;
+    QDate oldDate = d->m_model->m_date;
     d->m_model->setMinimumDate(date);
-    d->yearEdit->setMinimum(d->m_model->minimumDate.year());
+    d->yearEdit->setMinimum(d->m_model->m_minimumDate.year());
     d->updateMonthMenu();
-    QDate newDate = d->m_model->date;
+    QDate newDate = d->m_model->m_date;
     if (oldDate != newDate) {
         d->update();
         d->showMonth(newDate.year(), newDate.month());
+        d->m_navigator->setDate(newDate);
         emit selectionChanged();
     }
 }
@@ -2421,11 +2423,7 @@ void QCalendarWidget::setMinimumDate(const QDate &date)
     \o \image qcalendarwidget-maximum.png
     \row
     \o
-    \code
-    QCalendarWidget *calendar;
-    calendar->setGridVisible(true);
-    calendar->setMaximumDate(QDate(2006, 7, 3));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 2
     \endtable
 
     By default, the maximum date is the last day the QDate class can
@@ -2442,23 +2440,24 @@ void QCalendarWidget::setMinimumDate(const QDate &date)
 QDate QCalendarWidget::maximumDate() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->maximumDate;
+    return d->m_model->m_maximumDate;
 }
 
 void QCalendarWidget::setMaximumDate(const QDate &date)
 {
     Q_D(QCalendarWidget);
-    if (!date.isValid() || d->m_model->maximumDate == date)
+    if (!date.isValid() || d->m_model->m_maximumDate == date)
         return;
 
-    QDate oldDate = d->m_model->date;
+    QDate oldDate = d->m_model->m_date;
     d->m_model->setMaximumDate(date);
-    d->yearEdit->setMaximum(d->m_model->maximumDate.year());
+    d->yearEdit->setMaximum(d->m_model->m_maximumDate.year());
     d->updateMonthMenu();
-    QDate newDate = d->m_model->date;
+    QDate newDate = d->m_model->m_date;
     if (oldDate != newDate) {
         d->update();
         d->showMonth(newDate.year(), newDate.month());
+        d->m_navigator->setDate(newDate);
         emit selectionChanged();
     }
 }
@@ -2470,20 +2469,11 @@ void QCalendarWidget::setMaximumDate(const QDate &date)
     The date range restricts the user selection, i.e. the user can
     only select dates within the specified date range. Note that
 
-    \code
-        QCalendarWidget *calendar;
-
-        calendar->setDateRange(min, max);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 3
 
     is analogous to
 
-    \code
-        QCalendarWidget *calendar;
-
-        calendar->setMinimumDate(min);
-        calendar->setMaximumDate(max);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 4
 
     If either the \a min or \a max parameters are not valid QDate
     objects, this function does nothing.
@@ -2494,7 +2484,7 @@ void QCalendarWidget::setMaximumDate(const QDate &date)
 void QCalendarWidget::setDateRange(const QDate &min, const QDate &max)
 {
     Q_D(QCalendarWidget);
-    if (d->m_model->minimumDate == min && d->m_model->maximumDate == max)
+    if (d->m_model->m_minimumDate == min && d->m_model->m_maximumDate == max)
         return;
     if (!min.isValid() || !max.isValid())
         return;
@@ -2506,15 +2496,16 @@ void QCalendarWidget::setDateRange(const QDate &min, const QDate &max)
         maximum = min;
     }
 
-    QDate oldDate = d->m_model->date;
+    QDate oldDate = d->m_model->m_date;
     d->m_model->setRange(min, max);
-    d->yearEdit->setMinimum(d->m_model->minimumDate.year());
-    d->yearEdit->setMaximum(d->m_model->maximumDate.year());
+    d->yearEdit->setMinimum(d->m_model->m_minimumDate.year());
+    d->yearEdit->setMaximum(d->m_model->m_maximumDate.year());
     d->updateMonthMenu();
-    QDate newDate = d->m_model->date;
+    QDate newDate = d->m_model->m_date;
     if (oldDate != newDate) {
         d->update();
         d->showMonth(newDate.year(), newDate.month());
+        d->m_navigator->setDate(newDate);
         emit selectionChanged();
     }
 }
@@ -2542,7 +2533,7 @@ void QCalendarWidget::setDateRange(const QDate &min, const QDate &max)
 void QCalendarWidget::setHorizontalHeaderFormat(QCalendarWidget::HorizontalHeaderFormat format)
 {
     Q_D(QCalendarWidget);
-    if (d->m_model->horizontalHeaderFormat == format)
+    if (d->m_model->m_horizontalHeaderFormat == format)
         return;
 
     d->m_model->setHorizontalHeaderFormat(format);
@@ -2554,7 +2545,7 @@ void QCalendarWidget::setHorizontalHeaderFormat(QCalendarWidget::HorizontalHeade
 QCalendarWidget::HorizontalHeaderFormat QCalendarWidget::horizontalHeaderFormat() const
 {
     Q_D(const QCalendarWidget);
-    return d->m_model->horizontalHeaderFormat;
+    return d->m_model->m_horizontalHeaderFormat;
 }
 
 
@@ -2607,10 +2598,7 @@ void QCalendarWidget::setVerticalHeaderFormat(QCalendarWidget::VerticalHeaderFor
         \o \inlineimage qcalendarwidget-grid.png
     \row
         \o
-        \code
-            QCalendarWidget *calendar;
-            calendar->setGridVisible(true);
-        \endcode
+        \snippet doc/src/snippets/code/src_gui_widgets_qcalendarwidget.cpp 5
     \endtable
 
     The default value is false.
@@ -2657,6 +2645,8 @@ void QCalendarWidget::setSelectionMode(SelectionMode mode)
 {
     Q_D(QCalendarWidget);
     d->m_view->readOnly = (mode == QCalendarWidget::NoSelection);
+    d->setNavigatorEnabled(isDateEditEnabled() && (selectionMode() != QCalendarWidget::NoSelection));
+    d->update();
 }
 
 /*!
@@ -2755,9 +2745,7 @@ QTextCharFormat QCalendarWidget::dateTextFormat(const QDate &date) const
 }
 
 /*!
-    Sets \a format to render \a date.
-
-    \internal
+    Sets the format used to render the given \a date to that specified by \a format.
 
     If \a date is null, all date formats are cleared.
 */
@@ -2793,7 +2781,7 @@ void QCalendarWidget::setDateTextFormat(const QDate &date, const QTextCharFormat
 bool QCalendarWidget::isDateEditEnabled() const
 {
     Q_D(const QCalendarWidget);
-    return (d->m_navigator->calendar() != 0);
+    return d->m_dateEditEnabled;
 }
 
 void QCalendarWidget::setDateEditEnabled(bool enable)
@@ -2802,21 +2790,9 @@ void QCalendarWidget::setDateEditEnabled(bool enable)
     if (isDateEditEnabled() == enable)
         return;
 
-    if (enable) {
-        d->m_navigator->setCalendar(this);
-        connect(d->m_navigator, SIGNAL(changeDate(QDate,bool)),
-                this, SLOT(_q_slotChangeDate(QDate,bool)));
-        connect(d->m_navigator, SIGNAL(editingFinished()),
-                this, SLOT(_q_editingFinished()));
-        d->m_view->installEventFilter(d->m_navigator);
-    } else {
-        d->m_navigator->setCalendar(0);
-        disconnect(d->m_navigator, SIGNAL(changeDate(QDate,bool)),
-                this, SLOT(_q_slotChangeDate(QDate,bool)));
-        disconnect(d->m_navigator, SIGNAL(editingFinished()),
-                this, SLOT(_q_editingFinished()));
-        d->m_view->removeEventFilter(d->m_navigator);
-    }
+    d->m_dateEditEnabled = enable;
+
+    d->setNavigatorEnabled(enable && (selectionMode() != QCalendarWidget::NoSelection));
 }
 
 /*!
@@ -2841,6 +2817,51 @@ void QCalendarWidget::setDateEditAcceptDelay(int delay)
 {
     Q_D(QCalendarWidget);
     d->m_navigator->setDateEditAcceptDelay(delay);
+}
+
+/*!
+    \since 4.4
+
+    Updates the cell specified by the given \a date unless updates
+    are disabled or the cell is hidden.
+
+    \sa updateCells(), yearShown(), monthShown()
+*/
+void QCalendarWidget::updateCell(const QDate &date)
+{
+    if (!date.isValid()) {
+        qWarning("QCalendarWidget::updateCell: Invalid date");
+        return;
+    }
+
+    if (!isVisible())
+        return;
+
+    Q_D(QCalendarWidget);
+    int row, column;
+    d->m_model->cellForDate(date, &row, &column);
+    if (row == -1 || column == -1)
+        return;
+
+    QModelIndex modelIndex = d->m_model->index(row, column);
+    if (!modelIndex.isValid())
+        return;
+
+    d->m_view->viewport()->update(d->m_view->visualRect(modelIndex));
+}
+
+/*!
+    \since 4.4
+
+    Updates all visible cells unless updates are disabled.
+
+    \sa updateCell()
+*/
+void QCalendarWidget::updateCells()
+{
+    Q_D(QCalendarWidget);
+    if (isVisible())
+        d->m_view->viewport()->update();
 }
 
 /*!
@@ -2887,6 +2908,8 @@ void QCalendarWidget::setDateEditAcceptDelay(int delay)
     \obsolete
 
     Use navigationBarVisible() instead.
+
+    By default, this property is true.
 */
 
 /*!
@@ -2904,7 +2927,7 @@ bool QCalendarWidget::isHeaderVisible() const
     \obsolete
 
     Use setNavigationBarVisible() instead.
-    
+
 */
 void QCalendarWidget::setHeaderVisible(bool visible)
 {
@@ -2940,9 +2963,10 @@ bool QCalendarWidget::event(QEvent *event)
 {
     Q_D(QCalendarWidget);
     switch (event->type()) {
+        case QEvent::LayoutDirectionChange:
+            d->updateButtonIcons();
         case QEvent::LocaleChange:
             d->cachedSizeHint = QSize();
-            d->m_navigator->setLocale(locale());
             d->updateMonthMenuNames();
             d->updateNavigationBar();
             d->m_view->updateGeometry();
@@ -3001,6 +3025,8 @@ void QCalendarWidget::keyPressEvent(QKeyEvent * event)
     }
     QWidget::keyPressEvent(event);
 }
+
+QT_END_NAMESPACE
 
 #include "qcalendarwidget.moc"
 #include "moc_qcalendarwidget.cpp"

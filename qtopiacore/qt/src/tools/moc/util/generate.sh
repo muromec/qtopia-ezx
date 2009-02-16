@@ -1,10 +1,11 @@
 #!/bin/sh
-p4 edit ../../src/tools/moc/keywords.cpp
-p4 edit ../../src/tools/moc/ppkeywords.cpp
+p4 edit ../keywords.cpp
+p4 edit ../ppkeywords.cpp
+qmake
 make
-cat licenseheader.txt > ../../src/tools/moc/keywords.cpp
-cat licenseheader.txt > ../../src/tools/moc/ppkeywords.cpp
-./generate_keywords >> ../../src/tools/moc/keywords.cpp
-./generate_keywords preprocessor >> ../../src/tools/moc/ppkeywords.cpp
-p4 revert -a ../../src/tools/moc/keywords.cpp
-p4 revert -a ../../src/tools/moc/ppkeywords.cpp
+cat licenseheader.txt > ../keywords.cpp
+cat licenseheader.txt > ../ppkeywords.cpp
+./generate_keywords >> ../keywords.cpp
+./generate_keywords preprocessor >> ../ppkeywords.cpp
+p4 revert -a ../keywords.cpp
+p4 revert -a ../ppkeywords.cpp

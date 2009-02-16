@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,8 @@
 
 #include <ctype.h>
 
+QT_BEGIN_NAMESPACE
+
 //#define QSPLITTER_DEBUG
 
 /*!
@@ -82,16 +78,12 @@
     reimplement QSplitter::createHandle() to instantiate the custom splitter
     handle. For example, a minimum QSplitter subclass might look like this:
 
-    \quotefromfile snippets/splitterhandle/splitter.h
-    \skipto class Splitter : public QSplitter
-    \printuntil /^\};/
+    \snippet doc/src/snippets/splitterhandle/splitter.h 0
 
     The \l{QSplitter::}{createHandle()} implementation simply constructs a
     custom splitter handle, called \c Splitter in this example:
 
-    \quotefromfile snippets/splitterhandle/splitter.cpp
-    \skipto createHandle()
-    \printuntil /^\}/
+    \snippet doc/src/snippets/splitterhandle/splitter.cpp 1
 
     Information about a given handle can be obtained using functions like
     orientation() and opaqueResize(), and is retrieved from its parent splitter.
@@ -102,9 +94,7 @@
     needs to perform. A simple subclass might only provide a paintEvent()
     implementation:
 
-    \quotefromfile snippets/splitterhandle/splitter.cpp
-    \skipto paintEvent
-    \printuntil /^\}/
+    \snippet doc/src/snippets/splitterhandle/splitter.cpp 0
 
     In this example, a predefined gradient is set up differently depending on
     the orientation of the handle. QSplitterHandle provides a reasonable
@@ -478,7 +468,7 @@ void QSplitterPrivate::doResize()
                 a[j].sizeHint = a[j].minimumSize;
                 a[j].expansive = true;
             } else {
-                a[j].sizeHint = s->getWidgetSize(orient);
+                a[j].sizeHint = qMax(s->getWidgetSize(orient), a[j].minimumSize);
             }
         }
         ++j;
@@ -823,6 +813,23 @@ QSplitter::QSplitter(Qt::Orientation orientation, QWidget *parent, const char *n
 }
 #endif
 
+/*!
+    \internal
+*/
+void QSplitterPrivate::insertWidget_helper(int index, QWidget *widget, bool show)
+{
+    Q_Q(QSplitter);
+    QBoolBlocker b(blockChildAdd);
+    bool needShow = show && q->isVisible() &&
+                    !(widget->isHidden() && widget->testAttribute(Qt::WA_WState_ExplicitShowHide));
+    if (widget->parentWidget() != q)
+        widget->setParent(q);
+    if (needShow)
+        widget->show();
+    insertWidget(index, widget);
+    recalc(q->isVisible());
+}
+
 /*
     Inserts the widget \a w at position \a index in the splitter's list of widgets.
 
@@ -890,9 +897,7 @@ QSplitterLayoutStruct *QSplitterPrivate::insertWidget(int index, QWidget *w)
     The following example will show a QListView, QTreeView, and
     QTextEdit side by side, with two splitter handles:
 
-    \quotefromfile snippets/splitter/splitter.cpp
-    \skipto  QSplitter
-    \printuntil splitter->addWidget(textedit);
+    \snippet doc/src/snippets/splitter/splitter.cpp 0
 
     If a widget is already inside a QSplitter when insertWidget() or
     addWidget() is called, it will move to the new position. This can be used
@@ -911,8 +916,9 @@ QSplitterLayoutStruct *QSplitterPrivate::insertWidget(int index, QWidget *w)
     would rather have QSplitter resize the children only at the end of
     a resize operation, call setOpaqueResize(false).
 
-    The initial distribution of size between the widgets is determined by the
-    initial size of each widget. You can also use setSizes() to set the sizes
+    The initial distribution of size between the widgets is determined by
+    multiplying the initial size with the stretch factor.
+    You can also use setSizes() to set the sizes
     of all the widgets. The function sizes() returns the sizes set by the user.
     Alternatively, you can save and restore the sizes of the widgets from a
     QByteArray using saveState() and restoreState() respectively.
@@ -1109,15 +1115,7 @@ void QSplitter::addWidget(QWidget *widget)
 void QSplitter::insertWidget(int index, QWidget *widget)
 {
     Q_D(QSplitter);
-    QBoolBlocker b(d->blockChildAdd);
-    bool needShow = isVisible() &&
-                    !(widget->isHidden() && widget->testAttribute(Qt::WA_WState_ExplicitShowHide));
-    if (widget->parentWidget() != this)
-        widget->setParent(this);
-    if (needShow)
-        widget->show();
-    d->insertWidget(index, widget);
-    d->recalc(isVisible());
+    d->insertWidget_helper(index, widget, true);
 }
 
 /*!
@@ -1222,8 +1220,11 @@ void QSplitter::childEvent(QChildEvent *c)
     QWidget *w = static_cast<QWidget*>(c->child());
 
     if (c->added() && !d->blockChildAdd && !w->isWindow() && !d->findWidget(w)) {
-        addWidget(w);
-    } else  if (c->type() == QEvent::ChildRemoved) {
+        d->insertWidget_helper(d->list.count(), w, false);
+    } else if (c->polished() && !d->blockChildAdd) {
+        if (isVisible() && !(w->isHidden() && w->testAttribute(Qt::WA_WState_ExplicitShowHide)))
+            w->show();
+    } else if (c->type() == QEvent::ChildRemoved) {
         for (int i = 0; i < d->list.size(); ++i) {
             QSplitterLayoutStruct *s = d->list.at(i);
             if (s->widget == w) {
@@ -1256,6 +1257,8 @@ void QSplitter::setRubberBand(int pos)
     if (!d->rubberBand) {
         QBoolBlocker block(d->blockChildAdd);
         d->rubberBand = new QRubberBand(QRubberBand::Line, this);
+        // For accessibility to identify this special widget.
+        d->rubberBand->setObjectName(QLatin1String("qt_rubberband"));
     }
     if (d->orient == Qt::Horizontal)
         d->rubberBand->setGeometry(QRect(QPoint(pos + hw / 2 - rBord, r.y()),
@@ -1560,9 +1563,7 @@ QSize QSplitter::minimumSizeHint() const
 
     The easiest way to iterate over the list is to use the Java-style iterators.
 
-    \quotefromfile snippets/splitter/splitter.cpp
-    \skipto   QListIterator<int>
-    \printuntil processSize(it.next());
+    \snippet doc/src/snippets/splitter/splitter.cpp 3
 
     \sa setSizes()
 */
@@ -1581,18 +1582,18 @@ QList<int> QSplitter::sizes() const
 }
 
 /*!
-    Sets the size parameters to the values given in the \a list. If
-    the splitter is horizontal, the values set the widths of each
-    widget going from left to right. If the splitter is vertical, the
-    values set the heights of each widget going from top to bottom.
-    Extra values in the \a list are ignored.
+    Sets the size parameters to the values given in the \a list.
+    The available space is divided according to the weights specified in
+    the list.
+
+    If the splitter is horizontal, the values set the widths of each
+    widget, from left to right based on the given weight. If the
+    splitter is vertical, the heights of each widget is set, from top
+    to bottom. Extra values in the \a list are ignored.
 
     If \a list contains too few values, the result is undefined but
-    the program will still be well-behaved.
-
-    The values in \a list should be the height or width (depending on
-    orientation()) that the widgets should be resized to. If you specify
-    a size of 0, the widget will be invisible.
+    the program will still be well-behaved. If you specify a size of 0,
+    the widget will be invisible.
 
     \sa sizes()
 */
@@ -1627,6 +1628,9 @@ void QSplitter::setSizes(const QList<int> &list)
 /*!
     \property QSplitter::handleWidth
     \brief the width of the splitter handles
+
+    By default, this property contains a value that depends on the user's platform
+    and style preferences.
 */
 
 int QSplitter::handleWidth() const
@@ -1666,10 +1670,7 @@ static const qint32 SplitterMagic = 0xff;
     for a future session. A version number is stored as part of the data.
     Here is an example:
 
-    \quotefromfile snippets/splitter/splitter.cpp
-    \skipto SAVE
-    \skipto QSettings
-    \printuntil saveState()
+    \snippet doc/src/snippets/splitter/splitter.cpp 1
 
     \sa restoreState()
 */
@@ -1698,10 +1699,7 @@ QByteArray QSplitter::saveState() const
 
     Restore the splitters's state:
 
-    \quotefromfile snippets/splitter/splitter.cpp
-    \skipto RESTORE
-    \skipto QSettings
-    \printuntil restoreState(
+    \snippet doc/src/snippets/splitter/splitter.cpp 2
 
     A failure to restore the splitter's layout may result from either
     invalid or out-of-date data in the supplied byte array.
@@ -1748,15 +1746,13 @@ bool QSplitter::restoreState(const QByteArray &state)
     Updates the size policy of the widget at position \a index to
     have a stretch factor of \a stretch.
 
+    \a stretch is not the effective stretch factor; the effective
+    stretch factor is calculated by taking the initial size of the 
+    widget and multiplying it with \a stretch.
+
     This function is provided for convenience. It is equivalent to
 
-    \code
-        QWidget *widget = splitter->widget(index);
-        QSizePolicy policy = widget->sizePolicy();
-        policy.setHorizontalStretch(stretch);
-        policy.setVerticalStretch(stretch);
-        widget->setSizePolicy(policy);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qsplitter.cpp 0
 
     \sa setSizes(), widget()
 */
@@ -1808,5 +1804,7 @@ QTextStream& operator>>(QTextStream& ts, QSplitter& splitter)
 }
 #endif // QT_NO_TEXTSTREAM
 //#endif // QT3_SUPPORT
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SPLITTER

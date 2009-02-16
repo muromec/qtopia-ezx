@@ -1,47 +1,42 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 // QtCore
 #include <qdebug.h>
+#include <qmath.h>
 #include <qmutex.h>
 
 // QtGui
@@ -67,7 +62,10 @@
 #include <private/qpainterpath_p.h>
 #include <private/qtextengine_p.h>
 #include <private/qwidget_p.h>
+#include <private/qpaintengine_raster_p.h>
 #include <private/qmath_p.h>
+
+QT_BEGIN_NAMESPACE
 
 #define QGradient_StretchToDevice 0x10000000
 #define QPaintEngine_OpaqueBackground 0x40000000
@@ -84,25 +82,34 @@ void qt_format_text(const QFont &font,
                     int tabstops, int* tabarray, int tabarraylen,
                     QPainter *painter);
 
-/* Returns true if the gradient requires stretch to device...*/
-static inline bool check_gradient(const QBrush &brush)
+static inline QGradient::CoordinateMode coordinateMode(const QBrush &brush)
 {
     switch (brush.style()) {
     case Qt::LinearGradientPattern:
     case Qt::RadialGradientPattern:
     case Qt::ConicalGradientPattern:
-        if (brush.gradient()->coordinateMode() == QGradient::StretchToDeviceMode)
-            return true;
+        return brush.gradient()->coordinateMode();
     default:
         ;
     }
-    return false;
+    return QGradient::LogicalMode;
 }
+
+/* Returns true if the gradient requires stretch to device...*/
+static inline bool check_gradient(const QBrush &brush)
+{
+    return coordinateMode(brush) == QGradient::StretchToDeviceMode;
+}
+
+extern bool qHasPixmapTexture(const QBrush &);
 
 static inline bool is_brush_transparent(const QBrush &brush) {
     Qt::BrushStyle s = brush.style();
+    bool brushBitmap = qHasPixmapTexture(brush)
+                       ? brush.texture().isQBitmap()
+                       : (brush.textureImage().depth() == 1);
     return ((s >= Qt::Dense1Pattern && s <= Qt::DiagCrossPattern)
-            || (s == Qt::TexturePattern && brush.texture().isQBitmap()));
+            || (s == Qt::TexturePattern && brushBitmap));
 }
 
 static inline bool is_pen_transparent(const QPen &pen) {
@@ -120,9 +127,28 @@ static inline uint line_emulation(uint emulation)
                         | QPaintEngine::BrushStroke
                         | QPaintEngine::ConstantOpacity
                         | QGradient_StretchToDevice
+                        | QPaintEngine::ObjectBoundingModeGradients
                         | QPaintEngine_OpaqueBackground);
 }
 
+static bool qt_painter_thread_test(int devType, const char *what, bool extraCondition = false)
+{
+    switch (devType) {
+    case QInternal::Image:
+    case QInternal::Printer:
+    case QInternal::Picture:
+        // can be drawn onto these devices safely from any thread
+        if (extraCondition)
+            break;
+    default:
+        if (!extraCondition && QThread::currentThread() != qApp->thread()) {
+            qWarning("QPainter: It is not safe to use %s outside the GUI thread", what);
+            return false;
+        }
+        break;
+    }
+    return true;
+}
 
 QTransform QPainterPrivate::viewTransform() const
 {
@@ -138,6 +164,87 @@ QTransform QPainterPrivate::viewTransform() const
 }
 
 
+/*
+   \internal
+   Returns true if using a shared painter; otherwise false.
+*/
+bool QPainterPrivate::attachPainterPrivate(QPainter *q, QPaintDevice *pdev)
+{
+    Q_ASSERT(q);
+    Q_ASSERT(pdev);
+
+    if (pdev->devType() != QInternal::Widget)
+        return false;
+
+    QWidget *widget = static_cast<QWidget *>(pdev);
+    Q_ASSERT(widget);
+
+    // Someone either called QPainter::setRedirected in the widget's paint event
+    // right before this painter was created (or begin was called) or
+    // sent a paint event directly to the widget.
+    if (!widget->d_func()->redirectDev)
+        return false;
+
+    QWidget *window = widget->isWindow() ? widget : widget->window();
+    Q_ASSERT(window);
+
+    QTLWExtra *extra = window->d_func()->maybeTopData();
+    QPainter *sp = extra ? extra->sharedPainter : 0;
+    if (!sp || !sp->isActive())
+        return false;
+
+    if ((sp->d_ptr->refcount == 1) || (extra->inRenderWithPainter && sp->d_ptr->refcount == 2)) {
+
+        if (sp->paintEngine()->paintDevice() != widget->d_func()->redirectDev)
+            return false;
+
+        // Check if we're attempting to paint outside a paint event.
+        if (!sp->d_ptr->engine->hasFeature(QPaintEngine::PaintOutsidePaintEvent)
+            && !widget->testAttribute(Qt::WA_PaintOutsidePaintEvent)
+            && !widget->testAttribute(Qt::WA_WState_InPaintEvent)) {
+
+            qWarning("QPainter::begin: Widget painting can only begin as a result of a paintEvent");
+            return false;
+        }
+
+        // Save the current state of the shared painter and assign
+        // the current d_ptr to the shared painter's d_ptr.
+        sp->save();
+        if (!sp->d_ptr->d_ptrs)
+            sp->d_ptr->d_ptrs = new QPainterPrivate*[2];
+        sp->d_ptr->d_ptrs[++sp->d_ptr->refcount - 2] = q->d_ptr;
+        q->d_ptr = sp->d_ptr;
+
+        // Now initialize the painter with correct widget properties.
+        q->d_ptr->initSharedPainter(widget, extra);
+        return true;
+    }
+
+    qWarning("QPainter::begin: A paint device can only be painted by one painter at a time.");
+    return false;
+}
+
+void QPainterPrivate::detachPainterPrivate(QPainter *q)
+{
+    Q_ASSERT(refcount > 1);
+    Q_ASSERT(refcount <= 3);
+    Q_ASSERT(q);
+
+    QPainterPrivate *original = d_ptrs[--refcount - 1];
+    if (inDestructor) {
+        inDestructor = false;
+        if (original)
+            original->inDestructor = true;
+    } else if (!original) {
+        original = new QPainterPrivate(q);
+    }
+
+    d_ptrs[refcount - 1] = 0;
+    q->restore();
+    q->d_ptr = original;
+}
+
+
 void QPainterPrivate::draw_helper(const QPainterPath &originalPath, DrawOperation op)
 {
 #ifdef QT_DEBUG_DRAW
@@ -149,8 +256,17 @@ void QPainterPrivate::draw_helper(const QPainterPath &originalPath, DrawOperatio
     if (originalPath.isEmpty())
         return;
 
-    if (state->emulationSpecifier == QGradient_StretchToDevice) {
-        drawStretchToDevice(originalPath, op);
+    QPaintEngine::PaintEngineFeatures gradientStretch =
+        QPaintEngine::PaintEngineFeatures(QGradient_StretchToDevice
+                                          | QPaintEngine::ObjectBoundingModeGradients);
+
+    const bool mustEmulateObjectBoundingModeGradients =
+        (state->emulationSpecifier & QPaintEngine::ObjectBoundingModeGradients)
+         && !engine->hasFeature(QPaintEngine::PatternTransform);
+
+    if (!(state->emulationSpecifier & ~gradientStretch)
+        && !mustEmulateObjectBoundingModeGradients) {
+        drawStretchedGradient(originalPath, op);
         return;
     } else if (state->emulationSpecifier & QPaintEngine_OpaqueBackground) {
         drawOpaqueBackground(originalPath, op);
@@ -187,7 +303,7 @@ void QPainterPrivate::draw_helper(const QPainterPath &originalPath, DrawOperatio
         }
     }
 
-    const qreal ROUND_UP_TRICK = 0.9999;
+    const qreal ROUND_UP_TRICK = qreal(0.9999);
     if (!strokeBounds.isEmpty()) {
         devMinX = int(strokeBounds.left());
         devMaxX = int(strokeBounds.right() + ROUND_UP_TRICK);
@@ -224,7 +340,8 @@ void QPainterPrivate::draw_helper(const QPainterPath &originalPath, DrawOperatio
 
     QPainter p(&image);
 
-    p.d_ptr->original_device = original_device;
+    p.d_ptr->helper_device = helper_device;
+
     p.setOpacity(state->opacity);
     p.translate(-absPathRect.x(), -absPathRect.y());
     p.setTransform(state->matrix, true);
@@ -271,66 +388,135 @@ void QPainterPrivate::drawOpaqueBackground(const QPainterPath &path, DrawOperati
     q->setBackgroundMode(Qt::OpaqueMode);
 }
 
+static inline QBrush stretchGradientToUserSpace(const QBrush &brush, const QRectF &boundingRect)
+{
+    Q_ASSERT(brush.style() >= Qt::LinearGradientPattern
+             && brush.style() <= Qt::ConicalGradientPattern);
 
-void QPainterPrivate::drawStretchToDevice(const QPainterPath &path, DrawOperation op)
+    QTransform gradientToUser(boundingRect.width(), 0, 0, boundingRect.height(),
+                              boundingRect.x(), boundingRect.y());
+
+    QGradient g = *brush.gradient();
+    g.setCoordinateMode(QGradient::LogicalMode);
+
+    QBrush b(g);
+    b.setTransform(gradientToUser * b.transform());
+    return b;
+}
+
+void QPainterPrivate::drawStretchedGradient(const QPainterPath &path, DrawOperation op)
 {
     Q_Q(QPainter);
 
-    double sw = original_device->width();
-    double sh = original_device->height();
+    const qreal sw = helper_device->width();
+    const qreal sh = helper_device->height();
 
-    QTransform inv(1.0/sw, 0, 0, 1.0/sh, 0, 0);
+    bool changedPen = false;
+    bool changedBrush = false;
+    bool needsFill = false;
 
-    QPen pen = state->pen;
-    QBrush brush = state->brush;
+    const QPen pen = state->pen;
+    const QBrush brush = state->brush;
 
-    if ((op & FillDraw) && brush.style() == Qt::NoBrush) op = DrawOperation(op - FillDraw);
-    if ((op & StrokeDraw) && pen.style() == Qt::NoPen) op = DrawOperation(op - StrokeDraw);
+    const QGradient::CoordinateMode penMode = coordinateMode(pen.brush());
+    const QGradient::CoordinateMode brushMode = coordinateMode(brush);
 
-    q->scale(sw, sh);
-    q->setPen(Qt::NoPen);
-    updateState(state);
+    QRectF boundingRect;
 
     // Draw the xformed fill if the brush is a stretch gradient.
-    if ((op & FillDraw) && check_gradient(brush)) {
-        engine->drawPath(path * inv);
-        op = DrawOperation(op - FillDraw);
+    if ((op & FillDraw) && brush.style() != Qt::NoBrush) {
+        if (brushMode == QGradient::StretchToDeviceMode) {
+            q->setPen(Qt::NoPen);
+            changedPen = pen.style() != Qt::NoPen;
+            q->scale(sw, sh);
+            updateState(state);
+
+            const qreal isw = 1.0 / sw;
+            const qreal ish = 1.0 / sh;
+            QTransform inv(isw, 0, 0, ish, 0, 0);
+            engine->drawPath(path * inv);
+            q->scale(isw, ish);
+        } else {
+            needsFill = true;
+
+            if (brushMode == QGradient::ObjectBoundingMode) {
+                Q_ASSERT(engine->hasFeature(QPaintEngine::PatternTransform));
+                boundingRect = path.boundingRect();
+                q->setBrush(stretchGradientToUserSpace(brush, boundingRect));
+                changedBrush = true;
+            }
+        }
     }
 
-    // Draw the xformed outline if the pen is a stretch gradient.
-    if ((op & StrokeDraw) && check_gradient(pen.brush())) {
-        q->setBrush(pen.brush());
-        updateState(state);
+    if ((op & StrokeDraw) && pen.style() != Qt::NoPen) {
+        // Draw the xformed outline if the pen is a stretch gradient.
+        if (penMode == QGradient::StretchToDeviceMode) {
+            q->setPen(Qt::NoPen);
+            changedPen = true;
 
-        QPainterPathStroker stroker;
-        stroker.setDashPattern(pen.style());
-        stroker.setWidth(pen.widthF());
-        stroker.setJoinStyle(pen.joinStyle());
-        stroker.setCapStyle(pen.capStyle());
-        stroker.setMiterLimit(pen.miterLimit());
-        QPainterPath stroke = stroker.createStroke(path);
+            if (needsFill) {
+                updateState(state);
+                engine->drawPath(path);
+            }
 
-        engine->drawPath(stroke * inv);
-        op = DrawOperation(op - StrokeDraw);
-    }
+            q->scale(sw, sh);
+            q->setBrush(pen.brush());
+            changedBrush = true;
+            updateState(state);
 
-    q->scale(1/sw, 1/sh);
+            QPainterPathStroker stroker;
+            stroker.setDashPattern(pen.style());
+            stroker.setWidth(pen.widthF());
+            stroker.setJoinStyle(pen.joinStyle());
+            stroker.setCapStyle(pen.capStyle());
+            stroker.setMiterLimit(pen.miterLimit());
+            QPainterPath stroke = stroker.createStroke(path);
 
-    if (op & FillDraw) {
+            const qreal isw = 1.0 / sw;
+            const qreal ish = 1.0 / sh;
+            QTransform inv(isw, 0, 0, ish, 0, 0);
+            engine->drawPath(stroke * inv);
+            q->scale(isw, ish);
+        } else {
+            if (!needsFill && brush.style() != Qt::NoBrush) {
+                q->setBrush(Qt::NoBrush);
+                changedBrush = true;
+            }
+
+            if (penMode == QGradient::ObjectBoundingMode) {
+                Q_ASSERT(engine->hasFeature(QPaintEngine::PatternTransform));
+
+                // avoid computing the bounding rect twice
+                if (!needsFill || brushMode != QGradient::ObjectBoundingMode)
+                    boundingRect = path.boundingRect();
+
+                QPen p = pen;
+                p.setBrush(stretchGradientToUserSpace(pen.brush(), boundingRect));
+                q->setPen(p);
+                changedPen = true;
+            } else if (changedPen) {
+                q->setPen(pen);
+                changedPen = false;
+            }
+
+            updateState(state);
+            engine->drawPath(path);
+        }
+    } else if (needsFill) {
+        if (pen.style() != Qt::NoPen) {
+            q->setPen(Qt::NoPen);
+            changedPen = true;
+        }
+
         updateState(state);
         engine->drawPath(path);
     }
 
-    q->setPen(pen);
-
-    if (op & StrokeDraw) {
-        q->setBrush(Qt::NoBrush);
-        updateState(state);
-        engine->drawPath(path);
+    if (changedPen)
+        q->setPen(pen);
+    if (changedBrush)
         q->setBrush(brush);
-    }
 }
-
 
 void QPainterPrivate::init()
 {
@@ -345,18 +531,18 @@ void QPainterPrivate::updateMatrix()
 
     txinv = false;                                // no inverted matrix
     state->txop = static_cast<int>(state->matrix.type());
-    if (!redirection_offset.isNull()) {
+    if (!state->redirection_offset.isNull()) {
         state->txop |= QTransform::TxTranslate;
         // We want to translate in dev space so we do the adding of the redirection
         // offset manually.
         if (state->matrix.isAffine()) {
             state->matrix = QTransform(state->matrix.m11(), state->matrix.m12(),
                                        state->matrix.m21(), state->matrix.m22(),
-                                       state->matrix.dx()-redirection_offset.x(),
-                                       state->matrix.dy()-redirection_offset.y());
+                                       state->matrix.dx()-state->redirection_offset.x(),
+                                       state->matrix.dy()-state->redirection_offset.y());
         } else {
             QTransform temp;
-            temp.translate(-redirection_offset.x(), -redirection_offset.y());
+            temp.translate(-state->redirection_offset.x(), -state->redirection_offset.y());
             state->matrix *= temp;
         }
     }
@@ -385,6 +571,82 @@ void QPainterPrivate::updateInvMatrix()
             m = state->worldMatrix;
     }
     invMatrix = m.inverted(&invertible);                // invert matrix
+}
+
+void QPainterPrivate::updateCombinedOpacity()
+{
+    Q_Q(QPainter);
+    QPaintDevice *currentDevice = q->device();
+    if (currentDevice && currentDevice->devType() == QInternal::Widget) {
+        QTLWExtra *extra = static_cast<QWidget *>(currentDevice)->window()->d_func()->maybeTopData();
+        if (extra && extra->inRenderWithPainter && extra->globalOpacity < 1.0)
+            state->opacity = state->localOpacity * extra->globalOpacity;
+    }
+}
+
+void QPainterPrivate::initSharedPainter(QWidget *widget, QTLWExtra *extra)
+{
+    if (!widget || !extra)
+        return;
+
+    Q_Q(QPainter);
+    Q_ASSERT(engine);
+
+    q->initFrom(widget);
+    QPoint offset;
+    widget->d_func()->redirected(&offset);
+    offset += engine->coordinateOffset();
+    QPaintEnginePrivate *enginePrivate = engine->d_func();
+
+    // System rect.
+    state->ww = state->vw = widget->width();
+    state->wh = state->vh = widget->height();
+    updateCombinedOpacity();
+
+    if (enginePrivate->currentClipWidget == widget) {
+        if (extra->inRenderWithPainter && state->WxF)
+            state->worldMatrix.translate(-offset.x(), -offset.y());
+        else
+            state->redirection_offset = offset;
+        updateMatrix();
+        return;
+    }
+
+    QPainterPath clipPath;
+    const bool usingRasterEngine = engine->type() == QPaintEngine::Raster;
+
+    if (extra->inRenderWithPainter && state->WxF) {
+        // Translate world matrix.
+        state->worldMatrix.translate(-offset.x(), -offset.y());
+        updateMatrix();
+
+        // Calculate new system clip.
+        clipPath.addRegion(enginePrivate->systemClip);
+        clipPath = state->matrix.map(clipPath);
+
+        // Intersect with current viewport.
+        const QPainterPath viewportClipPath = enginePrivate->oldSystemClipPath;
+        if (!viewportClipPath.isEmpty()) {
+            clipPath = clipPath.intersected(viewportClipPath);
+            if (clipPath.isEmpty())
+                clipPath = viewportClipPath;
+        }
+
+        enginePrivate->systemClip = clipPath.toFillPolygon().toPolygon();
+    } else {
+        if (usingRasterEngine)
+            clipPath.addRegion(enginePrivate->systemClip);
+        state->redirection_offset = offset;
+        updateMatrix();
+    }
+
+    if (usingRasterEngine)
+        static_cast<QRasterPaintEnginePrivate *>(enginePrivate)->baseClip = clipPath;
+    static_cast<QPainterState*>(state)->clipEnabled = false;
+    state->dirtyFlags |= QPaintEngine::DirtyClipEnabled | QPaintEngine::DirtyClipRegion;
+
+    updateState(state);
+    enginePrivate->currentClipWidget = widget;
 }
 
 void QPainterPrivate::updateEmulationSpecifier(QPainterState *s)
@@ -433,8 +695,14 @@ void QPainterPrivate::updateEmulationSpecifier(QPainterState *s)
                            && brushStyle < Qt::LinearGradientPattern)
                           || brushStyle == Qt::TexturePattern));
 
-        if (((penBrush.style() == Qt::TexturePattern && penBrush.texture().hasAlpha())
-             || (s->brush.style() == Qt::TexturePattern && s->brush.texture().hasAlpha()))
+        bool penTextureAlpha = qHasPixmapTexture(penBrush)
+                               ? penBrush.texture().hasAlpha()
+                               : penBrush.textureImage().hasAlphaChannel();
+        bool brushTextureAlpha = qHasPixmapTexture(s->brush)
+                                 ? s->brush.texture().hasAlpha()
+                                 : s->brush.textureImage().hasAlphaChannel();
+        if (((penBrush.style() == Qt::TexturePattern && penTextureAlpha)
+             || (s->brush.style() == Qt::TexturePattern && brushTextureAlpha))
             && !engine->hasFeature(QPaintEngine::MaskedBrush))
             s->emulationSpecifier |= QPaintEngine::MaskedBrush;
         else
@@ -538,14 +806,26 @@ void QPainterPrivate::updateEmulationSpecifier(QPainterState *s)
         s->emulationSpecifier &= ~QPaintEngine::ConstantOpacity;
 
     bool gradientStretch = false;
+    bool objectBoundingMode = false;
     if (linearGradient || conicalGradient || radialGradient) {
-        gradientStretch |= check_gradient(s->brush);
-        gradientStretch |= check_gradient(s->pen.brush());
+        QGradient::CoordinateMode brushMode = coordinateMode(s->brush);
+        QGradient::CoordinateMode penMode = coordinateMode(s->pen.brush());
+
+        gradientStretch |= (brushMode == QGradient::StretchToDeviceMode);
+        gradientStretch |= (penMode == QGradient::StretchToDeviceMode);
+
+        objectBoundingMode |= (brushMode == QGradient::ObjectBoundingMode);
+        objectBoundingMode |= (penMode == QGradient::ObjectBoundingMode);
     }
     if (gradientStretch)
         s->emulationSpecifier |= QGradient_StretchToDevice;
     else
         s->emulationSpecifier &= ~QGradient_StretchToDevice;
+
+    if (objectBoundingMode && !engine->hasFeature(QPaintEngine::ObjectBoundingModeGradients))
+        s->emulationSpecifier |= QPaintEngine::ObjectBoundingModeGradients;
+    else
+        s->emulationSpecifier &= ~QPaintEngine::ObjectBoundingModeGradients;
 
     // Opaque backgrounds...
     if (s->bgMode == Qt::OpaqueMode &&
@@ -568,7 +848,37 @@ void QPainterPrivate::updateEmulationSpecifier(QPainterState *s)
 #endif
 }
 
+void QPainterPrivate::updateStateImpl(QPainterState *newState)
+{
+    // ### we might have to call QPainter::begin() here...
+    if (!engine->state) {
+        engine->state = newState;
+        engine->setDirty(QPaintEngine::AllDirty);
+    }
 
+    if (engine->state->painter() != newState->painter)
+        // ### this could break with clip regions vs paths.
+        engine->setDirty(QPaintEngine::AllDirty);
+
+    // Upon restore, revert all changes since last save
+    else if (engine->state != newState)
+        newState->dirtyFlags |= QPaintEngine::DirtyFlags(static_cast<QPainterState *>(engine->state)->changeFlags);
+
+    // We need to store all changes made so that restore can deal with them
+    else
+        newState->changeFlags |= newState->dirtyFlags;
+
+    updateEmulationSpecifier(newState);
+
+    // Unset potential dirty background mode
+    newState->dirtyFlags &= ~(QPaintEngine::DirtyBackgroundMode
+            | QPaintEngine::DirtyBackground);
+
+    engine->state = newState;
+    engine->updateState(*newState);
+    engine->clearDirty(QPaintEngine::AllDirty);
+
+}
 
 void QPainterPrivate::updateState(QPainterState *newState)
 {
@@ -577,34 +887,24 @@ void QPainterPrivate::updateState(QPainterState *newState)
         engine->state = newState;
 
     } else if (newState->state() || engine->state!=newState) {
+        bool setNonCosmeticPen = (newState->renderHints & QPainter::NonCosmeticDefaultPen)
+                                 && newState->pen.widthF() == 0;
+        if (setNonCosmeticPen) {
+            // Override the default pen's cosmetic state if the
+            // NonCosmeticDefaultPen render hint is used.
+            QPen oldPen = newState->pen;
+            newState->pen.setWidth(1);
+            newState->pen.setCosmetic(false);
+            newState->dirtyFlags |= QPaintEngine::DirtyPen;
 
-        // ### we might have to call QPainter::begin() here...
-        if (!engine->state) {
-            engine->state = newState;
-            engine->setDirty(QPaintEngine::AllDirty);
+            updateStateImpl(newState);
+
+            // Restore the state pen back to its default to preserve visible
+            // state.
+            newState->pen = oldPen;
+        } else {
+            updateStateImpl(newState);
         }
-
-        if (engine->state->painter() != newState->painter)
-            // ### this could break with clip regions vs paths.
-            engine->setDirty(QPaintEngine::AllDirty);
-
-        // Upon restore, revert all changes since last save
-        else if (engine->state != newState)
-            newState->dirtyFlags |= QPaintEngine::DirtyFlags(static_cast<QPainterState *>(engine->state)->changeFlags);
-
-        // We need to store all changes made so that restore can deal with them
-        else
-            newState->changeFlags |= newState->dirtyFlags;
-
-        updateEmulationSpecifier(newState);
-
-        // Unset potential dirty background mode
-        newState->dirtyFlags &= ~(QPaintEngine::DirtyBackgroundMode
-                                  | QPaintEngine::DirtyBackground);
-
-        engine->state = newState;
-        engine->updateState(*newState);
-        engine->clearDirty(QPaintEngine::AllDirty);
     }
 }
 
@@ -616,6 +916,7 @@ void QPainterPrivate::updateState(QPainterState *newState)
 
     \ingroup multimedia
     \mainclass
+    \reentrant
 
     QPainter provides highly optimized functions to do most of the
     drawing GUI programs require. It can draw everything from simple
@@ -630,15 +931,7 @@ void QPainterPrivate::updateState(QPainterState *newState)
     painter. Then draw. Remember to destroy the QPainter object after
     drawing. For example:
 
-    \code
-    void SimpleExampleWidget::paintEvent(QPaintEvent *)
-    {
-        QPainter painter(this);
-        painter.setPen(Qt::blue);
-        painter.setFont(QFont("Arial", 30));
-        painter.drawText(rect(), Qt::AlignCenter, "Qt");
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 0
 
     The core functionality of QPainter is drawing, but the class also
     provide several functions that allows you to customize QPainter's
@@ -732,7 +1025,7 @@ void QPainterPrivate::updateState(QPainterState *newState)
     \section1 Drawing
 
     QPainter provides functions to draw most primitives: drawPoint(),
-    drawPoints(), drawLine(), drawRect(), drawRoundRect(),
+    drawPoints(), drawLine(), drawRect(), drawRoundedRect(),
     drawEllipse(), drawArc(), drawPie(), drawChord(), drawPolyline(),
     drawPolygon(), drawConvexPolygon() and drawCubicBezier().  The two
     convenience functions, drawRects() and drawLines(), draw the given
@@ -829,7 +1122,7 @@ void QPainterPrivate::updateState(QPainterState *newState)
     rendering quality through its RenderHint enum and the support for
     floating point precision: All the functions for drawing primitives
     has a floating point version. These are often used in combination
-    with the \l {RenderHint}{QPainter::AntiAliasing} render hint.
+    with the \l {RenderHint}{QPainter::Antialiasing} render hint.
 
     \table 100%
     \row
@@ -850,7 +1143,7 @@ void QPainterPrivate::updateState(QPainterState *newState)
 
     The RenderHint enum specifies flags to QPainter that may or may
     not be respected by any given engine.  \l
-    {RenderHint}{QPainter::AntiAliasing} indicates that the engine
+    {RenderHint}{QPainter::Antialiasing} indicates that the engine
     should antialias edges of primitives if possible, \l
     {RenderHint}{QPainter::TextAntialiasing} indicates that the engine
     should antialias text if possible, and the \l
@@ -990,6 +1283,13 @@ void QPainterPrivate::updateState(QPainterState *newState)
 
     \endtable
 
+    \section1 Limitations
+    \target Limitations
+
+    If you are using coordinates with Qt's raster-based paint engine, it is
+    important to note that coordinates greater than +/- 2\sup 15 are not
+    valid due to the use of \c{short int} in the implementation.
+
     \sa QPaintDevice, QPaintEngine, {QtSvg Module}, {Basic Drawing Example}
 */
 
@@ -1012,6 +1312,10 @@ void QPainterPrivate::updateState(QPainterState *newState)
     \value HighQualityAntialiasing An OpenGL-specific rendering hint
     indicating that the engine should use fragment programs and offscreen
     rendering for antialiasing.
+
+    \value NonCosmeticDefaultPen The engine should interpret pens with a width
+    of 0 (which otherwise enables QPen::isCosmetic()) as being a non-cosmetic
+    pen with a width of 1.
 
     \sa renderHints(), setRenderHint(), {QPainter#Rendering
     Quality}{Rendering Quality}, {Concentric Circles Example}
@@ -1042,24 +1346,10 @@ QPainter::QPainter()
     automatically calls end().
 
     Here's an example using begin() and end():
-    \code
-        void MyWidget::paintEvent(QPaintEvent *)
-        {
-            QPainter p;
-            p.begin(this);
-            p.drawLine(...);        // drawing code
-            p.end();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 1
 
     The same example using this constructor:
-    \code
-        void MyWidget::paintEvent(QPaintEvent *)
-        {
-            QPainter p(this);
-            p.drawLine(...);        // drawing code
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 2
 
     Since the constructor cannot provide feedback when the initialization
     of the painter failed you should rather use begin() and end() to paint
@@ -1069,22 +1359,37 @@ QPainter::QPainter()
 */
 
 QPainter::QPainter(QPaintDevice *pd)
+    : d_ptr(0)
 {
-    d_ptr = new QPainterPrivate(this);
-    d_ptr->init();
     Q_ASSERT(pd != 0);
-    begin(pd);
+    if (!QPainterPrivate::attachPainterPrivate(this, pd)) {
+        d_ptr = new QPainterPrivate(this);
+        d_ptr->init();
+        begin(pd);
+    }
+    Q_ASSERT(d_ptr);
 }
 
 /*!
     Destroys the painter.
 */
-
 QPainter::~QPainter()
 {
+    d_ptr->inDestructor = true;
     if (isActive())
         end();
-    delete d_ptr;
+    else if (d_ptr->refcount > 1)
+        d_ptr->detachPainterPrivate(this);
+
+    if (d_ptr) {
+        // Make sure we haven't messed things up.
+        Q_ASSERT(d_ptr->inDestructor);
+        d_ptr->inDestructor = false;
+        Q_ASSERT(d_ptr->refcount == 1);
+        if (d_ptr->d_ptrs)
+            delete [] d_ptr->d_ptrs;
+        delete d_ptr;
+    }
 }
 
 /*!
@@ -1097,6 +1402,8 @@ QPainter::~QPainter()
 QPaintDevice *QPainter::device() const
 {
     Q_D(const QPainter);
+    if (isActive() && d->engine->d_func()->currentClipWidget)
+        return d->engine->d_func()->currentClipWidget;
     return d->original_device;
 }
 
@@ -1210,8 +1517,8 @@ void QPainter::restore()
             const QPainterClipInfo &info = d->state->clipInfo.at(i);
             tmp->matrix.setMatrix(info.matrix.m11(), info.matrix.m12(), info.matrix.m13(),
                                   info.matrix.m21(), info.matrix.m22(), info.matrix.m23(),
-                                  info.matrix.dx() - d->redirection_offset.x(),
-                                  info.matrix.dy() - d->redirection_offset.y(), info.matrix.m33());
+                                  info.matrix.dx() - d->state->redirection_offset.x(),
+                                  info.matrix.dy() - d->state->redirection_offset.y(), info.matrix.m33());
             tmp->clipOperation = info.operation;
             if (info.clipType == QPainterClipInfo::RegionClip) {
                 tmp->dirtyFlags = QPaintEngine::DirtyClipRegion | QPaintEngine::DirtyTransform;
@@ -1247,15 +1554,7 @@ void QPainter::restore()
 
     The errors that can occur are serious problems, such as these:
 
-    \code
-        painter->begin(0); // impossible - paint device cannot be 0
-
-        QPixmap image(0, 0);
-        painter->begin(&image); // impossible - image.isNull() == true;
-
-        painter->begin(myWidget);
-        painter2->begin(myWidget); // impossible - only one painter at a time
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 3
 
     Note that most of the time, you can use one of the constructors
     instead of begin(), and that end() is automatically done at
@@ -1271,20 +1570,42 @@ bool QPainter::begin(QPaintDevice *pd)
 {
     Q_ASSERT(pd);
 
-    Q_D(QPainter);
-    if (d->engine) {
+    if (pd->painters > 0) {
+        qWarning("QPainter::begin: A paint device can only be painted by one painter at a time.");
+        return false;
+    }
+
+    if (d_ptr->engine) {
         qWarning("QPainter::begin: Painter already active");
         return false;
     }
 
+    if (QPainterPrivate::attachPainterPrivate(this, pd))
+        return true;
+
+    Q_D(QPainter);
     // Ensure fresh painter state
     if (d->emptyState && !d->state->dirtyFlags)
         d->emptyState = false;
     else
         d->state->init(d->state->painter);
 
+    d->helper_device = pd;
     d->original_device = pd;
-    QPaintDevice *rpd = redirected(pd, &d->redirection_offset);
+    QPaintDevice *rpd = 0;
+
+    // We know for sure that redirection is broken when the widget is inside
+    // its paint event, so it's safe to use our hard-coded redirection. However,
+    // there IS one particular case we still need to support, and that's
+    // when people call QPainter::setRedirected in the widget's paint event right
+    // before any painter is created (or QPainter::begin is called). In that
+    // particular case our hard-coded redirection is restored and the redirection
+    // is retrieved from QPainter::redirected (as before).
+    if (pd->devType() == QInternal::Widget)
+        rpd = static_cast<QWidget *>(pd)->d_func()->redirected(&d->state->redirection_offset);
+
+    if (!rpd)
+        rpd = redirected(pd, &d->state->redirection_offset);
 
     if (rpd) {
         pd = rpd;
@@ -1316,12 +1637,19 @@ bool QPainter::begin(QPaintDevice *pd)
             const QWidget *widget = static_cast<const QWidget *>(pd);
             Q_ASSERT(widget);
 
+            const bool paintOutsidePaintEvent = widget->testAttribute(Qt::WA_PaintOutsidePaintEvent);
+            const bool inPaintEvent = widget->testAttribute(Qt::WA_WState_InPaintEvent);
             if(!d->engine->hasFeature(QPaintEngine::PaintOutsidePaintEvent)
-               && !widget->testAttribute(Qt::WA_PaintOutsidePaintEvent)
-               && !widget->testAttribute(Qt::WA_WState_InPaintEvent)) {
+                && !paintOutsidePaintEvent && !inPaintEvent) {
                 qWarning("QPainter::begin: Widget painting can only begin as a "
                          "result of a paintEvent");
                 return false;
+            }
+
+            // Adjust offset for alien widgets painting outside the paint event.
+            if (!inPaintEvent && paintOutsidePaintEvent && !widget->internalWinId()
+                && widget->testAttribute(Qt::WA_WState_Created)) {
+                d->state->redirection_offset -= widget->mapTo(widget->nativeParentWidget(), QPoint());
             }
             break;
         }
@@ -1368,7 +1696,10 @@ bool QPainter::begin(QPaintDevice *pd)
     bool begun = d->engine->begin(pd);
     if (!begun) {
         qWarning("QPainter::begin(): Returned false");
-        end();
+        if (isActive())
+            end();
+        d->engine = 0;
+        d->device = 0;
         return false;
     } else {
         d->engine->setActive(begun);
@@ -1394,11 +1725,11 @@ bool QPainter::begin(QPaintDevice *pd)
         d->state->wh = d->state->vh = pd->metric(QPaintDevice::PdmHeight);
     }
 
-    d->redirection_offset += d->engine->coordinateOffset();
+    d->state->redirection_offset += d->engine->coordinateOffset();
 
     Q_ASSERT(d->engine->isActive());
 
-    if (!d->redirection_offset.isNull())
+    if (!d->state->redirection_offset.isNull())
         d->updateMatrix();
 
     Q_ASSERT(d->engine->isActive());
@@ -1430,6 +1761,11 @@ bool QPainter::end()
     if (!isActive()) {
         qWarning("QPainter::end: Painter not active, aborted");
         return false;
+    }
+
+    if (d_ptr->refcount > 1) {
+        d_ptr->detachPainterPrivate(this);
+        return true;
     }
 
     Q_D(QPainter);
@@ -1514,7 +1850,7 @@ QFontInfo QPainter::fontInfo() const
 qreal QPainter::opacity() const
 {
     Q_D(const QPainter);
-    return d->state->opacity;
+    return d->state->localOpacity;
 }
 
 /*!
@@ -1533,6 +1869,8 @@ void QPainter::setOpacity(qreal opacity)
     Q_D(QPainter);
     d->state->opacity = qMin(qreal(1), qMax(qreal(0), opacity));
     d->state->dirtyFlags |= QPaintEngine::DirtyOpacity;
+    d->state->localOpacity = d->state->opacity;
+    d->updateCombinedOpacity();
 }
 
 
@@ -1731,8 +2069,10 @@ void QPainter::setCompositionMode(CompositionMode mode)
         qWarning("QPainter::setCompositionMode: Painter not active");
         return;
     } else if (!d->engine->hasFeature(QPaintEngine::PorterDuff)) {
-        qWarning("QPainter::setCompositionMode: PorterDuff modes not supported on device");
-        return;
+        if (mode != CompositionMode_Source && mode != CompositionMode_SourceOver) {
+            qWarning("QPainter::setCompositionMode: PorterDuff modes not supported on device");
+            return;
+        }
     }
 
     if (mode > QPainter::CompositionMode_Xor &&
@@ -1958,6 +2298,11 @@ void QPainter::setClipRect(const QRectF &rect, Qt::ClipOperation op)
         return;
     }
 
+    if (rect.isEmpty()) {
+        setClipRegion(QRegion(), op);
+        return;
+    }
+
     QPainterPath path;
     path.addRect(rect);
     setClipPath(path, op);
@@ -2063,14 +2408,7 @@ void QPainter::setClipRegion(const QRegion &r, Qt::ClipOperation op)
 
     They operate on the painter's worldMatrix() and are implemented like this:
 
-    \code
-        void QPainter::rotate(qreal angle)
-        {
-            QMatrix matrix;
-            matrix.rotate(angle);
-            setWorldMatrix(matrix, true);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 4
 
     Note that when using setWorldMatrix() function you should always have
     \a combine be true when you are drawing into a QPicture. Otherwise
@@ -2461,15 +2799,7 @@ void QPainter::fillPath(const QPainterPath &path, const QBrush &brush)
     \row
     \o \inlineimage qpainter-path.png
     \o
-    \code
-    QPainterPath path;
-    path.moveTo(20, 80);
-    path.lineTo(20, 30);
-    path.cubicTo(80, 0, 50, 50, 80, 80);
-
-    QPainter painter(this);
-    painter.drawPath(path);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 5
     \endtable
 
     \sa {painting/painterpaths}{the Painter Paths
@@ -2507,12 +2837,7 @@ void QPainter::drawPath(const QPainterPath &path)
     \row
     \o \inlineimage qpainter-line.png
     \o
-    \code
-    QLineF line(10.0, 80.0, 90.0, 20.0);
-
-    QPainter(this);
-    painter.drawLine(line);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 6
     \endtable
 
     \sa drawLines(), drawPolyline(), {The Coordinate System}
@@ -2559,12 +2884,7 @@ void QPainter::drawPath(const QPainterPath &path)
     \row
     \o \inlineimage qpainter-rectangle.png
     \o
-    \code
-        QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-
-        QPainter painter(this);
-        painter.drawRect(rectangle);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 7
     \endtable
 
     \sa drawRects(), drawPolygon(), {The Coordinate System}
@@ -3100,6 +3420,11 @@ void QPainter::setBackground(const QBrush &bg)
 
 void QPainter::setFont(const QFont &font)
 {
+    if (!isActive()) {
+        qWarning("QPainter::setFont: Painter not active");
+        return;
+    }
+
 #ifdef QT_DEBUG_DRAW
     if (qt_show_painter_debug_output)
         printf("QPainter::setFont(), family=%s, pointSize=%d\n", font.family().toLatin1().constData(), font.pointSize());
@@ -3122,6 +3447,70 @@ const QFont &QPainter::font() const
 }
 
 /*!
+    \since 4.4
+
+    Draws the given rectangle \a rect with rounded corners.
+
+    The \a xRadius and \a yRadius arguments specify the radii
+    of the ellipses defining the corners of the rounded rectangle.
+    When \a mode is Qt::RelativeSize, \a xRadius and
+    \a yRadius are specified in percentage of half the rectangle's
+    width and height respectively, and should be in the range
+    0.0 to 100.0.
+
+    A filled rectangle has a size of rect.size(). A stroked rectangle
+    has a size of rect.size() plus the pen width.
+
+    \table 100%
+    \row
+    \o \inlineimage qpainter-roundrect.png
+    \o
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 8
+    \endtable
+
+    \sa drawRect(), QPen
+*/
+void QPainter::drawRoundedRect(const QRectF &rect, qreal xRadius, qreal yRadius, Qt::SizeMode mode)
+{
+#ifdef QT_DEBUG_DRAW
+    if (qt_show_painter_debug_output)
+        printf("QPainter::drawRoundedRect(), [%.2f,%.2f,%.2f,%.2f]\n", rect.x(), rect.y(), rect.width(), rect.height());
+#endif
+
+    if (!isActive())
+        return;
+
+    if (xRadius <= 0 || yRadius <= 0) {             // draw normal rectangle
+        drawRect(rect);
+        return;
+    }
+
+    QPainterPath path;
+    path.addRoundedRect(rect, xRadius, yRadius, mode);
+    drawPath(path);
+}
+
+/*!
+    \fn void QPainter::drawRoundedRect(const QRect &rect, qreal xRadius, qreal yRadius,
+                                       Qt::SizeMode mode = Qt::AbsoluteSize);
+    \since 4.4
+    \overload
+
+    Draws the given rectangle \a rect with rounded corners.
+*/
+
+/*!
+    \fn void QPainter::drawRoundedRect(int x, int y, int w, int h, qreal xRadius, qreal yRadius,
+                                       Qt::SizeMode mode = Qt::AbsoluteSize);
+    \since 4.4
+    \overload
+
+    Draws the given rectangle \a x, \a y, \a w, \a h with rounded corners.
+*/
+
+/*!
+    \obsolete
+
     Draws a rectangle \a r with rounded corners.
 
     The \a xRnd and \a yRnd arguments specify how rounded the corners
@@ -3130,19 +3519,7 @@ const QFont &QPainter::font() const
     A filled rectangle has a size of r.size(). A stroked rectangle
     has a size of r.size() plus the pen width.
 
-    \table 100%
-    \row
-    \o \inlineimage qpainter-roundrect.png
-    \o
-    \code
-        QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-
-        QPainter painter(this);
-        painter.drawRoundRect(rectangle);
-    \endcode
-    \endtable
-
-    \sa drawRect(), QPen
+    \sa drawRoundedRect()
 */
 void QPainter::drawRoundRect(const QRectF &r, int xRnd, int yRnd)
 {
@@ -3169,11 +3546,14 @@ void QPainter::drawRoundRect(const QRectF &r, int xRnd, int yRnd)
     \fn void QPainter::drawRoundRect(const QRect &r, int xRnd = 25, int yRnd = 25)
 
     \overload
+    \obsolete
 
     Draws the rectangle \a r with rounded corners.
 */
 
 /*!
+    \obsolete
+
     \fn QPainter::drawRoundRect(int x, int y, int w, int h, int xRnd, int yRnd)
 
     \overload
@@ -3194,12 +3574,7 @@ void QPainter::drawRoundRect(const QRectF &r, int xRnd, int yRnd)
     \row
     \o \inlineimage qpainter-ellipse.png
     \o
-    \code
-        QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-
-        QPainter painter(this);
-        painter.drawEllipse(rectangle);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 9
     \endtable
 
     \sa drawPie(), {The Coordinate System}
@@ -3285,6 +3660,26 @@ void QPainter::drawEllipse(const QRect &r)
 */
 
 /*!
+    \since 4.4
+
+    \fn QPainter::drawEllipse(const QPointF &center, qreal rx, qreal ry)
+
+    \overload
+
+    Draws the ellipse positioned at \a{center} with radii \a{rx} and \a{ry}.
+*/
+
+/*!
+    \since 4.4
+
+    \fn QPainter::drawEllipse(const QPoint &center, int rx, int ry)
+
+    \overload
+
+    Draws the ellipse positioned at \a{center} with radii \a{rx} and \a{ry}.
+*/
+
+/*!
     \fn void QPainter::drawArc(const QRectF &rectangle, int startAngle, int spanAngle)
 
     Draws the arc defined by the given \a rectangle, \a startAngle and
@@ -3300,14 +3695,7 @@ void QPainter::drawEllipse(const QRect &r)
     \row
     \o \inlineimage qpainter-arc.png
     \o
-    \code
-    QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-    int startAngle = 30 * 16;
-    int spanAngle = 120 * 16;
-
-    QPainter painter(this);
-    painter.drawArc(rectangle, startAngle, spanAngle);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 10
     \endtable
 
     \sa drawPie(), drawChord(), {The Coordinate System}
@@ -3372,14 +3760,7 @@ void QPainter::drawArc(const QRectF &r, int a, int alen)
     \row
     \o \inlineimage qpainter-pie.png
     \o
-    \code
-        QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-        int startAngle = 30 * 16;
-        int spanAngle = 120 * 16;
-
-        QPainter painter(this);
-        painter.drawPie(rectangle, startAngle, spanAngle);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 11
     \endtable
 
     \sa drawEllipse(), drawChord(), {The Coordinate System}
@@ -3449,14 +3830,7 @@ void QPainter::drawPie(const QRectF &r, int a, int alen)
     \row
     \o \inlineimage qpainter-chord.png
     \o
-    \code
-        QRectF rectangle(10.0, 20.0, 80.0, 60.0);
-        int startAngle = 30 * 16;
-        int spanAngle = 120 * 16;
-
-        QPainter painter(this);
-        painter.drawChord(rect, startAngle, spanAngle);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 12
     \endtable
 
     \sa drawArc(), drawPie(), {The Coordinate System}
@@ -3733,16 +4107,7 @@ void QPainter::drawLines(const QPoint *pointPairs, int lineCount)
     \table 100%
     \row
     \o
-    \code
-        static const QPointF points[3] = {
-            QPointF(10.0, 80.0),
-            QPointF(20.0, 10.0),
-            QPointF(80.0, 30.0),
-        };
-
-        QPainter painter(this);
-        painter.drawPolyline(points, 3);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 13
     \endtable
 
     \sa drawLines(), drawPolygon(), {The Coordinate System}
@@ -3862,17 +4227,7 @@ void QPainter::drawPolyline(const QPoint *points, int pointCount)
     \row
     \o \inlineimage qpainter-polygon.png
     \o
-    \code
-    static const QPointF points[4] = {
-        QPointF(10.0, 80.0),
-        QPointF(20.0, 10.0),
-        QPointF(80.0, 30.0),
-        QPointF(90.0, 70.0)
-    };
-
-    QPainter painter(this);
-    painter.drawPolygon(points, 4);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 14
     \endtable
 
     The first point is implicitly connected to the last point, and the
@@ -4012,17 +4367,7 @@ void QPainter::drawPolygon(const QPoint *points, int pointCount, Qt::FillRule fi
     \row
     \o \inlineimage qpainter-polygon.png
     \o
-    \code
-    static const QPointF points[4] = {
-        QPointF(10.0, 80.0),
-        QPointF(20.0, 10.0),
-        QPointF(80.0, 30.0),
-        QPointF(90.0, 70.0)
-    };
-
-    QPainter painter(this);
-    painter.drawConvexPolygon(points, 4);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 15
     \endtable
 
     The first point is implicitly connected to the last point, and the
@@ -4165,17 +4510,12 @@ void QPainter::drawConvexPolygon(const QPointF *points, int pointCount)
     Draws the rectangular portion \a source of the given \a pixmap
     into the given \a target in the paint device.
 
+    \note The pixmap is scaled to fit the rectangle, if both the pixmap and rectangle size disagree.
+
     \table 100%
     \row
     \o
-    \code
-    QRectF target(10.0, 20.0, 80.0, 60.0);
-    QRectF source(0.0, 0.0, 70.0, 40.0);
-    QPixmap pixmap(":myPixmap.png");
-
-    QPainter(this);
-    painter.drawPixmap(target, image, source);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 16
     \endtable
 
     If \a pixmap is a QBitmap it is drawn with the bits that are "set"
@@ -4200,6 +4540,8 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
     Q_D(QPainter);
     if (!isActive() || pm.isNull())
         return;
+    if (!qt_painter_thread_test(d->device->devType(), "drawPixmap()"))
+        return;
 
     qreal x = r.x();
     qreal y = r.y();
@@ -4211,28 +4553,46 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
     qreal sh = sr.height();
 
     // Sanity-check clipping
-    if (sw <= 0 || sw + sx > pm.width())
+    if (sw <= 0)
         sw = pm.width() - sx;
 
-    if (sh <= 0 || sh + sy > pm.height())
+    if (sh <= 0)
         sh = pm.height() - sy;
-
-    if (sx < 0) {
-        x -= sx;
-        sw += sx;
-        sx = 0;
-    }
-
-    if (sy < 0) {
-        y -= sy;
-        sh += sy;
-        sy = 0;
-    }
 
     if (w < 0)
         w = sw;
     if (h < 0)
         h = sh;
+
+    if (sx < 0) {
+        qreal w_ratio = sx * w/sw;
+        x -= w_ratio;
+        w += w_ratio;
+        sw += sx;
+        sx = 0;
+    }
+
+    if (sy < 0) {
+        qreal h_ratio = sy * h/sh;
+        y -= h_ratio;
+        h += h_ratio;
+        sh += sy;
+        sy = 0;
+    }
+
+    if (sw + sx > pm.width()) {
+        qreal delta = sw - (pm.width() - sx);
+        qreal w_ratio = delta * w/sw;
+        sw -= delta;
+        w -= w_ratio;
+    }
+
+    if (sh + sy > pm.height()) {
+        qreal delta = sh - (pm.height() - sy);
+        qreal h_ratio = delta * h/sh;
+        sh -= delta;
+        h -= h_ratio;
+    }
 
     if (w == 0 || h == 0 || sw <= 0 || sh <= 0)
         return;
@@ -4251,12 +4611,22 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
         || ((sw != w || sh != h) && !d->engine->hasFeature(QPaintEngine::PixmapTransform)))
     {
         save();
+        // If there is no scaling or transformation involved we have to make sure we use the
+        // antialiased and not the aliased coordinate system by rounding the coordinates.
+        if (d->state->txop <= QTransform::TxTranslate && sw == w && sh == h) {
+            x = qRound(x + d->state->matrix.dx()) - d->state->matrix.dx();
+            y = qRound(y + d->state->matrix.dy()) - d->state->matrix.dy();
+            sx = qRound(sx);
+            sy = qRound(sy);
+            sw = qRound(sw);
+            sh = qRound(sh);
+        }
         translate(x, y);
         scale(w / sw, h / sh);
         setBackgroundMode(Qt::TransparentMode);
         setRenderHint(Antialiasing, renderHints() & SmoothPixmapTransform);
         QBrush brush(d->state->pen.color(), pm);
-        brush.d->forceTextureClamp = true;
+        brush.d->sourceRect = QRectF(sx, sy, sw, sh).toAlignedRect();
         setBrush(brush);
         setPen(Qt::NoPen);
         setBrushOrigin(QPointF(-sx, -sy));
@@ -4265,8 +4635,8 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
         restore();
     } else {
         if (!d->engine->hasFeature(QPaintEngine::PixmapTransform)) {
-            x += qRound(d->state->matrix.dx());
-            y += qRound(d->state->matrix.dy());
+            x += d->state->matrix.dx();
+            y += d->state->matrix.dy();
         }
         d->engine->drawPixmap(QRectF(x, y, w, h), pm, QRectF(sx, sy, sw, sh));
     }
@@ -4281,6 +4651,7 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
     Draws the rectangular portion \a source of the given \a pixmap
     into the given \a target in the paint device.
 
+    \note The pixmap is scaled to fit the rectangle, if both the pixmap and rectangle size disagree.
 */
 
 /*!
@@ -4329,6 +4700,8 @@ void QPainter::drawPixmap(const QRectF &r, const QPixmap &pm, const QRectF &sr)
     \overload
 
     Draws the given \a  pixmap into the given \a rectangle.
+
+    \note The pixmap is scaled to fit the rectangle, if both the pixmap and rectangle size disagree.
 */
 
 /*!
@@ -4391,28 +4764,46 @@ void QPainter::drawImage(const QRectF &targetRect, const QImage &image, const QR
     qreal sh = sourceRect.height();
 
     // Sanity-check clipping
-    if (sw <= 0 || sw + sx > image.width())
+    if (sw <= 0)
         sw = image.width() - sx;
 
-    if (sh <= 0 || sh + sy > image.height())
+    if (sh <= 0)
         sh = image.height() - sy;
-
-    if (sx < 0) {
-        x -= sx;
-        sw += sx;
-        sx = 0;
-    }
-
-    if (sy < 0) {
-        y -= sy;
-        sh += sy;
-        sy = 0;
-    }
 
     if (w < 0)
         w = sw;
     if (h < 0)
         h = sh;
+
+    if (sx < 0) {
+        qreal w_ratio = sx * w/sw;
+        x -= w_ratio;
+        w += w_ratio;
+        sw += sx;
+        sx = 0;
+    }
+
+    if (sy < 0) {
+        qreal h_ratio = sy * h/sh;
+        y -= h_ratio;
+        h += h_ratio;
+        sh += sy;
+        sy = 0;
+    }
+
+    if (sw + sx > image.width()) {
+        qreal delta = sw - (image.width() - sx);
+        qreal w_ratio = delta * w/sw;
+        sw -= delta;
+        w -= w_ratio;
+    }
+
+    if (sh + sy > image.height()) {
+        qreal delta = sh - (image.height() - sy);
+        qreal h_ratio = delta * h/sh;
+        sh -= delta;
+        h -= h_ratio;
+    }
 
     if (w == 0 || h == 0 || sw <= 0 || sh <= 0)
         return;
@@ -4423,12 +4814,22 @@ void QPainter::drawImage(const QRectF &targetRect, const QImage &image, const QR
         || (d->state->opacity != 1.0 && !d->engine->hasFeature(QPaintEngine::ConstantOpacity)))
     {
         save();
+        // If there is no scaling or transformation involved we have to make sure we use the
+        // antialiased and not the aliased coordinate system by rounding the coordinates.
+        if (d->state->txop <= QTransform::TxTranslate && sw == w && sh == h) {
+            x = qRound(x + d->state->matrix.dx()) - d->state->matrix.dx();
+            y = qRound(y + d->state->matrix.dy()) - d->state->matrix.dy();
+            sx = qRound(sx);
+            sy = qRound(sy);
+            sw = qRound(sw);
+            sh = qRound(sh);
+        }
         translate(x, y);
         scale(w / sw, h / sh);
         setBackgroundMode(Qt::TransparentMode);
         setRenderHint(Antialiasing, renderHints() & SmoothPixmapTransform);
         QBrush brush(image);
-        brush.d->forceTextureClamp = true;
+        brush.d->sourceRect = QRectF(sx, sy, sw, sh).toAlignedRect();
         setBrush(brush);
         setPen(Qt::NoPen);
         setBrushOrigin(QPointF(-sx, -sy));
@@ -4440,8 +4841,8 @@ void QPainter::drawImage(const QRectF &targetRect, const QImage &image, const QR
 
     if (d->state->txop == QTransform::TxTranslate
         && !d->engine->hasFeature(QPaintEngine::PixmapTransform)) {
-        x += qRound(d->state->matrix.dx());
-        y += qRound(d->state->matrix.dy());
+        x += d->state->matrix.dx();
+        y += d->state->matrix.dy();
     }
 
     d->engine->drawImage(QRectF(x, y, w, h), image, QRectF(sx, sy, sw, sh), flags);
@@ -4459,10 +4860,20 @@ void QPainter::drawImage(const QRectF &targetRect, const QImage &image, const QR
     if you want to draw multiple lines of text with the newline character, or
     if you want the text to be wrapped.
 
+    By default, QPainter draws text anti-aliased.
+
     \note The y-position is used as the baseline of the font.
 */
 
 void QPainter::drawText(const QPointF &p, const QString &str)
+{
+    drawText(p, str, 0, 0);
+}
+
+/*!
+   \internal
+*/
+void QPainter::drawText(const QPointF &p, const QString &str, int tf, int justificationPadding)
 {
 #ifdef QT_DEBUG_DRAW
     if (qt_show_painter_debug_output)
@@ -4476,7 +4887,14 @@ void QPainter::drawText(const QPointF &p, const QString &str)
 
     QStackTextEngine engine(str, d->state->font);
     engine.option.setTextDirection(d->state->layoutDirection);
+    if (tf & (Qt::TextForceLeftToRight|Qt::TextForceRightToLeft)) {
+        engine.ignoreBidi = true;
+        engine.option.setTextDirection((tf & Qt::TextForceLeftToRight) ? Qt::LeftToRight : Qt::RightToLeft);
+    }
     engine.itemize();
+    QScriptLine line;
+    line.length = str.length();
+    engine.shapeLine(line);
 
     int nItems = engine.layoutData->items.size();
     QVarLengthArray<int> visualOrder(nItems);
@@ -4485,21 +4903,25 @@ void QPainter::drawText(const QPointF &p, const QString &str)
         levels[i] = engine.layoutData->items[i].analysis.bidiLevel;
     QTextEngine::bidiReorder(nItems, levels.data(), visualOrder.data());
 
+    if (justificationPadding > 0) {
+        engine.option.setAlignment(Qt::AlignJustify);
+        engine.forceJustification = true;
+        // this works because justify() is only interested in the difference between width and textWidth
+        line.width = justificationPadding;
+        engine.justify(line);
+    }
     QFixed x = QFixed::fromReal(p.x());
     QFixed ox = x;
 
     for (int i = 0; i < nItems; ++i) {
         int item = visualOrder[i];
         const QScriptItem &si = engine.layoutData->items.at(item);
-        engine.shape(item);
-        if (si.isObject || si.isTab) {
-            if (si.isTab)
-                x = engine.nextTab(&si, x - ox) + ox;
-            else
-                x += si.width;
+        if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
+            x += si.width;
             continue;
         }
-        QTextItemInt gf(si, &d->state->font);
+        QFont f = engine.font(si);
+        QTextItemInt gf(si, &f);
         gf.num_glyphs = si.num_glyphs;
         gf.glyphs = engine.glyphs(&si);
         gf.chars = engine.layoutData->string.unicode() + si.position;
@@ -4541,6 +4963,8 @@ void QPainter::drawText(const QRect &r, int flags, const QString &str, QRect *br
     Draws the given \a text with the currently defined text direction,
     beginning at the given \a position.
 
+    By default, QPainter draws text anti-aliased.
+
     \note The y-position is used as the baseline of the font.
 
 */
@@ -4555,10 +4979,7 @@ void QPainter::drawText(const QRect &r, int flags, const QString &str, QRect *br
     \row
     \o \inlineimage qpainter-text.png
     \o
-    \code
-        QPainter painter(this);
-        painter.drawText(rect, Qt::AlignCenter, tr("Qt by\nTrolltech"));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 17
     \endtable
 
     The \a boundingRect (if not null) is set to the what the bounding rectangle
@@ -4574,6 +4995,7 @@ void QPainter::drawText(const QRect &r, int flags, const QString &str, QRect *br
     \o Qt::AlignBottom
     \o Qt::AlignVCenter
     \o Qt::AlignCenter
+    \o Qt::TextDontClip
     \o Qt::TextSingleLine
     \o Qt::TextExpandTabs
     \o Qt::TextShowMnemonic
@@ -4581,6 +5003,10 @@ void QPainter::drawText(const QRect &r, int flags, const QString &str, QRect *br
     \endlist
 
     \sa Qt::AlignmentFlag, Qt::TextFlag, boundingRect(), layoutDirection()
+
+    By default, QPainter draws text anti-aliased.
+
+    \note The y-coordinate of \a rectangle is used as the top of the font.
 */
 void QPainter::drawText(const QRectF &r, int flags, const QString &str, QRectF *br)
 {
@@ -4606,6 +5032,10 @@ void QPainter::drawText(const QRectF &r, int flags, const QString &str, QRectF *
     Draws the given \a text within the provided \a rectangle according
     to the specified \a flags. The \a boundingRect (if not null) is set to
     the what the bounding rectangle should be in order to enclose the whole text.
+
+    By default, QPainter draws text anti-aliased.
+
+    \note The y-coordinate of \a rectangle is used as the top of the font.
 */
 
 /*!
@@ -4615,6 +5045,8 @@ void QPainter::drawText(const QRectF &r, int flags, const QString &str, QRectF *
 
     Draws the given \a text at position (\a{x}, \a{y}), using the painter's
     currently defined text direction.
+
+    By default, QPainter draws text anti-aliased.
 
     \note The y-position is used as the baseline of the font.
 
@@ -4648,6 +5080,8 @@ void QPainter::drawText(const QRectF &r, int flags, const QString &str, QRectF *
     \o Qt::TextWordWrap
     \endlist
 
+    By default, QPainter draws text anti-aliased.
+
     \note The y-position is used as the baseline of the font.
 
     \sa Qt::AlignmentFlag, Qt::TextFlag
@@ -4660,6 +5094,10 @@ void QPainter::drawText(const QRectF &r, int flags, const QString &str, QRectF *
 
     Draws the given \a text in the \a rectangle specified using the \a option
     to control its positioning and orientation.
+
+    By default, QPainter draws text anti-aliased.
+
+    \note The y-coordinate of \a rectangle is used as the top of the font.
 */
 void QPainter::drawText(const QRectF &r, const QString &text, const QTextOption &o)
 {
@@ -4712,14 +5150,6 @@ void QPainter::drawText(const QRectF &r, const QString &text, const QTextOption 
     Draws the text item \a ti at position \a p.
 */
 
-#ifndef QT_NO_DEBUG
-static void qt_painter_thread_test()
-{
-    if (QThread::currentThread() != qApp->thread())
-        qWarning("QPainter: It is not safe to use text and fonts outside the GUI thread");
-}
-#endif
-
 /*! \internal
     Draws the text item \a ti at position \a p.
 
@@ -4742,19 +5172,23 @@ static QPainterPath generateWavyPath(qreal minWidth, QPaintDevice *device)
     const qreal radius = 1.3 * device->logicalDpiY() / qt_defaultDpi();
     qreal xs, ys;
     int i = 0;
+    path.moveTo(0, radius);
     do {
-        int endAngle     = up ? -180  : 180;
-
         xs = i*(2*radius);
         ys = 0;
 
-        // we need to move to the start of the new arc to not have the path
-        // be implicitly connected for us
-        path.arcMoveTo(xs, ys, 2*radius, 2*radius, 0);
-        path.arcTo(xs, ys, 2*radius, 2*radius, 0, endAngle);
+        qreal remaining = minWidth - xs;
+        qreal angle = 180;
+
+        // cut-off at the last arc segment
+        if (remaining < 2 * radius)
+            angle = 180 * remaining / (2 * radius);
+
+        path.arcTo(xs, ys, 2*radius, 2*radius, 180, up ? angle : -angle);
+
         up = !up;
         ++i;
-    } while (xs + radius < minWidth);
+    } while (xs + 2*radius < minWidth);
 
     return path;
 }
@@ -4789,16 +5223,18 @@ static void drawTextItemDecoration(QPainter *painter, const QPointF &pos, const 
         painter->setRenderHint(QPainter::Antialiasing);
         painter->translate(pos.x(), underlinePos);
 
-        if (ti.underlineColor.isValid())
-            painter->setPen(ti.underlineColor);
+        QColor uc = ti.charFormat.underlineColor();
+        if (uc.isValid())
+            painter->setPen(uc);
 
         painter->drawPath(generateWavyPath(ti.width.toReal(), painter->device()));
         painter->restore();
     } else if (underlineStyle != QTextCharFormat::NoUnderline) {
         QLineF underLine(line.x1(), underlinePos, line.x2(), underlinePos);
 
-        if (ti.underlineColor.isValid())
-            pen.setColor(ti.underlineColor);
+        QColor uc = ti.charFormat.underlineColor();
+        if (uc.isValid())
+            pen.setColor(uc);
 
         pen.setStyle((Qt::PenStyle)(underlineStyle));
         painter->setPen(pen);
@@ -4836,14 +5272,15 @@ void QPainter::drawTextItem(const QPointF &p, const QTextItem &_ti)
                p.x(), p.y(), qPrintable(_ti.text()));
 #endif
 
-#ifndef QT_NO_DEBUG
-    qt_painter_thread_test();
-#endif
+    Q_D(QPainter);
 
     if (!isActive())
         return;
-
-    Q_D(QPainter);
+    if (!qt_painter_thread_test(d->device->devType(),
+                                "text and fonts",
+                                QFontDatabase::supportsThreadedFontRendering())) {
+        return;
+    }
 
     QTextItemInt &ti = const_cast<QTextItemInt &>(static_cast<const QTextItemInt &>(_ti));
 
@@ -4859,31 +5296,31 @@ void QPainter::drawTextItem(const QPointF &p, const QTextItem &_ti)
         return;
 
     const RenderHints oldRenderHints = d->state->renderHints;
-    if (d->state->txop >= QTransform::TxScale) {
+    if (d->state->txop >= QTransform::TxScale && d->state->txop < QTransform::TxProject) {
         // draw antialias decoration (underline/overline/strikeout) with
         // transformed text
 
         const QTransform &m = d->state->matrix;
-        bool isPlain45DegreeRotation =
-            (qFuzzyCompare(m.m11(), qreal(0))
+        bool isPlain90DegreeRotation =
+            (qFuzzyCompare(m.m11() + 1, qreal(1))
              && qFuzzyCompare(m.m12(), qreal(1))
              && qFuzzyCompare(m.m21(), qreal(-1))
-             && qFuzzyCompare(m.m22(), qreal(0))
+             && qFuzzyCompare(m.m22() + 1, qreal(1))
                 )
             ||
             (qFuzzyCompare(m.m11(), qreal(-1))
-             && qFuzzyCompare(m.m12(), qreal(0))
-             && qFuzzyCompare(m.m21(), qreal(0))
+             && qFuzzyCompare(m.m12() + 1, qreal(1))
+             && qFuzzyCompare(m.m21() + 1, qreal(1))
              && qFuzzyCompare(m.m22(), qreal(-1))
                 )
             ||
-            (qFuzzyCompare(m.m11(), qreal(0.0))
+            (qFuzzyCompare(m.m11() + 1, qreal(1))
              && qFuzzyCompare(m.m12(), qreal(-1))
              && qFuzzyCompare(m.m21(), qreal(1))
-             && qFuzzyCompare(m.m22(), qreal(0))
+             && qFuzzyCompare(m.m22() + 1, qreal(1))
                 )
             ;
-        if (!isPlain45DegreeRotation)
+        if (!isPlain90DegreeRotation)
             setRenderHint(QPainter::Antialiasing, true);
     }
 
@@ -4929,19 +5366,17 @@ void QPainter::drawTextItem(const QPointF &p, const QTextItem &_ti)
             // set the high byte to zero and calc the width
             for (i = start; i < end; ++i) {
                 glyphs[i].glyph = glyphs[i].glyph & 0xffffff;
-                ti2.width += (ti.glyphs[i].advance.x + QFixed::fromFixed(ti.glyphs[i].space_18d6)) * !ti.glyphs[i].attributes.dontPrint;
+                ti2.width += ti.glyphs[i].effectiveAdvance();
             }
 
             d->engine->drawTextItem(QPointF(x, y), ti2);
 
-            QFixed xadd;
             // reset the high byte for all glyphs and advance to the next sub-string
             const int hi = which << 24;
             for (i = start; i < end; ++i) {
                 glyphs[i].glyph = hi | glyphs[i].glyph;
-                xadd += glyphs[i].advance.x;
             }
-            x += xadd.toReal();
+            x += ti2.width.toReal();
 
             // change engine
             start = end;
@@ -4969,7 +5404,7 @@ void QPainter::drawTextItem(const QPointF &p, const QTextItem &_ti)
         // set the high byte to zero and calc the width
         for (i = start; i < end; ++i) {
             glyphs[i].glyph = glyphs[i].glyph & 0xffffff;
-            ti2.width += (ti.glyphs[i].advance.x + QFixed::fromFixed(ti.glyphs[i].space_18d6)) * !ti.glyphs[i].attributes.dontPrint;
+            ti2.width += ti.glyphs[i].effectiveAdvance();
         }
 
         d->engine->drawTextItem(QPointF(x,y), ti2);
@@ -5128,9 +5563,11 @@ void QPainter::drawTiledPixmap(const QRectF &r, const QPixmap &pixmap, const QPo
                sp.x(), sp.y());
 #endif
 
+    Q_D(QPainter);
     if (!isActive() || pixmap.isNull() || r.isEmpty())
         return;
-    Q_D(QPainter);
+    if (!qt_painter_thread_test(d->device->devType(), "drawTiledPixmap()"))
+        return;
 
     qreal sw = pixmap.width();
     qreal sh = pixmap.height();
@@ -5158,8 +5595,22 @@ void QPainter::drawTiledPixmap(const QRectF &r, const QPixmap &pixmap, const QPo
         setRenderHint(Antialiasing, renderHints() & SmoothPixmapTransform);
         setBrush(QBrush(d->state->pen.color(), pixmap));
         setPen(Qt::NoPen);
-        setBrushOrigin(QPointF(r.x()-sx, r.y()-sy));
-        drawRect(r);
+
+        // If there is no scaling or transformation involved we have to make sure we use the
+        // antialiased and not the aliased coordinate system by rounding the coordinates.
+        if (d->state->txop <= QTransform::TxTranslate) {
+            qreal x = qRound(r.x() + d->state->matrix.dx()) - d->state->matrix.dx();
+            qreal y = qRound(r.y() + d->state->matrix.dy()) - d->state->matrix.dy();
+            qreal w = qRound(r.width());
+            qreal h = qRound(r.height());
+            sx = qRound(sx);
+            sy = qRound(sy);
+            setBrushOrigin(QPointF(r.x()-sx, r.y()-sy));
+            drawRect(QRectF(x, y, w, h));
+        } else {
+            setBrushOrigin(QPointF(r.x()-sx, r.y()-sy));
+            drawRect(r);
+        }
         restore();
         return;
     }
@@ -5168,8 +5619,8 @@ void QPainter::drawTiledPixmap(const QRectF &r, const QPixmap &pixmap, const QPo
     qreal y = r.y();
     if (d->state->txop == QTransform::TxTranslate
         && !d->engine->hasFeature(QPaintEngine::PixmapTransform)) {
-        x += qRound(d->state->matrix.dx());
-        y += qRound(d->state->matrix.dy());
+        x += d->state->matrix.dx();
+        y += d->state->matrix.dy();
     }
 
     d->engine->drawTiledPixmap(QRectF(x, y, r.width(), r.height()), pixmap, QPointF(sx, sy));
@@ -5215,14 +5666,7 @@ void QPainter::drawTiledPixmap(const QRectF &r, const QPixmap &pixmap, const QPo
     \table 100%
     \row
     \o
-    \code
-        QPicture picture;
-        QPointF point(10.0, 20.0)
-        picture.load("drawing.pic");
-
-        QPainter painter(this);
-        painter.drawPicture(0, 0, picture);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 18
     \endtable
 
     \sa QPicture::play()
@@ -5261,9 +5705,7 @@ void QPainter::drawPicture(const QPointF &p, const QPicture &picture)
 
     Erases the area inside the given \a rectangle. Equivalent to
     calling
-    \code
-        fillRect(rectangle, background()).
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 19
 
     \sa fillRect()
 */
@@ -5274,10 +5716,21 @@ void QPainter::eraseRect(const QRectF &r)
     Q_D(QPainter);
     d->updateState(d->state);
 
-    if (d->state->bgBrush.texture().isNull())
+    bool noTexture = qHasPixmapTexture(d->state->bgBrush)
+                     ? d->state->bgBrush.texture().isNull()
+                     : d->state->bgBrush.textureImage().isNull();
+    if (noTexture)
         fillRect(r, d->state->bgBrush);
     else
-        drawTiledPixmap(r, d->state->bgBrush.texture(), -d->state->bgOrigin);
+        drawTiledPixmap(r, d->state->bgBrush.texture(), -d->state->bgOrigin); // ### not thread-safe - we need drawTiledImage()
+}
+
+static inline bool needsResolving(const QBrush &brush)
+{
+    Qt::BrushStyle s = brush.style();
+    return ((s == Qt::LinearGradientPattern || s == Qt::RadialGradientPattern ||
+             s == Qt::ConicalGradientPattern) &&
+            brush.gradient()->coordinateMode() == QGradient::ObjectBoundingMode);
 }
 
 /*!
@@ -5329,7 +5782,8 @@ void QPainter::fillRect(const QRect &r, const QBrush &brush)
 
     Q_D(QPainter);
     if (d->fillrect_func && !(d->state->renderHints & QPainter::Antialiasing)
-        && d->state->txop <= QTransform::TxTranslate)
+        && d->state->txop <= QTransform::TxTranslate
+        && !(brush.gradient() && brush.gradient()->coordinateMode() == QGradient::StretchToDeviceMode))
     {
         if (d->state->dirtyFlags)
             d->updateState(d->state);
@@ -5338,7 +5792,12 @@ void QPainter::fillRect(const QRect &r, const QBrush &brush)
 
         if (d->state->bgMode == Qt::OpaqueMode)
             ((d->engine)->*(d->fillrect_func))(rt, d->state->bgBrush);
-        ((d->engine)->*(d->fillrect_func))(rt, brush);
+
+        if (needsResolving(brush))
+            ((d->engine)->*(d->fillrect_func))(rt, stretchGradientToUserSpace(brush, rt));
+        else
+            ((d->engine)->*(d->fillrect_func))(rt, brush);
+
         return;
     }
 
@@ -5382,6 +5841,12 @@ void QPainter::setRenderHint(RenderHint hint, bool on)
 #ifdef QT_DEBUG_DRAW
     if (qt_show_painter_debug_output)
         printf("QPainter::setRenderHint: hint=%x, %s\n", hint, on ? "on" : "off");
+#endif
+
+#ifndef QT_NO_DEBUG
+    static const bool antialiasingDisabled = qgetenv("QT_NO_ANTIALIASING").toInt();
+    if (hint == QPainter::Antialiasing && antialiasingDisabled)
+        return;
 #endif
 
     setRenderHints(hint, on);
@@ -5893,13 +6358,15 @@ void QPainter::drawCubicBezier(const QPolygon &a, int index)
 
 struct QPaintDeviceRedirection
 {
-    QPaintDeviceRedirection() : device(0), replacement(0) {}
+    QPaintDeviceRedirection() : device(0), replacement(0), internalWidgetRedirectionIndex(-1) {}
     QPaintDeviceRedirection(const QPaintDevice *device, QPaintDevice *replacement,
-                            const QPoint& offset)
-        : device(device), replacement(replacement), offset(offset) { }
+                            const QPoint& offset, int internalWidgetRedirectionIndex)
+        : device(device), replacement(replacement), offset(offset),
+          internalWidgetRedirectionIndex(internalWidgetRedirectionIndex) { }
     const QPaintDevice *device;
     QPaintDevice *replacement;
     QPoint offset;
+    int internalWidgetRedirectionIndex;
     bool operator==(const QPaintDevice *pdev) const { return device == pdev; }
     Q_DUMMY_COMPARISON_OPERATOR(QPaintDeviceRedirection)
 };
@@ -5909,6 +6376,8 @@ Q_GLOBAL_STATIC(QPaintDeviceRedirectionList, globalRedirections)
 Q_GLOBAL_STATIC(QMutex, globalRedirectionsMutex)
 
 /*!
+    \threadsafe
+
     Redirects all paint commands for the given paint \a device, to the
     \a replacement device. The optional point \a offset defines an
     offset within the source device.
@@ -5930,17 +6399,33 @@ void QPainter::setRedirected(const QPaintDevice *device,
 {
     Q_ASSERT(device != 0);
 
+    bool hadInternalWidgetRedirection = false;
+    if (device->devType() == QInternal::Widget) {
+        const QWidgetPrivate *widgetPrivate = static_cast<const QWidget *>(device)->d_func();
+        // This is the case when the widget is in a paint event.
+        if (widgetPrivate->redirectDev) {
+            // Remove internal redirection and put it back into the global redirection list.
+            QPoint oldOffset;
+            QPaintDevice *oldReplacement = widgetPrivate->redirected(&oldOffset);
+            const_cast<QWidgetPrivate *>(widgetPrivate)->restoreRedirected();
+            setRedirected(device, oldReplacement, oldOffset);
+            hadInternalWidgetRedirection = true;
+        }
+    }
+
     QPoint roffset;
     QPaintDevice *rdev = redirected(replacement, &roffset);
 
     QMutexLocker locker(globalRedirectionsMutex());
     QPaintDeviceRedirectionList *redirections = globalRedirections();
     Q_ASSERT(redirections != 0);
-    *redirections += QPaintDeviceRedirection(device, rdev ? rdev : replacement, offset + roffset);
+    *redirections += QPaintDeviceRedirection(device, rdev ? rdev : replacement, offset + roffset,
+                                             hadInternalWidgetRedirection ? redirections->size() - 1 : -1);
 }
 
-
 /*!
+    \threadsafe
+
     Restores the previous redirection for the given \a device after a
     call to setRedirected().
 
@@ -5954,13 +6439,27 @@ void QPainter::restoreRedirected(const QPaintDevice *device)
     Q_ASSERT(redirections != 0);
     for (int i = redirections->size()-1; i >= 0; --i) {
         if (redirections->at(i) == device) {
+            const int internalWidgetRedirectionIndex = redirections->at(i).internalWidgetRedirectionIndex;
             redirections->removeAt(i);
+            // Restore the internal widget redirection, i.e. remove it from the global
+            // redirection list and put it back into QWidgetPrivate. The index is only set when
+            // someone call QPainter::setRedirected in a widget's paint event and we internally
+            // have a redirection set (typically set in QWidgetPrivate::drawWidget).
+            if (internalWidgetRedirectionIndex >= 0) {
+                Q_ASSERT(internalWidgetRedirectionIndex < redirections->size());
+                const QPaintDeviceRedirection &redirectionDevice = redirections->at(internalWidgetRedirectionIndex);
+                QWidget *widget = static_cast<QWidget *>(const_cast<QPaintDevice *>(device));
+                widget->d_func()->setRedirected(redirectionDevice.replacement, redirectionDevice.offset);
+                redirections->removeAt(internalWidgetRedirectionIndex);
+            }
             return;
         }
     }
 }
 
 /*!
+    \threadsafe
+
     Returns the replacement for given \a device. The optional out
     parameter \a offset returns the offset within the replaced device.
 
@@ -5969,6 +6468,13 @@ void QPainter::restoreRedirected(const QPaintDevice *device)
 QPaintDevice *QPainter::redirected(const QPaintDevice *device, QPoint *offset)
 {
     Q_ASSERT(device != 0);
+
+    if (device->devType() == QInternal::Widget) {
+        const QWidgetPrivate *widgetPrivate = static_cast<const QWidget *>(device)->d_func();
+        if (widgetPrivate->redirectDev)
+            return widgetPrivate->redirected(offset);
+    }
+
     QMutexLocker locker(globalRedirectionsMutex());
     QPaintDeviceRedirectionList *redirections = globalRedirections();
     Q_ASSERT(redirections != 0);
@@ -6134,7 +6640,7 @@ void qt_format_text(const QFont &fnt, const QRectF &_r,
             lineWidth = qMax<qreal>(0, r.width());
         if(!wordwrap)
             tf |= Qt::TextIncludeTrailingSpaces;
-        textLayout.engine()->ignoreBidi = (tf & Qt::TextDontPrint);
+        textLayout.engine()->ignoreBidi = bool(tf & Qt::TextDontPrint);
         textLayout.beginLayout();
 
         qreal leading = fm.leading();
@@ -6227,10 +6733,10 @@ QPainterState::QPainterState(const QPainterState *s)
       clipRegion(s->clipRegion), clipPath(s->clipPath),
       clipOperation(s->clipOperation),
       renderHints(s->renderHints), clipInfo(s->clipInfo),
-      worldMatrix(s->worldMatrix), matrix(s->matrix), txop(s->txop),
+      worldMatrix(s->worldMatrix), matrix(s->matrix), redirection_offset(s->redirection_offset), txop(s->txop),
       wx(s->wx), wy(s->wy), ww(s->ww), wh(s->wh),
       vx(s->vx), vy(s->vy), vw(s->vw), vh(s->vh),
-      opacity(s->opacity), WxF(s->WxF), VxF(s->VxF),
+      opacity(s->opacity), localOpacity(s->localOpacity), WxF(s->WxF), VxF(s->VxF),
       clipEnabled(s->clipEnabled), bgMode(s->bgMode), painter(s->painter),
       layoutDirection(s->layoutDirection),
       composition_mode(s->composition_mode),
@@ -6243,7 +6749,7 @@ QPainterState::QPainterState()
     : bgOrigin(0, 0), bgBrush(Qt::white), clipOperation(Qt::NoClip),
       renderHints(0),
       txop(0), wx(0), wy(0), ww(0), wh(0), vx(0), vy(0), vw(0), vh(0),
-      opacity(1), WxF(false), VxF(false), clipEnabled(true),
+      opacity(1), localOpacity(1.0), WxF(false), VxF(false), clipEnabled(true),
       bgMode(Qt::TransparentMode), painter(0),
       layoutDirection(QApplication::layoutDirection()),
       composition_mode(QPainter::CompositionMode_SourceOver),
@@ -6283,6 +6789,7 @@ void QPainterState::init(QPainter *p) {
     changeFlags = 0;
     renderHints = 0;
     opacity = 1;
+    localOpacity = 1.0;
 }
 
 #ifdef QT3_SUPPORT
@@ -6433,6 +6940,8 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
     Draws the rectangular portion \a source of the given \a image
     into the \a target rectangle in the paint device.
 
+    \note The image is scaled to fit the rectangle, if both the image and rectangle size disagree.
+
     If the image needs to be modified to fit in a lower-resolution
     result (e.g. converting from 32-bit to 8-bit), use the \a flags to
     specify how you would prefer this to happen.
@@ -6440,14 +6949,7 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
     \table 100%
     \row
     \o
-    \code
-    QRectF target(10.0, 20.0, 80.0, 60.0);
-    QRectF source(0.0, 0.0, 70.0, 40.0);
-    QImage image(":/images/myImage.png");
-
-    QPainter(this);
-    painter.drawImage(target, image, source);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainter.cpp 20
     \endtable
 
     \sa drawPixmap()
@@ -6460,6 +6962,8 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
 
     Draws the rectangular portion \a source of the given \a image
     into the \a target rectangle in the paint device.
+
+    \note The image is scaled to fit the rectangle, if both the image and rectangle size disagree.
 */
 
 /*!
@@ -6503,6 +7007,8 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
     \overload
 
     Draws the given \a image into the given \a rectangle.
+
+    \note The image is scaled to fit the rectangle, if both the image and rectangle size disagree.
 */
 
 /*!
@@ -6511,6 +7017,8 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
     \overload
 
     Draws the given \a image into the given \a rectangle.
+
+   \note The image is scaled to fit the rectangle, if both the image and rectangle size disagree.
 */
 
 /*!
@@ -6619,6 +7127,7 @@ void bitBlt(QPaintDevice *dst, int dx, int dy,
 
     \brief The QPaintEngineState class provides information about the
     active paint engine's current state.
+    \reentrant
 
     QPaintEngineState records which properties that have changed since
     the last time the paint engine was updated, as well as their
@@ -6820,7 +7329,6 @@ Qt::ClipOperation QPaintEngineState::clipOperation() const
     return static_cast<const QPainterState *>(this)->clipOperation;
 }
 
-
 /*!
     \since 4.3
 
@@ -6831,10 +7339,7 @@ Qt::ClipOperation QPaintEngineState::clipOperation() const
 bool QPaintEngineState::brushNeedsResolving() const
 {
     const QBrush &brush = static_cast<const QPainterState *>(this)->brush;
-    Qt::BrushStyle s = brush.style();
-    return ((s == Qt::LinearGradientPattern || s == Qt::RadialGradientPattern ||
-             s == Qt::ConicalGradientPattern) &&
-            brush.gradient()->coordinateMode() == QGradient::ObjectBoundingMode);
+    return needsResolving(brush);
 }
 
 
@@ -6848,10 +7353,7 @@ bool QPaintEngineState::brushNeedsResolving() const
 bool QPaintEngineState::penNeedsResolving() const
 {
     const QPen &pen = static_cast<const QPainterState *>(this)->pen;
-    Qt::BrushStyle s = pen.brush().style();
-    return ((s == Qt::LinearGradientPattern || s == Qt::RadialGradientPattern ||
-             s == Qt::ConicalGradientPattern) &&
-            pen.brush().gradient()->coordinateMode() == QGradient::ObjectBoundingMode);
+    return needsResolving(pen.brush());
 }
 
 /*!
@@ -7049,6 +7551,9 @@ void QPainter::setWorldTransform(const QTransform &matrix, bool combine )
         return;
     }
 
+    if (d->refcount > 2)
+        combine = true;
+
     if (combine)
         d->state->worldMatrix = matrix * d->state->worldMatrix;                        // combines
     else
@@ -7083,3 +7588,5 @@ QTransform QPainter::combinedTransform() const
     Q_D(const QPainter);
     return d->state->worldMatrix * d->viewTransform();
 }
+
+QT_END_NAMESPACE

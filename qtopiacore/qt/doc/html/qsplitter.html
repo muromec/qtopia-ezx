@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qsplitter.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qsplitter.cpp -->
 <head>
-  <title>Qt 4.3: QSplitter Class Reference</title>
+  <title>Qt 4.4: QSplitter Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QSplitter Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QSplitter Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QSplitter class implements a splitter widget. <a href="#details">More...</a></p>
 <pre> #include &lt;QSplitter&gt;</pre><p>Inherits <a href="qframe.html">QFrame</a>.</p>
@@ -31,7 +31,7 @@
 </ul>
 <ul>
 <li><div class="fn"/>6 properties inherited from <a href="qframe.html#properties">QFrame</a></li>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -66,9 +66,9 @@
 </ul>
 <ul>
 <li><div class="fn"/>13 public functions inherited from <a href="qframe.html#public-functions">QFrame</a></li>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="signals"></a>
 <h3>Signals</h3>
@@ -117,7 +117,7 @@
 <p>A default QSplitter lays out its children horizontally (side by side); you can use setOrientation(<a href="qt.html#Orientation-enum">Qt::Vertical</a>) to lay its children out vertically.</p>
 <p>By default, all widgets can be as large or as small as the user wishes, between the <a href="qwidget.html#minimumSizeHint-prop">minimumSizeHint</a>() (or <a href="qwidget.html#minimumSize-prop">minimumSize</a>()) and <a href="qwidget.html#maximumSize-prop">maximumSize</a>() of the widgets.</p>
 <p>QSplitter resizes its children dynamically by default. If you would rather have QSplitter resize the children only at the end of a resize operation, call setOpaqueResize(false).</p>
-<p>The initial distribution of size between the widgets is determined by the initial size of each widget. You can also use <a href="qsplitter.html#setSizes">setSizes</a>() to set the sizes of all the widgets. The function <a href="qsplitter.html#sizes">sizes</a>() returns the sizes set by the user. Alternatively, you can save and restore the sizes of the widgets from a <a href="qbytearray.html">QByteArray</a> using <a href="qsplitter.html#saveState">saveState</a>() and <a href="qsplitter.html#restoreState">restoreState</a>() respectively.</p>
+<p>The initial distribution of size between the widgets is determined by multiplying the initial size with the stretch factor. You can also use <a href="qsplitter.html#setSizes">setSizes</a>() to set the sizes of all the widgets. The function <a href="qsplitter.html#sizes">sizes</a>() returns the sizes set by the user. Alternatively, you can save and restore the sizes of the widgets from a <a href="qbytearray.html">QByteArray</a> using <a href="qsplitter.html#saveState">saveState</a>() and <a href="qsplitter.html#restoreState">restoreState</a>() respectively.</p>
 <p>When you <a href="qwidget.html#hide">hide</a>() a child its space will be distributed among the other children. It will be reinstated when you <a href="qwidget.html#show">show</a>() it again.</p>
 <p>See also <a href="qsplitterhandle.html">QSplitterHandle</a>, <a href="qhboxlayout.html">QHBoxLayout</a>, <a href="qvboxlayout.html">QVBoxLayout</a>, and <a href="qtabwidget.html">QTabWidget</a>.</p>
 <hr />
@@ -133,6 +133,7 @@
 <p>See also <a href="qsplitter.html#setCollapsible">setCollapsible</a>().</p>
 <h3 class="fn"><a name="handleWidth-prop"></a>handleWidth : int</h3>
 <p>This property holds the width of the splitter handles.</p>
+<p>By default, this property contains a value that depends on the user's platform and style preferences.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>int handleWidth () const</b></li>
@@ -223,12 +224,13 @@
 <h3 class="fn"><a name="setRubberBand"></a>void QSplitter::setRubberBand ( int <i>pos</i> )&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Displays a rubber band at position <i>pos</i>. If <i>pos</i> is negative, the rubber band is removed.</p>
 <h3 class="fn"><a name="setSizes"></a>void QSplitter::setSizes ( const <a href="qlist.html">QList</a>&lt;int&gt; &amp; <i>list</i> )</h3>
-<p>Sets the size parameters to the values given in the <i>list</i>. If the splitter is horizontal, the values set the widths of each widget going from left to right. If the splitter is vertical, the values set the heights of each widget going from top to bottom. Extra values in the <i>list</i> are ignored.</p>
-<p>If <i>list</i> contains too few values, the result is undefined but the program will still be well-behaved.</p>
-<p>The values in <i>list</i> should be the height or width (depending on <a href="qsplitter.html#orientation-prop">orientation</a>()) that the widgets should be resized to. If you specify a size of 0, the widget will be invisible.</p>
+<p>Sets the size parameters to the values given in the <i>list</i>. The available space is divided according to the weights specified in the list.</p>
+<p>If the splitter is horizontal, the values set the widths of each widget, from left to right based on the given weight. If the splitter is vertical, the heights of each widget is set, from top to bottom. Extra values in the <i>list</i> are ignored.</p>
+<p>If <i>list</i> contains too few values, the result is undefined but the program will still be well-behaved. If you specify a size of 0, the widget will be invisible.</p>
 <p>See also <a href="qsplitter.html#sizes">sizes</a>().</p>
 <h3 class="fn"><a name="setStretchFactor"></a>void QSplitter::setStretchFactor ( int <i>index</i>, int <i>stretch</i> )</h3>
 <p>Updates the size policy of the widget at position <i>index</i> to have a stretch factor of <i>stretch</i>.</p>
+<p><i>stretch</i> is not the effective stretch factor; the effective stretch factor is calculated by taking the initial size of the widget and multiplying it with <i>stretch</i>.</p>
 <p>This function is provided for convenience. It is equivalent to</p>
 <pre> QWidget *widget = splitter-&gt;widget(index);
  QSizePolicy policy = widget-&gt;sizePolicy();
@@ -255,8 +257,8 @@
 <p>See also <a href="qsplitter.html#count">count</a>(), <a href="qsplitter.html#handle">handle</a>(), <a href="qsplitter.html#indexOf">indexOf</a>(), and <a href="qsplitter.html#insertWidget">insertWidget</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

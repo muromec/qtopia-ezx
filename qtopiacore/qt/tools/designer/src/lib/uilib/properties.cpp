@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,7 @@
 #include "ui4_p.h"
 #include "abstractformbuilder.h"
 #include "formbuilderextra_p.h"
+#include "resourcebuilder_p.h"
 
 #include <QtCore/QDateTime>
 #include <QtCore/QUrl>
@@ -56,18 +51,21 @@
 #include <QtGui/QFrame>
 #include <QtGui/QAbstractScrollArea>
 
-#include <private/qfont_p.h>
-
-static bool toBool(const QString &str)
-{
-    return str.toLower() == QLatin1String("true");
-}
+QT_BEGIN_NAMESPACE
 
 #ifdef QFORMINTERNAL_NAMESPACE
 namespace QFormInternal
 {
 #endif
 
+static inline void fixEnum(QString &s)
+{
+    int qualifierIndex = s.lastIndexOf(QLatin1Char(':'));
+    if (qualifierIndex == -1)
+        qualifierIndex = s.lastIndexOf(QLatin1Char('.'));
+    if (qualifierIndex != -1)
+        s.remove(0, qualifierIndex + 1);
+}
 // Convert complex DOM types with the help of  QAbstractFormBuilder
 QVariant domPropertyToVariant(QAbstractFormBuilder *afb,const QMetaObject *meta,const  DomProperty *p)
 {
@@ -79,16 +77,6 @@ QVariant domPropertyToVariant(QAbstractFormBuilder *afb,const QMetaObject *meta,
             return qVariantFromValue(QKeySequence(p->elementString()->text()));
     }
         break;
-
-    case DomProperty::Pixmap: {
-        const DomResourcePixmap * dpx = afb->domPixmap(p);
-        return qVariantFromValue(dpx ? afb->domPropertyToPixmap(p) : QPixmap());
-    }
-
-    case DomProperty::IconSet: {
-        const DomResourcePixmap * dpx = afb->domPixmap(p);
-        return qVariantFromValue(dpx ? afb->domPropertyToIcon(p) : QIcon());
-    }
 
     case DomProperty::Palette: {
         const DomPalette *dom = p->elementPalette();
@@ -123,11 +111,16 @@ QVariant domPropertyToVariant(QAbstractFormBuilder *afb,const QMetaObject *meta,
     case DomProperty::Enum: {
         const QByteArray pname = p->attributeName().toUtf8();
         const int index = meta->indexOfProperty(pname);
+        QString enumValue = p->elementEnum();
+        // Triggers in case of objects in Designer like Spacer/Line for which properties
+        // are serialized using language introspection. On preview, however, these objects are
+        // emulated by hacks in the formbuilder (size policy/orientation)
+        fixEnum(enumValue);
         if (index == -1) {
-            // ### special-casing for Line (QFrame) -- fix for 4.2
+            // ### special-casing for Line (QFrame) -- fix for 4.2. Jambi hack for enumerations
             if (!qstrcmp(meta->className(), "QFrame")
                 && (pname == QByteArray("orientation"))) {
-                return QVariant((p->elementEnum() == QLatin1String("Qt::Horizontal")) ? QFrame::HLine : QFrame::VLine);
+                return QVariant(enumValue == QFormBuilderStrings::instance().horizontalPostFix ? QFrame::HLine : QFrame::VLine);
             } else {
                 uiLibWarning(QObject::tr("The enumeration-type property %1 could not be read.").arg(p->attributeName()));
                 return QVariant();
@@ -135,9 +128,15 @@ QVariant domPropertyToVariant(QAbstractFormBuilder *afb,const QMetaObject *meta,
         }
 
         const QMetaEnum e = meta->property(index).enumerator();
-        return QVariant(e.keyToValue(p->elementEnum().toUtf8()));
+        return QVariant(e.keyToValue(enumValue.toUtf8()));
     }
+    case DomProperty::Brush:
+        return qVariantFromValue(afb->setupBrush(p->elementBrush()));
     default:
+        if (afb->resourceBuilder()->isResourceProperty(p)) {
+            return afb->resourceBuilder()->loadResource(afb->workingDirectory(), p);
+            }
+
         break;
     }
 
@@ -151,10 +150,10 @@ QVariant domPropertyToVariant(const DomProperty *p)
     // requires non-const virtual nameToIcon, etc.
     switch(p->kind()) {
     case DomProperty::Bool:
-        return QVariant(toBool(p->elementBool()));
+        return QVariant(p->elementBool() == QFormBuilderStrings::instance().trueValue);
 
     case DomProperty::Cstring:
-        return QVariant(p->elementCstring());
+        return QVariant(p->elementCstring().toUtf8());
 
     case DomProperty::Point: {
         const DomPoint *point = p->elementPoint();
@@ -214,7 +213,9 @@ QVariant domPropertyToVariant(const DomProperty *p)
 
     case DomProperty::Color: {
         const DomColor *color = p->elementColor();
-        const QColor c(color->elementRed(), color->elementGreen(), color->elementBlue());
+        QColor c(color->elementRed(), color->elementGreen(), color->elementBlue());
+        if (color->hasAttributeAlpha())
+            c.setAlpha(color->attributeAlpha());
         return qVariantFromValue(c);
     }
 
@@ -268,11 +269,13 @@ QVariant domPropertyToVariant(const DomProperty *p)
         return QVariant(QUrl(url->elementString()->text()));
     }
 
+#ifndef QT_NO_CURSOR
     case DomProperty::Cursor:
         return qVariantFromValue(QCursor(static_cast<Qt::CursorShape>(p->elementCursor())));
 
     case DomProperty::CursorShape:
         return qVariantFromValue(QCursor(enumKeyOfObjectToValue<QAbstractFormBuilderGadget, Qt::CursorShape>("cursorShape", p->elementCursorShape().toLatin1())));
+#endif
 
     case DomProperty::Locale: {
         const DomLocale *locale = p->elementLocale();
@@ -354,7 +357,7 @@ static bool applySimpleProperty(const QVariant &v, bool translateString, DomProp
         return true;
 
     case QVariant::Bool:
-        dom_prop->setElementBool(v.toBool() ? QLatin1String("true") : QLatin1String("false"));
+        dom_prop->setElementBool(v.toBool() ? QFormBuilderStrings::instance().trueValue : QFormBuilderStrings::instance().falseValue);
         return true;
 
     case QVariant::Char: {
@@ -389,6 +392,9 @@ static bool applySimpleProperty(const QVariant &v, bool translateString, DomProp
         clr->setElementRed(color.red());
         clr->setElementGreen(color.green());
         clr->setElementBlue(color.blue());
+        const int alphaChannel = color.alpha();
+        if (alphaChannel != 255)
+            clr->setAttributeAlpha(alphaChannel);
         dom_prop->setElementColor(clr);
     }
         return true;
@@ -437,23 +443,23 @@ static bool applySimpleProperty(const QVariant &v, bool translateString, DomProp
         DomFont *fnt = new DomFont();
         const QFont font = qvariant_cast<QFont>(v);
         const uint mask = font.resolve();
-        if (mask & QFontPrivate::Weight) {
+        if (mask & QFont::WeightResolved) {
             fnt->setElementBold(font.bold());
             fnt->setElementWeight(font.weight());
         }
-        if (mask & QFontPrivate::Family)
+        if (mask & QFont::FamilyResolved)
             fnt->setElementFamily(font.family());
-        if (mask & QFontPrivate::Style)
+        if (mask & QFont::StyleResolved)
             fnt->setElementItalic(font.italic());
-        if (mask & QFontPrivate::Size)
+        if (mask & QFont::SizeResolved)
             fnt->setElementPointSize(font.pointSize());
-        if (mask & QFontPrivate::StrikeOut)
+        if (mask & QFont::StrikeOutResolved)
             fnt->setElementStrikeOut(font.strikeOut());
-        if (mask & QFontPrivate::Underline)
+        if (mask & QFont::UnderlineResolved)
             fnt->setElementUnderline(font.underline());
-        if (mask & QFontPrivate::Kerning)
+        if (mask & QFont::KerningResolved)
             fnt->setElementKerning(font.kerning());
-        if (mask & QFontPrivate::StyleStrategy) {
+        if (mask & QFont::StyleStrategyResolved) {
             const QMetaEnum styleStrategy_enum = metaEnum<QAbstractFormBuilderGadget>("styleStrategy");
             fnt->setElementStyleStrategy(QLatin1String(styleStrategy_enum.valueToKey(font.styleStrategy())));
         }
@@ -461,11 +467,13 @@ static bool applySimpleProperty(const QVariant &v, bool translateString, DomProp
     }
         return true;
 
+#ifndef QT_NO_CURSOR
     case QVariant::Cursor: {
         const QMetaEnum cursorShape_enum = metaEnum<QAbstractFormBuilderGadget>("cursorShape");
         dom_prop->setElementCursorShape(QLatin1String(cursorShape_enum.valueToKey(qvariant_cast<QCursor>(v).shape())));
         }
         return true;
+#endif
 
     case QVariant::KeySequence: {
         DomString *s = new DomString();
@@ -571,20 +579,18 @@ static bool applySimpleProperty(const QVariant &v, bool translateString, DomProp
 static QString msgCannotWriteProperty(const QString &pname, const QVariant &v)
 {
     return QObject::tr("The property %1 could not be written. The type %2 is not supported yet.").
-                       arg(pname).arg(QVariant::typeToName (v.type()));
+                       arg(pname).arg(v.typeName());
 
 }
-// Convert simple variant types to DOM properties
-DomProperty *variantToDomProperty(const QString &pname, const QVariant &v, bool translateString)
-{
-    DomProperty *dom_prop = new DomProperty();
-    dom_prop->setAttributeName(pname);
-    if (applySimpleProperty(v, translateString, dom_prop))
-        return dom_prop;
 
-    delete dom_prop;
-    uiLibWarning(msgCannotWriteProperty(pname, v));
-    return 0;
+static bool isTranslatable(const QString &pname, const QVariant &v, QObject *o)
+{
+    const QFormBuilderStrings &strings = QFormBuilderStrings::instance();
+    if (pname == strings.objectNameProperty)
+        return false;
+    if (pname == strings.styleSheetProperty && v.type() == QVariant::String && qobject_cast<QWidget *>(o))
+        return false;
+    return true;
 }
 
 // Convert complex variant types to DOM properties with the help of  QAbstractFormBuilder
@@ -592,6 +598,8 @@ DomProperty *variantToDomProperty(const QString &pname, const QVariant &v, bool 
 DomProperty *variantToDomProperty(QAbstractFormBuilder *afb, QObject *obj,
                                   const QString &pname, const QVariant &v)
 {
+    const QFormBuilderStrings &strings = QFormBuilderStrings::instance();
+
     DomProperty *dom_prop = new DomProperty();
     dom_prop->setAttributeName(pname);
 
@@ -599,13 +607,12 @@ DomProperty *variantToDomProperty(QAbstractFormBuilder *afb, QObject *obj,
     const int pindex = meta->indexOfProperty(pname.toLatin1());
     if (pindex != -1) {
         QMetaProperty meta_property = meta->property(pindex);
-        if (!meta_property.hasStdCppSet() || (qobject_cast<QAbstractScrollArea *>(obj) && pname == QLatin1String("cursor")))
+        if (!meta_property.hasStdCppSet() || (qobject_cast<QAbstractScrollArea *>(obj) && pname == strings.cursorProperty))
             dom_prop->setAttributeStdset(0);
     }
 
     // Try simple properties
-    const bool translateString = pname != QLatin1String("objectName");
-    if (applySimpleProperty(v, translateString, dom_prop))
+    if (applySimpleProperty(v, isTranslatable(pname, v, obj), dom_prop))
         return dom_prop;
 
     // Complex properties
@@ -625,19 +632,17 @@ DomProperty *variantToDomProperty(QAbstractFormBuilder *afb, QObject *obj,
 
         dom_prop->setElementPalette(dom);
     } break;
-
-    case QVariant::Pixmap:
-        afb->setPixmapProperty(*dom_prop, afb->pixmapPaths(qvariant_cast<QPixmap>(v)));
-        dom_prop->setAttributeName(pname);
+    case QVariant::Brush:
+        dom_prop->setElementBrush(afb->saveBrush(qvariant_cast<QBrush>(v)));
         break;
-
-    case QVariant::Icon:
-        afb->setIconProperty(*dom_prop, afb->iconPaths(qvariant_cast<QIcon>(v)));
-        dom_prop->setAttributeName(pname);
-        break;
-
     default:
         delete dom_prop;
+        if (afb->resourceBuilder()->isResourceType(v)) {
+            dom_prop = afb->resourceBuilder()->saveResource(afb->workingDirectory(), v);
+            if (dom_prop)
+                dom_prop->setAttributeName(pname);
+            break;
+        }
         uiLibWarning(msgCannotWriteProperty(pname, v));
         return 0;
     }
@@ -647,3 +652,5 @@ DomProperty *variantToDomProperty(QAbstractFormBuilder *afb, QObject *obj,
 #ifdef QFORMINTERNAL_NAMESPACE
 }
 #endif
+
+QT_END_NAMESPACE

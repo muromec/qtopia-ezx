@@ -1,84 +1,93 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #ifndef TRANSLATOR_H
 #define TRANSLATOR_H
 
-#include <QObject>
 #include <QByteArray>
-#include <QStringList>
+#include <QDir>
+#include <QList>
 #include <QLocale>
+#include <QMap>
+#include <QObject>
+#include <QString>
+#include <QStringList>
 #include <QTranslator>
 
 #include <private/qtranslator_p.h>
 
+QT_BEGIN_NAMESPACE
+
 class QIODevice;
+class QTextCodec;
 class TranslatorPrivate;
 template <typename T> class QList;
 
 class TranslatorMessage
 {
 public:
-    TranslatorMessage();
-    TranslatorMessage(const char * context, const char * sourceText,
-                       const char * comment,
-                       const QString &fileName,
-                       int lineNumber,                       
-                       const QStringList& translations = QStringList());
-    TranslatorMessage(const TranslatorMessage & m);
+    enum Type { Unfinished, Finished, Obsolete };
 
-    TranslatorMessage & operator=(const TranslatorMessage & m);
+    TranslatorMessage();
+    TranslatorMessage(const QByteArray &context, const QByteArray &sourceText,
+        const QByteArray &comment, const QByteArray &userData,
+        const QString &fileName, int lineNumber,
+        const QStringList& translations = QStringList(),
+        bool utf8 = false, Type type = Unfinished, bool plural = false);
 
     uint hash() const { return m_hash; }
-    const char *context() const { return m_context.isNull() ? 0 : m_context.constData(); }
-    const char *sourceText() const { return m_sourcetext.isNull() ? 0 : m_sourcetext.constData(); }
-    const char *comment() const { return m_comment.isNull() ? 0 : m_comment.constData(); }
+    QByteArray context() const { return m_context; }
+    QByteArray sourceText() const { return m_sourcetext; }
+    QByteArray comment() const { return m_comment; }
 
-    inline void setTranslations(const QStringList &translations);
-    QStringList translations() const { return m_translations; }
-    void setTranslation(const QString &translation) { m_translations = QStringList(translation); }
+    void setTranslations(const QStringList &translations)
+        { m_translations = translations; }
+    QStringList translations() const
+        { return m_translations; }
+    void setTranslation(const QString &translation)
+        { m_translations = QStringList(translation); }
     QString translation() const { return m_translations.value(0); }
-    bool isTranslated() const { return m_translations.count() > 1 || !m_translations.value(0).isEmpty(); }
+    bool isTranslated() const
+    {
+        foreach (const QString &trans, m_translations)
+            if (!trans.isEmpty())
+                return true;
+        return false;
+    }
 
     enum Prefix { NoPrefix, Hash, HashContext, HashContextSourceText,
                   HashContextSourceTextComment };
@@ -87,27 +96,29 @@ public:
     Prefix commonPrefix(const TranslatorMessage&) const;
 
     bool operator==(const TranslatorMessage& m) const;
-    bool operator!=(const TranslatorMessage& m) const
-    { return !operator==(m); }
     bool operator<(const TranslatorMessage& m) const;
-    bool operator<=(const TranslatorMessage& m) const
-    { return !m.operator<(*this); }
-    bool operator>(const TranslatorMessage& m) const
-    { return m.operator<(*this); }
-    bool operator>=(const TranslatorMessage& m) const
-    { return !operator<(m); }
 
-    QString fileName(void) const { return m_fileName; }
+    QString fileName() const { return m_fileName; }
     void setFileName(const QString &fileName) { m_fileName = fileName; }
-    int lineNumber(void) const { return m_lineNumber; }
+    int lineNumber() const { return m_lineNumber; }
     void setLineNumber(int lineNumber) { m_lineNumber = lineNumber; }
+    QByteArray userData() const { return m_userData; }
+    void setUserData(const QByteArray &userData) { m_userData = userData; }
+
     bool isNull() const { return m_sourcetext.isNull() && m_lineNumber == -1 && m_translations.isEmpty(); }
+
+    void setType( Type nt ) { ty = nt; }
+    Type type() const { return ty; }
+    bool utf8() const { return utfeight; }
+    bool isPlural() const { return m_plural; }
+    void setPlural(bool isplural) { m_plural = isplural; }
 
 private:
     uint        m_hash;
     QByteArray  m_context;
     QByteArray  m_sourcetext;
     QByteArray  m_comment;
+    QByteArray  m_userData;
     QStringList m_translations;
     QString     m_fileName;
     int         m_lineNumber;
@@ -115,11 +126,14 @@ private:
     enum Tag { Tag_End = 1, Tag_SourceText16, Tag_Translation, Tag_Context16,
                Tag_Obsolete1, Tag_SourceText, Tag_Context, Tag_Comment,
                Tag_Obsolete2 };
-};
-Q_DECLARE_TYPEINFO(TranslatorMessage, Q_MOVABLE_TYPE);
 
-inline void TranslatorMessage::setTranslations(const QStringList &translations)
-{ m_translations = translations; }
+    bool utfeight;
+    Type ty;
+    bool m_plural;
+};
+
+
+Q_DECLARE_TYPEINFO(TranslatorMessage, Q_MOVABLE_TYPE);
 
 class Translator : public QObject
 {
@@ -127,11 +141,11 @@ class Translator : public QObject
 
 public:
     explicit Translator(QObject *parent = 0);
-    ~Translator();
+    virtual ~Translator();
 
-    virtual TranslatorMessage findMessage(const char *context, const char *sourceText,
-                                          const char *comment, 
-                                          const QString &fileName = QLatin1String(""), int lineNumber = -1) const;
+    virtual TranslatorMessage findMessage(const QByteArray &context,
+        const QByteArray &sourceText, const QByteArray &comment,
+        const QString &fileName = QString(), int lineNumber = -1) const;
 
     void clear();
 
@@ -140,17 +154,16 @@ public:
     bool save(const QString & filename, SaveMode mode = Everything);
     bool save(QIODevice *iod, SaveMode mode = Everything);
 
-    void insert(const TranslatorMessage&);
-    inline void insert(const char *context, const char *sourceText, const QString &fileName, int lineNo, const QStringList &translations) {
-        insert(TranslatorMessage(context, sourceText, "", fileName, lineNo, translations ));
+    void insert(const TranslatorMessage &);
+    void remove(const TranslatorMessage &);
+    void remove(const QByteArray &context, const QByteArray &sourceText) {
+        remove(TranslatorMessage(context, sourceText, "", "", QString(), -1));
     }
-    void remove(const TranslatorMessage&);
-    inline void remove(const char *context, const char *sourceText) {
-        remove(TranslatorMessage(context, sourceText, "", QLatin1String(""), -1));
-    }
-    bool contains(const char *context, const char *sourceText, const char * comment = 0) const;
+    bool contains(const QByteArray &context, const QByteArray &sourceText,
+        const QByteArray & comment = QByteArray()) const;
 
-    bool contains(const char *context, const char *comment, const QString &fileName, int lineNumber) const;
+    bool contains(const QByteArray &context, const QByteArray &comment,
+        const QString &fileName, int lineNumber) const;
 
     void squeeze(SaveMode = Everything);
     void unsqueeze();
@@ -452,5 +465,7 @@ static const int NumerusTableSize = sizeof(numerusTable) / sizeof(numerusTable[0
 
 bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
                            QByteArray *rules, QStringList *forms);
+
+QT_END_NAMESPACE
 
 #endif // TRANSLATOR_H

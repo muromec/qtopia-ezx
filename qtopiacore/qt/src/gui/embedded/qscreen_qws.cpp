@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,12 +40,16 @@
 #include "qwidget.h"
 #include "qcolor.h"
 #include "qpixmap.h"
+#include "qvarlengtharray.h"
 #include "qwsdisplay_qws.h"
 #include <private/qdrawhelper_p.h>
 #include <private/qpaintengine_raster_p.h>
-#include <private/qpainter_p.h>
+#include <private/qpixmap_raster_p.h>
 #include <private/qwindowsurface_qws_p.h>
+#include <private/qpainter_p.h>
 #include <private/qwidget_p.h>
+
+QT_BEGIN_NAMESPACE
 
 // #define QT_USE_MEMCPY_DUFF
 
@@ -72,10 +67,10 @@ ClearCacheFunc QScreen::clearCacheFunc = 0;
     \ingroup qws
 
     \brief The QScreenCursor class is a base class for screen cursors
-    in Qtopia Core.
+    in Qt for Embedded Linux.
 
     Note that this class is non-portable, and that it is only
-    available in \l {Qtopia Core}.
+    available in \l{Qt for Embedded Linux}.
 
     QScreenCursor implements a software cursor, but can be subclassed
     to support hardware cursors as well. When deriving from the
@@ -326,11 +321,13 @@ void QScreenCursor::initSoftwareCursor()
 
 
 
-class QScreenPrivate
+class QScreenPrivate : public QPixmapDataFactory
 {
 public:
-    QScreenPrivate(QScreen *parent);
+    QScreenPrivate(QScreen *parent, QScreen::ClassId id = QScreen::CustomClass);
+    ~QScreenPrivate();
 
+    QPixmapData* create(QPixmapData::PixelType type);
     inline QImage::Format preferredImageFormat() const;
 
     typedef void (*SolidFillFunc)(QScreen*, const QColor&, const QRegion&);
@@ -341,12 +338,22 @@ public:
 
     QPoint offset;
     QList<QScreen*> subScreens;
+    QPixmapDataFactory* pixmapFactory;
     QImage::Format pixelFormat;
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
     bool fb_is_littleEndian;
 #endif
+#ifdef QT_QWS_CLIENTBLIT
+    bool supportsBlitInClients;
+#endif
+    int classId;
     QScreen *q_ptr;
 };
+
+QPixmapData* QScreenPrivate::create(QPixmapData::PixelType type)
+{
+    return new QRasterPixmapData(type);
+}
 
 template <typename T>
 static void solidFill_template(QScreen *screen, const QColor &color,
@@ -494,12 +501,18 @@ void qt_solidFill_setup(QScreen *screen, const QColor &color,
     switch (screen->depth()) {
 #ifdef QT_QWS_DEPTH_32
     case 32:
-        screen->d_ptr->solidFill = solidFill_template<quint32>;
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->solidFill = solidFill_template<quint32>;
+        else
+            screen->d_ptr->solidFill = solidFill_template<qabgr8888>;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_24
     case 24:
-        screen->d_ptr->solidFill = solidFill_template<quint24>;
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->solidFill = solidFill_template<qrgb888>;
+        else
+            screen->d_ptr->solidFill = solidFill_template<quint24>;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_18
@@ -509,7 +522,23 @@ void qt_solidFill_setup(QScreen *screen, const QColor &color,
 #endif
 #ifdef QT_QWS_DEPTH_16
     case 16:
-        screen->d_ptr->solidFill = solidFill_template<quint16>;
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->solidFill = solidFill_template<quint16>;
+        else
+            screen->d_ptr->solidFill = solidFill_template<qbgr565>;
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_15
+    case 15:
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->solidFill = solidFill_template<qrgb555>;
+        else
+            screen->d_ptr->solidFill = solidFill_template<qbgr555>;
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_12
+    case 12:
+        screen->d_ptr->solidFill = solidFill_template<qrgb444>;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_8
@@ -541,18 +570,29 @@ static void blit_template(QScreen *screen, const QImage &image,
                           const QPoint &topLeft, const QRegion &region)
 {
     DST *dest = reinterpret_cast<DST*>(screen->base());
-    const SRC *src = reinterpret_cast<const SRC*>(image.bits());
     const int screenStride = screen->linestep();
     const int imageStride = image.bytesPerLine();
-    const QVector<QRect> rects = region.rects();
 
-    for (int i = 0; i < rects.size(); ++i) {
-        const QRect r = rects.at(i);
-        qt_rectconvert<DST, SRC>(dest,
-                                 src + r.y() * imageStride / sizeof(SRC) + r.x(),
+    if (region.numRects() == 1) {
+        const QRect r = region.boundingRect();
+        const SRC *src = reinterpret_cast<const SRC*>(image.scanLine(r.y()))
+                         + r.x();
+        qt_rectconvert<DST, SRC>(dest, src,
                                  r.x() + topLeft.x(), r.y() + topLeft.y(),
                                  r.width(), r.height(),
                                  screenStride, imageStride);
+    } else {
+        const QVector<QRect> rects = region.rects();
+
+        for (int i = 0; i < rects.size(); ++i) {
+            const QRect r = rects.at(i);
+            const SRC *src = reinterpret_cast<const SRC*>(image.scanLine(r.y()))
+                             + r.x();
+            qt_rectconvert<DST, SRC>(dest, src,
+                                     r.x() + topLeft.x(), r.y() + topLeft.y(),
+                                     r.width(), r.height(),
+                                     screenStride, imageStride);
+        }
     }
 }
 
@@ -572,10 +612,81 @@ static void blit_32(QScreen *screen, const QImage &image,
         return;
 #endif
     default:
-        qCritical("blit_16(): Image format %d not supported!", image.format());
+        qCritical("blit_32(): Image format %d not supported!", image.format());
     }
 }
 #endif // QT_QWS_DEPTH_32
+
+#ifdef QT_QWS_DEPTH_24
+static void blit_24(QScreen *screen, const QImage &image,
+                    const QPoint &topLeft, const QRegion &region)
+{
+    switch (image.format()) {
+    case QImage::Format_RGB32:
+    case QImage::Format_ARGB32:
+    case QImage::Format_ARGB32_Premultiplied:
+        blit_template<quint24, quint32>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB888:
+        blit_template<quint24, qrgb888>(screen, image, topLeft, region);
+        return;
+#ifdef QT_QWS_DEPTH_16
+    case QImage::Format_RGB16:
+        blit_template<quint24, quint16>(screen, image, topLeft, region);
+        return;
+#endif
+    default:
+        qCritical("blit_24(): Image format %d not supported!", image.format());
+    }
+}
+
+static void blit_qrgb888(QScreen *screen, const QImage &image,
+                         const QPoint &topLeft, const QRegion &region)
+{
+    switch (image.format()) {
+    case QImage::Format_RGB32:
+    case QImage::Format_ARGB32:
+    case QImage::Format_ARGB32_Premultiplied:
+        blit_template<qrgb888, quint32>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB888:
+        blit_template<qrgb888, qrgb888>(screen, image, topLeft, region);
+        return;
+#ifdef QT_QWS_DEPTH_16
+    case QImage::Format_RGB16:
+        blit_template<qrgb888, quint16>(screen, image, topLeft, region);
+        return;
+#endif
+    default:
+        qCritical("blit_24(): Image format %d not supported!", image.format());
+        break;
+    }
+}
+#endif // QT_QWS_DEPTH_24
+
+#ifdef QT_QWS_DEPTH_18
+static void blit_18(QScreen *screen, const QImage &image,
+                    const QPoint &topLeft, const QRegion &region)
+{
+    switch (image.format()) {
+    case QImage::Format_RGB32:
+    case QImage::Format_ARGB32:
+    case QImage::Format_ARGB32_Premultiplied:
+        blit_template<qrgb666, quint32>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB666:
+        blit_template<qrgb666, qrgb666>(screen, image, topLeft, region);
+        return;
+#ifdef QT_QWS_DEPTH_16
+    case QImage::Format_RGB16:
+        blit_template<qrgb666, quint16>(screen, image, topLeft, region);
+        return;
+#endif
+    default:
+        qCritical("blit_18(): Image format %d not supported!", image.format());
+    }
+}
+#endif // QT_QWS_DEPTH_18
 
 #ifdef QT_QWS_DEPTH_16
 static void blit_16(QScreen *screen, const QImage &image,
@@ -611,6 +722,11 @@ public:
         data = ((v & 0xff00) >> 8) | ((v & 0x00ff) << 8);
     }
 
+    inline bool operator==(const quint16LE &v) const
+    {
+        return data == v.data;
+    }
+
 private:
     quint16 data;
 };
@@ -636,6 +752,46 @@ static void blit_16_bigToLittleEndian(QScreen *screen, const QImage &image,
 #endif // Q_BIG_ENDIAN
 #endif // QT_QWS_DEPTH_16
 
+#ifdef QT_QWS_DEPTH_12
+static void blit_12(QScreen *screen, const QImage &image,
+                    const QPoint &topLeft, const QRegion &region)
+{
+    switch (image.format()) {
+    case QImage::Format_ARGB4444_Premultiplied:
+        blit_template<qrgb444, qargb4444>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB444:
+        blit_template<qrgb444, qrgb444>(screen, image, topLeft, region);
+        return;
+    default:
+        qCritical("blit_12(): Image format %d not supported!", image.format());
+    }
+}
+#endif // QT_QWS_DEPTH_12
+
+#ifdef QT_QWS_DEPTH_15
+static void blit_15(QScreen *screen, const QImage &image,
+                    const QPoint &topLeft, const QRegion &region)
+{
+    switch (image.format()) {
+    case QImage::Format_RGB32:
+    case QImage::Format_ARGB32:
+    case QImage::Format_ARGB32_Premultiplied:
+        blit_template<qrgb555, quint32>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB555:
+        blit_template<qrgb555, qrgb555>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB16:
+        blit_template<qrgb555, quint16>(screen, image, topLeft, region);
+        return;
+    default:
+        qCritical("blit_15(): Image format %d not supported!", image.format());
+    }
+}
+
+#endif // QT_QWS_DEPTH_15
+
 #ifdef QT_QWS_DEPTH_8
 static void blit_8(QScreen *screen, const QImage &image,
                    const QPoint &topLeft, const QRegion &region)
@@ -648,6 +804,12 @@ static void blit_8(QScreen *screen, const QImage &image,
         return;
     case QImage::Format_RGB16:
         blit_template<quint8, quint16>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_ARGB4444_Premultiplied:
+        blit_template<quint8, qargb4444>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB444:
+        blit_template<quint8, qrgb444>(screen, image, topLeft, region);
         return;
     default:
         qCritical("blit_8(): Image format %d not supported!", image.format());
@@ -663,18 +825,30 @@ template <typename SRC>
 static inline quint8 qt_convertToGray4(SRC color);
 
 template <>
-static inline quint8 qt_convertToGray4(quint32 color)
+inline quint8 qt_convertToGray4(quint32 color)
 {
     return qGray(color) >> 4;
 }
 
 template <>
-static inline quint8 qt_convertToGray4(quint16 color)
+inline quint8 qt_convertToGray4(quint16 color)
 {
     const int r = (color & 0xf800) >> 11;
     const int g = (color & 0x07e0) >> 6; // only keep 5 bit
     const int b = (color & 0x001f);
     return (r * 11 + g * 16 + b * 5) >> 6;
+}
+
+template <>
+inline quint8 qt_convertToGray4(qrgb444 color)
+{
+    return qt_convertToGray4(quint32(color));
+}
+
+template <>
+inline quint8 qt_convertToGray4(qargb4444 color)
+{
+    return qt_convertToGray4(quint32(color));
 }
 
 template <typename SRC>
@@ -744,6 +918,24 @@ void qt_rectconvert(qgray4 *dest, const quint16 *src,
                                   dstStride, srcStride);
 }
 
+template <>
+void qt_rectconvert(qgray4 *dest, const qrgb444 *src,
+                    int x, int y, int width, int height,
+                    int dstStride, int srcStride)
+{
+    qt_rectconvert_gray4<qrgb444>(dest, src, x, y, width, height,
+                                  dstStride, srcStride);
+}
+
+template <>
+void qt_rectconvert(qgray4 *dest, const qargb4444 *src,
+                    int x, int y, int width, int height,
+                    int dstStride, int srcStride)
+{
+    qt_rectconvert_gray4<qargb4444>(dest, src, x, y, width, height,
+                                    dstStride, srcStride);
+}
+
 static void blit_4(QScreen *screen, const QImage &image,
                    const QPoint &topLeft, const QRegion &region)
 {
@@ -753,6 +945,12 @@ static void blit_4(QScreen *screen, const QImage &image,
         return;
     case QImage::Format_RGB16:
         blit_template<qgray4, quint16>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB444:
+        blit_template<qgray4, qrgb444>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_ARGB4444_Premultiplied:
+        blit_template<qgray4, qargb4444>(screen, image, topLeft, region);
         return;
     default:
         qCritical("blit_4(): Image format %d not supported!", image.format());
@@ -768,19 +966,31 @@ template <typename SRC>
 static inline quint8 qt_convertToMono(SRC color);
 
 template <>
-static inline quint8 qt_convertToMono(quint32 color)
+inline quint8 qt_convertToMono(quint32 color)
 {
     return qGray(color) >> 7;
 }
 
 template <>
-static inline quint8 qt_convertToMono(quint16 color)
+inline quint8 qt_convertToMono(quint16 color)
 {
     return (qGray(qt_colorConvert<quint32, quint16>(color, 0)) >> 7);
 }
 
+template <>
+inline quint8 qt_convertToMono(qargb4444 color)
+{
+    return (qGray(quint32(color)) >> 7);
+}
+
+template <>
+inline quint8 qt_convertToMono(qrgb444 color)
+{
+    return (qGray(quint32(color)) >> 7);
+}
+
 template <typename SRC>
-static inline void qt_rectconvert_mono(qmono *dest, const SRC *src,
+inline void qt_rectconvert_mono(qmono *dest, const SRC *src,
                                        int x, int y, int width, int height,
                                        int dstStride, int srcStride)
 {
@@ -856,6 +1066,24 @@ void qt_rectconvert(qmono *dest, const quint16 *src,
                                  dstStride, srcStride);
 }
 
+template <>
+void qt_rectconvert(qmono *dest, const qrgb444 *src,
+                    int x, int y, int width, int height,
+                    int dstStride, int srcStride)
+{
+    qt_rectconvert_mono<qrgb444>(dest, src, x, y, width, height,
+                                 dstStride, srcStride);
+}
+
+template <>
+void qt_rectconvert(qmono *dest, const qargb4444 *src,
+                    int x, int y, int width, int height,
+                    int dstStride, int srcStride)
+{
+    qt_rectconvert_mono<qargb4444>(dest, src, x, y, width, height,
+                                   dstStride, srcStride);
+}
+
 static void blit_1(QScreen *screen, const QImage &image,
                    const QPoint &topLeft, const QRegion &region)
 {
@@ -865,6 +1093,12 @@ static void blit_1(QScreen *screen, const QImage &image,
         return;
     case QImage::Format_RGB16:
         blit_template<qmono, quint16>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_RGB444:
+        blit_template<qmono, qrgb444>(screen, image, topLeft, region);
+        return;
+    case QImage::Format_ARGB4444_Premultiplied:
+        blit_template<qmono, qargb4444>(screen, image, topLeft, region);
         return;
     default:
         qCritical("blit_1(): Image format %d not supported!", image.format());
@@ -917,17 +1151,23 @@ void qt_blit_setup(QScreen *screen, const QImage &image,
     switch (screen->depth()) {
 #ifdef QT_QWS_DEPTH_32
     case 32:
-        screen->d_ptr->blit = blit_32;
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->blit = blit_32;
+        else
+            screen->d_ptr->blit = blit_template<qabgr8888, quint32>;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_24
     case 24:
-        screen->d_ptr->blit = blit_template<quint24, quint32>;
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->blit = blit_qrgb888;
+        else
+            screen->d_ptr->blit = blit_24;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_18
     case 18:
-        screen->d_ptr->blit = blit_template<quint18, quint32>;
+        screen->d_ptr->blit = blit_18;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_16
@@ -937,7 +1177,23 @@ void qt_blit_setup(QScreen *screen, const QImage &image,
             screen->d_ptr->blit = blit_16_bigToLittleEndian;
         else
 #endif
+        if (screen->pixelType() == QScreen::NormalPixel)
             screen->d_ptr->blit = blit_16;
+        else
+            screen->d_ptr->blit = blit_template<qbgr565, quint16>;
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_12
+    case 12:
+        screen->d_ptr->blit = blit_12;
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_15
+    case 15:
+        if (screen->pixelType() == QScreen::NormalPixel)
+            screen->d_ptr->blit = blit_15;
+        else
+            screen->d_ptr->blit = blit_template<qbgr555, qrgb555>;
         break;
 #endif
 #ifdef QT_QWS_DEPTH_8
@@ -964,23 +1220,34 @@ void qt_blit_setup(QScreen *screen, const QImage &image,
     screen->d_ptr->blit(screen, image, topLeft, region);
 }
 
-QScreenPrivate::QScreenPrivate(QScreen *parent)
-    :  pixelFormat(QImage::Format_Invalid), q_ptr(parent)
+QScreenPrivate::QScreenPrivate(QScreen *parent, QScreen::ClassId id)
+    :  pixelFormat(QImage::Format_Invalid)
+#ifdef QT_QWS_CLIENTBLIT
+       , supportsBlitInClients(false)
+#endif
+    , classId(id), q_ptr(parent)
 {
     solidFill = qt_solidFill_setup;
     blit = qt_blit_setup;
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
     fb_is_littleEndian = false;
 #endif
+    pixmapFactory = this;
+}
+
+QScreenPrivate::~QScreenPrivate()
+{
 }
 
 QImage::Format QScreenPrivate::preferredImageFormat() const
 {
+    if (pixelFormat > QImage::Format_Indexed8)
+        return pixelFormat;
 
     if (q_ptr->depth() <= 16)
         return QImage::Format_RGB16;
     else
-        return pixelFormat;
+        return QImage::Format_ARGB32_Premultiplied;
 }
 
 /*!
@@ -988,51 +1255,57 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
     \ingroup qws
 
     \brief The QScreen class is a base class for screen drivers in
-    Qtopia Core.
+    Qt for Embedded Linux.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
-    \l {Qtopia Core} provides ready-made drivers for several screen
-    protocols, see the \l {Qtopia Core Display Management}{display
+    \l{Qt for Embedded Linux} provides ready-made drivers for several screen
+    protocols, see the \l{Qt for Embedded Linux Display Management}{display
     management} documentation for details. Custom screen drivers can
     be implemented by subclassing the QScreen class and creating a
-    screen driver plugin (derived from QScreenDriverPlugin). \l
-    {Qtopia Core}'s implementation of the QScreenDriverFactory class
+    screen driver plugin (derived from QScreenDriverPlugin). The
+    default implementation of the QScreenDriverFactory class
     will automatically detect the plugin, and load the driver into the
-    server application at runtime using Qt's \l {How to Create Qt
+    server application at run-time using Qt's \l {How to Create Qt
     Plugins}{plugin system}.
 
-    When rendering, \l {Qtopia Core}'s default behavior is for each
+    When rendering, the default behavior is for each
     client to render its widgets as well as its decorations into
     memory, while the server copies the memory content to the device's
-    framebuffer using the screen driver. See the \l {Qtopia Core
+    framebuffer using the screen driver. See the \l{Qt for Embedded Linux
     Architecture} overview for details (note that it is possible for
     the clients to manipulate and control the underlying hardware
     directly as well).
 
-    Starting with \l {Qtopia Core} 4.2, it is also possible to add an
+    Starting with Qt 4.2, it is also possible to add an
     accelerated graphics driver to take advantage of available
-    hardware resources. See the \l {Adding an Accelerated Graphics
-    Driver in Qtopia Core} documentation for details.
+    hardware resources. See the \l{Adding an Accelerated Graphics
+    Driver to Qt for Embedded Linux} documentation for details.
 
     \tableofcontents
 
     \section1 Framebuffer Management
 
-    When a \l {Qtopia Core} application starts running, it calls the
-    screen driver's connect() function to map into the framebuffer and
-    the accelerated drivers that the graphics card control
-    registers. Note that if the application acts as the server, the
-    application will call the initDevice() function prior to the
-    connect() function, to initialize the framebuffer. The
-    initDevice() function can be reimplemented to set up the graphics
-    card.
+    When a \l{Qt for Embedded Linux} application starts running, it
+    calls the screen driver's connect() function to map the
+    framebuffer and the accelerated drivers that the graphics card
+    control registers. The connect() function should then read out the
+    parameters of the framebuffer and use them as required to set this
+    class's protected variables.
 
-    Likewise, just before a \l {Qtopia Core} application exits, it
-    calls the screen driver's disconnect() function. The server
-    application will in addition call the shutdownDevice() function
-    before it calls disconnect(). Note that the default implementation
-    of the shutdownDevice() function only hides the mouse cursor.
+    The initDevice() function can be reimplemented to initialize the
+    graphics card. Note, however, that connect() is called \e before
+    the initDevice() function, so, for some hardware configurations,
+    some of the initialization that would normally be done in the
+    initDevice() function might have to be done in the connect()
+    function.
+
+    Likewise, just before a \l{Qt for Embedded Linux} application
+    exits, it calls the screen driver's disconnect() function. The
+    server application will in addition call the shutdownDevice()
+    function before it calls disconnect(). Note that the default
+    implementation of the shutdownDevice() function only hides the
+    mouse cursor.
 
     QScreen also provides the save() and restore() functions, making
     it possible to save and restore the state of the graphics
@@ -1066,7 +1339,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 
     \section1 Drawing on Screen
 
-    When a screen update is required, the \l {Qtopia Core} server runs
+    When a screen update is required, the \l{Qt for Embedded Linux} server runs
     through all the top-level windows that intersect with the region
     that is about to be updated, and ensures that the associated
     clients have updated their memory buffer. Then the server calls
@@ -1161,7 +1434,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 
     \endtable
 
-    \sa QScreenDriverPlugin, QScreenDriverFactory, {Qtopia Core Display
+    \sa QScreenDriverPlugin, QScreenDriverFactory, {Qt for Embedded Linux Display
     Management}
 */
 
@@ -1176,6 +1449,174 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
     \value BGRPixel Blue-green-red (BGR)
 
     \sa pixelType()
+*/
+
+/*!
+    \enum QScreen::ClassId
+
+    This enum defines the class identifiers for the known screen subclasses.
+
+    \value LinuxFBClass QLinuxFBScreen
+    \value TransformedClass QTransformedScreen
+    \value VNCClass QVNCScreen
+    \value MultiClass QMultiScreen
+    \value VFbClass QVFbScreen
+    \value DirectFBClass QDirectFBScreen
+    \value SvgalibClass QSvgalibScreen
+    \value ProxyClass QProxyScreen
+    \value GLClass QGLScreen
+    \value CustomClass Unknown QScreen subclass
+
+    \sa classId()
+*/
+
+/*!
+  \variable QScreen::screenclut
+  \brief the color table
+
+  Initialize this variable in a subclass using a paletted screen mode,
+  and initialize its partner, QScreen::screencols.
+
+  \sa screencols
+*/
+
+/*!
+  \variable QScreen::screencols
+  \brief the number of entries in the color table
+
+  Initialize this variable in a subclass using a paletted screen mode,
+  and initialize its partner, QScreen::screenclut.
+
+  \sa screenclut
+*/
+
+/*!
+  \variable QScreen::data
+  \brief points to the first visible pixel in the frame buffer.
+
+  You must initialize this variable if you are using the default
+  implementation of non-buffered painting Qt::WA_PaintOnScreen,
+  QPixmap::grabWindow() or QDirectPainter::frameBuffer(). If you
+  initialize this variable, you must also initialize QScreen::size and
+  QScreen::mapsize.
+
+  \sa QScreen::size, QScreen::mapsize
+*/
+
+/*!
+  \variable QScreen::w
+  \brief the logical width of the screen.
+
+  This variable \e{must} be initialized by a subclass.
+*/
+
+/*!
+  \variable QScreen::lstep
+  \brief the number of bytes representing a line in the frame buffer.
+
+  i.e., \e{line step}. \c {data[lstep * 2]} is the address of the
+  first visible pixel in the third line of the frame buffer.
+
+  \sa data
+*/
+
+/*!
+  \variable QScreen::h
+  \brief the logical height of the screen.
+
+  This variable \e{must} be initialized by a subclass.
+*/
+
+/*!
+  \variable QScreen::d
+  \brief the pixel depth
+
+  This is the number of significant bits used to set a pixel
+  color. This variable \e{must} be initialized by a subclass.
+*/
+
+/*!
+  \variable QScreen::pixeltype
+  \brief set to BGRPixel
+
+  Set this variable to BGRPixel in a subclass, if the screen pixel
+  format is a BGR type and you have used setPixelFormat() to set the
+  pixel format to the corresponding RGB format. e.g., you have set the
+  pixel format to QImage::Format_RGB555, but your screen really uses
+  BGR, not RGB.
+*/
+
+/*!
+  \variable QScreen::grayscale
+  \brief the gray scale screen mode flag
+
+  Set this variable to true in a subclass, if you are using a
+  grayscale screen mode. e.g., in an 8-bit mode where you don't want
+  to use the palette, but you want to use the grayscales.
+*/
+
+/*!
+  \variable QScreen::dw
+  \brief the device width
+
+  This is the number of pixels in a row of the physical screen.  It
+  \e{must} be initialized by a subclass. Normally, it should be set to
+  the logical width QScreen::w, but it might be different, e.g., if
+  you are doing rotations in software.
+
+  \sa QScreen::w
+*/
+
+/*!
+  \variable QScreen::dh
+  \brief the device height
+
+  This is the number of pixels in a column of the physical screen.  It
+  \e{must} be initialized by a subclass. Normally, it should be set to
+  the logical height QScreen::h, but it might be different, e.g., if
+  you are doing rotations in software.
+
+  \sa QScreen::h
+*/
+
+/*!
+  \variable QScreen::size
+  \brief the number of bytes in the visible region of the frame buffer
+
+  This is the number of bytes in the visible part of the block pointed
+  to by the QScreen::data pointer. You must initialize this variable
+  if you initialize the QScreen::data pointer.
+
+  \sa QScreen::data, QScreen::mapsize
+*/
+
+/*!
+  \variable QScreen::mapsize
+  \brief the total number of bytes in the frame buffer
+
+  This is the total number of bytes in the block pointed to by the
+  QScreen::data pointer. You must initialize this variable if you
+  initialize the QScreen::data pointer.
+
+  \sa QScreen::data, QScreen::size
+*/
+
+/*!
+  \variable QScreen::physWidth
+  \brief the physical width of the screen in millimeters.
+
+  Currently, this variable is used when calculating the screen DPI,
+  which in turn is used when deciding the actual font size Qt is
+  using.
+*/
+
+/*!
+  \variable QScreen::physHeight
+  \brief the physical height of the screen in millimeters.
+
+  Currently, this variable is used when calculating the screen DPI,
+  which in turn is used when deciding the actual font size Qt is
+  using.
 */
 
 /*!
@@ -1227,7 +1668,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 /*!
     \fn virtual bool QScreen::initDevice() = 0
 
-    This function is called by the \l {Qtopia Core} server to
+    This function is called by the \l{Qt for Embedded Linux} server to
     initialize the framebuffer. Note that a server application will call the
     connect() function prior to this function.
 
@@ -1241,42 +1682,41 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 /*!
     \fn virtual bool QScreen::connect(const QString &displaySpec) = 0
 
-    This function is called by every \l {Qtopia Core} application on
-    startup, and must be implemented to map in the framebuffer and the
-    accelerated drivers that the graphics card control registers.
-    Note that it is called \e before the initDevice() function.
+    This function is called by every \l{Qt for Embedded Linux}
+    application on startup, and must be implemented to map in the
+    framebuffer and the accelerated drivers that the graphics card
+    control registers.  Note that coonnect must be called \e before
+    the initDevice() function.
 
-    Ensure that the function returns true if a connection to the
-    screen device can be made; otherwise return false.
+    Ensure that true is returned if a connection to the screen device
+    is made. Otherwise, return false. Upon making the connection, the
+    function should read out the parameters of the framebuffer and use
+    them as required to set this class's protected variables.
 
     The \a displaySpec argument is passed by the QWS_DISPLAY
     environment variable or the -display command line parameter, and
     has the following syntax:
 
-    \code
-        [screen driver][:driver specific options][:display number]
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qscreen_qws.cpp 0
 
     For example, to use the mach64 driver on fb1 as display 2:
 
-    \code
-        Mach64:/dev/fb1:2
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_embedded_qscreen_qws.cpp 1
 
-    See \l {Qtopia Core Display Management} for more details.
+    See \l{Qt for Embedded Linux Display Management} for more details.
 
-    \sa disconnect(), initDevice(), {Running Qtopia Core Applications}
+    \sa disconnect(), initDevice(), {Running Qt for Embedded Linux Applications}
 */
 
 /*!
     \fn QScreen::disconnect()
 
-    This function is called by every \l {Qtopia Core} application
+    This function is called by every \l{Qt for Embedded Linux} application
     before exiting, and must be implemented to unmap the
     framebuffer. Note that a server application will call the
     shutdownDevice() function prior to this function.
 
-    \sa connect(), shutdownDevice(), {Running Qtopia Core
+    \sa connect(), shutdownDevice(), {Running Qt for Embedded Linux
     Applications}
 */
 
@@ -1316,7 +1756,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
     Note that the default implementation returns 64; reimplement this
     function to override the return value, e.g., when implementing an
     accelerated driver (see the \l {Adding an Accelerated Graphics
-    Driver in Qtopia Core}{Adding an Accelerated Graphics Driver}
+    Driver to Qt for Embedded Linux}{Adding an Accelerated Graphics Driver}
     documentation for details).
 
     \sa pixmapLinestepAlignment()
@@ -1332,7 +1772,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
     Note that the default implementation returns 64; reimplement this
     function to override the return value, e.g., when implementing an
     accelerated driver (see the \l {Adding an Accelerated Graphics
-    Driver in Qtopia Core}{Adding an Accelerated Graphics Driver}
+    Driver to Qt for Embedded Linux}{Adding an Accelerated Graphics Driver}
     documentation for details).
 
     \sa pixmapOffsetAlignment()
@@ -1388,8 +1828,8 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 
     Returns the physical width of the framebuffer device in pixels.
 
-    Note that the returned width can differ from the width which \l
-    {Qtopia Core} will actually use, that is if the display is
+    Note that the returned width can differ from the width which
+    \l{Qt for Embedded Linux} will actually use, that is if the display is
     centered within the framebuffer.
 
     \sa width(), physicalWidth(), deviceHeight()
@@ -1400,8 +1840,8 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 
     Returns the full height of the framebuffer device in pixels.
 
-    Note that the returned height can differ from the height which \l
-    {Qtopia Core} will actually use, that is if the display is
+    Note that the returned height can differ from the height which
+    \l{Qt for Embedded Linux} will actually use, that is if the display is
     centered within the framebuffer.
 
     \sa height(), physicalHeight(), deviceWidth()
@@ -1462,7 +1902,7 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
 
     Constructs a new screen driver.
 
-    The \a displayId identifies the \l {Qtopia Core} server to connect
+    The \a displayId identifies the \l{Qt for Embedded Linux} server to connect
     to.
 */
 
@@ -1489,32 +1929,31 @@ QImage::Format QScreenPrivate::preferredImageFormat() const
     \sa clut(), alloc()
 */
 
-QScreen::QScreen(int display_id)
-    : d_ptr(new QScreenPrivate(this))
+/*!
+    \since 4.4
+
+    Constructs a new screen driver.
+
+    The \a display_id identifies the \l{Qt for Embedded Linux}
+    server to connect to. The \a classId specifies the class
+    identifier.
+*/
+QScreen::QScreen(int display_id, ClassId classId)
+    : screencols(0), data(0), entries(0), entryp(0), lowest(0),
+      w(0), lstep(0), h(0), d(1), pixeltype(NormalPixel), grayscale(false),
+      dw(0), dh(0), size(0), mapsize(0), displayId(display_id),
+      physWidth(0), physHeight(0), d_ptr(new QScreenPrivate(this, classId))
 {
-    w = 0;
-    lstep = 0;
-    h = 0;
-    d = 1;
-    pixeltype = NormalPixel;
-    grayscale = false;
-
-    dw = 0;
-    dh = 0;
-
-    size = 0;
-    mapsize = 0;
-
-    data = 0;
-    displayId = display_id;
-    entries = 0;
-    entryp = 0;
-    lowest = 0;
     clearCacheFunc = 0;
-    grayscale = false;
-    screencols = 0;
-    physWidth = 0;
-    physHeight = 0;
+}
+
+QScreen::QScreen(int display_id)
+    : screencols(0), data(0), entries(0), entryp(0), lowest(0),
+      w(0), lstep(0), h(0), d(1), pixeltype(NormalPixel), grayscale(false),
+      dw(0), dh(0), size(0), mapsize(0), displayId(display_id),
+      physWidth(0), physHeight(0), d_ptr(new QScreenPrivate(this))
+{
+    clearCacheFunc = 0;
 }
 
 /*!
@@ -1527,7 +1966,7 @@ QScreen::~QScreen()
 }
 
 /*!
-    This function is called by the \l {Qtopia Core} server before it
+    This function is called by the \l{Qt for Embedded Linux} server before it
     calls the disconnect() function when exiting.
 
     Note that the default implementation only hides the mouse cursor;
@@ -1557,7 +1996,6 @@ extern bool qws_accel; //in qapplication_qws.cpp
   if the pixel format is not a supported image format.
 
 */
-//#### Must be able to distinguish between 565 and 1555 and between Indexed8 and 8-bit grayscale
 QImage::Format QScreen::pixelFormat() const
 {
     return d_ptr->pixelFormat;
@@ -1700,6 +2138,10 @@ bool QScreen::supportsDepth(int d) const
     } else if(d==16) {
         return true;
 #endif
+#ifdef QT_QWS_DEPTH_15
+    } else if (d == 15) {
+        return true;
+#endif
 #ifdef QT_QWS_DEPTH_18
     } else if(d==18 || d==19) {
         return true;
@@ -1770,7 +2212,7 @@ bool QScreen::onCard(const unsigned char * p, ulong& offset) const
 */
 
 /*
-Given a display_id (number of the \l {Qtopia Core} server to connect to)
+Given a display_id (number of the \l{Qt for Embedded Linux} server to connect to)
 and a spec (e.g. Mach64:/dev/fb0) return a QScreen-descendant.
 The QScreenDriverFactory is queried for a suitable driver and, if found,
 asked to create a driver.
@@ -1821,11 +2263,41 @@ Q_GUI_EXPORT QScreen* qt_get_screen(int display_id, const char *spec)
     return 0;
 }
 
+#ifndef QT_NO_QWS_CURSOR
+static void blendCursor(QImage *dest, const QImage &cursor, const QPoint &offset)
+{
+    QRasterBuffer rb;
+    rb.prepare(dest);
+
+    QSpanData spanData;
+    spanData.init(&rb);
+    spanData.type = QSpanData::Texture;
+    spanData.initTexture(&cursor, 256);
+    spanData.dx = -offset.x();
+    spanData.dy = -offset.y();
+    if (!spanData.blend)
+        return;
+
+    const QRect rect = QRect(offset, cursor.size())
+                       & QRect(QPoint(0, 0), dest->size());
+    const int w = rect.width();
+    const int h = rect.height();
+
+    QVarLengthArray<QT_FT_Span, 32> spans(h);
+    for (int i = 0; i < h; ++i) {
+        spans[i].x = rect.x();
+        spans[i].len = w;
+        spans[i].y = rect.y() + i;
+        spans[i].coverage = 255;
+    }
+    spanData.blend(h, spans.constData(), &spanData);
+}
+#endif // QT_NO_QWS_CURSOR
 
 /*!
     \fn void QScreen::exposeRegion(QRegion region, int windowIndex)
 
-    This function is called by the \l {Qtopia Core} server whenever a
+    This function is called by the \l{Qt for Embedded Linux} server whenever a
     screen update is required. \a region is the area on the screen
     that must be updated, and \a windowIndex is the index into
     QWSServer::clientWindows() of the window that required the
@@ -1876,49 +2348,37 @@ void QScreen::exposeRegion(QRegion r, int windowIndex)
 
     const QRect bounds = r.boundingRect();
     QRegion blendRegion;
-    QImage blendBuffer;
+    QImage *blendBuffer = 0;
 
 #ifndef QT_NO_QWS_CURSOR
     if (qt_screencursor && !qt_screencursor->isAccelerated()) {
         blendRegion = r & qt_screencursor->boundingRect();
     }
 #endif
-    compose(0, r, blendRegion, blendBuffer, changing);
+    compose(0, r, blendRegion, &blendBuffer, changing);
 
-#ifdef QT_EXPERIMENTAL_REGIONS
-    if (!blendBuffer.isNull()) {
+    if (blendBuffer) {
         const QPoint offset = blendRegion.boundingRect().topLeft();
 #ifndef QT_NO_QWS_CURSOR
         if (qt_screencursor && !qt_screencursor->isAccelerated()) {
             const QRect cursorRect = qt_screencursor->boundingRect();
             if (blendRegion.intersects(cursorRect)) {
-                //### can be optimized...
-                QPainter p(&blendBuffer);
-                p.drawImage(cursorRect.topLeft() - offset,
-                            qt_screencursor->image());
+                blendCursor(blendBuffer, qt_screencursor->image(),
+                            cursorRect.topLeft() - offset);
             }
         }
 #endif // QT_NO_QWS_CURSOR
-        blit(blendBuffer, offset, blendRegion);
+        blit(*blendBuffer, offset, blendRegion);
+        delete blendBuffer;
     }
-#else
-#ifndef QT_NO_QWS_CURSOR
-    if (qt_screencursor && !qt_screencursor->isAccelerated() && !blendBuffer.isNull()) {
-        //### can be optimized...
-        QPainter p(&blendBuffer);
-        p.drawImage(qt_screencursor->boundingRect().topLeft() - blendRegion.boundingRect().topLeft(), qt_screencursor->image());
-    }
-#endif
-    if (!blendBuffer.isNull()) {
-        //bltToScreen
-        QPoint topLeft = blendRegion.boundingRect().topLeft();
-        blit(blendBuffer, topLeft, blendRegion);
-    }
-#endif // QT_EXPERIMENTAL_REGIONS
 
-    const QVector<QRect> rects = r.rects();
-    for (int i = 0; i < rects.size(); ++i)
-        setDirty(rects.at(i));
+    if (r.numRects() == 1) {
+        setDirty(r.boundingRect());
+    } else {
+        const QVector<QRect> rects = r.rects();
+        for (int i = 0; i < rects.size(); ++i)
+            setDirty(rects.at(i));
+    }
 }
 
 /*!
@@ -1930,11 +2390,12 @@ void QScreen::exposeRegion(QRegion r, int windowIndex)
     This function is called from the exposeRegion() function; it is
     not intended to be called explicitly.
 
-    Reimplement this function to make use of \l {Adding an Accelerated
-    Graphics Driver in Qtopia Core}{accelerated hardware}. Note that
+    Reimplement this function to make use of \l{Adding an Accelerated
+    Graphics Driver to Qt for Embedded Linux}{accelerated hardware}. Note that
     this function must be reimplemented if the framebuffer format is
-    not supported by \l {Qtopia Core} (See the \l {Qtopia Core Display
-    Management}{Display Management} documentation for more details).
+    not supported by \l{Qt for Embedded Linux} (See the
+    \l{Qt for Embedded Linux Display Management}{Display Management}
+    documentation for more details).
 
     \sa exposeRegion(), solidFill(), blank()
 */
@@ -1943,9 +2404,37 @@ void QScreen::blit(const QImage &img, const QPoint &topLeft, const QRegion &reg)
     const QRect bound = (region() & QRect(topLeft, img.size())).boundingRect();
     QWSDisplay::grab();
     d_ptr->blit(this, img, topLeft - offset(),
-                (reg & bound).translated(-topLeft));
+            (reg & bound).translated(-topLeft));
     QWSDisplay::ungrab();
 }
+
+#ifdef QT_QWS_CLIENTBLIT
+/*!
+  Returns true if this screen driver supports calling QScreen::blit() and
+  QScreen::setDirty() directly from non-server applications, otherwise returns
+  false.
+
+  If available, this is used to optimize the performance of non-occluded, opaque
+  client windows by removing the server round trip when they are updated.
+
+  \sa setSupportsBlitInClients()
+ */
+bool QScreen::supportsBlitInClients() const
+{
+    return d_ptr->supportsBlitInClients;
+}
+
+/*!
+  If \a supported, the screen driver is marked as supporting blitting directly
+  from non-server applications.
+
+  \sa supportsBlitInClients()
+ */
+void QScreen::setSupportsBlitInClients(bool supported)
+{
+    d_ptr->supportsBlitInClients = supported;
+}
+#endif
 
 /*!
     \internal
@@ -1958,7 +2447,7 @@ void QScreen::blit(QWSWindow *win, const QRegion &clip)
         return;
 
     const QImage &img = surface->image();
-    if (img == QImage())
+    if (img.isNull())
         return;
 
     const QRegion rgn = clip & win->paintedRegion();
@@ -1987,11 +2476,12 @@ struct fill_data {
     This function is called from the exposeRegion() function; it is
     not intended to be called explicitly.
 
-    Reimplement this function to make use of \l {Adding an Accelerated
-    Graphics Driver in Qtopia Core}{accelerated hardware}. Note that
+    Reimplement this function to make use of \l{Adding an Accelerated
+    Graphics Driver to Qt for Embedded Linux}{accelerated hardware}. Note that
     this function must be reimplemented if the framebuffer format is
-    not supported by \l {Qtopia Core} (See the \l {Qtopia Core Display
-    Management}{Display Management} documentation for more details).
+    not supported by \l{Qt for Embedded Linux} (See the
+    \l{Qt for Embedded Linux Display Management}{Display Management}
+    documentation for more details).
 
     \sa exposeRegion(), blit(), blank()
 */
@@ -2008,11 +2498,7 @@ void QScreen::solidFill(const QColor &color, const QRegion &region)
     \since 4.2
 
     Creates and returns a new window surface matching the given \a
-    key. Possible keys include \e OnScreen for an on-screen
-    surface, \e mem for a surface constructed from local memory,
-    \e shm for a surface constructed from shared memory, \e Yellow
-    for a yellow surface, and \e DirectPainter for a direct painter
-    surface.
+    key.
 
     The server application will call this function whenever it needs
     to create a server side representation of a window, e.g. when
@@ -2020,11 +2506,11 @@ void QScreen::solidFill(const QColor &color, const QRegion &region)
     driver.
 
     Note that this function must be reimplemented when adding an
-    accelerated graphics driver. See the \l {Adding an Accelerated
-    Graphics Driver in Qtopia Core}{Adding an Accelerated Graphics
-    Driver} documentation for details.
+    accelerated graphics driver. See the
+    \l{Adding an Accelerated Graphics Driver to Qt for Embedded Linux}
+    {Adding an Accelerated Graphics Driver} documentation for details.
 
-    \sa {Qtopia Core Architecture}
+    \sa {Qt for Embedded Linux Architecture}
 */
 QWSWindowSurface* QScreen::createSurface(const QString &key) const
 {
@@ -2096,7 +2582,7 @@ QWSWindowSurface* QScreen::createSurface(QWidget *widget) const
 }
 
 void QScreen::compose(int level, const QRegion &exposed, QRegion &blend,
-                      QImage &blendbuffer, int changing_level)
+                      QImage **blendbuffer, int changing_level)
 {
     QRect exposed_bounds = exposed.boundingRect();
     QWSWindow *win = 0;
@@ -2126,8 +2612,7 @@ void QScreen::compose(int level, const QRegion &exposed, QRegion &blend,
     } else {
         QSize blendSize = blend.boundingRect().size();
         if (!blendSize.isNull()) {
-            blendbuffer = QImage(blendSize,
-                                 depth() <= 16 ? QImage::Format_RGB16 : QImage::Format_ARGB32_Premultiplied);
+            *blendbuffer = new QImage(blendSize, d_ptr->preferredImageFormat());
         }
     }
 
@@ -2146,12 +2631,23 @@ void QScreen::compose(int level, const QRegion &exposed, QRegion &blend,
         QPoint off = blend.boundingRect().topLeft();
 
         QRasterBuffer rb;
-        rb.prepare(&blendbuffer);
+        rb.prepare(*blendbuffer);
         QSpanData spanData;
         spanData.init(&rb);
         if (!win) {
-            if (blendbuffer.format() == QImage::Format_ARGB32_Premultiplied)
+            const QImage::Format format = (*blendbuffer)->format();
+            switch (format) {
+            case QImage::Format_ARGB32_Premultiplied:
+            case QImage::Format_ARGB32:
+            case QImage::Format_ARGB8565_Premultiplied:
+            case QImage::Format_ARGB8555_Premultiplied:
+            case QImage::Format_ARGB6666_Premultiplied:
+            case QImage::Format_ARGB4444_Premultiplied:
                 spanData.rasterBuffer->compositionMode = QPainter::CompositionMode_Source;
+                break;
+            default:
+                break;
+            }
             spanData.setup(qwsServer->backgroundBrush(), 256);
             spanData.dx = off.x();
             spanData.dy = off.y();
@@ -2703,4 +3199,35 @@ const unsigned char* qt_probe_bus()
 }
 
 #endif
+
 #endif // 0
+
+/*!
+    \internal
+    \since 4.4
+*/
+void QScreen::setPixmapDataFactory(QPixmapDataFactory *factory)
+{
+    d_ptr->pixmapFactory = factory;
+}
+
+/*!
+    \internal
+    \since 4.4
+*/
+QPixmapDataFactory* QScreen::pixmapDataFactory() const
+{
+    return d_ptr->pixmapFactory;
+}
+
+/*!
+    \since 4.4
+
+    Returns the class identifier for the screen object.
+*/
+QScreen::ClassId QScreen::classId() const
+{
+    return static_cast<ClassId>(d_ptr->classId);
+}
+
+QT_END_NAMESPACE

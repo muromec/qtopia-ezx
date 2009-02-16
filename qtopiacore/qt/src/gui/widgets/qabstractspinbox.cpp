@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,7 +57,6 @@
 #if defined(Q_WS_X11)
 #include <limits.h>
 #endif
-static const int thresholdTime = 500; // ### Qt 4.1: make this a stylehint
 
 //#define QABSTRACTSPINBOX_QSBDEBUG
 #ifdef QABSTRACTSPINBOX_QSBDEBUG
@@ -71,6 +64,8 @@ static const int thresholdTime = 500; // ### Qt 4.1: make this a stylehint
 #else
 #  define QASBDEBUG if (false) qDebug
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QAbstractSpinBox
@@ -225,9 +220,7 @@ QString QAbstractSpinBox::text() const
     to automatically choose one that will enable the image to fit completely
     within the display window, you can set up the spin box like this:
 
-    \quotefromfile widgets/spinboxes/window.cpp
-    \skipto zoomSpinBox
-    \printuntil setValue
+    \snippet examples/widgets/spinboxes/window.cpp 3
 
     The user will then be able to choose a scale from 1% to 1000%
     or select "Auto" to leave it up to the application to choose. Your code
@@ -258,6 +251,7 @@ void QAbstractSpinBox::setSpecialValueText(const QString &specialValueText)
     Q_D(QAbstractSpinBox);
 
     d->specialValueText = specialValueText;
+    d->cachedSizeHint = QSize(); // minimumSizeHint doesn't care about specialValueText
     d->clearCache();
     d->updateEdit();
 }
@@ -271,14 +265,7 @@ void QAbstractSpinBox::setSpecialValueText(const QString &specialValueText)
     to the minimum() value and vica versa. Wrapping only make sense if
     you have minimum() and maximum() values set.
 
-    \code
-        QSpinBox *spinBox = new QSpinBox(this);
-        spinBox->setRange(0, 100);
-        spinBox->setWrapping(true);
-        spinBox->setValue(100);
-        spinBox->stepBy(1);
-        // value is 0
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qabstractspinbox.cpp 0
 
     \sa QSpinBox::minimum(), QSpinBox::maximum()
 */
@@ -508,6 +495,7 @@ void QAbstractSpinBox::clear()
 
     d->edit->setText(d->prefix + d->suffix);
     d->edit->setCursorPosition(d->prefix.size());
+    d->cleared = true;
 }
 
 /*!
@@ -613,6 +601,7 @@ void QAbstractSpinBox::stepBy(int steps)
     EmitPolicy e = EmitIfChanged;
     if (d->pendingEmit) {
         dontstep = validate(tmp, cursorPos) != QValidator::Acceptable;
+        d->cleared = false;
         d->interpret(NeverEmit);
         if (d->value != old)
             e = AlwaysEmit;
@@ -705,6 +694,10 @@ bool QAbstractSpinBox::event(QEvent *event)
 {
     Q_D(QAbstractSpinBox);
     switch (event->type()) {
+    case QEvent::FontChange:
+    case QEvent::StyleChange:
+        d->cachedSizeHint = d->cachedMinimumSizeHint = QSize();
+        break;
     case QEvent::ApplicationLayoutDirectionChange:
     case QEvent::LayoutDirectionChange:
         d->updateEditFieldGeometry();
@@ -725,6 +718,8 @@ bool QAbstractSpinBox::event(QEvent *event)
         if (QApplication::keypadNavigationEnabled()) {
             const bool b = d->edit->event(event);
             d->edit->setSelection(d->edit->displayText().size() - d->suffix.size(),0);
+            if (event->type() == QEvent::LeaveEditFocus)
+                emit editingFinished();
             if (b)
                 return true;
         }
@@ -761,7 +756,8 @@ void QAbstractSpinBox::changeEvent(QEvent *event)
     switch (event->type()) {
         case QEvent::StyleChange:
             d->spinClickTimerInterval = style()->styleHint(QStyle::SH_SpinBox_ClickAutoRepeatRate, 0, this);
-            d->spinClickThresholdTimerInterval = thresholdTime;
+            d->spinClickThresholdTimerInterval =
+                style()->styleHint(QStyle::SH_SpinBox_ClickAutoRepeatThreshold, 0, this);
             d->reset();
             d->updateEditFieldGeometry();
             break;
@@ -803,40 +799,43 @@ void QAbstractSpinBox::resizeEvent(QResizeEvent *event)
 QSize QAbstractSpinBox::sizeHint() const
 {
     Q_D(const QAbstractSpinBox);
-    ensurePolished();
+    if (d->cachedSizeHint.isEmpty()) {
+        ensurePolished();
 
-    const QFontMetrics fm(fontMetrics());
-    int h = d->edit->sizeHint().height();
-    int w = 0;
-    QString s;
-    s = d->prefix + d->textFromValue(d->minimum) + d->suffix + QLatin1Char(' ');
-    s.truncate(18);
-    w = qMax(w, fm.width(s));
-    s = d->prefix + d->textFromValue(d->maximum) + d->suffix + QLatin1Char(' ');
-    s.truncate(18);
-    w = qMax(w, fm.width(s));
-    if (d->specialValueText.size()) {
-        s = d->specialValueText;
+        const QFontMetrics fm(fontMetrics());
+        int h = d->edit->sizeHint().height();
+        int w = 0;
+        QString s;
+        s = d->prefix + d->textFromValue(d->minimum) + d->suffix + QLatin1Char(' ');
+        s.truncate(18);
         w = qMax(w, fm.width(s));
+        s = d->prefix + d->textFromValue(d->maximum) + d->suffix + QLatin1Char(' ');
+        s.truncate(18);
+        w = qMax(w, fm.width(s));
+        if (d->specialValueText.size()) {
+            s = d->specialValueText;
+            w = qMax(w, fm.width(s));
+        }
+        w += 2; // cursor blinking space
+
+        QStyleOptionSpinBox opt;
+        initStyleOption(&opt);
+        QSize hint(w, h);
+        QSize extra(35, 6);
+        opt.rect.setSize(hint + extra);
+        extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
+                                                QStyle::SC_SpinBoxEditField, this).size();
+        // get closer to final result by repeating the calculation
+        opt.rect.setSize(hint + extra);
+        extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
+                                                QStyle::SC_SpinBoxEditField, this).size();
+        hint += extra;
+
+        opt.rect = rect();
+        d->cachedSizeHint = style()->sizeFromContents(QStyle::CT_SpinBox, &opt, hint, this)
+                            .expandedTo(QApplication::globalStrut());
     }
-    w += 2; // cursor blinking space
-
-    QStyleOptionSpinBox opt;
-    initStyleOption(&opt);
-    QSize hint(w, h);
-    QSize extra(35, 6);
-    opt.rect.setSize(hint + extra);
-    extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
-                                            QStyle::SC_SpinBoxEditField, this).size();
-    // get closer to final result by repeating the calculation
-    opt.rect.setSize(hint + extra);
-    extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
-                                               QStyle::SC_SpinBoxEditField, this).size();
-    hint += extra;
-
-    opt.rect = rect();
-    return style()->sizeFromContents(QStyle::CT_SpinBox, &opt, hint, this)
-        .expandedTo(QApplication::globalStrut());
+    return d->cachedSizeHint;
 }
 
 /*!
@@ -846,30 +845,33 @@ QSize QAbstractSpinBox::sizeHint() const
 QSize QAbstractSpinBox::minimumSizeHint() const
 {
     Q_D(const QAbstractSpinBox);
-    ensurePolished();
+    if (d->cachedMinimumSizeHint.isEmpty()) {
+        ensurePolished();
 
-    const QFontMetrics fm(fontMetrics());
-    int h = d->edit->minimumSizeHint().height();
-    int w = fm.width(QLatin1String("1000"));
-    w += 2; // cursor blinking space
+        const QFontMetrics fm(fontMetrics());
+        int h = d->edit->minimumSizeHint().height();
+        int w = fm.width(QLatin1String("1000"));
+        w += 2; // cursor blinking space
 
-    QStyleOptionSpinBox opt;
-    initStyleOption(&opt);
-    QSize hint(w, h);
-    QSize extra(35, 6);
-    opt.rect.setSize(hint + extra);
-    extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
-                                            QStyle::SC_SpinBoxEditField, this).size();
-    // get closer to final result by repeating the calculation
-    opt.rect.setSize(hint + extra);
-    extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
-                                               QStyle::SC_SpinBoxEditField, this).size();
-    hint += extra;
+        QStyleOptionSpinBox opt;
+        initStyleOption(&opt);
+        QSize hint(w, h);
+        QSize extra(35, 6);
+        opt.rect.setSize(hint + extra);
+        extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
+                                                QStyle::SC_SpinBoxEditField, this).size();
+        // get closer to final result by repeating the calculation
+        opt.rect.setSize(hint + extra);
+        extra += hint - style()->subControlRect(QStyle::CC_SpinBox, &opt,
+                                                QStyle::SC_SpinBoxEditField, this).size();
+        hint += extra;
 
-    opt.rect = rect();
+        opt.rect = rect();
 
-    return style()->sizeFromContents(QStyle::CT_SpinBox, &opt, hint, this)
-        .expandedTo(QApplication::globalStrut());
+        d->cachedMinimumSizeHint = style()->sizeFromContents(QStyle::CT_SpinBox, &opt, hint, this)
+                                   .expandedTo(QApplication::globalStrut());
+    }
+    return d->cachedMinimumSizeHint;
 }
 
 /*!
@@ -959,6 +961,7 @@ void QAbstractSpinBox::keyPressEvent(QKeyEvent *event)
 #endif
     case Qt::Key_Enter:
     case Qt::Key_Return:
+        d->edit->d_func()->modifiedState = d->edit->d_func()->undoState = 0;
         d->interpret(d->keyboardTracking ? AlwaysEmit : EmitIfChanged);
         selectAll();
         event->ignore();
@@ -1080,7 +1083,13 @@ void QAbstractSpinBox::focusOutEvent(QFocusEvent *event)
 
     d->reset();
     d->edit->event(event);
+    d->updateEdit();
     QWidget::focusOutEvent(event);
+
+#ifdef QT_KEYPAD_NAVIGATION
+    // editingFinished() is already emitted on LeaveEditFocus
+    if (!QApplication::keypadNavigationEnabled())
+#endif
     emit editingFinished();
 }
 
@@ -1270,11 +1279,11 @@ void QAbstractSpinBox::mouseReleaseEvent(QMouseEvent *event)
 
 QAbstractSpinBoxPrivate::QAbstractSpinBoxPrivate()
     : edit(0), type(QVariant::Invalid), spinClickTimerId(-1),
-      spinClickTimerInterval(100), spinClickThresholdTimerId(-1), spinClickThresholdTimerInterval(thresholdTime),
+      spinClickTimerInterval(100), spinClickThresholdTimerId(-1), spinClickThresholdTimerInterval(-1),
       buttonState(None), cachedText(QLatin1String("\x01")), cachedState(QValidator::Invalid),
       pendingEmit(false), readOnly(false), wrapping(false),
       ignoreCursorPositionChanged(false), frame(true), accelerate(false), keyboardTracking(true),
-      correctionMode(QAbstractSpinBox::CorrectToPreviousValue), acceleration(0),
+      cleared(false), correctionMode(QAbstractSpinBox::CorrectToPreviousValue), acceleration(0),
       hoverControl(QStyle::SC_None), buttonSymbols(QAbstractSpinBox::UpDownArrows), validator(0)
 {
 }
@@ -1475,8 +1484,7 @@ void QAbstractSpinBoxPrivate::init()
     QStyleOptionSpinBox opt;
     q->initStyleOption(&opt);
     spinClickTimerInterval = q->style()->styleHint(QStyle::SH_SpinBox_ClickAutoRepeatRate, &opt, q);
-
-    spinClickThresholdTimerInterval = thresholdTime;
+    spinClickThresholdTimerInterval = q->style()->styleHint(QStyle::SH_SpinBox_ClickAutoRepeatThreshold, &opt, q);
     q->setFocusPolicy(Qt::WheelFocus);
     q->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed, QSizePolicy::SpinBox));
     q->setAttribute(Qt::WA_InputMethodEnabled);
@@ -1600,7 +1608,7 @@ QVariant QAbstractSpinBoxPrivate::bound(const QVariant &val, const QVariant &old
             v = ((wasMax && !wrapped && steps > 0) || (steps < 0 && !wasMin && wrapped))
                 ? minimum : maximum;
         } else if (wrapped && (maxcmp > 0 || mincmp < 0)) {
-            v = (wasMax && steps > 0 || (!wasMin && steps < 0)) ? minimum : maximum;
+            v = ((wasMax && steps > 0) || (!wasMin && steps < 0)) ? minimum : maximum;
         } else if (mincmp < 0) {
             v = (!wasMax && !wasMin ? minimum : maximum);
         }
@@ -1623,6 +1631,7 @@ void QAbstractSpinBoxPrivate::setValue(const QVariant &val, EmitPolicy ep,
     const QVariant old = value;
     value = bound(val);
     pendingEmit = false;
+    cleared = false;
     if (doUpdate) {
         updateEdit();
     }
@@ -1645,7 +1654,7 @@ void QAbstractSpinBoxPrivate::updateEdit()
     if (type == QVariant::Invalid)
         return;
     const QString newText = specialValue() ? specialValueText : prefix + textFromValue(value) + suffix;
-    if (newText == edit->displayText())
+    if (newText == edit->displayText() || cleared)
         return;
 
     const bool empty = edit->text().isEmpty();
@@ -1678,6 +1687,7 @@ void QAbstractSpinBoxPrivate::setRange(const QVariant &min, const QVariant &max)
     clearCache();
     minimum = min;
     maximum = (variantCompare(min, max) < 0 ? max : min);
+    cachedSizeHint = QSize(); // minimumSizeHint doesn't care about min/max
 
     reset();
     if (!(bound(value) == value)) {
@@ -1699,9 +1709,6 @@ QVariant QAbstractSpinBoxPrivate::getZeroVariant() const
     switch (type) {
     case QVariant::Int: ret = QVariant((int)0); break;
     case QVariant::Double: ret = QVariant((double)0.0); break;
-    case QVariant::Time: ret = QVariant(QTime()); break;
-    case QVariant::Date: ret = QVariant(QDATETIMEEDIT_DATE_INITIAL); break;
-    case QVariant::DateTime: ret = QVariant(QDateTime(QDATETIMEEDIT_DATE_INITIAL, QTime())); break;
     default: break;
     }
     return ret;
@@ -1748,7 +1755,7 @@ QVariant QAbstractSpinBoxPrivate::valueFromText(const QString &) const
 void QAbstractSpinBoxPrivate::interpret(EmitPolicy ep)
 {
     Q_Q(QAbstractSpinBox);
-    if (type == QVariant::Invalid)
+    if (type == QVariant::Invalid || cleared)
         return;
 
     QVariant v = getZeroVariant();
@@ -2023,5 +2030,9 @@ QVariant QAbstractSpinBoxPrivate::variantBound(const QVariant &min,
     }
 }
 
+
+QT_END_NAMESPACE
+
 #include "moc_qabstractspinbox.cpp"
+
 #endif // QT_NO_SPINBOX

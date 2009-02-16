@@ -5,9 +5,11 @@ have been removed:
  
     libjpeg - some source files, images, Makefiles, manual pages
     libpng/contrib - a collection of examples and test-suite
+    libmng/bcb - a collection of files for the Borland compiler
     libmng/contrib - a collection of projects that use libmng
     libmng/special - configuration file for Mozilla integration
     libtiff/contrib - a collection of additions to libtiff
+    libtiff/man - manual pages
     libtiff/tools - a collection of command-line tools based on libtiff
     zlib/contrib - a collection of non-zlib code
     zlib/amiga - zlib for a platform not supported by Qt
@@ -16,4 +18,5 @@ have been removed:
     zlib/old - zlib for a platform not supported by Qt
     zlib/qnx - zlib packaging
 
-Some patches are applied from time to time.
+Some patches are applied from time to time. Recent patches can be
+found in the patches subdirectory.

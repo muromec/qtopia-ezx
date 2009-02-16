@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include "qwidget.h"
 #include "private/qobject_p.h"
 #include "private/qabstractitemmodel_p.h"
+
+QT_BEGIN_NAMESPACE
 
 class QDataWidgetMapperPrivate: public QObjectPrivate
 {
@@ -147,13 +143,12 @@ bool QDataWidgetMapperPrivate::commit(const WidgetMapper &m)
     if (!m.currentIndex.isValid())
         return false;
 
+    // Create copy to avoid passing the widget mappers data
+    QModelIndex idx = m.currentIndex;
     if (m.property.isEmpty())
-        delegate->setModelData(m.widget, model, m.currentIndex);
-    else {
-        // Create copy to avoid passing the widget mappers data
-        QModelIndex idx = m.currentIndex;
+        delegate->setModelData(m.widget, model, idx);
+    else
         model->setData(idx, m.widget->property(m.property), Qt::EditRole);
-    }
 
     return true;
 }
@@ -258,6 +253,7 @@ void QDataWidgetMapperPrivate::_q_modelDestroyed()
     of a data model to widgets.
     \since 4.2
     \ingroup model-view
+    \ingroup advanced
 
     QDataWidgetMapper can be used to create data-aware widgets by mapping
     them to sections of an item model. A section is a column of a model
@@ -278,7 +274,7 @@ void QDataWidgetMapperPrivate::_q_modelDestroyed()
     Let us assume that we have an item model named \c{model} with the following contents:
 
     \table
-    \row \o 1 \o Trolltech ASA    \o Oslo
+    \row \o 1 \o Nokia Corporation and/or its subsidiary(-ies)    \o Oslo
     \row \o 2 \o Trolltech Pty   \o Brisbane
     \row \o 3 \o Trolltech Inc   \o Palo Alto
     \row \o 4 \o Trolltech China \o Beijing
@@ -288,17 +284,10 @@ void QDataWidgetMapperPrivate::_q_modelDestroyed()
     The following code will map the columns of the model to widgets called \c mySpinBox,
     \c myLineEdit and \c{myCountryChooser}:
 
-    \code
-    QDataWidgetMapper *mapper = new QDataWidgetMapper;
-    mapper->setModel(model);
-    mapper->addMapping(mySpinBox, 0);
-    mapper->addMapping(myLineEdit, 1);
-    mapper->addMapping(myCountryChooser, 2);
-    mapper->toFirst();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qdatawidgetmapper.cpp 0
 
     After the call to toFirst(), \c mySpinBox displays the value \c{1}, \c myLineEdit
-    displays \c {Trolltech ASA} and \c myCountryChooser displays \c{Oslo}. The
+    displays \c {Nokia Corporation and/or its subsidiary(-ies)} and \c myCountryChooser displays \c{Oslo}. The
     navigational functions toFirst(), toNext(), toPrevious(), toLast() and setCurrentIndex()
     can be used to navigate in the model and update the widgets with contents from
     the model.
@@ -482,12 +471,7 @@ QModelIndex QDataWidgetMapper::rootIndex() const
     is mapped to the QLineEdit \c nameLineEdit, and the second is
     mapped to the QSpinBox \c{ageSpinBox}:
 
-    \code
-    QDataWidgetMapper *mapper = new QDataWidgetMapper();
-    mapper->setModel(myModel);
-    mapper->addMapping(nameLineEdit, 0);
-    mapper->addMapping(ageSpinBox, 1);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qdatawidgetmapper.cpp 1
 
     \bold{Notes:}
     \list
@@ -748,11 +732,7 @@ int QDataWidgetMapper::currentIndex() const
     with new data whenever the selection of a QTableView named
     \c myTableView changes:
 
-    \code
-    QDataWidgetMapper *mapper = new QDataWidgetMapper(); 
-    connect(myTableView->selectionModel(), SIGNAL(currentRowChanged(QModelIndex,QModelIndex)),
-            mapper, SLOT(setCurrentModelIndex(QModelIndex)));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qdatawidgetmapper.cpp 2
 
     \sa currentIndex()
 */
@@ -796,7 +776,7 @@ void QDataWidgetMapper::clearMapping()
     Use Qt::Horizontal for tabular data that looks like this:
 
     \table
-    \row \o 1 \o Trolltech ASA     \o Oslo
+    \row \o 1 \o Nokia Corporation and/or its subsidiary(-ies)     \o Oslo
     \row \o 2 \o Trolltech Pty   \o Brisbane
     \row \o 3 \o Trolltech Inc   \o Silicon Valley
     \row \o 4 \o Trolltech China \o Beijing
@@ -812,7 +792,7 @@ void QDataWidgetMapper::clearMapping()
 
     \table
     \row \o 1 \o 2 \o 3 \o 4 \o 5
-    \row \o Trolltech ASA \o Trolltech Pty \o Trolltech Inc \o Trolltech China \o Trolltech GmbH
+    \row \o Nokia Corporation and/or its subsidiary(-ies) \o Trolltech Pty \o Trolltech Inc \o Trolltech China \o Trolltech GmbH
     \row \o Oslo \o Brisbane \o Silicon Valley \o Beijing \i Berlin
     \endtable
 
@@ -857,6 +837,8 @@ QDataWidgetMapper::SubmitPolicy QDataWidgetMapper::submitPolicy() const
     Q_D(const QDataWidgetMapper);
     return d->submitPolicy;
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qdatawidgetmapper.cpp"
 

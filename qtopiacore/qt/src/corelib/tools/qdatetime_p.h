@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -59,7 +53,12 @@
 #include "QtCore/qatomic.h"
 #include "QtCore/qdatetime.h"
 #include "QtCore/qstringlist.h"
-#include "QtCore/qlist.h"
+#include "QtCore/qlocale.h"
+#ifndef QT_BOOTSTRAPPED
+# include "QtCore/qvariant.h"
+#endif
+#include "QtCore/qvector.h"
+
 
 #define QDATETIMEEDIT_TIME_MIN QTime(0, 0, 0, 0)
 #define QDATETIMEEDIT_TIME_MAX QTime(23, 59, 59, 999)
@@ -71,21 +70,29 @@
 #define QDATETIMEEDIT_DATETIME_MAX QDateTime(QDATETIMEEDIT_DATE_MAX, QDATETIMEEDIT_TIME_MAX)
 #define QDATETIMEEDIT_DATE_INITIAL QDate(2000, 1, 1)
 
+QT_BEGIN_NAMESPACE
 
 class QDateTimePrivate
 {
 public:
-    enum Spec { LocalUnknown = -1, LocalStandard = 0, LocalDST = 1, UTC = 2 };
+    enum Spec { LocalUnknown = -1, LocalStandard = 0, LocalDST = 1, UTC = 2, OffsetFromUTC = 3};
 
-    QDateTimePrivate() : ref(1), spec(LocalUnknown) {}
+    QDateTimePrivate() : ref(1), spec(LocalUnknown), utcOffset(0) {}
     QDateTimePrivate(const QDateTimePrivate &other)
-        : ref(1), date(other.date), time(other.time), spec(other.spec)
+        : ref(1), date(other.date), time(other.time), spec(other.spec), utcOffset(other.utcOffset)
     {}
 
-    QAtomic ref;
+    QAtomicInt ref;
     QDate date;
     QTime time;
     Spec spec;
+    /*!
+      \internal
+      \since 4.4
+
+      The offset in seconds. Applies only when timeSpec() is OffsetFromUTC.
+     */
+    int utcOffset;
 
     Spec getLocal(QDate &outDate, QTime &outTime) const;
     void getUTC(QDate &outDate, QTime &outTime) const;
@@ -93,14 +100,19 @@ public:
 };
 
 #ifndef QT_BOOTSTRAPPED
-#include "QtCore/qvariant.h"
 
 class Q_CORE_EXPORT QDateTimeParser
 {
 public:
-    QDateTimeParser(QVariant::Type t)
-        : currentSectionIndex(-1), display(0), cachedDay(-1), typ(t), fixday(false), allowEmpty(true)
+    enum Context {
+        FromString,
+        DateTimeEdit
+    };
+    QDateTimeParser(QVariant::Type t, Context ctx)
+        : currentSectionIndex(-1), display(0), cachedDay(-1), parserType(t),
+        fixday(false), spec(Qt::LocalTime), context(ctx)
     {
+        defaultLocale = QLocale::system();
         first.type = FirstSection;
         first.pos = -1;
         first.count = -1;
@@ -124,33 +136,37 @@ public:
     enum {
         NoSectionIndex = -1,
         FirstSectionIndex = -2,
-        LastSectionIndex = -3
+        LastSectionIndex = -3,
+        CalendarPopupIndex = -4
     };
 
     enum Section {
-        NoSection = 0x0000,
-        AmPmSection = 0x0001,
-        MSecSection = 0x0002,
-        SecondSection = 0x0004,
-        MinuteSection = 0x0008,
-        Hour12Section   = 0x0010,
-        Hour24Section   = 0x0020,
+        NoSection = 0x00000,
+        AmPmSection = 0x00001,
+        MSecSection = 0x00002,
+        SecondSection = 0x00004,
+        MinuteSection = 0x00008,
+        Hour12Section   = 0x00010,
+        Hour24Section   = 0x00020,
         TimeSectionMask = (AmPmSection|MSecSection|SecondSection|MinuteSection|Hour12Section|Hour24Section),
-        Internal = 0x8000,
-        DaySection = 0x0100,
-        MonthSection = 0x0200,
-        YearSection = 0x0400,
-        DateSectionMask = (DaySection|MonthSection|YearSection),
-        FirstSection = 0x1000|Internal,
-        LastSection = 0x2000|Internal
+        Internal = 0x10000,
+        DaySection = 0x00100,
+        MonthSection = 0x00200,
+        YearSection = 0x00400,
+        YearSection2Digits = 0x00800,
+        DayOfWeekSection = 0x01000,
+        DateSectionMask = (DaySection|MonthSection|YearSection|YearSection2Digits|DayOfWeekSection),
+        FirstSection = 0x02000|Internal,
+        LastSection = 0x04000|Internal,
+        CalendarPopupSection = 0x08000|Internal
     }; // duplicated from qdatetimeedit.h
     Q_DECLARE_FLAGS(Sections, Section)
 
-        struct SectionNode {
-            Section type;
-            mutable int pos;
-            int count;
-        };
+    struct SectionNode {
+        Section type;
+        mutable int pos;
+        int count;
+    };
 
     enum State { // duplicated from QValidator
         Invalid,
@@ -159,10 +175,11 @@ public:
     };
 
     struct StateNode {
+        StateNode() : state(Invalid), conflicts(false) {}
         QString input;
         State state;
         bool conflicts;
-        QVariant value;
+        QDateTime value;
     };
 
     enum AmPm {
@@ -176,21 +193,20 @@ public:
     };
 
 #ifndef QT_NO_DATESTRING
-    StateNode parse(const QString &input, const QVariant &currentValue, bool fixup) const;
+    StateNode parse(const QString &input, const QDateTime &currentValue, bool fixup) const;
 #endif
     int sectionMaxSize(int index) const;
     int sectionSize(int index) const;
     int sectionMaxSize(Section s, int count) const;
     int sectionPos(int index) const;
     int sectionPos(const SectionNode &sn) const;
-    bool isSpecial(const QChar &c) const;
 
-    SectionNode sectionNode(int index) const;
+    const SectionNode &sectionNode(int index) const;
     Section sectionType(int index) const;
     QString sectionText(const QString &text, int sectionIndex, int index) const;
-    int getDigit(const QVariant &dt, int index) const;
-    void setDigit(QVariant &t, int index, int newval) const;
-    int parseSection(const QVariant &currentValue, int sectionIndex, QString &txt, int index,
+    int getDigit(const QDateTime &dt, int index) const;
+    bool setDigit(QDateTime &t, int index, int newval) const;
+    int parseSection(const QDateTime &currentValue, int sectionIndex, QString &txt, int index,
                      QDateTimeParser::State &state, int *used = 0) const;
     int absoluteMax(int index, const QDateTime &value = QDateTime()) const;
     int absoluteMin(int index) const;
@@ -208,9 +224,8 @@ public:
 #endif
     int findAmPm(QString &str1, int index, int *used = 0) const;
     int maxChange(int s) const;
-    int potentialValue(const QString &str, int min, int max, int index, const QVariant &currentValue, int insert) const;
-    int potentialValueHelper(const QString &str, int min, int max, int size, int insert) const;
-
+    bool potentialValue(const QString &str, int min, int max, int index,
+                        const QDateTime &currentValue, int insert) const;
     QString sectionName(int s) const;
     QString stateName(int s) const;
 
@@ -227,26 +242,28 @@ public:
 
     FieldInfo fieldInfo(int index) const;
 
-    virtual QVariant getMinimum() const;
-    virtual QVariant getMaximum() const;
+    virtual QDateTime getMinimum() const;
+    virtual QDateTime getMaximum() const;
     virtual int cursorPosition() const { return -1; }
     virtual QString displayText() const { return text; }
     virtual QString getAmPmText(AmPm ap, Case cs) const;
+    virtual QLocale locale() const { return defaultLocale; }
 
     mutable int currentSectionIndex;
     Sections display;
     mutable int cachedDay;
     mutable QString text;
-    QList<SectionNode> sectionNodes;
-    SectionNode first, last, none;
+    QVector<SectionNode> sectionNodes;
+    SectionNode first, last, none, popup;
     QStringList separators;
     QString displayFormat;
-    QVariant::Type typ;
+    QLocale defaultLocale;
+    QVariant::Type parserType;
 
     bool fixday;
-    bool allowEmpty;
 
-    static int dateTimeCompare(const QVariant &arg1, const QVariant &arg2);
+    Qt::TimeSpec spec; // spec if used by QDateTimeEdit
+    Context context;
 };
 
 Q_CORE_EXPORT bool operator==(const QDateTimeParser::SectionNode &s1, const QDateTimeParser::SectionNode &s2);
@@ -256,5 +273,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QDateTimeParser::FieldInfo)
 
 
 #endif // QT_BOOTSTRAPPED
+
+QT_END_NAMESPACE
 
 #endif // QDATETIME_P_H

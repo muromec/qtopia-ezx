@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qtextstream.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qtextstream.cpp -->
 <head>
-  <title>Qt 4.3: QTextStream Class Reference</title>
+  <title>Qt 4.4: QTextStream Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QTextStream Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QTextStream Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QTextStream class provides a convenient interface for reading and writing text. <a href="#details">More...</a></p>
 <pre> #include &lt;QTextStream&gt;</pre><p>Inherited by <a href="qtextistream.html" class="compat">QTextIStream</a> and <a href="qtextostream.html" class="compat">QTextOStream</a>.</p>
@@ -148,8 +148,8 @@
 <pre> QFile data(&quot;output.txt&quot;);
  if (data.open(QFile::WriteOnly | QFile::Truncate)) {
      QTextStream out(&amp;data);
-     out &lt;&lt; &quot;Result: &quot; &lt;&lt; qSetFieldWidth(10) &lt;&lt; left &lt;&lt; 3.14 &lt;&lt; 2.7 &lt;&lt; endl;
-     <span class="comment">// writes &quot;Result: 3.14      2.7       \n&quot;</span>
+     out &lt;&lt; &quot;Result: &quot; &lt;&lt; qSetFieldWidth(10) &lt;&lt; left &lt;&lt; 3.14 &lt;&lt; 2.7;
+     <span class="comment">// writes &quot;Result: 3.14      2.7       &quot;</span>
  }</pre>
 <p>It's also common to use QTextStream to read console input and write console output. QTextStream is locale aware, and will automatically decode standard input using the correct codec. Example:</p>
 <pre> QTextStream stream(stdin);
@@ -354,6 +354,7 @@
 <h3 class="fn"><a name="setCodec"></a>void QTextStream::setCodec ( <a href="qtextcodec.html">QTextCodec</a> * <i>codec</i> )</h3>
 <p>Sets the codec for this stream to <i>codec</i>. The codec is used for decoding any data that is read from the assigned device, and for encoding any data that is written. By default, <a href="qtextcodec.html#codecForLocale">QTextCodec::codecForLocale</a>() is used, and automatic unicode detection is enabled.</p>
 <p>If <a href="qtextstream.html">QTextStream</a> operates on a string, this function does nothing.</p>
+<p><b>Warning:</b> If you call this function while the text stream is reading from an open sequential socket, the internal buffer may still contain text decoded using the old codec.</p>
 <p>See also <a href="qtextstream.html#codec">codec</a>() and <a href="qtextstream.html#setAutoDetectUnicode">setAutoDetectUnicode</a>().</p>
 <h3 class="fn"><a name="setCodec-2"></a>void QTextStream::setCodec ( const char * <i>codecName</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -371,6 +372,7 @@
 <p>See also <a href="qtextstream.html#fieldAlignment">fieldAlignment</a>() and <a href="qtextstream.html#setFieldWidth">setFieldWidth</a>().</p>
 <h3 class="fn"><a name="setFieldWidth"></a>void QTextStream::setFieldWidth ( int <i>width</i> )</h3>
 <p>Sets the current field width to <i>width</i>. If <i>width</i> is 0 (the default), the field width is equal to the length of the generated text.</p>
+<p><b>Note:</b> The field width applies to every element appended to this stream after this function has been called (e.g&#x2e;, it also pads endl). This behavior is different from similar classes in the STL, where the field width only applies to the next element.</p>
 <p>See also <a href="qtextstream.html#fieldWidth">fieldWidth</a>() and <a href="qtextstream.html#setPadChar">setPadChar</a>().</p>
 <h3 class="fn"><a name="setGenerateByteOrderMark"></a>void QTextStream::setGenerateByteOrderMark ( bool <i>generate</i> )</h3>
 <p>If <i>generate</i> is true and a UTF-16 codec is used, <a href="qtextstream.html">QTextStream</a> will insert the BOM (Byte Order Mark) before any data has been written to the device. If <i>generate</i> is false, no BOM will be inserted. This function must be called before any data is written. Otherwise, it does nothing.</p>
@@ -387,17 +389,18 @@
 <pre> QString s;
  QTextStream out(&amp;s);
  out.setFieldWidth(10);
+ out.setFieldAlignment(QTextStream::AlignCenter);
  out.setPadChar('-');
- out &lt;&lt; &quot;Qt&quot; &lt;&lt; endl &lt;&lt; &quot;rocks!&quot; &lt;&lt; endl;</pre>
+ out &lt;&lt; &quot;Qt&quot; &lt;&lt; &quot;rocks!&quot;;</pre>
 <p>Output:</p>
-<pre> ----Qt----
- --rocks!--</pre>
+<pre> ----Qt------rocks!--</pre>
 <p>See also <a href="qtextstream.html#padChar">padChar</a>() and <a href="qtextstream.html#setFieldWidth">setFieldWidth</a>().</p>
 <h3 class="fn"><a name="setRealNumberNotation"></a>void QTextStream::setRealNumberNotation ( <a href="qtextstream.html#RealNumberNotation-enum">RealNumberNotation</a> <i>notation</i> )</h3>
 <p>Sets the real number notation to <i>notation</i> (<a href="qtextstream.html#RealNumberNotation-enum">SmartNotation</a>, <a href="qtextstream.html#RealNumberNotation-enum">FixedNotation</a>, <a href="qtextstream.html#RealNumberNotation-enum">ScientificNotation</a>). When reading and generating numbers, <a href="qtextstream.html">QTextStream</a> uses this value to detect the formatting of real numbers.</p>
 <p>See also <a href="qtextstream.html#realNumberNotation">realNumberNotation</a>(), <a href="qtextstream.html#setRealNumberPrecision">setRealNumberPrecision</a>(), <a href="qtextstream.html#setNumberFlags">setNumberFlags</a>(), and <a href="qtextstream.html#setIntegerBase">setIntegerBase</a>().</p>
 <h3 class="fn"><a name="setRealNumberPrecision"></a>void QTextStream::setRealNumberPrecision ( int <i>precision</i> )</h3>
 <p>Sets the precision of real numbers to <i>precision</i>. This value describes the number of fraction digits <a href="qtextstream.html">QTextStream</a> should write when generating real numbers.</p>
+<p>The precision cannot be a negative value. The default value is 6.</p>
 <p>See also <a href="qtextstream.html#realNumberPrecision">realNumberPrecision</a>() and <a href="qtextstream.html#setRealNumberNotation">setRealNumberNotation</a>().</p>
 <h3 class="fn"><a name="setStatus"></a>void QTextStream::setStatus ( <a href="qtextstream.html#Status-enum">Status</a> <i>status</i> )</h3>
 <p>Sets the status of the text stream to the <i>status</i> given.</p>
@@ -622,8 +625,8 @@
 <p>See also <a href="qtextstream.html#qtextstream-manipulators">QTextStream manipulators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

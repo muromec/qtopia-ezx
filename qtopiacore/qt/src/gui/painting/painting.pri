@@ -22,6 +22,8 @@ HEADERS += \
         painting/qprinter.h \
         painting/qprinter_p.h \
         painting/qprintengine.h \
+	painting/qpaintengine_preview_p.h \
+        painting/qprinterinfo.h \
         painting/qregion.h \
         painting/qstroker_p.h \
         painting/qstylepainter.h \
@@ -30,7 +32,8 @@ HEADERS += \
         painting/qwmatrix.h \
         painting/qrasterizer_p.h \
         painting/qtransform.h \
-        painting/qpathclipper_p.h
+        painting/qpathclipper_p.h \
+	painting/qmemrotate_p.h
 
 
 SOURCES += \
@@ -48,6 +51,7 @@ SOURCES += \
         painting/qpolygon.cpp \
         painting/qprintengine_pdf.cpp \
         painting/qprintengine_ps.cpp \
+	painting/qpaintengine_preview.cpp \
         painting/qprinter.cpp \
         painting/qstroker.cpp \
         painting/qstylepainter.cpp \
@@ -56,7 +60,8 @@ SOURCES += \
         painting/qmatrix.cpp \
         painting/qrasterizer.cpp \
         painting/qtransform.cpp  \
-        painting/qpathclipper.cpp
+        painting/qpathclipper.cpp \
+	painting/qmemrotate.cpp
 
         DEFINES += QT_RASTER_IMAGEENGINE
         win32:DEFINES += QT_RASTER_PAINTENGINE
@@ -81,8 +86,9 @@ win32 {
                 painting/qcolormap_win.cpp \
                 painting/qpaintdevice_win.cpp \
                 painting/qprintengine_win.cpp \
+                painting/qprinterinfo_win.cpp \
                 painting/qregion_win.cpp
-        !win32-borland:LIBS += -lmsimg32
+        !win32-borland:!wince*:LIBS += -lmsimg32
         contains(QT_CONFIG, direct3d) {
                 HEADERS += painting/qpaintengine_d3d_p.h
                 SOURCES += painting/qpaintengine_d3d.cpp
@@ -91,11 +97,9 @@ win32 {
         }
 }
 
-wince-* {
+wince* {
         SOURCES -= painting/qregion_win.cpp
-        SOURCES += painting/qregion_wce.cpp
 }
-
 
 unix:x11 {
         HEADERS += \
@@ -116,10 +120,16 @@ unix:x11 {
                 painting/qcolormap_mac.cpp \
                 painting/qpaintdevice_mac.cpp \
                 painting/qpaintengine_mac.cpp \
-                painting/qprintengine_mac.cpp
+                painting/qprintengine_mac.cpp \
+                painting/qprinterinfo_mac.cpp
 }
 
-unix:SOURCES += painting/qregion_unix.cpp
+unix:!mac {
+        HEADERS += \
+                painting/qprinterinfo_unix_p.h
+        SOURCES += \
+                painting/qprinterinfo_unix.cpp
+}
 
 win32|x11|embedded {
         SOURCES += painting/qbackingstore.cpp
@@ -154,35 +164,35 @@ mac {
     HEADERS += painting/qdrawhelper_x86_p.h \
                painting/qdrawhelper_mmx_p.h \
                painting/qdrawhelper_sse_p.h
-    mmx { 
+    mmx {
 	DEFINES += QT_HAVE_MMX
 	MMX_SOURCES += painting/qdrawhelper_mmx.cpp
     }
-    3dnow { 
+    3dnow {
 	DEFINES += QT_HAVE_3DNOW
 	MMX3DNOW_SOURCES += painting/qdrawhelper_mmx3dnow.cpp
 	sse {
 	    SSE3DNOW_SOURCES += painting/qdrawhelper_sse3dnow.cpp
 	}
     }
-    sse { 
+    sse {
 	DEFINES += QT_HAVE_SSE
 	SSE_SOURCES += painting/qdrawhelper_sse.cpp
 
         DEFINES += QT_HAVE_MMXEXT
     }
-    sse2 { 
+    sse2 {
 	DEFINES += QT_HAVE_SSE2
 	SSE2_SOURCES += painting/qdrawhelper_sse2.cpp
     }
-    iwmmxt { 
+    iwmmxt {
 	DEFINES += QT_HAVE_IWMMXT
 	IWMMXT_SOURCES += painting/qdrawhelper_iwmmxt.cpp
     }
 
     win32-g++|!win32:!*-icc* {
         mmx {
-            mmx_compiler.commands = $$QMAKE_CXX -c
+            mmx_compiler.commands = $$QMAKE_CXX -c -Winline
             mmx_compiler.commands += -mmmx
             mmx_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             mmx_compiler.dependency_type = TYPE_C
@@ -194,7 +204,7 @@ mac {
             QMAKE_EXTRA_COMPILERS += mmx_compiler
         }
         3dnow {
-            mmx3dnow_compiler.commands = $$QMAKE_CXX -c
+            mmx3dnow_compiler.commands = $$QMAKE_CXX -c -Winline
             mmx3dnow_compiler.commands += -m3dnow -mmmx
             mmx3dnow_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             mmx3dnow_compiler.dependency_type = TYPE_C
@@ -205,7 +215,7 @@ mac {
             silent:mmx3dnow_compiler.commands = @echo compiling[mmx3dnow] ${QMAKE_FILE_IN} && $$mmx3dnow_compiler.commands
             QMAKE_EXTRA_COMPILERS += mmx3dnow_compiler
 	    sse {
-                sse3dnow_compiler.commands = $$QMAKE_CXX -c
+                sse3dnow_compiler.commands = $$QMAKE_CXX -c -Winline
                 sse3dnow_compiler.commands += -m3dnow -msse
                 sse3dnow_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
                 sse3dnow_compiler.dependency_type = TYPE_C
@@ -218,7 +228,7 @@ mac {
 	    }
         }
         sse {
-            sse_compiler.commands = $$QMAKE_CXX -c
+            sse_compiler.commands = $$QMAKE_CXX -c -Winline
             sse_compiler.commands += -msse
             sse_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             sse_compiler.dependency_type = TYPE_C
@@ -230,7 +240,7 @@ mac {
             QMAKE_EXTRA_COMPILERS += sse_compiler
         }
         sse2 {
-            sse2_compiler.commands = $$QMAKE_CXX -c
+            sse2_compiler.commands = $$QMAKE_CXX -c -Winline
             sse2_compiler.commands += -msse2
             sse2_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             sse2_compiler.dependency_type = TYPE_C
@@ -242,8 +252,8 @@ mac {
             QMAKE_EXTRA_COMPILERS += sse2_compiler
         }
         iwmmxt {
-            iwmmxt_compiler.commands = $$QMAKE_CXX -c
-            iwmmxt_compiler.commands += -march=iwmmxt  -mtune=iwmmxt
+            iwmmxt_compiler.commands = $$QMAKE_CXX -c -Winline
+            iwmmxt_compiler.commands += -mcpu=iwmmxt
             iwmmxt_compiler.commands += $(CXXFLAGS) $(INCPATH) ${QMAKE_FILE_IN} -o ${QMAKE_FILE_OUT}
             iwmmxt_compiler.dependency_type = TYPE_C
             iwmmxt_compiler.output = ${QMAKE_VAR_OBJECTS_DIR}${QMAKE_FILE_BASE}$${first(QMAKE_EXT_OBJ)}
@@ -262,7 +272,6 @@ mac {
         iwmmxt: SOURCES += $$IWMMXT_SOURCES
     }
 }
-
 win32|x11|embedded {
         HEADERS += painting/qwindowsurface_p.h \
                    painting/qwindowsurface_raster_p.h

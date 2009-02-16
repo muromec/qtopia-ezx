@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,10 +50,9 @@
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtDesigner/QDesignerWidgetFactoryInterface>
 #include <QtDesigner/QDesignerCustomWidgetInterface>
-#include <QtDesigner/abstracticoncache.h>
+#include <abstractdialoggui_p.h>
 
 // shared
-#include <resourcefile_p.h>
 #include <scripterrordialog_p.h>
 
 #include <QtGui/QWidget>
@@ -72,13 +65,19 @@
 #include <QtGui/QApplication>
 #include <QtGui/QAbstractScrollArea>
 #include <QtGui/QMessageBox>
+#include <QtGui/QPixmap>
 
 #include <QtCore/QBuffer>
 #include <QtCore/qdebug.h>
 
+#include <qdesigner_propertysheet_p.h>
 #include <qdesigner_utils_p.h>
+#include <formwindowbase_p.h>
+#include <qtresourcemodel_p.h>
 
-static QString summarizeScriptErrors(const QFormScriptRunner::Errors &errors) 
+QT_BEGIN_NAMESPACE
+
+static QString summarizeScriptErrors(const QFormScriptRunner::Errors &errors)
 {
     QString rc =  QObject::tr("Script errors occurred:");
     foreach (QFormScriptRunner::Error error, errors) {
@@ -87,12 +86,16 @@ static QString summarizeScriptErrors(const QFormScriptRunner::Errors &errors)
     }
     return rc;
 }
- 
+
 namespace qdesigner_internal {
 
-QDesignerFormBuilder::QDesignerFormBuilder(QDesignerFormEditorInterface *core, Mode mode) : 
+QDesignerFormBuilder::QDesignerFormBuilder(QDesignerFormEditorInterface *core, Mode mode) :
     m_core(core),
-    m_mode(mode)
+    m_mode(mode),
+    m_pixmapCache(0),
+    m_iconCache(0),
+    m_ignoreCreateResources(false),
+    m_tempResourceSet(0)
 {
     Q_ASSERT(m_core);
     // Disable scripting in the editors.
@@ -101,8 +104,7 @@ QDesignerFormBuilder::QDesignerFormBuilder(QDesignerFormEditorInterface *core, M
     case DisableScripts:
         options |= QFormScriptRunner::DisableScripts;
         break;
-    case UseScriptAndContainerExtension:
-    case UseScriptForContainerExtension:
+    case EnableScripts:
         options |= QFormScriptRunner::DisableWarnings;
         options &= ~QFormScriptRunner::DisableScripts;
         break;
@@ -119,8 +121,29 @@ QWidget *QDesignerFormBuilder::createWidgetFromContents(const QString &contents,
 
 QWidget *QDesignerFormBuilder::create(DomUI *ui, QWidget *parentWidget)
 {
+    QtResourceSet *resourceSet = core()->resourceModel()->currentResourceSet();
+
+    // reload resource properties;
+    createResources(ui->elementResources());
+    core()->resourceModel()->setCurrentResourceSet(m_tempResourceSet);
+
+    m_ignoreCreateResources = true;
+    DesignerPixmapCache pixmapCache;
+    DesignerIconCache iconCache(&pixmapCache);
+    m_pixmapCache = &pixmapCache;
+    m_iconCache = &iconCache;
+
+    QWidget *widget = QFormBuilder::create(ui, parentWidget);
+
+    core()->resourceModel()->setCurrentResourceSet(resourceSet);
+    core()->resourceModel()->removeResourceSet(m_tempResourceSet);
+    m_tempResourceSet = 0;
+    m_ignoreCreateResources = false;
+    m_pixmapCache = 0;
+    m_iconCache = 0;
+
     m_customWidgetsWithScript.clear();
-    return QFormBuilder::create(ui, parentWidget);
+    return widget;
 }
 
 QWidget *QDesignerFormBuilder::createWidget(const QString &widgetName, QWidget *parentWidget, const QString &name)
@@ -146,31 +169,17 @@ QWidget *QDesignerFormBuilder::createWidget(const QString &widgetName, QWidget *
     return widget;
 }
 
-bool QDesignerFormBuilder::addItemContainerExtension(QWidget *widget, QWidget *parentWidget)
-{
-    QDesignerContainerExtension *container = qt_extension<QDesignerContainerExtension*>(m_core->extensionManager(), parentWidget);
-    if (!container)
-        return false;
-
-    container->addWidget(widget);
-    return true;
-}
-
 bool QDesignerFormBuilder::addItem(DomWidget *ui_widget, QWidget *widget, QWidget *parentWidget)
 {
     // Use container extension or rely on scripts unless main window.
     if (QFormBuilder::addItem(ui_widget, widget, parentWidget))
         return true;
 
-    // Use for mainwindow at any event
-    if (qobject_cast<const QMainWindow*>(parentWidget))
-        return addItemContainerExtension(widget, parentWidget);
-
-    // Assume the script populates the container
-    if (m_mode == UseScriptForContainerExtension && m_customWidgetsWithScript.contains(parentWidget))
-         return true;
-
-    return addItemContainerExtension(widget, parentWidget);;
+    if (QDesignerContainerExtension *container = qt_extension<QDesignerContainerExtension*>(m_core->extensionManager(), parentWidget)) {
+        container->addWidget(widget);
+        return true;
+    }
+    return false;
 }
 
 bool QDesignerFormBuilder::addItem(DomLayoutItem *ui_item, QLayoutItem *item, QLayout *layout)
@@ -180,12 +189,62 @@ bool QDesignerFormBuilder::addItem(DomLayoutItem *ui_item, QLayoutItem *item, QL
 
 QIcon QDesignerFormBuilder::nameToIcon(const QString &filePath, const QString &qrcPath)
 {
-    return QIcon(core()->iconCache()->resolveQrcPath(filePath, qrcPath, workingDirectory().absolutePath()));
+    Q_UNUSED(filePath)
+    Q_UNUSED(qrcPath)
+    qWarning() << "QDesignerFormBuilder::nameToIcon() is obsoleted";
+    return QIcon();
 }
 
 QPixmap QDesignerFormBuilder::nameToPixmap(const QString &filePath, const QString &qrcPath)
 {
-    return QPixmap(core()->iconCache()->resolveQrcPath(filePath, qrcPath, workingDirectory().absolutePath()));
+    Q_UNUSED(filePath)
+    Q_UNUSED(qrcPath)
+    qWarning() << "QDesignerFormBuilder::nameToPixmap() is obsoleted";
+    return QPixmap();
+}
+
+/* If the property is a enum or flag value, retrieve
+ * the existing enum/flag type via property sheet and use it to convert */
+
+static bool readDomEnumerationValue(const DomProperty *p,
+                                    const QDesignerPropertySheetExtension* sheet,
+                                    QVariant &v)
+{
+    switch (p->kind()) {
+    case DomProperty::Set: {
+        const int index = sheet->indexOf(p->attributeName());
+        if (index == -1)
+            return false;
+        const QVariant sheetValue = sheet->property(index);
+        if (qVariantCanConvert<PropertySheetFlagValue>(sheetValue)) {
+            const PropertySheetFlagValue f = qvariant_cast<PropertySheetFlagValue>(sheetValue);
+            bool ok = false;
+            v = f.metaFlags.parseFlags(p->elementSet(), &ok);
+            if (!ok)
+                designerWarning(f.metaFlags.messageParseFailed(p->elementSet()));
+            return true;
+        }
+    }
+        break;
+    case DomProperty::Enum: {
+        const int index = sheet->indexOf(p->attributeName());
+        if (index == -1)
+            return false;
+        const QVariant sheetValue = sheet->property(index);
+        if (qVariantCanConvert<PropertySheetEnumValue>(sheetValue)) {
+            const PropertySheetEnumValue e = qvariant_cast<PropertySheetEnumValue>(sheetValue);
+            bool ok = false;
+            v = e.metaEnum.parseEnum(p->elementEnum(), &ok);
+            if (!ok)
+                designerWarning(e.metaEnum.messageParseFailed(p->elementEnum()));
+            return true;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return false;
 }
 
 void QDesignerFormBuilder::applyProperties(QObject *o, const QList<DomProperty*> &properties)
@@ -201,31 +260,27 @@ void QDesignerFormBuilder::applyProperties(QObject *o, const QList<DomProperty*>
     const QMetaObject *meta = o->metaObject();
     const bool dynamicPropertiesAllowed = dynamicSheet && dynamicSheet->dynamicPropertiesAllowed() && strcmp(meta->className(), "QAxWidget") != 0;
 
+    QDesignerPropertySheet *designerPropertySheet = qobject_cast<QDesignerPropertySheet *>(
+                    core()->extensionManager()->extension(o, Q_TYPEID(QDesignerPropertySheetExtension)));
+
+    if (designerPropertySheet) {
+        if (designerPropertySheet->pixmapCache())
+            designerPropertySheet->setPixmapCache(m_pixmapCache);
+        if (designerPropertySheet->iconCache())
+            designerPropertySheet->setIconCache(m_iconCache);
+    }
+
     const DomPropertyList::const_iterator cend = properties.constEnd();
     for (DomPropertyList::const_iterator it = properties.constBegin(); it != cend; ++it) {
         DomProperty *p = *it;
-        const QString attributeName = p->attributeName();
         QVariant v;
-        if (sheet && p->kind() == DomProperty::Enum && qVariantCanConvert<EnumType>(sheet->property(sheet->indexOf(attributeName)))) {
-            const EnumType e = qvariant_cast<EnumType>(sheet->property(sheet->indexOf(attributeName)));
-            if (e.items.contains(p->elementEnum()))
-                v = e.items[p->elementEnum()];
-        } else if (sheet && p->kind() == DomProperty::Set && qVariantCanConvert<FlagType>(sheet->property(sheet->indexOf(attributeName)))) {
-            const FlagType e = qvariant_cast<FlagType>(sheet->property(sheet->indexOf(attributeName)));
-            uint flags = 0;
-            QStringList items = p->elementSet().split(QLatin1String("|"));
-            foreach (QString item, items) {
-                if (e.items.contains(item))
-                    flags |= e.items[item].toUInt();
-            }
-            v = flags;
-        } else {
+        if (!readDomEnumerationValue(p, sheet, v))
             v = toVariant(meta, p);
-        }
 
         if (v.isNull())
             continue;
 
+        const QString attributeName = p->attributeName();
         if (formBuilderExtra->applyPropertyInternally(o, attributeName, v))
             continue;
 
@@ -259,6 +314,22 @@ QWidget *QDesignerFormBuilder::create(DomWidget *ui_widget, QWidget *parentWidge
     return widget;
 }
 
+void QDesignerFormBuilder::createResources(DomResources *resources)
+{
+    if (m_ignoreCreateResources)
+        return;
+    QStringList paths;
+    if (resources != 0) {
+        const QList<DomResource*> dom_include = resources->elementInclude();
+        foreach (DomResource *res, dom_include) {
+            QString path = QDir::cleanPath(workingDirectory().absoluteFilePath(res->attributeLocation()));
+            paths << path;
+        }
+    }
+
+    m_tempResourceSet = core()->resourceModel()->addResourceSet(paths);
+}
+
 QLayout *QDesignerFormBuilder::create(DomLayout *ui_layout, QLayout *layout, QWidget *parentWidget)
 {
     return QFormBuilder::create(ui_layout, layout, parentWidget);
@@ -271,7 +342,8 @@ void QDesignerFormBuilder::loadExtraInfo(DomWidget *ui_widget, QWidget *widget, 
 
 QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface *fw,
                                              const QString &styleName,
-                                             ScriptErrors *scriptErrors, 
+                                             const QString &appStyleSheet,
+                                      ScriptErrors *scriptErrors,
                                              QString *errorMessage)
 {
     scriptErrors->clear();
@@ -286,7 +358,7 @@ QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface 
     }
 
     // load
-    QDesignerFormBuilder builder(fw->core(), UseScriptAndContainerExtension);
+    QDesignerFormBuilder builder(fw->core(), EnableScripts);
     builder.setWorkingDirectory(fw->absoluteDir());
 
     const bool warningsEnabled = QSimpleResource::setWarningsEnabled(false);
@@ -305,7 +377,7 @@ QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface 
     if (!scriptErrors->empty()) {
         *errorMessage = summarizeScriptErrors(*scriptErrors);
         delete widget;
-        return  0;        
+        return  0;
     }
 
     // Apply style stored in action if any
@@ -314,32 +386,66 @@ QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface 
         widget->setStyle(style);
         if (style->metaObject()->className() != QApplication::style()->metaObject()->className())
             widget->setPalette(style->standardPalette());
-        
+
         const QList<QWidget*> lst = qFindChildren<QWidget*>(widget);
         foreach (QWidget *w, lst)
             w->setStyle(style);
     }
+    // Fake application style sheet by prepending. (If this doesn't work, fake by nesting
+    // into parent widget).
+    if (!appStyleSheet.isEmpty()) {
+        QString styleSheet = appStyleSheet;
+        styleSheet += QLatin1Char('\n');
+        styleSheet +=  widget->styleSheet();
+        widget->setStyleSheet(styleSheet);
+    }
+
     widget->setWindowTitle(QObject::tr("%1 - [Preview]").arg(widget->windowTitle()));
     return widget;
 }
-    
-QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName) 
+
+QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName)
+{
+    return createPreview(fw, styleName, QString());
+}
+
+QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName, const QString &appStyleSheet, QString *errorMessage)
+{
+    ScriptErrors scriptErrors;
+    return  createPreview(fw, styleName, appStyleSheet, &scriptErrors, errorMessage);
+}
+
+QWidget *QDesignerFormBuilder::createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName, const QString &appStyleSheet)
 {
     ScriptErrors scriptErrors;
     QString errorMessage;
-    QWidget *widget = createPreview(fw, styleName, &scriptErrors, &errorMessage);
+    QWidget *widget = createPreview(fw, styleName, appStyleSheet, &scriptErrors, &errorMessage);
     if (!widget) {
         // Display Script errors or message box
         QWidget *dialogParent = fw->core()->topLevel();
         if (scriptErrors.empty()) {
-            QMessageBox::critical(dialogParent, QObject::tr("Designer"), errorMessage);
+            fw->core()->dialogGui()->message(dialogParent, QDesignerDialogGuiInterface::PreviewFailureMessage,
+                                             QMessageBox::Warning, QObject::tr("Designer"), errorMessage, QMessageBox::Ok);
         } else {
             ScriptErrorDialog scriptErrorDialog(scriptErrors, dialogParent);
             scriptErrorDialog.exec();
         }
         return 0;
-    }    
+    }
     return widget;
 }
 
+QPixmap QDesignerFormBuilder::createPreviewPixmap(const QDesignerFormWindowInterface *fw, const QString &styleName, const QString &appStyleSheet)
+{
+    QWidget *widget = createPreview(fw, styleName, appStyleSheet);
+    if (!widget)
+        return QPixmap();
+
+    const QPixmap rc = QPixmap::grabWidget (widget);
+    widget->deleteLater();
+    return rc;
+}
+
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE

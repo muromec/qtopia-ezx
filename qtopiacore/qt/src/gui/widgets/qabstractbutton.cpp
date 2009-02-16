@@ -1,47 +1,42 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qabstractbutton.h"
+#include "qabstractitemview.h"
 #include "qbuttongroup.h"
 #include "qabstractbutton_p.h"
 #include "qevent.h"
@@ -53,8 +48,12 @@
 #include "qaccessible.h"
 #endif
 
+QT_BEGIN_NAMESPACE
+
 #define AUTO_REPEAT_DELAY  300
 #define AUTO_REPEAT_INTERVAL 100
+
+extern bool qt_tab_all_widgets;
 
 /*!
     \class QAbstractButton
@@ -82,9 +81,7 @@
     ampersand ('&'), QAbstractButton automatically creates a shortcut
     key. For example:
 
-    \code
-        QPushButton *button = new QPushButton(tr("Ro&ck && Roll"), this);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qabstractbutton.cpp 0
 
     The \key Alt+C shortcut is assigned to the button, i.e., when the
     user presses \key Alt+C the button will call animateClick(). See
@@ -95,10 +92,7 @@
     function. This is useful mostly for buttons that do not have any
     text, because they have no automatic shortcut.
 
-    \code
-        button->setIcon(QIcon(":/images/print.png"));
-        button->setShortcut(tr("Alt+F7"));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qabstractbutton.cpp 1
 
     All of the buttons provided by Qt (QPushButton, QToolButton,
     QCheckBox, and QRadioButton) can display both \l text and \l{icon}{icons}.
@@ -316,16 +310,18 @@ QList<QAbstractButton *>QAbstractButtonPrivate::queryButtonList() const
 
     Q_Q(const QAbstractButton);
     QList<QAbstractButton*>candidates;
-    if (q->parentWidget() && autoExclusive) {
+    if (q->parentWidget()) {
         candidates =  qFindChildren<QAbstractButton *>(q->parentWidget());
-        for (int i = candidates.count() - 1; i >= 0; --i) {
-            QAbstractButton *candidate = candidates.at(i);
-            if (!candidate->autoExclusive()
+        if (autoExclusive) {
+            for (int i = candidates.count() - 1; i >= 0; --i) {
+                QAbstractButton *candidate = candidates.at(i);
+                if (!candidate->autoExclusive()
 #ifndef QT_NO_BUTTONGROUP
-                || candidate->group()
+                    || candidate->group()
 #endif
-                )
-                candidates.removeAt(i);
+                    )
+                    candidates.removeAt(i);
+            }
         }
     }
     return candidates;
@@ -340,7 +336,7 @@ QAbstractButton *QAbstractButtonPrivate::queryCheckedButton() const
 
     Q_Q(const QAbstractButton);
     QList<QAbstractButton *> buttonList = queryButtonList();
-    if (buttonList.count() == 1) // no group
+    if (!autoExclusive || buttonList.count() == 1) // no group
         return 0;
 
     for (int i = 0; i < buttonList.count(); ++i) {
@@ -377,67 +373,65 @@ void QAbstractButtonPrivate::moveFocus(int key)
     bool exclusive = autoExclusive;
 #endif
     QWidget *f = qApp->focusWidget();
-    QAbstractButton *fb = ::qobject_cast<QAbstractButton *>(f);
+    QAbstractButton *fb = qobject_cast<QAbstractButton *>(f);
     if (!fb || !buttonList.contains(fb))
         return;
-
+    
     QAbstractButton *candidate = 0;
     int bestScore = -1;
-    QRect fGeometry = f->geometry();
-
-    QPoint goal(f->mapToGlobal(fGeometry.center()));
+    QRect target = f->geometry();
+    QPoint goal = target.center();
+    uint focus_flag = qt_tab_all_widgets ? Qt::TabFocus : Qt::StrongFocus;
 
     for (int i = 0; i < buttonList.count(); ++i) {
         QAbstractButton *button = buttonList.at(i);
-        if (button != f && button->isEnabled()) {
-            QRect buttonGeometry = button->geometry();
-            QPoint p(button->mapToGlobal(buttonGeometry.center()));
-            int score = (p.y() - goal.y())*(p.y() - goal.y()) +
-                        (p.x() - goal.x())*(p.x() - goal.x());
-            bool betterScore = score < bestScore || !candidate;
+        if (button != f && button->isEnabled() && !button->isHidden() &&
+            (autoExclusive || (button->focusPolicy() & focus_flag) == focus_flag)) {
+            QRect buttonRect = button->geometry();
+            QPoint p = buttonRect.center();
+
+            //Priority to widgets that overlap on the same coordinate.
+            //In that case, the distance in the direction will be used as significant score,
+            //take also in account orthogonal distance in case two widget are in the same distance.
+            int score;
+            if ((buttonRect.x() < target.right() && target.x() < buttonRect.right())
+                  && (key == Qt::Key_Up || key == Qt::Key_Down)) {
+                //one item's is at the vertical of the other
+                score = (qAbs(p.y() - goal.y()) << 16) + qAbs(p.x() - goal.x());
+            } else if ((buttonRect.y() < target.bottom() && target.y() < buttonRect.bottom())
+                        && (key == Qt::Key_Left || key == Qt::Key_Right) ) {
+                //one item's is at the horizontal of the other
+                score = (qAbs(p.x() - goal.x()) << 16) + qAbs(p.y() - goal.y());
+            } else {
+                score = (1 << 30) + (p.y() - goal.y()) * (p.y() - goal.y()) + (p.x() - goal.x()) * (p.x() - goal.x());
+            }
+
+            if (score > bestScore && candidate)
+                continue;
+
             switch(key) {
             case Qt::Key_Up:
-                if (p.y() < goal.y() && betterScore) {
-                    if (qAbs(p.x() - goal.x()) < qAbs(p.y() - goal.y())) {
-                        candidate = button;
-                        bestScore = score;
-                    } else if (buttonGeometry.x() == fGeometry.x()) {
-                        candidate = button;
-                        bestScore = score/2;
-                    }
+                if (p.y() < goal.y()) {
+                    candidate = button;
+                    bestScore = score;
                 }
                 break;
             case Qt::Key_Down:
-                if (p.y() > goal.y() && betterScore) {
-                    if (qAbs(p.x() - goal.x()) < qAbs(p.y() - goal.y())) {
-                        candidate = button;
-                        bestScore = score;
-                    } else if (buttonGeometry.x() == fGeometry.x()) {
-                        candidate = button;
-                        bestScore = score/2;
-                    }
+                if (p.y() > goal.y()) {
+                    candidate = button;
+                    bestScore = score;
                 }
                 break;
             case Qt::Key_Left:
-                if (p.x() < goal.x() && betterScore) {
-                    if (qAbs(p.y() - goal.y()) < qAbs(p.x() - goal.x())) {
-                        candidate = button;
-                        bestScore = score;
-                    } else if (buttonGeometry.y() == fGeometry.y()) {
-                        candidate = button;
-                        bestScore = score/2;
-                    }
+                if (p.x() < goal.x()) {
+                    candidate = button;
+                    bestScore = score;
                 }
                 break;
             case Qt::Key_Right:
-                if (p.x() > goal.x() && betterScore) {
-                    if (qAbs(p.y() - goal.y()) < qAbs(p.x() - goal.x())) {
-                        candidate = button;
-                        bestScore = score;
-                    } else if (buttonGeometry.y() == fGeometry.y()) {
-                        candidate = button;
-                        bestScore = score/2;
-                    }
+                if (p.x() > goal.x()) {
+                    candidate = button;
+                    bestScore = score;
                 }
                 break;
             }
@@ -464,6 +458,12 @@ void QAbstractButtonPrivate::moveFocus(int key)
 void QAbstractButtonPrivate::fixFocusPolicy()
 {
     Q_Q(QAbstractButton);
+#ifndef QT_NO_BUTTONGROUP
+    if (!group && !autoExclusive)
+#else
+    if (!autoExclusive)
+#endif
+        return;
 
     QList<QAbstractButton *> buttonList = queryButtonList();
     for (int i = 0; i < buttonList.count(); ++i) {
@@ -539,7 +539,8 @@ void QAbstractButtonPrivate::emitClicked()
 #ifndef QT_NO_BUTTONGROUP
     if (guard && group) {
         emit group->buttonClicked(group->id(q));
-        emit group->buttonClicked(q);
+        if (guard && group)
+            emit group->buttonClicked(q);
     }
 #endif
 }
@@ -552,7 +553,8 @@ void QAbstractButtonPrivate::emitPressed()
 #ifndef QT_NO_BUTTONGROUP
     if (guard && group) {
         emit group->buttonPressed(group->id(q));
-        emit group->buttonPressed(q);
+        if (guard && group)
+            emit group->buttonPressed(q);
     }
 #endif
 }
@@ -565,7 +567,8 @@ void QAbstractButtonPrivate::emitReleased()
 #ifndef QT_NO_BUTTONGROUP
     if (guard && group) {
         emit group->buttonReleased(group->id(q));
-        emit group->buttonReleased(q);
+        if (guard && group)
+            emit group->buttonReleased(q);
     }
 #endif
 }
@@ -627,8 +630,7 @@ void QAbstractButton::setText(const QString &text)
     d->text = text;
 #ifndef QT_NO_SHORTCUT
     QKeySequence newMnemonic = QKeySequence::mnemonic(text);
-    if (!newMnemonic.isEmpty())
-        setShortcut(newMnemonic);
+    setShortcut(newMnemonic);
 #endif
     d->sizeHint = QSize();
     update();
@@ -934,7 +936,7 @@ void QAbstractButton::animateClick(int msec)
     if (!isEnabled())
         return;
     Q_D(QAbstractButton);
-    if (d->checkable && focusPolicy() != Qt::NoFocus)
+    if (d->checkable && focusPolicy() & Qt::ClickFocus)
         setFocus();
     setDown(true);
     repaint(); //flush paint event before invoking potentially expensive operation
@@ -1167,11 +1169,19 @@ void QAbstractButton::keyPressEvent(QKeyEvent *e)
             return;
         }
 #endif
+        QWidget *pw;
+        if (d->autoExclusive
 #ifndef QT_NO_BUTTONGROUP
-        if (d->group || d->autoExclusive) {
-#else
-        if (d->autoExclusive) {
+        || d->group
 #endif
+#ifndef QT_NO_ITEMVIEWS
+        || ((pw = parentWidget()) && qobject_cast<QAbstractItemView *>(pw->parentWidget()))
+#endif
+        ) {
+            // ### Using qobject_cast to check if the parent is a viewport of
+            // QAbstractItemView is a crude hack, and should be revisited and
+            // cleaned up when fixing task 194373. It's here to ensure that we
+            // keep compatibility outside QAbstractItemView.
             d->moveFocus(e->key());
             if (hasFocus()) // nothing happend, propagate
                 e->ignore();
@@ -1324,15 +1334,7 @@ For example, a slot that reacts to signals emitted by newly checked
 buttons but which ignores signals from buttons that have been unchecked
 can be implemented using the following pattern:
 
-\code
-void MyWidget::reactToToggle(bool checked)
-{
-   if (checked) {
-      // Examine the new button states.
-      ...
-   }
-}
-\endcode
+\snippet doc/src/snippets/code/src_gui_widgets_qabstractbutton.cpp 2
 
 Button groups can be created using the QButtonGroup class, and
 updates to the button states monitored with the
@@ -1354,7 +1356,7 @@ QSize QAbstractButton::iconSize() const
     Q_D(const QAbstractButton);
     if (d->iconSize.isValid())
         return d->iconSize;
-    int e = style()->pixelMetric(QStyle::PM_ButtonIconSize);
+    int e = style()->pixelMetric(QStyle::PM_ButtonIconSize, 0, this);
     return QSize(e, e);
 }
 
@@ -1447,5 +1449,6 @@ QAbstractButton::QAbstractButton(QWidget *parent, const char *name, Qt::WindowFl
 
     Use shortcut() instead.
 */
-
 #endif
+
+QT_END_NAMESPACE

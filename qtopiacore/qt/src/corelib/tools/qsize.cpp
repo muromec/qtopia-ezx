@@ -1,49 +1,45 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsize.h"
 #include "qdatastream.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QSize
@@ -185,19 +181,7 @@ void QSize::transpose()
     \endlist
 
     Example:
-    \code
-        QSize t1(10, 12);
-        t1.scale(60, 60, Qt::IgnoreAspectRatio);
-        // t1 is (60, 60)
-
-        QSize t2(10, 12);
-        t2.scale(60, 60, Qt::KeepAspectRatio);
-        // t2 is (50, 60)
-
-        QSize t3(10, 12);
-        t3.scale(60, 60, Qt::KeepAspectRatioByExpanding);
-        // t3 is (60, 72)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 0
 
     \sa setWidth(), setHeight()
 */
@@ -211,12 +195,12 @@ void QSize::transpose()
 */
 void QSize::scale(const QSize &s, Qt::AspectRatioMode mode)
 {
-    if (mode == Qt::IgnoreAspectRatio) {
+    if (mode == Qt::IgnoreAspectRatio || wd == 0 || ht == 0) {
         wd = s.wd;
         ht = s.ht;
     } else {
         bool useHeight;
-        int rw = qint32(qint64(s.ht) * qint64(wd) / qint64(ht));
+        qint64 rw = qint64(s.ht) * qint64(wd) / qint64(ht);
 
         if (mode == Qt::KeepAspectRatio) {
             useHeight = (rw <= s.wd);
@@ -242,12 +226,7 @@ void QSize::scale(const QSize &s, Qt::AspectRatioMode mode)
     Using a reference makes it possible to manipulate the width
     directly. For example:
 
-    \code
-        QSize size(100, 10);
-        size.rwidth() += 20;
-
-        // size becomes (120,10)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 1
 
     \sa rheight(), setWidth()
 */
@@ -260,12 +239,7 @@ void QSize::scale(const QSize &s, Qt::AspectRatioMode mode)
     Using a reference makes it possible to manipulate the height
     directly. For example:
 
-    \code
-        QSize size(100, 10);
-        size.rheight() += 5;
-
-        // size becomes (100,15)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 2
 
     \sa rwidth(), setHeight()
 */
@@ -276,13 +250,7 @@ void QSize::scale(const QSize &s, Qt::AspectRatioMode mode)
     Adds the given \a size to \e this size, and returns a reference to
     this size. For example:
 
-    \code
-        QSize s( 3, 7);
-        QSize r(-1, 4);
-        s += r;
-
-        // s becomes (2,11)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 3
 */
 
 /*!
@@ -291,13 +259,7 @@ void QSize::scale(const QSize &s, Qt::AspectRatioMode mode)
     Subtracts the given \a size from \e this size, and returns a
     reference to this size. For example:
 
-    \code
-        QSize s( 3, 7);
-        QSize r(-1, 4);
-        s -= r;
-
-        // s becomes (4,3)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 4
 */
 
 /*!
@@ -454,7 +416,7 @@ QDataStream &operator>>(QDataStream &s, QSize &sz)
 
 #ifndef QT_NO_DEBUG_STREAM
 QDebug operator<<(QDebug dbg, const QSize &s) {
-    dbg.nospace() << "QSize(" << s.width() << ',' << s.height() << ')';
+    dbg.nospace() << "QSize(" << s.width() << ", " << s.height() << ')';
     return dbg.space();
 }
 #endif
@@ -621,19 +583,7 @@ void QSizeF::transpose()
     \endlist
 
     Example:
-    \code
-        QSizeF t1(10, 12);
-        t1.scale(60, 60, Qt::IgnoreAspectRatio);
-        // t1 is (60, 60)
-
-        QSizeF t2(10, 12);
-        t2.scale(60, 60, Qt::KeepAspectRatio);
-        // t2 is (50, 60)
-
-        QSizeF t3(10, 12);
-        t3.scale(60, 60, Qt::KeepAspectRatioByExpanding);
-        // t3 is (60, 72)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 5
 
     \sa setWidth(), setHeight()
 */
@@ -647,7 +597,7 @@ void QSizeF::transpose()
 */
 void QSizeF::scale(const QSizeF &s, Qt::AspectRatioMode mode)
 {
-    if (mode == Qt::IgnoreAspectRatio) {
+    if (mode == Qt::IgnoreAspectRatio || qIsNull(wd) || qIsNull(ht)) {
         wd = s.wd;
         ht = s.ht;
     } else {
@@ -678,12 +628,7 @@ void QSizeF::scale(const QSizeF &s, Qt::AspectRatioMode mode)
     Using a reference makes it possible to manipulate the width
     directly. For example:
 
-    \code
-        QSizeF size(100.3, 10);
-        size.rwidth() += 20.5;
-
-         // size becomes (120.8,10)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 6
 
     \sa rheight(), setWidth()
 */
@@ -696,12 +641,7 @@ void QSizeF::scale(const QSizeF &s, Qt::AspectRatioMode mode)
     Using a reference makes it possible to manipulate the height
     directly. For example:
 
-    \code
-        QSizeF size(100, 10.2);
-        size.rheight() += 5.5;
-
-        // size becomes (100,15.7)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 7
 
     \sa rwidth(), setHeight()
 */
@@ -712,13 +652,7 @@ void QSizeF::scale(const QSizeF &s, Qt::AspectRatioMode mode)
     Adds the given \a size to this size and returns a reference to
     this size. For example:
 
-    \code
-        QSizeF s( 3, 7);
-        QSizeF r(-1, 4);
-        s += r;
-
-        // s becomes (2,11)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 8
 */
 
 /*!
@@ -727,13 +661,7 @@ void QSizeF::scale(const QSizeF &s, Qt::AspectRatioMode mode)
     Subtracts the given \a size from this size and returns a reference
     to this size. For example:
 
-    \code
-        QSizeF s( 3, 7);
-        QSizeF r(-1, 4);
-        s -= r;
-
-        // s becomes (4,3)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qsize.cpp 9
 */
 
 /*!
@@ -884,7 +812,9 @@ QDataStream &operator>>(QDataStream &s, QSizeF &sz)
 
 #ifndef QT_NO_DEBUG_STREAM
 QDebug operator<<(QDebug dbg, const QSizeF &s) {
-    dbg.nospace() << "QSizeF(" << s.width() << ',' << s.height() << ')';
+    dbg.nospace() << "QSizeF(" << s.width() << ", " << s.height() << ')';
     return dbg.space();
 }
 #endif
+
+QT_END_NAMESPACE

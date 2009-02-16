@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,8 @@
 #include "qscriptnameid_p.h"
 
 #include <QtCore/qnumeric.h>
+
+QT_BEGIN_NAMESPACE
 
 //
 //  W A R N I N G
@@ -117,9 +113,9 @@ inline void QScriptContextPrivate::init(QScriptContext *parent)
     m_scopeChain.invalidate();
     m_callee.invalidate();
     m_arguments.invalidate();
-    currentLine = 0;
-    currentColumn = 0;
-    errorLineNumber = 0;
+    currentLine = -1;
+    currentColumn = -1;
+    errorLineNumber = -1;
     m_calledAsConstructor = false;
 }
 
@@ -177,6 +173,7 @@ inline bool QScriptContextPrivate::eq_cmp(const QScriptValueImpl &lhs, const QSc
         case QScript::NumberType:
             return lhs.m_number_value == rhs.m_number_value;
 
+        case QScript::ReferenceType:
         case QScript::IntegerType:
             return lhs.m_int_value == rhs.m_int_value;
 
@@ -188,13 +185,18 @@ inline bool QScriptContextPrivate::eq_cmp(const QScriptValueImpl &lhs, const QSc
                 return lhs.m_string_value == rhs.m_string_value;
             return lhs.m_string_value->s == rhs.m_string_value->s;
 
-        case QScript::VariantType:
-            return lhs.m_object_value == rhs.m_object_value || lhs.toVariant() == rhs.toVariant();
+        case QScript::PointerType:
+            return lhs.m_ptr_value == rhs.m_ptr_value;
 
-        default:
-            if (lhs.isObject())
+        case QScript::ObjectType:
+            if (lhs.isVariant())
+                return lhs.m_object_value == rhs.m_object_value || lhs.toVariant() == rhs.toVariant();
+#ifndef QT_NO_QOBJECT
+            else if (lhs.isQObject())
+                return lhs.m_object_value == rhs.m_object_value || lhs.toQObject() == rhs.toQObject();
+#endif
+            else
                 return lhs.m_object_value == rhs.m_object_value;
-            break;
         }
     }
 
@@ -226,9 +228,6 @@ inline bool QScriptContextPrivate::strict_eq_cmp(const QScriptValueImpl &lhs, co
         if (lhs.m_string_value->unique && rhs.m_string_value->unique)
             return lhs.m_string_value == rhs.m_string_value;
         return lhs.m_string_value->s == rhs.m_string_value->s;
-
-    case QScript::VariantType:
-        return lhs.m_object_value == rhs.m_object_value || lhs.toVariant() == rhs.toVariant();
 
     default:
         if (lhs.isObject())
@@ -313,6 +312,8 @@ inline QScriptContext::ExecutionState QScriptContextPrivate::state() const
 {
     return m_state;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT
 #endif

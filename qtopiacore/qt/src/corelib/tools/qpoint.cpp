@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,7 @@
 #include "qdatastream.h"
 #include "qdebug.h"
 
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QPoint
@@ -63,13 +58,7 @@
 
     Given a point \e p, the following statements are all equivalent:
 
-    \code
-        QPoint p;
-
-        p.setX(p.x() + 1);
-        p += QPoint(1, 0);
-        p.rx()++;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 0
 
     A QPoint object can also be used as a vector: Addition and
     subtraction are defined as for vectors (each component is added
@@ -152,10 +141,7 @@
 
     Using a reference makes it possible to directly manipulate x. For example:
 
-    \code
-        QPoint p(1, 2);
-        p.rx()--;   // p becomes (0, 2)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 1
 
     \sa x() setX()
 */
@@ -168,10 +154,7 @@
     Using a reference makes it possible to directly manipulate y. For
     example:
 
-    \code
-        QPoint p(1, 2);
-        p.ry()++;   // p becomes (1, 3)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 2
 
     \sa y(), setY()
 */
@@ -183,11 +166,7 @@
     Adds the given \a point to this point and returns a reference to
     this point. For example:
 
-    \code
-        QPoint p( 3, 7);
-        QPoint q(-1, 4);
-        p += q;    // p becomes (2, 11)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 3
 
     \sa operator-=()
 */
@@ -198,11 +177,7 @@
     Subtracts the given \a point from this point and returns a
     reference to this point. For example:
 
-    \code
-        QPoint p( 3, 7);
-        QPoint q(-1, 4);
-        p -= q;    // p becomes (4, 3)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 4
 
     \sa operator+=()
 */
@@ -213,10 +188,7 @@
     Multiplies this point's coordinates by the given \a factor, and
     returns a reference to this point. For example:
 
-    \code
-        QPoint p(-1, 4);
-        p *= 2.5;    // p becomes (-3, 10)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 5
 
     Note that the result is rounded to the nearest integer as points are held as
     integers. Use QPointF for floating point accuracy.
@@ -298,10 +270,7 @@
     Divides both x and y by the given \a divisor, and returns a reference to this
     point. For example:
 
-    \code
-        QPoint p(-3, 10);
-        p /= 2.5;           // p becomes (-1, 4)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 6
 
     Note that the result is rounded to the nearest integer as points are held as
     integers. Use QPointF for floating point accuracy.
@@ -376,23 +345,12 @@ QDataStream &operator>>(QDataStream &s, QPoint &p)
     traditionally known as the "Manhattan length" of the vector from
     the origin to the point. For example:
 
-    \code
-        QPoint oldPosition;
-
-        MyWidget::mouseMoveEvent(QMouseEvent *event)
-        {
-            QPoint point = event->pos() - oldPosition;
-            if (point.manhattanLength() > 3)
-                // the mouse has moved more than 3 pixels since the oldPosition
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 7
 
     This is a useful, and quick to calculate, approximation to the
     true length:
 
-    \code
-        int trueManhattanLength = sqrt(pow(x(), 2) + pow(y(), 2));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 8
 
     The tradition of "Manhattan length" arises because such distances
     apply to travelers who can only travel on a rectangular grid, like
@@ -411,7 +369,7 @@ QDebug operator<<(QDebug dbg, const QPoint &p) {
 
 QDebug operator<<(QDebug d, const QPointF &p)
 {
-    d << "QPointF(" << p.x() << ", " << p.y() << ")";
+    d.nospace() << "QPointF(" << p.x() << ", " << p.y() << ")";
     return d;
 }
 #endif
@@ -434,13 +392,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
 
     Given a point \e p, the following statements are all equivalent:
 
-    \code
-        QPointF p;
-
-        p.setX(p.x() + 1.0);
-        p += QPoint(1.0, 0.0);
-        p.rx()++;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 9
 
     A QPointF object can also be used as a vector: Addition and
     subtraction are defined as for vectors (each component is added
@@ -525,10 +477,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
 
     Using a reference makes it possible to directly manipulate x. For example:
 
-    \code
-         QPoint p(1.1, 2.5);
-         p.rx()--;   // p becomes (0.1, 2.5)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 10
 
     \sa x(), setX()
 */
@@ -540,10 +489,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
 
     Using a reference makes it possible to directly manipulate y. For example:
 
-    \code
-        QPoint p(1.1, 2.5);
-        p.ry()++;   // p becomes (1.1, 3.5)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 11
 
     \sa y() setY()
 */
@@ -554,11 +500,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
     Adds the given \a point to this point and returns a reference to
     this point. For example:
 
-    \code
-        QPoint p( 3.1, 7.1);
-        QPoint q(-1.0, 4.1);
-        p += q;    // p becomes (2.1, 11.2)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 12
 
     \sa operator-=()
 */
@@ -569,11 +511,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
     Subtracts the given \a point from this point and returns a reference
     to this point. For example:
 
-    \code
-        QPoint p( 3.1, 7.1);
-        QPoint q(-1.0, 4.1);
-        p -= q;    // p becomes (4.1, 3.0)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 13
 
     \sa operator+=()
 */
@@ -584,10 +522,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
     Multiplies this point's coordinates by the given \a factor, and
     returns a reference to this point. For example:
 
-    \code
-         QPoint p(-1.1, 4.1);
-         p *= 2.5;    // p becomes (-2.75,10.25)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 14
 
     \sa operator/=()
 */
@@ -598,10 +533,7 @@ QDebug operator<<(QDebug d, const QPointF &p)
     Divides both x and y by the given \a divisor, and returns a reference
     to this point. For example:
 
-    \code
-        QPoint p(-2.75, 10.25);
-        p /= 2.5;           // p becomes (-1.1,4.1)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qpoint.cpp 15
 
     \sa operator*=()
 */
@@ -725,3 +657,5 @@ QDataStream &operator>>(QDataStream &s, QPointF &p)
     return s;
 }
 #endif // QT_NO_DATASTREAM
+
+QT_END_NAMESPACE

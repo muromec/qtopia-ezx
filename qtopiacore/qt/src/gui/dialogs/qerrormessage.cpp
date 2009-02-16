@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef Q_OS_WINCE
+extern bool qt_wince_is_mobile();    //defined in qguifunctions_wince.cpp
+extern bool qt_wince_is_high_dpi();  //defined in qguifunctions_wince.cpp
+
+#include "qguifunctions_wince.h"
+#endif
+
+QT_BEGIN_NAMESPACE
+
 class QErrorMessagePrivate : public QDialogPrivate
 {
     Q_DECLARE_PUBLIC(QErrorMessage)
@@ -72,6 +75,7 @@ public:
     QLabel * icon;
     QStringList pending;
     QHash<QString, int> doNotShow;
+    QString currentMessage;
 
     bool nextPending();
     void retranslateStrings();
@@ -89,12 +93,32 @@ public:
 
 QSize QErrorMessageTextView::minimumSizeHint() const
 {
+#ifdef Q_OS_WINCE
+    if (qt_wince_is_mobile())
+         if (qt_wince_is_high_dpi())
+            return QSize(200, 200);
+         else
+             return QSize(100, 100);
+    else
+      return QSize(70, 70);
+#else
     return QSize(50, 50);
+#endif
 }
 
 QSize QErrorMessageTextView::sizeHint() const
 {
+#ifdef Q_OS_WINCE
+    if (qt_wince_is_mobile())
+         if (qt_wince_is_high_dpi())
+            return QSize(400, 200);
+         else
+             return QSize(320, 120);
+    else
+      return QSize(300, 100);
+#else
     return QSize(250, 75);
+#endif
 }
 
 /*!
@@ -209,6 +233,9 @@ QErrorMessage::QErrorMessage(QWidget * parent)
     d->again->setChecked(true);
     grid->addWidget(d->again, 1, 1, Qt::AlignTop);
     d->ok = new QPushButton(this);
+#ifdef Q_OS_WINCE
+    d->ok->setFixedSize(0,0);
+#endif
     connect(d->ok, SIGNAL(clicked()), this, SLOT(accept()));
     d->ok->setFocus();
     grid->addWidget(d->ok, 2, 0, 1, 2, Qt::AlignCenter);
@@ -239,8 +266,9 @@ QErrorMessage::~QErrorMessage()
 void QErrorMessage::done(int a)
 {
     Q_D(QErrorMessage);
-    if (!d->again->isChecked())
-        d->doNotShow.insert(d->errors->toPlainText(), 0);
+    if (!d->again->isChecked() && !d->currentMessage.isEmpty())
+        d->doNotShow.insert(d->currentMessage, 0);
+    d->currentMessage.clear();
     if (!d->nextPending()) {
         QDialog::done(a);
         if (this == qtMessageHandler && metFatal)
@@ -274,7 +302,12 @@ bool QErrorMessagePrivate::nextPending()
     while (!pending.isEmpty()) {
         QString p = pending.takeFirst();
         if (!p.isEmpty() && !doNotShow.contains(p)) {
+#ifndef QT_NO_TEXTHTMLPARSER
             errors->setHtml(p);
+#else
+            errors->setPlainText(p);
+#endif
+            currentMessage = p;
             return true;
         }
     }
@@ -323,5 +356,7 @@ void QErrorMessagePrivate::retranslateStrings()
 
     Use showMessage(\a message) instead.
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_ERRORMESSAGE

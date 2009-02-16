@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -72,6 +66,8 @@
 #include <fontconfig/fcfreetype.h>
 #endif
 #endif
+
+QT_BEGIN_NAMESPACE
 
 // from qfont_x11.cpp
 extern double qt_pointSize(double pixelSize, int dpi);
@@ -496,7 +492,7 @@ static inline bool isFixedPitch(char **tokens)
 
   Returns true if the the given xlfd is valid.
 */
-bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi)
+bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi, QtFontDesc *desc)
 {
     char *tokens[NFontFields];
     QByteArray buffer = xlfd;
@@ -509,7 +505,7 @@ bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi)
     fd->styleStrategy |= QFont::NoAntialias;
     fd->family = QString::fromLatin1(tokens[Family]);
     QString foundry = QString::fromLatin1(tokens[Foundry]);
-    if (! foundry.isEmpty() && foundry != QString::fromLatin1("*"))
+    if (! foundry.isEmpty() && foundry != QString::fromLatin1("*") && (!desc || desc->family->count > 1))
         fd->family +=
             QString::fromLatin1(" [") + foundry + QString::fromLatin1("]");
 
@@ -548,7 +544,7 @@ bool qt_fillFontDef(const QByteArray &xlfd, QFontDef *fd, int dpi)
   Returns true if the QFontDef could be filled with properties from
   the XFontStruct.
 */
-static bool qt_fillFontDef(XFontStruct *fs, QFontDef *fd, int dpi)
+static bool qt_fillFontDef(XFontStruct *fs, QFontDef *fd, int dpi, QtFontDesc *desc)
 {
     unsigned long value;
     if (!fs || !XGetFontProperty(fs, XA_FONT, &value))
@@ -558,7 +554,7 @@ static bool qt_fillFontDef(XFontStruct *fs, QFontDef *fd, int dpi)
     QByteArray xlfd(n);
     if (n)
         XFree(n);
-    return qt_fillFontDef(xlfd.toLower(), fd, dpi);
+    return qt_fillFontDef(xlfd.toLower(), fd, dpi, desc);
 }
 
 
@@ -745,8 +741,6 @@ QFontDef qt_FcPatternToQFontDef(FcPattern *pattern, const QFontDef &request)
     FcChar8 *value = 0;
     if (FcPatternGetString(pattern, FC_FAMILY, 0, &value) == FcResultMatch) {
         fontDef.family = QString::fromUtf8(reinterpret_cast<const char *>(value));
-        fontDef.family.replace(QLatin1Char('-'), QLatin1Char(' '));
-        fontDef.family.remove(QLatin1Char('/'));
     }
 
     double dpi;
@@ -840,7 +834,7 @@ static const char *specialLanguages[] = {
 };
 enum { SpecialLanguageCount = sizeof(specialLanguages) / sizeof(const char *) };
 
-static ushort specialChars[] = {
+static const ushort specialChars[] = {
     0, // English
     0, // Greek
     0, // Cyrillic
@@ -1012,7 +1006,6 @@ static void loadFontConfig()
     FcFontSet  *fonts;
 
     QString familyName;
-    QString rawName;
     FcChar8 *value = 0;
     int weight_value;
     int slant_value;
@@ -1049,9 +1042,7 @@ static void loadFontConfig()
         if (FcPatternGetString(fonts->fonts[i], FC_FAMILY, 0, &value) != FcResultMatch)
             continue;
         //         capitalize(value);
-        rawName = familyName = QString::fromUtf8((const char *)value);
-        familyName.replace(QLatin1Char('-'), QLatin1Char(' '));
-        familyName.remove(QLatin1Char('/'));
+        familyName = QString::fromUtf8((const char *)value);
         slant_value = FC_SLANT_ROMAN;
         weight_value = FC_WEIGHT_MEDIUM;
         spacing_value = FC_PROPORTIONAL;
@@ -1074,7 +1065,6 @@ static void loadFontConfig()
         if (FcPatternGetString(fonts->fonts[i], FC_FOUNDRY, 0, &foundry_value) != FcResultMatch)
 	    foundry_value = 0;
         QtFontFamily *family = db->family(familyName, true);
-        family->rawName = rawName;
 
         FcLangSet *langset = 0;
         FcResult res = FcPatternGetLangSet(fonts->fonts[i], FC_LANG, 0, &langset);
@@ -1181,7 +1171,6 @@ static void loadFontConfig()
     while (f->qtname) {
         QtFontFamily *family = db->family(QLatin1String(f->qtname), true);
         family->fixedPitch = f->fixed;
-        family->rawName = QLatin1String(f->rawname);
         family->synthetic = true;
         QtFontFoundry *foundry = family->foundry(QString(), true);
 
@@ -1264,7 +1253,7 @@ static void checkSymbolFont(QtFontFamily *family)
     QFreetypeFace *f = QFreetypeFace::getFace(id);
     if (!f) {
         qWarning("checkSymbolFonts: Couldn't open face %s (%s/%d)",
-                 qPrintable(family->rawName), family->fontFilename.data(), family->fontFileIndex);
+                 qPrintable(family->name), family->fontFilename.data(), family->fontFileIndex);
         return;
     }
     for (int i = 0; i < f->face->num_charmaps; ++i) {
@@ -1462,7 +1451,7 @@ void qt_addPatternProps(FcPattern *pattern, int screen, int script, const QFontD
         slant_value = FC_SLANT_OBLIQUE;
     FcPatternAddInteger(pattern, FC_SLANT, slant_value);
 
-    double size_value = request.pixelSize;
+    double size_value = qMax(1, request.pixelSize);
     FcPatternAddDouble(pattern, FC_PIXEL_SIZE, size_value);
 
     int stretch = request.stretch;
@@ -1516,7 +1505,7 @@ static FcPattern *getFcPattern(const QFontPrivate *fp, int script, const QFontDe
             FcPatternAdd(pattern, FC_FAMILY, value, FcTrue);
         }
         if (i == 0) {
-            ::match(script, request, family, foundry, -1, &desc);
+            QT_PREPEND_NAMESPACE(match)(script, request, family, foundry, -1, &desc);
             if (!foundry.isEmpty()) {
                 QByteArray cs = foundry.toUtf8();
                 value.u.s = (const FcChar8 *)cs.data();
@@ -1538,7 +1527,7 @@ static FcPattern *getFcPattern(const QFontPrivate *fp, int script, const QFontDe
         FcPatternAddInteger(pattern, FC_SPACING, pitch_value);
     }
     FcPatternAddBool(pattern, FC_OUTLINE, !(request.styleStrategy & QFont::PreferBitmap));
-    if (::preferScalable(request) || (desc.style && desc.style->smoothScalable))
+    if (preferScalable(request) || (desc.style && desc.style->smoothScalable))
         FcPatternAddBool(pattern, FC_SCALABLE, true);
 
     qt_addPatternProps(pattern, fp->screen, script, request);
@@ -1602,6 +1591,8 @@ static QFontEngine *tryPatternLoad(FcPattern *p, int screen,
     FcResult res;
     FcPattern *match = FcFontMatch(0, pattern, &res);
     QFontEngineX11FT *engine = 0;
+    if (!match) // probably no fonts available.
+        goto done;
 
     if (script != QUnicodeTables::Common) {
         // skip font if it doesn't support the language we want
@@ -1633,8 +1624,8 @@ static QFontEngine *tryPatternLoad(FcPattern *p, int screen,
         delete engine;
         engine = 0;
     } else if (scriptRequiresOpenType(script)) {
-        QOpenType *ot = engine->openType();
-        if (!ot || !ot->supportsScript(script)) {
+        HB_Face hbFace = engine->harfbuzzFace();
+        if (!hbFace || !hbFace->supported_scripts[script]) {
             FM_DEBUG("  OpenType support missing for script\n");
             delete engine;
             engine = 0;
@@ -1751,17 +1742,19 @@ static QFontEngine *loadRaw(const QFontPrivate *fp, const QFontDef &request)
             return 0;
 
     fe = new QFontEngineXLFD(xfs, xlfd, 0);
-    if (! qt_fillFontDef(xfs, &fe->fontDef, fp->dpi) &&
-        ! qt_fillFontDef(xlfd, &fe->fontDef, fp->dpi))
+    if (! qt_fillFontDef(xfs, &fe->fontDef, fp->dpi, 0) &&
+        ! qt_fillFontDef(xlfd, &fe->fontDef, fp->dpi, 0))
         fe->fontDef = QFontDef();
     return fe;
 }
 
 QFontEngine *QFontDatabase::loadXlfd(int screen, int script, const QFontDef &request, int force_encoding_id)
 {
+    QMutexLocker locker(fontDatabaseMutex());
+
     QtFontDesc desc;
     FM_DEBUG() << "---> loadXlfd: request is" << request.family;
-    QStringList families_and_foundries = ::familyList(request);
+    QStringList families_and_foundries = familyList(request);
     const char *stylehint = styleHint(request);
     if (stylehint)
         families_and_foundries << QString::fromLatin1(stylehint);
@@ -1769,9 +1762,9 @@ QFontEngine *QFontDatabase::loadXlfd(int screen, int script, const QFontDef &req
     FM_DEBUG() << "loadXlfd: list is" << families_and_foundries;
     for (int i = 0; i < families_and_foundries.size(); ++i) {
         QString family, foundry;
-        ::parseFontName(families_and_foundries.at(i), foundry, family);
+        QT_PREPEND_NAMESPACE(parseFontName)(families_and_foundries.at(i), foundry, family);
         FM_DEBUG("loadXlfd: >>>>>>>>>>>>>>trying to match '%s' encoding=%d", family.toLatin1().data(), force_encoding_id);
-        ::match(script, request, family, foundry, force_encoding_id, &desc);
+        QT_PREPEND_NAMESPACE(match)(script, request, family, foundry, force_encoding_id, &desc);
         if (desc.family)
             break;
     }
@@ -1822,8 +1815,8 @@ QFontEngine *QFontDatabase::loadXlfd(int screen, int script, const QFontDef &req
             if ((xfs = XLoadQueryFont(QX11Info::display(), xlfd))) {
                 fe = new QFontEngineXLFD(xfs, xlfd, mib);
                 const int dpi = QX11Info::appDpiY();
-                if (!qt_fillFontDef(xfs, &fe->fontDef, dpi)
-                    && !qt_fillFontDef(xlfd, &fe->fontDef, dpi)) {
+                if (!qt_fillFontDef(xfs, &fe->fontDef, dpi, &desc)
+                    && !qt_fillFontDef(xlfd, &fe->fontDef, dpi, &desc)) {
                     initFontDef(desc, request, &fe->fontDef);
                 }
             }
@@ -1874,9 +1867,6 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
 {
     Q_ASSERT(script >= 0 && script < QUnicodeTables::ScriptCount);
 
-    if (!privateDb()->count)
-        initializeDb();
-
     // normalize the request to get better caching
     QFontDef req = d->request;
     if (req.pixelSize <= 0)
@@ -1898,19 +1888,25 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
     // set it to the actual pointsize, so QFontInfo will do the right thing
     req.pointSize = qt_pointSize(req.pixelSize, d->dpi);
 
-    QFontEngine *fe = QFontCache::instance->findEngine(key);
+    QFontEngine *fe = QFontCache::instance()->findEngine(key);
 
     if (!fe) {
+        QMutexLocker locker(fontDatabaseMutex());
+        if (!privateDb()->count)
+            initializeDb();
+
+        const bool mainThread = (qApp->thread() == QThread::currentThread());
         if (qt_enable_test_font && req.family == QLatin1String("__Qt__Box__Engine__")) {
             fe = new QTestFontEngine(req.pixelSize);
             fe->fontDef = req;
         } else if (d->rawMode) {
-            fe = loadRaw(d, req);
+            if (mainThread)
+                fe = loadRaw(d, req);
 #ifndef QT_NO_FONTCONFIG
         } else if (X11->has_fontconfig) {
             fe = loadFc(d, script, req);
 #endif
-        } else {
+        } else if (mainThread) {
             fe = loadXlfd(d->screen, script, req);
         }
         if (!fe) {
@@ -1929,7 +1925,7 @@ void QFontDatabase::load(const QFontPrivate *d, int script)
         d->engineData->engines[script] = fe;
         fe->ref.ref();
     }
-    QFontCache::instance->insertEngine(key, fe);
+    QFontCache::instance()->insertEngine(key, fe);
 }
 
 static void registerFont(QFontDatabasePrivate::ApplicationFont *fnt)
@@ -1984,8 +1980,6 @@ static void registerFont(QFontDatabasePrivate::ApplicationFont *fnt)
         FcChar8 *fam = 0;
         if (FcPatternGetString(pattern, FC_FAMILY, 0, &fam) == FcResultMatch) {
             QString family = QString::fromUtf8(reinterpret_cast<const char *>(fam));
-            family.replace(QLatin1Char('-'), QLatin1Char(' '));
-            family.remove(QLatin1Char('/'));
             families << family;
         }
 
@@ -2004,6 +1998,8 @@ bool QFontDatabase::removeApplicationFont(int handle)
 #if defined(QT_NO_FONTCONFIG)
     return false;
 #else
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     if (handle < 0 || handle >= db->applicationFonts.count())
         return false;
@@ -2023,6 +2019,8 @@ bool QFontDatabase::removeAllApplicationFonts()
 #if defined(QT_NO_FONTCONFIG)
     return false;
 #else
+    QMutexLocker locker(fontDatabaseMutex());
+
     QFontDatabasePrivate *db = privateDb();
     if (db->applicationFonts.isEmpty())
         return false;
@@ -2034,3 +2032,13 @@ bool QFontDatabase::removeAllApplicationFonts()
 #endif
 }
 
+bool QFontDatabase::supportsThreadedFontRendering()
+{
+#if defined(QT_NO_FONTCONFIG)
+    return false;
+#else
+    return X11->has_fontconfig;
+#endif
+}
+
+QT_END_NAMESPACE

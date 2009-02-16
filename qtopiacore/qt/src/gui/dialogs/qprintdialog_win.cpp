@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,8 @@
 
 #include <private/qabstractprintdialog_p.h>
 #include <private/qprintengine_win_p.h>
+
+QT_BEGIN_NAMESPACE
 
 extern void qt_win_eatMouseMove();
 
@@ -75,16 +71,23 @@ public:
     QWin32PrintEnginePrivate *ep;
 };
 
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
 // If you change this function, make sure you also change the unicode equivalent
-static PRINTDLGA *qt_win_make_PRINTDLGA(QWidget *parent, QPrintDialog *pdlg, QPrintDialogPrivate *d, HGLOBAL *tempDevNames)
+template <class PrintDialog, class DeviceMode>
+static PrintDialog *qt_win_make_PRINTDLG(QWidget *parent,
+                                         QPrintDialog *pdlg,
+                                         QPrintDialogPrivate *d, HGLOBAL *tempDevNames)
 {
-    PRINTDLGA *pd = new PRINTDLGA;
-    memset(pd, 0, sizeof(PRINTDLGA));
-    pd->lStructSize = sizeof(PRINTDLGA);
+    PrintDialog *pd = new PrintDialog;
+    memset(pd, 0, sizeof(PrintDialog));
+    pd->lStructSize = sizeof(PrintDialog);
 
-    if (d->ep->devModeA() != 0) {
-        int size = sizeof(DEVMODEA) + d->ep->devModeA()->dmDriverExtra;
+    void *devMode = sizeof(DeviceMode) == sizeof(DEVMODEA)
+                    ? (void *) d->ep->devModeA()
+                    : (void *) d->ep->devModeW();
+
+    if (devMode) {
+        int size = sizeof(DeviceMode) + ((DeviceMode *) devMode)->dmDriverExtra;
         pd->hDevMode = GlobalAlloc(GHND, size);
         {
             void *dest = GlobalLock(pd->hDevMode);
@@ -131,16 +134,20 @@ static PRINTDLGA *qt_win_make_PRINTDLGA(QWidget *parent, QPrintDialog *pdlg, QPr
 
     return pd;
 }
+#endif // Q_OS_WINCE
 
-// If you change this function, make sure you also change the unicode equivalent
-static void qt_win_clean_up_PRINTDLGA(PRINTDLGA **pd)
+// If you change this function, make sure you also change the ansi equivalent
+template <typename T>
+static void qt_win_clean_up_PRINTDLG(T **pd)
 {
     delete *pd;
     *pd = 0;
 }
 
-// If you change this function, make sure you also change the unicode equivalent
-static void qt_win_read_back_PRINTDLGA(PRINTDLGA *pd, QPrintDialog *pdlg, QPrintDialogPrivate *d)
+
+// If you change this function, make sure you also change the ansi equivalent
+template <typename T>
+static void qt_win_read_back_PRINTDLG(T *pd, QPrintDialog *pdlg, QPrintDialogPrivate *d)
 {
     if (pd->Flags & PD_SELECTION) {
         pdlg->setPrintRange(QPrintDialog::Selection);
@@ -160,96 +167,9 @@ static void qt_win_read_back_PRINTDLGA(PRINTDLGA *pd, QPrintDialog *pdlg, QPrint
 
     if (d->ep->printToFile && d->ep->fileName.isEmpty())
         d->ep->fileName = d->ep->port;
+    else if (!d->ep->printToFile && d->ep->fileName == QLatin1String("FILE:"))
+        d->ep->fileName.clear();
 }
-#endif // Q_OS_TEMP
-
-#ifdef UNICODE
-// If you change this function, make sure you also change the ansi equivalent
-static PRINTDLGW *qt_win_make_PRINTDLGW(QWidget *parent, QPrintDialog *pdlg, QPrintDialogPrivate *d, HGLOBAL *tempDevNames)
-{
-    PRINTDLGW *pd = new PRINTDLGW;
-    memset(pd, 0, sizeof(PRINTDLGW));
-    pd->lStructSize = sizeof(PRINTDLGW);
-
-    if (d->ep->devModeW() != 0) {
-        int size = sizeof(DEVMODEW) + d->ep->devModeW()->dmDriverExtra;
-        pd->hDevMode = GlobalAlloc(GHND, size);
-        {
-            void *dest = GlobalLock(pd->hDevMode);
-            memcpy(dest, d->ep->devMode, size);
-            GlobalUnlock(pd->hDevMode);
-        }
-    } else {
-        pd->hDevMode = NULL;
-    }
-    pd->hDevNames  = tempDevNames;
-
-    pd->Flags = PD_RETURNDC;
-    pd->Flags |= PD_USEDEVMODECOPIESANDCOLLATE;
-
-    if (!pdlg->isOptionEnabled(QPrintDialog::PrintSelection))
-        pd->Flags |= PD_NOSELECTION;
-    if (pdlg->isOptionEnabled(QPrintDialog::PrintPageRange)) {
-        pd->nMinPage = pdlg->minPage();
-        pd->nMaxPage = pdlg->maxPage();
-    }
-
-    if(!pdlg->isOptionEnabled(QPrintDialog::PrintToFile))
-        pd->Flags |= PD_DISABLEPRINTTOFILE;
-
-    if (pdlg->printRange() == QPrintDialog::Selection)
-        pd->Flags |= PD_SELECTION;
-    else if (pdlg->printRange() == QPrintDialog::PageRange)
-        pd->Flags |= PD_PAGENUMS;
-    else
-        pd->Flags |= PD_ALLPAGES;
-
-    // As stated by MSDN, to enable collate option when minpage==maxpage==0
-    // set the PD_NOPAGENUMS flag
-    if (pd->nMinPage==0 && pd->nMaxPage==0)
-        pd->Flags |= PD_NOPAGENUMS;
-
-    if (d->ep->printToFile)
-        pd->Flags |= PD_PRINTTOFILE;
-    Q_ASSERT(!parent ||parent->testAttribute(Qt::WA_WState_Created));
-    pd->hwndOwner = parent ? parent->winId() : 0;
-    pd->nFromPage = qMax(pdlg->fromPage(), pdlg->minPage());
-    pd->nToPage   = qMin(pdlg->toPage(), pdlg->maxPage());
-    pd->nCopies = d->ep->num_copies;
-
-    return pd;
-}
-
-// If you change this function, make sure you also change the ansi equivalent
-static void qt_win_clean_up_PRINTDLGW(PRINTDLGW **pd)
-{
-    delete *pd;
-    *pd = 0;
-}
-
-// If you change this function, make sure you also change the ansi equivalent
-static void qt_win_read_back_PRINTDLGW(PRINTDLGW *pd, QPrintDialog *pdlg, QPrintDialogPrivate *d)
-{
-    if (pd->Flags & PD_SELECTION) {
-        pdlg->setPrintRange(QPrintDialog::Selection);
-        pdlg->setFromTo(0, 0);
-    } else if (pd->Flags & PD_PAGENUMS) {
-        pdlg->setPrintRange(QPrintDialog::PageRange);
-        pdlg->setFromTo(pd->nFromPage, pd->nToPage);
-    } else {
-        pdlg->setPrintRange(QPrintDialog::AllPages);
-        pdlg->setFromTo(0, 0);
-    }
-
-    d->ep->printToFile = (pd->Flags & PD_PRINTTOFILE) != 0;
-
-    d->ep->readDevnames(pd->hDevNames);
-    d->ep->readDevmode(pd->hDevMode);
-
-    if (d->ep->printToFile && d->ep->fileName.isEmpty())
-        d->ep->fileName = d->ep->port;
-}
-#endif // UNICODE
 
 QPrintDialog::QPrintDialog(QPrinter *printer, QWidget *parent)
     : QAbstractPrintDialog( *(new QPrintDialogPrivate), printer, parent)
@@ -291,11 +211,13 @@ int QPrintDialog::exec()
     bool done;
     void *pd = 0;
 
-    QT_WA({
-        pd = qt_win_make_PRINTDLGW(parent, this, d, tempDevNames);
-    }, {
-        pd = qt_win_make_PRINTDLGA(parent, this, d, tempDevNames);
-    });
+
+    if (!(QSysInfo::WindowsVersion & QSysInfo::WV_DOS_based)) {
+        pd = qt_win_make_PRINTDLG<PRINTDLGW, DEVMODEW>(parent, this, d, tempDevNames);
+    } else {
+        pd = qt_win_make_PRINTDLG<PRINTDLGA, DEVMODEA>(parent, this, d, tempDevNames);
+    }
+
     do {
         done = true;
         QT_WA({
@@ -332,12 +254,12 @@ int QPrintDialog::exec()
     if (result) {
         QT_WA({
             PRINTDLGW *pdw = reinterpret_cast<PRINTDLGW *>(pd);
-            qt_win_read_back_PRINTDLGW(pdw, this, d);
-            qt_win_clean_up_PRINTDLGW(&pdw);
+            qt_win_read_back_PRINTDLG(pdw, this, d);
+            qt_win_clean_up_PRINTDLG(&pdw);
         }, {
             PRINTDLGA *pda = reinterpret_cast<PRINTDLGA *>(pd);
-            qt_win_read_back_PRINTDLGA(pda, this, d);
-            qt_win_clean_up_PRINTDLGA(&pda);
+            qt_win_read_back_PRINTDLG(pda, this, d);
+            qt_win_clean_up_PRINTDLG(&pda);
         });
     }
 
@@ -346,6 +268,8 @@ int QPrintDialog::exec()
 
     return result;
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qprintdialog.cpp"
 

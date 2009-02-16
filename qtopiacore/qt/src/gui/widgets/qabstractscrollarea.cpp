@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,8 @@
 #include <private/qt_mac_p.h>
 #endif
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QAbstractScrollArea
     \brief The QAbstractScrollArea widget provides a scrolling area with
@@ -72,7 +68,7 @@
     QAbstractScrollArea is a low-level abstraction of a scrolling
     area. The area provides a central widget called the viewport, in
     which the contents of the area is to be scrolled (i.e, the
-    visible parts of the contents are rendered in the viewport). 
+    visible parts of the contents are rendered in the viewport).
 
     Next to the viewport is a vertical scroll bar, and below is a
     horizontal scroll bar. When all of the area contents fits in the
@@ -98,6 +94,9 @@
            to the values of the scroll bars.
         \o Handle events received by the viewport in
            viewportEvent() - notably resize events.
+        \o Use \c{viewport->update()} to update the contents of the
+          viewport instead of \l{QWidget::update()}{update()}
+          as all painting operations take place on the viewport.
     \endlist
 
     With a scroll bar policy of Qt::ScrollBarAsNeeded (the default),
@@ -108,26 +107,22 @@
     receives a resize event or the size of the contents changes.
     The viewport also needs to be updated when the scroll bars
     values change. The initial values of the scroll bars are often
-    set when the area receives new contents. 
+    set when the area receives new contents.
 
     We give a simple example, in which we have implemented a scroll area
     that can scroll any QWidget. We make the widget a child of the
     viewport; this way, we do not have to calculate which part of
     the widget to draw but can simply move the widget with
     QWidget::move(). When the area contents or the viewport size
-    changes, we do the following: 
+    changes, we do the following:
 
-    \quotefromfile snippets/myscrollarea.cpp
-    \skipto areaSize
-    \printto /^\}/
+    \snippet doc/src/snippets/myscrollarea.cpp 1
 
     When the scroll bars change value, we need to update the widget
     position, i.e., find the part of the widget that is to be drawn in
     the viewport:
 
-    \quotefromfile snippets/myscrollarea.cpp
-    \skipto hvalue
-    \printto /^\}/
+    \snippet doc/src/snippets/myscrollarea.cpp 0
 
     In order to track scroll bar movements, reimplement the virtual
     function scrollContentsBy(). In order to fine-tune scrolling
@@ -242,7 +237,7 @@ void QAbstractScrollAreaPrivate::replaceScrollBar(QScrollBar *scrollBar,
     container->scrollBar = scrollBar;
     container->layout->removeWidget(oldBar);
     container->layout->insertWidget(0, scrollBar);
-    scrollBar->setVisible(oldBar->isVisibleTo(oldBar->window()));
+    scrollBar->setVisible(oldBar->isVisibleTo(container));
     scrollBar->setInvertedAppearance(oldBar->invertedAppearance());
     scrollBar->setInvertedControls(oldBar->invertedControls());
     scrollBar->setRange(oldBar->minimum(), oldBar->maximum());
@@ -264,6 +259,10 @@ void QAbstractScrollAreaPrivate::replaceScrollBar(QScrollBar *scrollBar,
 void QAbstractScrollAreaPrivate::init()
 {
     Q_Q(QAbstractScrollArea);
+    viewport = new QWidget(q);
+    viewport->setObjectName(QLatin1String("qt_scrollarea_viewport"));
+    viewport->setBackgroundRole(QPalette::Base);
+    viewport->setAutoFillBackground(true);
     scrollBarContainers[Qt::Horizontal] = new QAbstractScrollAreaScrollBarContainer(Qt::Horizontal, q);
     scrollBarContainers[Qt::Horizontal]->setObjectName(QLatin1String("qt_scrollarea_hcontainer"));
     hbar = scrollBarContainers[Qt::Horizontal]->scrollBar;
@@ -279,10 +278,6 @@ void QAbstractScrollAreaPrivate::init()
     QObject::connect(vbar, SIGNAL(valueChanged(int)), q, SLOT(_q_vslide(int)));
     QObject::connect(vbar, SIGNAL(rangeChanged(int,int)), q, SLOT(_q_showOrHideScrollBars()), Qt::QueuedConnection);
     viewportFilter = new QAbstractScrollAreaFilter(this);
-    viewport = new QWidget(q);
-    viewport->setObjectName(QLatin1String("qt_scrollarea_viewport"));
-    viewport->setBackgroundRole(QPalette::Base);
-    viewport->setAutoFillBackground(true);
     viewport->installEventFilter(viewportFilter);
     viewport->setFocusProxy(q);
     q->setFocusPolicy(Qt::WheelFocus);
@@ -300,38 +295,8 @@ void QAbstractScrollAreaPrivate::layoutChildren()
     bool needv = (vbarpolicy == Qt::ScrollBarAlwaysOn
                   || (vbarpolicy == Qt::ScrollBarAsNeeded && vbar->minimum() < vbar->maximum()));
 
-    const int hsbExt = hbar->sizeHint().height();
-    const int vsbExt = vbar->sizeHint().width();
-    const QPoint extPoint(vsbExt, hsbExt);
-    const QSize extSize(vsbExt, hsbExt);
-
-    const QRect widgetRect = q->rect();
-    QStyleOption opt(0);
-    opt.init(q);
-
-    const bool hasCornerWidget = (cornerWidget != 0);
-
-// If the scroll bars are at the very right and bottom of the window we
-// move their positions to be aligned with the size grip.
 #ifdef Q_WS_MAC
     QWidget * const window = q->window();
-    // Check if a native sizegrip is present.
-    bool hasMacReverseSizeGrip = false;
-    bool hasMacSizeGrip = false;
-    HIViewRef nativeSizeGrip;
-    HIViewFindByID(HIViewGetRoot(HIViewGetWindow(HIViewRef(q->winId()))), kHIViewWindowGrowBoxID, &nativeSizeGrip);
-    if (nativeSizeGrip) {
-        // Look for a native size grip at the visual window bottom right and at the
-        // absolute window bottom right. In reverse mode, the native size grip does not
-        // swich side, so we need to check if it is on the "wrong side".
-        const QPoint scrollAreaBottomRight = q->mapTo(window, widgetRect.bottomRight() - QPoint(frameWidth, frameWidth));
-        const QPoint windowBottomRight = window->rect().bottomRight();
-        const QPoint visualWindowBottomRight = QStyle::visualPos(opt.direction, opt.rect, windowBottomRight);
-        const QPoint offset = windowBottomRight - scrollAreaBottomRight;
-        const QPoint visualOffset = visualWindowBottomRight - scrollAreaBottomRight;
-        hasMacSizeGrip = (visualOffset.manhattanLength() < vsbExt);
-        hasMacReverseSizeGrip = (hasMacSizeGrip == false && (offset.manhattanLength() < hsbExt));
-    }
 
     // Use small scroll bars for tool windows, to match the native size grip.
     const QMacStyle::WidgetSizePolicy hpolicy = QMacStyle::widgetSizePolicy(hbar);
@@ -349,6 +314,42 @@ void QAbstractScrollAreaPrivate::layoutChildren()
             QMacStyle::setWidgetSizePolicy(vbar, QMacStyle::SizeDefault);
     }
 #endif
+
+    const int hsbExt = hbar->sizeHint().height();
+    const int vsbExt = vbar->sizeHint().width();
+    const QPoint extPoint(vsbExt, hsbExt);
+    const QSize extSize(vsbExt, hsbExt);
+
+    const QRect widgetRect = q->rect();
+    QStyleOption opt(0);
+    opt.init(q);
+
+    const bool hasCornerWidget = (cornerWidget != 0);
+
+// If the scroll bars are at the very right and bottom of the window we
+// move their positions to be aligned with the size grip.
+#ifdef Q_WS_MAC
+    // Check if a native sizegrip is present.
+    bool hasMacReverseSizeGrip = false;
+    bool hasMacSizeGrip = false;
+    HIViewRef nativeSizeGrip = 0;
+    if (q->testAttribute(Qt::WA_WState_Created)) {
+        HIViewFindByID(HIViewGetRoot(HIViewGetWindow(HIViewRef(q->winId()))), kHIViewWindowGrowBoxID, &nativeSizeGrip);
+    }
+    if (nativeSizeGrip) {
+        // Look for a native size grip at the visual window bottom right and at the
+        // absolute window bottom right. In reverse mode, the native size grip does not
+        // swich side, so we need to check if it is on the "wrong side".
+        const QPoint scrollAreaBottomRight = q->mapTo(window, widgetRect.bottomRight() - QPoint(frameWidth, frameWidth));
+        const QPoint windowBottomRight = window->rect().bottomRight();
+        const QPoint visualWindowBottomRight = QStyle::visualPos(opt.direction, opt.rect, windowBottomRight);
+        const QPoint offset = windowBottomRight - scrollAreaBottomRight;
+        const QPoint visualOffset = visualWindowBottomRight - scrollAreaBottomRight;
+        hasMacSizeGrip = (visualOffset.manhattanLength() < vsbExt);
+        hasMacReverseSizeGrip = (hasMacSizeGrip == false && (offset.manhattanLength() < hsbExt));
+    }
+#endif
+
     QPoint cornerOffset(needv ? vsbExt : 0, needh ? hsbExt : 0);
     QRect controlsRect;
     QRect viewportRect;
@@ -361,8 +362,11 @@ void QAbstractScrollAreaPrivate::layoutChildren()
         const QPoint cornerExtra(needv ? extra : 0, needh ? extra : 0);
         QRect frameRect = widgetRect;
         frameRect.adjust(0, 0, -cornerOffset.x() - cornerExtra.x(), -cornerOffset.y() - cornerExtra.y());
-        q->setFrameRect(frameRect);
-        viewportRect = q->contentsRect();
+        q->setFrameRect(QStyle::visualRect(opt.direction, opt.rect, frameRect));
+        // The frame rect needs to be in logical coords, however we need to flip
+        // the contentsRect back before passing it on to the viewportRect
+        // since the viewportRect has its logical coords calculated later.
+        viewportRect = QStyle::visualRect(opt.direction, opt.rect, q->contentsRect());
     } else {
         q->setFrameRect(QStyle::visualRect(opt.direction, opt.rect, widgetRect));
         controlsRect = q->contentsRect();
@@ -804,7 +808,7 @@ QWidgetList QAbstractScrollArea::scrollBarWidgets(Qt::Alignment alignment)
     Note that this function is frequently called by QTreeView and
     QTableView, so margins must be implemented by QAbstractScrollArea
     subclasses. Also, if the subclasses are to be used in item views,
-    they should not call this function. 
+    they should not call this function.
 
     By default all margins are zero.
 
@@ -836,7 +840,13 @@ bool QAbstractScrollArea::event(QEvent *e)
     Q_D(QAbstractScrollArea);
     switch (e->type()) {
     case QEvent::AcceptDropsChange:
-        d->viewport->setAcceptDrops(acceptDrops());
+        // There was a chance that with accessibility client we get an
+        // event before the viewport was created.
+        // Also, in some cases we might get here from QWidget::event() virtual function which is (indirectly) called
+        // from the viewport constructor at the time when the d->viewport is not yet initialized even without any
+        // accessibility client. See qabstractscrollarea autotest for a test case.
+        if (d->viewport)
+            d->viewport->setAcceptDrops(acceptDrops());
         break;
     case QEvent::MouseTrackingChange:
         d->viewport->setMouseTracking(hasMouseTracking());
@@ -861,11 +871,13 @@ bool QAbstractScrollArea::event(QEvent *e)
 #endif
         QFrame::paintEvent((QPaintEvent*)e);
         break;
+#ifndef QT_NO_CONTEXTMENU
     case QEvent::ContextMenu:
         if (static_cast<QContextMenuEvent *>(e)->reason() == QContextMenuEvent::Keyboard)
            return QFrame::event(e);
         e->ignore();
         break;
+#endif // QT_NO_CONTEXTMENU
     case QEvent::MouseButtonPress:
     case QEvent::MouseButtonRelease:
     case QEvent::MouseButtonDblClick:
@@ -1034,6 +1046,7 @@ void QAbstractScrollArea::wheelEvent(QWheelEvent *e)
 }
 #endif
 
+#ifndef QT_NO_CONTEXTMENU
 /*!
     This event handler can be reimplemented in a subclass to receive
     context menu events for the viewport() widget. The event is passed
@@ -1045,6 +1058,7 @@ void QAbstractScrollArea::contextMenuEvent(QContextMenuEvent *e)
 {
     e->ignore();
 }
+#endif // QT_NO_CONTEXTMENU
 
 /*!
     This function is called with key event \a e when key presses
@@ -1258,6 +1272,9 @@ void QAbstractScrollArea::setupViewport(QWidget *viewport)
     Q_UNUSED(viewport);
 }
 
+QT_END_NAMESPACE
+
 #include "moc_qabstractscrollarea.cpp"
 #include "moc_qabstractscrollarea_p.cpp"
+
 #endif // QT_NO_SCROLLAREA

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/findfiles.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/findfiles.qdoc -->
 <head>
-  <title>Qt 4.3: Find Files Example</title>
+  <title>Qt 4.4: Find Files Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Find Files Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Find Files Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -21,7 +21,7 @@
 <li><a href="dialogs-findfiles-main-cpp.html">dialogs/findfiles/main.cpp</a></li>
 <li><a href="dialogs-findfiles-findfiles-pro.html">dialogs/findfiles/findfiles.pro</a></li>
 </ul>
-<p>The Find Files example shows how to use <a href="qprogressdialog.html">QProgressDialog</a> to provide feedback on the progress of a slow operation. The example also shows how to use <a href="qfiledialog.html">QFileDialog</a> to facilitate browsing, how to use <a href="qtextstream.html">QTextStream</a>'s streaming operators to read a file, and how to use <a href="qtablewidget.html">QTableWidget</a> to provide standard table display facilities for applications.</p>
+<p>The Find Files example shows how to use <a href="qprogressdialog.html">QProgressDialog</a> to provide feedback on the progress of a slow operation. The example also shows how to use <a href="qfiledialog.html">QFileDialog</a> to facilitate browsing, how to use <a href="qtextstream.html">QTextStream</a>'s streaming operators to read a file, and how to use <a href="qtablewidget.html">QTableWidget</a> to provide standard table display facilities for applications. In addition, files can be opened using the <a href="qdesktopservices.html">QDesktopServices</a> class.</p>
 <p align="center"><img src="images/findfiles-example.png" alt="Screenshot of the Find Files example" /></p><p>With the Find Files application the user can search for files in a specified directory, matching a specified file name (using wild cards if appropiate) and containing a specified text.</p>
 <p>The user is provided with a <b>Browse</b> option, and the result of the search is displayed in a table with the names of the files found and their sizes. In addition the application provides a total count of the files found.</p>
 <a name="window-class-definition"></a>
@@ -37,6 +37,7 @@
  private slots:
      void browse();
      void find();
+     void openFileOfItem(int row, int column);
 
  private:
      QStringList findFiles(const QDir &amp;directory, const QStringList &amp;files,
@@ -183,18 +184,19 @@
          qint64 size = QFileInfo(file).size();
 
          QTableWidgetItem *fileNameItem = new QTableWidgetItem(files[i]);
-         fileNameItem-&gt;setFlags(Qt::ItemIsEnabled);
+         fileNameItem-&gt;setFlags(fileNameItem-&gt;flags() ^ Qt::ItemIsEditable);
          QTableWidgetItem *sizeItem = new QTableWidgetItem(tr(&quot;%1 KB&quot;)
                                               .arg(int((size + 1023) / 1024)));
          sizeItem-&gt;setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-         sizeItem-&gt;setFlags(Qt::ItemIsEnabled);
+         sizeItem-&gt;setFlags(sizeItem-&gt;flags() ^ Qt::ItemIsEditable);
 
          int row = filesTable-&gt;rowCount();
          filesTable-&gt;insertRow(row);
          filesTable-&gt;setItem(row, 0, fileNameItem);
          filesTable-&gt;setItem(row, 1, sizeItem);
      }
-     filesFoundLabel-&gt;setText(tr(&quot;%1 file(s) found&quot;).arg(files.size()));
+     filesFoundLabel-&gt;setText(tr(&quot;%1 file(s) found&quot;).arg(files.size()) +
+                              (&quot; (Double click on a file to open it)&quot;));
  }</pre>
 <p>Both the <tt>findFiles()</tt> and <tt>showFiles()</tt> functions are called from the <tt>find()</tt> slot. In the <tt>showFiles()</tt> function we run through the provided list of file names, adding each file name to the first column in the table widget and retrieving the file's size using <a href="qfile.html">QFile</a> and <a href="qfileinfo.html">QFileInfo</a> for the second column.</p>
 <p>We also update the total number of files found.</p>
@@ -219,20 +221,32 @@
 <pre> void Window::createFilesTable()
  {
      filesTable = new QTableWidget(0, 2);
+     filesTable-&gt;setSelectionBehavior(QAbstractItemView::SelectRows);
+
      QStringList labels;
      labels &lt;&lt; tr(&quot;File Name&quot;) &lt;&lt; tr(&quot;Size&quot;);
      filesTable-&gt;setHorizontalHeaderLabels(labels);
      filesTable-&gt;horizontalHeader()-&gt;setResizeMode(0, QHeaderView::Stretch);
      filesTable-&gt;verticalHeader()-&gt;hide();
      filesTable-&gt;setShowGrid(false);
+
+     connect(filesTable, SIGNAL(cellActivated(int, int)),
+             this, SLOT(openFileOfItem(int, int)));
  }</pre>
 <p>The private <tt>createFilesTable()</tt> function is called from the constructor. In this function we create the <a href="qtablewidget.html">QTableWidget</a> that will display the search results. We set its horizontal headers and their resize mode.</p>
 <p><a href="qtablewidget.html">QTableWidget</a> inherits <a href="qtableview.html">QTableView</a> which provides a default model/view implementation of a table view. The <a href="qtableview.html#horizontalHeader">QTableView::horizontalHeader</a>() function returns the table view's horizontal header as a <a href="qheaderview.html">QHeaderView</a>. The <a href="qheaderview.html">QHeaderView</a> class provides a header row or header column for item views, and the <a href="qheaderview.html#setResizeMode">QHeaderView::setResizeMode</a>() function sets the constraints on how the section in the header can be resized.</p>
 <p>Finally, we hide the <a href="qtablewidget.html">QTableWidget</a>'s vertical headers using the <a href="qwidget.html#hide">QWidget::hide</a>() function, and remove the default grid drawn for the table using the <a href="qtableview.html#showGrid-prop">QTableView::setShowGrid</a>() function.</p>
+<pre> void Window::openFileOfItem(int row, int <span class="comment">/* column */</span>)
+ {
+     QTableWidgetItem *item = filesTable-&gt;item(row, 0);
+
+     QDesktopServices::openUrl(item-&gt;text());
+ }</pre>
+<p>The <tt>openFileOfItem()</tt> slot is invoked when the user double clicks on a cell in the table. The <a href="qdesktopservices.html#openUrl">QDesktopServices::openUrl</a>() knows how to open a file given the file name.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

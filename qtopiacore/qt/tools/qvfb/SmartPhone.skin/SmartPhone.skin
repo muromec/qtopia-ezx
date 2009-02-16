@@ -2,7 +2,8 @@
 Up=SmartPhone.png
 Down=SmartPhone-pressed.png
 Screen=90 107 176 208
-Areas=26
+Areas=21
+HasMouseHover=false
 
 "1"        0x0031 138 459 149 473 142 483 120 484 102 477 95 464 99 457 121 454
 "2"        0x0032 153 467 202 492

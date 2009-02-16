@@ -16,11 +16,7 @@
 #include "harfbuzz-gdef.h"
 #include "harfbuzz-buffer.h"
 
-FT_BEGIN_HEADER
-
-#define HB_Err_Invalid_GPOS_SubTable_Format  0x1020
-#define HB_Err_Invalid_GPOS_SubTable         0x1021
-
+HB_BEGIN_HEADER
 
 /* Lookup types for glyph positioning */
 
@@ -34,25 +30,6 @@ FT_BEGIN_HEADER
 #define HB_GPOS_LOOKUP_CHAIN      8
 #define HB_GPOS_LOOKUP_EXTENSION  9
 
-
-/* A pointer to a function which loads a glyph.  Its parameters are
-   the same as in a call to Load_Glyph() -- if no glyph loading
-   function will be registered with HB_GPOS_Register_Glyph_Function(),
-   Load_Glyph() will be called indeed.  The purpose of this function
-   pointer is to provide a hook for caching glyph outlines and sbits
-   (using the instance's generic pointer to hold the data).
-
-   If for some reason no outline data is available (e.g. for an
-   embedded bitmap glyph), _glyph->outline.n_points should be set to
-   zero.  _glyph can be computed with
-
-      _glyph = HANDLE_Glyph( glyph )                                    */
-
-typedef FT_Error  (*HB_GlyphFunction)(FT_Face      face,
-				       FT_UInt      glyphIndex,
-				       FT_Int       loadFlags );
-
-
 /* A pointer to a function which accesses the PostScript interpreter.
    Multiple Master fonts need this interface to convert a metric ID
    (as stored in an OpenType font version 1.2 or higher) `metric_id'
@@ -64,28 +41,21 @@ typedef FT_Error  (*HB_GlyphFunction)(FT_Face      face,
    `metric_value' must be returned as a scaled value (but shouldn't
    be rounded).                                                       */
 
-typedef FT_Error  (*HB_MMFunction)(FT_Face      face,
-				    FT_UShort    metric_id,
-				    FT_Pos*      metric_value,
+typedef HB_Error  (*HB_MMFunction)(HB_Font       font,
+				    HB_UShort    metric_id,
+				    HB_Fixed*      metric_value,
 				    void*        data );
 
 
 struct  HB_GPOSHeader_
 {
-  FT_Memory          memory;
-  
-  FT_Fixed           Version;
+  HB_16Dot16           Version;
 
   HB_ScriptList     ScriptList;
   HB_FeatureList    FeatureList;
   HB_LookupList     LookupList;
 
   HB_GDEFHeader*    gdef;
-
-  /* the next field is used for a callback function to get the
-     glyph outline.                                            */
-
-  HB_GlyphFunction  gfunc;
 
   /* this is OpenType 1.2 -- Multiple Master fonts need this
      callback function to get various metric values from the
@@ -99,56 +69,53 @@ typedef struct HB_GPOSHeader_  HB_GPOSHeader;
 typedef HB_GPOSHeader* HB_GPOS;
 
 
-FT_Error  HB_Load_GPOS_Table( FT_Face          face,
-			      HB_GPOSHeader** gpos,
-			      HB_GDEFHeader*  gdef );
+HB_Error  HB_Load_GPOS_Table( HB_Stream stream, 
+                              HB_GPOSHeader** gpos,
+			      HB_GDEFHeader*  gdef,
+                              HB_Stream       gdefStream );
 
 
-FT_Error  HB_Done_GPOS_Table( HB_GPOSHeader* gpos );
+HB_Error  HB_Done_GPOS_Table( HB_GPOSHeader* gpos );
 
 
-FT_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
-				 FT_ULong         script_tag,
-				 FT_UShort*       script_index );
+HB_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
+				 HB_UInt         script_tag,
+				 HB_UShort*       script_index );
 
-FT_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
-				   FT_ULong         language_tag,
-				   FT_UShort        script_index,
-				   FT_UShort*       language_index,
-				   FT_UShort*       req_feature_index );
+HB_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
+				   HB_UInt         language_tag,
+				   HB_UShort        script_index,
+				   HB_UShort*       language_index,
+				   HB_UShort*       req_feature_index );
 
-FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
-				  FT_ULong         feature_tag,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_UShort*       feature_index );
-
-
-FT_Error  HB_GPOS_Query_Scripts( HB_GPOSHeader*  gpos,
-				 FT_ULong**       script_tag_list );
-
-FT_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
-				   FT_UShort        script_index,
-				   FT_ULong**       language_tag_list );
-
-FT_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_ULong**       feature_tag_list );
+HB_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
+				  HB_UInt         feature_tag,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UShort*       feature_index );
 
 
-FT_Error  HB_GPOS_Add_Feature( HB_GPOSHeader*  gpos,
-			       FT_UShort        feature_index,
-			       FT_UInt          property );
+HB_Error  HB_GPOS_Query_Scripts( HB_GPOSHeader*  gpos,
+				 HB_UInt**       script_tag_list );
 
-FT_Error  HB_GPOS_Clear_Features( HB_GPOSHeader*  gpos );
+HB_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
+				   HB_UShort        script_index,
+				   HB_UInt**       language_tag_list );
+
+HB_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UInt**       feature_tag_list );
 
 
-FT_Error  HB_GPOS_Register_Glyph_Function( HB_GPOSHeader*    gpos,
-					   HB_GlyphFunction  gfunc );
+HB_Error  HB_GPOS_Add_Feature( HB_GPOSHeader*  gpos,
+			       HB_UShort        feature_index,
+			       HB_UInt          property );
+
+HB_Error  HB_GPOS_Clear_Features( HB_GPOSHeader*  gpos );
 
 
-FT_Error  HB_GPOS_Register_MM_Function( HB_GPOSHeader*  gpos,
+HB_Error  HB_GPOS_Register_MM_Function( HB_GPOSHeader*  gpos,
 					HB_MMFunction   mmfunc,
 					void*            data );
 
@@ -156,13 +123,13 @@ FT_Error  HB_GPOS_Register_MM_Function( HB_GPOSHeader*  gpos,
    tables are ignored -- you will get device independent values.         */
 
 
-FT_Error  HB_GPOS_Apply_String( FT_Face           face,
+HB_Error  HB_GPOS_Apply_String( HB_Font           font,
 				HB_GPOSHeader*   gpos,
-				FT_UShort         load_flags,
+				HB_UShort         load_flags,
 				HB_Buffer        buffer,
-				FT_Bool           dvi,
-				FT_Bool           r2l );
+				HB_Bool           dvi,
+				HB_Bool           r2l );
 
-FT_END_HEADER
+HB_END_HEADER
 
 #endif /* HARFBUZZ_GPOS_H */

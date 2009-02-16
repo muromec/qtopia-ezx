@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,6 +49,8 @@
 #include <private/qlayoutengine_p.h>
 
 #include <private/qwidget_p.h>
+
+QT_BEGIN_NAMESPACE
 
 class QStatusBarPrivate : public QWidgetPrivate
 {
@@ -78,6 +74,7 @@ public:
 
 #ifndef QT_NO_SIZEGRIP
     QSizeGrip * resizer;
+    bool showSizeGrip;
 #endif
 
     int savedStrut;
@@ -92,6 +89,20 @@ public:
         }
         return i;
     }
+
+#ifndef QT_NO_SIZEGRIP
+    void tryToShowSizeGrip()
+    {
+        if (!showSizeGrip)
+            return;
+        showSizeGrip = false;
+        if (!resizer || resizer->isVisible())
+            return;
+        resizer->setAttribute(Qt::WA_WState_ExplicitShowHide, false);
+        QMetaObject::invokeMethod(resizer, "_q_showIfNotHidden", Qt::DirectConnection);
+        resizer->setAttribute(Qt::WA_WState_ExplicitShowHide, false);
+    }
+#endif
 };
 
 /*!
@@ -127,31 +138,26 @@ public:
 
     Use the showMessage() slot to display a \e temporary message:
 
-    \quotefromfile mainwindows/dockwidgets/mainwindow.cpp
-    \skipto MainWindow::createStatusBar()
-    \printuntil /^\}/
+    \snippet examples/mainwindows/dockwidgets/mainwindow.cpp 8
 
     To remove a temporary message, use the clearMessage() slot, or set
     a time limit when calling showMessage(). For example:
 
-    \quotefromfile mainwindows/dockwidgets/mainwindow.cpp
-    \skipto void MainWindow::print()
-    \printuntil /^\}/
+    \snippet examples/mainwindows/dockwidgets/mainwindow.cpp 3
 
     Use the currentMessage() function to retrieve the temporary
     message currently shown. The QStatusBar class also provide the
     messageChanged() signal which is emitted whenever the temporary
     status message changes.
 
+    \target permanent message
     \e Normal and \e Permanent messages are displayed by creating a
     small widget (QLabel, QProgressBar or even QToolButton) and then
     adding it to the status bar using the addWidget() or the
     addPermanentWidget() function. Use the removeWidget() function to
     remove such messages from the status bar.
 
-    \code
-        statusBar()->addWidget(new MyReadWriteIndication);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_widgets_qstatusbar.cpp 0
 
     By default QStatusBar provides a QSizeGrip in the lower-right
     corner. You can disable it using the setSizeGripEnabled()
@@ -189,6 +195,7 @@ QStatusBar::QStatusBar(QWidget * parent, const char *name)
 
 #ifndef QT_NO_SIZEGRIP
     d->resizer = 0;
+    d->showSizeGrip = false;
     setSizeGripEnabled(true); // causes reformat()
 #else
     reformat();
@@ -439,13 +446,17 @@ void QStatusBar::setSizeGripEnabled(bool enabled)
     if (!enabled != !d->resizer) {
         if (enabled) {
             d->resizer = new QSizeGrip(this);
+            d->resizer->hide();
+            d->resizer->installEventFilter(this);
+            d->showSizeGrip = true;
         } else {
             delete d->resizer;
             d->resizer = 0;
+            d->showSizeGrip = false;
         }
         reformat();
         if (d->resizer && isVisible())
-            d->resizer->show();
+            d->tryToShowSizeGrip();
     }
 #endif
 }
@@ -520,10 +531,16 @@ void QStatusBar::reformat()
 }
 
 /*!
-    Hides the normal status indications and displays the given \a
-    message for the specified \a timeout milli-seconds (if non-zero),
-    or until clearMessage() or another showMessage() is called,
-    whichever occurs first.
+  
+  Hides the normal status indications and displays the given \a
+  message for the specified number of milli-seconds (\a{timeout}). If
+  \a{timeout} is 0 (default), the \a {message} remains displayed until
+  the clearMessage() slot is called or until the showMessage() slot is
+  called again to change the message.
+
+  Note that showMessage() is called to show temporary explanations of
+  tool tip texts, so passing a \a{timeout} of 0 is not sufficient to
+  display a \l{permanent message}{permanent message}.
 
     \sa messageChanged(), currentMessage(), clearMessage()
 */
@@ -561,7 +578,7 @@ void QStatusBar::clearMessage()
     if (d->tempItem.isEmpty())
         return;
     if (d->timer) {
-        delete d->timer;
+        qDeleteInEventHandler(d->timer);
         d->timer = 0;
     }
     d->tempItem.clear();
@@ -618,14 +635,28 @@ void QStatusBar::hideOrShow()
         item = d->items.at(i);
         if (!item || item->p)
             break;
-        if (haveMessage)
+        if (haveMessage && item->w->isVisible()) {
             item->w->hide();
-        else
+            item->w->setAttribute(Qt::WA_WState_ExplicitShowHide, false);
+        } else if (!haveMessage && !item->w->testAttribute(Qt::WA_WState_ExplicitShowHide)) {
             item->w->show();
+        }
     }
 
     emit messageChanged(d->tempItem);
     repaint();
+}
+
+/*!
+  \reimp
+ */
+void QStatusBar::showEvent(QShowEvent *)
+{
+#ifndef QT_NO_SIZEGRIP
+    Q_D(QStatusBar);
+    if (d->resizer && d->showSizeGrip)
+        d->tryToShowSizeGrip();
+#endif
 }
 
 
@@ -642,6 +673,10 @@ void QStatusBar::paintEvent(QPaintEvent *)
     bool haveMessage = !d->tempItem.isEmpty();
 
     QPainter p(this);
+    QStyleOption opt;
+    opt.initFrom(this);
+    style()->drawPrimitive(QStyle::PE_PanelStatusBar, &opt, &p, this);
+
     QStatusBarPrivate::SBItem* item = 0;
 
     bool rtl = layoutDirection() == Qt::RightToLeft;
@@ -675,7 +710,7 @@ void QStatusBar::paintEvent(QPaintEvent *)
                                  item->w->width() + 4, item->w->height() + 2);
                 opt.palette = palette();
                 opt.state = QStyle::State_None;
-                style()->drawPrimitive(QStyle::PE_FrameStatusBar, &opt, &p, item->w);
+                style()->drawPrimitive(QStyle::PE_FrameStatusBarItem, &opt, &p, item->w);
             }
     }
     if (haveMessage) {
@@ -741,5 +776,7 @@ bool QStatusBar::event(QEvent *e)
     }
     return QWidget::event(e);
 }
+
+QT_END_NAMESPACE
 
 #endif

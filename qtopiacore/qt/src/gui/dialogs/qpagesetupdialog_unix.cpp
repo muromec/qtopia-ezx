@@ -1,96 +1,107 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qpagesetupdialog.h"
 
-#include "qcombobox.h"
-#include "qcoreapplication.h"
-#include "qlabel.h"
-#include "qlayout.h"
-#include "qprinter.h"
-#include "qpushbutton.h"
-#include "qprintdialog.h"
+#ifndef QT_NO_PRINTDIALOG
+#include "qpagesetupdialog_unix_p.h"
 
+#include "qpainter.h"
+#include "qprintdialog.h"
+#include "qdialogbuttonbox.h"
+#include <ui_qpagesetupwidget.h>
+
+#include <QtGui/qprinter.h>
 #include <private/qabstractpagesetupdialog_p.h>
 
-#ifndef QT_NO_PRINTDIALOG
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+#  include <private/qcups_p.h>
+#  include <cups/cups.h>
+#  include <private/qpdf_p.h>
+#endif
 
-// Disabled untill we have support for papersources on unix
+
+QT_BEGIN_NAMESPACE
+
+QSizeF qt_printerPaperSize(QPrinter::Orientation, QPrinter::PaperSize, QPrinter::Unit, int);
+
+// Disabled until we have support for papersources on unix
 // #define PSD_ENABLE_PAPERSOURCE
 
-static const char * const pageSizeNames[] = {
-    QT_TRANSLATE_NOOP(QPrintDialog, "A4 (210 x 297 mm, 8.26 x 11.7 inches)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B5 (176 x 250 mm, 6.93 x 9.84 inches)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Letter (8.5 x 11 inches, 216 x 279 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Legal (8.5 x 14 inches, 216 x 356 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Executive (7.5 x 10 inches, 191 x 254 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A0 (841 x 1189 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A1 (594 x 841 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A2 (420 x 594 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A3 (297 x 420 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A5 (148 x 210 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A6 (105 x 148 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A7 (74 x 105 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A8 (52 x 74 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "A9 (37 x 52 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B0 (1000 x 1414 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B1 (707 x 1000 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B2 (500 x 707 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B3 (353 x 500 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B4 (250 x 353 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B6 (125 x 176 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B7 (88 x 125 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B8 (62 x 88 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B9 (44 x 62 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "B10 (31 x 44 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "C5E (163 x 229 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "US Common #10 Envelope (105 x 241 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "DLE (110 x 220 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Folio (210 x 330 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Ledger (432 x 279 mm)"),
-    QT_TRANSLATE_NOOP(QPrintDialog, "Tabloid (279 x 432 mm)"),
-    0
-};
+static void populatePaperSizes(QComboBox* cb)
+{
+    cb->addItem(QPrintDialog::tr("A0"), QPrinter::A0);
+    cb->addItem(QPrintDialog::tr("A1"), QPrinter::A1);
+    cb->addItem(QPrintDialog::tr("A2"), QPrinter::A2);
+    cb->addItem(QPrintDialog::tr("A3"), QPrinter::A3);
+    cb->addItem(QPrintDialog::tr("A4"), QPrinter::A4);
+    cb->addItem(QPrintDialog::tr("A5"), QPrinter::A5);
+    cb->addItem(QPrintDialog::tr("A6"), QPrinter::A6);
+    cb->addItem(QPrintDialog::tr("A7"), QPrinter::A7);
+    cb->addItem(QPrintDialog::tr("A8"), QPrinter::A8);
+    cb->addItem(QPrintDialog::tr("A9"), QPrinter::A9);
+    cb->addItem(QPrintDialog::tr("B0"), QPrinter::B0);
+    cb->addItem(QPrintDialog::tr("B1"), QPrinter::B1);
+    cb->addItem(QPrintDialog::tr("B2"), QPrinter::B2);
+    cb->addItem(QPrintDialog::tr("B3"), QPrinter::B3);
+    cb->addItem(QPrintDialog::tr("B4"), QPrinter::B4);
+    cb->addItem(QPrintDialog::tr("B5"), QPrinter::B5);
+    cb->addItem(QPrintDialog::tr("B6"), QPrinter::B6);
+    cb->addItem(QPrintDialog::tr("B7"), QPrinter::B7);
+    cb->addItem(QPrintDialog::tr("B8"), QPrinter::B8);
+    cb->addItem(QPrintDialog::tr("B9"), QPrinter::B9);
+    cb->addItem(QPrintDialog::tr("B10"), QPrinter::B10);
+    cb->addItem(QPrintDialog::tr("C5E"), QPrinter::C5E);
+    cb->addItem(QPrintDialog::tr("DLE"), QPrinter::DLE);
+    cb->addItem(QPrintDialog::tr("Executive"), QPrinter::Executive);
+    cb->addItem(QPrintDialog::tr("Folio"), QPrinter::Folio);
+    cb->addItem(QPrintDialog::tr("Ledger"), QPrinter::Ledger);
+    cb->addItem(QPrintDialog::tr("Legal"), QPrinter::Legal);
+    cb->addItem(QPrintDialog::tr("Letter"), QPrinter::Letter);
+    cb->addItem(QPrintDialog::tr("Tabloid"), QPrinter::Tabloid);
+    cb->addItem(QPrintDialog::tr("US Common #10 Envelope"), QPrinter::Comm10E);
+    cb->addItem(QPrintDialog::tr("Custom"), QPrinter::Custom);
+}
+
+
+static QSizeF sizeForOrientation(QPrinter::Orientation orientation, const QSizeF &size)
+{
+    return (orientation == QPrinter::Portrait) ? size : QSizeF(size.height(), size.width());
+}
 
 #ifdef PSD_ENABLE_PAPERSOURCE
 static const char *paperSourceNames[] = {
@@ -120,15 +131,392 @@ struct PaperSourceNames
 #endif
 
 
-class QPageSetupDialogPrivate : public QAbstractPageSetupDialogPrivate
+class QPagePreview : public QWidget
 {
 public:
-    QComboBox *pageSize;
-#ifdef PSD_ENABLE_PAPERSOURCE
-    QComboBox *paperSource;
-#endif
-    QComboBox *orientation;
+    QPagePreview(QWidget *parent) : QWidget(parent)
+    {
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        setMinimumSize(50, 50);
+    }
+
+    void setPaperSize(const QSizeF& size)
+    {
+        m_size = size;
+        update();
+    }
+
+    void setMargins(qreal left, qreal top, qreal right, qreal bottom)
+    {
+        m_left = left;
+        m_top = top;
+        m_right = right;
+        m_bottom = bottom;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *)
+    {
+        QRect pageRect;
+        QSizeF adjustedSize(m_size);
+        adjustedSize.scale(width()-10, height()-10, Qt::KeepAspectRatio);
+        pageRect = QRect(QPoint(0,0), adjustedSize.toSize());
+        pageRect.moveCenter(rect().center());
+
+        qreal width_factor = pageRect.width() / m_size.width();
+        qreal height_factor = pageRect.height() / m_size.height();
+        int leftSize = qRound(m_left*width_factor);
+        int topSize = qRound(m_top*height_factor);
+        int rightSize = qRound(m_right*width_factor);
+        int bottomSize = qRound(m_bottom * height_factor);
+        QRect marginRect(pageRect.x()+leftSize,
+                         pageRect.y()+topSize,
+                         pageRect.width() - (leftSize+rightSize+1),
+                         pageRect.height() - (topSize+bottomSize+1));
+
+        QPainter p(this);
+        QColor shadow(palette().mid().color());
+        for (int i=1; i<6; ++i) {
+            shadow.setAlpha(180-i*30);
+            QRect offset(pageRect.adjusted(i, i, i, i));
+            p.setPen(shadow);
+            p.drawLine(offset.left(), offset.bottom(), offset.right(), offset.bottom());
+            p.drawLine(offset.right(), offset.top(), offset.right(), offset.bottom()-1);
+        }
+        p.fillRect(pageRect, palette().light());
+
+        if (marginRect.isValid()) {
+            p.setPen(QPen(palette().color(QPalette::Dark), 0, Qt::DotLine));
+            p.drawRect(marginRect);
+
+            marginRect.adjust(2, 2, -1, -1);
+            p.setClipRect(marginRect);
+            QFont font;
+            font.setPointSizeF(font.pointSizeF()*0.25);
+            p.setFont(font);
+            p.setPen(palette().color(QPalette::Dark));
+            QString text(QLatin1String("Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi."));
+            for (int i=0; i<3; ++i)
+                text += text;
+            p.drawText(marginRect, Qt::TextWordWrap|Qt::AlignVCenter, text);
+        }
+    }
+
+private:
+    // all these are in points
+    qreal m_left, m_top, m_right, m_bottom;
+    QSizeF m_size;
 };
+
+
+class QPageSetupDialogPrivate : public QAbstractPageSetupDialogPrivate
+{
+    Q_DECLARE_PUBLIC(QPageSetupDialog)
+public:
+    QPageSetupWidget *widget;
+};
+
+
+QPageSetupWidget::QPageSetupWidget(QWidget *parent)
+    : QWidget(parent),
+    m_printer(0),
+    m_blockSignals(false),
+    m_cups(0)
+{
+    widget.setupUi(this);
+
+    QString suffix = (QLocale::system().measurementSystem() == QLocale::ImperialSystem) ?
+        QString::fromLatin1(" in") :
+        QString::fromLatin1(" mm");
+    widget.topMargin->setSuffix(suffix);
+    widget.bottomMargin->setSuffix(suffix);
+    widget.leftMargin->setSuffix(suffix);
+    widget.rightMargin->setSuffix(suffix);
+    widget.paperWidth->setSuffix(suffix);
+    widget.paperHeight->setSuffix(suffix);
+
+    QVBoxLayout *lay = new QVBoxLayout(widget.preview);
+    widget.preview->setLayout(lay);
+    m_pagePreview = new QPagePreview(widget.preview);
+    lay->addWidget(m_pagePreview);
+
+    setAttribute(Qt::WA_WState_Polished, false);
+
+#ifdef PSD_ENABLE_PAPERSOURCE
+    for (int i=0; paperSourceNames[i]; ++i)
+        widget.paperSource->insertItem(paperSourceNames[i]);
+#else
+    widget.paperSourceLabel->setVisible(false);
+    widget.paperSource->setVisible(false);
+#endif
+
+    widget.reverseLandscape->setVisible(false);
+    widget.reversePortrait->setVisible(false);
+
+    populatePaperSizes(widget.paperSize);
+
+    QStringList units;
+    units << tr("Centimeters (cm)") << tr("Millimeters (mm)") << tr("Inches (in)") << tr("Points (pt)");
+    widget.unit->addItems(units);
+    connect(widget.unit, SIGNAL(activated(int)), this, SLOT(unitChanged(int)));
+    widget.unit->setCurrentIndex((QLocale::system().measurementSystem() == QLocale::ImperialSystem) ? 2 : 1);
+
+    connect(widget.paperSize, SIGNAL(currentIndexChanged(int)), this, SLOT(_q_paperSizeChanged()));
+    connect(widget.paperWidth, SIGNAL(valueChanged(double)), this, SLOT(_q_paperSizeChanged()));
+    connect(widget.paperHeight, SIGNAL(valueChanged(double)), this, SLOT(_q_paperSizeChanged()));
+
+    connect(widget.leftMargin, SIGNAL(valueChanged(double)), this, SLOT(setLeftMargin(double)));
+    connect(widget.topMargin, SIGNAL(valueChanged(double)), this, SLOT(setTopMargin(double)));
+    connect(widget.rightMargin, SIGNAL(valueChanged(double)), this, SLOT(setRightMargin(double)));
+    connect(widget.bottomMargin, SIGNAL(valueChanged(double)), this, SLOT(setBottomMargin(double)));
+
+    connect(widget.portrait, SIGNAL(clicked()), this, SLOT(_q_pageOrientationChanged()));
+    connect(widget.landscape, SIGNAL(clicked()), this, SLOT(_q_pageOrientationChanged()));
+}
+
+void QPageSetupWidget::setPrinter(QPrinter *printer)
+{
+    m_printer = printer;
+    m_blockSignals = true;
+    selectPdfPsPrinter(printer);
+    printer->getPageMargins(&m_leftMargin, &m_topMargin, &m_rightMargin, &m_bottomMargin, QPrinter::Point);
+    unitChanged(widget.unit->currentIndex());
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+    m_paperSize = printer->paperSize(QPrinter::Point);
+    widget.paperWidth->setValue(m_paperSize.width() / m_currentMultiplier);
+    widget.paperHeight->setValue(m_paperSize.height() / m_currentMultiplier);
+
+    widget.landscape->setChecked(printer->orientation() == QPrinter::Landscape);
+
+#ifdef PSD_ENABLE_PAPERSOURCE
+    widget.paperSource->setCurrentItem(printer->paperSource());
+#endif
+    Q_ASSERT(m_blockSignals);
+    m_blockSignals = false;
+    _q_paperSizeChanged();
+}
+
+void QPageSetupWidget::setupPrinter() const
+{
+    // set gui data on printer
+    QPrinter::Orientation orientation = widget.portrait->isChecked()
+                                        ? QPrinter::Portrait
+                                        : QPrinter::Landscape;
+    m_printer->setOrientation(orientation);
+    // paper format
+    QVariant val = widget.paperSize->itemData(widget.paperSize->currentIndex());
+    int ps = m_printer->pageSize();
+    if (val.type() == QVariant::Int) {
+        ps = val.toInt();
+    }
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+    else if (m_cups && QCUPSSupport::isAvailable() && m_cups->currentPPD()) {
+        QByteArray cupsPageSize = val.toByteArray();
+        QPrintEngine *engine = m_printer->printEngine();
+        engine->setProperty(PPK_CupsStringPageSize, QString::fromLatin1(cupsPageSize));
+        engine->setProperty(PPK_CupsOptions, m_cups->options());
+
+        QRect pageRect = m_cups->pageRect(cupsPageSize);
+        engine->setProperty(PPK_CupsPageRect, pageRect);
+
+        QRect paperRect = m_cups->paperRect(cupsPageSize);
+        engine->setProperty(PPK_CupsPaperRect, paperRect);
+
+        for(ps = 0; ps < QPrinter::NPaperSize; ++ps) {
+            QPdf::PaperSize size = QPdf::paperSize(QPrinter::PaperSize(ps));
+            if (size.width == paperRect.width() && size.height == paperRect.height())
+                break;
+        }
+    }
+#endif
+    if (ps == QPrinter::Custom)
+        m_printer->setPaperSize(sizeForOrientation(orientation, m_paperSize), QPrinter::Point);
+    else
+        m_printer->setPaperSize(static_cast<QPrinter::PaperSize>(ps));
+
+#ifdef PSD_ENABLE_PAPERSOURCE
+    m_printer->setPaperSource((QPrinter::PaperSource)widget.paperSource->currentIndex());
+#endif
+    m_printer->setPageMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin, QPrinter::Point);
+
+}
+
+void QPageSetupWidget::selectPrinter(QCUPSSupport *cups)
+{
+    m_cups = cups;
+    widget.paperSize->clear();
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+    if (m_cups && QCUPSSupport::isAvailable()) {
+        const ppd_option_t* pageSizes = m_cups->pageSizes();
+        const int numChoices = pageSizes ? pageSizes->num_choices : 0;
+
+        for (int i = 0; i < numChoices; ++i) {
+            widget.paperSize->addItem(QString::fromLocal8Bit(pageSizes->choices[i].text), QByteArray(pageSizes->choices[i].choice));
+            if (static_cast<int>(pageSizes->choices[i].marked) == 1)
+                widget.paperSize->setCurrentIndex(i);
+        }
+        QByteArray cupsPageSize = widget.paperSize->itemData(widget.paperSize->currentIndex()).toByteArray();
+        QRect paper = m_cups->paperRect(cupsPageSize);
+        QRect content = m_cups->pageRect(cupsPageSize);
+
+        m_leftMargin = content.x() - paper.x();
+        m_topMargin = content.y() - paper.y();
+        m_rightMargin = paper.right() - content.right();
+        m_bottomMargin = paper.bottom() - content.bottom();
+    }
+#endif
+    if ( widget.paperSize->count() == 0) {
+        populatePaperSizes(widget.paperSize);
+        widget.paperSize->setCurrentIndex(widget.paperSize->findData(
+            QLocale::system().measurementSystem() == QLocale::ImperialSystem ? QPrinter::Letter : QPrinter::A4));
+    }
+
+    unitChanged(widget.unit->currentIndex());
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
+void QPageSetupWidget::selectPdfPsPrinter(const QPrinter *p)
+{
+    m_cups = 0;
+    widget.paperSize->clear();
+    populatePaperSizes(widget.paperSize);
+    widget.paperSize->setCurrentIndex(widget.paperSize->findData(p->paperSize()));
+
+    m_leftMargin = 90;
+    m_topMargin = 72;
+    m_bottomMargin = 72;
+    m_rightMargin = 90;
+    unitChanged(widget.unit->currentIndex());
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
+void QPageSetupWidget::_q_paperSizeChanged()
+{
+    QVariant val = widget.paperSize->itemData(widget.paperSize->currentIndex());
+    int index = m_printer->pageSize();
+    if (val.type() == QVariant::Int) {
+        index = val.toInt();
+    }
+
+    if (m_blockSignals) return;
+    m_blockSignals = true;
+
+    QPrinter::PaperSize size = QPrinter::PaperSize(index);
+    QPrinter::Orientation orientation = widget.portrait->isChecked()
+                                        ? QPrinter::Portrait
+                                        : QPrinter::Landscape;
+
+    const bool custom = size == QPrinter::Custom;
+    widget.paperWidth->setEnabled(custom);
+    widget.paperHeight->setEnabled(custom);
+    widget.widthLabel->setEnabled(custom);
+    widget.heightLabel->setEnabled(custom);
+
+    if (custom) {
+        m_paperSize.setWidth( widget.paperWidth->value() * m_currentMultiplier);
+        m_paperSize.setHeight( widget.paperHeight->value() * m_currentMultiplier);
+        m_pagePreview->setPaperSize(m_paperSize);
+    } else {
+        Q_ASSERT(m_printer);
+#if !defined(QT_NO_CUPS) && !defined(QT_NO_LIBRARY)
+        if (m_cups) { // combobox is filled with cups based data
+            QByteArray cupsPageSize = widget.paperSize->itemData(widget.paperSize->currentIndex()).toByteArray();
+            m_paperSize = m_cups->pageRect(cupsPageSize).size();
+            if (orientation == QPrinter::Landscape)
+                m_paperSize = QSizeF(m_paperSize.height(), m_paperSize.width()); // swap
+        }
+        else
+#endif
+            m_paperSize = qt_printerPaperSize(orientation, size, QPrinter::Point, 1);
+
+        m_pagePreview->setPaperSize(m_paperSize);
+        widget.paperWidth->setValue(m_paperSize.width() / m_currentMultiplier);
+        widget.paperHeight->setValue(m_paperSize.height() / m_currentMultiplier);
+    }
+    m_blockSignals = false;
+}
+
+void QPageSetupWidget::_q_pageOrientationChanged()
+{
+    if (QPrinter::PaperSize(widget.paperSize->currentIndex()) == QPrinter::Custom) {
+        double tmp = widget.paperWidth->value();
+        widget.paperWidth->setValue(widget.paperHeight->value());
+        widget.paperHeight->setValue(tmp);
+    }
+    _q_paperSizeChanged();
+}
+
+
+extern double qt_multiplierForUnit(QPrinter::Unit unit, int resolution);
+
+void QPageSetupWidget::unitChanged(int item)
+{
+    QString suffix;
+    switch(item) {
+    case 0:
+        m_currentMultiplier = 10 * qt_multiplierForUnit(QPrinter::Millimeter, 1);
+        suffix = QString::fromLatin1(" cm");
+        break;
+    case 2:
+        m_currentMultiplier = qt_multiplierForUnit(QPrinter::Inch, 1);
+        suffix = QString::fromLatin1(" in");
+        break;
+    case 3:
+        m_currentMultiplier = qt_multiplierForUnit(QPrinter::Point, 1);
+        suffix = QString::fromLatin1(" pt");
+        break;
+    case 1:
+    default:
+        m_currentMultiplier = qt_multiplierForUnit(QPrinter::Millimeter, 1);
+        suffix = QString::fromLatin1(" mm");
+        break;
+    }
+    const bool old = m_blockSignals;
+    m_blockSignals = true;
+    widget.topMargin->setSuffix(suffix);
+    widget.leftMargin->setSuffix(suffix);
+    widget.rightMargin->setSuffix(suffix);
+    widget.bottomMargin->setSuffix(suffix);
+    widget.paperWidth->setSuffix(suffix);
+    widget.paperHeight->setSuffix(suffix);
+    widget.topMargin->setValue(m_topMargin / m_currentMultiplier);
+    widget.leftMargin->setValue(m_leftMargin / m_currentMultiplier);
+    widget.rightMargin->setValue(m_rightMargin / m_currentMultiplier);
+    widget.bottomMargin->setValue(m_bottomMargin / m_currentMultiplier);
+    widget.paperWidth->setValue(m_paperSize.width() / m_currentMultiplier);
+    widget.paperHeight->setValue(m_paperSize.height() / m_currentMultiplier);
+    m_blockSignals = old;
+}
+
+void QPageSetupWidget::setTopMargin(double newValue)
+{
+    if (m_blockSignals) return;
+    m_topMargin = newValue * m_currentMultiplier;
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
+void QPageSetupWidget::setBottomMargin(double newValue)
+{
+    if (m_blockSignals) return;
+    m_bottomMargin = newValue * m_currentMultiplier;
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
+void QPageSetupWidget::setLeftMargin(double newValue)
+{
+    if (m_blockSignals) return;
+    m_leftMargin = newValue * m_currentMultiplier;
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
+void QPageSetupWidget::setRightMargin(double newValue)
+{
+    if (m_blockSignals) return;
+    m_rightMargin = newValue * m_currentMultiplier;
+    m_pagePreview->setMargins(m_leftMargin, m_topMargin, m_rightMargin, m_bottomMargin);
+}
+
 
 /*!
     \class QPageSetupDialog
@@ -138,6 +526,11 @@ public:
 
     On Windows and Mac OS X the page setup dialog is implemented using
     the native page setup dialogs.
+
+    Note that on Windows and Mac OS X custom paper sizes won't be
+    reflected in the native page setup dialogs. Additionally, custom
+    page margins set on a QPrinter won't show in the native Mac OS X
+    page setup dialog.
 
     \sa QPrinter, QPrintDialog
 */
@@ -150,65 +543,16 @@ QPageSetupDialog::QPageSetupDialog(QPrinter *printer, QWidget *parent)
     : QAbstractPageSetupDialog(*(new QPageSetupDialogPrivate), printer, parent)
 {
     Q_D(QPageSetupDialog);
-    QVBoxLayout *layout = new QVBoxLayout(this);
 
-    QFrame *frame = new QFrame(this);
-    frame->setFrameShape(QFrame::StyledPanel);
-    frame->setFrameShadow(QFrame::Sunken);
-    QGridLayout *frameLayout = new QGridLayout(frame);
-
-    QLabel *pageSizeLabel = new QLabel(QPrintDialog::tr("Page size:"), frame);
-    d->pageSize = new QComboBox(frame);
-    frameLayout->addWidget(pageSizeLabel, 0, 0);
-    frameLayout->addWidget(d->pageSize, 0, 1);
-
-    QLabel *orientationLabel = new QLabel(QPrintDialog::tr("Orientation:"), frame);
-    d->orientation = new QComboBox(frame);
-    frameLayout->addWidget(orientationLabel, 2, 0);
-    frameLayout->addWidget(d->orientation, 2, 1);
-
-#ifdef PSD_ENABLE_PAPERSOURCE
-    QLabel *paperSourceLabel = new QLabel(QPrintDialog::tr("Paper source:"), frame);
-    d->paperSource = new QComboBox(frame);
-    frameLayout->addWidget(paperSourceLabel, 1, 0);
-    frameLayout->addWidget(d->paperSource, 1, 1);
-#endif
-
-    layout->addWidget(frame);
-
-    QSpacerItem* spacer = new QSpacerItem(20, 20, QSizePolicy::Minimum, QSizePolicy::Expanding);
-    layout->addItem(spacer);
-
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    QSpacerItem *buttonSpacer = new QSpacerItem(71, 20, QSizePolicy::Expanding,
-                                                QSizePolicy::Minimum);
-    QPushButton *okButton = new QPushButton(QPrintDialog::tr("OK"), this);
-    QPushButton *cancelButton = new QPushButton(QPrintDialog::tr("Cancel"), this);
-
-    buttonLayout->addItem(buttonSpacer);
-    buttonLayout->addWidget(okButton);
-    buttonLayout->addWidget(cancelButton);
-
-    layout->addLayout(buttonLayout);
-
-    setAttribute(Qt::WA_WState_Polished, false);
-
-    for (int i = 0; pageSizeNames[i]; ++i)
-        d->pageSize->addItem(QCoreApplication::translate("QPrintDialog", pageSizeNames[i]));
-    d->pageSize->setCurrentIndex(printer->pageSize());
-
-#ifdef PSD_ENABLE_PAPERSOURCE
-    for (int i=0; paperSourceNames[i]; ++i)
-        d->paperSource->insertItem(paperSourceNames[i]);
-    d->paperSource->setCurrentItem(printer->paperSource());
-#endif
-
-    d->orientation->addItem(QPrintDialog::tr("Portrait"));
-    d->orientation->addItem(QPrintDialog::tr("Landscape"));
-    d->orientation->setCurrentIndex(printer->orientation());
-
-    connect(okButton, SIGNAL(clicked()), this, SLOT(accept()));
-    connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
+    d->widget = new QPageSetupWidget(this);
+    d->widget->setPrinter(printer);
+    QVBoxLayout *lay = new QVBoxLayout();
+    setLayout(lay);
+    lay->addWidget(d->widget);
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
+    lay->addWidget(buttons);
+    connect(buttons->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+    connect(buttons->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
 }
 
 /*!
@@ -218,18 +562,9 @@ int QPageSetupDialog::exec()
 {
     Q_D(QPageSetupDialog);
 
-    if (d->printer->outputFormat() != QPrinter::NativeFormat) 
-        return Rejected;
-
     int ret = QDialog::exec();
-    if (ret == Accepted) {
-        // Read out the data
-        d->printer->setPageSize((QPrinter::PageSize)d->pageSize->currentIndex());
-        d->printer->setOrientation((QPrinter::Orientation)d->orientation->currentIndex());
-#ifdef PSD_ENABLE_PAPERSOURCE
-        d->printer->setPaperSource((QPrinter::PaperSource)d->paperSource->currentIndex());
-#endif
-    }
+    if (ret == Accepted)
+        d->widget->setupPrinter();
     return ret;
 }
 
@@ -239,5 +574,9 @@ int QPageSetupDialog::exec()
     Returns the printer that was passed to the QPageSetupDialog
     constructor.
 */
+
+QT_END_NAMESPACE
+
+#include "moc_qpagesetupdialog.cpp"
 
 #endif // QT_NO_PRINTDIALOG

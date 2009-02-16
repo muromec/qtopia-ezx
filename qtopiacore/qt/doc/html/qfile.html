@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qfile.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qfile.cpp -->
 <head>
-  <title>Qt 4.3: QFile Class Reference</title>
+  <title>Qt 4.4: QFile Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QFile Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QFile Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QFile class provides an interface for reading from and writing to files. <a href="#details">More...</a></p>
 <pre> #include &lt;QFile&gt;</pre><p>Inherits <a href="qiodevice.html">QIODevice</a>.</p>
@@ -29,6 +29,7 @@
 <li><div class="fn"/>typedef <b><a href="qfile.html#DecoderFn-typedef">DecoderFn</a></b></li>
 <li><div class="fn"/>typedef <b><a href="qfile.html#EncoderFn-typedef">EncoderFn</a></b></li>
 <li><div class="fn"/>enum <b><a href="qfile.html#FileError-enum">FileError</a></b> { NoError, ReadError, WriteError, FatalError, ..., CopyError }</li>
+<li><div class="fn"/>enum <b><a href="qfile.html#MemoryMapFlags-enum">MemoryMapFlags</a></b> { NoOptions }</li>
 <li><div class="fn"/>enum <b><a href="qfile.html#Permission-enum">Permission</a></b> { ReadOwner, WriteOwner, ExeOwner, ReadUser, ..., ExeOther }</li>
 <li><div class="fn"/>typedef <b><a href="qfile.html#PermissionSpec-typedef">PermissionSpec</a></b></li>
 <li><div class="fn"/>flags <b><a href="qfile.html#Permission-enum">Permissions</a></b></li>
@@ -49,6 +50,7 @@
 <li><div class="fn"/>int <b><a href="qfile.html#handle">handle</a></b> () const</li>
 <li><div class="fn"/>virtual bool <b><a href="qfile.html#isSequential">isSequential</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qfile.html#link">link</a></b> ( const QString &amp; <i>linkName</i> )</li>
+<li><div class="fn"/>uchar * <b><a href="qfile.html#map">map</a></b> ( qint64 <i>offset</i>, qint64 <i>size</i>, MemoryMapFlags <i>flags</i> = NoOptions )</li>
 <li><div class="fn"/>virtual bool <b><a href="qfile.html#open">open</a></b> ( OpenMode <i>mode</i> )</li>
 <li><div class="fn"/>bool <b><a href="qfile.html#open-4">open</a></b> ( FILE * <i>fh</i>, OpenMode <i>mode</i> )</li>
 <li><div class="fn"/>bool <b><a href="qfile.html#open-5">open</a></b> ( int <i>fd</i>, OpenMode <i>mode</i> )</li>
@@ -60,6 +62,7 @@
 <li><div class="fn"/>bool <b><a href="qfile.html#setPermissions">setPermissions</a></b> ( Permissions <i>permissions</i> )</li>
 <li><div class="fn"/>virtual qint64 <b><a href="qfile.html#size">size</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qfile.html#symLinkTarget-2">symLinkTarget</a></b> () const</li>
+<li><div class="fn"/>bool <b><a href="qfile.html#unmap">unmap</a></b> ( uchar * <i>address</i> )</li>
 <li><div class="fn"/>void <b><a href="qfile.html#unsetError">unsetError</a></b> ()</li>
 </ul>
 <ul>
@@ -91,7 +94,7 @@
 <ul>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 <li><div class="fn"/>1 public slot inherited from <a href="qobject.html#public-slots">QObject</a></li>
-<li><div class="fn"/>3 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
+<li><div class="fn"/>4 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
 <li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
 <li><div class="fn"/>5 protected functions inherited from <a href="qiodevice.html#protected-functions">QIODevice</a></li>
 <li><div class="fn"/>7 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
@@ -153,6 +156,9 @@
 <a name="signals"></a>
 <h3>Signals</h3>
 <p>Unlike other <a href="qiodevice.html">QIODevice</a> implementations, such as <a href="qtcpsocket.html">QTcpSocket</a>, QFile does not emit the <a href="qiodevice.html#aboutToClose">aboutToClose</a>(), <a href="qiodevice.html#bytesWritten">bytesWritten</a>(), or <a href="qiodevice.html#readyRead">readyRead</a>() signals. This implementation detail means that QFile is not suitable for reading and writing certain types of files, such as device files on Unix platforms.</p>
+<a name="platform-specific-issues"></a>
+<h3>Platform Specific Issues</h3>
+<p>File permissions are handled differently on Linux/Mac OS X and Windows. In a non <a href="qiodevice.html#isWritable">writable</a> directory on Linux, files cannot be created. This is not always the case on Windows, where, for instance, the 'My Documents' directory usually is not writable, but it is still possible to create files in it.</p>
 <p>See also <a href="qtextstream.html">QTextStream</a>, <a href="qdatastream.html">QDataStream</a>, <a href="qfileinfo.html">QFileInfo</a>, <a href="qdir.html">QDir</a>, and <a href="resources.html">The Qt Resource System</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
@@ -184,6 +190,13 @@
 <tr><td valign="top"><tt>QFile::PermissionsError</tt></td><td align="center" valign="top"><tt>13</tt></td><td valign="top">The file could not be accessed.</td></tr>
 <tr><td valign="top"><tt>QFile::CopyError</tt></td><td align="center" valign="top"><tt>14</tt></td><td valign="top">The file could not be copied.</td></tr>
 </table></p>
+<h3 class="fn"><a name="MemoryMapFlags-enum"></a>enum QFile::MemoryMapFlags</h3>
+<p>This enum describes special options that may be used by the <a href="qfile.html#map">map</a>() function.</p>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>QFile::NoOptions</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">No options.</td></tr>
+</table></p>
+<p>This enum was introduced in Qt 4.4.</p>
 <h3 class="flags"><a name="Permission-enum"></a>enum QFile::Permission<br />flags QFile::Permissions</h3>
 <p>This enum is used by the permission() function to report the permissions and ownership of a file. The values may be OR-ed together to test multiple permissions and ownership values.</p>
 <p><table border="1" cellpadding="2" cellspacing="1" width="100%">
@@ -257,6 +270,7 @@
 <p>Returns the file handle of the file.</p>
 <p>This is a small positive integer, suitable for use with C library functions such as fdopen() and fcntl(). On systems that use file descriptors for sockets (i.e&#x2e; Unix systems, but not Windows) the handle can be used with <a href="qsocketnotifier.html">QSocketNotifier</a> as well.</p>
 <p>If the file is not open, or there is an error, handle() returns -1.</p>
+<p>This function is not supported on Windows CE.</p>
 <p>See also <a href="qsocketnotifier.html">QSocketNotifier</a>.</p>
 <h3 class="fn"><a name="isSequential"></a>bool QFile::isSequential () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns true if the file can only be manipulated sequentially; otherwise returns false.</p>
@@ -272,6 +286,13 @@
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Creates a link named <i>linkName</i> that points to the file <i>fileName</i>. What a link is depends on the underlying filesystem (be it a shortcut on Windows or a symbolic link on Unix). Returns true if successful; otherwise returns false.</p>
 <p>See also <a href="qfile.html#link">link</a>().</p>
+<h3 class="fn"><a name="map"></a><a href="qtglobal.html#uchar-typedef">uchar</a> * QFile::map ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>offset</i>, <a href="qtglobal.html#qint64-typedef">qint64</a> <i>size</i>, <a href="qfile.html#MemoryMapFlags-enum">MemoryMapFlags</a> <i>flags</i> = NoOptions )</h3>
+<p>Maps <i>size</i> bytes of the file into memory starting at <i>offset</i>. A file should be open for a map to succeed but the file does not need to stay open after the memory has been mapped. When the <a href="qfile.html">QFile</a> is destroyed or a new file is opened with this object, any maps that have not been unmapped will automatically be unmapped.</p>
+<p>Any mapping options can be passed through <i>flags</i>.</p>
+<p>Returns a pointer to the memory or 0 if there is an error.</p>
+<p><b>Note:</b> On Windows CE 5.0 the file will be closed before mapping occurs.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qfile.html#unmap">unmap</a>() and <a href="qabstractfileengine.html#supportsExtension">QAbstractFileEngine::supportsExtension</a>().</p>
 <h3 class="fn"><a name="open"></a>bool QFile::open ( <a href="qiodevice.html#OpenModeFlag-enum">OpenMode</a> <i>mode</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Opens the file using <a href="qiodevice.html#OpenModeFlag-enum">OpenMode</a> <i>mode</i>, returning true if successful; otherwise false.</p>
 <p>The <i>mode</i> must be <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::ReadOnly</a>, <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::WriteOnly</a>, or <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::ReadWrite</a>. It may also have additional flags, such as <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::Text</a> and <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::Unbuffered</a>.</p>
@@ -293,10 +314,16 @@
      file.close();
  }</pre>
 <p>When a <a href="qfile.html">QFile</a> is opened using this function, <a href="qiodevice.html#close">close</a>() does not actually close the file, but only flushes it.</p>
-<p><b>Warning:</b> If <i>fh</i> is <tt>stdin</tt>, <tt>stdout</tt>, or <tt>stderr</tt>, you may not be able to <a href="qiodevice.html#seek">seek</a>(). See <a href="qiodevice-qt3.html#isSequentialAccess">QIODevice::isSequentialAccess</a>() for more information.</p>
-<p><b>Note:</b> On Windows, you need to enable support for console applications in order to use the stdin, stdout and stderr streams at the console. To do this, add the following declaration to your application's project file:</p>
+<p><b>Warning:</b></p>
+<ol type="1">
+<li>If <i>fh</i> is <tt>stdin</tt>, <tt>stdout</tt>, or <tt>stderr</tt>, you may not be able to <a href="qiodevice.html#seek">seek</a>(). See <a href="qiodevice-qt3.html#isSequentialAccess">QIODevice::isSequentialAccess</a>() for more information.</li>
+<li>Since this function opens the file without specifying the file name, you cannot use this <a href="qfile.html">QFile</a> with a <a href="qfileinfo.html">QFileInfo</a>.</li>
+</ol>
+<p><b>Note:</b> For Windows CE you may not be able to call <a href="qiodevice.html#seek">seek</a>() and <a href="qfile.html#resize">resize</a>(). Also, <a href="qfile.html#size">size</a>() is set to <tt>0</tt>.</p>
+<p><b>Note for the Windows Platform</b></p>
+<p><i>fh</i> must be opened in binary mode (i.e&#x2e;, the mode string must contain 'b', as in &quot;rb&quot; or &quot;wb&quot;) when accessing files and other random-access devices. Qt will translate the end-of-line characters if you pass <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::Text</a> to <i>mode</i>. Sequential devices, such as stdin and stdout, are unaffected by this limitation.</p>
+<p>You need to enable support for console applications in order to use the stdin, stdout and stderr streams at the console. To do this, add the following declaration to your application's project file:</p>
 <pre> CONFIG += console</pre>
-<p><b>Note:</b> On Windows, <i>fh</i> must be opened in binary mode (i.e&#x2e;, the mode string must contain 'b', as in &quot;rb&quot; or &quot;wb&quot;) when accessing files and other random-access devices. Qt will translate the end-of-line characters if you pass <a href="qiodevice.html#OpenModeFlag-enum">QIODevice::Text</a> to <i>mode</i>. Sequential devices, such as stdin and stdout, are unaffected by this limitation.</p>
 <p>See also <a href="qiodevice.html#close">close</a>() and <a href="qmake-variable-reference.html#config">qmake Variable Reference</a>.</p>
 <h3 class="fn"><a name="open-5"></a>bool QFile::open ( int <i>fd</i>, <a href="qiodevice.html#OpenModeFlag-enum">OpenMode</a> <i>mode</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -304,6 +331,8 @@
 <p>When a <a href="qfile.html">QFile</a> is opened using this function, <a href="qiodevice.html#close">close</a>() does not actually close the file.</p>
 <p>The <a href="qfile.html">QFile</a> that is opened using this function is automatically set to be in raw mode; this means that the file input/output functions are slow. If you run into performance issues, you should try to use one of the other open functions.</p>
 <p><b>Warning:</b> If <i>fd</i> is 0 (<tt>stdin</tt>), 1 (<tt>stdout</tt>), or 2 (<tt>stderr</tt>), you may not be able to <a href="qiodevice.html#seek">seek</a>(). <a href="qfile.html#size">size</a>() is set to <tt>LLONG_MAX</tt> (in <tt>&lt;climits&gt;</tt>).</p>
+<p><b>Warning:</b> For Windows CE you may not be able to call <a href="qiodevice.html#seek">seek</a>(), setSize(), fileTime(). <a href="qfile.html#size">size</a>() is set to <tt>0</tt>.</p>
+<p><b>Warning:</b> Since this function opens the file without specifying the file name, you cannot use this <a href="qfile.html">QFile</a> with a <a href="qfileinfo.html">QFileInfo</a>.</p>
 <p>See also <a href="qiodevice.html#close">close</a>().</p>
 <h3 class="fn"><a name="permissions"></a><a href="qfile.html#Permission-enum">Permissions</a> QFile::permissions () const</h3>
 <p>Returns the complete OR-ed together combination of <a href="qfile.html#Permission-enum">QFile::Permission</a> for the file.</p>
@@ -377,13 +406,18 @@
 <p>This name may not represent an existing file; it is only a string. <a href="qfile.html#exists">QFile::exists</a>() returns true if the symlink points to an existing file.</p>
 <p>This function was introduced in Qt 4.2.</p>
 <p>See also <a href="qfile.html#fileName">fileName</a>() and <a href="qfile.html#setFileName">setFileName</a>().</p>
+<h3 class="fn"><a name="unmap"></a>bool QFile::unmap ( <a href="qtglobal.html#uchar-typedef">uchar</a> * <i>address</i> )</h3>
+<p>Unmaps the memory <i>address</i>.</p>
+<p>Returns true if the unmap succeeds; false otherwise.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qfile.html#map">map</a>() and <a href="qabstractfileengine.html#supportsExtension">QAbstractFileEngine::supportsExtension</a>().</p>
 <h3 class="fn"><a name="unsetError"></a>void QFile::unsetError ()</h3>
 <p>Sets the file's error to <a href="qfile.html#FileError-enum">QFile::NoError</a>.</p>
 <p>See also <a href="qfile.html#error">error</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

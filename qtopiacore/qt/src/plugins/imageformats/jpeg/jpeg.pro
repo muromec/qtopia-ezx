@@ -7,6 +7,12 @@ HEADERS += qjpeghandler.h
 SOURCES += main.cpp \
            qjpeghandler.cpp
 
+wince*: { 
+	DEFINES += NO_GETENV 
+	contains(CE_ARCH,x86):CONFIG -= exceptions
+	contains(CE_ARCH,x86):CONFIG -= stl
+}
+
 contains(QT_CONFIG, system-jpeg) {
         unix:LIBS += -ljpeg
         win32:LIBS += libjpeg.lib

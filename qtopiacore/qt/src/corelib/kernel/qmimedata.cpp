@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include "qurl.h"
 #include "qstringlist.h"
 #include "qtextcodec.h"
+
+QT_BEGIN_NAMESPACE
 
 struct QMimeDataStruct
 {
@@ -58,6 +54,7 @@ class QMimeDataPrivate : public QObjectPrivate
 {
     Q_DECLARE_PUBLIC(QMimeData)
 public:
+    void removeData(const QString &format);
     void setData(const QString &format, const QVariant &data);
     QVariant getData(const QString &format) const;
 
@@ -66,15 +63,20 @@ public:
     QList<QMimeDataStruct> dataList;
 };
 
-void QMimeDataPrivate::setData(const QString &format, const QVariant &data)
+void QMimeDataPrivate::removeData(const QString &format)
 {
-    // remove it first if the format is already here.
     for (int i=0; i<dataList.size(); i++) {
         if (dataList.at(i).format == format) {
             dataList.removeAt(i);
-            break;
+            return;
         }
     }
+}
+
+void QMimeDataPrivate::setData(const QString &format, const QVariant &data)
+{
+    // remove it first if the format is already here.
+    removeData(format);
     QMimeDataStruct mimeData;
     mimeData.format = format;
     mimeData.data = data;
@@ -105,13 +107,13 @@ QVariant QMimeDataPrivate::retrieveTypedData(const QString &format, QVariant::Ty
     // provide more conversion possiblities than just what QVariant provides
 
     // URLs can be lists as well...
-    if (type == QVariant::Url && data.type() == QVariant::List
-        || type == QVariant::List && data.type() == QVariant::Url)
+    if ((type == QVariant::Url && data.type() == QVariant::List)
+        || (type == QVariant::List && data.type() == QVariant::Url))
         return data;
 
     // images and pixmaps are interchangeable
-    if (type == QVariant::Pixmap && data.type() == QVariant::Image
-        || type == QVariant::Image && data.type() == QVariant::Pixmap)
+    if ((type == QVariant::Pixmap && data.type() == QVariant::Image)
+        || (type == QVariant::Image && data.type() == QVariant::Pixmap))
         return data;
 
     if (data.type() == QVariant::ByteArray) {
@@ -137,11 +139,19 @@ QVariant QMimeDataPrivate::retrieveTypedData(const QString &format, QVariant::Ty
             // fall through
         }
         case QVariant::Url: {
+            QByteArray ba = data.toByteArray();
+            // Qt 3.x will send text/uri-list with a trailing
+            // null-terminator (that is *not* sent for any other
+            // text/* mime-type), so chop it off
+            if (ba.endsWith('\0'))
+                ba.chop(1);
+
+            QList<QByteArray> urls = ba.split('\n');
             QList<QVariant> list;
-            QList<QByteArray> urls = data.toByteArray().split('\n');
             for (int i = 0; i < urls.size(); ++i) {
                 QByteArray ba = urls.at(i).trimmed();
-                list.append(QUrl::fromEncoded(ba));
+                if (!ba.isEmpty())
+                    list.append(QUrl::fromEncoded(ba));
             }
             return list;
         }
@@ -221,35 +231,16 @@ QVariant QMimeDataPrivate::retrieveTypedData(const QString &format, QVariant::Ty
     For example, if your write a widget that accepts URL drags, you
     would end up writing code like this:
 
-    \code
-        void MyWidget::dragEnterEvent(QDragEnterEvent *event)
-        {
-            if (event->mimeData()->hasUrls())
-                event->acceptProposedAction();
-        }
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 0
 
-        void MyWidget::dropEvent(QDropEvent *event)
-        {
-            if (event->mimeData()->hasUrls()) {
-                QUrl url = event->mimeData()->urls();
-                ...
-            }
-        }
-    \endcode
-
-    There are three appraches for storing custom data in a QMimeData
+    There are three approaches for storing custom data in a QMimeData
     object:
 
     \list 1
     \o  Custom data can be stored directly in a QMimeData object as a
         QByteArray using setData(). For example:
 
-        \code
-            QByteArray csvData = ...;
-
-            QMimeData *mimeData = new QMimeData;
-            mimeData->setData("text/csv", csvData);
-        \endcode
+        \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 1
 
     \o  We can subclass QMimeData and reimplement hasFormat(),
         formats(), and retrieveData().
@@ -259,16 +250,7 @@ QVariant QMimeDataPrivate::retrieveTypedData(const QString &format, QVariant::Ty
         it, and use a qobject_cast() in the receiver's drop event
         handler. For example:
 
-        \code
-        void MyWidget::dropEvent(QDropEvent *event)
-        {
-            const MyMimeData *myData =
-                    qobject_cast<const MyMimeData *>(event->mimeData());
-            if (myData) {
-                // access myData's data directly (not through QMimeData's API)
-            }
-        }
-        \endcode
+        \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 2
     \endlist
 
     \section1 Platform-Specific MIME Types
@@ -278,16 +260,11 @@ QVariant QMimeDataPrivate::retrieveTypedData(const QString &format, QVariant::Ty
     indicate that they represent data in non-standard formats.
     The formats will take the following form:
 
-    \code
-    application/x-qt-windows-mime;value="<custom type>"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 3
 
     The following are examples of custom MIME types:
 
-    \code
-    application/x-qt-windows-mime;value="FileGroupDescriptor"
-    application/x-qt-windows-mime;value="FileContents"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 4
 
     The \c value declaration of each format describes the way in which the
     data is encoded.
@@ -451,12 +428,7 @@ bool QMimeData::hasHtml() const
     library, whereas QImage belongs to \l QtGui. To convert the
     QVariant to a QImage, simply use qvariant_cast(). For example:
 
-    \code
-        if (event->mimeData()->hasImage()) {
-            QImage image = qvariant_cast<QImage>(event->mimeData()->imageData());
-            ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 5
 
     \sa hasImage()
 */
@@ -473,9 +445,7 @@ QVariant QMimeData::imageData() const
     library, whereas QImage belongs to \l QtGui. The conversion
     from QImage to QVariant is implicit. For example:
 
-    \code
-        mimeData->setImageData(QImage("beautifulfjord.png"));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 6
 
     \sa hasImage(), setData()
 */
@@ -505,12 +475,7 @@ bool QMimeData::hasImage() const
     library, whereas QColor belongs to \l QtGui. To convert the
     QVariant to a QColor, simply use qvariant_cast(). For example:
 
-    \code
-        if (event->mimeData()->hasColor()) {
-            QColor color = qvariant_cast<QColor>(event->mimeData()->colorData());
-            ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmimedata.cpp 7
 
     \sa hasColor(), setColorData(), data()
 */
@@ -564,7 +529,13 @@ QByteArray QMimeData::data(const QString &mimeType) const
     functions setText(), setHtml(), setUrls(), setImageData(), and
     setColorData() instead.
 
-    \sa hasFormat()
+    Note that if you want to use a custom data type in an item view drag and drop
+    operation, you must register it as a Qt \l{QMetaType}{meta type}, using the
+    Q_DECLARE_METATYPE() macro, and implement stream operators for it. The stream
+    operators must then be registered with the qRegisterMetaTypeStreamOperators()
+    function.
+
+    \sa hasFormat(), QMetaType, qRegisterMetaTypeStreamOperators()
 */
 void QMimeData::setData(const QString &mimeType, const QByteArray &data)
 {
@@ -637,3 +608,16 @@ void QMimeData::clear()
     Q_D(QMimeData);
     d->dataList.clear();
 }
+
+/*!
+    \since 4.4
+
+    Removes the data entry for \a mimeType in the object.
+*/
+void QMimeData::removeFormat(const QString &mimeType)
+{
+    Q_D(QMimeData);
+    d->removeData(mimeType);
+}
+
+QT_END_NAMESPACE

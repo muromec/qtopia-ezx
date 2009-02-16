@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,15 +40,18 @@
 
 #ifndef QT_NO_TRANSLATION
 
-#include <QFileInfo>
-#include <QString>
 #include <QCoreApplication>
 #include <QDataStream>
+#include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QMap>
+#include <QString>
 #include <QtAlgorithms>
 
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 /*
 $ mcookie
@@ -338,14 +335,14 @@ void Translator::unsqueeze()
 }
 
 
-bool Translator::contains(const char* context, const char* sourceText,
-                            const char* comment) const
+bool Translator::contains(const QByteArray &context, const QByteArray &sourceText,
+    const QByteArray &comment) const
 {
     return !findMessage(context, sourceText, comment).translation().isNull();
 }
 
-bool Translator::contains(const char *context,
-                            const char *comment, const QString &fileName, int lineNumber) const
+bool Translator::contains(const QByteArray &context, const QByteArray &comment,
+    const QString &fileName, int lineNumber) const
 {
     return !findMessage(context, 0, comment, fileName, lineNumber).isNull();
 }
@@ -364,40 +361,34 @@ void Translator::remove(const TranslatorMessage& message)
 }
 
 
-TranslatorMessage Translator::findMessage(const char *context, const char *sourceText,
-                                          const char *comment,
-                                          const QString &fileName, int lineNumber) const
+TranslatorMessage Translator::findMessage(const QByteArray &context,
+    const QByteArray &sourceText, const QByteArray &comment,
+    const QString &fileName, int lineNumber) const
 {
-    if (context == 0)
-        context = "";
-    if (sourceText == 0)
-        sourceText = "";
-    if (comment == 0)
-        comment = "";
-    
     QString myFilename = fileName;
     int myLineNumber = lineNumber;
 
     if (!d->messages.isEmpty()) {
         QMap<TranslatorMessage, void *>::const_iterator it;
 
-        // Either we want to find an item that matches context, sourcetext (and optionally comment)
-        // Or we want to find an item that matches context, filename, linenumber (and optionally comment)
-        it = d->messages.constFind(TranslatorMessage(context, sourceText, comment, myFilename, myLineNumber));
+        // Either we want to find an item that matches context, sourcetext
+        // (and optionally comment) Or we want to find an item that
+        // matches context, filename, linenumber (and optionally comment)
+        it = d->messages.constFind(TranslatorMessage(context, sourceText, comment, "", myFilename, myLineNumber));
         if (it != d->messages.constEnd())
             return it.key();
 
-        if (comment[0]) {
-            it = d->messages.constFind(TranslatorMessage(context, sourceText, "", myFilename, myLineNumber));
+        if (!comment.isEmpty()) {
+            it = d->messages.constFind(TranslatorMessage(context, sourceText, "", "", myFilename, myLineNumber));
             if (it != d->messages.constEnd())
                 return it.key();
         }
-        
-        it = d->messages.constFind(TranslatorMessage(context, "", comment, myFilename, myLineNumber));
+
+        it = d->messages.constFind(TranslatorMessage(context, "", comment, "", myFilename, myLineNumber));
         if (it != d->messages.constEnd())
             return it.key();
-        if (comment[0]) {
-            it = d->messages.constFind(TranslatorMessage(context, "", "", myFilename, myLineNumber));
+        if (!comment.isEmpty()) {
+            it = d->messages.constFind(TranslatorMessage(context, "", "", "", myFilename, myLineNumber));
             if (it != d->messages.constEnd())
                 return it.key();
         }
@@ -425,48 +416,48 @@ QList<TranslatorMessage> Translator::messages() const
 }
 
 TranslatorMessage::TranslatorMessage()
-    : m_hash(0), m_fileName(), m_lineNumber(-1)
+  : m_hash(0), m_fileName(), m_lineNumber(-1),
+    utfeight( false ), ty( Unfinished ), m_plural(false)
 {
 }
 
-TranslatorMessage::TranslatorMessage(const char * context,
-                                        const char * sourceText,
-                                        const char * comment,
-                                        const QString &fileName,
-                                        int lineNumber,
-                                        const QStringList& translations)
-    :   m_context(context), m_sourcetext(sourceText), m_comment(comment), 
-        m_translations(translations), m_fileName(fileName), m_lineNumber(lineNumber)
+TranslatorMessage::TranslatorMessage(const QByteArray &context,
+    const QByteArray &sourceText, const QByteArray &comment,
+    const QByteArray &userData,
+    const QString &fileName, int lineNumber, const QStringList& translations,
+    bool utf8, Type type, bool plural )
+  : m_context(context), m_sourcetext(sourceText), m_comment(comment),
+    m_userData(userData),
+    m_translations(translations), m_fileName(fileName), m_lineNumber(lineNumber),
+    utfeight(false), ty(type), m_plural(plural)
 {
-    // 0 means we don't know, "" means empty
-    if (m_context == (const char*)0)
-        m_context = "";
-    if (m_sourcetext == (const char*)0)
-        m_sourcetext = "";
-    if (m_comment == (const char*)0)
-        m_comment = "";
     m_hash = elfHash(m_sourcetext + m_comment);
-}
 
-
-TranslatorMessage::TranslatorMessage(const TranslatorMessage & m)
-    :   m_context(m.m_context), m_sourcetext(m.m_sourcetext), m_comment(m.m_comment), 
-        m_translations(m.m_translations), m_fileName(m.m_fileName), m_lineNumber(m.m_lineNumber)
-{
-    m_hash = m.m_hash;
-}
-
-TranslatorMessage & TranslatorMessage::operator=(
-        const TranslatorMessage & m)
-{
-    m_hash = m.m_hash;
-    m_context = m.m_context;
-    m_sourcetext = m.m_sourcetext;
-    m_comment = m.m_comment;
-    m_translations = m.m_translations;
-    m_fileName = m.m_fileName;
-    m_lineNumber = m.m_lineNumber;    
-    return *this;
+    /*
+      Don't use UTF-8 if it makes no difference. UTF-8 should be
+      reserved for the real problematic case: non-ASCII (possibly
+      non-Latin1) characters in .ui files.
+    */
+    if (!utf8)
+        return;
+    for (int i = sourceText.size(); --i >= 0; ) {
+        if ( (uchar) sourceText[i] >= 0x80 ) {
+            utfeight = true;
+            return;
+        }
+    }
+    for (int i = comment.size(); --i >= 0; ) {
+        if ( (uchar) comment[i] >= 0x80 ) {
+            utfeight = true;
+            return;
+        }
+    }
+    for (int i = context.size(); --i >= 0; ) {
+        if ( (uchar) context[i] >= 0x80 ) {
+            utfeight = true;
+            return;
+        }
+    }
 }
 
 void TranslatorMessage::write(QDataStream & stream, bool strip, Prefix prefix) const
@@ -477,15 +468,19 @@ void TranslatorMessage::write(QDataStream & stream, bool strip, Prefix prefix) c
     if (!strip)
         prefix = HashContextSourceTextComment;
 
+    // lrelease produces "wrong" .qm files for QByteArrays that are .isNull().
     switch (prefix) {
     case HashContextSourceTextComment:
-        stream << quint8(Tag_Comment) << m_comment;
+        stream << quint8(Tag_Comment)
+            << (m_comment.isEmpty() ? QByteArray("") : m_comment);
         // fall through
     case HashContextSourceText:
-        stream << quint8(Tag_SourceText) << m_sourcetext;
+        stream << quint8(Tag_SourceText)
+            << (m_sourcetext.isEmpty() ? QByteArray("") : m_sourcetext);
         // fall through
     case HashContext:
-        stream << quint8(Tag_Context) << m_context;
+        stream << quint8(Tag_Context)
+            << (m_context.isEmpty() ? QByteArray("") : m_context);
     default:
         ;
     }
@@ -509,27 +504,46 @@ TranslatorMessage::Prefix TranslatorMessage::commonPrefix(const TranslatorMessag
 
 bool TranslatorMessage::operator==(const TranslatorMessage& m) const
 {
-    bool isHashEq = (m_hash == m.m_hash ? true : false);
-    bool isContextEq = (m_context == m.m_context ? true : false);
-    bool isSourceEq = (m_sourcetext == m.m_sourcetext ? true : false);
-    bool isCommentEq = (m_comment == m.m_comment ? true : false);
-    bool isLocationEq = m_lineNumber == m.m_lineNumber && m_fileName == m.m_fileName;
-    
-    return (isHashEq && isContextEq && isSourceEq && isCommentEq) || // translation can be different, but treat the equal
-            (m_sourcetext.isEmpty() && isContextEq && isCommentEq && isLocationEq);
+    // this was in MetaTranslatorMessage::operator==():
+#if 0
+    return context() == m.context()
+        && sourceText() == m.sourceText()
+        && comment() == m.comment();
+#else
+    bool isHashEq = (m_hash == m.m_hash);
+    bool isContextEq = (m_context == m.m_context);
+    bool isSourceEq = (m_sourcetext == m.m_sourcetext);
+    bool isCommentEq = (m_comment == m.m_comment);
+    bool isLocationEq = m_lineNumber == m.m_lineNumber
+        && m_fileName == m.m_fileName;
+
+    return (isHashEq && isContextEq && isSourceEq && isCommentEq)
+        // translation can be different, but treat the equal
+        || (m_sourcetext.isEmpty() && isContextEq && isCommentEq && isLocationEq);
+#endif
 }
+
 
 bool TranslatorMessage::operator<(const TranslatorMessage& m) const
 {
-    return m_hash != m.m_hash ? m_hash < m.m_hash
-           : (m_context != m.m_context ? m_context < m.m_context
-             : (m_sourcetext != m.m_sourcetext ? m_sourcetext < m.m_sourcetext : m_comment < m.m_comment));
+    // MetaTranslatorMessage::operator<() did not use the 'hash' field
+    // FIXME: Using the hash field first leads to reorderiong of the
+    // message when outputting .ts file, but should be much faster.
+    if (m_context != m.m_context)
+        return m_context < m.m_context;
+    if (m_sourcetext != m.m_sourcetext)
+        return m_sourcetext < m.m_sourcetext;
+    if (m_comment != m.m_comment)
+        return m_comment < m.m_comment;
+    if (m_hash != m.m_hash)
+        return m_hash < m.m_hash;
+    return false;
 }
 
 bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
                            QByteArray *rules, QStringList *forms)
 {
-    forever {
+    while (true) {
         for (int i = 0; i < NumerusTableSize; ++i) {
             const NumerusTableEntry &entry = numerusTable[i];
             for (int j = 0; entry.languages[j] != EOL; ++j) {
@@ -556,5 +570,7 @@ bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
     }
     return false;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_TRANSLATION

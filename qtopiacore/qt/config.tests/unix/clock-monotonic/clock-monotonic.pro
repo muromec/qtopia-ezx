@@ -1,3 +1,4 @@
-CONFIG -= qt dylib mac_bundle
 SOURCES = clock-monotonic.cpp
-include(clock-monotonic.pri)
+CONFIG -= qt dylib
+mac:CONFIG -= app_bundle
+include(../clock-gettime/clock-gettime.pri)

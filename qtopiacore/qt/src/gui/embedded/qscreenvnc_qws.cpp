@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,8 +49,11 @@
 #include <private/qwindowsurface_qws_p.h>
 #include <private/qwssignalhandler_p.h>
 #include <private/qwidget_p.h>
+#include <private/qdrawhelper_p.h>
 
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 //#define QT_QWS_VNC_DEBUG
 
@@ -67,31 +61,46 @@ extern QString qws_qtePipeFilename();
 
 #ifndef QT_NO_QWS_CURSOR
 
-inline void QVNCCursor::setDirty(const QRect &r) const
+QVNCCursor::QVNCCursor(QVNCScreen *s)
+    : screen(s)
+{
+    if (qt_screencursor)
+        setScreenCursor(qt_screencursor);
+    else
+        hwaccel = true;
+}
+
+QVNCCursor::~QVNCCursor()
+{
+    if (screenCursor())
+        qt_screencursor = screenCursor();
+}
+
+void QVNCCursor::setDirty(const QRect &r) const
 {
     screen->d_ptr->setDirty(r, true);
 }
 
 void QVNCCursor::hide()
 {
-    QScreenCursor::hide();
+    QProxyScreenCursor::hide();
     if (enable)
         setDirty(boundingRect());
 }
 
 void QVNCCursor::show()
 {
-    QScreenCursor::show();
-    if (!enable)
+    QProxyScreenCursor::show();
+    if (enable)
         setDirty(boundingRect());
 }
 
 void QVNCCursor::set(const QImage &image, int hotx, int hoty)
 {
     QRegion dirty = boundingRect();
-    QScreenCursor::set(image, hotx, hoty);
+    QProxyScreenCursor::set(image, hotx, hoty);
     dirty |= boundingRect();
-    if (enable) {
+    if (enable && hwaccel && !screen->d_ptr->vncServer->hasClientCursor()) {
         const QVector<QRect> rects = dirty.rects();
         for (int i = 0; i < rects.size(); ++i)
             setDirty(rects.at(i));
@@ -100,25 +109,87 @@ void QVNCCursor::set(const QImage &image, int hotx, int hoty)
 
 void QVNCCursor::move(int x, int y)
 {
-    QRegion dirty = boundingRect();
-    QScreenCursor::move(x, y);
-    dirty |= boundingRect();
-    if (enable) {
-        const QVector<QRect> rects = dirty.rects();
-        for (int i = 0; i < rects.size(); ++i)
-            setDirty(rects.at(i));
+    if (enable && hwaccel && !screen->d_ptr->vncServer->hasClientCursor()) {
+        QRegion dirty = boundingRect();
+        QProxyScreenCursor::move(x, y);
+        dirty |= boundingRect();
+        if (enable) {
+            const QVector<QRect> rects = dirty.rects();
+            for (int i = 0; i < rects.size(); ++i)
+                setDirty(rects.at(i));
+        }
+    } else {
+        QProxyScreenCursor::move(x, y);
     }
+}
+
+QVNCClientCursor::QVNCClientCursor(QVNCServer *s)
+    : server(s)
+{
+    setScreenCursor(qt_screencursor);
+    Q_ASSERT(hwaccel);
+    qt_screencursor = this; // hw: XXX
+
+    set(image(), hotspot.x(), hotspot.y());
+}
+
+QVNCClientCursor::~QVNCClientCursor()
+{
+    qt_screencursor = screenCursor();
+}
+
+void QVNCClientCursor::set(const QImage &image, int hotx, int hoty)
+{
+    QScreenCursor::set(image, hotx, hoty);
+    server->setDirtyCursor();
+}
+
+void QVNCClientCursor::write() const
+{
+    QTcpSocket *socket = server->clientSocket();
+
+    // FramebufferUpdate header
+    {
+        const quint16 tmp[6] = { htons(0),
+                                 htons(1),
+                                 htons(hotspot.x()), htons(hotspot.y()),
+                                 htons(cursor.width()),
+                                 htons(cursor.height()) };
+        socket->write((char*)tmp, sizeof(tmp));
+
+        const quint32 encoding = htonl(-239);
+        socket->write((char*)(&encoding), sizeof(encoding));
+    }
+
+    if (cursor.isNull())
+        return;
+
+    // write pixels
+    Q_ASSERT(cursor.hasAlphaChannel());
+    const QImage img = cursor.convertToFormat(server->screen()->pixelFormat());
+    const int n = server->clientBytesPerPixel() * img.width();
+    char *buffer = new char[n];
+    for (int i = 0; i < img.height(); ++i) {
+        server->convertPixels(buffer, (const char*)img.scanLine(i), img.width());
+        socket->write(buffer, n);
+    }
+    delete[] buffer;
+
+    // write mask
+    const QImage bitmap = cursor.createAlphaMask().convertToFormat(QImage::Format_Mono);
+    Q_ASSERT(bitmap.depth() == 1);
+    Q_ASSERT(bitmap.size() == img.size());
+    const int width = (bitmap.width() + 7) / 8;
+    for (int i = 0; i < bitmap.height(); ++i)
+        socket->write((const char*)bitmap.scanLine(i), width);
 }
 
 #endif // QT_NO_QWS_CURSOR
 
 QVNCScreenPrivate::QVNCScreenPrivate(QVNCScreen *parent)
     : dpiX(72), dpiY(72), doOnScreenSurface(false), refreshRate(25),
-      vncServer(0), subscreen(0), q_ptr(parent)
+      vncServer(0), q_ptr(parent)
 {
-#ifndef QT_NO_QWS_MULTIPROCESS
-    shm = 0;
-#endif
 #ifndef QT_NO_QWS_SIGNALHANDLER
     QWSSignalHandler::instance()->addObject(this);
 #endif
@@ -126,78 +197,82 @@ QVNCScreenPrivate::QVNCScreenPrivate(QVNCScreen *parent)
 
 QVNCScreenPrivate::~QVNCScreenPrivate()
 {
-#ifndef QT_NO_QWS_MULTIPROCESS
-    if (shm) {
-        if (QApplication::type() == QApplication::GuiServer)
-            shm->destroy();
-        delete shm;
-    }
+#if defined(QT_NO_QWS_MULTIPROCESS) || defined(QT_NO_SHAREDMEMORY)
+    if (q_ptr->screen())
+        return;
+
+    delete[] q_ptr->data;
+    q_ptr->data = 0;
 #else
-    if (!subscreen) {
-        delete[] q_ptr->data;
-        q_ptr->data = 0;
-    }
+    shm.detach();
 #endif
-    delete subscreen;
 }
 
 void QVNCScreenPrivate::configure()
 {
-    if (subscreen) {
-        q_ptr->d = subscreen->depth();
-        q_ptr->w = subscreen->width();
-        q_ptr->h = subscreen->height();
-        q_ptr->dw = subscreen->deviceWidth();
-        q_ptr->dh = subscreen->deviceHeight();
-        q_ptr->lstep = subscreen->linestep();
-        q_ptr->data = subscreen->base();
-        q_ptr->physWidth = subscreen->physicalWidth();
-        q_ptr->physHeight = subscreen->physicalHeight();
+    if (q_ptr->screen())
+        return;
 
-        q_ptr->setPixelFormat(subscreen->pixelFormat());
-        q_ptr->setOffset(subscreen->offset());
-    } else {
-        q_ptr->lstep = (q_ptr->dw * q_ptr->d + 7) / 8;
-        q_ptr->size = q_ptr->h * q_ptr->lstep;
-        q_ptr->mapsize = q_ptr->size;
-        q_ptr->physWidth = qRound(q_ptr->dw * 25.4 / dpiX);
-        q_ptr->physHeight = qRound(q_ptr->dh * 25.4 / dpiY);
+    q_ptr->lstep = q_ptr->dw * ((q_ptr->d + 7) / 8);
+    q_ptr->size = q_ptr->h * q_ptr->lstep;
+    q_ptr->mapsize = q_ptr->size;
+    q_ptr->physWidth = qRound(q_ptr->dw * qreal(25.4) / dpiX);
+    q_ptr->physHeight = qRound(q_ptr->dh * qreal(25.4) / dpiY);
 
-        switch (q_ptr->d) {
-        case 1:
-            q_ptr->setPixelFormat(QImage::Format_Mono); //### LSB???
-            break;
-        case 8:
-            q_ptr->setPixelFormat(QImage::Format_Indexed8);
-            break;
-        case 16:
-            q_ptr->setPixelFormat(QImage::Format_RGB16);
-            break;
-        case 32:
-            q_ptr->setPixelFormat(QImage::Format_ARGB32_Premultiplied);
-            break;
-        }
-
-#ifndef QT_NO_QWS_MULTIPROCESS
-        if (shm) {
-            if (QApplication::type() == QApplication::GuiServer)
-                shm->destroy();
-            delete shm;
-        }
-        shm = new QSharedMemory(q_ptr->size, qws_qtePipeFilename(),
-                                q_ptr->displayId);
-        if (!shm->create())
-            qDebug("QVNCScreen could not create shared memory");
-        if (!shm->attach())
-            qDebug("QVNCScreen could not attach to shared memory");
-        q_ptr->data = reinterpret_cast<uchar*>(shm->base());
-#else
-        if (q_ptr->data)
-            delete[] q_ptr->data;
-        q_ptr->data = new uchar[q_ptr->size];
-#endif
+    switch (q_ptr->d) {
+    case 1:
+        q_ptr->setPixelFormat(QImage::Format_Mono); //### LSB???
+        break;
+    case 8:
+        q_ptr->setPixelFormat(QImage::Format_Indexed8);
+        break;
+    case 12:
+        q_ptr->setPixelFormat(QImage::Format_RGB444);
+        break;
+    case 15:
+        q_ptr->setPixelFormat(QImage::Format_RGB555);
+        break;
+    case 16:
+        q_ptr->setPixelFormat(QImage::Format_RGB16);
+        break;
+    case 18:
+        q_ptr->setPixelFormat(QImage::Format_RGB666);
+        break;
+    case 24:
+        q_ptr->setPixelFormat(QImage::Format_RGB888);
+        break;
+    case 32:
+        q_ptr->setPixelFormat(QImage::Format_ARGB32_Premultiplied);
+        break;
     }
 
+#if !defined(QT_NO_QWS_MULTIPROCESS) && !defined(QT_NO_SHAREDMEMORY)
+    if (q_ptr->size != shm.size()) {
+        shm.detach();
+        const QString key = qws_qtePipeFilename() +
+                            QString().sprintf("_vnc_%d_%d",
+                                              q_ptr->displayId, q_ptr->size);
+        shm.setKey(key);
+        if (QApplication::type() == QApplication::GuiServer) {
+            if (!shm.create(q_ptr->size)) {
+                qWarning() << "QVNCScreen could not create shared memory:"
+                           << shm.errorString();
+                if (!shm.attach()) {
+                    qWarning() << "QVNCScreen could not attach to shared memory:"
+                               << shm.errorString();
+                }
+            }
+        } else if (!shm.attach()) {
+            qWarning() << "QVNCScreen could not attach to shared memory:"
+                       << shm.errorString();
+        }
+        q_ptr->data = reinterpret_cast<uchar*>(shm.data());
+    }
+#else
+    if (q_ptr->data)
+        delete[] q_ptr->data;
+    q_ptr->data = new uchar[q_ptr->size];
+#endif
 }
 
 //===========================================================================
@@ -470,6 +545,7 @@ void QVNCServer::init(uint port)
     cutTextPending = 0;
     keymod = 0;
     state = Unconnected;
+    dirtyCursor = false;
 
     refreshRate = 25;
     timer = new QTimer(this);
@@ -484,6 +560,9 @@ void QVNCServer::init(uint port)
 
     connect(serverSocket, SIGNAL(newConnection()), this, SLOT(newConnection()));
 
+#ifndef QT_NO_QWS_CURSOR
+    qvnc_cursor = 0;
+#endif
     encoder = 0;
 }
 
@@ -493,12 +572,18 @@ QVNCServer::~QVNCServer()
     encoder = 0;
     delete client;
     client = 0;
+#ifndef QT_NO_QWS_CURSOR
+    delete qvnc_cursor;
+    qvnc_cursor = 0;
+#endif
 }
 
 void QVNCServer::setDirty()
 {
-    if (state == Connected && !timer->isActive() && dirtyMap()->numDirty > 0)
+    if (state == Connected && !timer->isActive() &&
+        ((dirtyMap()->numDirty > 0) || dirtyCursor)) {
         timer->start();
+    }
 }
 
 void QVNCServer::newConnection()
@@ -523,7 +608,7 @@ void QVNCServer::newConnection()
     client->write(proto, 12);
     state = Protocol;
 
-    if (!qvnc_screen->d_ptr->subscreen)
+    if (!qvnc_screen->screen())
         QWSServer::instance()->enablePainting(true);
 }
 
@@ -565,6 +650,32 @@ void QVNCServer::readClient()
                     format.blueShift = 0;
                     break;
 
+                case 24:
+                    format.bitsPerPixel = 24;
+                    format.depth = 24;
+                    format.bigEndian = 0;
+                    format.trueColor = true;
+                    format.redBits = 8;
+                    format.greenBits = 8;
+                    format.blueBits = 8;
+                    format.redShift = 16;
+                    format.greenShift = 8;
+                    format.blueShift = 0;
+                    break;
+
+                case 18:
+                    format.bitsPerPixel = 24;
+                    format.depth = 18;
+                    format.bigEndian = 0;
+                    format.trueColor = true;
+                    format.redBits = 6;
+                    format.greenBits = 6;
+                    format.blueBits = 6;
+                    format.redShift = 12;
+                    format.greenShift = 6;
+                    format.blueShift = 0;
+                    break;
+
                 case 16:
                     format.bitsPerPixel = 16;
                     format.depth = 16;
@@ -578,6 +689,31 @@ void QVNCServer::readClient()
                     format.blueShift = 0;
                     break;
 
+                case 15:
+                    format.bitsPerPixel = 16;
+                    format.depth = 15;
+                    format.bigEndian = 0;
+                    format.trueColor = true;
+                    format.redBits = 5;
+                    format.greenBits = 5;
+                    format.blueBits = 5;
+                    format.redShift = 10;
+                    format.greenShift = 5;
+                    format.blueShift = 0;
+                    break;
+
+                case 12:
+                    format.bitsPerPixel = 16;
+                    format.depth = 12;
+                    format.bigEndian = 0;
+                    format.trueColor = true;
+                    format.redBits = 4;
+                    format.greenBits = 4;
+                    format.blueBits = 4;
+                    format.redShift = 8;
+                    format.greenShift = 4;
+                    format.blueShift = 0;
+                    break;
 
                 case 8:
                 case 4:
@@ -600,7 +736,7 @@ void QVNCServer::readClient()
                 }
                 sim.width = qvnc_screen->deviceWidth();
                 sim.height = qvnc_screen->deviceHeight();
-                sim.setName("Qtopia Core VNC Server");
+                sim.setName("Qt for Embedded Linux VNC Server");
                 sim.write(client);
                 state = Connected;
             }
@@ -654,8 +790,8 @@ bool QVNCScreen::swapBytes() const
     if (depth() != 16)
         return false;
 
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->frameBufferLittleEndian();
+    if (screen())
+        return screen()->frameBufferLittleEndian();
     return frameBufferLittleEndian();
 }
 #endif
@@ -755,9 +891,29 @@ void QVNCServer::setEncodings()
                     encoder = new QRfbHextileEncoder<quint8>(this);
                     break;
 #endif
+#ifdef QT_QWS_DEPTH_12
+                case 12:
+                    encoder = new QRfbHextileEncoder<qrgb444>(this);
+                    break;
+#endif
+#ifdef QT_QWS_DEPTH_15
+                case 15:
+                    encoder = new QRfbHextileEncoder<qrgb555>(this);
+                    break;
+#endif
 #ifdef QT_QWS_DEPTH_16
                 case 16:
                     encoder = new QRfbHextileEncoder<quint16>(this);
+                    break;
+#endif
+#ifdef QT_QWS_DEPTH_18
+                case 18:
+                    encoder = new QRfbHextileEncoder<qrgb666>(this);
+                    break;
+#endif
+#ifdef QT_QWS_DEPTH_24
+                case 24:
+                    encoder = new QRfbHextileEncoder<qrgb888>(this);
                     break;
 #endif
 #ifdef QT_QWS_DEPTH_32
@@ -777,6 +933,12 @@ void QVNCServer::setEncodings()
                 break;
             case Cursor:
                 supportCursor = true;
+#ifndef QT_NO_QWS_CURSOR
+                if (!qvnc_screen->screen() || qt_screencursor->isAccelerated()) {
+                    delete qvnc_cursor;
+                    qvnc_cursor = new QVNCClientCursor(this);
+                }
+#endif
                 break;
             case DesktopSize:
                 supportDesktopSize = true;
@@ -804,7 +966,7 @@ void QVNCServer::frameBufferUpdateRequest()
     if (ev.read(client)) {
         if (!ev.incremental) {
             QRect r(ev.rect.x, ev.rect.y, ev.rect.w, ev.rect.h);
-            r.translated(qvnc_screen->offset());
+            r.translate(qvnc_screen->offset());
             qvnc_screen->d_ptr->setDirty(r, true);
         }
         wantUpdate = true;
@@ -888,12 +1050,16 @@ bool QRfbSingleColorHextile<SRC>::read(const uchar *data,
             return false;
         width /= 2;
     } // fallthrough
+    case 12:
+    case 15:
     case 16: {
         const quint16 *data16 = reinterpret_cast<const quint16*>(data);
         if (data16[0] != data16[1])
             return false;
         width /= 2;
     } // fallthrough
+    case 18:
+    case 24:
     case 32: {
         const quint32 *data32 = reinterpret_cast<const quint32*>(data);
         const quint32 first = data32[0];
@@ -1196,11 +1362,24 @@ bool QVNCServer::pixelConversionNeeded() const
 
     switch (screendepth) {
     case 32:
+    case 24:
         return false;
+    case 18:
+        return (pixelFormat.redBits == 6
+                && pixelFormat.greenBits == 6
+                && pixelFormat.blueBits == 6);
     case 16:
         return (pixelFormat.redBits == 5
                 && pixelFormat.greenBits == 6
                 && pixelFormat.blueBits == 5);
+    case 15:
+        return (pixelFormat.redBits == 5
+                && pixelFormat.greenBits == 5
+                && pixelFormat.blueBits == 5);
+    case 12:
+        return (pixelFormat.redBits == 4
+                && pixelFormat.greenBits == 4
+                && pixelFormat.blueBits == 4);
     }
     return true;
 }
@@ -1209,6 +1388,7 @@ bool QVNCServer::pixelConversionNeeded() const
 void QVNCServer::convertPixels(char *dst, const char *src, int count) const
 {
     const int screendepth = qvnc_screen->depth();
+    const bool isBgr = qvnc_screen->pixelType() == QScreen::BGRPixel;
 
     // cutoffs
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
@@ -1264,7 +1444,7 @@ void QVNCServer::convertPixels(char *dst, const char *src, int count) const
         }
     }
 
-    const int bytesPerPixel = pixelFormat.bitsPerPixel / 8;
+    const int bytesPerPixel = (pixelFormat.bitsPerPixel + 7) / 8;
 
 //    nibble = 0;
 
@@ -1286,19 +1466,35 @@ void QVNCServer::convertPixels(char *dst, const char *src, int count) const
         }
 #endif
         case 8: {
-            QRgb rgb = qvnc_screen->clut()[*src];
+            QRgb rgb = qvnc_screen->clut()[int(*src)];
             r = qRed(rgb);
             g = qGreen(rgb);
             b = qBlue(rgb);
             src++;
             break;
         }
+#ifdef QT_QWS_DEPTH_12
+        case 12: {
+            quint32 p = quint32(*reinterpret_cast<const qrgb444*>(src));
+            r = qRed(p);
+            g = qGreen(p);
+            b = qBlue(p);
+            src += sizeof(qrgb444);
+            break;
+        }
+#endif
+#ifdef QT_QWS_DEPTH_15
+        case 15: {
+            quint32 p = quint32(*reinterpret_cast<const qrgb555*>(src));
+            r = qRed(p);
+            g = qGreen(p);
+            b = qBlue(p);
+            src += sizeof(qrgb555);
+            break;
+        }
+#endif
         case 16: {
             quint16 p = *reinterpret_cast<const quint16*>(src);
-#if Q_BYTE_ORDER == Q_BIG_ENDIAN
-            if (swapBytes)
-                p = ((p & 0xff) << 8) | ((p & 0xff00) >> 8);
-#endif
             r = (p >> 11) & 0x1f;
             g = (p >> 5) & 0x3f;
             b = p & 0x1f;
@@ -1308,6 +1504,26 @@ void QVNCServer::convertPixels(char *dst, const char *src, int count) const
             src += sizeof(quint16);
             break;
         }
+#ifdef QT_QWS_DEPTH_18
+        case 18: {
+            quint32 p = quint32(*reinterpret_cast<const qrgb666*>(src));
+            r = qRed(p);
+            g = qGreen(p);
+            b = qBlue(p);
+            src += sizeof(qrgb666);
+            break;
+        }
+#endif
+#ifdef QT_QWS_DEPTH_24
+        case 24: {
+            quint32 p = quint32(*reinterpret_cast<const qrgb888*>(src));
+            r = qRed(p);
+            g = qGreen(p);
+            b = qBlue(p);
+            src += sizeof(qrgb888);
+            break;
+        }
+#endif
         case 32: {
             quint32 p = *reinterpret_cast<const quint32*>(src);
             r = (p >> 16) & 0xff;
@@ -1322,6 +1538,13 @@ void QVNCServer::convertPixels(char *dst, const char *src, int count) const
             return;
         }
         }
+
+#if Q_BYTE_ORDER == Q_BIG_ENDIAN
+        if (swapBytes ^ isBgr)
+#else
+        if (isBgr)
+#endif
+            qSwap(r, b);
 
         r >>= (8 - pixelFormat.redBits);
         g >>= (8 - pixelFormat.greenBits);
@@ -1376,21 +1599,6 @@ void QVNCServer::convertPixels(char *dst, const char *src, int count) const
     }
 }
 
-// XXX
-static inline QImage::Format formatForDepth(int depth)
-{
-    switch (depth) {
-    case 8:
-        return QImage::Format_Indexed8;
-    case 16:
-        return QImage::Format_RGB16;
-    case 32:
-        return QImage::Format_RGB32;
-    default:
-        return QImage::Format_Invalid;
-    }
-}
-
 #ifndef QT_NO_QWS_CURSOR
 static void blendCursor(QImage &image, const QRect &imageRect)
 {
@@ -1408,7 +1616,7 @@ static void blendCursor(QImage &image, const QRect &imageRect)
 QVNCDirtyMap::QVNCDirtyMap(QScreen *s)
     : bytesPerPixel(0), numDirty(0), screen(s)
 {
-    bytesPerPixel = screen->depth() / 8;
+    bytesPerPixel = (screen->depth() + 7) / 8;
     bufferWidth = screen->deviceWidth();
     bufferHeight = screen->deviceHeight();
     bufferStride = bufferWidth * bytesPerPixel;
@@ -1416,9 +1624,8 @@ QVNCDirtyMap::QVNCDirtyMap(QScreen *s)
 
     mapWidth = (bufferWidth + MAP_TILE_SIZE - 1) / MAP_TILE_SIZE;
     mapHeight = (bufferHeight + MAP_TILE_SIZE - 1) / MAP_TILE_SIZE;
-    map = new uchar[mapWidth * mapHeight];
-
     numTiles = mapWidth * mapHeight;
+    map = new uchar[numTiles];
 }
 
 QVNCDirtyMap::~QVNCDirtyMap()
@@ -1577,9 +1784,12 @@ void QRfbHextileEncoder<SRC>::write()
             int linestep = screenImage.bytesPerLine();
 
 #ifndef QT_NO_QWS_CURSOR
-    // hardware cursors must be blended with the screen memory
+            // hardware cursors must be blended with the screen memory
+            const bool doBlendCursor = qt_screencursor
+                                       && !server->hasClientCursor()
+                                       && qt_screencursor->isAccelerated();
             QImage tileImage;
-            if (qt_screencursor->isAccelerated()) {
+            if (doBlendCursor) {
                 const QRect tileRect(rect.x, rect.y, rect.w, rect.h);
                 const QRect cursorRect = qt_screencursor->boundingRect()
                                          .translated(-server->screen()->offset());
@@ -1696,8 +1906,11 @@ void QRfbRawEncoder::write()
 
 #ifndef QT_NO_QWS_CURSOR
         // hardware cursors must be blended with the screen memory
+        const bool doBlendCursor = qt_screencursor
+                                   && !server->hasClientCursor()
+                                   && qt_screencursor->isAccelerated();
         QImage tileImage;
-        if (qt_screencursor->isAccelerated()) {
+        if (doBlendCursor) {
             const QRect cursorRect = qt_screencursor->boundingRect()
                                      .translated(-server->screen()->offset());
             if (tileRect.intersects(cursorRect)) {
@@ -1741,13 +1954,26 @@ void QRfbRawEncoder::write()
 inline QImage QVNCServer::screenImage() const
 {
     return QImage(qvnc_screen->base(), qvnc_screen->deviceWidth(),
-                  qvnc_screen->deviceHeight(),
-                  formatForDepth(qvnc_screen->depth()));
+                  qvnc_screen->deviceHeight(), qvnc_screen->linestep(),
+                  qvnc_screen->pixelFormat());
 }
 
 void QVNCServer::checkUpdate()
 {
-    if (wantUpdate && dirtyMap()->numDirty > 0) {
+    if (!wantUpdate)
+        return;
+
+    if (dirtyCursor) {
+#ifndef QT_NO_QWS_CURSOR
+        Q_ASSERT(qvnc_cursor);
+        qvnc_cursor->write();
+#endif
+        dirtyCursor = false;
+        wantUpdate = false;
+        return;
+    }
+
+    if (dirtyMap()->numDirty > 0) {
         if (encoder)
             encoder->write();
         wantUpdate = false;
@@ -1760,7 +1986,11 @@ void QVNCServer::discardClient()
     state = Unconnected;
     delete encoder;
     encoder = 0;
-    if (!qvnc_screen->d_ptr->subscreen)
+#ifndef QT_NO_QWS_CURSOR
+    delete qvnc_cursor;
+    qvnc_cursor = 0;
+#endif
+    if (!qvnc_screen->screen())
         QWSServer::instance()->enablePainting(false);
 }
 
@@ -1775,14 +2005,15 @@ void QVNCServer::discardClient()
     \brief The QVNCScreen class implements a screen driver for VNC
     servers.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
     Custom screen drivers can be added by subclassing the QScreen
     class, using the QScreenDriverFactory class to dynamically load
     the driver into the application.
 
     The VNC protocol allows you to view and interact with the
-    computer's display from anywhere on the network. See the \l {The
-    VNC Protocol and Qtopia Core}{VNC protocol} documentation for more details.
+    computer's display from anywhere on the network. See the
+    \l{The VNC Protocol and Qt for Embedded Linux}{VNC protocol}
+    documentation for more details.
 
     The default implementation of QVNCScreen inherits QLinuxFbScreen,
     but any QScreen subclass, or QScreen itself, can serve as its base
@@ -1796,10 +2027,10 @@ void QVNCServer::discardClient()
     \fn QVNCScreen::QVNCScreen(int displayId)
 
     Constructs a QVNCScreen object. The \a displayId argument
-    identifies the Qtopia Core server to connect to.
+    identifies the Qt for Embedded Linux server to connect to.
 */
 QVNCScreen::QVNCScreen(int display_id)
-    : QScreen(display_id)
+    : QProxyScreen(display_id, VNCClass)
 {
     d_ptr = new QVNCScreenPrivate(this);
 }
@@ -1815,7 +2046,7 @@ QVNCScreen::~QVNCScreen()
 /*!
     \reimp
 */
-void QVNCScreen::setDirty(const QRect& rect)
+void QVNCScreen::setDirty(const QRect &rect)
 {
     d_ptr->setDirty(rect);
 }
@@ -1825,17 +2056,17 @@ void QVNCScreenPrivate::setDirty(const QRect& rect, bool force)
     if (rect.isEmpty())
         return;
 
-    if (subscreen)
-        subscreen->setDirty(rect);
+    if (q_ptr->screen())
+        q_ptr->screen()->setDirty(rect);
 
     if (!vncServer || !vncServer->isConnected())
         return;
 
     const QRect r = rect.translated(-q_ptr->offset());
-    int x1 = r.x() / MAP_TILE_SIZE;
-    int y1 = r.y() / MAP_TILE_SIZE;
-    for (int y = y1; y <= r.bottom() / MAP_TILE_SIZE && y < dirty->mapHeight; y++)
-        for (int x = x1; x <= r.right() / MAP_TILE_SIZE && x < dirty->mapWidth; x++)
+    const int x1 = r.x() / MAP_TILE_SIZE;
+    int y = r.y() / MAP_TILE_SIZE;
+    for (; (y <= r.bottom() / MAP_TILE_SIZE) && y < dirty->mapHeight; y++)
+        for (int x = x1; (x <= r.right() / MAP_TILE_SIZE) && x < dirty->mapWidth; x++)
             dirty->setDirty(x, y, force);
 
     vncServer->setDirty();
@@ -1881,12 +2112,10 @@ bool QVNCScreen::connect(const QString &displaySpec)
     if (colon >= 0)
         driver.truncate(colon);
 
-    QScreen *screen;
     if (QScreenDriverFactory::keys().contains(driver, Qt::CaseInsensitive)) {
         const int id = getDisplayId(dspec);
-        screen = qt_get_screen(id, dspec.toLatin1().constData());
-        d_ptr->subscreen = screen;
-
+        QScreen *s = qt_get_screen(id, dspec.toLatin1().constData());
+        setScreen(s);
     } else { // create virtual screen
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
         QScreen::setFrameBufferLittleEndian(false);
@@ -1946,9 +2175,9 @@ bool QVNCScreen::connect(const QString &displaySpec)
 
         QWSServer::setDefaultMouse("None");
         QWSServer::setDefaultKeyboard("None");
-    }
 
-    d_ptr->configure();
+        d_ptr->configure();
+    }
 
     // XXX
     qt_screen = this;
@@ -1961,14 +2190,10 @@ bool QVNCScreen::connect(const QString &displaySpec)
 */
 void QVNCScreen::disconnect()
 {
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->disconnect();
-    } else {
-#ifndef QT_NO_QWS_MULTIPROCESS
-        if (d_ptr->shm)
-            d_ptr->shm->detach();
+    QProxyScreen::disconnect();
+#if !defined(QT_NO_QWS_MULTIPROCESS) && !defined(QT_NO_SHAREDMEMORY)
+    d_ptr->shm.detach();
 #endif
-    }
 }
 
 /*!
@@ -1976,7 +2201,7 @@ void QVNCScreen::disconnect()
 */
 bool QVNCScreen::initDevice()
 {
-    if (!d_ptr->subscreen && d == 4) {
+    if (!QProxyScreen::screen() && d == 4) {
         screencols = 16;
         int val = 0;
         for (int idx = 0; idx < 16; idx++, val += 17) {
@@ -1992,9 +2217,29 @@ bool QVNCScreen::initDevice()
         d_ptr->dirty = new QVNCDirtyMapOptimized<quint32>(this);
         break;
 #endif
+#ifdef QT_QWS_DEPTH_24
+    case 24:
+        d_ptr->dirty = new QVNCDirtyMapOptimized<qrgb888>(this);
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_18
+    case 18:
+        d_ptr->dirty = new QVNCDirtyMapOptimized<qrgb666>(this);
+        break;
+#endif
 #ifdef QT_QWS_DEPTH_16
     case 16:
         d_ptr->dirty = new QVNCDirtyMapOptimized<quint16>(this);
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_15
+    case 15:
+        d_ptr->dirty = new QVNCDirtyMapOptimized<qrgb555>(this);
+        break;
+#endif
+#ifdef QT_QWS_DEPTH_12
+    case 12:
+        d_ptr->dirty = new QVNCDirtyMapOptimized<qrgb444>(this);
         break;
 #endif
 #ifdef QT_QWS_DEPTH_8
@@ -2009,12 +2254,13 @@ bool QVNCScreen::initDevice()
         return false;
     }
 
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->initDevice();
 
+    const bool ok = QProxyScreen::initDevice();
 #ifndef QT_NO_QWS_CURSOR
     qt_screencursor = new QVNCCursor(this);
 #endif
+    if (QProxyScreen::screen())
+        return ok;
 
 #ifdef QT_BUILD_INTERNAL
     if (qgetenv("QT_VNC_NO_DISABLEPAINTING").toInt() <= 0)
@@ -2030,223 +2276,11 @@ bool QVNCScreen::initDevice()
 */
 void QVNCScreen::shutdownDevice()
 {
+    QProxyScreen::shutdownDevice();
     delete d_ptr->vncServer;
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->shutdownDevice();
-    } else {
-#ifndef QT_NO_QWS_MULTIPROCESS
-        if (d_ptr->shm)
-            d_ptr->shm->destroy();
-#endif
-    }
     delete d_ptr->dirty;
 }
 
-/*!
-    \reimp
-*/
-void QVNCScreen::setMode(int w, int h, int d)
-{
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->setMode(w, h, d);
-    } else {
-        QScreen::dw = QScreen::w = w;
-        QScreen::dh = QScreen::h = h;
-        QScreen::d = d;
-    }
-    d_ptr->configure();
-    setDirty(region().boundingRect());
-}
-
-/*!
-    \reimp
-*/
-bool QVNCScreen::supportsDepth(int depth) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->supportsDepth(depth);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::save()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->save();
-    QScreen::save();
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::restore()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->restore();
-    QScreen::restore();
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::blank(bool on)
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->blank(on);
-}
-
-/*!
-    \reimp
-*/
-bool QVNCScreen::onCard(const unsigned char *ptr) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->onCard(ptr);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-bool QVNCScreen::onCard(const unsigned char *ptr, ulong &offset) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->onCard(ptr, offset);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-bool QVNCScreen::isInterlaced() const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->isInterlaced();
-    return false;
-}
-
-/*!
-    \reimp
-*/
-int QVNCScreen::memoryNeeded(const QString &str)
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->memoryNeeded(str);
-    else
-        return QScreen::memoryNeeded(str);
-}
-
-/*!
-    \reimp
-*/
-int QVNCScreen::sharedRamSize(void *ptr)
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->sharedRamSize(ptr);
-    else
-        return QScreen::sharedRamSize(ptr);
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::haltUpdates()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->haltUpdates();
-    else
-        QScreen::haltUpdates();
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::resumeUpdates()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->resumeUpdates();
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::exposeRegion(QRegion r, int changing)
-{
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->exposeRegion(r, changing);
-
-        const QVector<QRect> rects = (region() & r).rects();
-        for (int i = 0; i < rects.size(); ++i)
-            setDirty(rects.at(i));
-    } else {
-        QScreen::exposeRegion(r, changing);
-    }
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::blit(const QImage &img, const QPoint &topLeft, const QRegion &region)
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->blit(img, topLeft, region);
-    else
-        QScreen::blit(img, topLeft, region);
-}
-
-/*!
-    \reimp
-*/
-void QVNCScreen::solidFill(const QColor &color, const QRegion &region)
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->solidFill(color, region);
-    else
-        QScreen::solidFill(color, region);
-}
-
-/*!
-    \reimp
-*/
-QWSWindowSurface* QVNCScreen::createSurface(QWidget *widget) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->createSurface(widget);
-
-#ifndef QT_NO_PAINTONSCREEN
-    // XXX: will not work together with transparent windows until full
-    // compositioning is implemented
-    if (d_ptr->doOnScreenSurface) {
-        if (widget->d_func()->isOpaque() && (depth() == 16 || depth() == 32))
-            return new QWSOnScreenSurface(widget);
-    }
-#endif
-
-    return QScreen::createSurface(widget);
-}
-
-/*!
-    \reimp
-*/
-QList<QScreen*> QVNCScreen::subScreens() const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->subScreens();
-    return QScreen::subScreens();
-}
-
-/*!
-    \reimp
-*/
-QRegion QVNCScreen::region() const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->region();
-    return QScreen::region();
-}
+QT_END_NAMESPACE
 
 #endif // QT_NO_QWS_VNC
-
-

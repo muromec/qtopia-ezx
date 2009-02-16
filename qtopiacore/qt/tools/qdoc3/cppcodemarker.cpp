@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,43 +45,90 @@
 #include "text.h"
 #include "tree.h"
 
+QT_BEGIN_NAMESPACE
+
 static int insertTagAround(QString &result, int pos, int len, const QString &tagName,
                            const QString &attributes = QString())
 {
-    int oldLen = result.length();
-    result.insert(pos + len, "</" + tagName + ">");
-    result.insert(pos, "<" + tagName + (attributes.isEmpty() ? QString() : " " + attributes) + ">");
-    return result.length() - oldLen;
+    QString s;
+    //s.reserve(result.size() + tagName.size() * 2 + attributes.size() + 20);
+    s += result.midRef(0, pos);
+    s += QLatin1Char('<');
+    s += tagName;
+    if (!attributes.isEmpty()) {
+        s += QLatin1Char(' ');
+        s += attributes;
+    }
+    s += QLatin1Char('>');
+    s += result.midRef(pos, len);
+    s += QLatin1String("</");
+    s += tagName;
+    s += QLatin1Char('>');
+    s += result.midRef(pos + len);
+    int diff = s.length() - result.length();
+    result = s;
+    return diff;
 }
 
+/*!
+  The constructor does nothing.
+ */
 CppCodeMarker::CppCodeMarker()
 {
+    // nothing.
 }
 
+/*!
+  The destructor does nothing.
+ */
 CppCodeMarker::~CppCodeMarker()
 {
+    // nothing.
 }
 
+/*!
+  Returns true.
+ */
 bool CppCodeMarker::recognizeCode(const QString & /* code */)
 {
     return true;
 }
 
+/*!
+  Returns true if \a ext is any of a list of file extensions
+  for the C++ language.
+ */
 bool CppCodeMarker::recognizeExtension(const QString& ext)
 {
-    return ext == "c" || ext == "c++" || ext == "cc" || ext == "cpp" || ext == "cxx" || ext == "ch"
-	   || ext == "h" || ext == "h++" || ext == "hh" || ext == "hpp" || ext == "hxx";
+    return ext == "c" ||
+        ext == "c++" ||
+        ext == "cc" ||
+        ext == "cpp" ||
+        ext == "cxx" ||
+        ext == "ch" ||
+        ext == "h" ||
+        ext == "h++" ||
+        ext == "hh" ||
+        ext == "hpp" ||
+        ext == "hxx";
 }
 
+/*!
+  Returns true if \a lang is either "C" or "Cpp".
+ */
 bool CppCodeMarker::recognizeLanguage(const QString &lang)
 {
     return lang == "C" || lang == "Cpp";
 }
 
+/*!
+  Returns the \a node name, or "()" if \a node is a
+  Node::Function node.
+ */
 QString CppCodeMarker::plainName(const Node *node)
 {
     QString name = node->name();
-    if ( node->type() == Node::Function )
+    if (node->type() == Node::Function)
 	name += "()";
     return name;
 }
@@ -96,7 +137,8 @@ QString CppCodeMarker::plainFullName(const Node *node, const Node *relative)
 {
     if (node->name().isEmpty()) {
 	return "global";
-    } else {
+    }
+    else {
 	QString fullName;
 	for (;;) {
 	    fullName.prepend(plainName(node));
@@ -109,13 +151,15 @@ QString CppCodeMarker::plainFullName(const Node *node, const Node *relative)
     }
 }
 
-QString CppCodeMarker::markedUpCode(const QString &code, const Node *relative,
+QString CppCodeMarker::markedUpCode(const QString &code,
+                                    const Node *relative,
 				    const QString &dirPath)
 {
     return addMarkUp(protect(code), relative, dirPath);
 }
 
-QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relative */,
+QString CppCodeMarker::markedUpSynopsis(const Node *node,
+                                        const Node * /* relative */,
 					SynopsisStyle style)
 {
     const int MaxEnumValues = 6;
@@ -128,15 +172,16 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relati
     QString extra;
     QString name;
 
-    name = taggedNode( node );
-    if ( style != Detailed )
-	name = linkTag( node, name );
+    name = taggedNode(node);
+    if (style != Detailed)
+	name = linkTag(node, name);
     name = "<@name>" + name + "</@name>";
 
-    if (style == Detailed && !node->parent()->name().isEmpty() && node->type() != Node::Property)
+    if (style == Detailed && !node->parent()->name().isEmpty() &&
+        node->type() != Node::Property)
 	name.prepend(taggedNode(node->parent()) + "::");
 
-    switch ( node->type() ) {
+    switch (node->type()) {
     case Node::Namespace:
 	synopsis = "namespace " + name;
 	break;
@@ -150,57 +195,63 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relati
 	synopsis += name;
         if (func->metaness() != FunctionNode::MacroWithoutParams) {
             synopsis += " (";
-	    if ( !func->parameters().isEmpty() ) {
+	    if (!func->parameters().isEmpty()) {
 	        synopsis += " ";
 	        QList<Parameter>::ConstIterator p = func->parameters().begin();
-	        while ( p != func->parameters().end() ) {
-		    if ( p != func->parameters().begin() )
+	        while (p != func->parameters().end()) {
+		    if (p != func->parameters().begin())
 		        synopsis += ", ";
 		    synopsis += typified((*p).leftType());
                     if (style != SeparateList && !(*p).name().isEmpty())
-                        synopsis += " <@param>" + protect((*p).name()) + "</@param>";
+                        synopsis +=
+                            " <@param>" + protect((*p).name()) + "</@param>";
                     synopsis += protect((*p).rightType());
 		    if (style != SeparateList && !(*p).defaultValue().isEmpty())
-		        synopsis += " = " + protect( (*p).defaultValue() );
+		        synopsis += " = " + protect((*p).defaultValue());
 		    ++p;
 	        }
 	        synopsis += " ";
 	    }
 	    synopsis += ")";
         }
-	if ( func->isConst() )
+	if (func->isConst())
 	    synopsis += " const";
 
-	if ( style == Summary || style == Accessors ) {
-	    if ( func->virtualness() != FunctionNode::NonVirtual )
-		synopsis.prepend( "virtual " );
-	    if ( func->virtualness() == FunctionNode::PureVirtual )
-		synopsis.append( " = 0" );
-	} else if ( style == SeparateList ) {
+	if (style == Summary || style == Accessors) {
+	    if (func->virtualness() != FunctionNode::NonVirtual)
+		synopsis.prepend("virtual ");
+	    if (func->virtualness() == FunctionNode::PureVirtual)
+		synopsis.append(" = 0");
+	}
+        else if (style == SeparateList) {
             if (!func->returnType().isEmpty() && func->returnType() != "void")
                 synopsis += " : " + typified(func->returnType());
-        } else {
+        }
+        else {
 	    QStringList bracketed;
-	    if ( func->isStatic() ) {
+	    if (func->isStatic()) {
 		bracketed += "static";
-	    } else if ( func->virtualness() != FunctionNode::NonVirtual ) {
-		if ( func->virtualness() == FunctionNode::PureVirtual )
+	    }
+            else if (func->virtualness() != FunctionNode::NonVirtual) {
+		if (func->virtualness() == FunctionNode::PureVirtual)
 		    bracketed += "pure";
 		bracketed += "virtual";
 	    }
 
-	    if ( func->access() == Node::Protected ) {
+	    if (func->access() == Node::Protected) {
 		bracketed += "protected";
-	    } else if ( func->access() == Node::Private ) {
+	    }
+            else if (func->access() == Node::Private) {
 		bracketed += "private";
 	    }
 
-	    if ( func->metaness() == FunctionNode::Signal ) {
+	    if (func->metaness() == FunctionNode::Signal) {
 		bracketed += "signal";
-	    } else if ( func->metaness() == FunctionNode::Slot ) {
+	    }
+            else if (func->metaness() == FunctionNode::Slot) {
 		bracketed += "slot";
 	    }
-	    if ( !bracketed.isEmpty() )
+	    if (!bracketed.isEmpty())
 		extra += " [" + bracketed.join(" ") + "]";
 	}
 	break;
@@ -225,13 +276,15 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relati
 		        synopsis += ", ";
 		    synopsis += documentedItems.at(i);
                 }
-            } else {
+            }
+            else {
                 for (int i = 0; i < documentedItems.size(); ++i) {
 		    if (i < MaxEnumValues - 2 || i == documentedItems.size() - 1) {
 	                if (i != 0)
 		            synopsis += ", ";
 		        synopsis += documentedItems.at(i);
-		    } else if (i == MaxEnumValues - 1) {
+		    }
+                    else if (i == MaxEnumValues - 1) {
 		        synopsis += ", ...";
 		    }
                 }
@@ -245,7 +298,8 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relati
         typedeff = static_cast<const TypedefNode *>(node);
         if (typedeff->associatedEnum()) {
             synopsis = "flags " + name;
-        } else {
+        }
+        else {
             synopsis = "typedef " + name;
         }
 	break;
@@ -257,35 +311,39 @@ QString CppCodeMarker::markedUpSynopsis(const Node *node, const Node * /* relati
 	variable = static_cast<const VariableNode *>(node);
         if (style == SeparateList) {
             synopsis = name + " : " + typified(variable->dataType());
-        } else {
-            synopsis = typified(variable->leftType()) + " " + name + protect(variable->rightType());
+        }
+        else {
+            synopsis = typified(variable->leftType()) + " " +
+                name + protect(variable->rightType());
         }
 	break;
     default:
 	synopsis = name;
     }
 
-    if ( style == Summary ) {
-	if ( node->status() == Node::Preliminary ) {
+    if (style == Summary) {
+	if (node->status() == Node::Preliminary) {
 	    extra += " (preliminary)";
-	} else if ( node->status() == Node::Deprecated ) {
+	}
+        else if (node->status() == Node::Deprecated) {
 	    extra += " (deprecated)";
-	} else if ( node->status() == Node::Obsolete ) {
+	}
+        else if (node->status() == Node::Obsolete) {
 	    extra += " (obsolete)";
 	}
     }
 
-    if ( !extra.isEmpty() ) {
-	extra.prepend( "<@extra>" );
-	extra.append( "</@extra>" );
+    if (!extra.isEmpty()) {
+	extra.prepend("<@extra>");
+	extra.append("</@extra>");
     }
     return synopsis + extra;
 }
 
-QString CppCodeMarker::markedUpName( const Node *node )
+QString CppCodeMarker::markedUpName(const Node *node)
 {
-    QString name = linkTag( node, taggedNode(node) );
-    if ( node->type() == Node::Function )
+    QString name = linkTag(node, taggedNode(node));
+    if (node->type() == Node::Function)
 	name += "()";
     return name;
 }
@@ -294,7 +352,8 @@ QString CppCodeMarker::markedUpFullName(const Node *node, const Node *relative)
 {
     if (node->name().isEmpty()) {
 	return "global";
-    } else {
+    }
+    else {
 	QString fullName;
 	for (;;) {
 	    fullName.prepend(markedUpName(node));
@@ -307,7 +366,8 @@ QString CppCodeMarker::markedUpFullName(const Node *node, const Node *relative)
     }
 }
 
-QString CppCodeMarker::markedUpEnumValue(const QString &enumValue, const Node *relative)
+QString CppCodeMarker::markedUpEnumValue(const QString &enumValue,
+                                         const Node *relative)
 {
     const Node *node = relative->parent();
     QString fullName;
@@ -324,37 +384,39 @@ QString CppCodeMarker::markedUpEnumValue(const QString &enumValue, const Node *r
     return fullName;
 }
 
-QString CppCodeMarker::markedUpIncludes( const QStringList& includes )
+QString CppCodeMarker::markedUpIncludes(const QStringList& includes)
 {
     QString code;
 
     QStringList::ConstIterator inc = includes.begin();
-    while ( inc != includes.end() ) {
+    while (inc != includes.end()) {
 	code += "#include &lt;<@headerfile>" + *inc + "</@headerfile>&gt;\n";
 	++inc;
     }
-    return addMarkUp( code, 0, "" );
+    return addMarkUp(code, 0, "");
 }
 
-QString CppCodeMarker::functionBeginRegExp( const QString& funcName )
+QString CppCodeMarker::functionBeginRegExp(const QString& funcName)
 {
     return "^" + QRegExp::escape(funcName) + "$";
 
 }
 
-QString CppCodeMarker::functionEndRegExp( const QString& /* funcName */ )
+QString CppCodeMarker::functionEndRegExp(const QString& /* funcName */)
 {
     return "^\\}$";
 }
 
-QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle style, Status status)
+QList<Section> CppCodeMarker::sections(const InnerNode *inner,
+                                       SynopsisStyle style,
+                                       Status status)
 {
     QList<Section> sections;
 
     if (inner->type() == Node::Class) {
         const ClassNode *classe = static_cast<const ClassNode *>(inner);
 
-        if ( style == Summary ) {
+        if (style == Summary) {
 	    FastSection privateFunctions(classe, "Private Functions", "private function",
 				         "private functions");
 	    FastSection privateSlots(classe, "Private Slots", "private slot", "private slots");
@@ -366,7 +428,7 @@ QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle sty
 	    FastSection protectedVariables(classe, "Protected Variables", "protected type", "protected variables");
 	    FastSection publicFunctions(classe, "Public Functions", "public function",
 				        "public functions");
-	    FastSection publicSignals(classe, "Signals", "signal", "signals" );
+	    FastSection publicSignals(classe, "Signals", "signal", "signals");
 	    FastSection publicSlots(classe, "Public Slots", "public slot", "public slots");
 	    FastSection publicTypes(classe, "Public Types", "public type", "public types");
 	    FastSection publicVariables(classe, "Public Variables", "public type", "public variables");
@@ -389,7 +451,8 @@ QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle sty
                         insert(macros, *r, style, status);
                     else
                         insert(relatedNonMembers, *r, style, status);
-                } else {
+                }
+                else {
                     insert(relatedNonMembers, *r, style, status);
                 }
 	        ++r;
@@ -402,105 +465,121 @@ QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle sty
 	        const ClassNode *ancestorClass = stack.pop();
 
 	        NodeList::ConstIterator c = ancestorClass->childNodes().begin();
-	        while ( c != ancestorClass->childNodes().end() ) {
+	        while (c != ancestorClass->childNodes().end()) {
 	            bool isSlot = false;
 	            bool isSignal = false;
 	            bool isStatic = false;
-	            if ( (*c)->type() == Node::Function ) {
+	            if ((*c)->type() == Node::Function) {
 		        const FunctionNode *func = (const FunctionNode *) *c;
-		        isSlot = ( func->metaness() == FunctionNode::Slot );
-		        isSignal = ( func->metaness() == FunctionNode::Signal );
+		        isSlot = (func->metaness() == FunctionNode::Slot);
+		        isSignal = (func->metaness() == FunctionNode::Signal);
 		        isStatic = func->isStatic();
-	            } else if ((*c)->type() == Node::Variable) {
+	            }
+                    else if ((*c)->type() == Node::Variable) {
                         const VariableNode *var = static_cast<const VariableNode *>(*c);
                         isStatic = var->isStatic();
                     }
 
-	            switch ( (*c)->access() ) {
+	            switch ((*c)->access()) {
 	            case Node::Public:
-		        if ( isSlot ) {
+		        if (isSlot) {
 		            insert(publicSlots, *c, style, status);
-		        } else if ( isSignal ) {
+		        }
+                        else if (isSignal) {
 		            insert(publicSignals, *c, style, status);
-		        } else if ( isStatic ) {
+		        }
+                        else if (isStatic) {
                             if ((*c)->type() != Node::Variable
                                     || !(*c)->doc().isEmpty())
-		                insert( staticPublicMembers, *c, style, status);
-		        } else if ( (*c)->type() == Node::Property ) {
+		                insert(staticPublicMembers, *c, style, status);
+		        }
+                        else if ((*c)->type() == Node::Property) {
                             insert(properties, *c, style, status);
-		        } else if ( (*c)->type() == Node::Variable ) {
+		        }
+                        else if ((*c)->type() == Node::Variable) {
                             if (!(*c)->doc().isEmpty())
                                 insert(publicVariables, *c, style, status);
-		        } else if ( (*c)->type() == Node::Function ) {
+		        }
+                        else if ((*c)->type() == Node::Function) {
                             insert(publicFunctions, *c, style, status);
-		        } else {
+		        }
+                        else {
 		            insert(publicTypes, *c, style, status);
 		        }
 		        break;
 	            case Node::Protected:
-		        if ( isSlot ) {
-		            insert( protectedSlots, *c, style, status );
-		        } else if ( isStatic ) {
+		        if (isSlot) {
+		            insert(protectedSlots, *c, style, status);
+		        }
+                        else if (isStatic) {
                             if ((*c)->type() != Node::Variable
                                     || !(*c)->doc().isEmpty())
-		                insert( staticProtectedMembers, *c, style, status );
-		        } else if ( (*c)->type() == Node::Variable ) {
+		                insert(staticProtectedMembers, *c, style, status);
+		        }
+                        else if ((*c)->type() == Node::Variable) {
                             if (!(*c)->doc().isEmpty())
                                 insert(protectedVariables, *c, style, status);
-		        } else if ( (*c)->type() == Node::Function ) {
-		            insert( protectedFunctions, *c, style, status );
-		        } else {
-		            insert( protectedTypes, *c, style, status );
+		        }
+                        else if ((*c)->type() == Node::Function) {
+		            insert(protectedFunctions, *c, style, status);
+		        }
+                        else {
+		            insert(protectedTypes, *c, style, status);
 		        }
 		        break;
 	            case Node::Private:
-		        if ( isSlot ) {
-		            insert( privateSlots, *c, style, status );
-		        } else if ( isStatic ) {
+		        if (isSlot) {
+		            insert(privateSlots, *c, style, status);
+		        }
+                        else if (isStatic) {
                             if ((*c)->type() != Node::Variable
                                     || !(*c)->doc().isEmpty())
-		                insert( staticPrivateMembers, *c, style, status );
-		        } else if ( (*c)->type() == Node::Function ) {
-		            insert( privateFunctions, *c, style, status );
-		        } else {
-		            insert( privateTypes, *c, style, status );
+		                insert(staticPrivateMembers, *c, style, status);
+		        }
+                        else if ((*c)->type() == Node::Function) {
+		            insert(privateFunctions, *c, style, status);
+		        }
+                        else {
+		            insert(privateTypes, *c, style, status);
 		        }
 	            }
 	            ++c;
 	        }
 
-	        QList<RelatedClass>::ConstIterator r = ancestorClass->baseClasses().begin();
-	        while ( r != ancestorClass->baseClasses().end() ) {
-		    stack.prepend( (*r).node );
+	        QList<RelatedClass>::ConstIterator r =
+                    ancestorClass->baseClasses().begin();
+	        while (r != ancestorClass->baseClasses().end()) {
+		    stack.prepend((*r).node);
 		    ++r;
 	        }
 	    }
 
-	    append( sections, publicTypes );
-	    append( sections, properties );
-	    append( sections, publicFunctions );
-	    append( sections, publicSlots );
-	    append( sections, publicSignals );
-	    append( sections, publicVariables );
-	    append( sections, staticPublicMembers );
-	    append( sections, protectedTypes );
-	    append( sections, protectedFunctions );
-	    append( sections, protectedSlots );
-	    append( sections, protectedVariables );
-	    append( sections, staticProtectedMembers );
-	    append( sections, privateTypes );
-	    append( sections, privateFunctions );
-	    append( sections, privateSlots );
-	    append( sections, staticPrivateMembers );
-	    append( sections, relatedNonMembers );
-            append( sections, macros );
-        } else if (style == Detailed) {
-	    FastSection memberFunctions(classe, "Member Function Documentation");
-	    FastSection memberTypes(classe, "Member Type Documentation");
-	    FastSection memberVariables(classe, "Member Variable Documentation");
-	    FastSection properties(classe, "Property Documentation");
-	    FastSection relatedNonMembers(classe, "Related Non-Members");
-	    FastSection macros(classe, "Macro Documentation");
+	    append(sections, publicTypes);
+	    append(sections, properties);
+	    append(sections, publicFunctions);
+	    append(sections, publicSlots);
+	    append(sections, publicSignals);
+	    append(sections, publicVariables);
+	    append(sections, staticPublicMembers);
+	    append(sections, protectedTypes);
+	    append(sections, protectedFunctions);
+	    append(sections, protectedSlots);
+	    append(sections, protectedVariables);
+	    append(sections, staticProtectedMembers);
+	    append(sections, privateTypes);
+	    append(sections, privateFunctions);
+	    append(sections, privateSlots);
+	    append(sections, staticPrivateMembers);
+	    append(sections, relatedNonMembers);
+            append(sections, macros);
+        }
+        else if (style == Detailed) {
+	    FastSection memberFunctions(classe,"Member Function Documentation");
+	    FastSection memberTypes(classe,"Member Type Documentation");
+	    FastSection memberVariables(classe,"Member Variable Documentation");
+	    FastSection properties(classe,"Property Documentation");
+	    FastSection relatedNonMembers(classe,"Related Non-Members");
+	    FastSection macros(classe,"Macro Documentation");
 
 	    NodeList::ConstIterator r = classe->relatedNodes().begin();
             while (r != classe->relatedNodes().end()) {
@@ -510,68 +589,87 @@ QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle sty
                         insert(macros, *r, style, status);
                     else
                         insert(relatedNonMembers, *r, style, status);
-                } else {
+                }
+                else {
                     insert(relatedNonMembers, *r, style, status);
                 }
 	        ++r;
             }
 
 	    NodeList::ConstIterator c = classe->childNodes().begin();
-	    while ( c != classe->childNodes().end() ) {
-	        if ( (*c)->type() == Node::Enum || (*c)->type() == Node::Typedef ) {
-		    insert( memberTypes, *c, style, status );
-	        } else if ( (*c)->type() == Node::Property ) {
-		    insert( properties, *c, style, status );
-	        } else if ( (*c)->type() == Node::Variable ) {
+	    while (c != classe->childNodes().end()) {
+	        if ((*c)->type() == Node::Enum ||
+                    (*c)->type() == Node::Typedef) {
+		    insert(memberTypes, *c, style, status);
+	        }
+                else if ((*c)->type() == Node::Property) {
+		    insert(properties, *c, style, status);
+	        }
+                else if ((*c)->type() == Node::Variable) {
                     if (!(*c)->doc().isEmpty())
-		        insert( memberVariables, *c, style, status );
-	        } else if ( (*c)->type() == Node::Function ) {
+		        insert(memberVariables, *c, style, status);
+	        }
+                else if ((*c)->type() == Node::Function) {
 		    FunctionNode *function = static_cast<FunctionNode *>(*c);
                     if (!function->associatedProperty())
-		        insert( memberFunctions, function, style, status );
+		        insert(memberFunctions, function, style, status);
 	        }
 	        ++c;
 	    }
 
-	    append( sections, memberTypes );
-	    append( sections, properties );
-	    append( sections, memberFunctions );
-	    append( sections, memberVariables );
-	    append( sections, relatedNonMembers );
-	    append( sections, macros );
-        } else {
-	    FastSection all( classe );
+	    append(sections, memberTypes);
+	    append(sections, properties);
+	    append(sections, memberFunctions);
+	    append(sections, memberVariables);
+	    append(sections, relatedNonMembers);
+	    append(sections, macros);
+        }
+        else {
+	    FastSection all(classe);
 
 	    QStack<const ClassNode *> stack;
-	    stack.push( classe );
+	    stack.push(classe);
 
 	    while (!stack.isEmpty()) {
 	        const ClassNode *ancestorClass = stack.pop();
 
 	        NodeList::ConstIterator c = ancestorClass->childNodes().begin();
 	        while (c != ancestorClass->childNodes().end()) {
-		    if ((*c)->access() != Node::Private && (*c)->type() != Node::Property)
-		        insert( all, *c, style, status );
+		    if ((*c)->access() != Node::Private &&
+                        (*c)->type() != Node::Property)
+		        insert(all, *c, style, status);
 		    ++c;
 	        }
 
-	        QList<RelatedClass>::ConstIterator r = ancestorClass->baseClasses().begin();
-	        while ( r != ancestorClass->baseClasses().end() ) {
-		    stack.prepend( (*r).node );
+	        QList<RelatedClass>::ConstIterator r =
+                    ancestorClass->baseClasses().begin();
+	        while (r != ancestorClass->baseClasses().end()) {
+		    stack.prepend((*r).node);
 		    ++r;
 	        }
 	    }
-	    append( sections, all );
+	    append(sections, all);
         }
-    } else {
+    }
+    else {
         if (style == Summary || style == Detailed) {
-	    FastSection namespaces(inner, "Namespaces", "namespace", "namespaces");
+	    FastSection namespaces(inner,
+                                   "Namespaces",
+                                   "namespace",
+                                   "namespaces");
             FastSection classes(inner, "Classes", "class", "classes");
-            FastSection types(inner, style == Summary ? "Types" : "Type Documentation", "type",
+            FastSection types(inner,
+                              style == Summary ? "Types" : "Type Documentation",
+                              "type",
 			      "types");
-            FastSection functions(inner, style == Summary ? "Functions" : "Function Documentation",
-			          "function", "functions");
-            FastSection macros(inner, style == Summary ? "Macros" : "Macro Documentation", "macro", "macros");
+            FastSection functions(inner,
+                                  style == Summary ? "Functions" : "Function Documentation",
+			          "function",
+                                  "functions");
+            FastSection macros(inner,
+                               style == Summary ? "Macros" : "Macro Documentation",
+                               "macro",
+                               "macros");
 
 	    NodeList nodeList = inner->childNodes();
             nodeList += inner->relatedNodes();
@@ -614,7 +712,8 @@ QList<Section> CppCodeMarker::sections(const InnerNode *inner, SynopsisStyle sty
     return sections;
 }
 
-const Node *CppCodeMarker::resolveTarget(const QString &target, const Tree *tree,
+const Node *CppCodeMarker::resolveTarget(const QString &target,
+                                         const Tree *tree,
                                          const Node *relative)
 {
     if (target.endsWith("()")) {
@@ -623,10 +722,13 @@ const Node *CppCodeMarker::resolveTarget(const QString &target, const Tree *tree
         funcName.chop(2);
 
         QStringList path = funcName.split("::");
-        if ((func = tree->findFunctionNode(path, relative, Tree::SearchBaseClasses))
+        if ((func = tree->findFunctionNode(path,
+                                           relative,
+                                           Tree::SearchBaseClasses))
                 && func->metaness() != FunctionNode::MacroWithoutParams)
             return func;
-    } else if (target.contains("#")) {
+    }
+    else if (target.contains("#")) {
         // ### this doesn't belong here; get rid of TargetNode hack
         int hashAt = target.indexOf("#");
         QString link = target.left(hashAt);
@@ -634,7 +736,8 @@ const Node *CppCodeMarker::resolveTarget(const QString &target, const Tree *tree
         const Node *node;
         if (link.isEmpty()) {
             node = relative;
-        } else {
+        }
+        else {
             QStringList path(link);
             node = tree->findNode(path, tree->root(), Tree::SearchBaseClasses);
         }
@@ -649,19 +752,23 @@ const Node *CppCodeMarker::resolveTarget(const QString &target, const Tree *tree
                 atom = atom->next();
             }
         }
-    } else {
+    }
+    else {
         QStringList path = target.split("::");
         const Node *node;
-        if ((node = tree->findNode(path, relative,
-                                   Tree::SearchBaseClasses | Tree::SearchEnumValues
-                                   | Tree::NonFunction)))
+        if ((node = tree->findNode(path,
+                                   relative,
+                                   Tree::SearchBaseClasses |
+                                   Tree::SearchEnumValues |
+                                   Tree::NonFunction)))
             return node;
     }
     return 0;
 }
 
-QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* relative */,
-				  const QString& /* dirPath */ )
+QString CppCodeMarker::addMarkUp(const QString& protectedCode,
+                                 const Node * /* relative */,
+                                 const QString& /* dirPath */)
 {
     static QRegExp globalInclude("#include +&lt;([^<>&]+)&gt;");
     static QRegExp yHasTypeX("(?:^|\n *)([a-zA-Z_][a-zA-Z_0-9]*)"
@@ -674,8 +781,9 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
     static QRegExp classX("[:,][ \n]*(?:p(?:ublic|r(?:otected|ivate))[ \n]+)?"
                           "([a-zA-Z_][a-zA-Z_0-9]*)");
     static QRegExp globalX("[\n{()=] *([a-zA-Z_][a-zA-Z_0-9]*)[ \n]*\\(");
-    static QRegExp comment("/(?:( )?\\*(?:[^*]+|\\*(?! /))*\\*\\1/|/[^\n]*)");
-    comment.setMinimal(true);
+    static QRegExp multiLineComment("/(?:( )?\\*(?:[^*]+|\\*(?! /))*\\*\\1/)");
+    multiLineComment.setMinimal(true);
+    static QRegExp singleLineComment("//(?!!)[^!\n]*");
     static QRegExp preprocessor("(?:^|\n)(#[ \t]*(?:include|if|elif|endif|error|pragma|define"
                                 "|warning)(?:(?:\\\\\n|\\n#)[^\n]*)*)");
     static QRegExp literals("&quot;(?:[^\\\\&]|\\\\[^\n]|&(?!quot;))*&quot;"
@@ -686,14 +794,16 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
 
     if (!hurryUp()) {
         /*
-            Mark global includes. For example:
+          Mark global includes. For example:
 
-                #include &lt;<@headerfile>QString</@headerfile>
+          #include &lt;<@headerfile>QString</@headerfile>
         */
         pos = 0;
         while ((pos = result.indexOf(globalInclude, pos)) != -1)
             pos += globalInclude.matchedLength()
-                   + insertTagAround(result, globalInclude.pos(1), globalInclude.cap(1).length(),
+                   + insertTagAround(result,
+                                     globalInclude.pos(1),
+                                     globalInclude.cap(1).length(),
                                      "@headerfile");
 
         /*
@@ -715,7 +825,10 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
                 but would ignore 'Class var'. (### Is that true?)
 	    */
             pos += yHasTypeX.matchedLength()
-                   + insertTagAround(result, yHasTypeX.pos(1), x.length(), "@type") - 1;
+                   + insertTagAround(result,
+                                     yHasTypeX.pos(1),
+                                     x.length(),
+                                     "@type") - 1;
         }
 
         /*
@@ -724,7 +837,9 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
         pos = 0;
         while ((pos = preprocessor.indexIn(result, pos)) != -1)
             pos += preprocessor.matchedLength()
-                   + insertTagAround(result, preprocessor.pos(1), preprocessor.cap(1).length(),
+                   + insertTagAround(result,
+                                     preprocessor.pos(1),
+                                     preprocessor.cap(1).length(),
                                      "@preprocessor");
 
         /*
@@ -733,8 +848,11 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
         pos = 0;
         while ((pos = literals.indexIn(result, pos)) != -1)
             pos += literals.matchedLength()
-                   + insertTagAround(result, pos, literals.matchedLength(),
-                                     result.at(pos) == QLatin1Char(' ') ? "@string" : "@char");
+                   + insertTagAround(result,
+                                     pos,
+                                     literals.matchedLength(),
+                                     result.at(pos) ==
+                                       QLatin1Char(' ') ? "@string" : "@char");
 
         /*
             Look for 'var = new Class'.
@@ -745,7 +863,10 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
 	    QString y = xNewY.cap(2);
 	    typesForVariable[x].insert(y);
 
-	    pos += xNewY.matchedLength() + insertTagAround(result, xNewY.pos(2), y.length(), "@type");
+	    pos += xNewY.matchedLength() + insertTagAround(result,
+                                                           xNewY.pos(2),
+                                                           y.length(),
+                                                           "@type");
         }
 
         /*
@@ -759,7 +880,10 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
         pos = 0;
         while ((pos = classX.indexIn(result, pos)) != -1)
 	    pos += classX.matchedLength()
-                   + insertTagAround(result, classX.pos(1), classX.cap(1).length(), "@type") - 1;
+                   + insertTagAround(result,
+                                     classX.pos(1),
+                                     classX.cap(1).length(),
+                                     "@type") - 1;
 
         /*
             Find use of any of
@@ -776,11 +900,13 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
 
 	    QSet<QString> types = typesForVariable.value(x);
             pos += xDotY.matchedLength()
-                   + insertTagAround(result, xDotY.pos(2), xDotY.cap(2).length(), "@func",
+                   + insertTagAround(result,
+                                     xDotY.pos(2),
+                                     xDotY.cap(2).length(),
+                                     "@func",
                                      (types.count() == 1) ? "target=\""
-                                                            + protect(*types.begin() + "::" + y)
-                                                            + "()\""
-                                                          : QString());
+                                        + protect(*types.begin() + "::" + y)
+                                        + "()\"" : QString());
         }
 
         /*
@@ -791,9 +917,14 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
 	    QString x = xIsStaticZOfY.cap(1);
 	    QString z = xIsStaticZOfY.cap(3);
 
-            pos += insertTagAround(result, xIsStaticZOfY.pos(3), z.length(), "@func",
+            pos += insertTagAround(result,
+                                   xIsStaticZOfY.pos(3),
+                                   z.length(),
+                                   "@func",
                                    "target=\"" + protect(x) + "()\"");
-            pos += insertTagAround(result, xIsStaticZOfY.pos(2), xIsStaticZOfY.cap(2).length(),
+            pos += insertTagAround(result,
+                                   xIsStaticZOfY.pos(2),
+                                   xIsStaticZOfY.cap(2).length(),
                                    "@type");
             pos += xIsStaticZOfY.matchedLength() - 1;
         }
@@ -804,9 +935,16 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
         pos = 0;
         while ((pos = globalX.indexIn(result, pos)) != -1) {
             QString x = globalX.cap(1);
-	    pos += globalX.matchedLength()
-                   + insertTagAround(result, globalX.pos(1), x.length(), "@func",
-                                     "target=\"" + protect(x) + "()\"") - 1;
+	    if (x != "QT_FORWARD_DECLARE_CLASS") {
+                pos += globalX.matchedLength()
+                       + insertTagAround(result,
+                                         globalX.pos(1),
+                                         x.length(),
+                                         "@func",
+                                         "target=\"" + protect(x) + "()\"") - 1;
+            }
+            else
+                pos += globalX.matchedLength();
         }
     }
 
@@ -816,8 +954,35 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
         comments.
     */
     pos = 0;
-    while ((pos = comment.indexIn(result, pos)) != -1) {
-        int len = comment.matchedLength();
+    while (pos != -1) {
+        int mlpos;
+        int slpos;
+        int len;
+        slpos = singleLineComment.indexIn(result, pos);
+        mlpos = multiLineComment.indexIn(result, pos);
+
+        if (slpos == -1 && mlpos == -1)
+            break;
+
+        if (slpos == -1) {
+            pos = mlpos;
+            len = multiLineComment.matchedLength();
+        }
+        else if (mlpos == -1) {
+            pos = slpos;
+            len = singleLineComment.matchedLength();
+        }
+        else {
+            if (slpos < mlpos) {
+                pos = slpos;
+                len = singleLineComment.matchedLength();
+            }
+            else {
+                pos = mlpos;
+                len = multiLineComment.matchedLength();
+            }
+        }
+
         if (result.at(pos + 1) == QLatin1Char(' ')) {
             result.remove(pos + len - 2, 1);
             result.remove(pos + 1, 1);
@@ -836,3 +1001,5 @@ QString CppCodeMarker::addMarkUp( const QString& protectedCode, const Node * /* 
 
     return result;
 }
+
+QT_END_NAMESPACE

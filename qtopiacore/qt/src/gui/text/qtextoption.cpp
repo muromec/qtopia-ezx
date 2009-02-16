@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,9 +39,11 @@
 #include "qapplication.h"
 #include "qlist.h"
 
+QT_BEGIN_NAMESPACE
+
 struct QTextOptionPrivate
 {
-    QList<qreal> tabStops;
+    QList<QTextOption::Tab> tabStops;
 };
 
 /*!
@@ -134,9 +130,29 @@ QTextOption &QTextOption::operator=(const QTextOption &o)
     Sets the tab positions for the text layout to those specified by
     \a tabStops.
 
-    \sa tabArray(), setTabStop()
+    \sa tabArray(), setTabStop(), setTabs()
 */
 void QTextOption::setTabArray(QList<qreal> tabStops)
+{
+    if (!d)
+        d = new QTextOptionPrivate;
+    QList<QTextOption::Tab> tabs;
+    QTextOption::Tab tab;
+    foreach (qreal pos, tabStops) {
+        tab.position = pos;
+        tabs.append(tab);
+    }
+    d->tabStops = tabs;
+}
+
+/*!
+    \since 4.4
+    Sets the tab positions for the text layout to those specified by
+    \a tabStops.
+
+    \sa tabStops()
+*/
+void QTextOption::setTabs(QList<QTextOption::Tab> tabStops)
 {
     if (!d)
         d = new QTextOptionPrivate;
@@ -150,13 +166,30 @@ void QTextOption::setTabArray(QList<qreal> tabStops)
 */
 QList<qreal> QTextOption::tabArray() const
 {
-    if (d)
-        return d->tabStops;
-    return QList<qreal>();
+    if (!d)
+        return QList<qreal>();
+
+    QList<qreal> answer;
+    QList<QTextOption::Tab>::ConstIterator iter = d->tabStops.constBegin();
+    while(iter != d->tabStops.constEnd()) {
+        answer.append( (*iter).position);
+        ++iter;
+    }
+    return answer;
+}
+
+
+QList<QTextOption::Tab> QTextOption::tabs() const
+{
+    if (!d)
+        return QList<QTextOption::Tab>();
+    return d->tabStops;
 }
 
 /*!
     \class QTextOption
+    \reentrant
+
     \brief The QTextOption class provides a description of general rich text
     properties.
 
@@ -278,15 +311,94 @@ QList<qreal> QTextOption::tabArray() const
   \fn qreal QTextOption::tabStop() const
 
   Returns the distance in device units between tab stops.
+  Convenient function for the above method
 
-  \sa setTabStop(), tabArray()
+  \sa setTabStop(), tabArray(), setTabs(), tabs()
 */
 
 /*!
   \fn void QTextOption::setTabStop(qreal tabStop)
 
-  Sets the distance in device units between tab stops to the value specified
+  Sets the default distance in device units between tab stops to the value specified
   by \a tabStop.
 
-  \sa tabStop(), setTabArray()
+  \sa tabStop(), setTabArray(), setTabs(), tabs()
 */
+
+/*!
+    \enum QTextOption::TabType
+    \since 4.4
+
+    This enum holds the different types of tabulator
+
+    \value LeftTab,     A left-tab
+    \value RightTab,    A right-tab
+    \value CenterTab,   A centered-tab
+    \value DelimiterTab A tab stopping at a certain delimiter-character
+*/
+
+/*!
+    \class QTextOption::Tab
+    \since 4.4
+    Each tab definition is represented by this struct.
+*/
+
+/*!
+    \variable Tab::position
+    Distance from the start of the paragraph.
+    The position of a tab is from the start of the paragraph which implies that when
+    the alignment of the paragraph is set to centered, the tab is interpreted to be
+    moved the same distance as the left ege of the paragraph does.
+    In case the paragraph is set to have a layoutDirection() RightToLeft the position
+    is interpreted to be from the right side of the paragraph with higher numbers moving
+    the tab to the left.
+*/
+
+/*!
+    \variable Tab::type
+    Determine which type is used.
+    In a paragraph that has layoutDirection() RightToLeft the type LeftTab will
+    be interpreted to be a RightTab and vice versa.
+*/
+
+/*!
+    \variable Tab::delimiter
+    If type is DelimitorTab; tab until this char is found in the text.
+*/
+
+/*!
+    \fn Tab::Tab()
+    Creates a default left tab with position 80.
+*/
+
+/*!
+    \fn bool Tab::operator==(const Tab &other) const
+
+    Returns true if tab \a other is equal to this tab;
+    otherwise returns false.
+*/
+
+/*!
+    \fn bool Tab::operator!=(const Tab &other) const
+
+    Returns true if tab \a other is not equal to this tab;
+    otherwise returns false.
+*/
+
+/*!
+  \fn void setTabs(QList<Tab> tabStops)
+  Set the Tab properties to \a tabStops.
+
+  \sa tabStop(), tabs()
+*/
+
+/*!
+  \since 4.4
+  \fn QList<QTextOption::Tab> QTextOption::tabs() const
+  Returns a list of tab positions defined for the text layout.
+
+  \sa tabStop(), setTabs(), setTabStop()
+*/
+
+
+QT_END_NAMESPACE

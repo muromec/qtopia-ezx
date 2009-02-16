@@ -1,12 +1,12 @@
-This is Qtopia Core (Qt for embedded Linux) version 4.3.6.
+This is Qt version 4.4.3.
 
-Qt is a comprehensive cross-platform C++ application framework. Qt 4.3
+Qt is a comprehensive cross-platform C++ application framework. Qt 4.4
 introduces new features and many improvements over the 3.x series. See
-http://doc.trolltech.com/4.3/qt4-intro.html for details.
+http://doc.trolltech.com/4.4/qt4-intro.html for details.
 
 The Qt 4.x series is not binary compatible or source compatible with
 the 3.x series. For more information on porting from Qt 3 to Qt 4, see
-http://doc.trolltech.com/4.3/porting4.html.
+http://doc.trolltech.com/4.4/porting4.html.
 
 
 INSTALLING Qt
@@ -16,9 +16,8 @@ packages, simply launch the package and follow the instructions in the
 installation wizard.
 
 On Mac OS X, the binary package requires Mac OS X 10.4.x (Tiger) or
-later and GCC 4.0 to develop applications. Its applications will run
-on Mac OS X 10.3.9 and above. If you develop with another
-compiler/version of OS X, please use the source package instead.
+later and GCC 4.0.1 to develop applications. Its applications will run
+on Mac OS X 10.3.9 and above.
 
 If you have a source package (a .tar.gz, .tar.bz2, or .zip file),
 follow the instructions in the INSTALL file.
@@ -46,21 +45,23 @@ SUPPORTED PLATFORMS
 For this release, the following platforms have been tested:
 
   win32-g++
-  win32-icc (commercial edition only)
-  win32-msvc (commercial edition only)
-  win32-msvc.net (commercial edition only)
-  win32-msvc2005 (commercial edition only)
+  win32-icc
+  win32-msvc
+  win32-msvc2002
+  win32-msvc2003
+  win32-msvc2005
+  win32-msvc2008
 
   aix-g++
   aix-xlc
   aix-xlc-64
-  freebsd-g++
-  freebsd-icc
   hpux-acc
   hpux-g++
+  hpuxi-acc
   irix-cc
   irix-cc-64
   irix-g++
+  irix-g++-64
   linux-g++
   linux-icc
   solaris-cc
@@ -69,6 +70,15 @@ For this release, the following platforms have been tested:
   solaris-g++-64
 
   macx-g++
+  macx-xcode
+
+  qws/linux-x86-g++
+  qws/linux-arm-g++
+
+  wince50standard-x86-msvc2005
+  wincewm50pocket-msvc2005
+  wincewm50smart-msvc2005
+  wincewm60professional-msvc2005
 
 For a complete list of supported platforms, see
 http://www.trolltech.com/developer/notes/supported_platforms
@@ -83,13 +93,15 @@ Desktop Edition licensees can use all the modules provided with their
 Qt package.
 
 Desktop Light Edition licensees may only use the classes contained in
-the QtCore, QtGui (except QGraphicsView) and Q3Support modules.
+the QtCore, QtGui (except QGraphicsView), QtTest, QtDBus and
+Qt3Support modules.
 
 Console Edition licensees may use the classes contained in the QtCore,
-QtNetwork, QtSql and QtXml modules.
+QtNetwork, QtSql, QtScript, QtTest, QtDBus, QtXml, and QtXmlPatterns
+modules.
 
 For a full listing of the contents of each module, please refer to 
-http://doc.trolltech.com/4.3/modules.html.
+http://doc.trolltech.com/4.4/modules.html.
 
 
 HOW TO REPORT A BUG
@@ -108,8 +120,10 @@ configure options it was compiled with.
 If the problem you are reporting is only visible at run-time, try to
 create a small test program that shows the problem when run. Often,
 such a program can be created with some minor changes to one of the
-many example programs in Qt's examples directory. Please send the bug
-report to qt-bugs@trolltech.com.
+many example programs in Qt's examples directory. Please submit the
+bug report using the Task Tracker on the Trolltech website:
+
+http://trolltech.com/developer/task-tracker
 
 
-Qt is a trademark of Trolltech ASA.
+Qt is a trademark of Nokia Corporation and/or its subsidiary(-ies).

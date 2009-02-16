@@ -2,20 +2,21 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/text/qsyntaxhighlighter.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/text/qsyntaxhighlighter.cpp -->
 <head>
-  <title>Qt 4.3: QSyntaxHighlighter Class Reference</title>
+  <title>Qt 4.4: QSyntaxHighlighter Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QSyntaxHighlighter Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QSyntaxHighlighter Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QSyntaxHighlighter class allows you to define syntax highlighting rules, and in addition you can use the class to query a document's current formatting or user data. <a href="#details">More...</a></p>
 <pre> #include &lt;QSyntaxHighlighter&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
+<p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
 <p>This class was introduced in Qt 4.1.</p>
 <ul>
 <li><a href="qsyntaxhighlighter-members.html">List of all members, including inherited members</a></li>
@@ -44,6 +45,7 @@
 <a name="protected-functions"></a>
 <h3>Protected Functions</h3>
 <ul>
+<li><div class="fn"/>QTextBlock <b><a href="qsyntaxhighlighter.html#currentBlock">currentBlock</a></b> () const</li>
 <li><div class="fn"/>int <b><a href="qsyntaxhighlighter.html#currentBlockState">currentBlockState</a></b> () const</li>
 <li><div class="fn"/>QTextBlockUserData * <b><a href="qsyntaxhighlighter.html#currentBlockUserData">currentBlockUserData</a></b> () const</li>
 <li><div class="fn"/>QTextCharFormat <b><a href="qsyntaxhighlighter.html#format">format</a></b> ( int <i>position</i> ) const</li>
@@ -87,8 +89,8 @@
          int length = expression.matchedLength();
          setFormat(index, length, myClassFormat);
          index = text.indexOf(expression, index + length);
-      }
-  }</pre>
+     }
+ }</pre>
 <p>Some syntaxes can have constructs that span several text blocks. For example, a C++ syntax highlighter should be able to cope with <tt>/</tt><tt>*...*</tt><tt>/</tt> multiline comments. To deal with these cases it is necessary to know the end state of the previous text block (e.g&#x2e; &quot;in comment&quot;).</p>
 <p>Inside your <a href="qsyntaxhighlighter.html#highlightBlock">highlightBlock</a>() implementation you can query the end state of the previous text block using the <a href="qsyntaxhighlighter.html#previousBlockState">previousBlockState</a>() function. After parsing the block you can save the last state using <a href="qsyntaxhighlighter.html#setCurrentBlockState">setCurrentBlockState</a>().</p>
 <p>The <a href="qsyntaxhighlighter.html#currentBlockState">currentBlockState</a>() and <a href="qsyntaxhighlighter.html#previousBlockState">previousBlockState</a>() functions return an int value. If no state is set, the returned value is -1. You can designate any other value to identify any given state using the <a href="qsyntaxhighlighter.html#setCurrentBlockState">setCurrentBlockState</a>() function. Once the state is set the <a href="qtextblock.html">QTextBlock</a> keeps that value until it is set set again or until the corresponding paragraph of text is deleted.</p>
@@ -132,6 +134,9 @@
 <p>Constructs a <a href="qsyntaxhighlighter.html">QSyntaxHighlighter</a> and installs it on <i>parent</i> 's <a href="qtextdocument.html">QTextDocument</a>. The specified <a href="qtextedit.html">QTextEdit</a> also becomes the owner of the <a href="qsyntaxhighlighter.html">QSyntaxHighlighter</a>.</p>
 <h3 class="fn"><a name="dtor.QSyntaxHighlighter"></a>QSyntaxHighlighter::~QSyntaxHighlighter ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Destructor. Uninstalls this syntax highlighter from the text document.</p>
+<h3 class="fn"><a name="currentBlock"></a><a href="qtextblock.html">QTextBlock</a> QSyntaxHighlighter::currentBlock () const&nbsp;&nbsp;<tt> [protected]</tt></h3>
+<p>Returns the current text block.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="currentBlockState"></a>int QSyntaxHighlighter::currentBlockState () const&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Returns the state of the current text block. If no value is set, the returned value is -1.</p>
 <p>See also <a href="qsyntaxhighlighter.html#setCurrentBlockState">setCurrentBlockState</a>().</p>
@@ -212,8 +217,8 @@
 <p>See also <a href="qsyntaxhighlighter.html#format">format</a>() and <a href="qsyntaxhighlighter.html#highlightBlock">highlightBlock</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

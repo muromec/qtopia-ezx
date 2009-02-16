@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
 
-SUBDIRS += svgiconengine
+contains(QT_CONFIG, svg): SUBDIRS += svgiconengine

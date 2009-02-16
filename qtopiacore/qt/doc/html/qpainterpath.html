@@ -2,21 +2,22 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/painting/qpainterpath.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/painting/qpainterpath.cpp -->
 <head>
-  <title>Qt 4.3: QPainterPath Class Reference</title>
+  <title>Qt 4.4: QPainterPath Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QPainterPath Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QPainterPath Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QPainterPath class provides a container for painting operations, enabling graphical shapes to be constructed and reused. <a href="#details">More...</a></p>
 <pre> #include &lt;QPainterPath&gt;</pre><ul>
 <li><a href="qpainterpath-members.html">List of all members, including inherited members</a></li>
+<li><a href="qpainterpath-obsolete.html">Obsolete members</a></li>
 </ul>
 <a name="public-types"></a>
 <h3>Public Types</h3>
@@ -33,15 +34,14 @@
 <li><div class="fn"/><b><a href="qpainterpath.html#dtor.QPainterPath">~QPainterPath</a></b> ()</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addEllipse">addEllipse</a></b> ( const QRectF &amp; <i>boundingRectangle</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addEllipse-2">addEllipse</a></b> ( qreal <i>x</i>, qreal <i>y</i>, qreal <i>width</i>, qreal <i>height</i> )</li>
+<li><div class="fn"/>void <b><a href="qpainterpath.html#addEllipse-3">addEllipse</a></b> ( const QPointF &amp; <i>center</i>, qreal <i>rx</i>, qreal <i>ry</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addPath">addPath</a></b> ( const QPainterPath &amp; <i>path</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addPolygon">addPolygon</a></b> ( const QPolygonF &amp; <i>polygon</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addRect">addRect</a></b> ( const QRectF &amp; <i>rectangle</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addRect-2">addRect</a></b> ( qreal <i>x</i>, qreal <i>y</i>, qreal <i>width</i>, qreal <i>height</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addRegion">addRegion</a></b> ( const QRegion &amp; <i>region</i> )</li>
-<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundRect">addRoundRect</a></b> ( const QRectF &amp; <i>r</i>, int <i>xRnd</i>, int <i>yRnd</i> )</li>
-<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundRect-2">addRoundRect</a></b> ( const QRectF &amp; <i>rect</i>, int <i>roundness</i> )</li>
-<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundRect-3">addRoundRect</a></b> ( qreal <i>x</i>, qreal <i>y</i>, qreal <i>w</i>, qreal <i>h</i>, int <i>xRnd</i>, int <i>yRnd</i> )</li>
-<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundRect-4">addRoundRect</a></b> ( qreal <i>x</i>, qreal <i>y</i>, qreal <i>width</i>, qreal <i>height</i>, int <i>roundness</i> )</li>
+<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundedRect">addRoundedRect</a></b> ( const QRectF &amp; <i>rect</i>, qreal <i>xRadius</i>, qreal <i>yRadius</i>, Qt::SizeMode <i>mode</i> = Qt::AbsoluteSize )</li>
+<li><div class="fn"/>void <b><a href="qpainterpath.html#addRoundedRect-2">addRoundedRect</a></b> ( qreal <i>x</i>, qreal <i>y</i>, qreal <i>w</i>, qreal <i>h</i>, qreal <i>xRadius</i>, qreal <i>yRadius</i>, Qt::SizeMode <i>mode</i> = Qt::AbsoluteSize )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addText">addText</a></b> ( const QPointF &amp; <i>point</i>, const QFont &amp; <i>font</i>, const QString &amp; <i>text</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#addText-2">addText</a></b> ( qreal <i>x</i>, qreal <i>y</i>, const QFont &amp; <i>font</i>, const QString &amp; <i>text</i> )</li>
 <li><div class="fn"/>qreal <b><a href="qpainterpath.html#angleAtPercent">angleAtPercent</a></b> ( qreal <i>t</i> ) const</li>
@@ -53,8 +53,8 @@
 <li><div class="fn"/>void <b><a href="qpainterpath.html#closeSubpath">closeSubpath</a></b> ()</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#connectPath">connectPath</a></b> ( const QPainterPath &amp; <i>path</i> )</li>
 <li><div class="fn"/>bool <b><a href="qpainterpath.html#contains">contains</a></b> ( const QPointF &amp; <i>point</i> ) const</li>
-<li><div class="fn"/>bool <b><a href="qpainterpath.html#contains-2">contains</a></b> ( const QPainterPath &amp; <i>p</i> ) const</li>
-<li><div class="fn"/>bool <b><a href="qpainterpath.html#contains-3">contains</a></b> ( const QRectF &amp; <i>rectangle</i> ) const</li>
+<li><div class="fn"/>bool <b><a href="qpainterpath.html#contains-2">contains</a></b> ( const QRectF &amp; <i>rectangle</i> ) const</li>
+<li><div class="fn"/>bool <b><a href="qpainterpath.html#contains-3">contains</a></b> ( const QPainterPath &amp; <i>p</i> ) const</li>
 <li><div class="fn"/>QRectF <b><a href="qpainterpath.html#controlPointRect">controlPointRect</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#cubicTo">cubicTo</a></b> ( const QPointF &amp; <i>c1</i>, const QPointF &amp; <i>c2</i>, const QPointF &amp; <i>endPoint</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#cubicTo-2">cubicTo</a></b> ( qreal <i>c1X</i>, qreal <i>c1Y</i>, qreal <i>c2X</i>, qreal <i>c2Y</i>, qreal <i>endPointX</i>, qreal <i>endPointY</i> )</li>
@@ -77,9 +77,9 @@
 <li><div class="fn"/>void <b><a href="qpainterpath.html#quadTo-2">quadTo</a></b> ( qreal <i>cx</i>, qreal <i>cy</i>, qreal <i>endPointX</i>, qreal <i>endPointY</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#setElementPositionAt">setElementPositionAt</a></b> ( int <i>index</i>, qreal <i>x</i>, qreal <i>y</i> )</li>
 <li><div class="fn"/>void <b><a href="qpainterpath.html#setFillRule">setFillRule</a></b> ( Qt::FillRule <i>fillRule</i> )</li>
+<li><div class="fn"/>QPainterPath <b><a href="qpainterpath.html#simplified">simplified</a></b> () const</li>
 <li><div class="fn"/>qreal <b><a href="qpainterpath.html#slopeAtPercent">slopeAtPercent</a></b> ( qreal <i>t</i> ) const</li>
 <li><div class="fn"/>QPainterPath <b><a href="qpainterpath.html#subtracted">subtracted</a></b> ( const QPainterPath &amp; <i>p</i> ) const</li>
-<li><div class="fn"/>QPainterPath <b><a href="qpainterpath.html#subtractedInverted">subtractedInverted</a></b> ( const QPainterPath &amp; <i>p</i> ) const</li>
 <li><div class="fn"/>QPolygonF <b><a href="qpainterpath.html#toFillPolygon">toFillPolygon</a></b> ( const QTransform &amp; <i>matrix</i> ) const</li>
 <li><div class="fn"/>QPolygonF <b><a href="qpainterpath.html#toFillPolygon-2">toFillPolygon</a></b> ( const QMatrix &amp; <i>matrix</i> = QMatrix() ) const</li>
 <li><div class="fn"/>QList&lt;QPolygonF&gt; <b><a href="qpainterpath.html#toFillPolygons">toFillPolygons</a></b> ( const QTransform &amp; <i>matrix</i> ) const</li>
@@ -95,8 +95,8 @@
 <a name="related-non-members"></a>
 <h3>Related Non-Members</h3>
 <ul>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qpainterpath.html#operator-lt-lt-19">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>stream</i>, const QPainterPath &amp; <i>path</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qpainterpath.html#operator-gt-gt-11">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>stream</i>, QPainterPath &amp; <i>path</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qpainterpath.html#operator-lt-lt-85">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>stream</i>, const QPainterPath &amp; <i>path</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qpainterpath.html#operator-gt-gt-44">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>stream</i>, QPainterPath &amp; <i>path</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -205,6 +205,10 @@
 <h3 class="fn"><a name="addEllipse-2"></a>void QPainterPath::addEllipse ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>x</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>y</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>width</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>height</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Creates an ellipse within the bounding rectangle defined by its top-left corner at (<i>x</i>, <i>y</i>), <i>width</i> and <i>height</i>, and adds it to the painter path as a closed subpath.</p>
+<h3 class="fn"><a name="addEllipse-3"></a>void QPainterPath::addEllipse ( const <a href="qpointf.html">QPointF</a> &amp; <i>center</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>rx</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>ry</i> )</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
+<p>Creates an ellipse positioned at <i>center</i> with radii <i>rx</i> and <i>ry</i>, and adds it to the painter path as a closed subpath.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="addPath"></a>void QPainterPath::addPath ( const QPainterPath &amp; <i>path</i> )</h3>
 <p>Adds the given <i>path</i> to <i>this</i> path as a closed subpath.</p>
 <p>See also <a href="qpainterpath.html#connectPath">connectPath</a>() and <a href="qpainterpath.html#composing-a-qpainterpath">Composing a QPainterPath</a>.</p>
@@ -250,27 +254,15 @@
 <h3 class="fn"><a name="addRegion"></a>void QPainterPath::addRegion ( const <a href="qregion.html">QRegion</a> &amp; <i>region</i> )</h3>
 <p>Adds the given <i>region</i> to the path by adding each rectangle in the region as a separate closed subpath.</p>
 <p>See also <a href="qpainterpath.html#addRect">addRect</a>() and <a href="qpainterpath.html#composing-a-qpainterpath">Composing a QPainterPath</a>.</p>
-<h3 class="fn"><a name="addRoundRect"></a>void QPainterPath::addRoundRect ( const <a href="qrectf.html">QRectF</a> &amp; <i>r</i>, int <i>xRnd</i>, int <i>yRnd</i> )</h3>
-<p>Adds a rectangle <i>r</i> with rounded corners to the path.</p>
-<p>The <i>xRnd</i> and <i>yRnd</i> arguments specify how rounded the corners should be. 0 is angled corners, 99 is maximum roundedness.</p>
-<p>A filled rectangle has a size of r.size(). A stroked rectangle has a size of r.size() plus the pen width.</p>
-<p>See also <a href="qpainterpath.html#addRect">addRect</a>() and <a href="qpen.html">QPen</a>.</p>
-<h3 class="fn"><a name="addRoundRect-2"></a>void QPainterPath::addRoundRect ( const <a href="qrectf.html">QRectF</a> &amp; <i>rect</i>, int <i>roundness</i> )</h3>
+<h3 class="fn"><a name="addRoundedRect"></a>void QPainterPath::addRoundedRect ( const <a href="qrectf.html">QRectF</a> &amp; <i>rect</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>xRadius</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>yRadius</i>, <a href="qt.html#SizeMode-enum">Qt::SizeMode</a> <i>mode</i> = Qt::AbsoluteSize )</h3>
+<p>Adds the given rectangle <i>rect</i> with rounded corners to the path.</p>
+<p>The <i>xRadius</i> and <i>yRadius</i> arguments specify the radii of the ellipses defining the corners of the rounded rectangle. When <i>mode</i> is <a href="qt.html#SizeMode-enum">Qt::RelativeSize</a>, <i>xRadius</i> and <i>yRadius</i> are specified in percentage of half the rectangle's width and height respectively, and should be in the range 0.0 to 100.0&#x2e;</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qpainterpath.html#addRect">addRect</a>().</p>
+<h3 class="fn"><a name="addRoundedRect-2"></a>void QPainterPath::addRoundedRect ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>x</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>y</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>w</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>h</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>xRadius</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>yRadius</i>, <a href="qt.html#SizeMode-enum">Qt::SizeMode</a> <i>mode</i> = Qt::AbsoluteSize )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Adds a rounded rectangle, <i>rect</i>, to the path.</p>
-<p>The <i>roundness</i> argument specifies uniform roundness for the rectangle. Vertical and horizontal roundness factors will be adjusted accordingly to act uniformly around both axes. Use this method if you want a rectangle equally rounded across both the X and Y axis.</p>
-<p>This function was introduced in Qt 4.3.</p>
-<p>See also <a href="qpainterpath.html#addRoundRect">addRoundRect</a>().</p>
-<h3 class="fn"><a name="addRoundRect-3"></a>void QPainterPath::addRoundRect ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>x</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>y</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>w</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>h</i>, int <i>xRnd</i>, int <i>yRnd</i> )</h3>
-<p>This is an overloaded member function, provided for convenience.</p>
-<p>Adds a rectangle with rounded corners to the path. The rectangle is constructed from <i>x</i>, <i>y</i>, and the width and height <i>w</i> and <i>h</i>.</p>
-<p>The <i>xRnd</i> and <i>yRnd</i> arguments specify how rounded the corners should be. 0 is angled corners, 99 is maximum roundedness.</p>
-<h3 class="fn"><a name="addRoundRect-4"></a>void QPainterPath::addRoundRect ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>x</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>y</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>width</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>height</i>, int <i>roundness</i> )</h3>
-<p>This is an overloaded member function, provided for convenience.</p>
-<p>Adds a rounded rectangle to the path, defined by the coordinates <i>x</i> and <i>y</i> with the specified <i>width</i> and <i>height</i>.</p>
-<p>The <i>roundness</i> argument specifies uniform roundness for the rectangle. Vertical and horizontal roundness factors will be adjusted accordingly to act uniformly around both axes. Use this method if you want a rectangle equally rounded across both the X and Y axis.</p>
-<p>This function was introduced in Qt 4.3.</p>
-<p>See also <a href="qpainterpath.html#addRoundRect">addRoundRect</a>().</p>
+<p>Adds the given rectangle <i>x</i>, <i>y</i>, <i>w</i>, <i>h</i> with rounded corners to the path.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="addText"></a>void QPainterPath::addText ( const <a href="qpointf.html">QPointF</a> &amp; <i>point</i>, const <a href="qfont.html">QFont</a> &amp; <i>font</i>, const <a href="qstring.html">QString</a> &amp; <i>text</i> )</h3>
 <p>Adds the given <i>text</i> to this path as a set of closed subpaths created from the <i>font</i> supplied. The subpaths are positioned so that the left end of the text's baseline lies at the specified <i>point</i>.</p>
 <p><table width="100%" align="center" cellpadding="2" cellspacing="1" border="0">
@@ -293,7 +285,8 @@
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Adds the given <i>text</i> to this path as a set of closed subpaths created from the <i>font</i> supplied. The subpaths are positioned so that the left end of the text's baseline lies at the point specified by (<i>x</i>, <i>y</i>).</p>
 <h3 class="fn"><a name="angleAtPercent"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QPainterPath::angleAtPercent ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>t</i> ) const</h3>
-<p>Returns the angle perpendicular to the slope of the path at the percentage <i>t</i>. The angle is constructed with the reference frame of the horizontal (x) axis and the left side of the path (left as defined by the direction of the path). The argument <i>t</i> has to be between 0 and 1.</p>
+<p>Returns the angle of the path tangent at the percentage <i>t</i>. The argument <i>t</i> has to be between 0 and 1.</p>
+<p>Positive values for the angles mean counter-clockwise while negative values mean the clockwise direction. Zero degrees is at the 3 o'clock position.</p>
 <p>Note that similarly to the other percent methods, the percentage measurment is not linear with regards to the length if curves are present in the path. When curves are present the percentage argument is mapped to the t parameter of the Bezier equations.</p>
 <h3 class="fn"><a name="arcMoveTo"></a>void QPainterPath::arcMoveTo ( const <a href="qrectf.html">QRectF</a> &amp; <i>rectangle</i>, <a href="qtglobal.html#qreal-typedef">qreal</a> <i>angle</i> )</h3>
 <p>Creates a move to that lies on the arc that occupies the given <i>rectangle</i> at <i>angle</i>.</p>
@@ -342,13 +335,14 @@
 <h3 class="fn"><a name="contains"></a>bool QPainterPath::contains ( const <a href="qpointf.html">QPointF</a> &amp; <i>point</i> ) const</h3>
 <p>Returns true if the given <i>point</i> is inside the path, otherwise returns false.</p>
 <p>See also <a href="qpainterpath.html#intersects">intersects</a>().</p>
-<h3 class="fn"><a name="contains-2"></a>bool QPainterPath::contains ( const QPainterPath &amp; <i>p</i> ) const</h3>
-<p>This is an overloaded member function, provided for convenience.</p>
-<p>Returns true if the given path <i>p</i> is contained within the current path.</p>
-<p>This function was introduced in Qt 4.3.</p>
-<h3 class="fn"><a name="contains-3"></a>bool QPainterPath::contains ( const <a href="qrectf.html">QRectF</a> &amp; <i>rectangle</i> ) const</h3>
+<h3 class="fn"><a name="contains-2"></a>bool QPainterPath::contains ( const <a href="qrectf.html">QRectF</a> &amp; <i>rectangle</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if the given <i>rectangle</i> is inside the path, otherwise returns false.</p>
+<h3 class="fn"><a name="contains-3"></a>bool QPainterPath::contains ( const QPainterPath &amp; <i>p</i> ) const</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
+<p>Returns true if the given path <i>p</i> is contained within the current path. Returns false if any edges of the current path and <i>p</i> intersect.</p>
+<p>This function was introduced in Qt 4.3.</p>
+<p>See also <a href="qpainterpath.html#intersects">intersects</a>().</p>
 <h3 class="fn"><a name="controlPointRect"></a><a href="qrectf.html">QRectF</a> QPainterPath::controlPointRect () const</h3>
 <p>Returns the rectangle containing all the points and control points in this path.</p>
 <p>This function is significantly faster to compute than the exact <a href="qpainterpath.html#boundingRect">boundingRect</a>(), and the returned rectangle is always a superset of the rectangle returned by <a href="qpainterpath.html#boundingRect">boundingRect</a>().</p>
@@ -361,7 +355,7 @@
  QPen myPen;
 
  QPainterPath myPath;
- myPath.cubicto(c1, c2, endPoint);
+ myPath.cubicTo(c1, c2, endPoint);
 
  QPainter painter(this);
  painter.setBrush(myGradient);
@@ -385,7 +379,7 @@
 <p>Returns the painter path's currently set fill rule.</p>
 <p>See also <a href="qpainterpath.html#setFillRule">setFillRule</a>().</p>
 <h3 class="fn"><a name="intersected"></a>QPainterPath QPainterPath::intersected ( const QPainterPath &amp; <i>p</i> ) const</h3>
-<p>Returns a path which is the intersection of this path and <i>p</i>.</p>
+<p>Returns a path which is the intersection of this path's fill area and <i>p</i>'s fill area.</p>
 <p>This function was introduced in Qt 4.3.</p>
 <h3 class="fn"><a name="intersects"></a>bool QPainterPath::intersects ( const <a href="qrectf.html">QRectF</a> &amp; <i>rectangle</i> ) const</h3>
 <p>Returns true if any point in the given <i>rectangle</i> intersects the path; otherwise returns false.</p>
@@ -393,10 +387,11 @@
 <p>See also <a href="qpainterpath.html#contains">contains</a>().</p>
 <h3 class="fn"><a name="intersects-2"></a>bool QPainterPath::intersects ( const QPainterPath &amp; <i>p</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Returns true if the current path intersects at any point the given path <i>p</i>. The intersection will return false if the path is fully contained within this path (use <a href="qpainterpath.html#contains">contains</a>() to check for that case).</p>
+<p>Returns true if the current path intersects at any point the given path <i>p</i>. Also returns true if the current path contains or is contained by any part of <i>p</i>.</p>
 <p>This function was introduced in Qt 4.3.</p>
+<p>See also <a href="qpainterpath.html#contains">contains</a>().</p>
 <h3 class="fn"><a name="isEmpty"></a>bool QPainterPath::isEmpty () const</h3>
-<p>Returns true if there are no elements in this path, otherwise returns false.</p>
+<p>Returns true if either there are no elements in this path, or if the only element is a <a href="qpainterpath.html#ElementType-enum">MoveToElement</a>; otherwise returns false.</p>
 <p>See also <a href="qpainterpath.html#elementCount">elementCount</a>().</p>
 <h3 class="fn"><a name="length"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QPainterPath::length () const</h3>
 <p>Returns the length of the current path.</p>
@@ -435,14 +430,14 @@
 <thead><tr valign="top" class="qt-style"><th><a href="qt.html#FillRule-enum">Qt::OddEvenFill</a> (default)</th><th><a href="qt.html#FillRule-enum">Qt::WindingFill</a></th></tr></thead>
 </table></p>
 <p>See also <a href="qpainterpath.html#fillRule">fillRule</a>().</p>
+<h3 class="fn"><a name="simplified"></a>QPainterPath QPainterPath::simplified () const</h3>
+<p>Returns a simplified version of this path. This implies merging all subpaths that intersect, and returning a path containing no intersecting edges. Consecutive parallel lines will also be merged. The simplified path will always use the default fill rule, <a href="qt.html#FillRule-enum">Qt::OddEvenFill</a>.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="slopeAtPercent"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QPainterPath::slopeAtPercent ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>t</i> ) const</h3>
 <p>Returns the slope of the path at the percentage <i>t</i>. The argument <i>t</i> has to be between 0 and 1.</p>
 <p>Note that similarly to other percent methods, the percentage measurment is not linear with regards to the length, if curves are present in the path. When curves are present the percentage argument is mapped to the t parameter of the Bezier equations.</p>
 <h3 class="fn"><a name="subtracted"></a>QPainterPath QPainterPath::subtracted ( const QPainterPath &amp; <i>p</i> ) const</h3>
-<p>Returns a path which is <i>p</i> subtracted from this path.</p>
-<p>This function was introduced in Qt 4.3.</p>
-<h3 class="fn"><a name="subtractedInverted"></a>QPainterPath QPainterPath::subtractedInverted ( const QPainterPath &amp; <i>p</i> ) const</h3>
-<p>Returns a path which is this path subtracted from <i>p</i>.</p>
+<p>Returns a path which is <i>p</i>'s fill area subtracted from this path's fill area.</p>
 <p>This function was introduced in Qt 4.3.</p>
 <h3 class="fn"><a name="toFillPolygon"></a><a href="qpolygonf.html">QPolygonF</a> QPainterPath::toFillPolygon ( const <a href="qtransform.html">QTransform</a> &amp; <i>matrix</i> ) const</h3>
 <p>Converts the path into a polygon using the <a href="qtransform.html">QTransform</a> <i>matrix</i>, and returns the polygon.</p>
@@ -469,9 +464,9 @@
 <h3 class="fn"><a name="toSubpathPolygons-2"></a><a href="qlist.html">QList</a>&lt;<a href="qpolygonf.html">QPolygonF</a>&gt; QPainterPath::toSubpathPolygons ( const <a href="qmatrix.html">QMatrix</a> &amp; <i>matrix</i> = QMatrix() ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <h3 class="fn"><a name="united"></a>QPainterPath QPainterPath::united ( const QPainterPath &amp; <i>p</i> ) const</h3>
-<p>Returns a path which is the union of this path and <i>p</i>.</p>
+<p>Returns a path which is the union of this path's fill area and <i>p</i>'s fill area.</p>
 <p>This function was introduced in Qt 4.3.</p>
-<p>See also <a href="qpainterpath.html#intersected">intersected</a>(), <a href="qpainterpath.html#subtracted">subtracted</a>(), and <a href="qpainterpath.html#subtractedInverted">subtractedInverted</a>().</p>
+<p>See also <a href="qpainterpath.html#intersected">intersected</a>(), <a href="qpainterpath.html#subtracted">subtracted</a>(), and <a href="qpainterpath-obsolete.html#subtractedInverted">subtractedInverted</a>().</p>
 <h3 class="fn"><a name="operator-not-eq"></a>bool QPainterPath::operator!= ( const QPainterPath &amp; <i>path</i> ) const</h3>
 <p>Returns true if this painter path differs from the given <i>path</i>.</p>
 <p>Note that comparing paths may involve a per element comparison which can be slow for complex paths.</p>
@@ -485,18 +480,18 @@
 <p>See also <a href="qpainterpath.html#operator-not-eq">operator!=</a>().</p>
 <hr />
 <h2>Related Non-Members</h2>
-<h3 class="fn"><a name="operator-lt-lt-19"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>stream</i>, const QPainterPath &amp; <i>path</i> )</h3>
+<h3 class="fn"><a name="operator-lt-lt-85"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>stream</i>, const QPainterPath &amp; <i>path</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Writes the given painter <i>path</i> to the given <i>stream</i>, and returns a reference to the <i>stream</i>.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
-<h3 class="fn"><a name="operator-gt-gt-11"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>stream</i>, QPainterPath &amp; <i>path</i> )</h3>
+<h3 class="fn"><a name="operator-gt-gt-44"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>stream</i>, QPainterPath &amp; <i>path</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Reads a painter path from the given <i>stream</i> into the specified <i>path</i>, and returns a reference to the <i>stream</i>.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream Operators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

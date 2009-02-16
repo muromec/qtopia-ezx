@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/containerextension.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/containerextension.qdoc -->
 <head>
-  <title>Qt 4.3: Container Extension Example</title>
+  <title>Qt 4.4: Container Extension Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Container Extension Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Container Extension Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -46,12 +46,11 @@
 </ul>
 <p>The project file for custom widget plugins needs some additional information to ensure that they will work within <i>Qt Designer</i>. For example, custom widget plugins rely on components supplied with <i>Qt Designer</i>, and this must be specified in the project file that we use. We will first take a look at the plugin's project file.</p>
 <p>Then we will continue by reviewing the <tt>MultiPageWidgetPlugin</tt> class, and take a look at the <tt>MultiPageWidgetExtensionFactory</tt> and <tt>MultiPageWidgetContainerExtension</tt> classes. Finally, we will take a quick look at the <tt>MultiPageWidget</tt> class definition.</p>
-<p><b>Note:</b> Currently, this particular example can only be used for experimenting and prototyping within QDesigner's workspace. The reason is that uic does not recognize the custom container functionality, i.e&#x2e;, it will not generate the code required to add pages to the container. This issue will be resolved in the next minor release.</p>
 <a name="the-project-file-containerextension-pro"></a>
 <h2>The Project File: containerextension.pro</h2>
 <p>The project file must contain some additional information to ensure that the plugin will work as expected:</p>
 <pre> TEMPLATE = lib
- CONFIG  += designer plugin debug_and_release</pre>
+ CONFIG  += designer plugin</pre>
 <p>The <tt>TEMPLATE</tt> variable's value makes <tt>qmake</tt> create the custom widget as a library. Later, we will ensure that the widget will be recognized as a plugin by Qt by using the <a href="qtplugin.html#Q_EXPORT_PLUGIN2">Q_EXPORT_PLUGIN2</a>() macro to export the relevant widget information.</p>
 <p>The <tt>CONFIG</tt> variable contains two values, <tt>designer</tt> and <tt>plugin</tt>:</p>
 <ul>
@@ -78,7 +77,7 @@
 <p>For more information about plugins, see the <a href="plugins-howto.html">How to Create Qt Plugins</a> documentation.</p>
 <a name="multipagewidgetplugin-class-definition"></a>
 <h2>MultiPageWidgetPlugin Class Definition</h2>
-<p>The <tt>MultiPageWidgetPlugin</tt> class expose the <tt>MultiPageWidget</tt> class to <i>Qt Designer</i>. Its definition is similar to the <a href="designer-customwidgetplugin.html">Custom Widget Plugin</a> example's plugin class which is explained in detail. The parts of the class definition that is specific to this particular custom widget is the class name and a couple of private slots:</p>
+<p>The <tt>MultiPageWidgetPlugin</tt> class exposes the <tt>MultiPageWidget</tt> class to <i>Qt Designer</i>. Its definition is similar to the <a href="designer-customwidgetplugin.html">Custom Widget Plugin</a> example's plugin class which is explained in detail. The parts of the class definition that is specific to this particular custom widget is the class name and a couple of private slots:</p>
 <pre> #ifndef MULTIPAGEWIDGETPLUGIN_H
  #define MULTIPAGEWIDGETPLUGIN_H
 
@@ -233,10 +232,18 @@
 <pre> QString MultiPageWidgetPlugin::domXml() const
  {
      return QLatin1String(&quot;\
+ &lt;ui&gt;\
      &lt;widget class=\&quot;MultiPageWidget\&quot; name=\&quot;multipagewidget\&quot;&gt;\
          &lt;widget class=\&quot;QWidget\&quot; name=\&quot;page\&quot; /&gt;\
      &lt;/widget&gt;\
-     &quot;);
+     &lt;customwidgets&gt;\
+         &lt;customwidget&gt;\
+             &lt;class&gt;MultiPageWidget&lt;/class&gt;\
+             &lt;extends&gt;QWidget&lt;/extends&gt;\
+             &lt;addpagemethod&gt;addPage&lt;/addpagemethod&gt;\
+         &lt;/customwidget&gt;\
+     &lt;/customwidgets&gt;\
+ &lt;/ui&gt;&quot;);
  }</pre>
 <p>Finally, take a look at the <tt>domXml()</tt> function. This function includes default settings for the widget in the standard XML format used by <i>Qt Designer</i>. In this case, we specify the container's first page; any inital pages of a multi-page widget must be specified within this function.</p>
 <pre> Q_EXPORT_PLUGIN2(containerextension, MultiPageWidgetPlugin)</pre>
@@ -390,8 +397,8 @@
 <p>See the MultiPageWidget class <a href="designer-containerextension-multipagewidget-cpp.html">implementation</a> for more details.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

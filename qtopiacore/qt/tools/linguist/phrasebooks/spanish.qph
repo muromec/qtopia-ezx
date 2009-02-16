@@ -21,7 +21,7 @@
 </phrase>
 <phrase>
     <source>active end</source>
-    <target>fin de la selecciÃ³n activa</target>
+    <target>fin de la selección activa</target>
 </phrase>
 <phrase>
     <source>active object</source>
@@ -33,7 +33,7 @@
 </phrase>
 <phrase>
     <source>adornment</source>
-    <target>opciÃ³n grÃ¡fica</target>
+    <target>opción gráfica</target>
 </phrase>
 <phrase>
     <source>Always on Top</source>
@@ -41,7 +41,7 @@
 </phrase>
 <phrase>
     <source>anchor point</source>
-    <target>inicio de la selecciÃ³n activa</target>
+    <target>inicio de la selección activa</target>
 </phrase>
 <phrase>
     <source>Apply</source>
@@ -49,40 +49,40 @@
 </phrase>
 <phrase>
     <source>auto-exit</source>
-    <target>salida automÃ¡tica</target>
+    <target>salida automática</target>
 </phrase>
 <phrase>
     <source>auto-repeat</source>
-    <target>repeticiÃ³n automÃ¡tica</target>
+    <target>repetición automática</target>
 </phrase>
 <phrase>
     <source>automatic link</source>
-    <target>vÃ­nculo automÃ¡tico</target>
+    <target>vínculo automático</target>
 </phrase>
 <phrase>
     <source>automatic scrolling</source>
-    <target>desplazamiento automÃ¡tico</target>
+    <target>desplazamiento automático</target>
 </phrase>
 <phrase>
     <source>autoscroll</source>
-    <target>desplazamiento automÃ¡tico</target>
+    <target>desplazamiento automático</target>
 </phrase>
 <phrase>
     <source>Back</source>
-    <target>AtrÃ¡s</target>
+    <target>Atrás</target>
 </phrase>
 <phrase>
     <source>barrel button</source>
-    <target>botÃ³n del lÃ¡piz</target>
+    <target>botón del lápiz</target>
     <definition>pen</definition>
 </phrase>
 <phrase>
     <source>barrel-tap</source>
-    <target>puntenar con el botÃ³n presionado</target>
+    <target>puntenar con el botón presionado</target>
 </phrase>
 <phrase>
     <source>boxed edit</source>
-    <target>ediciÃ³n en casilla</target>
+    <target>edición en casilla</target>
     <definition>control</definition>
 </phrase>
 <phrase>
@@ -95,15 +95,15 @@
 </phrase>
 <phrase>
     <source>cascading menu</source>
-    <target>menÃº en cascada</target>
+    <target>menú en cascada</target>
 </phrase>
 <phrase>
     <source>check box</source>
-    <target>casilla de verificaciÃ³n</target>
+    <target>casilla de verificación</target>
 </phrase>
 <phrase>
     <source>check mark</source>
-    <target>marca de verificaciÃ³n</target>
+    <target>marca de verificación</target>
 </phrase>
 <phrase>
     <source>child window</source>
@@ -127,7 +127,7 @@
 </phrase>
 <phrase>
     <source>Close button</source>
-    <target>botÃ³n &amp;quot;Cerrar&amp;quot;</target>
+    <target>botón &amp;quot;Cerrar&amp;quot;</target>
 </phrase>
 <phrase>
     <source>collapse</source>
@@ -145,7 +145,7 @@
 </phrase>
 <phrase>
     <source>command button</source>
-    <target>botÃ³n de comando</target>
+    <target>botón de comando</target>
 </phrase>
 <phrase>
     <source>container</source>
@@ -169,7 +169,7 @@
 </phrase>
 <phrase>
     <source>Copy here</source>
-    <target>Copiar aquÃ­</target>
+    <target>Copiar aquí</target>
 </phrase>
 <phrase>
     <source>Create Shortcut</source>
@@ -177,7 +177,7 @@
 </phrase>
 <phrase>
     <source>Create Shortcut Here</source>
-    <target>Crear acceso directo aquÃ­</target>
+    <target>Crear acceso directo aquí</target>
 </phrase>
 <phrase>
     <source>Cut</source>
@@ -189,7 +189,7 @@
 </phrase>
 <phrase>
     <source>default button</source>
-    <target>botÃ³n predeterminado</target>
+    <target>botón predeterminado</target>
 </phrase>
 <phrase>
     <source>Delete</source>
@@ -205,7 +205,7 @@
 </phrase>
 <phrase>
     <source>dialog box</source>
-    <target>cuadro de diÃ¡logo</target>
+    <target>cuadro de diálogo</target>
 </phrase>
 <phrase>
     <source>disability</source>
@@ -213,7 +213,7 @@
 </phrase>
 <phrase>
     <source>disjoint selection</source>
-    <target>selecciÃ³n disjunta</target>
+    <target>selección disjunta</target>
 </phrase>
 <phrase>
     <source>dock</source>
@@ -249,15 +249,15 @@
 </phrase>
 <phrase>
     <source>drop-down menu</source>
-    <target>menÃº desplegable</target>
+    <target>menú desplegable</target>
 </phrase>
 <phrase>
     <source>Edit</source>
-    <target>EdiciÃ³n</target>
+    <target>Edición</target>
 </phrase>
 <phrase>
     <source>Edit menu</source>
-    <target>menÃº EdiciÃ³n</target>
+    <target>menú Edición</target>
 </phrase>
 <phrase>
     <source>ellipsis</source>
@@ -282,11 +282,11 @@
 </phrase>
 <phrase>
     <source>extended selection</source>
-    <target>selecciÃ³n extendida</target>
+    <target>selección extendida</target>
 </phrase>
 <phrase>
     <source>extended selection list box</source>
-    <target>cuadro de lista de selecciÃ³n extendida</target>
+    <target>cuadro de lista de selección extendida</target>
 </phrase>
 <phrase>
     <source>file</source>
@@ -294,7 +294,7 @@
 </phrase>
 <phrase>
     <source>File menu</source>
-    <target>menÃº Archivo</target>
+    <target>menú Archivo</target>
 </phrase>
 <phrase>
     <source>Find</source>
@@ -318,7 +318,7 @@
 </phrase>
 <phrase>
     <source>font size</source>
-    <target>tamaÃ±o de fuente</target>
+    <target>tamaño de fuente</target>
 </phrase>
 <phrase>
     <source>font style</source>
@@ -326,7 +326,7 @@
 </phrase>
 <phrase>
     <source>function key</source>
-    <target>tecla de funciÃ³n</target>
+    <target>tecla de función</target>
 </phrase>
 <phrase>
     <source>gesture</source>
@@ -334,7 +334,7 @@
 </phrase>
 <phrase>
     <source>glyph</source>
-    <target>sÃ­mbolo grÃ¡fico</target>
+    <target>símbolo gráfico</target>
 </phrase>
 <phrase>
     <source>group box</source>
@@ -356,7 +356,7 @@
 </phrase>
 <phrase>
     <source>Help menu</source>
-    <target>menÃº Ayuda</target>
+    <target>menú Ayuda</target>
 </phrase>
 <phrase>
     <source>Hide</source>
@@ -364,7 +364,7 @@
 </phrase>
 <phrase>
     <source>hierarchical selection</source>
-    <target>selecciÃ³n jerÃ¡rquica</target>
+    <target>selección jerárquica</target>
 </phrase>
 <phrase>
     <source>hold</source>
@@ -408,7 +408,7 @@
 </phrase>
 <phrase>
     <source>Insert</source>
-    <target>menÃº Insertar</target>
+    <target>menú Insertar</target>
 </phrase>
 <phrase>
     <source>Insert Object</source>
@@ -416,7 +416,7 @@
 </phrase>
 <phrase>
     <source>insertion point</source>
-    <target>punto de inserciÃ³n</target>
+    <target>punto de inserción</target>
 </phrase>
 <phrase>
     <source>italic</source>
@@ -432,7 +432,7 @@
 </phrase>
 <phrase>
     <source>lasso-tap</source>
-    <target>punteo en la selecciÃ³n</target>
+    <target>punteo en la selección</target>
 </phrase>
 <phrase>
     <source>lens</source>
@@ -446,12 +446,12 @@
 </phrase>
 <phrase>
     <source>link</source>
-    <target>vÃ­nculo</target>
+    <target>vínculo</target>
     <definition>noun</definition>
 </phrase>
 <phrase>
     <source>Link Here</source>
-    <target>Vincular aquÃ­</target>
+    <target>Vincular aquí</target>
 </phrase>
 <phrase>
     <source>list box</source>
@@ -464,12 +464,12 @@
 </phrase>
 <phrase>
     <source>list view</source>
-    <target>presentaciÃ³n de iconos </target>
+    <target>presentación de iconos </target>
     <definition>control</definition>
 </phrase>
 <phrase>
     <source>manual link</source>
-    <target>vÃ­nculo manual</target>
+    <target>vínculo manual</target>
 </phrase>
 <phrase>
     <source>Maximize</source>
@@ -477,7 +477,7 @@
 </phrase>
 <phrase>
     <source>maximize button</source>
-    <target>botÃ³n de maximizar</target>
+    <target>botón de maximizar</target>
 </phrase>
 <phrase>
     <source>MDI</source>
@@ -485,23 +485,23 @@
 </phrase>
 <phrase>
     <source>menu</source>
-    <target>menÃº</target>
+    <target>menú</target>
 </phrase>
 <phrase>
     <source>menu bar</source>
-    <target>barra de menÃºs</target>
+    <target>barra de menús</target>
 </phrase>
 <phrase>
     <source>menu button</source>
-    <target>botÃ³n de menÃº</target>
+    <target>botón de menú</target>
 </phrase>
 <phrase>
     <source>menu item</source>
-    <target>elemento de menÃº</target>
+    <target>elemento de menú</target>
 </phrase>
 <phrase>
     <source>menu title</source>
-    <target>tÃ­tulo de menÃº</target>
+    <target>título de menú</target>
 </phrase>
 <phrase>
     <source>message box</source>
@@ -513,7 +513,7 @@
 </phrase>
 <phrase>
     <source>minimize button</source>
-    <target>botÃ³n de minimizar</target>
+    <target>botón de minimizar</target>
 </phrase>
 <phrase>
     <source>mixed-value</source>
@@ -545,15 +545,15 @@
 </phrase>
 <phrase>
     <source>Move Here</source>
-    <target>Mover aquÃ­</target>
+    <target>Mover aquí</target>
 </phrase>
 <phrase>
     <source>Multiple Document Interface</source>
-    <target>interfaz de documentos mÃºltiples</target>
+    <target>interfaz de documentos múltiples</target>
 </phrase>
 <phrase>
     <source>multiple selection list box</source>
-    <target>cuadro de lista de selecciÃ³n mÃºltiple</target>
+    <target>cuadro de lista de selección múltiple</target>
 </phrase>
 <phrase>
     <source>My Computer</source>
@@ -611,11 +611,11 @@
 </phrase>
 <phrase>
     <source>option button</source>
-    <target>botÃ³n de opciÃ³n</target>
+    <target>botón de opción</target>
 </phrase>
 <phrase>
     <source>option-set</source>
-    <target>opciÃ³n establecida</target>
+    <target>opción establecida</target>
 </phrase>
 <phrase>
     <source>package</source>
@@ -623,7 +623,7 @@
 </phrase>
 <phrase>
     <source>Page Setup</source>
-    <target>Preparar pÃ¡gina</target>
+    <target>Preparar página</target>
 </phrase>
 <phrase>
     <source>palette window</source>
@@ -639,7 +639,7 @@
 </phrase>
 <phrase>
     <source>password</source>
-    <target>contraseÃ±a</target>
+    <target>contraseña</target>
 </phrase>
 <phrase>
     <source>Paste</source>
@@ -647,7 +647,7 @@
 </phrase>
 <phrase>
     <source>Paste Link</source>
-    <target>Pegar vÃ­nculo</target>
+    <target>Pegar vínculo</target>
 </phrase>
 <phrase>
     <source>Paste Shortcut</source>
@@ -667,7 +667,7 @@
 </phrase>
 <phrase>
     <source>pen</source>
-    <target>lÃ¡piz</target>
+    <target>lápiz</target>
 </phrase>
 <phrase>
     <source>Play</source>
@@ -679,7 +679,7 @@
 </phrase>
 <phrase>
     <source>point</source>
-    <target>seÃ±alar</target>
+    <target>señalar</target>
     <definition>verb</definition>
 </phrase>
 <phrase>
@@ -693,7 +693,7 @@
 </phrase>
 <phrase>
     <source>pop-up menu</source>
-    <target>menÃº emergente</target>
+    <target>menú emergente</target>
 </phrase>
 <phrase>
     <source>pop-up window</source>
@@ -706,7 +706,7 @@
 <phrase>
     <source>press</source>
     <target>presionar</target>
-    <definition>and hold a mouse button/y mantener presionado un botÃ³n del mouse</definition>
+    <definition>and hold a mouse button/y mantener presionado un botón del mouse</definition>
 </phrase>
 <phrase>
     <source>press</source>
@@ -748,7 +748,7 @@
 </phrase>
 <phrase>
     <source>property page</source>
-    <target>pÃ¡gina de propiedades</target>
+    <target>página de propiedades</target>
 </phrase>
 <phrase>
     <source>property sheet</source>
@@ -760,11 +760,11 @@
 </phrase>
 <phrase>
     <source>Quick View</source>
-    <target>Vista rÃ¡pida</target>
+    <target>Vista rápida</target>
 </phrase>
 <phrase>
     <source>read-only</source>
-    <target>sÃ³lo lectura</target>
+    <target>sólo lectura</target>
 </phrase>
 <phrase>
     <source>recognition</source>
@@ -781,7 +781,7 @@
 </phrase>
 <phrase>
     <source>region selection</source>
-    <target>selecciÃ³n de Ã¡rea</target>
+    <target>selección de área</target>
 </phrase>
 <phrase>
     <source>registry</source>
@@ -801,7 +801,7 @@
 </phrase>
 <phrase>
     <source>Restore button</source>
-    <target>botÃ³n &amp;quot;Restaurar&amp;quot;</target>
+    <target>botón &amp;quot;Restaurar&amp;quot;</target>
 </phrase>
 <phrase>
     <source>Resume</source>
@@ -857,11 +857,11 @@
 </phrase>
 <phrase>
     <source>selection</source>
-    <target>selecciÃ³n</target>
+    <target>selección</target>
 </phrase>
 <phrase>
     <source>selection handle</source>
-    <target>controlador de selecciÃ³n</target>
+    <target>controlador de selección</target>
 </phrase>
 <phrase>
     <source>Send To</source>
@@ -873,7 +873,7 @@
 </phrase>
 <phrase>
     <source>Settings</source>
-    <target>ConfiguraciÃ³n</target>
+    <target>Configuración</target>
 </phrase>
 <phrase>
     <source>Setup</source>
@@ -891,7 +891,7 @@
 </phrase>
 <phrase>
     <source>shortcut button</source>
-    <target>botÃ³n de acceso directo</target>
+    <target>botón de acceso directo</target>
 </phrase>
 <phrase>
     <source>shortcut icon</source>
@@ -899,11 +899,11 @@
 </phrase>
 <phrase>
     <source>shortcut key</source>
-    <target>tecla de mÃ©todo abreviado</target>
+    <target>tecla de método abreviado</target>
 </phrase>
 <phrase>
     <source>shortcut key control</source>
-    <target>control de la tecla de mÃ©todo abreviado</target>
+    <target>control de la tecla de método abreviado</target>
 </phrase>
 <phrase>
     <source>Show</source>
@@ -915,15 +915,15 @@
 </phrase>
 <phrase>
     <source>single selection list box</source>
-    <target>cuadro de lista de selecciÃ³n simple</target>
+    <target>cuadro de lista de selección simple</target>
 </phrase>
 <phrase>
     <source>Size</source>
-    <target>TamaÃ±o</target>
+    <target>Tamaño</target>
 </phrase>
 <phrase>
     <source>size grip</source>
-    <target>ajuste de tamaÃ±o</target>
+    <target>ajuste de tamaño</target>
 </phrase>
 <phrase>
     <source>slider</source>
@@ -939,15 +939,15 @@
 </phrase>
 <phrase>
     <source>split bar</source>
-    <target>barra de divisiÃ³n</target>
+    <target>barra de división</target>
 </phrase>
 <phrase>
     <source>split box</source>
-    <target>cuadro de divisiÃ³n</target>
+    <target>cuadro de división</target>
 </phrase>
 <phrase>
     <source>Start button</source>
-    <target>botÃ³n &amp;quot;Inicio&amp;quot;</target>
+    <target>botón &amp;quot;Inicio&amp;quot;</target>
 </phrase>
 <phrase>
     <source>StartUp folder</source>
@@ -987,11 +987,11 @@
 </phrase>
 <phrase>
     <source>title bar</source>
-    <target>barra de tÃ­tulo</target>
+    <target>barra de título</target>
 </phrase>
 <phrase>
     <source>title text</source>
-    <target>texto de tÃ­tulo</target>
+    <target>texto de título</target>
 </phrase>
 <phrase>
     <source>toggle key</source>
@@ -1007,7 +1007,7 @@
 </phrase>
 <phrase>
     <source>tree view control</source>
-    <target>control de visiÃ³n en Ã¡rbol</target>
+    <target>control de visión en árbol</target>
 </phrase>
 <phrase>
     <source>type</source>
@@ -1033,23 +1033,23 @@
 </phrase>
 <phrase>
     <source>View</source>
-    <target>menÃº Ver</target>
+    <target>menú Ver</target>
 </phrase>
 <phrase>
     <source>visual editing</source>
-    <target>ediciÃ³n visual</target>
+    <target>edición visual</target>
 </phrase>
 <phrase>
     <source>well control</source>
-    <target>control de opciones grÃ¡ficas</target>
+    <target>control de opciones gráficas</target>
 </phrase>
 <phrase>
     <source>What&apos;s This?</source>
-    <target>Â¿QuÃ© es esto?</target>
+    <target>¿Qué es esto?</target>
 </phrase>
 <phrase>
     <source>Window</source>
-    <target>menÃº Ventana</target>
+    <target>menú Ventana</target>
 </phrase>
 <phrase>
     <source>window</source>
@@ -1073,4 +1073,14 @@
 </phrase>
 <phrase>
     <source>workgroup</source>
-    <target>grup
+    <target>grupo de trabajo</target>
+</phrase>
+<phrase>
+    <source>workspace</source>
+    <target>área de trabajo</target>
+</phrase>
+<phrase>
+    <source>Yes</source>
+    <target>Sí</target>
+</phrase>
+</QPH>

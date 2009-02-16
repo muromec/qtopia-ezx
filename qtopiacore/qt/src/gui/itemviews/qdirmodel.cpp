@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -64,6 +58,8 @@
     \value FilePathRole
     \value FileNameRole
 */
+
+QT_BEGIN_NAMESPACE
 
 class QDirModelPrivate : public QAbstractItemModelPrivate
 {
@@ -130,8 +126,13 @@ public:
     QFileIconProvider *iconProvider;
     QFileIconProvider defaultProvider;
 
-    QList< QPair<QString,int> > savedPaths;
-    QList< QPersistentModelIndex > savedPersistentIndexes;
+    struct SavedPersistent {
+        QString path;
+        int column;
+        QPersistentModelIndexData *data;
+        QPersistentModelIndex index;
+    };
+    QList<SavedPersistent> savedPersistent;
     QPersistentModelIndex toBeRefreshed;
 
     bool shouldStat; // use the "carefull not to stat directories" mode
@@ -178,52 +179,52 @@ void QDirModelPrivate::invalidate()
 }
 
 /*!
-  \class QDirModel qdirmodel.h
+    \class QDirModel qdirmodel.h
 
-  \brief The QDirModel class provides a data model for the local filesystem.
+    \brief The QDirModel class provides a data model for the local filesystem.
 
-  \ingroup model-view
+    \ingroup model-view
 
-  This class provides access to the local filesystem, providing functions
-  for renaming and removing files and directories, and for creating new
-  directories. In the simplest case, it can be used with a suitable display
-  widget as part of a browser or filer.
+    This class provides access to the local filesystem, providing functions
+    for renaming and removing files and directories, and for creating new
+    directories. In the simplest case, it can be used with a suitable display
+    widget as part of a browser or filer.
 
-  QDirModel keeps a cache with file information. The cache needs to be
-  updated with refresh().
+    QDirModel keeps a cache with file information. The cache needs to be
+    updated with refresh().
 
-  A directory model that displays the contents of a default directory
-  is usually constructed with a parent object:
+    A directory model that displays the contents of a default directory
+    is usually constructed with a parent object:
 
-  \quotefromfile snippets/shareddirmodel/main.cpp
-  \skipto QDirModel *model
-  \printuntil QDirModel *model
+    \snippet doc/src/snippets/shareddirmodel/main.cpp 2
 
-  A tree view can be used to display the contents of the model
+    A tree view can be used to display the contents of the model
 
-  \skipto QTreeView *tree
-  \printuntil tree->setModel(
+    \snippet doc/src/snippets/shareddirmodel/main.cpp 4
 
-  and the contents of a particular directory can be displayed by
-  setting the tree view's root index:
+    and the contents of a particular directory can be displayed by
+    setting the tree view's root index:
 
-  \printuntil tree->setRootIndex(
+    \snippet doc/src/snippets/shareddirmodel/main.cpp 7
 
-  The view's root index can be used to control how much of a
-  hierarchical model is displayed. QDirModel provides a convenience
-  function that returns a suitable model index for a path to a
-  directory within the model.
+    The view's root index can be used to control how much of a
+    hierarchical model is displayed. QDirModel provides a convenience
+    function that returns a suitable model index for a path to a
+    directory within the model.
 
-  QDirModel can be accessed using the standard interface provided by
-  QAbstractItemModel, but it also provides some convenience functions that are
-  specific to a directory model.
-  The fileInfo(), isDir(), name(), and path() functions provide information
-  about the underlying files and directories related to items in the model.
-  Directories can be created and removed using mkdir(), rmdir(), and the
-  model will be automatically updated to take the changes into account.
+    QDirModel can be accessed using the standard interface provided by
+    QAbstractItemModel, but it also provides some convenience functions
+    that are specific to a directory model. The fileInfo() and isDir()
+    functions provide information about the underlying files and directories
+    related to items in the model.
 
-  \sa nameFilters(), setFilter(), filter(), QListView, QTreeView,
-      {Dir View Example}, {Model Classes}
+    Directories can be created and removed using mkdir(), rmdir(), and the
+    model will be automatically updated to take the changes into account.
+
+    \note QDirModel requires an instance of a GUI application.
+
+    \sa nameFilters(), setFilter(), filter(), QListView, QTreeView,
+    {Dir View Example}, {Model Classes}
 */
 
 /*!
@@ -289,7 +290,7 @@ QModelIndex QDirModel::index(int row, int column, const QModelIndex &parent) con
 {
     Q_D(const QDirModel);
     // note that rowCount does lazy population
-    if (column < 0 || column >= 4 || row < 0 || parent.column() > 0)
+    if (column < 0 || column >= columnCount(parent) || row < 0 || parent.column() > 0)
         return QModelIndex();
     // make sure the list of children is up to date
     QDirModelPrivate::QDirNode *p = (d->indexValid(parent) ? d->node(parent) : &d->root);
@@ -426,8 +427,7 @@ bool QDirModel::setData(const QModelIndex &index, const QVariant &value, int rol
         emit dataChanged(index, sibling);
 
         d->toBeRefreshed = index.parent();
-        int slot = metaObject()->indexOfSlot("_q_refresh()");
-        QApplication::postEvent(this, new QMetaCallEvent(slot));
+        QMetaObject::invokeMethod(this, "_q_refresh", Qt::QueuedConnection);
 
         return true;
     }
@@ -588,6 +588,7 @@ bool QDirModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
 
     bool success = true;
     QString to = filePath(parent) + QDir::separator();
+    QModelIndex _parent = parent;
 
     QList<QUrl> urls = data->urls();
     QList<QUrl>::const_iterator it = urls.constBegin();
@@ -608,8 +609,17 @@ bool QDirModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     case Qt::MoveAction:
         for (; it != urls.constEnd(); ++it) {
             QString path = (*it).toLocalFile();
-            success = QFile::copy(path, to + QFileInfo(path).fileName())
-                      && QFile::remove(path) && success;
+            if(QFile::copy(path, to + QFileInfo(path).fileName())
+               && QFile::remove(path)) {
+                QModelIndex idx=index(QFileInfo(path).path());
+                if(idx.isValid()) {
+                    refresh(idx);
+                    //the previous call to refresh may invalidate the _parent. so recreate a new QModelIndex
+                    _parent = index(to);
+                }
+            } else {
+                success = false;
+            }
         }
         break;
     default:
@@ -617,7 +627,7 @@ bool QDirModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
     }
 
     if (success)
-        refresh(parent);
+        refresh(_parent);
 
     return success;
 }
@@ -854,7 +864,7 @@ QModelIndex QDirModel::index(const QString &path, int column) const
         return QModelIndex();
 
     QString absolutePath = QDir(path).absolutePath();
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     absolutePath = absolutePath.toLower();
     // On Windows, "filename......." and "filename" are equivalent
     if (absolutePath.endsWith(QLatin1Char('.'))) {
@@ -869,7 +879,7 @@ QModelIndex QDirModel::index(const QString &path, int column) const
 
     QStringList pathElements = absolutePath.split(QLatin1Char('/'), QString::SkipEmptyParts);
     if ((pathElements.isEmpty() || !QFileInfo(path).exists())
-#ifndef Q_OS_WIN
+#if !defined(Q_OS_WIN) || defined(Q_OS_WINCE)
         && path != QLatin1String("/")
 #endif
         )
@@ -879,7 +889,7 @@ QModelIndex QDirModel::index(const QString &path, int column) const
     if (!d->root.populated) // make sure the root is populated
         d->populate(&d->root);
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     if (absolutePath.startsWith(QLatin1String("//"))) { // UNC path
         QString host = pathElements.first();
         int r = 0;
@@ -917,7 +927,7 @@ QModelIndex QDirModel::index(const QString &path, int column) const
         for (int j = parent->children.count() - 1; j >= 0; --j) {
             const QFileInfo& fi = parent->children.at(j).info;
             QString childFileName;
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
             childFileName = idx.isValid() ? fi.fileName() : fi.absoluteFilePath();
             childFileName = childFileName.toLower();
 #else
@@ -933,7 +943,15 @@ QModelIndex QDirModel::index(const QString &path, int column) const
 
         // we couldn't find the path element, we create a new node since we _know_ that the path is valid
         if (row == -1) {
+#if defined(Q_OS_WINCE)
+            QString newPath;
+            if (parent->info.isRoot())
+                newPath = parent->info.absoluteFilePath() + element;
+            else
+                newPath= parent->info.absoluteFilePath() + QLatin1Char('/') + element;
+#else
             QString newPath = parent->info.absoluteFilePath() + QLatin1Char('/') + element;
+#endif
             if (!d->allowAppendChild || !QFileInfo(newPath).isDir())
                 return QModelIndex();
             d->appendChild(parent, newPath);
@@ -1226,13 +1244,15 @@ void QDirModelPrivate::_q_refresh()
 void QDirModelPrivate::savePersistentIndexes()
 {
     Q_Q(QDirModel);
-    savedPaths.clear();
-    const QVector<QPersistentModelIndexData*> indexes = persistent.indexes;
-    for (int i = 0; i < indexes.count(); ++i) {
-        QModelIndex idx = indexes.at(i)->index;
-        QString path = q->filePath(idx);
-        savedPaths.append(qMakePair(path, idx.column()));
-        savedPersistentIndexes.append(idx); // make sure the ref  >= 1
+    savedPersistent.clear();
+    for (int i = 0; i < persistent.indexes.count(); ++i) {
+        savedPersistent.append(SavedPersistent());
+        QPersistentModelIndexData *data = persistent.indexes.at(i);
+        QModelIndex index = data->index;
+        savedPersistent[i].path = q->filePath(index);
+        savedPersistent[i].column = index.column();
+        savedPersistent[i].data = data;
+        savedPersistent[i].index = index;
     }
 }
 
@@ -1241,14 +1261,13 @@ void QDirModelPrivate::restorePersistentIndexes()
     Q_Q(QDirModel);
     bool allow = allowAppendChild;
     allowAppendChild = false;
-    for (int i = 0; i < persistent.indexes.count(); ++i) {
-        QModelIndex index;
-        if (i < savedPaths.count())
-            index = q->index(savedPaths.at(i).first, savedPaths.at(i).second);
-        persistent.indexes.at(i)->index = index;
+    for (int i = 0; i < savedPersistent.count(); ++i) {
+        QPersistentModelIndexData *data = savedPersistent.at(i).data;
+        QString path = savedPersistent.at(i).path;
+        int column = savedPersistent.at(i).column;
+        data->index = q->index(path, column);
     }
-    savedPersistentIndexes.clear();
-    savedPaths.clear();
+    savedPersistent.clear();
     allowAppendChild = allow;
 }
 
@@ -1270,7 +1289,7 @@ QString QDirModelPrivate::name(const QModelIndex &index) const
     const QFileInfo info = n->info;
     if (info.isRoot()) {
         QString name = info.absoluteFilePath();
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
         if (name.startsWith(QLatin1Char('/'))) // UNC host
             return info.fileName();
         if (name.endsWith(QLatin1Char('/')))
@@ -1371,6 +1390,8 @@ QFileInfo QDirModelPrivate::resolvedInfo(QFileInfo info)
     return info;
 #endif
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qdirmodel.cpp"
 

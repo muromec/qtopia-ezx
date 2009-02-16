@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,6 +49,8 @@
 #include "qimagereader.h"
 #include "q3cleanuphandler.h"
 #include "private/qtextimagehandler_p.h"
+
+QT_BEGIN_NAMESPACE
 
 static Q3MimeSourceFactory* defaultfactory = 0;
 static Q3SingleCleanupHandler<Q3MimeSourceFactory> qmime_cleanup_factory;
@@ -126,34 +122,20 @@ static QImage richTextImageLoader(const QString &name, const QString &context)
     images that are stored in the program itself, not loaded from the
     hard disk. Your program may, for example, define some image data
     as:
-    \code
-    static const char* myimage_data[]={
-    "...",
-    ...
-    "..."};
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_other_q3mimefactory.cpp 0
 
     To be able to use this image within some rich text, for example
     inside a QLabel, you must create a QImage from the raw data and
     insert it into the factory with a unique name:
-    \code
-    Q3MimeSourceFactory::defaultFactory()->setImage("myimage", QImage(myimage_data));
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_other_q3mimefactory.cpp 1
 
     Now you can create a rich text QLabel with
 
-    \code
-    QLabel* label = new QLabel(
-        "Rich text with embedded image:<img source=\"myimage\">"
-        "Isn't that <em>cute</em>?");
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_other_q3mimefactory.cpp 2
 
     When no longer needed, you can clear the data from the factory:
 
-    \code
-    delete label;
-    Q3MimeSourceFactory::defaultFactory()->setData("myimage", 0);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_other_q3mimefactory.cpp 3
 */
 
 
@@ -194,9 +176,8 @@ QMimeSource* Q3MimeSourceFactory::dataInternal(const QString& abs_name, const QM
         QByteArray mimetype("application/octet-stream");
         if (extensions.contains(e))
             mimetype = extensions[e].latin1();
-        QByteArray imgfmt = QImageReader::imageFormat(abs_name);
-        if (!imgfmt.isEmpty())
-            mimetype = "image/" + imgfmt.toLower();
+        if (!QImageReader::imageFormat(abs_name).isEmpty())
+            mimetype = "application/x-qt-image";
 
         QFile f(abs_name);
         if (f.open(QIODevice::ReadOnly) && f.size()) {
@@ -237,12 +218,7 @@ QMimeSource* Q3MimeSourceFactory::dataInternal(const QString& abs_name, const QM
     The factory understands all the image formats supported by
     QImageReader. Any other mime types are determined by the file name
     extension. The default settings are
-    \code
-    setExtensionType("html", "text/html;charset=iso8859-1");
-    setExtensionType("htm", "text/html;charset=iso8859-1");
-    setExtensionType("txt", "text/plain");
-    setExtensionType("xml", "text/xml;charset=UTF-8");
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_other_q3mimefactory.cpp 4
     The effect of these is that file names ending in "txt" will be
     treated as text encoded in the local encoding; those ending in
     "xml" will be treated as text encoded in Unicode UTF-8 encoding.
@@ -561,4 +537,6 @@ QImage qImageFromMimeSource(const QString &abs_name)
     return img;
 }
 
-#endif // QT_NO_MIME
+QT_END_NAMESPACE
+
+#endif // QT_NO_MIMEFACTORY

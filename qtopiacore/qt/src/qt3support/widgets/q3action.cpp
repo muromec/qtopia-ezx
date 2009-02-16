@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,6 +50,8 @@
 #include "qwhatsthis.h"
 #include "qstatusbar.h"
 #include "qaction.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class Q3Action q3action.h
@@ -213,16 +209,16 @@ Q3ActionPrivate::~Q3ActionPrivate()
         ++itci;
         QComboBox* combo = ci->combo;
         combo->clear();
-        Q3ActionGroup *group = ::qobject_cast<Q3ActionGroup*>(action->parent());
+        Q3ActionGroup *group = qobject_cast<Q3ActionGroup*>(action->parent());
         if (group) {
             QObjectList siblings = group->queryList("Q3Action");
 
             for (int i = 0; i < siblings.size(); ++i) {
-                Q3Action *sib = ::qobject_cast<Q3Action*>(siblings.at(i));
+                Q3Action *sib = qobject_cast<Q3Action*>(siblings.at(i));
                 sib->removeFrom(combo);
             }
             for (int i = 0; i < siblings.size(); ++i) {
-                Q3Action *sib = ::qobject_cast<Q3Action*>(siblings.at(i));
+                Q3Action *sib = qobject_cast<Q3Action*>(siblings.at(i));
                 if (sib == action)
                     continue;
                 sib->addTo(combo);
@@ -283,11 +279,12 @@ void Q3ActionPrivate::update(uint upd)
         if (upd & Visibility)
             mi->popup->setItemVisible(mi->id, visible);
 
-        if (upd & Icons)
+        if (upd & Icons) {
             if (icon)
                 mi->popup->changeItem(mi->id, *icon, t);
             else
                 mi->popup->changeItem(mi->id, QIcon(), t);
+        }
         if (upd & EverythingElse) {
             mi->popup->changeItem(mi->id, t);
             if (!whatsthis.isEmpty())
@@ -1019,7 +1016,7 @@ void Q3Action::toolButtonToggled(bool on)
 bool Q3Action::addTo(QWidget* w)
 {
 #ifndef QT_NO_TOOLBAR
-    if (::qobject_cast<Q3ToolBar*>(w)) {
+    if (qobject_cast<Q3ToolBar*>(w)) {
         if (objectName() == QLatin1String("qt_separator_action")) {
             ((Q3ToolBar*)w)->addSeparator();
         } else {
@@ -1203,7 +1200,7 @@ void Q3Action::clearStatusText()
 bool Q3Action::removeFrom(QWidget* w)
 {
 #ifndef QT_NO_TOOLBAR
-    if (::qobject_cast<Q3ToolBar*>(w)) {
+    if (qobject_cast<Q3ToolBar*>(w)) {
         QList<QToolButton*>::Iterator it(d->toolbuttons.begin());
         QToolButton* btn;
         while (it != d->toolbuttons.end()) {
@@ -1218,7 +1215,7 @@ bool Q3Action::removeFrom(QWidget* w)
         }
     } else
 #endif
-    if (::qobject_cast<Q3PopupMenu*>(w)) {
+    if (qobject_cast<Q3PopupMenu*>(w)) {
         QList<Q3ActionPrivate::MenuItem*>::Iterator it(d->menuitems.begin());
         Q3ActionPrivate::MenuItem* mi;
         while (it != d->menuitems.end()) {
@@ -1233,7 +1230,7 @@ bool Q3Action::removeFrom(QWidget* w)
                 delete mi;
             }
         }
-    } else if (::qobject_cast<QComboBox*>(w)) {
+    } else if (qobject_cast<QComboBox*>(w)) {
         QList<Q3ActionPrivate::ComboItem*>::Iterator it(d->comboitems.begin());
         Q3ActionPrivate::ComboItem *ci;
         while (it != d->comboitems.end()) {
@@ -1245,7 +1242,7 @@ bool Q3Action::removeFrom(QWidget* w)
                 delete ci;
             }
         }
-    } else if (::qobject_cast<QMenu*>(w)) {
+    } else if (qobject_cast<QMenu*>(w)) {
         QList<Q3ActionPrivate::Action4Item*>::Iterator it(d->action4items.begin());
         Q3ActionPrivate::Action4Item *a4i;
         while (it != d->action4items.end()) {
@@ -1380,7 +1377,7 @@ void Q3ActionGroupPrivate::update(const Q3ActionGroup* that)
     }
     for (QList<Q3ActionGroupPrivate::MenuItem*>::Iterator pu(menuitems.begin()); pu != menuitems.end(); ++pu) {
         QWidget* parent = (*pu)->popup->parentWidget();
-        if (::qobject_cast<Q3PopupMenu*>(parent)) {
+        if (qobject_cast<Q3PopupMenu*>(parent)) {
             Q3PopupMenu* ppopup = (Q3PopupMenu*)parent;
             ppopup->setItemEnabled((*pu)->id, that->isEnabled());
             ppopup->setItemVisible((*pu)->id, that->isVisible());
@@ -1390,7 +1387,7 @@ void Q3ActionGroupPrivate::update(const Q3ActionGroup* that)
     }
     for (QList<Q3PopupMenu*>::Iterator pm(popupmenus.begin()); pm != popupmenus.end(); ++pm) {
         Q3PopupMenu *popup = *pm;
-        Q3PopupMenu *parent = ::qobject_cast<Q3PopupMenu*>(popup->parentWidget());
+        Q3PopupMenu *parent = qobject_cast<Q3PopupMenu*>(popup->parentWidget());
         if (!parent)
             continue;
 
@@ -1671,7 +1668,7 @@ bool Q3ActionGroup::addTo(QWidget *w)
         if (d->dropdown) {
             if (!d->exclusive) {
                 QList<Q3Action*>::Iterator it(d->actions.begin());
-                if (!(*it))
+                if (it == d->actions.end() || !(*it))
                     return true;
 
                 Q3Action *defAction = *it;
@@ -1750,7 +1747,7 @@ bool Q3ActionGroup::addTo(QWidget *w)
         }
     } else
 #endif
-    if (::qobject_cast<Q3PopupMenu*>(w)) {
+    if (qobject_cast<Q3PopupMenu*>(w)) {
         Q3PopupMenu *popup;
         if (d->dropdown) {
             Q3PopupMenu *menu = (Q3PopupMenu*)w;
@@ -1786,7 +1783,7 @@ bool Q3ActionGroup::addTo(QWidget *w)
         }
         return true;
     }
-    if (::qobject_cast<QMenu*>(w)) {
+    if (qobject_cast<QMenu*>(w)) {
         QMenu *menu = (QMenu*)w;
         if (d->dropdown) {
             Q3ActionGroupPrivate::Action4Item *ai = new Q3ActionGroupPrivate::Action4Item;
@@ -1824,7 +1821,7 @@ bool Q3ActionGroup::removeFrom(QWidget* w)
         (*it)->removeFrom(w);
 
 #ifndef QT_NO_TOOLBAR
-    if (::qobject_cast<Q3ToolBar*>(w)) {
+    if (qobject_cast<Q3ToolBar*>(w)) {
         QList<QComboBox*>::Iterator cb(d->comboboxes.begin());
         while (cb != d->comboboxes.end()) {
             QComboBox *box = *cb;
@@ -1841,7 +1838,7 @@ bool Q3ActionGroup::removeFrom(QWidget* w)
         }
     } else
 #endif
-    if (::qobject_cast<Q3PopupMenu*>(w)) {
+    if (qobject_cast<Q3PopupMenu*>(w)) {
         QList<Q3ActionGroupPrivate::MenuItem*>::Iterator pu(d->menuitems.begin());
         while (pu != d->menuitems.end()) {
             Q3ActionGroupPrivate::MenuItem *mi = *pu;
@@ -1851,7 +1848,7 @@ bool Q3ActionGroup::removeFrom(QWidget* w)
             delete mi->popup;
         }
     }
-    if (::qobject_cast<QMenu*>(w)) {
+    if (qobject_cast<QMenu*>(w)) {
         QList<Q3ActionGroupPrivate::Action4Item*>::Iterator it(d->action4items.begin());
         Q3ActionGroupPrivate::Action4Item *a4i;
         while (it != d->action4items.end()) {
@@ -2229,5 +2226,7 @@ void Q3ActionGroup::addedTo(int index, Q3PopupMenu *menu)
 
     Use add(\a action) instead.
 */
+
+QT_END_NAMESPACE
 
 #endif

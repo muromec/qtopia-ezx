@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the qmake application of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,6 +46,8 @@
 #include <qstringlist.h>
 #include <qdir.h>
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 Win32MakefileGenerator::Win32MakefileGenerator() : MakefileGenerator()
 {
@@ -130,6 +126,8 @@ Win32MakefileGenerator::findLibraries(const QString &where)
                     quote = QChar();
                 }
                 (*it) = "/LIBPATH:" + libpath;
+            } else {
+                remove = true;
             }
         } else if(opt.startsWith("-l") || opt.startsWith("/l")) {
             QString lib = opt.right(opt.length() - 2), out;
@@ -339,11 +337,12 @@ void Win32MakefileGenerator::fixTargetExt()
 
 void Win32MakefileGenerator::processRcFileVar()
 {
-    if ((!project->values("VERSION").isEmpty())
+    if (((!project->values("VERSION").isEmpty())
         && project->values("RC_FILE").isEmpty()
         && project->values("RES_FILE").isEmpty()
         && !project->isActiveConfig("no_generated_target_info")
-        && (project->isActiveConfig("shared") || !project->values("QMAKE_APP_FLAG").isEmpty())) {
+        && (project->isActiveConfig("shared") || !project->values("QMAKE_APP_FLAG").isEmpty()))
+        || !project->values("QMAKE_WRITE_DEFAULT_RC").isEmpty()){
 
         QByteArray rcString;
         QTextStream ts(&rcString, QFile::WriteOnly);
@@ -373,13 +372,11 @@ void Win32MakefileGenerator::processRcFileVar()
 
         QString originalName = project->values("TARGET").first() + project->values("TARGET_EXT").first();
 
-        ts << "#ifndef Q_CC_BOR" << endl;
-        ts << "# if defined(UNDER_CE) && UNDER_CE >= 400" << endl;
+        ts << "# if defined(UNDER_CE)" << endl;
         ts << "#  include <winbase.h>" << endl;
         ts << "# else" << endl;
         ts << "#  include <winver.h>" << endl;
         ts << "# endif" << endl;
-        ts << "#endif" << endl;
         ts << endl;
         ts << "VS_VERSION_INFO VERSIONINFO" << endl;
         ts << "\tFILEVERSION " << QString(versionString).replace(".", ",") << endl;
@@ -426,7 +423,8 @@ void Win32MakefileGenerator::processRcFileVar()
             rcFile.write(rcString);
             rcFile.close();
         }
-        project->values("RC_FILE").insert(0, rcFile.fileName());
+        if (project->values("QMAKE_WRITE_DEFAULT_RC").isEmpty())
+            project->values("RC_FILE").insert(0, rcFile.fileName());
     }
     if (!project->values("RC_FILE").isEmpty()) {
         if (!project->values("RES_FILE").isEmpty()) {
@@ -435,10 +433,20 @@ void Win32MakefileGenerator::processRcFileVar()
             exit(1);
         }
         QString resFile = project->values("RC_FILE").first();
+
+        // if this is a shadow build then use the absolute path of the rc file
+        if (Option::output_dir != qmake_getpwd()) {
+            QFileInfo fi(resFile);
+            project->values("RC_FILE").first() = fi.absoluteFilePath();
+        }
+
         resFile.replace(".rc", Option::res_ext);
-	project->values("RES_FILE").prepend(fileInfo(resFile).fileName());
+        project->values("RES_FILE").prepend(fileInfo(resFile).fileName());
         if (!project->values("OBJECTS_DIR").isEmpty())
-            project->values("RES_FILE").first().prepend(project->values("OBJECTS_DIR").first() + Option::dir_sep);
+            if(project->isActiveConfig("staticlib"))
+                project->values("RES_FILE").first().prepend(fileInfo(project->values("DESTDIR").first()).absoluteFilePath() + Option::dir_sep);
+            else
+              project->values("RES_FILE").first().prepend(project->values("OBJECTS_DIR").first() + Option::dir_sep);
         project->values("RES_FILE").first() = Option::fixPathToTargetOS(project->values("RES_FILE").first(), false, false);
 	project->values("POST_TARGETDEPS") += project->values("RES_FILE");
         project->values("CLEAN_FILES") += project->values("RES_FILE");
@@ -668,6 +676,7 @@ void Win32MakefileGenerator::writeLibsPart(QTextStream &t)
 {
     if(project->isActiveConfig("staticlib") && project->first("TEMPLATE") == "lib") {
         t << "LIB           = " << var("QMAKE_LIB") << endl;
+        t << "LIBFLAGS      = " << var("QMAKE_LIBFLAGS") << endl;
     } else {
         t << "LINK          = " << var("QMAKE_LINK") << endl;
         t << "LFLAGS        = ";
@@ -795,3 +804,5 @@ QString Win32MakefileGenerator::escapeFilePath(const QString &path) const
     }
     return ret;
 }
+
+QT_END_NAMESPACE

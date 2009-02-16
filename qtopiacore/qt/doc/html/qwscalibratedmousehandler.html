@@ -2,19 +2,19 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/embedded/qmouse_qws.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/embedded/qmouse_qws.cpp -->
 <head>
-  <title>Qt 4.3: QWSCalibratedMouseHandler Class Reference</title>
+  <title>Qt 4.4: QWSCalibratedMouseHandler Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QWSCalibratedMouseHandler Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QWSCalibratedMouseHandler Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
-<p>The QWSCalibratedMouseHandler class provides mouse calibration and noise reduction in Qtopia Core. <a href="#details">More...</a></p>
+<p>The QWSCalibratedMouseHandler class provides mouse calibration and noise reduction in Qt for Embedded Linux. <a href="#details">More...</a></p>
 <pre> #include &lt;QWSCalibratedMouseHandler&gt;</pre><p>Inherits <a href="qwsmousehandler.html">QWSMouseHandler</a>.</p>
 <ul>
 <li><a href="qwscalibratedmousehandler-members.html">List of all members, including inherited members</a></li>
@@ -40,13 +40,13 @@
 <a name="details"></a>
 <hr />
 <h2>Detailed Description</h2>
-<p>The QWSCalibratedMouseHandler class provides mouse calibration and noise reduction in Qtopia Core.</p>
-<p>Note that this class is only available in <a href="qtopiacore.html">Qtopia Core</a>.</p>
-<p><a href="qtopiacore.html">Qtopia Core</a> provides ready-made drivers for several mouse protocols, see the <a href="qtopiacore-pointer.html">pointer handling</a> documentation for details. In general, custom mouse drivers can be implemented by subclassing the <a href="qwsmousehandler.html">QWSMouseHandler</a> class. But when the system device does not have a fixed mapping between device and screen coordinates and/or produces noisy events (e.g&#x2e;, a touchscreen), you should derive from the QWSCalibratedMouseHandler class instead to take advantage of its calibration functionality. As always, you must also create a mouse driver plugin (derived from <a href="qmousedriverplugin.html">QMouseDriverPlugin</a>); <a href="qtopiacore.html">Qtopia Core</a>'s implementation of the <a href="qmousedriverfactory.html">QMouseDriverFactory</a> class will then automatically detect the plugin, and load the driver into the server application at runtime using Qt's <a href="plugins-howto.html">plugin system</a>.</p>
+<p>The QWSCalibratedMouseHandler class provides mouse calibration and noise reduction in Qt for Embedded Linux.</p>
+<p>Note that this class is only available in <a href="qt-embedded.html">Qt for Embedded Linux</a>.</p>
+<p><a href="qt-embedded.html">Qt for Embedded Linux</a> provides ready-made drivers for several mouse protocols, see the <a href="qt-embedded-pointer.html">pointer handling</a> documentation for details. In general, custom mouse drivers can be implemented by subclassing the <a href="qwsmousehandler.html">QWSMouseHandler</a> class. But when the system device does not have a fixed mapping between device and screen coordinates and/or produces noisy events (e.g&#x2e;, a touchscreen), you should derive from the QWSCalibratedMouseHandler class instead to take advantage of its calibration functionality. As always, you must also create a mouse driver plugin (derived from <a href="qmousedriverplugin.html">QMouseDriverPlugin</a>); the implementation of the <a href="qmousedriverfactory.html">QMouseDriverFactory</a> class will then automatically detect the plugin, and load the driver into the server application at run-time using Qt's <a href="plugins-howto.html">plugin system</a>.</p>
 <p>QWSCalibratedMouseHandler provides an implementation of the <a href="qwscalibratedmousehandler.html#calibrate">calibrate</a>() function to update the calibration parameters based on coordinate mapping of the given calibration data. The calibration data is represented by an <a href="qwspointercalibrationdata.html">QWSPointerCalibrationData</a> object. The linear transformation between device coordinates and screen coordinates is performed by calling the <a href="qwscalibratedmousehandler.html#transform">transform</a>() function explicitly on the points passed to the <a href="qwsmousehandler.html#mouseChanged">QWSMouseHandler::mouseChanged</a>() function. Use the <a href="qwscalibratedmousehandler.html#clearCalibration">clearCalibration</a>() function to make the mouse driver return mouse events in raw device coordinates and not in screen coordinates.</p>
-<p>The calibration parameters are recalculated whenever <a href="qwscalibratedmousehandler.html#calibrate">calibrate</a>() is called, and they can be stored using the <a href="qwscalibratedmousehandler.html#writeCalibration">writeCalibration</a>() function. Previously written parameters can be retrieved at any time using the <a href="qwscalibratedmousehandler.html#readCalibration">readCalibration</a>() function (calibration parameters are always read when the class is instantiated). Note that the calibration parameters is written to and read from the file currently specified by the <a href="qtopiacore-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable; the default file is <tt>/etc/pointercal</tt>.</p>
+<p>The calibration parameters are recalculated whenever <a href="qwscalibratedmousehandler.html#calibrate">calibrate</a>() is called, and they can be stored using the <a href="qwscalibratedmousehandler.html#writeCalibration">writeCalibration</a>() function. Previously written parameters can be retrieved at any time using the <a href="qwscalibratedmousehandler.html#readCalibration">readCalibration</a>() function (calibration parameters are always read when the class is instantiated). Note that the calibration parameters is written to and read from the file currently specified by the <a href="qt-embedded-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable; the default file is <tt>/etc/pointercal</tt>.</p>
 <p>To achieve noise reduction, QWSCalibratedMouseHandler provides the <a href="qwscalibratedmousehandler.html#sendFiltered">sendFiltered</a>() function. Use this function instead of <a href="qwsmousehandler.html#mouseChanged">mouseChanged</a>() whenever a mouse event occurs. The filter's size can be manipulated using the <a href="qwscalibratedmousehandler.html#setFilterSize">setFilterSize</a>() function.</p>
-<p>See also <a href="qwsmousehandler.html">QWSMouseHandler</a>, <a href="qwspointercalibrationdata.html">QWSPointerCalibrationData</a>, and <a href="qtopiacore-mousecalibration.html">Mouse Calibration Example</a>.</p>
+<p>See also <a href="qwsmousehandler.html">QWSMouseHandler</a>, <a href="qwspointercalibrationdata.html">QWSPointerCalibrationData</a>, and <a href="qws-mousecalibration.html">Mouse Calibration Example</a>.</p>
 <hr />
 <h2>Member Function Documentation</h2>
 <h3 class="fn"><a name="calibrate"></a>void QWSCalibratedMouseHandler::calibrate ( const <a href="qwspointercalibrationdata.html">QWSPointerCalibrationData</a> * <i>data</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
@@ -60,7 +60,7 @@
 <p>See also <a href="qwscalibratedmousehandler.html#calibrate">calibrate</a>().</p>
 <h3 class="fn"><a name="readCalibration"></a>void QWSCalibratedMouseHandler::readCalibration ()&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Reads previously written calibration parameters which are stored in <tt>/etc/pointercal</tt> (separated by whitespace and in alphabetical order).</p>
-<p>You can override the default <tt>/etc/pointercal</tt> by specifying another file using the <a href="qtopiacore-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable.</p>
+<p>You can override the default <tt>/etc/pointercal</tt> by specifying another file using the <a href="qt-embedded-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable.</p>
 <p>See also <a href="qwscalibratedmousehandler.html#writeCalibration">writeCalibration</a>().</p>
 <h3 class="fn"><a name="sendFiltered"></a>bool QWSCalibratedMouseHandler::sendFiltered ( const <a href="qpoint.html">QPoint</a> &amp; <i>position</i>, int <i>state</i> )&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Notifies the system of a new mouse event <i>after</i> applying a noise reduction filter. Returns true if the filtering process is successful; otherwise returns false. Note that if the filtering process failes, the system is not notified about the event.</p>
@@ -80,12 +80,12 @@
 <p>See also <a href="qwsmousehandler.html#mouseChanged">mouseChanged</a>().</p>
 <h3 class="fn"><a name="writeCalibration"></a>void QWSCalibratedMouseHandler::writeCalibration ()&nbsp;&nbsp;<tt> [protected]</tt></h3>
 <p>Saves the current calibration parameters in <tt>/etc/pointercal</tt> (separated by whitespace and in alphabetical order).</p>
-<p>You can override the default <tt>/etc/pointercal</tt> by specifying another file using the <a href="qtopiacore-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable.</p>
+<p>You can override the default <tt>/etc/pointercal</tt> by specifying another file using the <a href="qt-embedded-envvars.html#pointercal-file">POINTERCAL_FILE</a> environment variable.</p>
 <p>See also <a href="qwscalibratedmousehandler.html#readCalibration">readCalibration</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

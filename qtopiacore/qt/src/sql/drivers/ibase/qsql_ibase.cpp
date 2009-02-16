@@ -1,48 +1,41 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsql_ibase.h"
-
 #include <qcoreapplication.h>
 #include <qdatetime.h>
 #include <qvariant.h>
@@ -50,14 +43,17 @@
 #include <qsqlfield.h>
 #include <qsqlindex.h>
 #include <qsqlquery.h>
-#include <qstringlist.h>
 #include <qlist.h>
 #include <qvector.h>
 #include <qtextcodec.h>
+#include <qmutex.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-    
+#include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
+
 #define FBVERSION SQL_DIALECT_V6
 
 #ifndef SQLDA_CURRENT_VERSION
@@ -249,6 +245,7 @@ static QTime fromTime(char *buffer)
 
     return t;
 }
+
 static ISC_DATE toDate(const QDate &t)
 {
     static const QDate basedate(1858, 11, 17);
@@ -277,6 +274,21 @@ static QByteArray encodeString(QTextCodec *tc, const QString &str)
     return str.toUtf8();
 }
 
+struct QIBaseEventBuffer {
+#if defined(FB_API_VER) && FB_API_VER >= 20
+    ISC_UCHAR *eventBuffer;
+    ISC_UCHAR *resultBuffer;
+#else
+    char *eventBuffer;
+    char *resultBuffer;
+#endif
+    ISC_LONG bufferLength;
+    ISC_LONG eventId;
+    
+    enum QIBaseSubscriptionState { Starting, Subscribed, Finished };
+    QIBaseSubscriptionState subscriptionState;
+};
+
 class QIBaseDriverPrivate
 {
 public:
@@ -289,7 +301,6 @@ public:
         if (!getIBaseError(imsg, status, sqlcode, tc))
             return false;
 
-        //qDebug() << "ERROR" << msg << imsg << typ;
         q->setLastError(QSqlError(QCoreApplication::translate("QIBaseDriver", msg),
                         imsg, typ, int(sqlcode)));
         return true;
@@ -301,7 +312,20 @@ public:
     isc_tr_handle trans;
     QTextCodec *tc;
     ISC_STATUS status[20];
+    QMap<QString, QIBaseEventBuffer*> eventBuffers;
 };
+
+typedef QMap<void *, QIBaseDriver *> QIBaseBufferDriverMap;
+Q_GLOBAL_STATIC(QIBaseBufferDriverMap, qBufferDriverMap)
+Q_GLOBAL_STATIC(QMutex, qMutex);
+
+static void qFreeEventBuffer(QIBaseEventBuffer* eBuffer)
+{
+    qMutex()->lock();
+    qBufferDriverMap()->remove(reinterpret_cast<void *>(eBuffer->resultBuffer));
+    qMutex()->unlock();
+    delete eBuffer;
+}
 
 class QIBaseResultPrivate
 {
@@ -437,7 +461,7 @@ static QList<QVariant> toList(char** buf, int count, T* = 0)
 }
 /* char** ? seems like bad influence from oracle ... */
 template<>
-static QList<QVariant> toList<long>(char** buf, int count, long*)
+QList<QVariant> toList<long>(char** buf, int count, long*)
 {
     QList<QVariant> res;
     for (int i = 0; i < count; ++i) {
@@ -592,7 +616,7 @@ static char* fillList(char *buffer, const QList<QVariant> &list, T* = 0)
 }
 
 template<>
-static char* fillList<float>(char *buffer, const QList<QVariant> &list, float*)
+char* fillList<float>(char *buffer, const QList<QVariant> &list, float*)
 {
     for (int i = 0; i < list.size(); ++i) {
         double val;
@@ -938,21 +962,21 @@ bool QIBaseResult::exec()
             case SQL_INT64:
                 if (d->inda->sqlvar[para].sqlscale < 0)
                     *((qint64*)d->inda->sqlvar[para].sqldata) =
-                        qint64(val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
+                        (qint64)floor(0.5 + val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
                 else
                     *((qint64*)d->inda->sqlvar[para].sqldata) = val.toLongLong();
                 break;
             case SQL_LONG:
                 if (d->inda->sqlvar[para].sqlscale < 0)
                     *((long*)d->inda->sqlvar[para].sqldata) = 
-                        (long)(val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
+                        (long)floor(0.5 + val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
                 else
                     *((long*)d->inda->sqlvar[para].sqldata) = (long)val.toLongLong();
                 break;
             case SQL_SHORT:
                 if (d->inda->sqlvar[para].sqlscale < 0)
                     *((short*)d->inda->sqlvar[para].sqldata) = 
-                        (short)(val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
+                        (short)floor(0.5 + val.toDouble() * pow(10.0, d->inda->sqlvar[para].sqlscale * -1));
                 else
                     *((short*)d->inda->sqlvar[para].sqldata) = (short)val.toInt();
                 break;
@@ -1282,12 +1306,15 @@ bool QIBaseDriver::hasFeature(DriverFeature f) const
     case BatchOperations:
     case SimpleLocking:
     case LowPrecisionNumbers:
+    case FinishQuery:
+    case MultipleResultSets:
         return false;
     case Transactions:
     case PreparedQueries:
     case PositionalPlaceholders:
     case Unicode:
     case BLOB:
+    case EventNotifications:
         return true;
     }
     return false;
@@ -1368,7 +1395,7 @@ bool QIBaseDriver::open(const QString & db,
     if (!host.isEmpty())
         ldb += host + QLatin1Char(':');
     ldb += db;
-    isc_attach_database(d->status, 0, const_cast<char *>(ldb.toLatin1().constData()),
+    isc_attach_database(d->status, 0, const_cast<char *>(ldb.toLocal8Bit().constData()),
                         &d->ibase, i, ba.data());
     if (d->isError(QT_TRANSLATE_NOOP("QIBaseDriver", "Error opening database"),
                    QSqlError::ConnectionError)) {
@@ -1383,6 +1410,27 @@ bool QIBaseDriver::open(const QString & db,
 void QIBaseDriver::close()
 {
     if (isOpen()) {
+
+        if (d->eventBuffers.size()) {
+            ISC_STATUS status[20];
+            QMap<QString, QIBaseEventBuffer *>::const_iterator i;
+            for (i = d->eventBuffers.constBegin(); i != d->eventBuffers.constEnd(); ++i) {
+                QIBaseEventBuffer *eBuffer = i.value();
+                eBuffer->subscriptionState = QIBaseEventBuffer::Finished;
+                isc_cancel_events(status, &d->ibase, &eBuffer->eventId);
+                qFreeEventBuffer(eBuffer);
+            }
+            d->eventBuffers.clear();
+
+#if defined(FB_API_VER)
+            // Workaround for Firebird crash
+            QTime timer;
+            timer.start();
+            while (timer.elapsed() < 500)
+                QCoreApplication::processEvents();
+#endif
+        }
+
         isc_detach_database(d->status, &d->ibase);
         d->ibase = 0;
         setOpen(false);
@@ -1571,3 +1619,160 @@ QVariant QIBaseDriver::handle() const
 {
     return QVariant(qRegisterMetaType<isc_db_handle>("isc_db_handle"), &d->ibase);
 }
+
+#if defined(FB_API_VER) && FB_API_VER >= 20
+static ISC_EVENT_CALLBACK qEventCallback(char *result, ISC_USHORT length, const ISC_UCHAR *updated)
+#else
+static isc_callback qEventCallback(char *result, short length, char *updated)
+#endif
+{
+    if (!updated)
+        return 0;
+
+
+    memcpy(result, updated, length);
+    qMutex()->lock();
+    QIBaseDriver *driver = qBufferDriverMap()->value(result);
+    qMutex()->unlock();
+    
+    // We use an asynchronous call (i.e., queued connection) because the event callback
+    // is executed in a different thread than the one in which the driver lives.
+    if (driver)
+        QMetaObject::invokeMethod(driver, "qHandleEventNotification", Qt::QueuedConnection, Q_ARG(void *, reinterpret_cast<void *>(result)));
+
+    return 0;
+}
+
+bool QIBaseDriver::subscribeToNotificationImplementation(const QString &name)
+{
+    if (!isOpen()) {
+        qWarning("QIBaseDriver::subscribeFromNotificationImplementation: database not open.");
+        return false;
+    }
+
+    if (d->eventBuffers.contains(name)) {
+        qWarning("QIBaseDriver::subscribeToNotificationImplementation: already subscribing to '%s'.",
+            qPrintable(name));
+        return false;
+    }
+
+    QIBaseEventBuffer *eBuffer = new QIBaseEventBuffer;
+    eBuffer->subscriptionState = QIBaseEventBuffer::Starting;
+    eBuffer->bufferLength = isc_event_block(&eBuffer->eventBuffer,
+                                            &eBuffer->resultBuffer,
+                                            1,
+                                            name.toLocal8Bit().constData());
+
+    qMutex()->lock();
+    qBufferDriverMap()->insert(eBuffer->resultBuffer, this);
+    qMutex()->unlock();
+
+    d->eventBuffers.insert(name, eBuffer);
+
+    ISC_STATUS status[20];
+    isc_que_events(status,
+                   &d->ibase,
+                   &eBuffer->eventId,
+                   eBuffer->bufferLength,
+                   eBuffer->eventBuffer,
+#if defined (FB_API_VER) && FB_API_VER >= 20
+                   (ISC_EVENT_CALLBACK)qEventCallback,
+#else
+                   (isc_callback)qEventCallback,
+#endif
+                   eBuffer->resultBuffer);
+
+    if (status[0] == 1 && status[1]) {
+        setLastError(QSqlError(QString(QLatin1String("Could not subscribe to event notifications for %1.")).arg(name)));
+        d->eventBuffers.remove(name);
+        qFreeEventBuffer(eBuffer);
+        return false;
+    }
+
+    return true;
+}
+
+bool QIBaseDriver::unsubscribeFromNotificationImplementation(const QString &name)
+{
+    if (!isOpen()) {
+        qWarning("QIBaseDriver::unsubscribeFromNotificationImplementation: database not open.");
+        return false;
+    }
+
+    if (!d->eventBuffers.contains(name)) {
+        qWarning("QIBaseDriver::QIBaseSubscriptionState not subscribed to '%s'.",
+            qPrintable(name));
+        return false;
+    }
+
+    QIBaseEventBuffer *eBuffer = d->eventBuffers.value(name);
+    ISC_STATUS status[20];
+    eBuffer->subscriptionState = QIBaseEventBuffer::Finished;
+    isc_cancel_events(status, &d->ibase, &eBuffer->eventId);
+
+    if (status[0] == 1 && status[1]) {
+        setLastError(QSqlError(QString(QLatin1String("Could not unsubscribe from event notifications for %1.")).arg(name)));
+        return false;
+    }
+
+    d->eventBuffers.remove(name);
+    qFreeEventBuffer(eBuffer);
+
+    return true;
+}
+
+QStringList QIBaseDriver::subscribedToNotificationsImplementation() const
+{
+    return QStringList(d->eventBuffers.keys());
+}
+
+void QIBaseDriver::qHandleEventNotification(void *updatedResultBuffer)
+{
+    QMap<QString, QIBaseEventBuffer *>::const_iterator i;
+    for (i = d->eventBuffers.constBegin(); i != d->eventBuffers.constEnd(); ++i) {
+        QIBaseEventBuffer* eBuffer = i.value();
+        if (reinterpret_cast<void *>(eBuffer->resultBuffer) != updatedResultBuffer)
+            continue;
+
+        ISC_ULONG counts[20];
+        memset(counts, 0, sizeof(counts));
+        isc_event_counts(counts, eBuffer->bufferLength, eBuffer->eventBuffer, eBuffer->resultBuffer);
+        if (counts[0]) {
+
+            if (eBuffer->subscriptionState == QIBaseEventBuffer::Subscribed)
+                emit notification(i.key());
+            else if (eBuffer->subscriptionState == QIBaseEventBuffer::Starting)
+                eBuffer->subscriptionState = QIBaseEventBuffer::Subscribed;
+
+            ISC_STATUS status[20];
+            isc_que_events(status,
+                           &d->ibase,
+                           &eBuffer->eventId,
+                           eBuffer->bufferLength,
+                           eBuffer->eventBuffer,
+#if defined (FB_API_VER) && FB_API_VER >= 20
+                                    (ISC_EVENT_CALLBACK)qEventCallback,
+#else
+                                    (isc_callback)qEventCallback,
+#endif
+                                   eBuffer->resultBuffer);
+            if (status[0] == 1 && status[1]) {
+                qCritical("QIBaseDriver::qHandleEventNotification: could not resubscribe to '%s'",
+                    qPrintable(i.key()));
+            }
+
+            return;
+        }
+    }
+}
+
+QString QIBaseDriver::escapeIdentifier(const QString &identifier, IdentifierType) const
+{
+    QString res = identifier;
+    res.replace(QLatin1Char('"'), QLatin1String("\"\""));
+    res.prepend(QLatin1Char('"')).append(QLatin1Char('"'));
+    res.replace(QLatin1Char('.'), QLatin1String("\".\""));
+    return res;
+}
+
+QT_END_NAMESPACE

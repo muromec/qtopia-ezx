@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -64,6 +58,8 @@
 Q_DECLARE_METATYPE(sqlite3*)
 Q_DECLARE_METATYPE(sqlite3_stmt*)
 
+QT_BEGIN_NAMESPACE
+
 static QVariant::Type qGetColumnType(const QString &tpName)
 {
     const QString typeName = tpName.toLower();
@@ -79,7 +75,6 @@ static QVariant::Type qGetColumnType(const QString &tpName)
         return QVariant::ByteArray;
     return QVariant::String;
 }
-
 
 static QSqlError qMakeError(sqlite3 *access, const QString &descr, QSqlError::ErrorType type,
                             int errorCode = -1)
@@ -116,12 +111,13 @@ public:
     uint skipRow: 1; // skip the next fetchNext()?
     uint utf8: 1;
     QSqlRecord rInf;
+    QSql::NumericalPrecisionPolicy precisionPolicy;
 };
 
 static const uint initial_cache_size = 128;
 
 QSQLiteResultPrivate::QSQLiteResultPrivate(QSQLiteResult* res) : q(res), access(0),
-    stmt(0), skippedStatus(false), skipRow(false), utf8(false)
+    stmt(0), skippedStatus(false), skipRow(false), utf8(false), precisionPolicy(QSql::HighPrecision)
 {
 }
 
@@ -185,6 +181,12 @@ bool QSQLiteResultPrivate::fetchNext(QSqlCachedResult::ValueCache &values, int i
     }
     skipRow = initialFetch;
 
+    if (!stmt) {
+        q->setLastError(QSqlError(QCoreApplication::translate("QSQLiteResult", "Unable to fetch row"),
+                                  QCoreApplication::translate("QSQLiteResult", "No query"), QSqlError::ConnectionError));
+        q->setAt(QSql::AfterLastRow);
+        return false;
+    }
     res = sqlite3_step(stmt);
 
     switch(res) {
@@ -206,7 +208,23 @@ bool QSQLiteResultPrivate::fetchNext(QSqlCachedResult::ValueCache &values, int i
                 values[i + idx] = sqlite3_column_int64(stmt, i);
                 break;
             case SQLITE_FLOAT:
-                values[i + idx] = sqlite3_column_double(stmt, i);
+                switch(precisionPolicy) {
+                    case QSql::LowPrecisionInt32:
+                        values[i + idx] = sqlite3_column_int(stmt, i);
+                        break;
+                    case QSql::LowPrecisionInt64:
+                        values[i + idx] = sqlite3_column_int64(stmt, i);
+                        break;
+                    case QSql::LowPrecisionDouble:
+                        values[i + idx] = sqlite3_column_double(stmt, i);
+                        break;
+                    case QSql::HighPrecision:
+                    default:
+                        values[i + idx] = QString::fromUtf16(static_cast<const ushort *>(
+                                            sqlite3_column_text16(stmt, i)),
+                                            sqlite3_column_bytes16(stmt, i) / sizeof(ushort));
+                        break;
+                };
                 break;
             case SQLITE_NULL:
                 values[i + idx] = QVariant(QVariant::String);
@@ -262,12 +280,18 @@ QSQLiteResult::~QSQLiteResult()
 
 void QSQLiteResult::virtual_hook(int id, void *data)
 {
-    if (id == DetachFromResultSet) {
+    switch (id) {
+    case QSqlResult::DetachFromResultSet:
         if (d->stmt)
             sqlite3_reset(d->stmt);
-        return;
+        break;
+    case QSqlResult::SetNumericalPrecision:
+        Q_ASSERT(data);
+        d->precisionPolicy = *reinterpret_cast<QSql::NumericalPrecisionPolicy *>(data);
+        break;
+    default:
+        QSqlResult::virtual_hook(id, data);
     }
-    QSqlResult::virtual_hook(id, data);
 }
 
 bool QSQLiteResult::reset(const QString &query)
@@ -341,6 +365,7 @@ bool QSQLiteResult::exec()
                 case QVariant::Double:
                     res = sqlite3_bind_double(d->stmt, i + 1, value.toDouble());
                     break;
+                case QVariant::UInt:
                 case QVariant::LongLong:
                     res = sqlite3_bind_int64(d->stmt, i + 1, value.toLongLong());
                     break;
@@ -451,11 +476,14 @@ bool QSQLiteDriver::hasFeature(DriverFeature f) const
     case PreparedQueries:
     case PositionalPlaceholders:
     case SimpleLocking:
+    case FinishQuery:
         return true;
     case QuerySize:
     case NamedPlaceholders:
     case BatchOperations:
     case LowPrecisionNumbers:
+    case EventNotifications:
+    case MultipleResultSets:
         return false;
     }
     return false;
@@ -613,8 +641,9 @@ static QSqlIndex qGetTableInfo(QSqlQuery &q, const QString &tableName, bool only
             continue;
         QString typeName = q.value(2).toString().toLower();
         QSqlField fld(q.value(1).toString(), qGetColumnType(typeName));
-        if (isPk && typeName == QLatin1String("integer"))
-            // integer primary key fields are auto-generated in sqlite
+        if (isPk && (typeName == QLatin1String("integer")))
+            // INTEGER PRIMARY KEY fields are auto-generated in sqlite
+            // INT PRIMARY KEY is not the same as INTEGER PRIMARY KEY!
             fld.setAutoValue(true);
         fld.setRequired(q.value(3).toInt() != 0);
         fld.setDefaultValue(q.value(4));
@@ -657,3 +686,4 @@ QString QSQLiteDriver::escapeIdentifier(const QString &identifier, IdentifierTyp
     return res;
 }
 
+QT_END_NAMESPACE

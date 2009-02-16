@@ -3,56 +3,50 @@
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-  <title>Qt 4.3: pathstroke.cpp Example File (demos/pathstroke/pathstroke.cpp)</title>
+  <title>Qt 4.4: pathstroke.cpp Example File (demos/pathstroke/pathstroke.cpp)</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">pathstroke.cpp Example File<br /><span class="small-subtitle">demos/pathstroke/pathstroke.cpp</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">pathstroke.cpp Example File<br /><span class="small-subtitle">demos/pathstroke/pathstroke.cpp</span>
 </h1>
 <pre><span class="comment"> /****************************************************************************
  **
- ** Copyright (C) 2005-2008 Trolltech ASA. All rights reserved.
+ ** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+ ** Contact: Qt Software Information (qt-info@nokia.com)
  **
  ** This file is part of the demonstration applications of the Qt Toolkit.
  **
- ** This file may be used under the terms of the GNU General Public
- ** License versions 2.0 or 3.0 as published by the Free Software
- ** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
- ** included in the packaging of this file.  Alternatively you may (at
- ** your option) use any later version of the GNU General Public
- ** License if such license has been publicly approved by Trolltech ASA
- ** (or its successors, if any) and the KDE Free Qt Foundation. In
- ** addition, as a special exception, Trolltech gives you certain
- ** additional rights. These rights are described in the Trolltech GPL
- ** Exception version 1.2, which can be found at
- ** http://www.trolltech.com/products/qt/gplexception/ and in the file
- ** GPL_EXCEPTION.txt in this package.
+ ** Commercial Usage
+ ** Licensees holding valid Qt Commercial licenses may use this file in
+ ** accordance with the Qt Commercial License Agreement provided with the
+ ** Software or, alternatively, in accordance with the terms contained in
+ ** a written agreement between you and Nokia.
  **
- ** Please review the following information to ensure GNU General
- ** Public Licensing requirements will be met:
- ** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
- ** you are unsure which license is appropriate for your use, please
- ** review the following information:
- ** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
- ** or contact the sales department at sales@trolltech.com.
  **
- ** In addition, as a special exception, Trolltech, as the sole
- ** copyright holder for Qt Designer, grants users of the Qt/Eclipse
- ** Integration plug-in the right for the Qt/Eclipse Integration to
- ** link to functionality provided by Qt Designer and its related
- ** libraries.
+ ** GNU General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU
+ ** General Public License versions 2.0 or 3.0 as published by the Free
+ ** Software Foundation and appearing in the file LICENSE.GPL included in
+ ** the packaging of this file.  Please review the following information
+ ** to ensure GNU General Public Licensing requirements will be met:
+ ** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+ ** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+ ** exception, Nokia gives you certain additional rights. These rights
+ ** are described in the Nokia Qt GPL Exception version 1.3, included in
+ ** the file GPL_EXCEPTION.txt in this package.
  **
- ** This file is provided &quot;AS IS&quot; with NO WARRANTY OF ANY KIND,
- ** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
- ** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
- ** granted herein.
+ ** Qt for Windows(R) Licensees
+ ** As a special exception, Nokia, as the sole copyright holder for Qt
+ ** Designer, grants users of the Qt/Eclipse Integration plug-in the
+ ** right for the Qt/Eclipse Integration to link to functionality
+ ** provided by Qt Designer and its related libraries.
  **
- ** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- ** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ ** If you are unsure which license is appropriate for your use, please
+ ** contact the sales department at qt-sales@nokia.com.
  **
  ****************************************************************************/</span>
 
@@ -60,63 +54,59 @@
  #include &quot;arthurstyle.h&quot;
  #include &quot;arthurwidgets.h&quot;
 
+ #include &lt;stdio.h&gt;
+
  extern void draw_round_rect(QPainter *p, const QRect &amp;bounds, int radius);
 
- PathStrokeWidget::PathStrokeWidget()
+ PathStrokeControls::PathStrokeControls(QWidget* parent, PathStrokeRenderer* renderer, bool smallScreen)
+       : QWidget(parent)
  {
-     setWindowTitle(tr(&quot;Path Stroking&quot;));
+     m_renderer = renderer;
 
-     <span class="comment">// Setting up palette.</span>
-     QPalette pal = palette();
-<span class="comment"> //     pal.setBrush(QPalette::Background, Qt::white);</span>
-<span class="comment"> //     pal.setBrush(QPalette::Foreground, QColor(&quot;aquamarine&quot;));</span>
-<span class="comment"> //     pal.setBrush(QPalette::Background, QPixmap(&quot;background.png&quot;));</span>
-     setPalette(pal);
+     if (smallScreen)
+         layoutForSmallScreens();
+     else
+         layoutForDesktop();
+ }
 
-     <span class="comment">// Widget construction and property setting</span>
-     m_renderer = new PathStrokeRenderer(this);
+ void PathStrokeControls::createCommonControls(QWidget* parent)
+ {
+     m_capGroup = new QGroupBox(parent);
+     m_capGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
+     m_capGroup-&gt;setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+     QRadioButton *flatCap = new QRadioButton(m_capGroup);
+     QRadioButton *squareCap = new QRadioButton(m_capGroup);
+     QRadioButton *roundCap = new QRadioButton(m_capGroup);
+     m_capGroup-&gt;setTitle(&quot;Cap Style&quot;);
+     flatCap-&gt;setText(&quot;Flat&quot;);
+     squareCap-&gt;setText(&quot;Square&quot;);
+     roundCap-&gt;setText(&quot;Round&quot;);
+     flatCap-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+     squareCap-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+     roundCap-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-     QGroupBox *mainGroup = new QGroupBox(this);
-<span class="comment"> //     QWidget *mainGroup = new QWidget(this);</span>
-     mainGroup-&gt;setFixedWidth(180);
-     mainGroup-&gt;setTitle(&quot;Path Stroking&quot;);
+     m_joinGroup = new QGroupBox(parent);
+     m_joinGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
+     m_joinGroup-&gt;setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+     QRadioButton *bevelJoin = new QRadioButton(m_joinGroup);
+     QRadioButton *miterJoin = new QRadioButton(m_joinGroup);
+     QRadioButton *roundJoin = new QRadioButton(m_joinGroup);
+     m_joinGroup-&gt;setTitle(&quot;Join Style&quot;);
+     bevelJoin-&gt;setText(&quot;Bevel&quot;);
+     miterJoin-&gt;setText(&quot;Miter&quot;);
+     roundJoin-&gt;setText(&quot;Round&quot;);
 
-     QGroupBox *capGroup = new QGroupBox(mainGroup);
-     capGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
-     QRadioButton *flatCap = new QRadioButton(capGroup);
-     QRadioButton *squareCap = new QRadioButton(capGroup);
-     QRadioButton *roundCap = new QRadioButton(capGroup);
-     capGroup-&gt;setTitle(&quot;Cap Style&quot;);
-     flatCap-&gt;setText(&quot;Flat Cap&quot;);
-     squareCap-&gt;setText(&quot;Square Cap&quot;);
-     roundCap-&gt;setText(&quot;Round Cap&quot;);
+     m_styleGroup = new QGroupBox(parent);
+     m_styleGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
+     m_styleGroup-&gt;setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+     QRadioButton *solidLine = new QRadioButton(m_styleGroup);
+     QRadioButton *dashLine = new QRadioButton(m_styleGroup);
+     QRadioButton *dotLine = new QRadioButton(m_styleGroup);
+     QRadioButton *dashDotLine = new QRadioButton(m_styleGroup);
+     QRadioButton *dashDotDotLine = new QRadioButton(m_styleGroup);
+     QRadioButton *customDashLine = new QRadioButton(m_styleGroup);
+     m_styleGroup-&gt;setTitle(&quot;Pen Style&quot;);
 
-     QGroupBox *joinGroup = new QGroupBox(mainGroup);
-     joinGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
-     QRadioButton *bevelJoin = new QRadioButton(joinGroup);
-     QRadioButton *miterJoin = new QRadioButton(joinGroup);
-     QRadioButton *roundJoin = new QRadioButton(joinGroup);
-     joinGroup-&gt;setTitle(&quot;Join Style&quot;);
-     bevelJoin-&gt;setText(&quot;Bevel Join&quot;);
-     miterJoin-&gt;setText(&quot;Miter Join&quot;);
-     roundJoin-&gt;setText(&quot;Round Join&quot;);
-
-     QGroupBox *styleGroup = new QGroupBox(mainGroup);
-     styleGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
-     QRadioButton *solidLine = new QRadioButton(styleGroup);
-     QRadioButton *dashLine = new QRadioButton(styleGroup);
-     QRadioButton *dotLine = new QRadioButton(styleGroup);
-     QRadioButton *dashDotLine = new QRadioButton(styleGroup);
-     QRadioButton *dashDotDotLine = new QRadioButton(styleGroup);
-     QRadioButton *customDashLine = new QRadioButton(styleGroup);
-     styleGroup-&gt;setTitle(&quot;Pen Style&quot;);
- #if 0
-     solidLine-&gt;setText(&quot;Solid Line&quot;);
-     dashLine-&gt;setText(&quot;Dash Line&quot;);
-     dotLine-&gt;setText(&quot;Dot Line&quot;);
-     dashDotLine-&gt;setText(&quot;Dash Dot Line&quot;);
-     dashDotDotLine-&gt;setText(&quot;Dash Dot Dot Line&quot;);
- #else
      QPixmap line_solid(&quot;:res/images/line_solid.png&quot;);
      solidLine-&gt;setIcon(line_solid);
      solidLine-&gt;setIconSize(line_solid.size());
@@ -132,7 +122,7 @@
      QPixmap line_dash_dot_dot(&quot;:res/images/line_dash_dot_dot.png&quot;);
      dashDotDotLine-&gt;setIcon(line_dash_dot_dot);
      dashDotDotLine-&gt;setIconSize(line_dash_dot_dot.size());
-     customDashLine-&gt;setText(&quot;Custom Style&quot;);
+     customDashLine-&gt;setText(&quot;Custom&quot;);
 
      int fixedHeight = bevelJoin-&gt;sizeHint().height();
      solidLine-&gt;setFixedHeight(fixedHeight);
@@ -140,77 +130,28 @@
      dotLine-&gt;setFixedHeight(fixedHeight);
      dashDotLine-&gt;setFixedHeight(fixedHeight);
      dashDotDotLine-&gt;setFixedHeight(fixedHeight);
- #endif
 
-     QGroupBox *pathModeGroup = new QGroupBox(mainGroup);
-     pathModeGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
-     QRadioButton *curveMode = new QRadioButton(pathModeGroup);
-     QRadioButton *lineMode = new QRadioButton(pathModeGroup);
-     pathModeGroup-&gt;setTitle(&quot;Path composed of&quot;);
+     m_pathModeGroup = new QGroupBox(parent);
+     m_pathModeGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
+     m_pathModeGroup-&gt;setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+     QRadioButton *curveMode = new QRadioButton(m_pathModeGroup);
+     QRadioButton *lineMode = new QRadioButton(m_pathModeGroup);
+     m_pathModeGroup-&gt;setTitle(&quot;Line Style&quot;);
      curveMode-&gt;setText(&quot;Curves&quot;);
      lineMode-&gt;setText(&quot;Lines&quot;);
 
-     QGroupBox *penWidthGroup = new QGroupBox(mainGroup);
-     penWidthGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
-     QSlider *penWidth = new QSlider(Qt::Horizontal, penWidthGroup);
-     penWidth-&gt;setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-     penWidthGroup-&gt;setTitle(&quot;Pen Width&quot;);
-     penWidth-&gt;setRange(0, 500);
-
- #if 0
-     QCheckBox *animated = new QCheckBox(mainGroup);
-     animated-&gt;setText(&quot;Animated&quot;);
- #else
-     QPushButton *animated = new QPushButton(mainGroup);
-     animated-&gt;setText(&quot;Animate&quot;);
-     animated-&gt;setCheckable(true);
- #endif
-
-     QPushButton *showSourceButton = new QPushButton(mainGroup);
-     showSourceButton-&gt;setText(&quot;Show Source&quot;);
- #ifdef QT_OPENGL_SUPPORT
-     QPushButton *enableOpenGLButton = new QPushButton(mainGroup);
-     enableOpenGLButton-&gt;setText(&quot;Use OpenGL&quot;);
-     enableOpenGLButton-&gt;setCheckable(true);
-     enableOpenGLButton-&gt;setChecked(m_renderer-&gt;usesOpenGL());
-     if (!QGLFormat::hasOpenGL())
-         enableOpenGLButton-&gt;hide();
- #endif
-     QPushButton *whatsThisButton = new QPushButton(mainGroup);
-     whatsThisButton-&gt;setText(&quot;What's This?&quot;);
-     whatsThisButton-&gt;setCheckable(true);
-
-     <span class="comment">// Layouting</span>
-     QHBoxLayout *viewLayout = new QHBoxLayout(this);
-     viewLayout-&gt;addWidget(m_renderer);
-     viewLayout-&gt;addWidget(mainGroup);
-
-     QVBoxLayout *mainGroupLayout = new QVBoxLayout(mainGroup);
-     mainGroupLayout-&gt;setMargin(3);
-     mainGroupLayout-&gt;addWidget(capGroup);
-     mainGroupLayout-&gt;addWidget(joinGroup);
-     mainGroupLayout-&gt;addWidget(styleGroup);
-     mainGroupLayout-&gt;addWidget(penWidthGroup);
-     mainGroupLayout-&gt;addWidget(pathModeGroup);
-     mainGroupLayout-&gt;addWidget(animated);
-     mainGroupLayout-&gt;addStretch(1);
-     mainGroupLayout-&gt;addWidget(showSourceButton);
- #ifdef QT_OPENGL_SUPPORT
-     mainGroupLayout-&gt;addWidget(enableOpenGLButton);
- #endif
-     mainGroupLayout-&gt;addWidget(whatsThisButton);
-
-     QVBoxLayout *capGroupLayout = new QVBoxLayout(capGroup);
+     <span class="comment">// Layouts</span>
+     QVBoxLayout *capGroupLayout = new QVBoxLayout(m_capGroup);
      capGroupLayout-&gt;addWidget(flatCap);
      capGroupLayout-&gt;addWidget(squareCap);
      capGroupLayout-&gt;addWidget(roundCap);
 
-     QVBoxLayout *joinGroupLayout = new QVBoxLayout(joinGroup);
+     QVBoxLayout *joinGroupLayout = new QVBoxLayout(m_joinGroup);
      joinGroupLayout-&gt;addWidget(bevelJoin);
      joinGroupLayout-&gt;addWidget(miterJoin);
      joinGroupLayout-&gt;addWidget(roundJoin);
 
-     QVBoxLayout *styleGroupLayout = new QVBoxLayout(styleGroup);
+     QVBoxLayout *styleGroupLayout = new QVBoxLayout(m_styleGroup);
      styleGroupLayout-&gt;addWidget(solidLine);
      styleGroupLayout-&gt;addWidget(dashLine);
      styleGroupLayout-&gt;addWidget(dotLine);
@@ -218,19 +159,11 @@
      styleGroupLayout-&gt;addWidget(dashDotDotLine);
      styleGroupLayout-&gt;addWidget(customDashLine);
 
-     QVBoxLayout *pathModeGroupLayout = new QVBoxLayout(pathModeGroup);
+     QVBoxLayout *pathModeGroupLayout = new QVBoxLayout(m_pathModeGroup);
      pathModeGroupLayout-&gt;addWidget(curveMode);
      pathModeGroupLayout-&gt;addWidget(lineMode);
 
-     QVBoxLayout *penWidthLayout = new QVBoxLayout(penWidthGroup);
-     penWidthLayout-&gt;addWidget(penWidth);
-
-     <span class="comment">// Set up connections</span>
-     connect(penWidth, SIGNAL(valueChanged(int)),
-             m_renderer, SLOT(setPenWidth(int)));
-     connect(animated, SIGNAL(toggled(bool)),
-             m_renderer, SLOT(setAnimation(bool)));
-
+     <span class="comment">// Connections</span>
      connect(flatCap, SIGNAL(clicked()), m_renderer, SLOT(setFlatCap()));
      connect(squareCap, SIGNAL(clicked()), m_renderer, SLOT(setSquareCap()));
      connect(roundCap, SIGNAL(clicked()), m_renderer, SLOT(setRoundCap()));
@@ -249,6 +182,76 @@
      connect(dashDotDotLine, SIGNAL(clicked()), m_renderer, SLOT(setDashDotDotLine()));
      connect(customDashLine, SIGNAL(clicked()), m_renderer, SLOT(setCustomDashLine()));
 
+     <span class="comment">// Set the defaults:</span>
+     flatCap-&gt;setChecked(true);
+     bevelJoin-&gt;setChecked(true);
+     curveMode-&gt;setChecked(true);
+     solidLine-&gt;setChecked(true);
+ }
+
+ void PathStrokeControls::layoutForDesktop()
+ {
+     QGroupBox *mainGroup = new QGroupBox(this);
+     mainGroup-&gt;setFixedWidth(180);
+     mainGroup-&gt;setTitle(&quot;Path Stroking&quot;);
+
+     createCommonControls(mainGroup);
+
+     QGroupBox* penWidthGroup = new QGroupBox(mainGroup);
+     penWidthGroup-&gt;setAttribute(Qt::WA_ContentsPropagated);
+     QSlider *penWidth = new QSlider(Qt::Horizontal, penWidthGroup);
+     penWidth-&gt;setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+     penWidthGroup-&gt;setTitle(&quot;Pen Width&quot;);
+     penWidth-&gt;setRange(0, 500);
+
+     QPushButton *animated = new QPushButton(mainGroup);
+     animated-&gt;setText(&quot;Animate&quot;);
+     animated-&gt;setCheckable(true);
+
+     QPushButton *showSourceButton = new QPushButton(mainGroup);
+     showSourceButton-&gt;setText(&quot;Show Source&quot;);
+ #ifdef QT_OPENGL_SUPPORT
+     QPushButton *enableOpenGLButton = new QPushButton(mainGroup);
+     enableOpenGLButton-&gt;setText(&quot;Use OpenGL&quot;);
+     enableOpenGLButton-&gt;setCheckable(true);
+     enableOpenGLButton-&gt;setChecked(m_renderer-&gt;usesOpenGL());
+     if (!QGLFormat::hasOpenGL())
+         enableOpenGLButton-&gt;hide();
+ #endif
+     QPushButton *whatsThisButton = new QPushButton(mainGroup);
+     whatsThisButton-&gt;setText(&quot;What's This?&quot;);
+     whatsThisButton-&gt;setCheckable(true);
+
+     <span class="comment">// Layouts:</span>
+     QVBoxLayout *penWidthLayout = new QVBoxLayout(penWidthGroup);
+     penWidthLayout-&gt;addWidget(penWidth);
+
+     QVBoxLayout * mainLayout = new QVBoxLayout(this);
+     mainLayout-&gt;setMargin(0);
+     mainLayout-&gt;addWidget(mainGroup);
+
+     QVBoxLayout *mainGroupLayout = new QVBoxLayout(mainGroup);
+     mainGroupLayout-&gt;setMargin(3);
+     mainGroupLayout-&gt;addWidget(m_capGroup);
+     mainGroupLayout-&gt;addWidget(m_joinGroup);
+     mainGroupLayout-&gt;addWidget(m_styleGroup);
+     mainGroupLayout-&gt;addWidget(penWidthGroup);
+     mainGroupLayout-&gt;addWidget(m_pathModeGroup);
+     mainGroupLayout-&gt;addWidget(animated);
+     mainGroupLayout-&gt;addStretch(1);
+     mainGroupLayout-&gt;addWidget(showSourceButton);
+ #ifdef QT_OPENGL_SUPPORT
+     mainGroupLayout-&gt;addWidget(enableOpenGLButton);
+ #endif
+     mainGroupLayout-&gt;addWidget(whatsThisButton);
+
+     <span class="comment">// Set up connections</span>
+     connect(animated, SIGNAL(toggled(bool)),
+             m_renderer, SLOT(setAnimation(bool)));
+
+     connect(penWidth, SIGNAL(valueChanged(int)),
+             m_renderer, SLOT(setPenWidth(int)));
+
      connect(showSourceButton, SIGNAL(clicked()), m_renderer, SLOT(showSource()));
  #ifdef QT_OPENGL_SUPPORT
      connect(enableOpenGLButton, SIGNAL(clicked(bool)), m_renderer, SLOT(enableOpenGL(bool)));
@@ -259,19 +262,141 @@
 
      <span class="comment">// Set the defaults</span>
      animated-&gt;setChecked(true);
-     flatCap-&gt;setChecked(true);
-     bevelJoin-&gt;setChecked(true);
      penWidth-&gt;setValue(50);
-     curveMode-&gt;setChecked(true);
-     solidLine-&gt;setChecked(true);
+
+ }
+
+ void PathStrokeControls::layoutForSmallScreens()
+ {
+     createCommonControls(this);
+
+     m_capGroup-&gt;layout()-&gt;setMargin(0);
+     m_joinGroup-&gt;layout()-&gt;setMargin(0);
+     m_styleGroup-&gt;layout()-&gt;setMargin(0);
+     m_pathModeGroup-&gt;layout()-&gt;setMargin(0);
+
+     QPushButton* okBtn = new QPushButton(&quot;OK&quot;, this);
+     okBtn-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+     okBtn-&gt;setMinimumSize(100,okBtn-&gt;minimumSize().height());
+
+     QPushButton* quitBtn = new QPushButton(&quot;Quit&quot;, this);
+     quitBtn-&gt;setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+     quitBtn-&gt;setMinimumSize(100, okBtn-&gt;minimumSize().height());
+
+     QLabel *penWidthLabel = new QLabel(&quot; Width:&quot;);
+     QSlider *penWidth = new QSlider(Qt::Horizontal, this);
+     penWidth-&gt;setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+     penWidth-&gt;setRange(0, 500);
+
+ #ifdef QT_OPENGL_SUPPORT
+     QPushButton *enableOpenGLButton = new QPushButton(this);
+     enableOpenGLButton-&gt;setText(&quot;Use OpenGL&quot;);
+     enableOpenGLButton-&gt;setCheckable(true);
+     enableOpenGLButton-&gt;setChecked(m_renderer-&gt;usesOpenGL());
+     if (!QGLFormat::hasOpenGL())
+         enableOpenGLButton-&gt;hide();
+ #endif
+
+     <span class="comment">// Layouts:</span>
+     QHBoxLayout *penWidthLayout = new QHBoxLayout(0);
+     penWidthLayout-&gt;addWidget(penWidthLabel, 0, Qt::AlignRight);
+     penWidthLayout-&gt;addWidget(penWidth);
+
+     QVBoxLayout *leftLayout = new QVBoxLayout(0);
+     leftLayout-&gt;addWidget(m_capGroup);
+     leftLayout-&gt;addWidget(m_joinGroup);
+ #ifdef QT_OPENGL_SUPPORT
+     leftLayout-&gt;addWidget(enableOpenGLButton);
+ #endif
+     leftLayout-&gt;addLayout(penWidthLayout);
+
+     QVBoxLayout *rightLayout = new QVBoxLayout(0);
+     rightLayout-&gt;addWidget(m_styleGroup);
+     rightLayout-&gt;addWidget(m_pathModeGroup);
+
+     QGridLayout *mainLayout = new QGridLayout(this);
+     mainLayout-&gt;setMargin(0);
+
+     <span class="comment">// Add spacers around the form items so we don't look stupid at higher resolutions</span>
+     mainLayout-&gt;addItem(new QSpacerItem(0,0), 0, 0, 1, 4);
+     mainLayout-&gt;addItem(new QSpacerItem(0,0), 1, 0, 2, 1);
+     mainLayout-&gt;addItem(new QSpacerItem(0,0), 1, 3, 2, 1);
+     mainLayout-&gt;addItem(new QSpacerItem(0,0), 3, 0, 1, 4);
+
+     mainLayout-&gt;addLayout(leftLayout, 1, 1);
+     mainLayout-&gt;addLayout(rightLayout, 1, 2);
+     mainLayout-&gt;addWidget(quitBtn, 2, 1, Qt::AlignHCenter | Qt::AlignTop);
+     mainLayout-&gt;addWidget(okBtn, 2, 2, Qt::AlignHCenter | Qt::AlignTop);
+
+ #ifdef QT_OPENGL_SUPPORT
+     connect(enableOpenGLButton, SIGNAL(clicked(bool)), m_renderer, SLOT(enableOpenGL(bool)));
+ #endif
+
+     connect(penWidth, SIGNAL(valueChanged(int)), m_renderer, SLOT(setPenWidth(int)));
+     connect(quitBtn, SIGNAL(clicked()), this, SLOT(emitQuitSignal()));
+     connect(okBtn, SIGNAL(clicked()), this, SLOT(emitOkSignal()));
+
+     m_renderer-&gt;setAnimation(true);
+     penWidth-&gt;setValue(50);
+ }
+
+ void PathStrokeControls::emitQuitSignal()
+ {   emit quitPressed();  }
+
+ void PathStrokeControls::emitOkSignal()
+ {   emit okPressed();   }
+
+ PathStrokeWidget::PathStrokeWidget(bool smallScreen)
+ {
+     setWindowTitle(tr(&quot;Path Stroking&quot;));
+
+     <span class="comment">// Widget construction and property setting</span>
+     m_renderer = new PathStrokeRenderer(this, smallScreen);
+
+     m_controls = new PathStrokeControls(0, m_renderer, smallScreen);
+
+     <span class="comment">// Layouting</span>
+     QHBoxLayout *viewLayout = new QHBoxLayout(this);
+     viewLayout-&gt;addWidget(m_renderer);
+
+     if (!smallScreen)
+         viewLayout-&gt;addWidget(m_controls);
 
      m_renderer-&gt;loadSourceFile(&quot;:res/pathstroke.cpp&quot;);
      m_renderer-&gt;loadDescription(&quot;:res/pathstroke.html&quot;);
+
+     connect(m_renderer, SIGNAL(clicked()), this, SLOT(showControls()));
+     connect(m_controls, SIGNAL(okPressed()), this, SLOT(hideControls()));
+     connect(m_controls, SIGNAL(quitPressed()), QApplication::instance(), SLOT(quit()));
  }
 
- PathStrokeRenderer::PathStrokeRenderer(QWidget *parent)
+ void PathStrokeWidget::showControls()
+ {
+     m_controls-&gt;showFullScreen();
+ }
+
+ void PathStrokeWidget::hideControls()
+ {
+     m_controls-&gt;hide();
+ }
+
+ void PathStrokeWidget::setStyle( QStyle * style )
+ {
+     QWidget::setStyle(style);
+     if (m_controls != 0)
+     {
+         m_controls-&gt;setStyle(style);
+
+         QList&lt;QWidget *&gt; widgets = qFindChildren&lt;QWidget *&gt;(m_controls);
+         foreach (QWidget *w, widgets)
+             w-&gt;setStyle(style);
+     }
+ }
+
+ PathStrokeRenderer::PathStrokeRenderer(QWidget *parent, bool smallScreen)
      : ArthurFrame(parent)
  {
+     m_smallScreen = smallScreen;
      m_pointSize = 10;
      m_activePoint = -1;
      m_capStyle = Qt::FlatCap;
@@ -366,7 +491,7 @@
      m_vectors.clear();
 
      QMatrix m;
-     double rot = 360 / count;
+     qreal rot = 360 / count;
      QPointF center(width() / 2, height() / 2);
      QMatrix vm;
      vm.shear(2, -1);
@@ -381,11 +506,11 @@
 
  void PathStrokeRenderer::updatePoints()
  {
-     double pad = 10;
-     double left = pad;
-     double right = width() - pad;
-     double top = pad;
-     double bottom = height() - pad;
+     qreal pad = 10;
+     qreal left = pad;
+     qreal right = width() - pad;
+     qreal top = pad;
+     qreal bottom = height() - pad;
 
      Q_ASSERT(m_points.size() == m_vectors.size());
      for (int i=0; i&lt;m_points.size(); ++i) {
@@ -427,11 +552,19 @@
          setAnimation(false);
          mouseMoveEvent(e);
      }
+
+     <span class="comment">// If we're not running in small screen mode, always assume we're dragging</span>
+     m_mouseDrag = !m_smallScreen;
+     m_mousePress = e-&gt;pos();
  }
 
  void PathStrokeRenderer::mouseMoveEvent(QMouseEvent *e)
  {
-     if (m_activePoint &gt;= 0 &amp;&amp; m_activePoint &lt; m_points.size()) {
+     <span class="comment">// If we've moved more then 25 pixels, assume user is dragging</span>
+     if (!m_mouseDrag &amp;&amp; QPoint(m_mousePress - e-&gt;pos()).manhattanLength() &gt; 25)
+         m_mouseDrag = true;
+
+     if (m_mouseDrag &amp;&amp; m_activePoint &gt;= 0 &amp;&amp; m_activePoint &lt; m_points.size()) {
          m_points[m_activePoint] = e-&gt;pos();
          update();
      }
@@ -441,6 +574,9 @@
  {
      m_activePoint = -1;
      setAnimation(m_wasAnimated);
+
+     if (!m_mouseDrag &amp;&amp; m_smallScreen)
+         emit clicked();
  }
 
  void PathStrokeRenderer::timerEvent(QTimerEvent *e)
@@ -467,8 +603,8 @@
  }</pre>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

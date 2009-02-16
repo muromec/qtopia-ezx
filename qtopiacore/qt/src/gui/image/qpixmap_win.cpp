@@ -1,48 +1,42 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qpixmap.h"
-#include "qpixmap_p.h"
+#include "qpixmap_raster_p.h"
 
 #include "qbitmap.h"
 #include "qimage.h"
@@ -61,6 +55,15 @@
 #include "qdebug.h"
 #include "qt_windows.h"
 
+#if defined(Q_OS_WINCE)
+#include "qguifunctions_wince.h"
+#include <winbase.h>
+extern bool qt_wince_is_high_dpi();
+extern bool qt_wince_is_pocket_pc();
+#endif
+
+QT_BEGIN_NAMESPACE
+
 QPixmap QPixmap::grabWindow(WId winId, int x, int y, int w, int h )
 {
     RECT r;
@@ -68,6 +71,18 @@ QPixmap QPixmap::grabWindow(WId winId, int x, int y, int w, int h )
 
     if (w < 0) w = r.right - r.left;
     if (h < 0) h = r.bottom - r.top;
+
+#ifdef Q_OS_WINCE_WM
+    if (qt_wince_is_pocket_pc()) {
+        QWidget *widget = QWidget::find(winId);
+        if (qobject_cast<QDesktopWidget *>(widget)) {
+            RECT rect = {0,0,0,0};
+            AdjustWindowRectEx(&rect, WS_BORDER | WS_CAPTION, FALSE, 0);
+            int magicNumber = qt_wince_is_high_dpi() ? 4 : 2;
+            y += rect.top - magicNumber;
+        }
+    }
+#endif
 
     // Create and setup bitmap
     HDC bitmap_dc = CreateCompatibleDC(qt_win_display_dc());
@@ -124,8 +139,9 @@ QPixmap QPixmap::grabWindow(WId winId, int x, int y, int w, int h )
 */
 HBITMAP QPixmap::toWinHBITMAP(HBitmapFormat format) const
 {
-    int w = data->image.width();
-    int h = data->image.height();
+    QRasterPixmapData* d = static_cast<QRasterPixmapData*>(data);
+    int w = d->image.width();
+    int h = d->image.height();
 
     HDC display_dc = qt_win_display_dc();
 
@@ -156,7 +172,7 @@ HBITMAP QPixmap::toWinHBITMAP(HBitmapFormat format) const
     QImage::Format imageFormat = format == NoAlpha
                                  ? QImage::Format_RGB32
                                  : QImage::Format_ARGB32_Premultiplied;
-    const QImage image = data->image.convertToFormat(imageFormat);
+    const QImage image = d->image.convertToFormat(imageFormat);
     int bytes_per_line = w * 4;
     for (int y=0; y<h; ++y)
         memcpy(pixels + y * bytes_per_line, image.scanLine(y), bytes_per_line);
@@ -236,6 +252,7 @@ QPixmap QPixmap::fromWinHBITMAP(HBITMAP bitmap, HBitmapFormat format)
 }
 
 #ifdef Q_WS_WIN
+#ifndef Q_OS_WINCE
 QPixmap convertHIconToPixmap( const HICON icon)
 {
     bool foundAlpha = false;
@@ -243,7 +260,9 @@ QPixmap convertHIconToPixmap( const HICON icon)
     HDC hdc = CreateCompatibleDC(screenDevice);
 
     ICONINFO iconinfo;
-    GetIconInfo(icon, &iconinfo); //x and y Hotspot describes the icon center
+    bool result = GetIconInfo(icon, &iconinfo); //x and y Hotspot describes the icon center
+    if (!result)
+        qWarning("convertHIconToPixmap(), failed to GetIconInfo()");
 
     BITMAPINFOHEADER bitmapInfo;
     bitmapInfo.biSize        = sizeof(BITMAPINFOHEADER);
@@ -258,6 +277,7 @@ QPixmap convertHIconToPixmap( const HICON icon)
     bitmapInfo.biClrUsed       = 0;
     bitmapInfo.biClrImportant  = 0;
     DWORD* bits;
+
 
     HBITMAP winBitmap = CreateDIBSection(hdc, (BITMAPINFO*)&bitmapInfo, DIB_RGB_COLORS, (VOID**)&bits, NULL, 0);
     HGDIOBJ oldhdc = (HBITMAP)SelectObject(hdc, winBitmap);
@@ -276,7 +296,6 @@ QPixmap convertHIconToPixmap( const HICON icon)
             }
         }
     }
-
     if (!foundAlpha) {
         //If no alpha was found, we use the mask to set alpha values
         DrawIconEx( hdc, 0, 0, icon, iconinfo.xHotspot * 2, iconinfo.yHotspot * 2, 0, 0, DI_MASK);
@@ -294,7 +313,6 @@ QPixmap convertHIconToPixmap( const HICON icon)
             }
         }
     }
-
     //dispose resources created by iconinfo call
     DeleteObject(iconinfo.hbmMask);
     DeleteObject(iconinfo.hbmColor);
@@ -304,10 +322,78 @@ QPixmap convertHIconToPixmap( const HICON icon)
     DeleteDC(hdc);
     return QPixmap::fromImage(img);
 }
+#else //ifndef Q_OS_WINCE
+QPixmap convertHIconToPixmap( const HICON icon, bool large)
+{
+    HDC screenDevice = qt_win_display_dc();
+    HDC hdc = CreateCompatibleDC(screenDevice);
+    int size = large ? 64 : 32;
+
+    BITMAPINFO bmi;
+    memset(&bmi, 0, sizeof(bmi));
+    bmi.bmiHeader.biSize        = sizeof(BITMAPINFO);
+    bmi.bmiHeader.biWidth       = size;
+    bmi.bmiHeader.biHeight      = -size;
+    bmi.bmiHeader.biPlanes      = 1;
+    bmi.bmiHeader.biBitCount    = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    bmi.bmiHeader.biSizeImage   = size*size*4;
+
+    uchar* bits;
+
+    HBITMAP winBitmap = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void**) &bits, 0, 0);
+    if (winBitmap )
+        memset(bits, 0xff, size*size*4);
+    if (!winBitmap) {
+        qWarning("convertHIconToPixmap(), failed to CreateDIBSection()");
+        return QPixmap();
+    }
+
+    HGDIOBJ oldhdc = (HBITMAP)SelectObject(hdc, winBitmap);
+    if (!DrawIconEx( hdc, 0, 0, icon, size, size, 0, 0, DI_NORMAL))
+        qWarning("convertHIconToPixmap(), failed to DrawIcon()");
+
+    uint mask = 0xff000000;
+    // Create image and copy data into image.
+    QImage image(size, size, QImage::Format_ARGB32);
+
+    if (!image.isNull()) { // failed to alloc?
+        int bytes_per_line = size * sizeof(QRgb);
+        for (int y=0; y<size; ++y) {
+            QRgb *dest = (QRgb *) image.scanLine(y);
+            const QRgb *src = (const QRgb *) (bits + y * bytes_per_line);
+            for (int x=0; x<size; ++x) {
+                dest[x] = src[x];
+            }
+        }
+    }
+    if (!DrawIconEx( hdc, 0, 0, icon, size, size, 0, 0, DI_MASK))
+        qWarning("convertHIconToPixmap(), failed to DrawIcon()");
+    if (!image.isNull()) { // failed to alloc?
+        int bytes_per_line = size * sizeof(QRgb);
+        for (int y=0; y<size; ++y) {
+            QRgb *dest = (QRgb *) image.scanLine(y);
+            const QRgb *src = (const QRgb *) (bits + y * bytes_per_line);
+            for (int x=0; x<size; ++x) {
+                if (!src[x])
+                    dest[x] = dest[x] | mask;
+            }
+        }
+    }
+    SelectObject(hdc, oldhdc); //restore state
+    DeleteObject(winBitmap);
+    DeleteDC(hdc);
+    return QPixmap::fromImage(image);
+}
+#endif //ifndef Q_OS_WINCE
 
 QPixmap loadIconFromShell32( int resourceId, int size )
 {
+#ifdef Q_OS_WINCE
+    HMODULE hmod = LoadLibrary((const wchar_t *) QString::fromLatin1("ceshell.dll").utf16());
+#else
     HMODULE hmod = LoadLibraryA("shell32.dll");
+#endif
     if( hmod ) {
         HICON iconHandle = (HICON)LoadImage(hmod, MAKEINTRESOURCE(resourceId), IMAGE_ICON, size, size, 0);
         if( iconHandle ) {
@@ -318,5 +404,7 @@ QPixmap loadIconFromShell32( int resourceId, int size )
     }
     return QPixmap();
 }
+
 #endif
 
+QT_END_NAMESPACE

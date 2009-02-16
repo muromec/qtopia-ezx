@@ -3,7 +3,8 @@
 #
 # Synchronizes Qt header files - internal Trolltech tool.
 #
-# Copyright (C) 1997-2008 Trolltech ASA. All rights reserved.
+# Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+# Contact: Qt Software Information (qt-info@nokia.com)
 #
 ######################################################################
 
@@ -21,22 +22,31 @@ my $isunix = 0;
 my $basedir = $ENV{"QTDIR"};
 $basedir =~ s=\\=/=g;
 my %modules = ( # path to module name map
-	    "QtGui" => "$basedir/src/gui",
-	    "QtOpenGL" => "$basedir/src/opengl",
-	    "QtCore" => "$basedir/src/corelib",
-	    "QtXml" => "$basedir/src/xml",
-	    "QtSql" => "$basedir/src/sql",
-	    "QtNetwork" => "$basedir/src/network",
-	    "QtSvg" => "$basedir/src/svg",
-	    "QtScript" => "$basedir/src/script",
-	    "Qt3Support" => "$basedir/src/qt3support",
-	    "ActiveQt" => "$basedir/src/activeqt/container;$basedir/src/activeqt/control",
-            "QtTest" => "$basedir/tools/qtestlib/src",
-	    "QtAssistant" => "$basedir/tools/assistant/lib",
-	    "QtDesigner" => "$basedir/tools/designer/src/lib;",
-	    "QtUiTools" => "$basedir/tools/designer/src/uitools;",
-	    "QtDBus" => "$basedir/tools/qdbus/src;",
+        "QtGui" => "$basedir/src/gui",
+        "QtOpenGL" => "$basedir/src/opengl",
+        "QtCore" => "$basedir/src/corelib",
+        "QtXml" => "$basedir/src/xml",
+        "QtXmlPatterns" => "$basedir/src/xmlpatterns",
+        "QtSql" => "$basedir/src/sql",
+        "QtNetwork" => "$basedir/src/network",
+        "QtSvg" => "$basedir/src/svg",
+        "QtScript" => "$basedir/src/script",
+        "Qt3Support" => "$basedir/src/qt3support",
+        "ActiveQt" => "$basedir/src/activeqt/container;$basedir/src/activeqt/control;$basedir/src/activeqt/shared",
+        "QtTest" => "$basedir/src/testlib",
+        "QtAssistant" => "$basedir/tools/assistant/compat/lib",
+        "QtHelp" => "$basedir/tools/assistant/lib",
+        "QtDesigner" => "$basedir/tools/designer/src/lib",
+        "QtUiTools" => "$basedir/tools/designer/src/uitools",
+        "QtDBus" => "$basedir/src/dbus",
+        "QtWebKit" => "$basedir/src/3rdparty/webkit/WebCore",
+        "phonon" => "$basedir/src/phonon",
 );
+my %moduleheaders = ( # restrict the module headers to those found in relative path
+        "QtWebKit" => "../WebKit/qt/Api",
+        "phonon" => "../3rdparty/kdelibs/phonon",
+);
+
 #$modules{"QtCore"} .= ";$basedir/mkspecs/" . $ENV{"MKSPEC"} if defined $ENV{"MKSPEC"};
 
 # global variables (modified by options)
@@ -164,6 +174,12 @@ sub classNames {
 	push @ret, "QSsl";
     } elsif(basename($iheader) eq "qtest.h") {
         push @ret, "QTest"
+    } elsif(basename($iheader) eq "qtconcurrentmap.h") {
+        push @ret, "QtConcurrentMap"
+    } elsif(basename($iheader) eq "qtconcurrentfilter.h") {
+        push @ret, "QtConcurrentFilter"
+    } elsif(basename($iheader) eq "qtconcurrentrun.h") {
+        push @ret, "QtConcurrentRun"
     }
 
     my $parsable = "";
@@ -185,6 +201,7 @@ sub classNames {
                 $line =~ s,//.*$,,; #remove c++ comments
 	        $line .= ";" if($line =~ m/^Q_[A-Z_]*\(.*\)[\r\n]*$/); #qt macro
 	        $line .= ";" if($line =~ m/^QT_(BEGIN|END)_HEADER[\r\n]*$/); #qt macro
+	        $line .= ";" if($line =~ m/^QT_(BEGIN|END)_NAMESPACE[\r\n]*$/); #qt macro
 	        $line .= ";" if($line =~ m/^QT_MODULE\(.*\)[\r\n]*$/); # QT_MODULE macro
                 $parsable .= " " . $line;
 	    }
@@ -612,13 +629,16 @@ my @ignore_headers = ();
 my $class_lib_map_contents = "";
 my @ignore_for_master_contents = ( "qt.h", "qpaintdevicedefs.h" );
 my @ignore_for_include_check = ( "qatomic.h" );
-my @ignore_for_qt_begin_header_check = ( "qiconset.h", "qconfig.h", "qconfig-dist.h", "qconfig-large.h", "qconfig-medium.h", "qconfig-minimal.h", "qconfig-small.h", "qfeatures.h" );
-my @ignore_for_qt_module_check = ( "$modules{QtCore}/arch", "$modules{QtCore}/global", "$modules{QtSql}/drivers", "$modules{QtTest}", "$modules{QtAssistant}", "$modules{QtDesigner}", "$modules{QtUiTools}", "$modules{QtDBus}" );
+my @ignore_for_qt_begin_header_check = ( "qiconset.h", "qconfig.h", "qconfig-dist.h", "qconfig-large.h", "qconfig-medium.h", "qconfig-minimal.h", "qconfig-small.h", "qfeatures.h", "qt_windows.h" );
+my @ignore_for_qt_begin_namespace_check = ( "qconfig.h", "qconfig-dist.h", "qconfig-large.h", "qconfig-medium.h", "qconfig-minimal.h", "qconfig-small.h", "qfeatures.h", "qatomic_arch.h", "qatomic_windowsce.h", "qt_windows.h", "qatomic_macosx.h" );
+my @ignore_for_qt_module_check = ( "$modules{QtCore}/arch", "$modules{QtCore}/global", "$modules{QtSql}/drivers", "$modules{QtTest}", "$modules{QtAssistant}", "$modules{QtDesigner}", "$modules{QtUiTools}", "$modules{QtDBus}", "$modules{phonon}" );
 
 foreach (@modules_to_sync) {
     #iteration info
     my $lib = $_;
     my $dir = "$modules{$lib}";
+    my $pathtoheaders = "";
+    $pathtoheaders = "$moduleheaders{$lib}" if ($moduleheaders{$lib});
 
     #information used after the syncing
     my $master_contents = "";
@@ -641,6 +661,7 @@ foreach (@modules_to_sync) {
 			$master_contents .= "#include <Qt3Support/Qt3Support>\n" if("$_" eq "qt3support");
 			$master_contents .= "#include <QtSql/QtSql>\n" if("$_" eq "sql");
 			$master_contents .= "#include <QtXml/QtXml>\n" if("$_" eq "xml");
+			$master_contents .= "#include <QtXmlPatterns/QtXmlPatterns>\n" if("$_" eq "xmlpatterns");
 			$master_contents .= "#include <QtOpenGL/QtOpenGL>\n" if("$_" eq "opengl");
 		    }
 		}
@@ -654,45 +675,49 @@ foreach (@modules_to_sync) {
 	my @subdirs = ("$out_basedir/include/$lib");
 	foreach (@subdirs) {
 	    my $subdir = "$_";
-	    opendir DIR, "$subdir";
-	    while(my $t = readdir(DIR)) {
-		my $file = "$subdir/$t";
-		if(-d "$file") {
-		    push @subdirs, "$file" unless($t eq "." || $t eq "..");
-		} else {
-		    my @files = ("$file");
-		    #push @files, "$out_basedir/include/Qt/$t" if(-e "$out_basedir/include/Qt/$t");
-                    foreach (@files) {
-                       my $file = $_;
-		       my $remove_file = 0;
-		       if(open(F, "<$file")) {
-			    while(<F>) {
-			        my $line = $_;
-			        chomp $line;
-			        if($line =~ /^\#include \"([^\"]*)\"$/) {
-				    my $include = $1;
-				    $include = $subdir . "/" . $include unless(substr($include, 0, 1) eq "/");
-				    $remove_file = 1 unless(-e "$include");
-			        } else {
-				    $remove_file = 0;
-				    last;
-			        }
-		 	    }
-			    close(F);
-                	    unlink "$file" if($remove_file);
-                        }
+	    if (opendir DIR, "$subdir") {
+		while(my $t = readdir(DIR)) {
+		    my $file = "$subdir/$t";
+		    if(-d "$file") {
+			push @subdirs, "$file" unless($t eq "." || $t eq "..");
+		    } else {
+			my @files = ("$file");
+			#push @files, "$out_basedir/include/Qt/$t" if(-e "$out_basedir/include/Qt/$t");
+			foreach (@files) {
+			   my $file = $_;
+			   my $remove_file = 0;
+			   if(open(F, "<$file")) {
+				while(<F>) {
+				    my $line = $_;
+				    chomp $line;
+				    if($line =~ /^\#include \"([^\"]*)\"$/) {
+					my $include = $1;
+					$include = $subdir . "/" . $include unless(substr($include, 0, 1) eq "/");
+					$remove_file = 1 unless(-e "$include");
+				    } else {
+					$remove_file = 0;
+					last;
+				    }
+				}
+				close(F);
+				unlink "$file" if($remove_file);
+			    }
+			}
 		    }
 		}
-	    }
-	    closedir DIR;
+		closedir DIR;
+            }
+
 	}
     }
 
     #create the new ones
     foreach (split(/;/, $dir)) {
 	my $current_dir = "$_";
+	my $headers_dir = $current_dir;
+        $headers_dir .= "/$pathtoheaders" if ($pathtoheaders);
         #calc subdirs
-        my @subdirs = ($current_dir);
+        my @subdirs = ($headers_dir);
         foreach (@subdirs) {
             my $subdir = "$_";
             opendir DIR, "$subdir";
@@ -738,7 +763,7 @@ foreach (@modules_to_sync) {
 			if ($public_header) {
 			    @headers = ( "$out_basedir/include/$lib/$header" );
 			    push @headers, "$out_basedir/include/Qt/$header"
-			      if ("$subdir" =~ /^$basedir\/src/);
+			      if ("$lib" ne "phonon" && "$subdir" =~ /^$basedir\/src/);
 
 			    foreach(@classes) {
 				my $class = "$_";
@@ -747,8 +772,9 @@ foreach (@modules_to_sync) {
 				$header_copies++ if(syncHeader("$out_basedir/include/$lib/$class", $header, 0));
 			    }
 			} else {
-			    @headers = ( "$out_basedir/include/Qt/private/$header",
-					 "$out_basedir/include/$lib/private/$header" );
+			    @headers = ( "$out_basedir/include/$lib/private/$header" );
+			    push @headers, "$out_basedir/include/Qt/private/$header"
+                              if ("$lib" ne "phonon");
 			}
 			foreach(@headers) { #sync them
 			    $header_copies++ if(syncHeader($_, $iheader, $copy_headers));
@@ -767,7 +793,7 @@ foreach (@modules_to_sync) {
 				    $pri_install_classes .= $class_header
 								unless($pri_install_classes =~ $class_header);
 				}
-				$pri_install_files .= "$pri_install_iheader ";;
+				$pri_install_files.= "$pri_install_iheader ";;
 			    }
 			}
                     }
@@ -873,7 +899,8 @@ if($check_includes) {
 		my @headers = findFiles("$subdir", "^[-a-z0-9_]*\\.h\$" , 0);
 		foreach (@headers) {
 		    my $header = "$_";
-                    my $header_skip_qt_begin_test = 0;
+                    my $header_skip_qt_begin_header_test = 0;
+                    my $header_skip_qt_begin_namespace_test = 0;
 		    $header = 0 if("$header" =~ /^ui_.*.h/);
 		    foreach (@ignore_headers) {
 			$header = 0 if("$header" eq "$_");
@@ -891,7 +918,10 @@ if($check_includes) {
 				    $public_header = 0 if("$header" eq "$_");
 				}
                                 foreach(@ignore_for_qt_begin_header_check) {
-                                    $header_skip_qt_begin_test = 1 if ("$header" eq "$_");
+                                    $header_skip_qt_begin_header_test = 1 if ("$header" eq "$_");
+                                }
+                                foreach(@ignore_for_qt_begin_namespace_check) {
+                                    $header_skip_qt_begin_namespace_test = 1 if ("$header" eq "$_");
                                 }
 			    }
 			}
@@ -902,6 +932,8 @@ if($check_includes) {
                                 my $qt_module_found = 0;
 				my $qt_begin_header_found = 0;
 				my $qt_end_header_found = 0;
+				my $qt_begin_namespace_found = 0;
+				my $qt_end_namespace_found = 0;
 				my $line;
 				while($line = <F>) {
 				    chomp $line;
@@ -925,15 +957,19 @@ if($check_includes) {
 						}
 					    }
 					}
-				    } elsif ($header_skip_qt_begin_test == 0 and $line =~ /^QT_BEGIN_HEADER\s*$/) {
+				    } elsif ($header_skip_qt_begin_header_test == 0 and $line =~ /^QT_BEGIN_HEADER\s*$/) {
 					$qt_begin_header_found = 1;
-				    } elsif ($header_skip_qt_begin_test == 0 and $line =~ /^QT_END_HEADER\s*$/) {
+				    } elsif ($header_skip_qt_begin_header_test == 0 and $line =~ /^QT_END_HEADER\s*$/) {
 					$qt_end_header_found = 1;
+				    } elsif ($header_skip_qt_begin_namespace_test == 0 and $line =~ /^QT_BEGIN_NAMESPACE\s*$/) {
+					$qt_begin_namespace_found = 1;
+				    } elsif ($header_skip_qt_begin_namespace_test == 0 and $line =~ /^QT_END_NAMESPACE\s*$/) {
+					$qt_end_namespace_found = 1;
                                     } elsif ($header_skip_qt_module_test == 0 and $line =~ /^QT_MODULE\(.*\)\s*$/) {
                                         $qt_module_found = 1;
                                     }
 				}
-                                if ($header_skip_qt_begin_test == 0) {
+                                if ($header_skip_qt_begin_header_test == 0) {
                                     if ($qt_begin_header_found == 0) {
                                         print "WARNING: $iheader does not include QT_BEGIN_HEADER\n";
                                     }
@@ -942,6 +978,17 @@ if($check_includes) {
                                         print "WARNING: $iheader has QT_BEGIN_HEADER but no QT_END_HEADER\n";
                                     }
                                 }
+
+                                if ($header_skip_qt_begin_namespace_test == 0) {
+                                    if ($qt_begin_namespace_found == 0) {
+                                        print "WARNING: $iheader does not include QT_BEGIN_NAMESPACE\n";
+                                    }
+
+                                    if ($qt_begin_namespace_found && $qt_end_namespace_found == 0) {
+                                        print "WARNING: $iheader has QT_BEGIN_NAMESPACE but no QT_END_NAMESPACE\n";
+                                    }
+                                }
+
                                 if ($header_skip_qt_module_test == 0) {
                                     if ($qt_module_found == 0) {
                                         print "WARNING: $iheader does not include QT_MODULE\n";
@@ -956,3 +1003,5 @@ if($check_includes) {
 	}
     }
 }
+
+exit 0;

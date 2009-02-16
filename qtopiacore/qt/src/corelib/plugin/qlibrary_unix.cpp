@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,6 +51,8 @@
 #if defined(QT_AOUT_UNDERSCORE)
 #include <string.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 #if defined(QT_HPUX_LD) // for HP-UX < 11.x and 32 bit
 
@@ -110,7 +106,9 @@ void* QLibraryPrivate::resolve_sys(const char* symbol)
 }
 
 #else // POSIX
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <dlfcn.h>
+QT_END_INCLUDE_NAMESPACE
 
 static QString qdlerror()
 {
@@ -134,14 +132,14 @@ bool QLibraryPrivate::load_sys()
     if (pluginState != IsAPlugin) {
         prefixes << QLatin1String("lib");
 #if defined(Q_OS_HPUX)
-        if (majorVerNum > -1) {
-            suffixes << QString::fromLatin1(".sl.%1").arg(majorVerNum);
+        if (!fullVersion.isEmpty()) {
+            suffixes << QString::fromLatin1(".sl.%1").arg(fullVersion);
         } else {
             suffixes << QLatin1String(".sl");
         }
 # if defined(__ia64)
-        if (majorVerNum > -1) {
-            suffixes << QString::fromLatin1(".so.%1").arg(majorVerNum);
+        if (!fullVersion.isEmpty()) {
+            suffixes << QString::fromLatin1(".so.%1").arg(fullVersion);
         } else {
             suffixes << QLatin1String(".so");
         }
@@ -149,16 +147,16 @@ bool QLibraryPrivate::load_sys()
 #elif defined(Q_OS_AIX)
         suffixes << ".a";
 #else
-        if (majorVerNum > -1) {
-            suffixes << QString::fromLatin1(".so.%1").arg(majorVerNum);
+        if (!fullVersion.isEmpty()) {
+            suffixes << QString::fromLatin1(".so.%1").arg(fullVersion);
         } else {
             suffixes << QLatin1String(".so");
         }
 #endif
 # ifdef Q_OS_MAC
-        if (majorVerNum > -1) {
-            suffixes << QString::fromLatin1(".%1.bundle").arg(majorVerNum);
-            suffixes << QString::fromLatin1(".%1.dylib").arg(majorVerNum);
+        if (!fullVersion.isEmpty()) {
+            suffixes << QString::fromLatin1(".%1.bundle").arg(fullVersion);
+            suffixes << QString::fromLatin1(".%1.dylib").arg(fullVersion);
         } else {
             suffixes << QLatin1String(".bundle") << QLatin1String(".dylib");
         }
@@ -172,15 +170,24 @@ bool QLibraryPrivate::load_sys()
     }
     if (loadHints & QLibrary::ExportExternalSymbolsHint) {
         dlFlags |= RTLD_GLOBAL;
+    } 
+#if !defined(Q_OS_CYGWIN)
+    else {
+#if defined(Q_OS_MAC)
+        if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4)
+#endif        
+        dlFlags |= RTLD_LOCAL;
     }
+#endif
 #if defined(Q_OS_AIX)	// Not sure if any other platform actually support this thing.
     if (loadHints & QLibrary::LoadArchiveMemberHint) {
         dlFlags |= RTLD_MEMBER;
     }
 #endif
     QString attempt;
-    for(int prefix = 0; !pHnd && prefix < prefixes.size(); prefix++) {
-        for(int suffix = 0; !pHnd && suffix < suffixes.size(); suffix++) {
+    bool retry = true;
+    for(int prefix = 0; retry && !pHnd && prefix < prefixes.size(); prefix++) {
+        for(int suffix = 0; retry && !pHnd && suffix < suffixes.size(); suffix++) {
             if (!prefixes.at(prefix).isEmpty() && name.startsWith(prefixes.at(prefix)))
                 continue;
             if (!suffixes.at(suffix).isEmpty() && name.endsWith(suffixes.at(suffix)))
@@ -195,8 +202,16 @@ bool QLibraryPrivate::load_sys()
                 attempt = path + prefixes.at(prefix) + name + suffixes.at(suffix);
             }
             pHnd = dlopen(QFile::encodeName(attempt), dlFlags);
+            if (!pHnd && fileName.startsWith(QLatin1Char('/')) && QFile::exists(attempt)) {
+                // We only want to continue if dlopen failed due to that the shared library did not exist.
+                // However, we are only able to apply this check for absolute filenames (since they are
+                // not influenced by the content of LD_LIBRARY_PATH, /etc/ld.so.cache, DT_RPATH etc...)
+                // This is all because dlerror is flawed and cannot tell us the reason why it failed.
+                retry = false;
+            }
         }
     }
+
 #ifdef Q_OS_MAC
     if (!pHnd) {
         if (CFBundleRef bundle = CFBundleGetBundleWithIdentifier(QCFString(fileName))) {
@@ -256,5 +271,7 @@ void* QLibraryPrivate::resolve_sys(const char* symbol)
 }
 
 #endif // POSIX
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_LIBRARY

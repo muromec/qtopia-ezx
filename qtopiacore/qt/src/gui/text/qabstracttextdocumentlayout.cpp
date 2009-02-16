@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,39 +42,79 @@
 
 #include "qabstracttextdocumentlayout_p.h"
 
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QAbstractTextDocumentLayout
+    \reentrant
+
     \brief The QAbstractTextDocumentLayout class is an abstract base
     class used to implement custom layouts for QTextDocuments.
 
     \ingroup text
 
-    The standard layout provided by Qt can handle simple word
-    processing including inline layouts, lists and tables.
+    The standard layout provided by Qt can handle simple word processing
+    including inline images, lists and tables.
 
-    Some applications (e.g. a word processor or a DTP application)
-    might need more features than the ones provided by Qt's layout
-    engine, in which case you can subclass QAbstractTextDocumentLayout
-    to provide your own custom layout behavior for your text
-    documents.
+    Some applications, e.g., a word processor or a DTP application might need
+    more features than the ones provided by Qt's layout engine, in which case
+    you can subclass QAbstractTextDocumentLayout to provide custom layout
+    behavior for your text documents.
+
+    An instance of the QAbstractTextDocumentLayout subclass can be installed
+    on a QTextDocument object with the
+    \l{QTextDocument::}{setDocumentLayout()} function.
+
+    You can insert custom objects into a QTextDocument using the following
+    steps:
+
+    \list
+        \o Choose an \a objectType. The \a objectType is an integer with a
+            value greater or equal to QTextFormat::UserObject.
+         \o Create a QTextCharFormat object and set the object type to the
+            chosen type using the setObjectType() function.
+         \o Implement the QTextObjectInterface class.
+         \o Call registerHandler() with an instance of your
+            QTextObjectInterface subclass to register your object type.
+         \o Insert QChar::ObjectReplacementCharacter with the aforementioned
+            QTextCharFormat of the chosen object type into the document.
+            As a result, the functions of QTextObjectInterface:
+            \l{QTextObjectInterface::}{intrinsicSize()} and
+            \l{QTextObjectInterface::}{drawObject()} will be called with the
+            QTextFormat as parameter whenever the replacement character is
+            encountered.
+    \endlist
 */
 
 /*!
     \fn void QAbstractTextDocumentLayout::update(const QRectF &rect)
 
-    This signal is emitted when the rectangle \a rect has been
-    updated.
+    This signal is emitted when the rectangle \a rect has been updated.
+
+    Subclasses of QAbstractTextDocumentLayout should emit this signal when
+    the layout of the contents change in order to repaint.
+*/
+
+/*!
+   \fn void QAbstractTextDocumentLayout::updateBlock(const QTextBlock &block)
+   \since 4.4
+
+   This signal is emitted when the specified \a block has been updated.
+
+   Subclasses of QAbstractTextDocumentLayout should emit this signal when
+   the layout of \a block has changed in order to repaint. 
 */
 
 /*!
     \fn void QAbstractTextDocumentLayout::documentSizeChanged(const QSizeF &newSize)
 
-    This signal is emitted when the size of the document changes. The new
-    size is specified by \a newSize.
+    This signal is emitted when the size of the document layout changes to
+    \a newSize.
 
-    This information is useful to widgets that display text documents
-    since it enables them to update their scroll bars correctly.
+    Subclasses of QAbstractTextDocumentLayout should emit this signal when the
+    document's entire layout size changes. This signal is useful for widgets
+    that display text documents since it enables them to update their scroll
+    bars correctly.
 
     \sa documentSize()
 */
@@ -88,11 +122,12 @@
 /*!
     \fn void QAbstractTextDocumentLayout::pageCountChanged(int newPages)
 
-    This signal is emitted when the number of pages in the layout
-    changes; \a newPages is the updated page count.
+    This signal is emitted when the number of pages in the layout changes;
+    \a newPages is the updated page count.
 
-    Changes to the page count are due to the changes to the layout or
-    the document content itself.
+    Subclasses of QAbstractTextDocumentLayout should emit this signal when
+    the number of pages in the layout has changed. Changes to the page count
+    are caused by changes to the layout or the document content itself.
 
     \sa pageCount()
 */
@@ -100,7 +135,7 @@
 /*!
     \fn int QAbstractTextDocumentLayout::pageCount() const
 
-    Returns the number of pages required by the layout.
+    Returns the number of pages contained in the layout.
 
     \sa pageCountChanged()
 */
@@ -108,8 +143,10 @@
 /*!
     \fn QSizeF QAbstractTextDocumentLayout::documentSize() const
 
-    Returns the total size of the document. This is useful to display widgets
-    since they can use to information to update their scroll bars correctly
+    Returns the total size of the document's layout.
+
+    This information can be used by display widgets to update their scroll bars
+    correctly.
 
     \sa documentSizeChanged(), QTextDocument::pageSize
 */
@@ -117,47 +154,70 @@
 /*!
     \fn void QAbstractTextDocumentLayout::draw(QPainter *painter, const PaintContext &context)
 
-    Draws the layout on the given \a painter with the given \a
-    context.
+    Draws the layout with the given \a painter using the given \a context.
 */
 
 /*!
     \fn int QAbstractTextDocumentLayout::hitTest(const QPointF &point, Qt::HitTestAccuracy accuracy) const
 
-    Returns the cursor postion for the given \a point with the \a accuracy specified.
-    Returns -1 to indicate failure if no valid cursor position was found.
+    Returns the cursor postion for the given \a point with the specified
+    \a accuracy. Returns -1 if no valid cursor position was found.
 */
 
 /*!
     \fn void QAbstractTextDocumentLayout::documentChanged(int position, int charsRemoved, int charsAdded)
 
-    This function is called whenever the contents of the document change.
-    A change occurs when text is inserted, removed, or a combination of
-    the two types of operation. The change is specified by \a position,
-    \a charsRemoved, and \a charsAdded corresponding to the starting
-    character position of the change, the number of character removed from
-    the document, and the number of characters added.
+    This function is called whenever the contents of the document change. A
+    change occurs when text is inserted, removed, or a combination of these
+    two. The change is specified by \a position, \a charsRemoved, and
+    \a charsAdded corresponding to the starting character position of the
+    change, the number of characters removed from the document, and the
+    number of characters added.
 
     For example, when inserting the text "Hello" into an empty document,
     \a charsRemoved would be 0 and \a charsAdded would be 5 (the length of
     the string).
 
-    Replacing text is the combination of removal and insertion. For example,
-    if the text "Hello" gets replaced by "Hi", \a charsRemoved would be 5
-    and \a charsAdded would be 2.
+    Replacing text is a combination of removing and inserting. For example, if
+    the text "Hello" gets replaced by "Hi", \a charsRemoved would be 5 and
+    \a charsAdded would be 2.
+
+    For subclasses of QAbstractTextDocumentLayout, this is the central function
+    where a large portion of the work to lay out and position document contents
+    is done.
+
+    For example, in a subclass that only arranges blocks of text, an
+    implementation of this function would have to do the following:
+
+    \list
+        \o Determine the list of changed \l{QTextBlock}(s) using the parameters
+            provided.
+        \o Each QTextBlock object's corresponding QTextLayout object needs to
+            be processed. You can access the \l{QTextBlock}'s layout using the
+            QTextBlock::layout() function. This processing should take the
+            document's page size into consideration.
+        \o If the total number of pages changed, the pageCountChanged() signal
+            should be emitted.
+        \o If the total size changed, the documentSizeChanged() signal should
+            be emitted.
+        \o The update() signal should be emitted to schedule a repaint of areas
+            in the layout that require repainting.
+    \endlist
+
+    \sa QTextLayout
 */
 
 /*!
     \class QAbstractTextDocumentLayout::PaintContext
+    \reentrant
 
-    \brief The QAbstractTextDocumentLayout::PaintContext class is a
-    convenience class defining the parameters of a painter context.
+    \brief The QAbstractTextDocumentLayout::PaintContext class is a convenience
+    class defining the parameters used when painting a document's layout.
 
-    A painter context is used when rendering custom layouts for
-    QTextDocuments with the QAbstractTextDocumentLayout::draw()
-    function, and is specified by a \l {cursorPosition}{cursor
-    position}, a \l {palette}{default text color}, a \l clip rectangle
-    and a collection of \l selections.
+    A paint context is used when rendering custom layouts for QTextDocuments
+    with the QAbstractTextDocumentLayout::draw() function. It is specified by
+    a \l {cursorPosition}{cursor position}, \l {palette}{default text color},
+    \l clip rectangle and a collection of \l selections.
 
     \sa QAbstractTextDocumentLayout
 */
@@ -169,61 +229,66 @@
 
 /*!
     \variable QAbstractTextDocumentLayout::PaintContext::cursorPosition
-    \brief the position within the document, where the cursor
-    line should be drawn.
+
+    \brief the position within the document, where the cursor line should be
+    drawn.
 
     The default value is -1.
 */
 
 /*!
     \variable QAbstractTextDocumentLayout::PaintContext::palette
-    \brief the default color that is used for the text, when no color
-    is specified in the text.
 
-    The default value of this variable uses the application's default
-    palette.
+    \brief the default color that is used for the text, when no color is
+    specified.
+
+    The default value is the application's default palette.
 */
 
 /*!
     \variable QAbstractTextDocumentLayout::PaintContext::clip
 
-    \brief a hint to the layout avoiding that paragraphs, frames or
-    text that are clearly outside the specified rectangle, are drawn
+    \brief a hint to the layout specifying the area around paragraphs, frames
+    or text require painting.
 
-    Specifying a clip rectangle can speed up drawing of large
-    documents significantly. Note that the clip rectangle is in
-    document coordinates (i.e., not in viewport coordinates), and that
-    it is not a substitute for a clip region set on the painter.
+    Everything outside of this rectangle does not need to be painted.
 
-    The default value is a null rectangle.
+    Specifying a clip rectangle can speed up drawing of large documents
+    significantly. Note that the clip rectangle is in document coordinates (not
+    in viewport coordinates). It is not a substitute for a clip region set on
+    the painter but merely a hint.
+
+    The default value is a null rectangle indicating everything needs to be
+    painted.
 */
 
 /*!
     \variable QAbstractTextDocumentLayout::PaintContext::selections
 
-    \brief the collection of selections that will be rendered when
-    passing this painter context to QAbstractTextDocumentLayout's
-    draw() function.
+    \brief the collection of selections that will be rendered when passing this
+    paint context to QAbstractTextDocumentLayout's draw() function.
 
-    The default value of this variable is an empty vector.
+    The default value is an empty vector indicating no selection.
 */
 
 /*!
     \class QAbstractTextDocumentLayout::Selection
+    \reentrant
 
-    \brief The QAbstractTextDocumentLayout::Selection class is a
-    convenience class defining the parameters of a selection.
+    \brief The QAbstractTextDocumentLayout::Selection class is a convenience
+    class defining the parameters of a selection.
 
-    A selection can be used to specify a part of a document that
-    should be rendere when drawing custom layouts for QTextDocuments
-    with the QAbstractTextDocumentLayout::draw() function, and is
-    specified by a \l cursor and a \l format.
+    A selection can be used to specify a part of a document that should be
+    highlighted when drawing custom layouts for QTextDocuments with the
+    QAbstractTextDocumentLayout::draw() function. It is specified using
+    \l cursor and a \l format.
 
     \sa QAbstractTextDocumentLayout, PaintContext
 */
 
 /*!
     \variable QAbstractTextDocumentLayout::Selection::format
+
     \brief the format of the selection
 
     The default value is QTextFormat::InvalidFormat.
@@ -242,6 +307,8 @@
 QAbstractTextDocumentLayout::QAbstractTextDocumentLayout(QTextDocument *document)
     : QObject(*new QAbstractTextDocumentLayoutPrivate, document)
 {
+    Q_D(QAbstractTextDocumentLayout);
+    d->setDocument(document);
 }
 
 /*!
@@ -250,6 +317,8 @@ QAbstractTextDocumentLayout::QAbstractTextDocumentLayout(QTextDocument *document
 QAbstractTextDocumentLayout::QAbstractTextDocumentLayout(QAbstractTextDocumentLayoutPrivate &p, QTextDocument *document)
     :QObject(p, document)
 {
+    Q_D(QAbstractTextDocumentLayout);
+    d->setDocument(document);
 }
 
 /*!
@@ -260,8 +329,13 @@ QAbstractTextDocumentLayout::~QAbstractTextDocumentLayout()
 }
 
 /*!
-    Registers the given \a component as a handler for items of the
-    given \a formatType.
+    \fn void QAbstractTextDocumentLayout::registerHandler(int objectType, QObject *component)
+
+    Registers the given \a component as a handler for items of the given \a objectType.
+
+    \note registerHandler() has to be called once for each object type. This
+    means that there is only one handler for multiple replacement characters
+    of the same object type.
 */
 void QAbstractTextDocumentLayout::registerHandler(int formatType, QObject *component)
 {
@@ -294,9 +368,15 @@ QTextObjectInterface *QAbstractTextDocumentLayout::handlerForObject(int objectTy
 }
 
 /*!
-    Sets the size of the inline object \a item in accordance with the
-    text \a format.
+    Sets the size of the inline object \a item corresponding to the text
+    \a format.
+
     \a posInDocument specifies the position of the object within the document.
+
+    The default implementation resizes the \a item to the size returned by
+    the object handler's intrinsicSize() function. This function is called only
+    within Qt. Subclasses can reimplement this function to customize the
+    resizing of inline objects.
 */
 void QAbstractTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int posInDocument, const QTextFormat &format)
 {
@@ -316,8 +396,12 @@ void QAbstractTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int
 
 /*!
     Lays out the inline object \a item using the given text \a format.
-    The base class implementation does nothing.
+
     \a posInDocument specifies the position of the object within the document.
+
+    The default implementation does nothing. This function is called only
+    within Qt. Subclasses can reimplement this function to customize the
+    position of inline objects.
 
     \sa drawInlineObject()
 */
@@ -331,10 +415,15 @@ void QAbstractTextDocumentLayout::positionInlineObject(QTextInlineObject item, i
 /*!
     \fn void QAbstractTextDocumentLayout::drawInlineObject(QPainter *painter, const QRectF &rect, QTextInlineObject object, int posInDocument, const QTextFormat &format)
 
-    Called to draw the inline object \a object on the given \a painter within
-    the rectangle specified by \a rect using the text format specified by
-    \a format.
+    This function is called to draw the inline object, \a object, with the
+    given \a painter within the rectangle specified by \a rect using the
+    specified text \a format.
+
     \a posInDocument specifies the position of the object within the document.
+
+    The default implementation calls drawObject() on the object handlers. This
+    function is called only within Qt. Subclasses can reimplement this function
+    to customize the drawing of inline objects.
 
     \sa draw()
 */
@@ -351,31 +440,6 @@ void QAbstractTextDocumentLayout::drawInlineObject(QPainter *p, const QRectF &re
         return;
 
     handler.iface->drawObject(p, rect, document(), posInDocument, format);
-
-#if 0
-    if (selType == QTextLayout::Highlight && item.engine()->pal) {
-#if defined (Q_WS_WIN)
-        static QPixmap tile;
-        if (tile.isNull()) {
-            QImage image(128, 128, 32);
-            image.fill((item.engine()->pal->highlight().color().rgb() & 0x00ffffff) | 0x7f000000);
-            image.setAlphaBuffer(true);
-            tile = QPixmap(image);
-        }
-        p->drawTiledPixmap(rect, tile);
-#elif defined (Q_WS_MAC)
-        QColor hl = item.engine()->pal->highlight().color();
-        QBrush brush(QColor(hl.red(), hl.green(), hl.blue(), 127));
-        QPixmap texture = item.engine()->pal->highlight().texture();
-        if(!texture.isNull())
-            brush.setTexture(texture);
-        p->fillRect(rect, brush);
-#else
-        QBrush brush(item.engine()->pal->highlight().color(), Qt::Dense4Pattern);
-        p->fillRect(rect, brush);
-#endif
-    }
-#endif
 }
 
 void QAbstractTextDocumentLayoutPrivate::_q_handlerDestroyed(QObject *obj)
@@ -418,13 +482,14 @@ QTextCharFormat QAbstractTextDocumentLayout::format(int pos)
 */
 QTextDocument *QAbstractTextDocumentLayout::document() const
 {
-    return qobject_cast<QTextDocument *>(parent());
+    Q_D(const QAbstractTextDocumentLayout);
+    return d->document;
 }
 
 /*!
     \fn QString QAbstractTextDocumentLayout::anchorAt(const QPointF &position) const
 
-    Returns the reference of the anchor at the given \a position, or an empty
+    Returns the reference of the anchor the given \a position, or an empty
     string if no anchor exists at that point.
 */
 QString QAbstractTextDocumentLayout::anchorAt(const QPointF& pos) const
@@ -440,19 +505,20 @@ QString QAbstractTextDocumentLayout::anchorAt(const QPointF& pos) const
 }
 
 /*!
-    Returns the bounding rectacle of \a frame.
     \fn QRectF QAbstractTextDocumentLayout::frameBoundingRect(QTextFrame *frame) const
+
     Returns the bounding rectangle of \a frame.
 */
 
 /*!
     \fn QRectF QAbstractTextDocumentLayout::blockBoundingRect(const QTextBlock &block) const
+
     Returns the bounding rectangle of \a block.
 */
 
 /*!
-    Sets the paint device used for rendering the document's layout to the
-    given \a device.
+    Sets the paint device used for rendering the document's layout to the given
+    \a device.
 
     \sa paintDevice()
 */
@@ -473,5 +539,6 @@ QPaintDevice *QAbstractTextDocumentLayout::paintDevice() const
     return d->paintDevice;
 }
 
-#include "moc_qabstracttextdocumentlayout.cpp"
+QT_END_NAMESPACE
 
+#include "moc_qabstracttextdocumentlayout.cpp"

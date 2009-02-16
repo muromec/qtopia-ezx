@@ -1,3 +1,3 @@
 SOURCES = dbus.cpp
 CONFIG -= qt
-CONFIG -= app_bundle
+mac:CONFIG -= app_bundle

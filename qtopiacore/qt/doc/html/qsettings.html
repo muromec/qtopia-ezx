@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qsettings.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qsettings.cpp -->
 <head>
-  <title>Qt 4.3: QSettings Class Reference</title>
+  <title>Qt 4.4: QSettings Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QSettings Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QSettings Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QSettings class provides persistent platform-independent application settings. <a href="#details">More...</a></p>
 <pre> #include &lt;QSettings&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
@@ -42,6 +42,7 @@
 <li><div class="fn"/><b><a href="qsettings.html#QSettings-5">QSettings</a></b> ( QObject * <i>parent</i> = 0 )</li>
 <li><div class="fn"/><b><a href="qsettings.html#dtor.QSettings">~QSettings</a></b> ()</li>
 <li><div class="fn"/>QStringList <b><a href="qsettings.html#allKeys">allKeys</a></b> () const</li>
+<li><div class="fn"/>QString <b><a href="qsettings.html#applicationName">applicationName</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#beginGroup">beginGroup</a></b> ( const QString &amp; <i>prefix</i> )</li>
 <li><div class="fn"/>int <b><a href="qsettings.html#beginReadArray">beginReadArray</a></b> ( const QString &amp; <i>prefix</i> )</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#beginWriteArray">beginWriteArray</a></b> ( const QString &amp; <i>prefix</i>, int <i>size</i> = -1 )</li>
@@ -53,9 +54,12 @@
 <li><div class="fn"/>void <b><a href="qsettings.html#endGroup">endGroup</a></b> ()</li>
 <li><div class="fn"/>bool <b><a href="qsettings.html#fallbacksEnabled">fallbacksEnabled</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qsettings.html#fileName">fileName</a></b> () const</li>
+<li><div class="fn"/>Format <b><a href="qsettings.html#format">format</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qsettings.html#group">group</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qsettings.html#isWritable">isWritable</a></b> () const</li>
+<li><div class="fn"/>QString <b><a href="qsettings.html#organizationName">organizationName</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#remove">remove</a></b> ( const QString &amp; <i>key</i> )</li>
+<li><div class="fn"/>Scope <b><a href="qsettings.html#scope">scope</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#setArrayIndex">setArrayIndex</a></b> ( int <i>i</i> )</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#setFallbacksEnabled">setFallbacksEnabled</a></b> ( bool <i>b</i> )</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#setValue">setValue</a></b> ( const QString &amp; <i>key</i>, const QVariant &amp; <i>value</i> )</li>
@@ -69,7 +73,9 @@
 <a name="static-public-members"></a>
 <h3>Static Public Members</h3>
 <ul>
+<li><div class="fn"/>Format <b><a href="qsettings.html#defaultFormat">defaultFormat</a></b> ()</li>
 <li><div class="fn"/>Format <b><a href="qsettings.html#registerFormat">registerFormat</a></b> ( const QString &amp; <i>extension</i>, ReadFunc <i>readFunc</i>, WriteFunc <i>writeFunc</i>, Qt::CaseSensitivity <i>caseSensitivity</i> = Qt::CaseSensitive )</li>
+<li><div class="fn"/>void <b><a href="qsettings.html#setDefaultFormat">setDefaultFormat</a></b> ( Format <i>format</i> )</li>
 <li><div class="fn"/>void <b><a href="qsettings.html#setPath">setPath</a></b> ( Format <i>format</i>, Scope <i>scope</i>, const QString &amp; <i>path</i> )</li>
 </ul>
 <ul>
@@ -184,7 +190,7 @@
 <p>The <a href="tools-settingseditor.html">Settings Editor</a> example lets you experiment with different settings location and with fallbacks turned on or off.</p>
 <a name="restoring-the-state-of-a-gui-application"></a>
 <h3>Restoring the State of a GUI Application</h3>
-<p>QSettings is often used to store the state of a GUI application. The following example illustrates how to use we will use QSettings to save and restore the geometry of an application's main window.</p>
+<p>QSettings is often used to store the state of a GUI application. The following example illustrates how to use QSettings to save and restore the geometry of an application's main window.</p>
 <pre> void MainWindow::writeSettings()
  {
      QSettings settings(&quot;Moose Soft&quot;, &quot;Clipper&quot;);
@@ -233,8 +239,8 @@
 <p>As mentioned in the <a href="#fallback-mechanism">Fallback Mechanism</a> section, QSettings stores settings for an application in up to four locations, depending on whether the settings are user-specific or system-wide and whether the the settings are application-specific or organization-wide. For simplicity, we're assuming the organization is called MySoft and the application is called Star Runner.</p>
 <p>On Unix systems, if the file format is <a href="qsettings.html#Format-enum">NativeFormat</a>, the following files are used by default:</p>
 <ol type="1">
-<li><tt>$HOME/.config/MySoft/Star Runner.conf</tt></li>
-<li><tt>$HOME/.config/MySoft.conf</tt></li>
+<li><tt>$HOME/.config/MySoft/Star Runner.conf</tt> (Qt for Embedded Linux: <tt>$HOME/Settings/MySoft/Star Runner.conf</tt>)</li>
+<li><tt>$HOME/.config/MySoft.conf</tt> (Qt for Embedded Linux: <tt>$HOME/Settings/MySoft.conf</tt>)</li>
 <li><tt>/etc/xdg/MySoft/Star Runner.conf</tt></li>
 <li><tt>/etc/xdg/MySoft.conf</tt></li>
 </ol>
@@ -254,8 +260,8 @@
 </ol>
 <p>If the file format is <a href="qsettings.html#Format-enum">IniFormat</a>, the following files are used on Unix and Mac OS X:</p>
 <ol type="1">
-<li><tt>$HOME/.config/MySoft/Star Runner.ini</tt></li>
-<li><tt>$HOME/.config/MySoft.ini</tt></li>
+<li><tt>$HOME/.config/MySoft/Star Runner.ini</tt> (Qt for Embedded Linux: <tt>$HOME/Settings/MySoft/Star Runner.ini</tt>)</li>
+<li><tt>$HOME/.config/MySoft.ini</tt> (Qt for Embedded Linux: <tt>$HOME/Settings/MySoft.ini</tt>)</li>
 <li><tt>/etc/xdg/MySoft/Star Runner.ini</tt></li>
 <li><tt>/etc/xdg/MySoft.ini</tt></li>
 </ol>
@@ -279,7 +285,8 @@
                     QSettings::NativeFormat);</pre>
 <a name="accessing-the-windows-registry-directly"></a>
 <h4>Accessing the Windows Registry Directly</h4>
-<p>On Windows, QSettings also lets you access arbitrary entries in the system registry. This is done by constructing a QSettings object with a path in the registry and <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>. For example:</p>
+<p>On Windows, QSettings lets you access settings that have been written with QSettings (or settings in a supported format, e.g&#x2e;, string data) in the system registry. This is done by constructing a QSettings object with a path in the registry and <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>.</p>
+<p>For example:</p>
 <pre> QSettings settings(&quot;HKEY_CURRENT_USER\\Software\\Microsoft\\Office&quot;,
                     QSettings::NativeFormat);</pre>
 <p>All the registry entries that appear under the specified path can be read or written through the QSettings object as usual (using forward slashes instead of backslashes). For example:</p>
@@ -304,6 +311,7 @@
      QSettings settings(&quot;Grenoulle Logique&quot;, &quot;Squash&quot;);
  #endif</pre>
 </li>
+<li>On Unix and Mac OS X systems, the advisory file locking is disabled if NFS (or AutoFS or CacheFS) is detected to work around a bug in the NFS fcntl() implementation, which hangs forever if statd or lockd aren't running. Also, the locking isn't performed when accessing <tt>.plist</tt> files.</li>
 </ul>
 <p>See also <a href="qvariant.html">QVariant</a>, <a href="qsessionmanager.html">QSessionManager</a>, <a href="tools-settingseditor.html">Settings Editor Example</a>, and <a href="mainwindows-application.html">Application Example</a>.</p>
 <hr />
@@ -363,12 +371,13 @@
 <p>Example:</p>
 <pre> QSettings settings(&quot;Moose Tech&quot;, &quot;Facturo-Pro&quot;);</pre>
 <p>The scope is <a href="qsettings.html#Scope-enum">QSettings::UserScope</a> and the format is <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>.</p>
-<p>See also <a href="qsettings.html#fallback-mechanism">Fallback Mechanism</a>.</p>
+<p>See also <a href="qsettings.html#setDefaultFormat">setDefaultFormat</a>() and <a href="qsettings.html#fallback-mechanism">Fallback Mechanism</a>.</p>
 <h3 class="fn"><a name="QSettings-2"></a>QSettings::QSettings ( <a href="qsettings.html#Scope-enum">Scope</a> <i>scope</i>, const <a href="qstring.html">QString</a> &amp; <i>organization</i>, const <a href="qstring.html">QString</a> &amp; <i>application</i> = QString(), <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
 <p>Constructs a <a href="qsettings.html">QSettings</a> object for accessing settings of the application called <i>application</i> from the organization called <i>organization</i>, and with parent <i>parent</i>.</p>
 <p>If <i>scope</i> is <a href="qsettings.html#Scope-enum">QSettings::UserScope</a>, the <a href="qsettings.html">QSettings</a> object searches user-specific settings first, before it searches system-wide settings as a fallback. If <i>scope</i> is <a href="qsettings.html#Scope-enum">QSettings::SystemScope</a>, the <a href="qsettings.html">QSettings</a> object ignores user-specific settings and provides access to system-wide settings.</p>
-<p>The storage format is always <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>.</p>
+<p>The storage format is <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>.</p>
 <p>If no application name is given, the <a href="qsettings.html">QSettings</a> object will only access the organization-wide <a href="qsettings.html#fallback-mechanism">locations</a>.</p>
+<p>See also <a href="qsettings.html#setDefaultFormat">setDefaultFormat</a>().</p>
 <h3 class="fn"><a name="QSettings-3"></a>QSettings::QSettings ( <a href="qsettings.html#Format-enum">Format</a> <i>format</i>, <a href="qsettings.html#Scope-enum">Scope</a> <i>scope</i>, const <a href="qstring.html">QString</a> &amp; <i>organization</i>, const <a href="qstring.html">QString</a> &amp; <i>application</i> = QString(), <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
 <p>Constructs a <a href="qsettings.html">QSettings</a> object for accessing settings of the application called <i>application</i> from the organization called <i>organization</i>, and with parent <i>parent</i>.</p>
 <p>If <i>scope</i> is <a href="qsettings.html#Scope-enum">QSettings::UserScope</a>, the <a href="qsettings.html">QSettings</a> object searches user-specific settings first, before it searches system-wide settings as a fallback. If <i>scope</i> is <a href="qsettings.html#Scope-enum">QSettings::SystemScope</a>, the <a href="qsettings.html">QSettings</a> object ignores user-specific settings and provides access to system-wide settings.</p>
@@ -378,10 +387,15 @@
 <p>Constructs a <a href="qsettings.html">QSettings</a> object for accessing the settings stored in the file called <i>fileName</i>, with parent <i>parent</i>. If the file doesn't already exist, it is created.</p>
 <p>If <i>format</i> is <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>, the meaning of <i>fileName</i> depends on the platform. On Unix, <i>fileName</i> is the name of an INI file. On Mac OS X, <i>fileName</i> is the name of a <tt>.plist</tt> file. On Windows, <i>fileName</i> is a path in the system registry.</p>
 <p>If <i>format</i> is <a href="qsettings.html#Format-enum">QSettings::IniFormat</a>, <i>fileName</i> is the name of an INI file.</p>
+<p><b>Warning:</b> This function is provided for convenience. It works well for accessing INI or <tt>.plist</tt> files generated by Qt, but might fail on some syntaxes found in such files originated by other programs. In particular, be aware of the following limitations:</p>
+<ul>
+<li><a href="qsettings.html">QSettings</a> provides no way of reading INI &quot;path&quot; entries, i.e&#x2e;, entries with unescaped slash characters. (This is because these entries are ambiguous and cannot be resolved automatically.)</li>
+<li>In INI files, <a href="qsettings.html">QSettings</a> uses the <tt>@</tt> character as a metacharacter in some contexts, to encode Qt-specific data types (e.g&#x2e;, <tt>@Rect</tt>), and might therefore misinterpret it when it occurs in pure INI files.</li>
+</ul>
 <p>See also <a href="qsettings.html#fileName">fileName</a>().</p>
 <h3 class="fn"><a name="QSettings-5"></a>QSettings::QSettings ( <a href="qobject.html">QObject</a> * <i>parent</i> = 0 )</h3>
 <p>Constructs a <a href="qsettings.html">QSettings</a> object for accessing settings of the application and organization set previously with a call to <a href="qcoreapplication.html#organizationName-prop">QCoreApplication::setOrganizationName</a>(), <a href="qcoreapplication.html#organizationDomain-prop">QCoreApplication::setOrganizationDomain</a>(), and <a href="qcoreapplication.html#applicationName-prop">QCoreApplication::setApplicationName</a>().</p>
-<p>The scope is <a href="qsettings.html#Scope-enum">QSettings::UserScope</a> and the format is <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>.</p>
+<p>The scope is <a href="qsettings.html#Scope-enum">QSettings::UserScope</a> and the format is <a href="qsettings.html#defaultFormat">defaultFormat</a>() (<a href="qsettings.html#Format-enum">QSettings::NativeFormat</a> by default).</p>
 <p>The code</p>
 <pre> QSettings settings(&quot;Moose Soft&quot;, &quot;Facturo-Pro&quot;);</pre>
 <p>is equivalent to</p>
@@ -390,7 +404,7 @@
  QSettings settings;</pre>
 <p>If <a href="qcoreapplication.html#organizationName-prop">QCoreApplication::setOrganizationName</a>() and <a href="qcoreapplication.html#applicationName-prop">QCoreApplication::setApplicationName</a>() has not been previously called, the <a href="qsettings.html">QSettings</a> object will not be able to read or write any settings, and <a href="qsettings.html#status">status</a>() will return <a href="qsettings.html#Status-enum">AccessError</a>.</p>
 <p>On Mac OS X, if both a name and an Internet domain are specified for the organization, the domain is preferred over the name. On other platforms, the name is preferred over the domain.</p>
-<p>See also <a href="qcoreapplication.html#organizationName-prop">QCoreApplication::setOrganizationName</a>(), <a href="qcoreapplication.html#organizationDomain-prop">QCoreApplication::setOrganizationDomain</a>(), and <a href="qcoreapplication.html#applicationName-prop">QCoreApplication::setApplicationName</a>().</p>
+<p>See also <a href="qcoreapplication.html#organizationName-prop">QCoreApplication::setOrganizationName</a>(), <a href="qcoreapplication.html#organizationDomain-prop">QCoreApplication::setOrganizationDomain</a>(), <a href="qcoreapplication.html#applicationName-prop">QCoreApplication::setApplicationName</a>(), and <a href="qsettings.html#setDefaultFormat">setDefaultFormat</a>().</p>
 <h3 class="fn"><a name="dtor.QSettings"></a>QSettings::~QSettings ()</h3>
 <p>Destroys the <a href="qsettings.html">QSettings</a> object.</p>
 <p>Any unsaved changes will eventually be written to permanent storage.</p>
@@ -411,6 +425,10 @@
  keys = settings.allKeys();
 <span class="comment"> // keys: [&quot;color&quot;, &quot;size&quot;]</span></pre>
 <p>See also <a href="qsettings.html#childGroups">childGroups</a>() and <a href="qsettings.html#childKeys">childKeys</a>().</p>
+<h3 class="fn"><a name="applicationName"></a><a href="qstring.html">QString</a> QSettings::applicationName () const</h3>
+<p>Returns the application name used for storing the settings.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qcoreapplication.html#applicationName-prop">QCoreApplication::applicationName</a>(), <a href="qsettings.html#format">format</a>(), <a href="qsettings.html#scope">scope</a>(), and <a href="qsettings.html#organizationName">organizationName</a>().</p>
 <h3 class="fn"><a name="beginGroup"></a>void QSettings::beginGroup ( const <a href="qstring.html">QString</a> &amp; <i>prefix</i> )</h3>
 <p>Appends <i>prefix</i> to the current group.</p>
 <p>The current group is automatically prepended to all keys specified to <a href="qsettings.html">QSettings</a>. In addition, query functions such as <a href="qsettings.html#childGroups">childGroups</a>(), <a href="qsettings.html#childKeys">childKeys</a>(), and <a href="qsettings.html#allKeys">allKeys</a>() are based on the group. By default, no group is set.</p>
@@ -446,8 +464,8 @@
  for (int i = 0; i &lt; size; ++i) {
      settings.setArrayIndex(i);
      Login login;
-     login.userName = settings.value(&quot;userName&quot;);
-     login.password = settings.value(&quot;password&quot;);
+     login.userName = settings.value(&quot;userName&quot;).toString();
+     login.password = settings.value(&quot;password&quot;).toString();
      logins.append(login);
  }
  settings.endArray();</pre>
@@ -473,6 +491,7 @@
  settings.endArray();</pre>
 <p>The generated keys will have the form</p>
 <ul>
+<li><tt>logins/size</tt></li>
 <li><tt>logins/1/userName</tt></li>
 <li><tt>logins/1/password</tt></li>
 <li><tt>logins/2/userName</tt></li>
@@ -525,7 +544,12 @@
 <h3 class="fn"><a name="contains"></a>bool QSettings::contains ( const <a href="qstring.html">QString</a> &amp; <i>key</i> ) const</h3>
 <p>Returns true if there exists a setting called <i>key</i>; returns false otherwise.</p>
 <p>If a group is set using <a href="qsettings.html#beginGroup">beginGroup</a>(), <i>key</i> is taken to be relative to that group.</p>
+<p>Note that the Windows registry and INI files use case-insensitive keys, whereas the Carbon Preferences API on Mac OS X uses case-sensitive keys. To avoid portability problems, see the <a href="qsettings.html#key-syntax">Key Syntax</a> rules.</p>
 <p>See also <a href="qsettings.html#value">value</a>() and <a href="qsettings.html#setValue">setValue</a>().</p>
+<h3 class="fn"><a name="defaultFormat"></a><a href="qsettings.html#Format-enum">Format</a> QSettings::defaultFormat ()&nbsp;&nbsp;<tt> [static]</tt></h3>
+<p>Returns default file format used for storing settings for the <a href="qsettings.html">QSettings</a>(<a href="qobject.html">QObject</a> *) constructor. If no default format is set, <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a> is used.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsettings.html#setDefaultFormat">setDefaultFormat</a>() and <a href="qsettings.html#format">format</a>().</p>
 <h3 class="fn"><a name="endArray"></a>void QSettings::endArray ()</h3>
 <p>Closes the array that was started using <a href="qsettings.html#beginReadArray">beginReadArray</a>() or <a href="qsettings.html#beginWriteArray">beginWriteArray</a>().</p>
 <p>See also <a href="qsettings.html#beginReadArray">beginReadArray</a>() and <a href="qsettings.html#beginWriteArray">beginWriteArray</a>().</p>
@@ -551,7 +575,11 @@
 <h3 class="fn"><a name="fileName"></a><a href="qstring.html">QString</a> QSettings::fileName () const</h3>
 <p>Returns the path where settings written using this <a href="qsettings.html">QSettings</a> object are stored.</p>
 <p>On Windows, if the format is <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a>, the return value is a system registry path, not a file path.</p>
-<p>See also <a href="qsettings.html#isWritable">isWritable</a>().</p>
+<p>See also <a href="qsettings.html#isWritable">isWritable</a>() and <a href="qsettings.html#format">format</a>().</p>
+<h3 class="fn"><a name="format"></a><a href="qsettings.html#Format-enum">Format</a> QSettings::format () const</h3>
+<p>Returns the format used for storing the settings.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsettings.html#defaultFormat">defaultFormat</a>(), <a href="qsettings.html#fileName">fileName</a>(), <a href="qsettings.html#scope">scope</a>(), <a href="qsettings.html#organizationName">organizationName</a>(), and <a href="qsettings.html#applicationName">applicationName</a>().</p>
 <h3 class="fn"><a name="group"></a><a href="qstring.html">QString</a> QSettings::group () const</h3>
 <p>Returns the current group.</p>
 <p>See also <a href="qsettings.html#beginGroup">beginGroup</a>() and <a href="qsettings.html#endGroup">endGroup</a>().</p>
@@ -560,6 +588,10 @@
 <p>One reason why isWritable() might return false is if <a href="qsettings.html">QSettings</a> operates on a read-only file.</p>
 <p><b>Warning:</b> This function is not perfectly reliable, because the file permissions can change at any time.</p>
 <p>See also <a href="qsettings.html#fileName">fileName</a>(), <a href="qsettings.html#status">status</a>(), and <a href="qsettings.html#sync">sync</a>().</p>
+<h3 class="fn"><a name="organizationName"></a><a href="qstring.html">QString</a> QSettings::organizationName () const</h3>
+<p>Returns the organization name used for storing the settings.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qcoreapplication.html#organizationName-prop">QCoreApplication::organizationName</a>(), <a href="qsettings.html#format">format</a>(), <a href="qsettings.html#scope">scope</a>(), and <a href="qsettings.html#applicationName">applicationName</a>().</p>
 <h3 class="fn"><a name="registerFormat"></a><a href="qsettings.html#Format-enum">Format</a> QSettings::registerFormat ( const <a href="qstring.html">QString</a> &amp; <i>extension</i>, <a href="qsettings.html#ReadFunc-typedef">ReadFunc</a> <i>readFunc</i>, <a href="qsettings.html#WriteFunc-typedef">WriteFunc</a> <i>writeFunc</i>, <a href="qt.html#CaseSensitivity-enum">Qt::CaseSensitivity</a> <i>caseSensitivity</i> = Qt::CaseSensitive )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Registers a custom storage format. On success, returns a special Format value that can then be passed to the <a href="qsettings.html">QSettings</a> constuctor. On failure, returns <a href="qsettings.html#Format-enum">InvalidFormat</a>.</p>
 <p>The <i>extension</i> is the file extension associated to the format (without the '.').</p>
@@ -609,10 +641,20 @@
 
  QStringList keys = settings.allKeys();
 <span class="comment"> // keys: [&quot;ape&quot;]</span></pre>
+<p>Note that the Windows registry and INI files use case-insensitive keys, whereas the Carbon Preferences API on Mac OS X uses case-sensitive keys. To avoid portability problems, see the <a href="qsettings.html#key-syntax">Key Syntax</a> rules.</p>
 <p>See also <a href="qsettings.html#setValue">setValue</a>(), <a href="qsettings.html#value">value</a>(), and <a href="qsettings.html#contains">contains</a>().</p>
+<h3 class="fn"><a name="scope"></a><a href="qsettings.html#Scope-enum">Scope</a> QSettings::scope () const</h3>
+<p>Returns the scope used for storing the settings.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsettings.html#format">format</a>(), <a href="qsettings.html#organizationName">organizationName</a>(), and <a href="qsettings.html#applicationName">applicationName</a>().</p>
 <h3 class="fn"><a name="setArrayIndex"></a>void QSettings::setArrayIndex ( int <i>i</i> )</h3>
 <p>Sets the current array index to <i>i</i>. Calls to functions such as <a href="qsettings.html#setValue">setValue</a>(), <a href="qsettings.html#value">value</a>(), <a href="qsettings.html#remove">remove</a>(), and <a href="qsettings.html#contains">contains</a>() will operate on the array entry at that index.</p>
 <p>You must call <a href="qsettings.html#beginReadArray">beginReadArray</a>() or <a href="qsettings.html#beginWriteArray">beginWriteArray</a>() before you can call this function.</p>
+<h3 class="fn"><a name="setDefaultFormat"></a>void QSettings::setDefaultFormat ( <a href="qsettings.html#Format-enum">Format</a> <i>format</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<p>Sets the default file format to the given <i>format</i>, used for storing settings for the <a href="qsettings.html">QSettings</a>(<a href="qobject.html">QObject</a> *) constructor.</p>
+<p>If no default format is set, <a href="qsettings.html#Format-enum">QSettings::NativeFormat</a> is used.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qsettings.html#defaultFormat">defaultFormat</a>() and <a href="qsettings.html#format">format</a>().</p>
 <h3 class="fn"><a name="setFallbacksEnabled"></a>void QSettings::setFallbacksEnabled ( bool <i>b</i> )</h3>
 <p>Sets whether fallbacks are enabled to <i>b</i>.</p>
 <p>By default, fallbacks are enabled.</p>
@@ -626,17 +668,19 @@
 <tr valign="top" class="even"><td><a href="qsettings.html#Scope-enum">SystemScope</a></td><td><tt>%COMMON_APPDATA%</tt></td></tr>
 <tr valign="top" class="odd"><td rowspan="2">Unix</td><td rowspan="2"><a href="qsettings.html#Format-enum">NativeFormat</a>, <a href="qsettings.html#Format-enum">IniFormat</a></td><td><a href="qsettings.html#Scope-enum">UserScope</a></td><td><tt>$HOME/.config</tt></td></tr>
 <tr valign="top" class="even"><td><a href="qsettings.html#Scope-enum">SystemScope</a></td><td><tt>/etc/xdg</tt></td></tr>
+<tr valign="top" class="odd"><td rowspan="2">Qt for Embedded Linux</td><td rowspan="2"><a href="qsettings.html#Format-enum">NativeFormat</a>, <a href="qsettings.html#Format-enum">IniFormat</a></td><td><a href="qsettings.html#Scope-enum">UserScope</a></td><td><tt>$HOME/Settings</tt></td></tr>
+<tr valign="top" class="even"><td><a href="qsettings.html#Scope-enum">SystemScope</a></td><td><tt>/etc/xdg</tt></td></tr>
 <tr valign="top" class="odd"><td rowspan="2">Mac OS X</td><td rowspan="2"><a href="qsettings.html#Format-enum">IniFormat</a></td><td><a href="qsettings.html#Scope-enum">UserScope</a></td><td><tt>$HOME/.config</tt></td></tr>
 <tr valign="top" class="even"><td><a href="qsettings.html#Scope-enum">SystemScope</a></td><td><tt>/etc/xdg</tt></td></tr>
 </table></p>
-<p>The default <a href="qsettings.html#Scope-enum">UserScope</a> paths on Unix and Mac OS X (<tt>$HOME/.config</tt>) can be overridden by the user by setting the <tt>XDG_CONFIG_HOME</tt> environment variable. The default <a href="qsettings.html#Scope-enum">SystemScope</a> paths on Unix and Mac OS X (<tt>/etc/xdg</tt>) can be overridden when building the Qt library using the <tt>configure</tt> script's <tt>--sysconfdir</tt> flag (see <a href="qlibraryinfo.html">QLibraryInfo</a> for details).</p>
+<p>The default <a href="qsettings.html#Scope-enum">UserScope</a> paths on Unix and Mac OS X (<tt>$HOME/.config</tt> or $HOME/Settings) can be overridden by the user by setting the <tt>XDG_CONFIG_HOME</tt> environment variable. The default <a href="qsettings.html#Scope-enum">SystemScope</a> paths on Unix and Mac OS X (<tt>/etc/xdg</tt>) can be overridden when building the Qt library using the <tt>configure</tt> script's <tt>--sysconfdir</tt> flag (see <a href="qlibraryinfo.html">QLibraryInfo</a> for details).</p>
 <p>Setting the <a href="qsettings.html#Format-enum">NativeFormat</a> paths on Windows and Mac OS X has no effect.</p>
 <p><b>Warning:</b> This function doesn't affect existing <a href="qsettings.html">QSettings</a> objects.</p>
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qsettings.html#registerFormat">registerFormat</a>().</p>
 <h3 class="fn"><a name="setValue"></a>void QSettings::setValue ( const <a href="qstring.html">QString</a> &amp; <i>key</i>, const <a href="qvariant.html">QVariant</a> &amp; <i>value</i> )</h3>
-<p>Sets the value of setting <i>key</i> to <i>value</i>.</p>
-<p>If the key already exists, the previous value is overwritten.</p>
+<p>Sets the value of setting <i>key</i> to <i>value</i>. If the <i>key</i> already exists, the previous value is overwritten.</p>
+<p>Note that the Windows registry and INI files use case-insensitive keys, whereas the Carbon Preferences API on Mac OS X uses case-sensitive keys. To avoid portability problems, see the <a href="qsettings.html#key-syntax">Key Syntax</a> rules.</p>
 <p>Example:</p>
 <pre> QSettings settings;
  settings.setValue(&quot;interval&quot;, 30);
@@ -647,12 +691,16 @@
 <p>See also <a href="qsettings.html#value">value</a>(), <a href="qsettings.html#remove">remove</a>(), and <a href="qsettings.html#contains">contains</a>().</p>
 <h3 class="fn"><a name="status"></a><a href="qsettings.html#Status-enum">Status</a> QSettings::status () const</h3>
 <p>Returns a status code indicating the first error that was met by <a href="qsettings.html">QSettings</a>, or <a href="qsettings.html#Status-enum">QSettings::NoError</a> if no error occurred.</p>
+<p>Be aware that <a href="qsettings.html">QSettings</a> delays performing some operations. For this reason, you might want to call <a href="qsettings.html#sync">sync</a>() to ensure that the data stored in <a href="qsettings.html">QSettings</a> is written to disk before calling status().</p>
+<p>See also <a href="qsettings.html#sync">sync</a>().</p>
 <h3 class="fn"><a name="sync"></a>void QSettings::sync ()</h3>
 <p>Writes any unsaved changes to permanent storage, and reloads any settings that have been changed in the meantime by another application.</p>
-<p>Unless you use <a href="qsettings.html">QSettings</a> as a communication mechanism between different processes, you normally don't need to call this function.</p>
+<p>This function is called automatically from <a href="qsettings.html">QSettings</a>'s destructor and by the event loop at regular intervals, so you normally don't need to call it yourself.</p>
+<p>See also <a href="qsettings.html#status">status</a>().</p>
 <h3 class="fn"><a name="value"></a><a href="qvariant.html">QVariant</a> QSettings::value ( const <a href="qstring.html">QString</a> &amp; <i>key</i>, const <a href="qvariant.html">QVariant</a> &amp; <i>defaultValue</i> = QVariant() ) const</h3>
 <p>Returns the value for setting <i>key</i>. If the setting doesn't exist, returns <i>defaultValue</i>.</p>
 <p>If no default value is specified, a default <a href="qvariant.html">QVariant</a> is returned.</p>
+<p>Note that the Windows registry and INI files use case-insensitive keys, whereas the Carbon Preferences API on Mac OS X uses case-sensitive keys. To avoid portability problems, see the <a href="qsettings.html#key-syntax">Key Syntax</a> rules.</p>
 <p>Example:</p>
 <pre> QSettings settings;
  settings.setValue(&quot;animal/snake&quot;, 58);
@@ -662,8 +710,8 @@
 <p>See also <a href="qsettings.html#setValue">setValue</a>(), <a href="qsettings.html#contains">contains</a>(), and <a href="qsettings.html#remove">remove</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

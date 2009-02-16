@@ -21,7 +21,7 @@ while [ "$#" -gt 0 ]; do
         LFLAGS="$LFLAGS -framework \"$2\""
         shift
         ;;
-    -F*|-m*)
+    -F*|-m*|-x*)
         LFLAGS="$LFLAGS $PARAM"
         CXXFLAGS="$CXXFLAGS $PARAM"
         ;;
@@ -32,12 +32,14 @@ while [ "$#" -gt 0 ]; do
         INC=`echo $PARAM | sed -e 's/^-I//'`
         INCLUDEPATH="$INCLUDEPATH $INC"
         ;;
-    -f*)
+    -f*|-D*)
         CXXFLAGS="$CXXFLAGS $PARAM"
         ;;
-    -m*)
-        CXXFLAGS="$CXXFLAGS $PARAM"
-        ;;
+    -Qoption)
+	# Two-argument form for the Sun Compiler
+	CXXFLAGS="$CXXFLAGS $PARAM \"$2\""
+	shift
+	;;
     *)  ;;
     esac
     shift

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qmainwindow.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qmainwindow.cpp -->
 <head>
-  <title>Qt 4.3: QMainWindow Class Reference</title>
+  <title>Qt 4.4: QMainWindow Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QMainWindow Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QMainWindow Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QMainWindow class provides a main application window. <a href="#details">More...</a></p>
 <pre> #include &lt;QMainWindow&gt;</pre><p>Inherits <a href="qwidget.html">QWidget</a>.</p>
@@ -41,7 +41,7 @@
 </td></tr>
 </table></p>
 <ul>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -70,6 +70,7 @@
 <li><div class="fn"/>void <b><a href="qmainwindow.html#removeDockWidget">removeDockWidget</a></b> ( QDockWidget * <i>dockwidget</i> )</li>
 <li><div class="fn"/>void <b><a href="qmainwindow.html#removeToolBar">removeToolBar</a></b> ( QToolBar * <i>toolbar</i> )</li>
 <li><div class="fn"/>void <b><a href="qmainwindow.html#removeToolBarBreak">removeToolBarBreak</a></b> ( QToolBar * <i>before</i> )</li>
+<li><div class="fn"/>bool <b><a href="qmainwindow.html#restoreDockWidget">restoreDockWidget</a></b> ( QDockWidget * <i>dockwidget</i> )</li>
 <li><div class="fn"/>bool <b><a href="qmainwindow.html#restoreState">restoreState</a></b> ( const QByteArray &amp; <i>state</i>, int <i>version</i> = 0 )</li>
 <li><div class="fn"/>QByteArray <b><a href="qmainwindow.html#saveState">saveState</a></b> ( int <i>version</i> = 0 ) const</li>
 <li><div class="fn"/>void <b><a href="qmainwindow.html#setCentralWidget">setCentralWidget</a></b> ( QWidget * <i>widget</i> )</li>
@@ -90,9 +91,9 @@
 <li><div class="fn"/>bool <b><a href="qmainwindow.html#unifiedTitleAndToolBarOnMac-prop">unifiedTitleAndToolBarOnMac</a></b> () const</li>
 </ul>
 <ul>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -139,7 +140,8 @@
 <a name="qt-main-window-framework"></a>
 <h3>Qt Main Window Framework</h3>
 <p>A main window provides a framework for building an application's user interface. Qt has QMainWindow and its <a href="application.html">related classes</a> for main window management. QMainWindow has its own layout to which you can add <a href="qtoolbar.html">QToolBar</a>s, <a href="qdockwidget.html">QDockWidget</a>s, a <a href="qmenubar.html">QMenuBar</a>, and a <a href="qstatusbar.html">QStatusBar</a>. The layout has a center area that can be occupied by any kind of widget. You can see an image of the layout below.</p>
-<p align="center"><img src="images/mainwindowlayout.png" /></p><a name="creating-main-window-components"></a>
+<p align="center"><img src="images/mainwindowlayout.png" /></p><p><b>Note:</b> Creating a main window without a central widget is not supported. You must have a central widget even if it is just a placeholder.</p>
+<a name="creating-main-window-components"></a>
 <h3>Creating Main Window Components</h3>
 <p>A central widget will typically be a standard Qt widget such as a <a href="qtextedit.html">QTextEdit</a> or a <a href="qgraphicsview.html">QGraphicsView</a>. Custom widgets can also be used for advanced applications. You set the central widget with <tt>setCentralWidget()</tt>.</p>
 <p>Main windows have either a single (SDI) or multiple (MDI) document interface. You create MDI applications in Qt by using a <a href="qmdiarea.html">QMdiArea</a> as the central widget.</p>
@@ -170,7 +172,7 @@
 <a name="creating-dock-widgets"></a>
 <h4>Creating Dock Widgets</h4>
 <p>Dock widgets are implemented in the <a href="qdockwidget.html">QDockWidget</a> class. A dock widget is a window that can be docked into the main window. You add dock widgets to a main window with <tt>addDockWidget()</tt>.</p>
-<p>There are four dock widget areas as given by the <a href="qt.html#DockWidgetArea-enum">Qt::DockWidgetArea</a> enum: left, right, top, and bottom. You can specify which dock widget area that should occupy the corners where the areas overlap with <tt>setDockWidgetCorner()</tt>. By default each area can only contain one row (vertical or horizontal) of dock widgets, but if you enable nesting with <tt>setDockNestingEnabled()</tt>, dock widgets can be added in either direction.</p>
+<p>There are four dock widget areas as given by the <a href="qt.html#DockWidgetArea-enum">Qt::DockWidgetArea</a> enum: left, right, top, and bottom. You can specify which dock widget area that should occupy the corners where the areas overlap with <tt>setCorner()</tt>. By default each area can only contain one row (vertical or horizontal) of dock widgets, but if you enable nesting with <tt>setDockNestingEnabled()</tt>, dock widgets can be added in either direction.</p>
 <p>Two dock widgets may also be stacked on top of each other. A <a href="qtabbar.html">QTabBar</a> is then used to select which of the widgets that should be displayed.</p>
 <p>We give an example of how to create and add dock widgets to a main window:</p>
 <pre>     QDockWidget *dockWidget = new QDockWidget(tr(&quot;Dock Widget&quot;), this);
@@ -257,7 +259,7 @@
 <li>QToolBars in this toolbar area are not movable and you cannot drag other toolbars to it</li>
 <li>Toolbar breaks are not respected or preserved</li>
 <li>Any custom widgets in the toolbar will not be shown if the toolbar becomes too small (only actions will be shown)</li>
-<li>If you call <a href="qwidget.html#showFullScreen">showFullScreen</a>() on the main window, the <a href="porting4.html#qtoolbar">QToolbar</a> will disappear since it is considered to be part of the title bar. You can work around this by doing the following by turning off the unified toolbar before you call showFullScrenn() and restore the value after you call <a href="qwidget.html#showNormal">showNormal</a>().</li>
+<li>If you call <a href="qwidget.html#showFullScreen">showFullScreen</a>() on the main window, the <a href="porting4.html#qtoolbar">QToolbar</a> will disappear since it is considered to be part of the title bar. You can work around this by turning off the unified toolbar before you call <a href="qwidget.html#showFullScreen">showFullScreen</a>() and restoring it after you call <a href="qwidget.html#showNormal">showNormal</a>().</li>
 </ul>
 <p>Setting this back to false will remove these restrictions.</p>
 <p>The <a href="qt.html#WidgetAttribute-enum">Qt::WA_MacBrushedMetal</a> attribute takes precedence over this property.</p>
@@ -315,6 +317,8 @@
 <p>Inserts a toolbar break before the toolbar specified by <i>before</i>.</p>
 <h3 class="fn"><a name="menuBar"></a><a href="qmenubar.html">QMenuBar</a> * QMainWindow::menuBar () const</h3>
 <p>Returns the menu bar for the main window. This function creates and returns an empty menu bar if the menu bar does not exist.</p>
+<p>If you want all windows in a Mac application to share one menu bar, don't use this function to create it, because the menu bar created here will have this <a href="qmainwindow.html">QMainWindow</a> as its parent. Instead, you must create a menu bar that does not have a parent, which you can then share among all the Mac windows. Create a parent-less menu bar this way:</p>
+<pre> QMenuBar *menuBar = new QMenuBar(0);</pre>
 <p>See also <a href="qmainwindow.html#setMenuBar">setMenuBar</a>().</p>
 <h3 class="fn"><a name="menuWidget"></a><a href="qwidget.html">QWidget</a> * QMainWindow::menuWidget () const</h3>
 <p>Returns the menu bar for the main window. This function returns null if a menu bar hasn't been constructed yet.</p>
@@ -326,6 +330,8 @@
 <p>Removes the <i>toolbar</i> from the main window layout and hides it. Note that the <i>toolbar</i> is <i>not</i> deleted.</p>
 <h3 class="fn"><a name="removeToolBarBreak"></a>void QMainWindow::removeToolBarBreak ( <a href="qtoolbar.html">QToolBar</a> * <i>before</i> )</h3>
 <p>Removes a toolbar break previously inserted before the toolbar specified by <i>before</i>.</p>
+<h3 class="fn"><a name="restoreDockWidget"></a>bool QMainWindow::restoreDockWidget ( <a href="qdockwidget.html">QDockWidget</a> * <i>dockwidget</i> )</h3>
+<p>Restores the state of <i>dockwidget</i> if it is created after the call to <a href="qmainwindow.html#restoreState">restoreState</a>(). Returns true if the state was restored; otherwise returns false.</p>
 <h3 class="fn"><a name="restoreState"></a>bool QMainWindow::restoreState ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>state</i>, int <i>version</i> = 0 )</h3>
 <p>Restores the <i>state</i> of this mainwindow's toolbars and dockwidgets. The <i>version</i> number is compared with that stored in <i>state</i>. If they do not match, the mainwindow's state is left unchanged, and this function returns <tt>false</tt>; otherwise, the state is restored, and this function returns <tt>true</tt>.</p>
 <p>See also <a href="qmainwindow.html#saveState">saveState</a>().</p>
@@ -377,8 +383,8 @@
 <p>See also <a href="qmainwindow.html#toolButtonStyle-prop">setToolButtonStyle</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

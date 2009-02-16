@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #ifndef QT_NO_ACTION
 #include "qwidgetaction_p.h"
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QWidgetAction
     \since 4.2
@@ -54,7 +50,7 @@
     for inserting custom widgets into action based containers, such
     as toolbars.
 
-    Most actions in application are represented as items in menus or
+    Most actions in an application are represented as items in menus or
     buttons in toolbars. However sometimes more complex widgets are
     necessary. For example a zoom action in a word processor may be
     realized using a QComboBox in a QToolBar, presenting a range
@@ -68,9 +64,10 @@
     QWidgetAction::createWidget() is called. Reimplementations of that
     function should create a new custom widget with the specified parent.
 
-    If the action is removed from a container widget then QWidgetAction::deleteWidget()
-    is called with the previously created custom widget as argument. The default implementation
-    hides the widget and deletes it using QObject::deleteLater().
+    If the action is removed from a container widget then
+    QWidgetAction::deleteWidget() is called with the previously created custom
+    widget as argument. The default implementation hides the widget and deletes
+    it using QObject::deleteLater().
 
     If you have only one single custom widget then you can set it as default
     widget using setDefaultWidget(). That widget will then be used if the
@@ -83,19 +80,20 @@
     Note that it is up to the widget to activate the action, for example by
     reimplementing mouse event handlers and calling QAction::trigger().
 
-    \bold {Mac OS X}: If you add widgets to a menu in the application's menu
-    bar on Mac OS X, the widget will be added and function but there are some
+    \bold {Mac OS X}: If you add a widget to a menu in the application's menu
+    bar on Mac OS X, the widget will be added and it will function but with some
     limitations:
     \list 1
         \o The widget is reparented away from the QMenu to the native menu
-        view. If you show the menu some other place (e.g. as a popup menu), the
-        widget will not be there.
-        \o Focus/Keyboard handling of the widget is not possible
-        \o Mouse tracking on the widget currently does not work
+            view. If you show the menu in some other place (e.g. as a popup menu),
+            the widget will not be there.
+        \o Focus/Keyboard handling of the widget is not possible.
+        \o Due to Apple's design, mouse tracking on the widget currently does
+            not work.
         \o Connecting the triggered() signal to a slot that opens a modal
-        dialog will cause a crash in Mac OS X 10.4 (known bug acknowledged by
-        Apple), a workaround is to use a QueuedConnection instead of a
-        DirectConnection.
+            dialog will cause a crash in Mac OS X 10.4 (known bug acknowledged
+            by Apple), a workaround is to use a QueuedConnection instead of a
+            DirectConnection.
     \endlist
 
     \ingroup application
@@ -148,6 +146,8 @@ void QWidgetAction::setDefaultWidget(QWidget *widget)
     d->defaultWidget->hide();
     d->defaultWidget->setParent(0);
     d->defaultWidgetInUse = false;
+    if (!isEnabled())
+        d->defaultWidget->setEnabled(false);
 }
 
 /*!
@@ -220,7 +220,22 @@ void QWidgetAction::releaseWidget(QWidget *widget)
 */
 bool QWidgetAction::event(QEvent *event)
 {
+    Q_D(QWidgetAction);
+    if (event->type() == QEvent::ActionChanged) {
+        if (d->defaultWidget)
+            d->defaultWidget->setEnabled(isEnabled());
+        foreach (QWidget *w, d->createdWidgets) 
+            w->setEnabled(isEnabled());
+    }
     return QAction::event(event);
+}
+
+/*!
+    \reimp
+ */
+bool QWidgetAction::eventFilter(QObject *obj, QEvent *event)
+{
+    return QAction::eventFilter(obj,event);
 }
 
 /*!
@@ -262,7 +277,8 @@ QList<QWidget *> QWidgetAction::createdWidgets() const
     return d->createdWidgets;
 }
 
+QT_END_NAMESPACE
+
 #include "moc_qwidgetaction.cpp"
 
 #endif // QT_NO_ACTION
-

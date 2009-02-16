@@ -1,55 +1,51 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qdatastream.h"
 #include "qdebug.h"
-#include "qmath_p.h"
 #include "qmatrix.h"
 #include "qregion.h"
 #include "qpainterpath.h"
 #include "qvariant.h"
+#include <qmath.h>
 
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QMatrix
@@ -109,9 +105,7 @@
     \row
     \o \inlineimage qmatrix-simpletransformation.png
     \o
-    \quotefromfile snippets/matrix/matrix.cpp
-    \skipto SimpleTransformation::paintEvent
-    \printuntil }
+    \snippet doc/src/snippets/matrix/matrix.cpp 0
     \endtable
 
     Although these functions are very convenient, it can be more
@@ -123,9 +117,7 @@
     \row
     \o \inlineimage qmatrix-combinedtransformation.png
     \o
-    \quotefromfile snippets/matrix/matrix.cpp
-    \skipto CombinedTransformation::paintEvent
-    \printuntil }
+    \snippet doc/src/snippets/matrix/matrix.cpp 1
     \endtable
 
     \section1 Basic Matrix Operations
@@ -141,10 +133,7 @@
     QMatrix transforms a point in the plane to another point using the
     following formulas:
 
-    \code
-        x' = m11*x + m21*y + dx
-        y' = m22*y + m12*x + dy
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qmatrix.cpp 0
 
     The point \e (x, y) is the original point, and \e (x', y') is the
     transformed point. \e (x', y') can be transformed back to \e (x,
@@ -176,9 +165,7 @@
     \row
     \o \inlineimage qmatrix-combinedtransformation.png
     \o
-    \quotefromfile snippets/matrix/matrix.cpp
-    \skipto BasicOperations::paintEvent
-    \printuntil }
+    \snippet doc/src/snippets/matrix/matrix.cpp 2
     \endtable
 
     \sa QPainter, {The Coordinate System}, {demos/affine}{Affine
@@ -329,10 +316,7 @@ void QMatrix::setMatrix(qreal m11, qreal m12, qreal m21, qreal m22,
 
     The coordinates are transformed using the following formulas:
 
-    \code
-        x' = m11*x + m21*y + dx
-        y' = m22*y + m12*x + dy
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qmatrix.cpp 1
 
     The point (x, y) is the original point, and (x', y') is the
     transformed point.
@@ -402,13 +386,7 @@ QRect QMatrix::mapRect(const QRect &rect) const
         ymin = qMin(ymin, y);
         xmax = qMax(xmax, x);
         ymax = qMax(ymax, y);
-        qreal w = xmax - xmin;
-        qreal h = ymax - ymin;
-        xmin -= (xmin - x0) / w;
-        ymin -= (ymin - y0) / h;
-        xmax -= (xmax - x0) / w;
-        ymax -= (ymax - y0) / h;
-        result = QRect(qRound(xmin), qRound(ymin), qRound(xmax)-qRound(xmin)+1, qRound(ymax)-qRound(ymin)+1);
+        result = QRect(qRound(xmin), qRound(ymin), qRound(xmax)-qRound(xmin), qRound(ymax)-qRound(ymin));
     }
     return result;
 }
@@ -423,10 +401,7 @@ QRect QMatrix::mapRect(const QRect &rect) const
     The rectangle's coordinates are transformed using the following
     formulas:
 
-    \code
-        x' = m11*x + m21*y + dx
-        y' = m22*y + m12*x + dy
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qmatrix.cpp 2
 
     If rotation or shearing has been specified, this function returns
     the \e bounding rectangle. To retrieve the exact region the given
@@ -605,58 +580,13 @@ QPolygon QMatrix::map(const QPolygon &a) const
 {
     int size = a.size();
     int i;
-    QPolygonF p(size);
+    QPolygon p(size);
     const QPoint *da = a.constData();
-    QPointF *dp = p.data();
-    qreal xmin = qreal(INT_MAX);
-    qreal ymin = xmin;
-    qreal xmax = qreal(INT_MIN);
-    qreal ymax = xmax;
-    int xminp = 0;
-    int yminp = 0;
+    QPoint *dp = p.data();
     for(i = 0; i < size; i++) {
-        dp[i].xp = da[i].x();
-        dp[i].yp = da[i].y();
-        if (dp[i].xp < xmin) {
-            xmin = dp[i].xp;
-            xminp = i;
-        }
-        if (dp[i].yp < ymin) {
-            ymin = dp[i].yp;
-            yminp = i;
-        }
-        xmax = qMax(xmax, dp[i].xp);
-        ymax = qMax(ymax, dp[i].yp);
+        MAPINT(da[i].x(), da[i].y(), dp[i].rx(), dp[i].ry());
     }
-    qreal w = qMax<qreal>(xmax - xmin, 1.);
-    qreal h = qMax<qreal>(ymax - ymin, 1.);
-    for(i = 0; i < size; i++) {
-        dp[i].xp += (dp[i].xp - xmin)/w;
-        dp[i].yp += (dp[i].yp - ymin)/h;
-        MAPDOUBLE(dp[i].xp, dp[i].yp, dp[i].xp, dp[i].yp);
-    }
-
-    // now apply correction back for transformed values...
-    xmin = qreal(INT_MAX/256);
-    ymin = xmin;
-    xmax = qreal(INT_MIN/256);
-    ymax = xmax;
-    for(i = 0; i < size; i++) {
-        xmin = qMin<qreal>(xmin, dp[i].xp);
-        ymin = qMin<qreal>(ymin, dp[i].yp);
-        xmax = qMax<qreal>(xmax, dp[i].xp);
-        ymax = qMax<qreal>(ymax, dp[i].yp);
-    }
-    w = qMax<qreal>(xmax - xmin, 1.);
-    h = qMax<qreal>(ymax - ymin, 1.);
-
-    QPolygon result(size);
-    QPoint *dr = result.data();
-    for(i = 0; i < size; i++) {
-        dr[i].setX(qRound(dp[i].xp - (dp[i].xp - dp[xminp].xp)/w));
-        dr[i].setY(qRound(dp[i].yp - (dp[i].yp - dp[yminp].yp)/h));
-    }
-    return result;
+    return p;
 }
 
 /*!
@@ -821,10 +751,7 @@ QRegion QMatrix::mapToRegion(const QRect &rect) const
     The rectangle's coordinates are transformed using the following
     formulas:
 
-    \code
-        x' = m11*x + m21*y + dx
-        y' = m22*y + m12*x + dy
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qmatrix.cpp 3
 
     Polygons and rectangles behave slightly differently when
     transformed (due to integer rounding), so
@@ -1246,3 +1173,4 @@ QDebug operator<<(QDebug dbg, const QMatrix &m)
     Use the mapRect() function instead.
 */
 
+QT_END_NAMESPACE

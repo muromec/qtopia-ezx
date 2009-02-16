@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #ifndef QT_NO_THREAD
 #include "qatomic.h"
 #include "qmutex_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QMutex
@@ -68,74 +64,20 @@
     For example, say there is a method that prints a message to the
     user on two lines:
 
-    \code
-        int number = 6;
-
-        void method1()
-        {
-            number *= 5;
-            number /= 4;
-        }
-
-        void method2()
-        {
-            number *= 3;
-            number /= 2;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 0
 
     If these two methods are called in succession, the following happens:
 
-    \code
-        // method1()
-        number *= 5;        // number is now 30
-        number /= 4;        // number is now 7
-
-        // method2()
-        number *= 3;        // number is now 21
-        number /= 2;        // number is now 10
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 1
 
     If these two methods are called simultaneously from two threads then the
     following sequence could result:
 
-    \code
-        // Thread 1 calls method1()
-        number *= 5;        // number is now 30
-
-        // Thread 2 calls method2().
-        //
-        // Most likely Thread 1 has been put to sleep by the operating
-        // system to allow Thread 2 to run.
-        number *= 3;        // number is now 90
-        number /= 2;        // number is now 45
-
-        // Thread 1 finishes executing.
-        number /= 4;        // number is now 11, instead of 10
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 2
 
     If we add a mutex, we should get the result we want:
 
-    \code
-        QMutex mutex;
-        int number = 6;
-
-        void method1()
-        {
-            mutex.lock();
-            number *= 5;
-            number /= 4;
-            mutex.unlock();
-        }
-
-        void method2()
-        {
-            mutex.lock();
-            number *= 3;
-            number /= 2;
-            mutex.unlock();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 3
 
     Then only one thread can modify \c number at any given time and
     the result is correct. This is a trivial example, of course, but
@@ -190,14 +132,18 @@ QMutex::~QMutex()
     Locks the mutex. If another thread has locked the mutex then this
     call will block until that thread has unlocked it.
 
+    Calling this function multiple times on the same mutex from the
+    same thread is allowed if this mutex is a
+    \l{QMutex::Recursive}{recursive mutex}. If this mutex is a
+    \l{QMutex::NonRecursive}{non-recursive mutex}, this function will
+    \e dead-lock when the mutex is locked recursively.
+
     \sa unlock()
 */
 void QMutex::lock()
 {
-    ulong self = 0;
-#ifndef QT_NO_DEBUG
-    self = d->self();
-#endif
+    ulong self;
+
     if (d->recursive) {
         self = d->self();
         if (d->owner == self) {
@@ -205,15 +151,33 @@ void QMutex::lock()
             Q_ASSERT_X(d->count != 0, "QMutex::lock", "Overflow in recursion counter");
             return;
         }
+
+        bool isLocked = d->contenders.fetchAndAddAcquire(1) == 0;
+        if (!isLocked) {
+            // didn't get the lock, wait for it
+            isLocked = d->wait();
+            Q_ASSERT_X(isLocked, "QMutex::lock", "Internal error, infinite wait has timed out.");
+
+            // don't need to wait for the lock anymore
+            d->contenders.deref();
+        }
+
+        d->owner = self;
+        ++d->count;
+        Q_ASSERT_X(d->count != 0, "QMutex::lock", "Overflow in recursion counter");
+        return;
     }
-    
+
+#ifndef QT_NO_DEBUG
+    self = d->self();
+#endif
     bool isLocked = d->contenders.fetchAndAddAcquire(1) == 0;
     if (!isLocked) {
 #ifndef QT_NO_DEBUG
         if (d->owner == self)
             qWarning("QMutex::lock: Deadlock detected in thread %ld", d->owner);
 #endif
-        
+
         // didn't get the lock, wait for it
         isLocked = d->wait();
         Q_ASSERT_X(isLocked, "QMutex::lock", "Internal error, infinite wait has timed out.");
@@ -221,9 +185,9 @@ void QMutex::lock()
         // don't need to wait for the lock anymore
         d->contenders.deref();
     }
+#ifndef QT_NO_DEBUG
     d->owner = self;
-    ++d->count;
-    Q_ASSERT_X(d->count != 0, "QMutex::lock", "Overflow in recursion counter");
+#endif
 }
 
 /*!
@@ -234,14 +198,19 @@ void QMutex::lock()
     If the lock was obtained, the mutex must be unlocked with unlock()
     before another thread can successfully lock it.
 
+    Calling this function multiple times on the same mutex from the
+    same thread is allowed if this mutex is a
+    \l{QMutex::Recursive}{recursive mutex}. If this mutex is a
+    \l{QMutex::NonRecursive}{non-recursive mutex}, this function will
+    \e always return false when attempting to lock the mutex
+    recursively.
+
     \sa lock(), unlock()
 */
 bool QMutex::tryLock()
 {
-    ulong self = 0;
-#ifndef QT_NO_DEBUG
-    self = d->self();
-#endif
+    ulong self;
+
     if (d->recursive) {
         self = d->self();
         if (d->owner == self) {
@@ -249,17 +218,32 @@ bool QMutex::tryLock()
             Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
             return true;
         }
+
+        bool isLocked = d->contenders.testAndSetAcquire(0, 1);
+        if (!isLocked) {
+            // some other thread has the mutex locked, or we tried to
+            // recursively lock an non-recursive mutex
+            return isLocked;
+        }
+
+        d->owner = self;
+        ++d->count;
+        Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
+        return isLocked;
     }
-    
+
+#ifndef QT_NO_DEBUG
+    self = d->self();
+#endif
     bool isLocked = d->contenders.testAndSetAcquire(0, 1);
     if (!isLocked) {
         // some other thread has the mutex locked, or we tried to
         // recursively lock an non-recursive mutex
         return isLocked;
     }
+#ifndef QT_NO_DEBUG
     d->owner = self;
-    ++d->count;
-    Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
+#endif
     return isLocked;
 }
 
@@ -277,14 +261,19 @@ bool QMutex::tryLock()
     If the lock was obtained, the mutex must be unlocked with unlock()
     before another thread can successfully lock it.
 
+    Calling this function multiple times on the same mutex from the
+    same thread is allowed if this mutex is a
+    \l{QMutex::Recursive}{recursive mutex}. If this mutex is a
+    \l{QMutex::NonRecursive}{non-recursive mutex}, this function will
+    \e always return false when attempting to lock the mutex
+    recursively.
+
     \sa lock(), unlock()
 */
 bool QMutex::tryLock(int timeout)
 {
-    ulong self = 0;
-#ifndef QT_NO_DEBUG
-    self = d->self();
-#endif
+    ulong self;
+
     if (d->recursive) {
         self = d->self();
         if (d->owner == self) {
@@ -292,8 +281,27 @@ bool QMutex::tryLock(int timeout)
             Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
             return true;
         }
+
+        bool isLocked = d->contenders.fetchAndAddAcquire(1) == 0;
+        if (!isLocked) {
+            // didn't get the lock, wait for it
+            isLocked = d->wait(timeout);
+
+            // don't need to wait for the lock anymore
+            d->contenders.deref();
+            if (!isLocked)
+                return false;
+        }
+
+        d->owner = self;
+        ++d->count;
+        Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
+        return true;
     }
-    
+
+#ifndef QT_NO_DEBUG
+    self = d->self();
+#endif
     bool isLocked = d->contenders.fetchAndAddAcquire(1) == 0;
     if (!isLocked) {
         // didn't get the lock, wait for it
@@ -304,10 +312,9 @@ bool QMutex::tryLock(int timeout)
         if (!isLocked)
             return false;
     }
-
+#ifndef QT_NO_DEBUG
     d->owner = self;
-    ++d->count;
-    Q_ASSERT_X(d->count != 0, "QMutex::tryLock", "Overflow in recursion counter");
+#endif
     return true;
 }
 
@@ -324,8 +331,16 @@ void QMutex::unlock()
     Q_ASSERT_X(d->owner == d->self(), "QMutex::unlock()",
                "A mutex must be unlocked in the same thread that locked it.");
 
-    if (!--d->count) {
+    if (d->recursive) {
+        if (!--d->count) {
+            d->owner = 0;
+            if (!d->contenders.testAndSetRelease(1, 0))
+                d->wakeUp();
+        }
+    } else {
+#ifndef QT_NO_DEBUG
         d->owner = 0;
+#endif
         if (!d->contenders.testAndSetRelease(1, 0))
             d->wakeUp();
     }
@@ -376,40 +391,7 @@ void QMutex::unlock()
     For example, this complex function locks a QMutex upon entering
     the function and unlocks the mutex at all the exit points:
 
-    \code
-        int complexFunction(int flag)
-        {
-            mutex.lock();
-
-            int retVal = 0;
-
-            switch (flag) {
-            case 0:
-            case 1:
-                mutex.unlock();
-                return moreComplexFunction(flag);
-            case 2:
-                {
-                    int status = anotherFunction();
-                    if (status < 0) {
-                        mutex.unlock();
-                        return -2;
-                    }
-                    retVal = status + flag;
-                }
-                break;
-            default:
-                if (flag > 10) {
-                    mutex.unlock();
-                    return -1;
-                }
-                break;
-            }
-
-            mutex.unlock();
-            return retVal;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 4
 
     This example function will get more complicated as it is
     developed, which increases the likelihood that errors will occur.
@@ -417,34 +399,7 @@ void QMutex::unlock()
     Using QMutexLocker greatly simplifies the code, and makes it more
     readable:
 
-    \code
-        int complexFunction(int flag)
-        {
-            QMutexLocker locker(&mutex);
-
-            int retVal = 0;
-
-            switch (flag) {
-            case 0:
-            case 1:
-                return moreComplexFunction(flag);
-            case 2:
-                {
-                    int status = anotherFunction();
-                    if (status < 0)
-                        return -2;
-                    retVal = status + flag;
-                }
-                break;
-            default:
-                if (flag > 10)
-                    return -1;
-                break;
-            }
-
-            return retVal;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 5
 
     Now, the mutex will always be unlocked when the QMutexLocker
     object is destroyed (when the function returns since \c locker is
@@ -460,27 +415,7 @@ void QMutex::unlock()
     for code that needs access to the mutex, such as
     QWaitCondition::wait(). For example:
 
-    \code
-        class SignalWaiter
-        {
-        private:
-            QMutexLocker locker;
-
-        public:
-            SignalWaiter(QMutex *mutex)
-                : locker(mutex)
-            {
-            }
-
-            void waitForSignal()
-            {
-                ...
-                while (!signalled)
-                    waitCondition.wait(locker.mutex());
-                ...
-            }
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qmutex.cpp 6
 
     \sa QReadLocker, QWriteLocker, QMutex
 */
@@ -533,5 +468,7 @@ void QMutex::unlock()
 
     Use the constructor that takes a RecursionMode parameter instead.
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_THREAD

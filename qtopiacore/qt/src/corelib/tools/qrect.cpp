@@ -1,51 +1,48 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qrect.h"
 #include "qdatastream.h"
 #include "qdebug.h"
+#include "qmath.h"
 
 #include <math.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QRect
@@ -63,10 +60,7 @@
     height integers, or from a QPoint and a QSize.  The following code
     creates two identical rectangles.
 
-    \code
-        QRect r1(100, 200, 11, 16);
-        QRect r2(QPoint(100, 200), QSize(11, 16));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qrect.cpp 0
 
     There is a third constructor that creates a QRect using the
     top-left and bottom-right coordinates, but we recommend that you
@@ -115,7 +109,7 @@
     has both width and height set to 0.
 
     Note that due to the way QRect and QRectF are defined, an
-    empty QRect is defined in essentially the same way as QRectF. 
+    empty QRect is defined in essentially the same way as QRectF.
 
     Finally, QRect objects can be streamed as well as compared.
 
@@ -299,17 +293,15 @@
 
 QRect QRect::normalized() const
 {
-    if (isNull() || width() == 0 || height() == 0)
-        return *this;
     QRect r;
-    if (x2 < x1) {                                // swap bad x values
+    if (x2 < x1 - 1) {                                // swap bad x values
         r.x1 = x2;
         r.x2 = x1;
     } else {
         r.x1 = x1;
         r.x2 = x2;
     }
-    if (y2 < y1) {                                // swap bad y values
+    if (y2 < y1 - 1) {                                // swap bad y values
         r.y1 = y2;
         r.y2 = y1;
     } else {
@@ -494,7 +486,7 @@ QRect QRect::normalized() const
     \fn void QRect::setTopLeft(const QPoint &position)
 
     Set the top-left corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     bottom-right corner of the rectangle.
 
     \sa topLeft(), moveTopLeft()
@@ -504,7 +496,7 @@ QRect QRect::normalized() const
     \fn void QRect::setBottomRight(const QPoint &position)
 
     Set the bottom-right corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     top-left corner of the rectangle.
 
     \sa bottomRight(), moveBottomRight()
@@ -514,7 +506,7 @@ QRect QRect::normalized() const
     \fn void QRect::setTopRight(const QPoint &position)
 
     Set the top-right corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     bottom-left corner of the rectangle.
 
     \sa topRight(), moveTopRight()
@@ -524,7 +516,7 @@ QRect QRect::normalized() const
     \fn void QRect::setBottomLeft(const QPoint &position)
 
     Set the bottom-left corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     top-right corner of the rectangle.
 
     \sa bottomLeft(), moveBottomLeft()
@@ -1187,10 +1179,7 @@ QDebug operator<<(QDebug dbg, const QRect &r) {
     height integers, or from a QPoint and a QSize.  The following code
     creates two identical rectangles.
 
-    \code
-        QRectF r1(100, 200, 11, 16);
-        QRectF r2(QPoint(100, 200), QSize(11, 16));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qrect.cpp 1
 
     There is also a third constructor creating a QRectF from a QRect,
     and a corresponding toRect() function that returns a QRect object
@@ -1513,7 +1502,7 @@ QRectF QRectF::normalized() const
     \fn void QRectF::setTopLeft(const QPointF &position)
 
     Set the top-left corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     bottom-right corner of the rectangle.
 
     \sa topLeft(), moveTopLeft()
@@ -1522,8 +1511,8 @@ QRectF QRectF::normalized() const
 /*!
     \fn void QRectF::setBottomRight(const QPointF &position)
 
-    Set the top-right corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    Set the bottom-right corner of the rectangle to the given \a
+    position. May change the size, but will never change the
     top-left corner of the rectangle.
 
     \sa bottomRight(), moveBottomRight()
@@ -1533,7 +1522,7 @@ QRectF QRectF::normalized() const
     \fn void QRectF::setTopRight(const QPointF &position)
 
     Set the top-right corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     bottom-left corner of the rectangle.
 
     \sa topRight(), moveTopRight()
@@ -1543,7 +1532,7 @@ QRectF QRectF::normalized() const
     \fn void QRectF::setBottomLeft(const QPointF &position)
 
     Set the bottom-left corner of the rectangle to the given \a
-    position. May change the size, but will the never change the
+    position. May change the size, but will never change the
     top-right corner of the rectangle.
 
     \sa bottomLeft(), moveBottomLeft()
@@ -2071,10 +2060,10 @@ bool QRectF::intersects(const QRectF &r) const
 
 QRect QRectF::toAlignedRect() const
 {
-    int xmin = int(floor(x()));
-    int xmax = int(ceil(x() + width()));
-    int ymin = int(floor(y()));
-    int ymax = int(ceil(y() + height()));
+    int xmin = int(qFloor(x()));
+    int xmax = int(qCeil(x() + width()));
+    int ymin = int(qFloor(y()));
+    int ymax = int(qCeil(y() + height()));
     return QRect(xmin, ymin, xmax - xmin, ymax - ymin);
 }
 
@@ -2157,3 +2146,5 @@ QDebug operator<<(QDebug dbg, const QRectF &r) {
     return dbg.space();
 }
 #endif
+
+QT_END_NAMESPACE

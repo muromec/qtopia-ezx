@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -67,19 +61,23 @@
 #include <QtGui/QGridLayout>
 #include <QtGui/QWidget>
 
+QT_BEGIN_NAMESPACE
+
 class QDesignerFormWindowInterface;
 
 namespace qdesigner_internal {
-
-void QDESIGNER_SHARED_EXPORT add_to_box_layout(QBoxLayout *box, QWidget *widget);
-void QDESIGNER_SHARED_EXPORT insert_into_box_layout(QBoxLayout *box, int index, QWidget *widget);
-void QDESIGNER_SHARED_EXPORT add_to_grid_layout(QGridLayout *grid, QWidget *widget, int r, int c, int rs, int cs, Qt::Alignment align = 0);
-
 class QDESIGNER_SHARED_EXPORT Layout : public QObject
 {
     Q_OBJECT
+
+protected:
+    Layout(const QWidgetList &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, LayoutInfo::Type layoutType);
+
 public:
-    Layout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter = false);
+    static  Layout* createLayout(const QWidgetList &widgets,  QWidget *parentWidget,
+                                 QDesignerFormWindowInterface *fw,
+                                 QWidget *layoutBase, LayoutInfo::Type layoutType);
+
     virtual ~Layout();
 
     virtual void sort() = 0;
@@ -88,121 +86,36 @@ public:
     virtual void setup();
     virtual void undoLayout();
     virtual void breakLayout();
-    virtual bool prepareLayout(bool &needMove, bool &needReparent);
-    virtual void finishLayout(bool needMove, QLayout *layout);
 
-    QList<QWidget*> widgets() const { return m_widgets; }
-    QWidget *parentWidget() const { return m_parentWidget; }
-    QWidget *layoutBaseWidget() const { return m_layoutBase; }
+    const QWidgetList &widgets() const { return m_widgets; }
+    QWidget *parentWidget() const      { return m_parentWidget; }
+    QWidget *layoutBaseWidget() const  { return m_layoutBase; }
 
 protected:
-    QLayout *createLayout(int type);
+    virtual void finishLayout(bool needMove, QLayout *layout = 0);
+    virtual bool prepareLayout(bool &needMove, bool &needReparent);
 
-    QList<QWidget*> m_widgets;
+    void setWidgets(const  QWidgetList &widgets) { m_widgets = widgets; }
+    QLayout *createLayout(int type);
+    void reparentToLayoutBase(QWidget *w);
+
+private slots:
+    void widgetDestroyed();
+
+private:
+    Layout(const  Layout &);
+    Layout &operator=(const  Layout &);
+
+    QWidgetList m_widgets;
     QWidget *m_parentWidget;
     typedef QHash<QWidget *, QRect> WidgetGeometryHash;
     WidgetGeometryHash m_geometries;
     QWidget *m_layoutBase;
     QDesignerFormWindowInterface *m_formWindow;
-    bool m_useSplitter;
-
-
-protected slots:
-    void widgetDestroyed();
-
-private:
+    const LayoutInfo::Type m_layoutType;
     QPoint m_startPoint;
     QRect m_oldGeometry;
-    bool m_isBreak;
-};
-
-class QDESIGNER_SHARED_EXPORT HorizontalLayout : public Layout
-{
-public:
-    HorizontalLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter = false);
-
-    virtual void doLayout();
-    virtual void sort();
-};
-
-class QDESIGNER_SHARED_EXPORT VerticalLayout : public Layout
-{
-public:
-    VerticalLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter = false);
-
-    virtual void doLayout();
-    virtual void sort();
-};
-
-class QDESIGNER_SHARED_EXPORT StackedLayout : public Layout
-{
-public:
-    StackedLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, bool splitter = false);
-
-    virtual void doLayout();
-    virtual void sort();
-};
-
-
-class Grid;
-
-class QDESIGNER_SHARED_EXPORT GridLayout : public Layout
-{
-public:
-    GridLayout(const QList<QWidget*> &wl, QWidget *p, QDesignerFormWindowInterface *fw, QWidget *lb, const QSize &res);
-    ~GridLayout();
-
-    virtual void doLayout();
-    virtual void sort();
-
-protected:
-    QWidget *widgetAt(QGridLayout *layout, int row, int column) const;
-
-protected:
-    void buildGrid();
-    QSize m_resolution;
-    Grid* m_grid;
-
-};
-
-class QDESIGNER_SHARED_EXPORT WidgetVerticalSorter
-{
-public:
-    bool operator()(const QWidget *a, const QWidget *b) const
-    { return a->y() < b->y(); }
-};
-
-class QDESIGNER_SHARED_EXPORT WidgetHorizontalSorter
-{
-public:
-    bool operator()(const QWidget *a, const QWidget *b) const
-    { return a->x() < b->x(); }
-};
-
-class VerticalLayoutList: public QList<QWidget*>
-{
-public:
-    VerticalLayoutList(const QList<QWidget*> &l)
-        : QList<QWidget*>(l) {}
-
-    static bool lessThan(const QWidget *a, const QWidget *b)
-    {  return a->y() < b->y(); }
-
-    void sort()
-    { qSort(this->begin(), this->end(), WidgetVerticalSorter()); }
-};
-
-class HorizontalLayoutList : public QList<QWidget*>
-{
-public:
-    HorizontalLayoutList(const QList<QWidget*> &l)
-        : QList<QWidget*>(l) {}
-
-    static bool hLessThan(const QWidget *a, const QWidget *b)
-    { return a->x() < b->x(); }
-
-    void sort()
-    { qSort(this->begin(), this->end(), WidgetHorizontalSorter()); }
+    const bool m_isBreak;
 };
 
 namespace Utils
@@ -224,5 +137,7 @@ inline int indexOfWidget(QLayout *layout, QWidget *widget)
 } // namespace Utils
 
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE
 
 #endif // LAYOUT_H

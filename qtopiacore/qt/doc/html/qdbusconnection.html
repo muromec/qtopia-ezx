@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/tools/qdbus/src/qdbusconnection.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/dbus/qdbusconnection.cpp -->
 <head>
-  <title>Qt 4.3: QDBusConnection Class Reference</title>
+  <title>Qt 4.4: QDBusConnection Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QDBusConnection Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QDBusConnection Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
 </h1>
 <p>The QDBusConnection class represents a connection to the D-Bus bus daemon. <a href="#details">More...</a></p>
 <pre> #include &lt;QDBusConnection&gt;</pre><p>This class was introduced in Qt 4.2.</p>
@@ -153,6 +153,7 @@
 <h3 class="fn"><a name="connect-2"></a>bool QDBusConnection::connect ( const <a href="qstring.html">QString</a> &amp; <i>service</i>, const <a href="qstring.html">QString</a> &amp; <i>path</i>, const <a href="qstring.html">QString</a> &amp; <i>interface</i>, const <a href="qstring.html">QString</a> &amp; <i>name</i>, const <a href="qstring.html">QString</a> &amp; <i>signature</i>, <a href="qobject.html">QObject</a> * <i>receiver</i>, const char * <i>slot</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Connects the signal to the slot <i>slot</i> in object <i>receiver</i>. Unlike the other <a href="qdbusconnection.html#connect">connect</a>() overload, this function allows one to specify the parameter signature to be connected using the <i>signature</i> variable. The function will then verify that this signature can be delivered to the slot specified by <i>slot</i> and return false otherwise.</p>
+<p><b>Note:</b> This function verifies that the signal signature matches the slot's parameters, but it does not verify that the actual signal exists with the given signature in the remote service.</p>
 <h3 class="fn"><a name="connectToBus"></a>QDBusConnection QDBusConnection::connectToBus ( <a href="qdbusconnection.html#BusType-enum">BusType</a> <i>type</i>, const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Opens a connection of type <i>type</i> to one of the known busses and associate with it the connection name <i>name</i>. Returns a <a href="qdbusconnection.html">QDBusConnection</a> object associated with that connection.</p>
 <h3 class="fn"><a name="connectToBus-2"></a>QDBusConnection QDBusConnection::connectToBus ( const <a href="qstring.html">QString</a> &amp; <i>address</i>, const <a href="qstring.html">QString</a> &amp; <i>name</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -168,7 +169,7 @@
 <p>Closes the connection of name <i>name</i>.</p>
 <p>Note that if there are still <a href="qdbusconnection.html">QDBusConnection</a> objects associated with the same connection, the connection will not be closed until all references are dropped. However, no further references can be created using the <a href="qdbusconnection.html">QDBusConnection</a> constructor.</p>
 <h3 class="fn"><a name="interface"></a><a href="qdbusconnectioninterface.html">QDBusConnectionInterface</a> * QDBusConnection::interface () const</h3>
-<p>Returns a <a href="qdbusconnectioninterface.html">QDBusConnectionInterface</a> object that represents the D-BUS server interface on this connection.</p>
+<p>Returns a <a href="qdbusconnectioninterface.html">QDBusConnectionInterface</a> object that represents the D-Bus server interface on this connection.</p>
 <h3 class="fn"><a name="isConnected"></a>bool QDBusConnection::isConnected () const</h3>
 <p>Returns true if this <a href="qdbusconnection.html">QDBusConnection</a> object is connected.</p>
 <p>If it isn't connected, calling <a href="qdbusconnection.html#connectToBus">connectToBus</a>() on the same connection name will not make be connected. You need to call the <a href="qdbusconnection.html">QDBusConnection</a> constructor again.</p>
@@ -183,7 +184,7 @@
 <p>This function does not replace existing objects: if there is already an object registered at path <i>path</i>, this function will return false. Use <a href="qdbusconnection.html#unregisterObject">unregisterObject</a>() to unregister it first.</p>
 <p>You cannot register an object as a child object of an object that was registered with <a href="qdbusconnection.html#RegisterOption-enum">QDBusConnection::ExportChildObjects</a>.</p>
 <h3 class="fn"><a name="registerService"></a>bool QDBusConnection::registerService ( const <a href="qstring.html">QString</a> &amp; <i>serviceName</i> )</h3>
-<p>Attempts to register the <i>serviceName</i> on the D-BUS server and returns true if the registration succeded. The registration will fail if the name is already registered by another application.</p>
+<p>Attempts to register the <i>serviceName</i> on the D-Bus server and returns true if the registration succeded. The registration will fail if the name is already registered by another application.</p>
 <p>See also <a href="qdbusconnection.html#unregisterService">unregisterService</a>() and <a href="qdbusconnectioninterface.html#registerService">QDBusConnectionInterface::registerService</a>().</p>
 <h3 class="fn"><a name="send"></a>bool QDBusConnection::send ( const <a href="qdbusmessage.html">QDBusMessage</a> &amp; <i>message</i> ) const</h3>
 <p>Sends the <i>message</i> over this connection, without waiting for a reply. This is suitable for errors, signals, and return values as well as calls whose return values are not necessary.</p>
@@ -211,8 +212,8 @@
 <p>Returns a <a href="qdbusconnection.html">QDBusConnection</a> object opened with the system bus. The object reference returned by this function is valid until the <a href="qcoreapplication.html">QCoreApplication</a>'s destructor is run, when the connection will be closed and the object, deleted.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

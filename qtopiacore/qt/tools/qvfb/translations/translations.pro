@@ -28,5 +28,5 @@ SOURCES         = ../qvfb.cpp \
 
 TRANSLATIONS=$$[QT_INSTALL_TRANSLATIONS]/qvfb_pl.ts \
              $$[QT_INSTALL_TRANSLATIONS]/qvfb_untranslated.ts \
-             $$[QT_INSTALL_TRANSLATIONS]/qvfb_zh_CN.ts
-error("This is a dummy profile to be used for translations ONLY.")
+             $$[QT_INSTALL_TRANSLATIONS]/qvfb_zh_CN.ts \
+             $$[QT_INSTALL_TRANSLATIONS]/qvfb_zh_TW.ts

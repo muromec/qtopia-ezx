@@ -2,7 +2,7 @@
 
 LEN="$1"
 STR="$2"
-PAD="$3"
+PAD='\0'
 STRLEN=`echo $STR | wc -c`
 RES="$STR"
     
@@ -15,4 +15,8 @@ while [ "$EXTRALEN" -gt 0 ]; do
    RES="$RES$PAD"
    EXTRALEN=`expr $EXTRALEN - 1`
 done
-echo $RES #return
+cat <<EOF
+$RES
+EOF
+
+

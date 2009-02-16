@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include <qbitarray.h>
 
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 class QPersistentModelIndexDataLessThan
 {
@@ -398,6 +394,8 @@ QModelIndex QPersistentModelIndex::child(int row, int column) const
 
 /*!
   Returns the data for the given \a role for the item referred to by the index.
+
+  \sa Qt::ItemDataRole, QAbstractItemModel::setData()
 */
 QVariant QPersistentModelIndex::data(int role) const
 {
@@ -539,22 +537,19 @@ void QAbstractItemModelPrivate::addPersistentIndexData(QPersistentModelIndexData
 
 }
 
-void QAbstractItemModelPrivate::invalidate(int position)
-{
-    // no need to make invalidate recursive, since the *AboutToBeRemoved functions
-    // will register indexes to be invalidated recursively
-    persistent.indexes[position]->index = QModelIndex();
-}
-
 void QAbstractItemModelPrivate::rowsAboutToBeInserted(const QModelIndex &parent,
                                                       int first, int last)
 {
+    Q_Q(QAbstractItemModel);
     Q_UNUSED(last);
     QList<int> persistent_moved;
-    for (int position = 0; position < persistent.indexes.count(); ++position) {
-        QModelIndex index = persistent.indexes.at(position)->index;
-        if (index.isValid() && index.parent() == parent && index.row() >= first)
-            persistent_moved.append(position);
+    if (first < q->rowCount(parent)) {
+        for (int position = 0; position < persistent.indexes.count(); ++position) {
+            const QModelIndex &index = persistent.indexes.at(position)->index;
+            if (index.row() >= first && index.isValid() && index.parent() == parent) {
+                persistent_moved.append(position);
+            }
+        }
     }
     persistent.moved.push(persistent_moved);
 }
@@ -615,19 +610,27 @@ void QAbstractItemModelPrivate::rowsRemoved(const QModelIndex &parent,
             q_func()->index(old.row() - count, old.column(), parent);
     }
     QList<int> persistent_invalidated = persistent.invalidated.pop();
-    for (int j = 0; j < persistent_invalidated.count(); ++j)
-        invalidate(persistent_invalidated.at(j));
+    for (int j = 0; j < persistent_invalidated.count(); ++j) {
+        int position = persistent_invalidated.at(j);
+        persistent.indexes.at(position)->index = QModelIndex();
+    }
+    // if indexes were invalidated we need to restore the sorted order
+    if (!persistent_invalidated.isEmpty())
+        qSort(persistent.indexes);
 }
 
 void QAbstractItemModelPrivate::columnsAboutToBeInserted(const QModelIndex &parent,
                                                          int first, int last)
 {
+    Q_Q(QAbstractItemModel);
     Q_UNUSED(last);
     QList<int> persistent_moved;
-    for (int position = 0; position < persistent.indexes.count(); ++position) {
-        QModelIndex index = persistent.indexes.at(position)->index;
-        if (index.isValid() && index.parent() == parent && index.column() >= first)
-            persistent_moved.append(position);
+    if (first < q->columnCount(parent)) {
+        for (int position = 0; position < persistent.indexes.count(); ++position) {
+            const QModelIndex &index = persistent.indexes.at(position)->index;
+            if (index.column() >= first && index.isValid() && index.parent() == parent)
+                persistent_moved.append(position);
+        }
     }
     persistent.moved.push(persistent_moved);
 }
@@ -688,8 +691,13 @@ void QAbstractItemModelPrivate::columnsRemoved(const QModelIndex &parent,
             q_func()->index(old.row(), old.column() - count, parent);
     }
     QList<int> persistent_invalidated = persistent.invalidated.pop();
-    for (int j = 0; j < persistent_invalidated.count(); ++j)
-        invalidate(persistent_invalidated.at(j));
+    for (int j = 0; j < persistent_invalidated.count(); ++j) {
+        int position = persistent_invalidated.at(j);
+        persistent.indexes.at(position)->index = QModelIndex();
+    }
+    // if indexes were invalidated we need to restore the sorted order
+    if (!persistent_invalidated.isEmpty())
+        qSort(persistent.indexes);
 }
 
 void QAbstractItemModelPrivate::reset()
@@ -736,9 +744,10 @@ void QAbstractItemModelPrivate::reset()
     The sibling() function allows you to traverse items in the model on the
     same level as the index.
 
-    Model indexes can become invalid over time so they should be used
-    immediately and then discarded. If you need to keep a model index
-    over time use a QPersistentModelIndex.
+    \note Model indexes should be used immediately and then discarded. You
+    should not rely on indexes to remain valid after calling model functions
+    that change the structure of the model or delete items. If you need to
+    keep a model index over time use a QPersistentModelIndex.
 
     \sa \link model-view-programming.html Model/View Programming\endlink QPersistentModelIndex QAbstractItemModel
 */
@@ -821,6 +830,10 @@ void QAbstractItemModelPrivate::reset()
 
     Returns a pointer to the model containing the item that this index
     refers to.
+
+    You receive a const pointer to the model because calls to
+    non-const functions of the model might invalidate the model index
+    - and possibly crash your application.
 */
 
 /*!
@@ -1014,13 +1027,15 @@ void QAbstractItemModelPrivate::reset()
        call endRemoveColumns() \e{immediately afterwards}.
     \endlist
 
-    The \e private signals that these functions emit give attached components
-    the chance to take action before any data becomes unavailable. The
-    encapsulation of the insert and remove operations with these begin and end
-    functions also enables the model to manage
-    \l{QPersistentModelIndex}{persistent model indexes} correctly.
-    \bold{If you want selections to be handled properly, you must ensure that
-    you call these functions.}
+    The \e private signals that these functions emit give attached
+    components the chance to take action before any data becomes
+    unavailable. The encapsulation of the insert and remove operations
+    with these begin and end functions also enables the model to
+    manage \l{QPersistentModelIndex}{persistent model indexes}
+    correctly. \bold{If you want selections to be handled properly,
+    you must ensure that you call these functions.} If you insert or
+    remove an item with child items, you don't need to call these
+    functions for the child items.
 
     \sa {Model Classes}, {Model Subclassing Reference}, QModelIndex,
         QAbstractItemView, {Using Drag and Drop with Item Views},
@@ -1075,6 +1090,11 @@ void QAbstractItemModelPrivate::reset()
     only items in the first column have children. For that case, when reimplementing
     this function in a subclass the column of the returned QModelIndex would be 0.
 
+    \note When reimplementing this function in a subclass, be careful to avoid
+    calling QModelIndex member functions, such as QModelIndex::parent(), since
+    indexes belonging to your model will simply call your implementation, leading
+    to infinite recursion.
+
     \sa createIndex()
 */
 
@@ -1109,8 +1129,10 @@ void QAbstractItemModelPrivate::reset()
     Note that this signal must be emitted explicitly when
     reimplementing the setHeaderData() function.
 
-    If you are changing the number of columns or rows you don't need to emit this signal,
-    but use the begin/end functions.
+    If you are changing the number of columns or rows you don't need
+    to emit this signal, but use the begin/end functions (see the
+    section on subclassing in the QAbstractItemModel class description
+    for details).
 
     \sa headerData(), setHeaderData(), dataChanged()
 */
@@ -1202,15 +1224,11 @@ QAbstractItemModel::~QAbstractItemModel()
     \fn int QAbstractItemModel::columnCount(const QModelIndex &parent) const
 
     Returns the number of columns for the children of the given \a parent.
-    When the parent is valid it means that rowCount is returning the number
-    of children of parent.
 
     In most subclasses, the number of columns is independent of the
     \a parent. For example:
 
-    \quotefromfile itemviews/simpledommodel/dommodel.cpp
-    \skipto ::columnCount
-    \printuntil /^\}/
+    \snippet examples/itemviews/simpledommodel/dommodel.cpp 2
 
     \bold{Tip:} When implementing a table based model, columnCount() should return 0 when
     the parent is valid.
@@ -1413,6 +1431,9 @@ bool QAbstractItemModel::setData(const QModelIndex &index, const QVariant &value
 
     Returns the data stored under the given \a role for the item referred to
     by the \a index.
+
+    \note If you do not have a value to return, return an \bold empty
+    QVariant() instead of returning 0.
 
     \sa Qt::ItemDataRole, setData(), headerData()
 */
@@ -1853,6 +1874,10 @@ void QAbstractItemModel::revert()
   Returns the data for the given \a role and \a section in the header
   with the specified \a orientation.
 
+  For horizontal headers, the section number corresponds to the column
+  number of items shown beneath it. For vertical headers, the section
+  number typically to the row number of items shown alongside it.
+
   \sa Qt::ItemDataRole, setHeaderData(), QHeaderView
 */
 
@@ -2025,9 +2050,7 @@ bool QAbstractItemModel::decodeData(int row, int column, const QModelIndex &pare
 
     For example, as shown in the diagram, we insert three rows before
     row 2, so \a first is 2 and \a last is 4:
-    \code
-    beginInsertRows(parent, 2, 4);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 0
     This inserts the three new rows as rows 2, 3, and 4.
     \row
     \o \inlineimage modelview-begin-append-rows.png Appending rows
@@ -2036,9 +2059,7 @@ bool QAbstractItemModel::decodeData(int row, int column, const QModelIndex &pare
     For example, as shown in the diagram, we append two rows to a
     collection of 4 existing rows (ending in row 3), so \a first is 4
     and \a last is 5:
-    \code
-    beginInsertRows(parent, 4, 5);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 1
     This appends the two new rows as rows 4 and 5.
     \endtable
 
@@ -2089,9 +2110,7 @@ void QAbstractItemModel::endInsertRows()
 
     For example, as shown in the diagram, we remove the two rows from
     row 2 to row 3, so \a first is 2 and \a last is 3:
-    \code
-    beginRemoveRows(parent, 2, 3);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 2
     \endtable
 
     \sa endRemoveRows()
@@ -2141,9 +2160,7 @@ void QAbstractItemModel::endRemoveRows()
 
     For example, as shown in the diagram, we insert three columns before
     column 4, so \a first is 4 and \a last is 6:
-    \code
-    beginInsertColumns(parent, 4, 6);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 3
     This inserts the three new columns as columns 4, 5, and 6.
     \row
     \o \inlineimage modelview-begin-append-columns.png Appending columns
@@ -2152,9 +2169,7 @@ void QAbstractItemModel::endRemoveRows()
     For example, as shown in the diagram, we append three columns to a
     collection of six existing columns (ending in column 5), so \a first
     is 6 and \a last is 8:
-    \code
-    beginInsertColumns(parent, 6, 8);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 4
     This appends the two new columns as columns 6, 7, and 8.
     \endtable
 
@@ -2205,9 +2220,7 @@ void QAbstractItemModel::endInsertColumns()
 
     For example, as shown in the diagram, we remove the three columns
     from column 4 to column 6, so \a first is 4 and \a last is 6:
-    \code
-    beginRemoveColumns(parent, 4, 6);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qabstractitemmodel.cpp 5
     \endtable
 
     \sa endRemoveColumns()
@@ -2756,3 +2769,5 @@ bool QAbstractListModel::dropMimeData(const QMimeData *data, Qt::DropAction acti
     Returns true if this model index is smaller than the \a other
     model index; otherwise returns false.
 */
+
+QT_END_NAMESPACE

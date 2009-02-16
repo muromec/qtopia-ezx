@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -71,12 +65,15 @@
 #endif
 */
 
+QT_BEGIN_NAMESPACE
+
 /*
   QThreadData
 */
 
 QThreadData::QThreadData(int initialRefCount)
-    : _ref(initialRefCount), thread(0), quitNow(false), eventDispatcher(0), canWait(true)
+    : _ref(initialRefCount), thread(0),
+      quitNow(false), loopLevel(0), eventDispatcher(0), canWait(true)
 {
     // fprintf(stderr, "QThreadData %p created\n", this);
 }
@@ -182,6 +179,12 @@ QThread *QAdoptedThread::createThreadForAdoption()
     return t;
 }
 
+void QAdoptedThread::run()
+{
+    // this function should never be called
+    qFatal("QAdoptedThread::run(): Internal error, this implementation should never be called.");
+}
+
 /*!
     \class QThread
     \brief The QThread class provides platform-independent threads.
@@ -194,26 +197,12 @@ QThread *QAdoptedThread::createThreadForAdoption()
     program; it shares data with all the other threads within the
     process but executes independently in the way that a separate
     program does on a multitasking operating system. Instead of
-    starting in \c main(), QThreads begin executing in run().
-    To create your own threads, subclass QThread and reimplement
-    run(). For example:
+    starting in \c main(), QThreads begin executing in run().  By
+    default, run() starts the event loop by calling exec() (see
+    below). To create your own threads, subclass QThread and
+    reimplement run(). For example:
 
-    \code
-        class MyThread : public QThread
-        {
-        public:
-            void run();
-        };
-
-        void MyThread::run()
-        {
-            QTcpSocket socket;
-            // connect QTcpSocket's signals somewhere meaningful
-            ...
-            socket.connectToHost(hostName, portNumber);
-            exec();
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_thread_qthread.cpp 0
 
     This will create a QTcpSocket in the thread and then execute the
     thread's event loop. Use the start() method to begin execution.
@@ -231,11 +220,12 @@ QThread *QAdoptedThread::createThreadForAdoption()
     Each QThread can have its own event loop. You can start the event
     loop by calling exec(); you can stop it by calling exit() or
     quit(). Having an event loop in a thread makes it possible to
-    connect signals from other threads to slots in this threads,
-    using a mechanism called \l{Qt::QueuedConnection}{queued
+    connect signals from other threads to slots in this thread, using
+    a mechanism called \l{Qt::QueuedConnection}{queued
     connections}. It also makes it possible to use classes that
     require the event loop, such as QTimer and QTcpSocket, in the
-    thread.
+    thread. Note, however, that it is not possible to use any widget
+    classes in the thread.
 
     In extreme cases, you may want to forcibly terminate() an
     executing thread. However, doing so is dangerous and discouraged.
@@ -254,6 +244,37 @@ QThread *QAdoptedThread::createThreadForAdoption()
 
     \sa {Thread Support in Qt}, QThreadStorage, QMutex, QSemaphore, QWaitCondition,
         {Mandelbrot Example}, {Semaphores Example}, {Wait Conditions Example}
+*/
+
+/*!
+    \fn Qt::HANDLE QThread::currentThreadId()
+
+    Returns the thread handle of the currently executing thread.
+
+    \warning The handle returned by this function is used for internal
+    purposes and should not be used in any application code. On
+    Windows, the returned value is a pseudo-handle for the current
+    thread that cannot be used for numerical comparison.
+*/
+
+/*!
+    \fn int QThread::idealThreadCount()
+
+    Returns the ideal number of threads that can be run on the system. This is done querying
+    the number of processor cores, both real and logical, in the system. This function returns -1
+    if the number of processor cores could not be detected.
+*/
+
+/*!
+    \fn void QThread::start(Priority priority)
+
+    Begins execution of the thread by calling run(), which should be
+    reimplemented in a QThread subclass to contain your code. The
+    operating system will schedule the thread according to the \a
+    priority parameter. If the thread is already running, this
+    function does nothing.
+
+    \sa run(), terminate()
 */
 
 /*!
@@ -361,7 +382,7 @@ QThread::~QThread()
 }
 
 /*!
-    Returns true is the thread is finished; otherwise returns false.
+    Returns true if the thread is finished; otherwise returns false.
 
     \sa isRunning()
 */
@@ -481,19 +502,28 @@ void QThread::quit()
 { exit(); }
 
 /*!
-    \fn void QThread::run()
+    The starting point for the thread. After calling start(), the
+    newly created thread calls this function. The default
+    implementation simply calls exec().
 
-    This method is pure virtual and must be implemented in derived
-    classes in order to do useful work. Returning from this method
-    will end the execution of the thread.
+    You can reimplemented this function to do other useful
+    work. Returning from this method will end the execution of the
+    thread.
 
-    \sa wait()
+    \sa start() wait()
 */
-
+void QThread::run()
+{
+    (void) exec();
+}
 
 /*! \internal
     Initializes the QThread system.
 */
+#if defined (Q_OS_WIN)
+void qt_create_tls();
+#endif
+
 void QThread::initialize()
 {
     if (qt_global_mutexpool)
@@ -501,7 +531,6 @@ void QThread::initialize()
     qt_global_mutexpool = QMutexPool::instance();
 
 #if defined (Q_OS_WIN)
-    extern void qt_create_tls();
     qt_create_tls();
 #endif
 }
@@ -556,9 +585,105 @@ QThread::Priority QThread::priority() const
     return d->priority;
 }
 
+/*!
+    \fn void QThread::sleep(unsigned long secs)
+
+    Forces the current thread to sleep for \a secs seconds.
+
+    \sa msleep(), usleep()
+*/
+
+/*!
+    \fn void QThread::msleep(unsigned long msecs)
+
+    Causes the current thread to sleep for \a msecs milliseconds.
+
+    \sa sleep(), usleep()
+*/
+
+/*!
+    \fn void QThread::usleep(unsigned long usecs)
+
+    Causes the current thread to sleep for \a usecs microseconds.
+
+    \sa sleep(), msleep()
+*/
+
+/*!
+    \fn void QThread::terminate()
+
+    Terminates the execution of the thread. The thread may or may not
+    be terminated immediately, depending on the operating systems
+    scheduling policies. Use QThread::wait() after terminate() for
+    synchronous termination.
+
+    When the thread is terminated, all threads waiting for the thread
+    to finish will be woken up.
+
+    \warning This function is dangerous and its use is discouraged.
+    The thread can be terminate at any point in its code path.
+    Threads can be terminated while modifying data. There is no
+    chance for the thread to cleanup after itself, unlock any held
+    mutexes, etc. In short, use this function only if absolutely
+    necessary.
+
+    Termination can be explicitly enabled or disabled by calling
+    QThread::setTerminationEnabled(). Calling this function while
+    termination is disabled results in the termination being
+    deferred, until termination is re-enabled. See the documentation
+    of QThread::setTerminationEnabled() for more information.
+
+    \sa setTerminationEnabled()
+*/
+
+/*!
+    \fn bool QThread::wait(unsigned long time)
+
+    Blocks the thread until either of these conditions is met:
+
+    \list
+    \o The thread associated with this QThread object has finished
+       execution (i.e. when it returns from \l{run()}). This function
+       will return true if the thread has finished. It also returns
+       true if the thread has not been started yet.
+    \o \a time milliseconds has elapsed. If \a time is ULONG_MAX (the
+        default), then the wait will never timeout (the thread must
+        return from \l{run()}). This function will return false if the
+        wait timed out.
+    \endlist
+
+    This provides similar functionality to the POSIX \c
+    pthread_join() function.
+
+    \sa sleep(), terminate()
+*/
+
+/*!
+    \fn void QThread::setTerminationEnabled(bool enabled)
+
+    Enables or disables termination of the current thread based on the
+    \a enabled parameter. The thread must have been started by
+    QThread.
+
+    When \a enabled is false, termination is disabled.  Future calls
+    to QThread::terminate() will return immediately without effect.
+    Instead, the termination is deferred until termination is enabled.
+
+    When \a enabled is true, termination is enabled.  Future calls to
+    QThread::terminate() will terminate the thread normally.  If
+    termination has been deferred (i.e. QThread::terminate() was
+    called with termination disabled), this function will terminate
+    the calling thread \e immediately.  Note that this function will
+    not return in this case.
+
+    \sa terminate()
+*/
+
 #else // QT_NO_THREAD
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <private/qcoreapplication_p.h>
+QT_END_INCLUDE_NAMESPACE
 
 QThread* QThread::instance = 0;
 
@@ -577,3 +702,5 @@ QThreadData* QThreadData::current()
 }
 
 #endif // QT_NO_THREAD
+
+QT_END_NAMESPACE

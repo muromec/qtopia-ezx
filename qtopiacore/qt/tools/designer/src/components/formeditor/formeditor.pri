@@ -19,9 +19,9 @@ HEADERS += $$PWD/qdesigner_resource.h \
            $$PWD/default_container.h \
            $$PWD/default_actionprovider.h \
            $$PWD/qmainwindow_container.h \
-           $$PWD/qdockwidget_container.h \
            $$PWD/qworkspace_container.h \
            $$PWD/qmdiarea_container.h \
+           $$PWD/qwizard_container.h \
            $$PWD/default_layoutdecoration.h \
            $$PWD/qtbrushmanager.h \
            $$PWD/brushmanagerproxy.h \
@@ -41,9 +41,9 @@ SOURCES += $$PWD/qdesigner_resource.cpp \
            $$PWD/spacer_propertysheet.cpp \
            $$PWD/line_propertysheet.cpp \
            $$PWD/qmainwindow_container.cpp \
-           $$PWD/qdockwidget_container.cpp \
            $$PWD/qworkspace_container.cpp \
            $$PWD/qmdiarea_container.cpp \
+           $$PWD/qwizard_container.cpp \
            $$PWD/default_container.cpp \
            $$PWD/default_layoutdecoration.cpp \
            $$PWD/default_actionprovider.cpp \

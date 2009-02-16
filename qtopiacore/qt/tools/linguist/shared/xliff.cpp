@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,9 +42,9 @@
 #include <QtCore/QString>
 #include <QtCore/QFile>
 #include <QtCore/QTextCodec>
-#include <QtXml>
-#include <QtGui/QApplication>
-#include <QtGui/QMessageBox>
+#include <QtCore/QCoreApplication>
+
+QT_BEGIN_NAMESPACE
 
 /**
  * Implementation of XLIFF file format for Linguist
@@ -75,7 +69,7 @@ static const char *XLIFF12namespaceURI = "urn:oasis:names:tc:xliff:document:1.2"
 #define COMBINE4CHARS(c1, c2, c3, c4) \
     (int(c1) << 24 | int(c2) << 16 | int(c3) << 8 | int(c4) )
 
-static QString dataType(const MetaTranslatorMessage &m)
+static QString dataType(const TranslatorMessage &m)
 {
     QByteArray fileName = m.fileName().toAscii();
     unsigned int extHash = 0;
@@ -119,7 +113,7 @@ struct CharMnemonic
 {
     char ch;
     char escape;
-    char *mnemonic;
+    const char *mnemonic;
 };
 
 static const CharMnemonic charCodeMnemonics[] = {
@@ -146,7 +140,7 @@ static QString numericEntity( int ch )
 {
     QString name;
     char escapechar;
-    
+
     // ### This needs to be reviewed, to reflect the updated XLIFF-PO spec.
     if (ch >= 7 && ch <= 0x0d)
     {
@@ -204,7 +198,7 @@ static QString evilBytes( const QByteArray& str, bool utf8 )
         QByteArray t = protect( str ).toLatin1();
         int len = (int) t.length();
         for ( int k = 0; k < len; k++ ) {
-            if ( (uchar) t[k] >= 0x7f )
+            if ((uchar) t[k] >= 0x7f )
                 result += numericEntity( (uchar) t[k] );
             else
                 result += QLatin1Char( t[k] );
@@ -214,24 +208,39 @@ static QString evilBytes( const QByteArray& str, bool utf8 )
 }
 
 
-static void writeLineNumber(QTextStream *t, const MetaTranslatorMessage &msg, int indent)
+// FIXME: dirty c&p
+static QString evilBytes2( const QByteArray& str, bool utf8 )
+{
+    if ( utf8 )
+        return protect( str );
+    QString result;
+    QByteArray t = protect( str ).toLatin1();
+    int len = (int) t.length();
+    for ( int k = 0; k < len; k++ ) {
+        result += QLatin1Char( t[k] );
+    }
+    return result;
+}
+
+
+static void writeLineNumber(QTextStream *t, const TranslatorMessage &msg, int indent)
 {
     if (msg.lineNumber() != -1) {
         writeIndent(t, indent);
-        (*t) << "<context-group name=\"" << contextNameLocation << "\" purpose=\"location\"><context context-type=\"linenumber\">" 
+        (*t) << "<context-group name=\"" << contextNameLocation << "\" purpose=\"location\"><context context-type=\"linenumber\">"
             << msg.lineNumber() << "</context></context-group>\n";
     }
 }
 
-static void writeComment(QTextStream *t, const MetaTranslatorMessage &msg, int indent)
+static void writeComment(QTextStream *t, const TranslatorMessage &msg, int indent)
 {
-    if (msg.comment() && qstrlen(msg.comment())) {
+    if (!msg.comment().isEmpty()) {
         writeIndent(t, indent);
-        (*t) << "<note>" << msg.comment() << "</note>\n";
+        (*t) << "<note>" << evilBytes(msg.comment(), msg.utf8()) << "</note>\n";
     }
 }
 
-static void writeTransUnit(QTextStream *t, const MetaTranslatorMessage &msg, int msgid, 
+static void writeTransUnit(QTextStream *t, const TranslatorMessage &msg, int msgid,
                            int indent, const QString &translation = QString())
 {
     static int plural = 0;
@@ -241,7 +250,7 @@ static void writeTransUnit(QTextStream *t, const MetaTranslatorMessage &msg, int
     QString strid;
     QByteArray transl;
     if (msg.isPlural()) {
-        if (prevMsgId != msgid) 
+        if (prevMsgId != msgid)
             plural = 0;
         strid = QString::fromAscii("%1[%2]").arg(msgid).arg(plural);
         ++plural;
@@ -255,19 +264,19 @@ static void writeTransUnit(QTextStream *t, const MetaTranslatorMessage &msg, int
     (*t) << strid << "\"";
     QString state;
     indent+=2;
-    if (msg.type() == MetaTranslatorMessage::Obsolete) {
+    if (msg.type() == TranslatorMessage::Obsolete) {
         (*t) << " translate=\"no\"";
     } else {
-        state = msg.type() == MetaTranslatorMessage::Finished 
+        state = msg.type() == TranslatorMessage::Finished
             ? QLatin1String("final") : QLatin1String("new");
         state = QString::fromAscii(" state=\"%1\"").arg(state);
     }
     (*t) << ">\n";
     writeIndent(t, indent);
     (*t) << "<source xml:space=\"preserve\">" << evilBytes(msg.sourceText(), msg.utf8()) << "</source>\n";
-    
+
     writeIndent(t, indent);
-    (*t) << "<target xml:space=\"preserve\"" << state << ">" << evilBytes(transl, msg.utf8()) << "</target>\n";
+    (*t) << "<target xml:space=\"preserve\"" << state << ">" << evilBytes2(transl, msg.utf8()) << "</target>\n";
     // ### In XLIFF 1.1, name is marked as required, and it must be unique
     // This is questionable behaviour, and was brought up at the xliff-comments mailinglist.
     if (!msg.isPlural()) {
@@ -279,7 +288,7 @@ static void writeTransUnit(QTextStream *t, const MetaTranslatorMessage &msg, int
     (*t) << "</trans-unit>\n";
 }
 
-static void writeMessage(QTextStream *t, const MetaTranslatorMessage &msg, int indent, 
+static void writeMessage(QTextStream *t, const TranslatorMessage &msg, int indent,
                          const QString &languageCode)
 {
     static int msgid = 1;
@@ -289,7 +298,7 @@ static void writeMessage(QTextStream *t, const MetaTranslatorMessage &msg, int i
         indent+=2;
         writeLineNumber(t, msg, indent);
         writeComment(t, msg, indent);
-        
+
         QLocale::Language l;
         QLocale::Country c;
         MetaTranslator::languageAndCountry(languageCode, &l, &c);
@@ -319,10 +328,10 @@ bool MetaTranslator::saveXLIFF( const QString& filename) const
     QTextStream t( &f );
     t.setCodec( QTextCodec::codecForName("ISO-8859-1") );
 
-    QMap<QString, MetaTranslatorMessage> mtSortByFileName;
+    QMap<QString, TranslatorMessage> mtSortByFileName;
     TMM::ConstIterator m = mm.begin();
     while ( m != mm.end() ) {
-        MetaTranslatorMessage msg = m.key();
+        TranslatorMessage msg = m.key();
         QString location = msg.fileName() + QLatin1String(msg.context()) + QString::number(msg.lineNumber());
         mtSortByFileName.insertMulti(location, msg);
         ++m;
@@ -333,8 +342,8 @@ bool MetaTranslator::saveXLIFF( const QString& filename) const
     t << " encoding=\"utf-8\"?>\n";
     t << "<xliff version=\"1.1\" xmlns=\"" << XLIFF11namespaceURI << "\">\n";
     currentindent += indent;
-    QMap<QString, MetaTranslatorMessage>::iterator mi = mtSortByFileName.begin();
-    MetaTranslatorMessage msg;
+    QMap<QString, TranslatorMessage>::iterator mi = mtSortByFileName.begin();
+    TranslatorMessage msg;
     QByteArray ctx;
     QString fn;
     bool ctxdiffer = false;
@@ -362,7 +371,7 @@ bool MetaTranslator::saveXLIFF( const QString& filename) const
 
             writeIndent(&t, currentindent);
             t << "<file original=\"" << fn << "\""
-                << " datatype=\"" << dataType(msg) << "\"" 
+                << " datatype=\"" << dataType(msg) << "\""
                 << " source-language=\"" << "en" << "\"" //###
                 << " target-language=\"" << languageCode() << "\""
                 << "><body>\n";
@@ -395,16 +404,16 @@ bool MetaTranslator::saveXLIFF( const QString& filename) const
 }
 
 XLIFFHandler::XLIFFHandler( MetaTranslator *translator )
-    : tor( translator ), 
-      m_type( MetaTranslatorMessage::Finished ),
-      m_lineNumber(-1), 
-      ferrorCount( 1 ), 
+    : tor( translator ),
+      m_type( TranslatorMessage::Finished ),
+      m_lineNumber(-1),
+      ferrorCount( 1 ),
       contextIsUtf8( false ),
-      messageIsUtf8( false ), 
+      messageIsUtf8( false ),
       m_URI(QLatin1String(XLIFF11namespaceURI)),
       m_URI12(QLatin1String(XLIFF12namespaceURI))
-{ 
-    
+{
+
 }
 
 
@@ -463,15 +472,15 @@ bool XLIFFHandler::startElement( const QString& namespaceURI,
             }
         } else if (localName == QLatin1String("trans-unit")) {
             if (atts.value(QLatin1String("translate")) == QLatin1String("no")) {
-                m_type = MetaTranslatorMessage::Obsolete;
+                m_type = TranslatorMessage::Obsolete;
             }
             m_comment.clear();
         } else if (localName == QLatin1String("target")) {
             QString state = atts.value(QLatin1String("state"));
             if (state == QLatin1String("new")) {
-                m_type = MetaTranslatorMessage::Unfinished;
+                m_type = TranslatorMessage::Unfinished;
             } else if (state == QLatin1String("final")) {
-                m_type = MetaTranslatorMessage::Finished;
+                m_type = TranslatorMessage::Finished;
             }
         } else if (localName == QLatin1String("context-group")) {
             QString purpose = atts.value(QLatin1String("purpose"));
@@ -520,17 +529,17 @@ bool XLIFFHandler::endElement(const QString& namespaceURI,
             popContext(XC_ph);
         } else if (localName == QLatin1String("trans-unit")) {
             if (!hasContext(XC_restype_plurals)) {
-                tor->insert( MetaTranslatorMessage(m_context.toAscii(), m_source.toAscii(),
-                                                m_comment.toAscii(), m_fileName, m_lineNumber, 
-                                                translations, false, m_type, false) );
+                tor->insert( TranslatorMessage(m_context.toUtf8(), m_source.toUtf8(),
+                                                m_comment.toUtf8(), "", m_fileName, m_lineNumber,
+                                                translations, true, m_type, false) );
                 translations.clear();
                 m_lineNumber = -1;
             }
         } else if (localName == QLatin1String("group")) {
             if (hasContext(XC_restype_plurals)) {
-                tor->insert( MetaTranslatorMessage(m_context.toAscii(), m_source.toAscii(),
-                                                m_comment.toAscii(), m_fileName, m_lineNumber, 
-                                                translations, false, m_type, true) );
+                tor->insert( TranslatorMessage(m_context.toUtf8(), m_source.toUtf8(),
+                                                m_comment.toUtf8(), "", m_fileName, m_lineNumber,
+                                                translations, true, m_type, true) );
                 popContext(XC_restype_plurals);
                 translations.clear();
                 m_lineNumber = -1;
@@ -556,11 +565,8 @@ bool XLIFFHandler::characters( const QString& ch )
         }
     } else {
         QString t = ch;
-        // a hack to avoid that QString::simplified does not remove the space at the beginning or at the end.
-        t.prepend(QLatin1Char('|'));
-        t.append(QLatin1Char('|'));
-        t = t.simplified().mid(1, t.length() - 2);
-        accum += t;
+        t.replace(QLatin1String("\r"), QLatin1String(""));
+        accum.append(t);
     }
     return true;
 }
@@ -577,11 +583,8 @@ bool XLIFFHandler::fatalError( const QXmlParseException& exception )
     msg.sprintf( "Parse error at line %d, column %d (%s).",
                  exception.lineNumber(), exception.columnNumber(),
                  exception.message().toLatin1().data() );
-    if ( qobject_cast<QApplication*>(QCoreApplication::instance()) == 0 )
-        fprintf( stderr, "XML error: %s\n", msg.toLatin1().data() );
-    else
-        QMessageBox::information(0,
-                                  QObject::tr("Qt Linguist"), msg );
-
+    qWarning("XML error: %s\n", msg.toLatin1().data() );
     return false;
 }
+
+QT_END_NAMESPACE

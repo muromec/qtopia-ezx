@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -69,6 +63,8 @@
 #include "QtGui/qpainter.h"
 
 #ifndef QT_NO_ITEMVIEWS
+
+QT_BEGIN_NAMESPACE
 
 typedef QList<QPair<QPersistentModelIndex, QPointer<QWidget> > > _q_abstractitemview_editor_container;
 typedef _q_abstractitemview_editor_container::const_iterator _q_abstractitemview_editor_const_iterator;
@@ -102,8 +98,8 @@ public:
     void _q_columnsRemoved(const QModelIndex &parent, int start, int end);
     void _q_modelDestroyed();
     void _q_layoutChanged();
+    void _q_fetchMore();
 
-    void fetchMore();
     bool shouldEdit(QAbstractItemView::EditTrigger trigger, const QModelIndex &index) const;
     bool shouldForwardEvent(QAbstractItemView::EditTrigger trigger, const QEvent *event) const;
     bool shouldAutoScroll(const QPoint &pos) const;
@@ -152,10 +148,12 @@ public:
 #ifndef QT_NO_CURSOR
             && viewport->cursor().shape() != Qt::ForbiddenCursor
 #endif
-            )
-            if (dropIndicatorRect.height() == 0) // FIXME: should be painted by style
-                painter->drawLine(dropIndicatorRect.topLeft(), dropIndicatorRect.topRight());
-            else painter->drawRect(dropIndicatorRect);
+            ) {
+            QStyleOption opt;
+            opt.init(q_func());
+            opt.rect = dropIndicatorRect;
+            q_func()->style()->drawPrimitive(QStyle::PE_IndicatorItemViewItemDrop, &opt, painter, q_func());
+        }
     }
 #endif
 
@@ -284,7 +282,7 @@ public:
         return ref;
     }
 
-    QStyleOptionViewItemV3 viewOptionsV3() const;
+    QStyleOptionViewItemV4 viewOptionsV4() const;
 
     QAbstractItemModel *model;
     QPointer<QAbstractItemDelegate> itemDelegate;
@@ -296,7 +294,7 @@ public:
     QAbstractItemView::SelectionBehavior selectionBehavior;
 
     _q_abstractitemview_editor_container editors;
-    QList<QWidget*> persistent;
+    QSet<QWidget*> persistent;
     QWidget *currentlyCommittingEditor;
 
     QPersistentModelIndex enteredIndex;
@@ -353,7 +351,9 @@ public:
     bool wrapItemText;
 };
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <qvector.h>
+QT_END_INCLUDE_NAMESPACE
 
 template <typename T>
 inline int qBinarySearch(const QVector<T> &vec, const T &item, int start, int end)
@@ -368,6 +368,8 @@ inline int qBinarySearch(const QVector<T> &vec, const T &item, int start, int en
     }
     return i;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_ITEMVIEWS
 

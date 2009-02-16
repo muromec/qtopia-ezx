@@ -1,535 +1,60 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "signalsloteditor.h"
 #include "signalsloteditor_p.h"
+#include "connectdialog_p.h"
+#include "signalslot_utils_p.h"
 
-#include <qdesigner_membersheet_p.h>
+#include <metadatabase_p.h>
 #include <ui4_p.h>
 
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtDesigner/QDesignerFormEditorInterface>
-#include <QtDesigner/QExtensionManager>
 #include <QtDesigner/QDesignerMetaDataBaseInterface>
-#include <QtDesigner/QDesignerContainerExtension>
-#include <QtDesigner/QDesignerLanguageExtension>
-#include <QtDesigner/QDesignerFormWindowCursorInterface>
-#include <QtDesigner/QDesignerWidgetDataBaseInterface>
 
-#include <QtGui/QAction>
-#include <QtGui/QDialog>
-#include <QtGui/QDialogButtonBox>
-#include <QtGui/QListWidget>
-#include <QtGui/QHBoxLayout>
-#include <QtGui/QVBoxLayout>
-#include <QtGui/QPushButton>
-#include <QtGui/QLabel>
-#include <QtGui/QCheckBox>
 #include <QtGui/QApplication>
 #include <QtGui/QUndoCommand>
 #include <QtGui/QMenu>
 
-#include <QtCore/qdebug.h>
+#include <QtCore/QDebug>
 
-/*******************************************************************************
-** Tools
-*/
+QT_BEGIN_NAMESPACE
 
-template <typename T>
-static void merge(QDesignerFormWindowInterface *form, QStringList *lst, const QList<T> &elts)
-{
-    QDesignerMetaDataBaseInterface *db = form->core()->metaDataBase();
-
-    foreach (T e, elts) {
-        QAction *action = qobject_cast<QAction*>(e);
-
-        if (action && db->item(action->menu())) {
-            // good
-        } else if (!db->item(e)) {
-            // hmm, nothing to do
-            continue;
-        }
-
-        QString name = e->objectName();
-
-        if (action && action->menu())
-            name = action->menu()->objectName();
-
-        if (name.isEmpty())
-            continue;
-
-        lst->append(name);
-    }
-}
-
-static bool signalMatchesSlot(QDesignerFormEditorInterface *core,
-                              const QString &signal,
-                              const QString &slot)
-{    
-    QExtensionManager *em = core->extensionManager();
-    const QDesignerLanguageExtension *lang = qt_extension<QDesignerLanguageExtension*> (em, core);
-    if (lang)
-        return lang->signalMatchesSlot(signal, slot);
-
-    return QDesignerMemberSheet::signalMatchesSlot(signal, slot);
-}
-
-namespace qdesigner_internal {
-
-QStringList objectNameList(QDesignerFormWindowInterface *form)
-{
-    QStringList result;
-    if (form->mainContainer()) {
-        QDesignerContainerExtension *c = qt_extension<QDesignerContainerExtension *>(
-                    form->core()->extensionManager(), form->mainContainer());
-        if (c) {
-            for (int i = 0 ; i < c->count(); i++)
-                result.append(c->widget(i)->objectName().trimmed());
-        }
-    }
-
-    QDesignerFormWindowCursorInterface *cursor = form->cursor();
-    for (int i = 0; i < cursor->widgetCount(); ++i) {
-        const QString name = cursor->widget(i)->objectName().trimmed();
-        if (!name.isEmpty())
-            result.append(name);
-    }
-
-    if (form->mainContainer()) {
-        merge(form, &result, qFindChildren<QAction*>(form->mainContainer()));
-    }
-
-    result.sort();
-
-    return result;
-}
-
-QStringList memberList(QDesignerFormWindowInterface *form, QObject *object, MemberType member_type)
-{
-    QStringList result;
-
-    if (object == 0)
-        return result;
-
-    QDesignerMemberSheetExtension *members
-        = qt_extension<QDesignerMemberSheetExtension*>
-                (form->core()->extensionManager(), object);
-    Q_ASSERT(members != 0);
-
-    for (int i = 0; i < members->count(); ++i) {
-        if (!members->isVisible(i))
-            continue;
-
-        if (member_type == SignalMember && !members->isSignal(i))
-            continue;
-
-        if (member_type == SlotMember && !members->isSlot(i))
-            continue;
-
-        result.append(members->signature(i));
-    }
-
-    return result;
-}
-
-
-ClassList classList(const QString &obj_name, MemberType member_type,
-                            const QString &peer, QDesignerFormWindowInterface *form)
-{
-    ClassList result;
-
-    QObject *object = qFindChild<QObject*>(form, obj_name);
-
-    if (object == 0)
-        return result;
-
-    QDesignerFormEditorInterface *core = form->core();
-    QDesignerMemberSheetExtension *members = qt_extension<QDesignerMemberSheetExtension*>(core->extensionManager(), object);
-    Q_ASSERT(members != 0);
-
-    QString class_name;
-    QStringList member_list;
-    for (int i = members->count() -  1; i >= 0; --i) {
-        if (!members->isVisible(i))
-            continue;
-
-        if (member_type == SignalMember && !members->isSignal(i))
-            continue;
-
-        if (member_type == SlotMember && !members->isSlot(i))
-            continue;
-
-        const QString signal = member_type == SignalMember ? members->signature(i) : peer;
-        const QString slot = member_type == SignalMember ? peer : members->signature(i);
-        if (!signalMatchesSlot(core, signal, slot))
-            continue;
-
-       const QString s = members->declaredInClass(i);
-        if (s != class_name) {
-            if (!member_list.isEmpty())
-                result.append(ClassInfo(class_name, member_list));
-            class_name = s;
-            member_list.clear();
-        }
-        member_list.append(members->signature(i));
-    }
-    if (!member_list.isEmpty())
-        result.append(ClassInfo(class_name, member_list));
-
-    return result;
-}
-}
-
-namespace {
-/*******************************************************************************
-** OldSignalSlotDialog
-*/
-
-class OldSignalSlotDialog : public QDialog
-{
-    Q_OBJECT
-public:
-    OldSignalSlotDialog(QDesignerFormEditorInterface *core, QWidget *sender, QWidget *receiver, QWidget *parent = 0);
-
-    QString signal() const;
-    QString slot() const;
-
-    void setSignalSlot(const QString &signal, const QString &slot);
-
-    bool showAllSignalsSlots() const;
-    void setShowAllSignalsSlots(bool showIt);
-
-private slots:
-    void selectSignal(QListWidgetItem *item);
-    void selectSlot(QListWidgetItem *item);
-    void populateSignalList();
-    void populateSlotList(const QString &signal = QString());
-
-private:
-    QListWidget *m_signal_list, *m_slot_list;
-    QDialogButtonBox *m_buttonBox;
-    QPushButton *m_ok_button;
-    QWidget *m_source, *m_destination;
-    QDesignerFormEditorInterface *m_core;
-    QCheckBox *m_show_all_checkbox;
-};
-
-// ### deprecated
-QString realObjectName(QDesignerFormEditorInterface *core, QObject *object)
-{
-    if (object == 0)
-        return QString();
-
-    const QDesignerMetaDataBaseInterface *mdb = core->metaDataBase();
-    if (const QDesignerMetaDataBaseItemInterface *item = mdb->item(object))
-        return item->name();
-
-    return object->objectName();
-}
-
-QString realClassName(QDesignerFormEditorInterface *core, QWidget *widget)
-{
-    QString class_name = QLatin1String(widget->metaObject()->className());
-    const QDesignerWidgetDataBaseInterface *wdb = core->widgetDataBase();
-    const int idx = wdb->indexOfObject(widget);
-    if (idx != -1)
-        class_name = wdb->item(idx)->name();
-    return class_name;
-}
-
-QString widgetLabel(QDesignerFormEditorInterface *core, QWidget *widget)
-{
-    return QString::fromUtf8("%1 (%2)")
-            .arg(realObjectName(core, widget))
-            .arg(realClassName(core, widget));
-}
-
-void OldSignalSlotDialog::populateSlotList(const QString &signal)
-{
-    QString selectedName;
-    if (QListWidgetItem * item = m_slot_list->currentItem()) {
-        selectedName = item->text();
-    }
-    m_slot_list->clear();
-
-    const bool show_all = m_show_all_checkbox->isChecked();
-
-    QStringList signatures;
-
-    if (QDesignerMemberSheetExtension *members
-            = qt_extension<QDesignerMemberSheetExtension*>
-                    (m_core->extensionManager(), m_destination)) {
-        for (int i=0; i<members->count(); ++i) {
-            if (!members->isVisible(i))
-                continue;
-
-            if (!show_all && members->inheritedFromWidget(i))
-                continue;
-
-            if (members->isSlot(i)) {
-                if (!signalMatchesSlot(m_core, signal, members->signature(i)))
-                    continue;
-
-                signatures.append(members->signature(i));
-            }
-        }
-    }
-
-    signatures.sort();
-
-    QListWidgetItem *curr = 0;
-    foreach (QString sig, signatures) {
-        QListWidgetItem *item = new QListWidgetItem(m_slot_list);
-        item->setText(sig);
-        if (sig == selectedName)
-            curr = item;
-    }
-    if (curr)
-        m_slot_list->setCurrentItem(curr);
-
-    if (m_slot_list->selectedItems().isEmpty())
-        m_ok_button->setEnabled(false);
-}
-
-void OldSignalSlotDialog::populateSignalList()
-{
-    QString selectedName;
-    if (QListWidgetItem * item = m_signal_list->currentItem()) {
-        selectedName = item->text();
-    }
-    m_signal_list->clear();
-
-    const bool show_all = m_show_all_checkbox->isChecked();
-
-    QStringList signatures;
-
-    if (QDesignerMemberSheetExtension *members = qt_extension<QDesignerMemberSheetExtension*>(m_core->extensionManager(), m_source)) {
-        for (int i=0; i<members->count(); ++i) {
-            if (!members->isVisible(i))
-                continue;
-
-            if (!show_all && members->inheritedFromWidget(i))
-                continue;
-
-            if (members->isSignal(i)) {
-                signatures.append(members->signature(i));
-            }
-        }
-    }
-
-    signatures.sort();
-
-    QListWidgetItem *curr = 0;
-    foreach (QString sig, signatures) {
-        QListWidgetItem *item = new QListWidgetItem(m_signal_list);
-        item->setText(sig);
-        if (!selectedName.isEmpty() && sig == selectedName) {
-            curr = item;
-        }
-    }
-
-    if (curr) {
-        m_signal_list->setCurrentItem(curr);
-    } else {
-        selectedName.clear();
-    }
-
-    populateSlotList(selectedName);
-    if (!curr) {
-        m_slot_list->setEnabled(false);
-    }
-}
-
-// ### use designer
-OldSignalSlotDialog::OldSignalSlotDialog(QDesignerFormEditorInterface *core, QWidget *source, QWidget *destination,
-                                         QWidget *parent) :
-    QDialog(parent),
-    m_signal_list(new QListWidget(this)),
-    m_slot_list(new QListWidget(this)),
-    m_buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,Qt::Horizontal, this)),
-    m_ok_button(m_buttonBox->button(QDialogButtonBox::Ok)),
-    m_source(source),
-    m_destination(destination),
-    m_core(core),
-    m_show_all_checkbox(new QCheckBox(QObject::tr("Show all signals and slots")))
-{
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    m_signal_list->setTextElideMode (Qt::ElideMiddle);
-    m_slot_list->setTextElideMode (Qt::ElideMiddle);
-
-    connect(m_signal_list,
-                SIGNAL(itemClicked(QListWidgetItem*)),
-            this,
-                SLOT(selectSignal(QListWidgetItem*)));
-    connect(m_slot_list,
-                SIGNAL(itemClicked(QListWidgetItem*)),
-            this,
-                SLOT(selectSlot(QListWidgetItem*)));
-    m_slot_list->setEnabled(false);
-
-    m_ok_button->setDefault(true);
-    m_ok_button->setEnabled(false);
-    connect(m_buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
-    connect(m_buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-
-    connect(m_show_all_checkbox, SIGNAL(toggled(bool)), this, SLOT(populateSignalList()));
-
-    QLabel *source_label = new QLabel(this);
-    source_label->setText(widgetLabel(core, source));
-    QLabel *destination_label = new QLabel(this);
-    destination_label->setText(widgetLabel(core, destination));
-
-    QVBoxLayout *l1 = new QVBoxLayout(this);
-
-    QHBoxLayout *l2 = new QHBoxLayout();
-    l1->addLayout(l2);
-
-    QVBoxLayout *l3 = new QVBoxLayout();
-    l2->addLayout(l3);
-
-    l3->addWidget(source_label);
-    l3->addWidget(m_signal_list);
-
-    QVBoxLayout *l4 = new QVBoxLayout();
-    l2->addLayout(l4);
-
-    l4->addWidget(destination_label);
-    l4->addWidget(m_slot_list);
-
-    l1->addWidget(m_show_all_checkbox);
-    l1->addWidget(m_buttonBox);
-
-    setWindowTitle(QObject::tr("Configure Connection"));
-
-    populateSignalList();
-}
-
-QListWidgetItem *findItem(const QListWidget &list_widget, const QString &text)
-{
-    QListWidgetItem *result = 0;
-    for (int i = 0; i < list_widget.count(); ++i) {
-        QListWidgetItem *item = list_widget.item(i);
-        if (item->text() == text) {
-            result = item;
-            break;
-        }
-    }
-    return result;
-}
-
-void OldSignalSlotDialog::setSignalSlot(const QString &signal, const QString &slot)
-{
-    QListWidgetItem *sig_item = findItem(*m_signal_list, signal);
-
-    if (sig_item == 0) {
-        m_show_all_checkbox->setChecked(true);
-        sig_item = findItem(*m_signal_list, signal);
-    }
-
-    if (sig_item != 0) {
-        selectSignal(sig_item);
-        QListWidgetItem *slot_item = findItem(*m_slot_list, slot);
-        if (slot_item == 0) {
-            m_show_all_checkbox->setChecked(true);
-            slot_item = findItem(*m_slot_list, slot);
-        }
-        if (slot_item != 0)
-            selectSlot(slot_item);
-    }
-}
-
-bool OldSignalSlotDialog::showAllSignalsSlots() const
-{
-    return m_show_all_checkbox->isChecked();
-}
-
-void OldSignalSlotDialog::setShowAllSignalsSlots(bool showIt)
-{
-    m_show_all_checkbox->setChecked(showIt);
-}
-
-void OldSignalSlotDialog::selectSignal(QListWidgetItem *item)
-{
-    if (item == 0) {
-        m_signal_list->clearSelection();
-        populateSlotList();
-        m_slot_list->setEnabled(false);
-        m_ok_button->setEnabled(false);
-    } else {
-        m_signal_list->setCurrentItem(item);
-        populateSlotList(item->text());
-        m_slot_list->setEnabled(true);
-        m_ok_button->setEnabled(!m_slot_list->selectedItems().isEmpty());
-    }
-}
-
-void OldSignalSlotDialog::selectSlot(QListWidgetItem *item)
-{
-    if (item == 0) {
-        m_slot_list->clearSelection();
-    } else {
-        m_slot_list->setCurrentItem(item);
-    }
-    m_ok_button->setEnabled(true);
-}
-
-QString OldSignalSlotDialog::signal() const
-{
-    QList<QListWidgetItem*> item_list = m_signal_list->selectedItems();
-    if (item_list.size() != 1)
-        return QString();
-    return item_list.at(0)->text();
-}
-
-QString OldSignalSlotDialog::slot() const
-{
-    QList<QListWidgetItem*> item_list = m_slot_list->selectedItems();
-    if (item_list.size() != 1)
-        return QString();
-    return item_list.at(0)->text();
-}
-
-}
 namespace qdesigner_internal {
 
 /*******************************************************************************
@@ -588,18 +113,25 @@ void SignalSlotConnection::setSlot(const QString &slot)
 
 QString SignalSlotConnection::sender() const
 {
+    QObject *source = object(EndPoint::Source);
+    if (!source)
+        return QString();
+
     SignalSlotEditor *edit = qobject_cast<SignalSlotEditor*>(this->edit());
     Q_ASSERT(edit != 0);
 
-    return realObjectName(edit->formWindow()->core(), object(EndPoint::Source));
+    return realObjectName(edit->formWindow()->core(), source);
 }
 
 QString SignalSlotConnection::receiver() const
 {
+    QObject *sink = object(EndPoint::Target);
+    if (!sink)
+        return QString();
+
     SignalSlotEditor *edit = qobject_cast<SignalSlotEditor*>(this->edit());
     Q_ASSERT(edit != 0);
-
-    return realObjectName(edit->formWindow()->core(), object(EndPoint::Target));
+    return realObjectName(edit->formWindow()->core(), sink);
 }
 
 void SignalSlotConnection::updateVisibility()
@@ -607,6 +139,36 @@ void SignalSlotConnection::updateVisibility()
     Connection::updateVisibility();
     if (isVisible() && (signal().isEmpty() || slot().isEmpty()))
         setVisible(false);
+}
+
+QString SignalSlotConnection::toString() const
+{
+    return QObject::tr("SENDER(%1), SIGNAL(%2), RECEIVER(%3), SLOT(%4)")
+        .arg(sender()).arg(signal()).arg(receiver()).arg(slot());
+}
+
+SignalSlotConnection::State SignalSlotConnection::isValid(const QWidget *background) const
+{
+    const QObject *source = object(EndPoint::Source);
+    if (!source)
+        return ObjectDeleted;
+
+    const QObject *target = object(EndPoint::Target);
+    if (!target)
+        return ObjectDeleted;
+
+    if (m_slot.isEmpty() || m_signal.isEmpty())
+        return InvalidMethod;
+
+    if (const QWidget *sourceWidget = qobject_cast<const QWidget*>(source))
+        if (!background->isAncestorOf(sourceWidget))
+            return NotAncestor;
+
+    if (const QWidget *targetWidget = qobject_cast<const QWidget*>(target))
+        if (!background->isAncestorOf(targetWidget))
+             return NotAncestor;
+
+    return Valid;
 }
 
 /*******************************************************************************
@@ -671,25 +233,18 @@ void SetMemberCommand::undo()
 SignalSlotEditor::SignalSlotEditor(QDesignerFormWindowInterface *form_window, QWidget *parent) :
      ConnectionEdit(parent, form_window),
      m_form_window(form_window),
-     m_model(new ConnectionModel(this, this)),
      m_showAllSignalsSlots(false)
 {
-    connect(this, SIGNAL(widgetActivated(QWidget*)), form_window, SIGNAL(activated(QWidget*)));
-}
-
-QAbstractItemModel *SignalSlotEditor::model() const
-{
-    return m_model;
 }
 
 void SignalSlotEditor::modifyConnection(Connection *con)
 {
     SignalSlotConnection *sigslot_con = static_cast<SignalSlotConnection*>(con);
 
-    OldSignalSlotDialog dialog(m_form_window->core(),
-                               sigslot_con->widget(EndPoint::Source),
-                               sigslot_con->widget(EndPoint::Target),
-                               m_form_window->core()->topLevel());
+    ConnectDialog dialog(m_form_window,
+                         sigslot_con->widget(EndPoint::Source),
+                         sigslot_con->widget(EndPoint::Target),
+                         m_form_window->core()->topLevel());
 
     dialog.setSignalSlot(sigslot_con->signal(), sigslot_con->slot());
     dialog.setShowAllSignalsSlots(m_showAllSignalsSlots);
@@ -709,11 +264,7 @@ Connection *SignalSlotEditor::createConnection(QWidget *source, QWidget *destina
     Q_ASSERT(source != 0);
     Q_ASSERT(destination != 0);
 
-    OldSignalSlotDialog dialog(m_form_window->core(),
-                               source,
-                               destination,
-                               m_form_window->core()->topLevel());
-
+    ConnectDialog dialog(m_form_window, source, destination, m_form_window->core()->topLevel());
     dialog.setShowAllSignalsSlots(m_showAllSignalsSlots);
 
     if (dialog.exec() == QDialog::Accepted) {
@@ -731,32 +282,28 @@ DomConnections *SignalSlotEditor::toUi() const
 {
     DomConnections *result = new DomConnections;
     QList<DomConnection*> list;
-    for (int i = 0; i < connectionCount(); ++i) {
+
+    const int count = connectionCount();
+    for (int i = 0; i < count; ++i) {
         const SignalSlotConnection *con = static_cast<const SignalSlotConnection*>(connection(i));
         Q_ASSERT(con != 0);
 
-        // If a widget's parent has been removed, and the parent was not a managed widget
+        // If a widget's parent has been removed or moved to a different form,
+        // and the parent was not a managed widget
         // (a page in a tab widget), we never get a widgetRemoved(). So we filter out
-        // these child widgets here.
-        const QObject *source = con->object(EndPoint::Source);
-        if (source == 0)
-            continue;
-
-        const QObject *target = con->object(EndPoint::Target);
-        if (target == 0)
-            continue;
-
-        if (const QWidget *sourceWidget = qobject_cast<const QWidget*>(source)) {
-            if (!background()->isAncestorOf(sourceWidget))
-                continue;
+        // these child widgets here (check QPointer and verify ancestor).
+        // Also, the user might demote a promoted widget or remove a fake
+        // slot in the editor, which causes the connection to become invalid
+        // once he doubleclicks on the method combo.
+        switch (con->isValid(background())) {
+        case SignalSlotConnection::Valid:
+            list.append(con->toUi());
+            break;
+        case SignalSlotConnection::ObjectDeleted:
+        case SignalSlotConnection::InvalidMethod:
+        case SignalSlotConnection::NotAncestor:
+            break;
         }
-
-        if (const QWidget *targetWidget = qobject_cast<const QWidget*>(target)) {
-            if (!background()->isAncestorOf(targetWidget))
-                continue;
-        }
-
-        list.append(con->toUi());
     }
     result->setElementConnection(list);
     return result;
@@ -862,7 +409,7 @@ void SignalSlotEditor::setSignal(SignalSlotConnection *con, const QString &membe
 {
     if (member == con->signal())
         return;
-    
+
     m_form_window->beginCommand(QApplication::translate("Command", "Change signal"));
     undoStack()->push(new SetMemberCommand(con, EndPoint::Source, member, this));
     if (!signalMatchesSlot(m_form_window->core(), member, con->slot()))
@@ -893,9 +440,8 @@ void SignalSlotEditor::setSource(Connection *_con, const QString &obj_name)
     ConnectionEdit::setSource(con, obj_name);
 
     QObject *sourceObject = con->object(EndPoint::Source);
-    const QStringList member_list = memberList(m_form_window, sourceObject, SignalMember);
 
-    if (!member_list.contains(con->signal()))
+    if (!memberFunctionListContains(m_form_window->core(), sourceObject, SignalMember, con->signal()))
         undoStack()->push(new SetMemberCommand(con, EndPoint::Source, QString(), this));
 
     m_form_window->endCommand();
@@ -912,9 +458,7 @@ void SignalSlotEditor::setTarget(Connection *_con, const QString &obj_name)
     ConnectionEdit::setTarget(con, obj_name);
 
     QObject *targetObject = con->object(EndPoint::Target);
-    QStringList member_list = memberList(m_form_window, targetObject, SlotMember);
-
-    if (!member_list.contains(con->slot()))
+    if (!memberFunctionListContains(m_form_window->core(),  targetObject, SlotMember, con->slot()))
         undoStack()->push(new SetMemberCommand(con, EndPoint::Target, QString(), this));
 
     m_form_window->endCommand();
@@ -928,4 +472,4 @@ void SignalSlotEditor::addEmptyConnection()
 
 } // namespace qdesigner_internal
 
-#include "signalsloteditor.moc"
+QT_END_NAMESPACE

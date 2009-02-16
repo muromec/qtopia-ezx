@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include <QtGui/QToolBar>
 
 #include <QtCore/qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QDesignerFormWindowInterface
@@ -73,10 +69,7 @@
     widget, you can use the static
     QDesignerFormWindowInterface::findFormWindow() function:
 
-    \code
-    QDesignerFormWindowInterface *formWindow;
-    formWindow = QDesignerFormWindowInterface::findFormWindow(myWidget);
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_sdk_abstractformwindow.cpp 0
 
     But in addition, you can access any of the current form windows
     through \QD's form window manager: Use the
@@ -86,17 +79,7 @@
     through the QDesignerFormWindowManagerInterface::formWindow()
     function. For example:
 
-    \code
-    QList<QDesignerFormWindowInterface *> forms;
-    QDesignerFormWindowInterface *formWindow;
-
-    QDesignerFormWindowManagerInterface *manager = formEditor->formWindowManager();
-
-    for (int i = 0; i < manager->formWindowCount(); i++) {
-        formWindow = manager->formWindow(i);
-        forms.append(formWindow);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_sdk_abstractformwindow.cpp 1
 
     The pointer to \QD's current QDesignerFormEditorInterface object
     (\c formEditor in the example above) is provided by the
@@ -112,10 +95,7 @@
     with functions that enables you to control whether a widget should
     be managed by \QD, or not:
 
-    \code
-        if (formWindow->isManaged(myWidget))
-            formWindow->manageWidget(myWidget->childWidget);
-    \endcode
+    \snippet doc/src/snippets/code/tools_designer_src_lib_sdk_abstractformwindow.cpp 2
 
     The complete list of functions concerning widget management is:
     isManaged(), manageWidget() and unmanageWidget(). There is also
@@ -194,22 +174,23 @@ QDesignerFormEditorInterface *QDesignerFormWindowInterface::core() const
     Returns the form window interface for the given \a widget.
 */
 
-static inline bool stopFindAtTopLevel(const QWidget *w)
+static inline bool stopFindAtTopLevel(const QObject *w, bool stopAtMenu)
 {
     // Do we need to go beyond top levels when looking for the form window?
     // 1) A dialog has a window attribute at the moment it is created
     //    before it is properly embedded into a form window. The property
     //    sheet queries the layout attributes precisely at this moment.
-    // 2) In the case of floating toolbars, we also need to go beyond the top level window.
-    if (w->inherits("QDesignerDialog"))
-        return false;
-    if (const QDockWidget *dw = qobject_cast<const QDockWidget *>(w))
-        if (dw->isFloating())
-            return false;
-    if (const QToolBar *tb = qobject_cast<const QToolBar *>(w))
-        if (tb->isFloating())
-            return false;
-    return true;
+    // 2) In the case of floating docks and toolbars, we also need to go beyond the top level window.
+    // 3) In the case of menu editing, we don't want to block events from the
+    //    Designer menu, so, we say stop.
+    // Note that there must be no false positives for dialogs parented on
+    // the form (for example, the "change object name" dialog), else, its
+    // events will be blocked.
+
+    if (stopAtMenu && w->inherits("QDesignerMenu"))
+        return true;
+    const bool isFormEditorObject = w->property("_q_formEditorObject").isValid();
+    return !isFormEditorObject;
 }
 
 QDesignerFormWindowInterface *QDesignerFormWindowInterface::findFormWindow(QWidget *w)
@@ -218,11 +199,41 @@ QDesignerFormWindowInterface *QDesignerFormWindowInterface::findFormWindow(QWidg
         if (QDesignerFormWindowInterface *fw = qobject_cast<QDesignerFormWindowInterface*>(w)) {
             return fw;
         } else {
-            if (w->isWindow() && stopFindAtTopLevel(w))
+            if (w->isWindow() && stopFindAtTopLevel(w, true))
                 break;
         }
 
         w = w->parentWidget();
+    }
+
+    return 0;
+}
+
+/*!
+    \fn QDesignerFormWindowInterface *QDesignerFormWindowInterface::findFormWindow(QObject *object)
+
+    Returns the form window interface for the given \a object.
+
+    \since 4.4
+*/
+
+QDesignerFormWindowInterface *QDesignerFormWindowInterface::findFormWindow(QObject *object)
+{
+    while (object != 0) {
+        if (QDesignerFormWindowInterface *fw = qobject_cast<QDesignerFormWindowInterface*>(object)) {
+            return fw;
+        } else {
+            QWidget *w = qobject_cast<QWidget *>(object);
+            // QDesignerMenu is a window, so stopFindAtTopLevel(w) returns 0.
+            // However, we want to find the form window for QActions of a menu.
+            // If this check is inside stopFindAtTopLevel(w), it will break designer
+            // menu editing (e.g. when clicking on items inside an opened menu)
+            if (w && w->isWindow() && stopFindAtTopLevel(w, false))
+                break;
+
+        }
+
+        object = object->parent();
     }
 
     return 0;
@@ -784,3 +795,5 @@ QDesignerFormWindowInterface *QDesignerFormWindowInterface::findFormWindow(QWidg
     This signal is emitted whenever a widget is removed from the form.
     The widget that was removed is specified by \a widget.
 */
+
+QT_END_NAMESPACE

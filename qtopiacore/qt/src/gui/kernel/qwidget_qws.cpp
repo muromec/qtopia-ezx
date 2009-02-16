@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -67,6 +58,10 @@
 #include "qdebug.h"
 
 #include "qwidget_p.h"
+
+QT_BEGIN_NAMESPACE
+
+QT_USE_NAMESPACE
 
 extern int *qt_last_x;
 extern int *qt_last_y;
@@ -100,7 +95,6 @@ void QWidgetPrivate::create_sys(WId window, bool initializeWindow, bool /*destro
     Q_Q(QWidget);
     Qt::WindowType type = q->windowType();
     Qt::WindowFlags flags = data.window_flags;
-    QWidget *parentWidget = q->parentWidget();
 
     data.alloc_region_index = -1;
 
@@ -119,19 +113,16 @@ void QWidgetPrivate::create_sys(WId window, bool initializeWindow, bool /*destro
     bool desktop = (type == Qt::Desktop);
     bool tool = (type == Qt::Tool || type == Qt::SplashScreen || type == Qt::ToolTip);
 
+
 #ifndef QT_NO_WARNING_OUTPUT
     static bool toolWarningShown = false;
     if (!toolWarningShown && type == Qt::Tool && !(flags & Qt::FramelessWindowHint)) {
-        qWarning("Qtopia Core " QT_VERSION_STR " does not support tool windows with frames.\n"
+        qWarning("Qt for Embedded Linux " QT_VERSION_STR " does not support tool windows with frames.\n"
                  "This behavior will change in a later release. To ensure compatibility with\n"
                  "future versions, use (Qt::Tool | Qt::FramelessWindowHint).");
         toolWarningShown = true;
     }
 #endif
-
-    // a popup stays on top
-    if (popup)
-        flags |= Qt::WindowStaysOnTopHint;
 
     WId           id;
     QWSDisplay* dpy = QWidget::qwsDisplay();
@@ -139,14 +130,13 @@ void QWidgetPrivate::create_sys(WId window, bool initializeWindow, bool /*destro
     if (!window)                                // always initialize
         initializeWindow = true;
 
-    if(topLevel && parentWidget) { // if our parent stays on top, so must we
-        QWidget *ptl = parentWidget->window();
-        if(ptl && (ptl->windowFlags() & Qt::WindowStaysOnTopHint))
-            flags |= Qt::WindowStaysOnTopHint;
-    }
+    // use the size of the primary screen to determine the default window size
+    QList<QScreen *> screens = qt_screen->subScreens();
+    if (screens.isEmpty())
+        screens.append(qt_screen);
+    int sw = screens[0]->width();
+    int sh = screens[0]->height();
 
-    int sw = dpy->width();
-    int sh = dpy->height();
     if (desktop) {                                // desktop widget
         dialog = popup = false;                        // force these flags off
         data.crect.setRect(0, 0, sw, sh);
@@ -178,7 +168,7 @@ void QWidgetPrivate::create_sys(WId window, bool initializeWindow, bool /*destro
 
     bool hasFrame = true;
     if (topLevel) {
-        if (desktop || popup || tool)
+        if (desktop || popup || tool || q->testAttribute(Qt::WA_DontShowOnScreen))
             hasFrame = false;
         else
             hasFrame = !(flags & Qt::FramelessWindowHint);
@@ -546,12 +536,13 @@ void QWidget::activateWindow()
     }
 }
 
-void QWidgetPrivate::dirtyWidget_sys(const QRegion &rgn)
+void QWidgetPrivate::dirtyWidget_sys(const QRegion &rgn, bool updateImmediately)
 {
     Q_Q(QWidget);
     QWidget *tlw = q->window();
 
-    QWidgetBackingStore *wbs = tlw->d_func()->topData()->backingStore;
+    QTLWExtra *tlwExtra = tlw->d_func()->topData();
+    QWidgetBackingStore *wbs = tlwExtra->backingStore;
     QRegion wrgn(rgn);
 
     if (tlw != q) {
@@ -561,8 +552,21 @@ void QWidgetPrivate::dirtyWidget_sys(const QRegion &rgn)
 
     QWSWindowSurface *surface = static_cast<QWSWindowSurface*>(wbs->windowSurface);
     if (surface) {
+        surface->d_ptr->updateImmediately = updateImmediately;
+        if (tlwExtra->proxyWidget) {
+            // Add the existing dirty region to the current update region before
+            // we reset QWSWindowSurface::dirty. We do this in order to always
+            // send an update event on sub-sequent updates/repaints.
+            wrgn += surface->d_ptr->dirty;
+            surface->d_ptr->dirty = QRegion(); // XXX: hw: Make sure we post/send update requests.
+            surface->d_ptr->clip = wrgn;
+        }
         surface->setDirty(wrgn);
 
+        // re-get, since setDirty may recreate the surface
+        surface = static_cast<QWSWindowSurface*>(wbs->windowSurface);
+
+        surface->d_ptr->updateImmediately = false;
 
 #ifdef Q_BACKINGSTORE_SUBSURFACES
         // dirty on all subsurfaces...
@@ -572,7 +576,9 @@ void QWidgetPrivate::dirtyWidget_sys(const QRegion &rgn)
         for (int i = 0; i < subSurfaces.size(); ++i) {
             QWSWindowSurface *s = static_cast<QWSWindowSurface*>(subSurfaces.at(i));
             QPoint p = s->window()->mapTo(tlw, QPoint()); // must use widget?
+            s->d_ptr->updateImmediately = updateImmediately;
             s->setDirty(wrgn.translated(-p));
+            s->d_ptr->updateImmediately = false;
         }
 #endif // Q_BACKINGSTORE_SUBSURFACES
     }
@@ -580,7 +586,20 @@ void QWidgetPrivate::dirtyWidget_sys(const QRegion &rgn)
 
 void QWidgetPrivate::cleanWidget_sys(const QRegion& rgn)
 {
-    Q_UNUSED(rgn);
+    Q_Q(QWidget);
+    QWidget *tlw = q->window();
+    QTLWExtra *tlwExtra = tlw->d_func()->maybeTopData();
+    if (!tlwExtra || !tlwExtra->proxyWidget || tlwExtra->backingStore)
+        return;
+
+    QRegion wrgn(rgn);
+    if (tlw != q) {
+        QPoint offs(q->mapTo(tlw, QPoint()));
+        wrgn.translate(offs);
+    }
+
+    if (QWSWindowSurface *surface = static_cast<QWSWindowSurface*>(tlwExtra->backingStore->windowSurface))
+        surface->d_ptr->dirty -= wrgn;
 }
 
 
@@ -603,6 +622,11 @@ void QWidgetPrivate::show_sys()
 {
     Q_Q(QWidget);
     q->setAttribute(Qt::WA_Mapped);
+    if (q->testAttribute(Qt::WA_DontShowOnScreen)) {
+        invalidateBuffer(q->rect());
+        return;
+    }
+
     if (q->isWindow()) {
 
         if (QWindowSurface *surface = q->windowSurface()) {
@@ -621,21 +645,30 @@ void QWidgetPrivate::show_sys()
 #endif
         data.fstrut_dirty = true;
         invalidateBuffer(r);
-        if (q->windowType() != Qt::Popup
+        if (!q->testAttribute(Qt::WA_ShowWithoutActivating)
+            && q->windowType() != Qt::Popup
             && q->windowType() != Qt::Tool
-            && q->windowType() != Qt::ToolTip ) {
+            && q->windowType() != Qt::ToolTip) {
             QWidget::qwsDisplay()->requestFocus(data.winid,true);
         }
 	bool staysontop =
             (q->windowFlags() & Qt::WindowStaysOnTopHint)
-            || (q->windowState() & Qt::WindowFullScreen)
             || q->windowType() == Qt::Popup;
+        if (!staysontop && q->parentWidget()) { // if our parent stays on top, so must we
+            QWidget *ptl = q->parentWidget()->window();
+            if (ptl && (ptl->windowFlags() & Qt::WindowStaysOnTopHint))
+                staysontop = true;
+        }
+
         QWSChangeAltitudeCommand::Altitude altitude;
         altitude = staysontop ? QWSChangeAltitudeCommand::StaysOnTop : QWSChangeAltitudeCommand::Raise;
         QWidget::qwsDisplay()->setAltitude(data.winid, altitude, true);
+        if (!q->objectName().isEmpty()) {
+            QWidget::qwsDisplay()->setWindowCaption(q, q->windowTitle());
+        }
     }
 #ifdef Q_BACKINGSTORE_SUBSURFACES
-    else if (q->windowSurface()) {
+    else if ( extra && extra->topextra && extra->topextra->windowSurface) {
         QWSWindowSurface *surface;
         surface = static_cast<QWSWindowSurface*>(q->windowSurface());
         const QPoint p = q->mapToGlobal(QPoint());
@@ -698,10 +731,25 @@ void QWidgetPrivate::setMaxWindowState_helper()
 #endif
     {
         Q_Q(QWidget);
-        const QApplicationPrivate *ap = QApplicationPrivate::instance();
-        const QRect maxWindowRect = ap->maxWindowRect(getScreen());
+        const QDesktopWidget *desktop = QApplication::desktop();
+        const int screen = desktop->screenNumber(q);
+        const QRect maxWindowRect = desktop->availableGeometry(screen);
         q->setGeometry(maxWindowRect);
     }
+    data.in_set_window_state = old_state;
+}
+
+void QWidgetPrivate::setFullScreenSize_helper()
+{
+    Q_Q(QWidget);
+
+    const uint old_state = data.in_set_window_state;
+    data.in_set_window_state = 1;
+
+    const QRect screen = qApp->desktop()->screenGeometry(qApp->desktop()->screenNumber(q));
+    q->move(screen.topLeft());
+    q->resize(screen.size());
+
     data.in_set_window_state = old_state;
 }
 
@@ -737,9 +785,7 @@ void QWidget::setWindowState(Qt::WindowStates newstate)
         } else if (newEffectiveState == Qt::WindowFullScreen) {
             d->topData()->savedFlags = windowFlags();
             setParent(0, Qt::FramelessWindowHint | (windowFlags() & Qt::WindowStaysOnTopHint));
-            const QRect screen = qApp->desktop()->screenGeometry(qApp->desktop()->screenNumber(this));
-            move(screen.topLeft());
-            resize(screen.size());
+            d->setFullScreenSize_helper();
             raise();
             needShow = true;
         } else if (newEffectiveState == Qt::WindowMaximized) {
@@ -800,9 +846,6 @@ void QWidgetPrivate::raise_sys()
             }
         }
 #endif // QT_NO_WINDOWGROUPHINT
-    } else {
-        setDirtyOpaqueRegion();
-        invalidateBuffer(q->rect());
     }
 }
 
@@ -871,12 +914,6 @@ void QWidgetPrivate::setGeometry_sys(int x, int y, int w, int h, bool isMove)
     if ((q->windowType() == Qt::Desktop))
         return;
 
-    bool inTransaction = false;
-    QTLWExtra *topextra = q->window()->d_func()->maybeTopData();
-    if (topextra) {
-        inTransaction = topextra->inPaintTransaction;
-        topextra->inPaintTransaction = true;
-    }
     if (q->isVisible()) {
 
         bool toplevelMove = false;
@@ -963,8 +1000,6 @@ void QWidgetPrivate::setGeometry_sys(int x, int y, int w, int h, bool isMove)
         if (isResize)
             q->setAttribute(Qt::WA_PendingResizeEvent, true);
     }
-    if (topextra)
-        topextra->inPaintTransaction = inTransaction;
 }
 
 void QWidgetPrivate::setConstraints_sys()
@@ -976,7 +1011,7 @@ QScreen* QWidgetPrivate::getScreen() const
     Q_Q(const QWidget);
 
     const QList<QScreen*> subScreens = qt_screen->subScreens();
-    if (subScreens.isEmpty())
+    if (subScreens.isEmpty() || q->windowType() == Qt::Desktop)
         return qt_screen;
 
     const int screen = QApplication::desktop()->screenNumber(q);
@@ -1179,30 +1214,16 @@ void QWidgetPrivate::updateCursor() const
 }
 #endif
 
-
-void QWidget::setWindowOpacity(qreal level)
+void QWidgetPrivate::setWindowOpacity_sys(qreal level)
 {
-    if (!isWindow())
-        return;
-
-    Q_D(QWidget);
-    level = qBound(qreal(0), level, qreal(1));
-    uchar opacity = uchar(level * 255);
-    d->topData()->opacity = opacity;
-    d->createWinId();
-    qwsDisplay()->setOpacity(data->winid, opacity);
-}
-
-qreal QWidget::windowOpacity() const
-{
-    return isWindow() ? ((QWidget*)this)->d_func()->topData()->opacity / 255.0 : 1.0;
+    Q_Q(QWidget);
+    Q_UNUSED(level);
+    createWinId();
+    QWidget::qwsDisplay()->setOpacity(q->data->winid, topData()->opacity);
 }
 
 //static QSingleCleanupHandler<QWSPaintEngine> qt_paintengine_cleanup_handler;
 //static QWSPaintEngine *qt_widget_paintengine = 0;
-/*!
-    Returns the widget's paint engine.
-*/
 QPaintEngine *QWidget::paintEngine() const
 {
     qWarning("QWidget::paintEngine: Should no longer be called");
@@ -1224,3 +1245,5 @@ void QWidgetPrivate::setModal_sys()
 {
 }
 
+
+QT_END_NAMESPACE

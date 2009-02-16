@@ -1,56 +1,52 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSVG module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 #include "qgraphicssvgitem.h"
 
-#ifndef QT_NO_GRAPHICSVIEW
+#ifndef QT_NO_GRAPHICSSVGITEM
 
 #include "qpainter.h"
 #include "qstyleoption.h"
 #include "qsvgrenderer.h"
-#include "qpixmapcache.h"
 #include "qdebug.h"
 
 #include "private/qobject_p.h"
+#include "private/qgraphicsitem_p.h"
+
+QT_BEGIN_NAMESPACE
 
 class QGraphicsSvgItemPrivate : public QObjectPrivate
 {
@@ -58,8 +54,7 @@ public:
     Q_DECLARE_PUBLIC(QGraphicsSvgItem)
 
     QGraphicsSvgItemPrivate()
-        : renderer(0), maximumCacheSize(1024, 768), shared(false),
-          dirty(true), cached(true)
+        : renderer(0), shared(false)
     {
     }
 
@@ -69,6 +64,8 @@ public:
         renderer = new QSvgRenderer(q);
         QObject::connect(renderer, SIGNAL(repaintNeeded()),
                          q, SLOT(_q_repaintItem()));
+        q->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        q->setMaximumCacheSize(QSize(1024, 768));
     }
 
     void _q_repaintItem()
@@ -89,17 +86,14 @@ public:
 
     QSvgRenderer *renderer;
     QRectF boundingRect;
-    QSize  maximumCacheSize;
     bool shared;
-    bool dirty;
     QString elemId;
-    bool cached;
 };
 
 /*!
     \class QGraphicsSvgItem
     \ingroup multimedia
-
+    \ingroup graphicsview-api
     \brief The QGraphicsSvgItem class is a QGraphicsItem that can be used to render
            the contents of SVG files.
 
@@ -121,24 +115,14 @@ public:
     elements. For example the following code renders only jokers from a SVG file
     containing a whole card deck:
 
-    \code
-    QSvgRenderer *renderer = new QSvgRenderer(QLatin1String("SvgCardDeck.svg"));
-    QGraphicsSvgItem *black = new QGraphicsSvgItem();
-    QGraphicsSvgItem *red   = new QGraphicsSvgItem();
-
-    black->setSharedRenderer(renderer);
-    black->setElementId(QLatin1String("black_joker"));
-
-    red->setSharedRenderer(renderer);
-    red->setElementId(QLatin1String("red_joker"));
-    \endcode
+    \snippet doc/src/snippets/code/src_svg_qgraphicssvgitem.cpp 0
 
     Size of the item can be set via the setSize() method or via
     direct manipulation of the items transformation matrix.
 
-    By default the SVG rendering is cached to speedup
-    the display of items. Caching can be disabled by passing false
-    to the setCachingEnabled() method.
+    By default the SVG rendering is cached using QGraphicsItem::DeviceCoordinateCache
+    mode to speedup the display of items. Caching can be disabled by passing
+    QGraphicsItem::NoCache to the QGraphicsItem::setCacheMode() method.
 
     \sa QSvgWidget, {QtSvg Module}, QGraphicsItem, QGraphicsView
 */
@@ -195,7 +179,7 @@ static void qt_graphicsItem_highlightSelected(
     QGraphicsItem *item, QPainter *painter, const QStyleOptionGraphicsItem *option)
 {
     const QRectF murect = painter->transform().mapRect(QRectF(0, 0, 1, 1));
-    if (qFuzzyCompare(qMax(murect.width(), murect.height()), qreal(0.0)))
+    if (qFuzzyCompare(qMax(murect.width(), murect.height()) + 1, 1))
         return;
 
     const QRectF mbrect = painter->transform().mapRect(item->boundingRect());
@@ -257,66 +241,13 @@ void QGraphicsSvgItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *
     if (!d->renderer->isValid())
         return;
 
-    QMatrix m = painter->worldMatrix();
-    QRect deviceRect = m.mapRect(d->boundingRect).toRect();
+    if (d->elemId.isEmpty())
+        d->renderer->render(painter, d->boundingRect);
+    else
+        d->renderer->render(painter, d->elemId, d->boundingRect);
 
-    if (!d->cached ||
-        deviceRect.size().width() > d->maximumCacheSize.width() ||
-        deviceRect.size().height() > d->maximumCacheSize.height()) {
-        if (d->elemId.isEmpty())
-            d->renderer->render(painter, d->boundingRect);
-        else
-            d->renderer->render(painter, d->elemId, d->boundingRect);
-
-        if (option->state & QStyle::State_Selected)
-            qt_graphicsItem_highlightSelected(this, painter, option);
-        return;
-    }
-
-    QString uniqueId = QString::fromLatin1("%1_%2_%3_%4_%5").arg((long)this)
-                       .arg(m.m11()).arg(m.m12()).arg(m.m21()).arg(m.m22());
-
-    QPixmap pix;
-    if (!QPixmapCache::find(uniqueId, pix)) {
-        pix = QPixmap(deviceRect.size());
-        d->dirty = true;
-#if 0
-        qDebug()<<"Cache doesn't contain item "<<uniqueId
-                <<", size = "<<QPixmapCache::cacheLimit();
-#endif
-    }
-
-    QPointF viewPoint = m.mapRect(d->boundingRect).topLeft();
-    QPointF viewOrigo = m.map(QPointF(0,  0));
-
-    if (d->dirty) {
-        pix.fill(Qt::transparent);
-        QPainter p(&pix);
-
-        QPointF offset = viewOrigo - viewPoint;
-        p.translate(offset);
-        p.setWorldMatrix(m, true);
-        p.translate(m.inverted().map(QPointF(0, 0)));
-
-        if (d->elemId.isEmpty())
-            d->renderer->render(&p, d->boundingRect);
-        else
-            d->renderer->render(&p, d->elemId, d->boundingRect);
-
-        p.end();
-        QPixmapCache::insert(uniqueId,  pix);
-        d->dirty = false;
-    }
-
-    const QTransform xformSave = painter->transform();
-
-    painter->setWorldMatrix(QMatrix());
-    painter->drawPixmap(viewPoint, pix);
-
-    if (option->state & QStyle::State_Selected) {
-        painter->setTransform(xformSave);
+    if (option->state & QStyle::State_Selected)
         qt_graphicsItem_highlightSelected(this, painter, option);
-    }
 }
 
 /*!
@@ -329,45 +260,41 @@ int QGraphicsSvgItem::type() const
 
 
 /*!
-    Sets the maximum cache size of the item to \a size.
+    Sets the maximum device coordinate cache size of the item to \a size.
+    If the item is cached using QGraphicsItem::DeviceCoordinateCache mode,
+    caching is bypassed if the extension of the item in device coordinates
+    is larger than \a size.
 
-    This function doesn't take the current transformation matrix into
-    account and sets the untransformed size.
-    The cache correspods to the QPixmap which is used to cache the
+    The cache corresponds to the QPixmap which is used to cache the
     results of the rendering.
-    Use QPixmap::setCacheLimit() to set limitations on the whole cache
-    and use setMaximumCacheSize when setting cache size for individual
+    Use QPixmapCache::setCacheLimit() to set limitations on the whole cache
+    and use setMaximumCacheSize() when setting cache size for individual
     items.
 
+    \sa QGraphicsItem::cacheMode()
 */
 void QGraphicsSvgItem::setMaximumCacheSize(const QSize &size)
 {
-    Q_D(QGraphicsSvgItem);
-
-    if (size.isEmpty()) {
-        qWarning("Can't set the size of a QGraphicsSvgItem cache to an empty rectangle");
-        return;
-    }
-
-    d->maximumCacheSize = size;
-    d->dirty = true;
+    QGraphicsItem::d_ptr->setExtra(QGraphicsItemPrivate::ExtraMaxDeviceCoordCacheSize, size);
     update();
 }
 
 /*!
-    Returns the current maximum size of the cache for this item.
+    Returns the current maximum size of the device coordinate cache for this item.
+    If the item is cached using QGraphicsItem::DeviceCoordinateCache mode,
+    caching is bypassed if the extension of the item in device coordinates
+    is larger than the maximum size.
 
-    This function doesn't take the current transformation matrix into
-    account and returns the untransformed size.
     The default maximum cache size is 1024x768.
-    QPixmapCache::cacheLimit() sets the
-    cumulative bounds on the whole cache, maximumCacheSize refers
+    QPixmapCache::cacheLimit() gives the
+    cumulative bounds of the whole cache, whereas maximumCacheSize() refers
     to a maximum cache size for this particular item.
+
+    \sa QGraphicsItem::cacheMode()
 */
 QSize QGraphicsSvgItem::maximumCacheSize() const
 {
-    Q_D(const QGraphicsSvgItem);
-    return d->maximumCacheSize;
+    return QGraphicsItem::d_ptr->extra(QGraphicsItemPrivate::ExtraMaxDeviceCoordCacheSize).toSize();
 }
 
 /*!
@@ -378,7 +305,6 @@ void QGraphicsSvgItem::setElementId(const QString &id)
 {
     Q_D(QGraphicsSvgItem);
     d->elemId = id;
-    d->dirty = true;
     d->updateDefaultSize();
     update();
 }
@@ -409,7 +335,6 @@ void QGraphicsSvgItem::setSharedRenderer(QSvgRenderer *renderer)
 
     d->renderer = renderer;
     d->shared = true;
-    d->dirty = true;
 
     d->updateDefaultSize();
 
@@ -417,41 +342,28 @@ void QGraphicsSvgItem::setSharedRenderer(QSvgRenderer *renderer)
 }
 
 /*!
-    If \a caching is true, enables caching on the item; otherwise
-    disables it.
+    \obsolete
 
-    By default, caching is on. For performance reasons, it is advised
-    to keep the caching enabled.
-    Note that caching will not work if either the amount of cached
-    items exceeded QPixmapCache::cacheLimit() or if the current
-    item on the given view is greater than the
-    QGraphicsSvgItem::maximumCacheSize().
+    Use QGraphicsItem::setCacheMode() instead. Passing true to this function is equivalent
+    to QGraphicsItem::setCacheMode(QGraphicsItem::DeviceCoordinateCache).
 */
 void QGraphicsSvgItem::setCachingEnabled(bool caching)
 {
-    Q_D(QGraphicsSvgItem);
-
-    d->cached = caching;
-    d->dirty = true;
-    update();
+    setCacheMode(caching ? QGraphicsItem::DeviceCoordinateCache : QGraphicsItem::NoCache);
 }
 
 /*!
-    Returns true if the contents of the SVG file to be
-    renderer is cached.
+    \obsolete
 
-    Note that caching will not work if either the amount of cached
-    items exceeded QPixmapCache::cacheLimit() or if the current
-    item on the given view is greater than the
-    QGraphicsSvgItem::maximumCacheSize().
+    Use QGraphicsItem::cacheMode() instead.
 */
 bool QGraphicsSvgItem::isCachingEnabled() const
 {
-    Q_D(const QGraphicsSvgItem);
-    return d->cached;
+    return cacheMode() != QGraphicsItem::NoCache;
 }
 
+QT_END_NAMESPACE
 
 #include "moc_qgraphicssvgitem.cpp"
 
-#endif // QT_NO_GRAPHICSVIEW
+#endif // QT_NO_GRAPHICSSVGITEM

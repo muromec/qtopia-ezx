@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,15 +46,26 @@
 #include <qregexp.h>
 #include <qvarlengtharray.h>
 #include <qtextcodec.h>
+#include <qthread.h>
 #include "qtexthtmlparser_p.h"
 #include "qpainter.h"
 #include "qprinter.h"
 #include "qtextedit.h"
+#include <qfile.h>
+#include <qfileinfo.h>
+#include <qdir.h>
+#include <qapplication.h>
 #include "qtextcontrol_p.h"
+#include "private/qtextedit_p.h"
 
 #include "qtextdocument_p.h"
+#include <private/qprinter_p.h>
 
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
+
+Q_CORE_EXPORT unsigned int qt_int_sqrt(unsigned int n);
 
 /*!
     Returns true if the string \a text is likely to be rich text;
@@ -119,7 +124,11 @@ bool Qt::mightBeRichText(const QString& text)
                 else if (!text[i].isSpace() && (!tag.isEmpty() || text[i] != QLatin1Char('!')))
                     return false; // that's not a tag
             }
+#ifndef QT_NO_TEXTHTMLPARSER
             return QTextHtmlParser::lookupElement(tag.toLower()) != -1;
+#else
+            return false;
+#endif // QT_NO_TEXTHTMLPARSER
         }
     }
     return false;
@@ -132,11 +141,7 @@ bool Qt::mightBeRichText(const QString& text)
 
     Example:
 
-    \code
-        QString plain = "#include <QtCore>"
-        QString html = Qt::escape(plain);
-        // html == "#include &lt;QtCore&gt;"
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextdocument.cpp 0
 
     This function is defined in the \c <QTextDocument> header file.
 
@@ -233,6 +238,8 @@ QTextCodec *Qt::codecForHtml(const QByteArray &ba)
 
 /*!
     \class QTextDocument qtextdocument.h
+    \reentrant
+
     \brief The QTextDocument class holds formatted text that can be
     viewed and edited using a QTextEdit.
 
@@ -288,7 +295,7 @@ QTextCodec *Qt::codecForHtml(const QByteArray &ba)
 
     When \l{QTextBlock}s are created, the defaultTextOption is set on their
     QTextLayout. This allows setting global properties for the document such as the
-    default word wrap mode. 
+    default word wrap mode.
  */
 
 /*!
@@ -343,12 +350,17 @@ QTextDocument *QTextDocument::clone(QObject *parent) const
     doc->rootFrame()->setFrameFormat(rootFrame()->frameFormat());
     QTextDocumentPrivate *priv = doc->d_func();
     priv->title = d->title;
+    priv->url = d->url;
     priv->pageSize = d->pageSize;
+    priv->indentWidth = d->indentWidth;
     priv->defaultTextOption = d->defaultTextOption;
     priv->setDefaultFont(d->defaultFont());
     priv->resources = d->resources;
+    priv->cachedResources.clear();
+#ifndef QT_NO_CSSPARSER
     priv->defaultStyleSheet = d->defaultStyleSheet;
     priv->parsedDefaultStyleSheet = d->parsedDefaultStyleSheet;
+#endif
     return doc;
 }
 
@@ -545,11 +557,20 @@ void QTextDocument::markContentsDirty(int from, int length)
 /*!
     \property QTextDocument::useDesignMetrics
     \since 4.1
+    \brief whether the document uses design metrics of fonts to improve the accuracy of text layout
+
+    If this property is set to true, the layout will use design metrics.
+    Otherwise, the metrics of the paint device as set on
+    QAbstractTextDocumentLayout::setPaintDevice() will be used.
+
+    By default, this property is false.
 */
 
 void QTextDocument::setUseDesignMetrics(bool b)
 {
     Q_D(QTextDocument);
+    if (b == d->defaultTextOption.useDesignMetrics())
+        return;
     d->defaultTextOption.setUseDesignMetrics(b);
     if (d->lout)
         d->lout->documentChanged(0, 0, d->length());
@@ -631,6 +652,39 @@ qreal QTextDocument::idealWidth() const
 }
 
 /*!
+    \property QTextDocument::indentWidth
+    \since 4.4
+
+    Returns the width used for text list and text block indenting.
+
+    The indent properties of QTextListFormat and QTextBlockFormat specify
+    multiples of this value. The default indent width is 40.
+*/
+qreal QTextDocument::indentWidth() const
+{
+    Q_D(const QTextDocument);
+    return d->indentWidth;
+}
+
+
+/*!
+    \since 4.4
+
+    Sets the \a width used for text list and text block indenting.
+
+    The indent properties of QTextListFormat and QTextBlockFormat specify
+    multiples of this value. The default indent width is 40 .
+
+    \sa indentWidth()
+*/
+void QTextDocument::setIndentWidth(qreal width)
+{
+    Q_D(QTextDocument);
+    d->indentWidth = width;
+}
+
+
+/*!
     \since 4.2
 
     Adjusts the document to a reasonable size.
@@ -640,8 +694,6 @@ qreal QTextDocument::idealWidth() const
 void QTextDocument::adjustSize()
 {
     // Pull this private function in from qglobal.cpp
-    Q_CORE_EXPORT unsigned int qt_int_sqrt(unsigned int n);
-
     QFont f = defaultFont();
     QFontMetrics fm(f);
     int mw =  fm.width(QLatin1Char('x')) * 80;
@@ -673,6 +725,9 @@ void QTextDocument::adjustSize()
 
     Note that the width is always >= pageSize().width().
 
+    By default, for a newly-created, empty document, this property contains
+    a configuration-dependent size.
+
     \sa setTextWidth(), setPageSize(), idealWidth()
 */
 QSizeF QTextDocument::size() const
@@ -687,6 +742,8 @@ QSizeF QTextDocument::size() const
     Returns the number of text blocks in the document.
 
     The value of this property is undefined in documents with tables or frames.
+
+    By default, if defined, this property contains a value of 1.
 */
 int QTextDocument::blockCount() const
 {
@@ -709,6 +766,7 @@ int QTextDocument::blockCount() const
     \sa {Supported HTML Subset}
 */
 
+#ifndef QT_NO_CSSPARSER
 void QTextDocument::setDefaultStyleSheet(const QString &sheet)
 {
     Q_D(QTextDocument);
@@ -723,6 +781,7 @@ QString QTextDocument::defaultStyleSheet() const
     Q_D(const QTextDocument);
     return d->defaultStyleSheet;
 }
+#endif // QT_NO_CSSPARSER
 
 /*!
     \fn void QTextDocument::contentsChanged()
@@ -790,6 +849,17 @@ QString QTextDocument::defaultStyleSheet() const
 */
 
 /*!
+    \fn QTextDocument::documentLayoutChanged();
+    \since 4.4
+
+    This signal is emitted when a new document layout is set.
+
+    \sa setDocumentLayout()
+
+*/
+
+
+/*!
     Returns true if undo is available; otherwise returns false.
 */
 bool QTextDocument::isUndoAvailable() const
@@ -807,13 +877,29 @@ bool QTextDocument::isRedoAvailable() const
     return d->isRedoAvailable();
 }
 
+
+/*! \since 4.4
+
+    Returns the document's revision (if undo is enabled).
+
+    The revision is guaranteed to increase when a document that is not
+    modified is edited.
+
+    \sa QTextBlock::revision(), isModified()
+ */
+int QTextDocument::revision() const
+{
+    Q_D(const QTextDocument);
+    return d->undoState;
+}
+
+
+
 /*!
     Sets the document to use the given \a layout. The previous layout
     is deleted.
 
-    Note that when setting a new layout for a QTextEdit you have to create a
-    new QTextDocument first, set the new layout on it and then set the new
-    document on QTextEdit.
+    \sa documentLayoutChanged()
 */
 void QTextDocument::setDocumentLayout(QAbstractTextDocumentLayout *layout)
 {
@@ -843,10 +929,14 @@ QAbstractTextDocumentLayout *QTextDocument::documentLayout() const
 */
 QString QTextDocument::metaInformation(MetaInformation info) const
 {
-    if (info != DocumentTitle)
-        return QString();
     Q_D(const QTextDocument);
-    return d->title;
+    switch (info) {
+    case DocumentTitle:
+        return d->title;
+    case DocumentUrl:
+        return d->url;
+    }
+    return QString();
 }
 
 /*!
@@ -857,10 +947,15 @@ QString QTextDocument::metaInformation(MetaInformation info) const
 */
 void QTextDocument::setMetaInformation(MetaInformation info, const QString &string)
 {
-    if (info != DocumentTitle)
-        return;
     Q_D(QTextDocument);
-    d->title = string;
+    switch (info) {
+    case DocumentTitle:
+        d->title = string;
+        break;
+    case DocumentUrl:
+        d->url = string;
+        break;
+    }
 }
 
 /*!
@@ -911,6 +1006,9 @@ void QTextDocument::setPlainText(const QString &text)
 
     \sa setPlainText(), {Supported HTML Subset}
 */
+
+#ifndef QT_NO_TEXTHTMLPARSER
+
 void QTextDocument::setHtml(const QString &html)
 {
     Q_D(QTextDocument);
@@ -921,11 +1019,13 @@ void QTextDocument::setHtml(const QString &html)
     d->enableUndoRedo(previousState);
 }
 
+#endif // QT_NO_TEXTHTMLPARSER
+
 /*!
     \enum QTextDocument::FindFlag
 
     This enum describes the options available to QTextDocument's find function. The options
-    can be OR-red together from the following list:
+    can be OR-ed together from the following list:
 
     \value FindBackward Search backwards instead of forwards.
     \value FindCaseSensitively By default find works case insensitive. Specifying this option
@@ -940,6 +1040,8 @@ void QTextDocument::setHtml(const QString &html)
     added to a document.
 
     \value DocumentTitle    The title of the document.
+    \value DocumentUrl      The url of the document. The loadResource() function uses
+                            this url as the base when loading relative resources.
 
     \sa metaInformation(), setMetaInformation()
 */
@@ -1197,7 +1299,21 @@ QTextBlock QTextDocument::findBlock(int pos) const
 }
 
 /*!
+    \since 4.4
+    Returns the text block with the specified \a blockNumber.
+
+    \sa QTextBlock::blockNumber()
+*/
+QTextBlock QTextDocument::findBlockByNumber(int blockNumber) const
+{
+    Q_D(const QTextDocument);
+    return QTextBlock(docHandle(), d->blockMap().findNodeByIndex(blockNumber));
+}
+
+/*!
     Returns the document's first text block.
+
+    \sa firstBlock()
 */
 QTextBlock QTextDocument::begin() const
 {
@@ -1209,13 +1325,13 @@ QTextBlock QTextDocument::begin() const
     This function returns a block to test for the end of the document
     while iterating over it.
 
-    \quotefromfile snippets/textdocumentendsnippet.cpp
-    \skipto for
-    \printuntil cout
+    \snippet doc/src/snippets/textdocumentendsnippet.cpp 0
 
     The block returned is invalid and represents the block after the
-    last block in the document.
+    last block in the document. You can use lastBlock() to retrieve the
+    last valid block of the document.
 
+    \sa lastBlock()
 */
 QTextBlock QTextDocument::end() const
 {
@@ -1223,8 +1339,31 @@ QTextBlock QTextDocument::end() const
 }
 
 /*!
+    \since 4.4
+    Returns the document's first text block.
+*/
+QTextBlock QTextDocument::firstBlock() const
+{
+    Q_D(const QTextDocument);
+    return QTextBlock(docHandle(), d->blockMap().begin().n);
+}
+
+/*!
+    \since 4.4
+    Returns the document's last (valid) text block.
+*/
+QTextBlock QTextDocument::lastBlock() const
+{
+    Q_D(const QTextDocument);
+    return QTextBlock(docHandle(), d->blockMap().last().n);
+}
+
+/*!
     \property QTextDocument::pageSize
     \brief the page size that should be used for laying out the document
+
+    By default, for a newly-created, empty document, this property contains
+    an undefined size.
 
     \sa modificationChanged()
 */
@@ -1289,6 +1428,8 @@ QFont QTextDocument::defaultFont() const
     \property QTextDocument::modified
     \brief whether the document has been modified by the user
 
+    By default, this property is false.
+
     \sa modificationChanged()
 */
 
@@ -1335,6 +1476,8 @@ static void printPage(int index, QPainter *painter, const QTextDocument *doc, co
     painter->restore();
 }
 
+extern int qt_defaultDpi();
+
 /*!
     Prints the document to the given \a printer. The QPrinter must be
     set up before being used with this function.
@@ -1365,6 +1508,12 @@ void QTextDocument::print(QPrinter *printer) const
     if (!d->title.isEmpty())
         printer->setDocName(d->title);
 
+    bool documentPaginated = d->pageSize.isValid() && !d->pageSize.isNull()
+                             && d->pageSize.height() != INT_MAX;
+
+    if (!documentPaginated && !printer->fullPage() && !printer->d_func()->hasCustomPageMargins)
+        printer->setPageMargins(23.53, 23.53, 23.53, 23.53, QPrinter::Millimeter);
+
     QPainter p(printer);
 
     // Check that there is a valid device to print to.
@@ -1378,10 +1527,7 @@ void QTextDocument::print(QPrinter *printer) const
     QRectF body = QRectF(QPointF(0, 0), d->pageSize);
     QPointF pageNumberPos;
 
-    if (d->pageSize.isValid() && !d->pageSize.isNull()
-        && d->pageSize.height() != INT_MAX) {
-        extern int qt_defaultDpi();
-
+    if (documentPaginated) {
         qreal sourceDpiX = qt_defaultDpi();
         qreal sourceDpiY = sourceDpiX;
 
@@ -1410,22 +1556,31 @@ void QTextDocument::print(QPrinter *printer) const
         doc = clone(const_cast<QTextDocument *>(this));
         clonedDoc = const_cast<QTextDocument *>(doc);
 
+        for (QTextBlock srcBlock = firstBlock(), dstBlock = clonedDoc->firstBlock();
+             srcBlock.isValid() && dstBlock.isValid();
+             srcBlock = srcBlock.next(), dstBlock = dstBlock.next()) {
+            dstBlock.layout()->setAdditionalFormats(srcBlock.layout()->additionalFormats());
+        }
+
         QAbstractTextDocumentLayout *layout = doc->documentLayout();
         layout->setPaintDevice(p.device());
 
-        const int dpiy = p.device()->logicalDpiY();
+        int dpiy = p.device()->logicalDpiY();
+        int margin = 0;
+        if (printer->fullPage() && !printer->d_func()->hasCustomPageMargins) {
+            // for compatibility
+            margin = (int) ((2/2.54)*dpiy); // 2 cm margins
+            QTextFrameFormat fmt = doc->rootFrame()->frameFormat();
+            fmt.setMargin(margin);
+            doc->rootFrame()->setFrameFormat(fmt);
+        }
 
-        const int margin = (int) ((2/2.54)*dpiy); // 2 cm margins
-        QTextFrameFormat fmt = doc->rootFrame()->frameFormat();
-        fmt.setMargin(margin);
-        doc->rootFrame()->setFrameFormat(fmt);
-
-        body = QRectF(0, 0, p.device()->width(), p.device()->height());
+        QRectF pageRect(printer->pageRect());
+        body = QRectF(0, 0, pageRect.width(), pageRect.height());
         pageNumberPos = QPointF(body.width() - margin,
                                 body.height() - margin
                                 + QFontMetrics(doc->defaultFont(), p.device()).ascent()
-                                + 5 * p.device()->logicalDpiY() / 72);
-
+                                + 5 * dpiy / 72.0);
         clonedDoc->setPageSize(body.size());
     }
 
@@ -1447,6 +1602,9 @@ void QTextDocument::print(QPrinter *printer) const
         fromPage = 1;
         toPage = doc->pageCount();
     }
+    // paranoia check
+    fromPage = qMax(1, fromPage);
+    toPage = qMin(doc->pageCount(), toPage);
 
     if (printer->pageOrder() == QPrinter::LastPageFirst) {
         int tmp = fromPage;
@@ -1537,7 +1695,21 @@ QVariant QTextDocument::resource(int type, const QUrl &name) const
 
 /*!
     Adds the resource \a resource to the resource cache, using \a
-    type and \a name as identifiers. \a type should be a value from QTextDocument::ResourceType.
+    type and \a name as identifiers. \a type should be a value from
+    QTextDocument::ResourceType.
+
+    For example, you can add an image as a resource in order to reference it
+    from within the document:
+
+    \snippet snippets/textdocument-resources/main.cpp Adding a resource
+
+    The image can be inserted into the document using the QTextCursor API:
+
+    \snippet snippets/textdocument-resources/main.cpp Inserting an image with a cursor
+
+    Alternatively, you can insert images using the HTML \c img tag:
+
+    \snippet snippets/textdocument-resources/main.cpp Inserting an image using HTML
 */
 void QTextDocument::addResource(int type, const QUrl &name, const QVariant &resource)
 {
@@ -1566,22 +1738,68 @@ QVariant QTextDocument::loadResource(int type, const QUrl &name)
 {
     Q_D(QTextDocument);
     QVariant r;
-    if (QTextDocument *doc = qobject_cast<QTextDocument *>(parent()))
+
+    QTextDocument *doc = qobject_cast<QTextDocument *>(parent());
+    if (doc) {
         r = doc->loadResource(type, name);
+    }
 #ifndef QT_NO_TEXTEDIT
-    else if (QTextEdit *edit = qobject_cast<QTextEdit *>(parent()))
-        r = edit->loadResource(type, name);
+    else if (QTextEdit *edit = qobject_cast<QTextEdit *>(parent())) {
+        QUrl resolvedName = edit->d_func()->resolveUrl(name);
+        r = edit->loadResource(type, resolvedName);
+    }
 #endif
 #ifndef QT_NO_TEXTCONTROL
-    else if (QTextControl *control = qobject_cast<QTextControl *>(parent()))
+    else if (QTextControl *control = qobject_cast<QTextControl *>(parent())) {
         r = control->loadResource(type, name);
+    }
 #endif
+
+    // if resource was not loaded try to load it here
+    if (!doc && r.isNull() && name.isRelative()) {
+        QUrl currentURL = d->url;
+        QUrl resourceUrl = name;
+
+        // For the second case QUrl can merge "#someanchor" with "foo.html"
+        // correctly to "foo.html#someanchor"
+        if (!(currentURL.isRelative()
+              || (currentURL.scheme() == QLatin1String("file")
+                  && !QFileInfo(currentURL.toLocalFile()).isAbsolute()))
+            || (name.hasFragment() && name.path().isEmpty())) {
+            resourceUrl =  currentURL.resolved(name);
+        } else {
+            // this is our last resort when current url and new url are both relative
+            // we try to resolve against the current working directory in the local
+            // file system.
+            QFileInfo fi(currentURL.toLocalFile());
+            if (fi.exists()) {
+                resourceUrl =
+                    QUrl::fromLocalFile(fi.absolutePath() + QDir::separator()).resolved(name);
+            }
+        }
+
+        QString s = resourceUrl.toLocalFile();
+        QFile f(s);
+        if (!s.isEmpty() && f.open(QFile::ReadOnly)) {
+            r = f.readAll();
+            f.close();
+        }
+    }
+
     if (!r.isNull()) {
         if (type == ImageResource && r.type() == QVariant::ByteArray) {
-            QPixmap pm;
-            pm.loadFromData(r.toByteArray());
-            if (!pm.isNull())
-                r = pm;
+            if (qApp->thread() != QThread::currentThread()) {
+                // must use images in non-GUI threads
+                QImage image;
+                image.loadFromData(r.toByteArray());
+                if (!image.isNull())
+                    r = image;
+            } else {
+                QPixmap pm;
+                pm.loadFromData(r.toByteArray());
+                if (!pm.isNull())
+                    r = pm;
+            }
         }
         d->cachedResources.insert(name, r);
     }
@@ -1620,7 +1838,9 @@ QTextHtmlExporter::QTextHtmlExporter(const QTextDocument *_doc)
 */
 QString QTextHtmlExporter::toHtml(const QByteArray &encoding, ExportMode mode)
 {
-    html = QLatin1String("<html><head><meta name=\"qrichtext\" content=\"1\" />");
+    html = QLatin1String("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" "
+            "\"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+            "<html><head><meta name=\"qrichtext\" content=\"1\" />");
     html.reserve(doc->docHandle()->length());
 
     fragmentMarkers = (mode == ExportFragment);
@@ -1661,9 +1881,7 @@ QString QTextHtmlExporter::toHtml(const QByteArray &encoding, ExportMode mode)
         html += QLatin1Char('\"');
 
         const QTextFrameFormat fmt = doc->rootFrame()->frameFormat();
-        QBrush bg = fmt.background();
-        if (bg != Qt::NoBrush)
-            emitAttribute("bgcolor", bg.color().name());
+        emitBackgroundAttribute(fmt);
 
     } else {
         defaultCharFormat = QTextCharFormat();
@@ -1795,7 +2013,7 @@ bool QTextHtmlExporter::emitCharFormatStyle(const QTextCharFormat &format)
     }
 
     if (format.background() != defaultCharFormat.background()
-        && format.background().style() != Qt::NoBrush) {
+        && format.background().style() == Qt::SolidPattern) {
         html += QLatin1String(" background-color:");
         html += format.background().color().name();
         html += QLatin1Char(';');
@@ -1820,6 +2038,24 @@ bool QTextHtmlExporter::emitCharFormatStyle(const QTextCharFormat &format)
             html += QLatin1String("bottom");
 
         html += QLatin1Char(';');
+        attributesEmitted = true;
+    }
+
+    if (format.fontCapitalization() != QFont::MixedCase) {
+        const QFont::Capitalization caps = format.fontCapitalization();
+        if (caps == QFont::AllUppercase)
+            html += QLatin1String(" text-transform:uppercase;");
+        else if (caps == QFont::AllLowercase)
+            html += QLatin1String(" text-transform:lowercase;");
+        else if (caps == QFont::SmallCaps)
+            html += QLatin1String(" font-variant:small-caps;");
+        attributesEmitted = true;
+    }
+
+    if (format.fontWordSpacing() != 0.0) {
+        html += QLatin1String(" word-spacing:");
+        html += QString::number(format.fontWordSpacing());
+        html += QLatin1String("px;");
         attributesEmitted = true;
     }
 
@@ -2087,7 +2323,7 @@ void QTextHtmlExporter::emitBlockAttributes(const QTextBlock &block)
     html += QLatin1Char(';');
 
     html += QLatin1String(" text-indent:");
-    html += QString::number(format.indent());
+    html += QString::number(format.textIndent());
     html += QLatin1String("px;");
 
     if (block.userState() != -1) {
@@ -2248,6 +2484,70 @@ void QTextHtmlExporter::emitBlock(const QTextBlock &block)
     defaultCharFormat = oldDefaultCharFormat;
 }
 
+extern bool qHasPixmapTexture(const QBrush& brush);
+
+QString QTextHtmlExporter::findUrlForImage(const QTextDocument *doc, qint64 cacheKey, bool isPixmap)
+{
+    QString url;
+    if (!doc)
+        return url;
+
+    if (QTextDocument *parent = qobject_cast<QTextDocument *>(doc->parent()))
+        return findUrlForImage(parent, cacheKey, isPixmap);
+
+    if (doc && doc->docHandle()) {
+        QTextDocumentPrivate *priv = doc->docHandle();
+        QMap<QUrl, QVariant>::const_iterator it = priv->cachedResources.constBegin();
+        for (; it != priv->cachedResources.constEnd(); ++it) {
+
+            const QVariant &v = it.value();
+            if (v.type() == QVariant::Image && !isPixmap) {
+                if (qvariant_cast<QImage>(v).cacheKey() == cacheKey)
+                    break;
+            }
+
+            if (v.type() == QVariant::Pixmap && isPixmap) {
+                if (qvariant_cast<QPixmap>(v).cacheKey() == cacheKey)
+                    break;
+            }
+        }
+
+        if (it != priv->cachedResources.constEnd())
+            url = it.key().toString();
+    }
+
+    return url;
+}
+
+void QTextDocumentPrivate::mergeCachedResources(const QTextDocumentPrivate *priv)
+{
+    if (!priv)
+        return;
+
+    cachedResources.unite(priv->cachedResources);
+}
+
+void QTextHtmlExporter::emitBackgroundAttribute(const QTextFormat &format)
+{
+    if (format.hasProperty(QTextFormat::BackgroundImageUrl)) {
+        QString url = format.property(QTextFormat::BackgroundImageUrl).toString();
+        emitAttribute("background", url);
+    } else {
+        const QBrush &brush = format.background();
+        if (brush.style() == Qt::SolidPattern) {
+            emitAttribute("bgcolor", brush.color().name());
+        } else if (brush.style() == Qt::TexturePattern) {
+            const bool isPixmap = qHasPixmapTexture(brush);
+            const qint64 cacheKey = isPixmap ? brush.texture().cacheKey() : brush.textureImage().cacheKey();
+
+            const QString url = findUrlForImage(doc, cacheKey, isPixmap);
+
+            if (!url.isEmpty())
+                emitAttribute("background", url);
+        }
+    }
+}
+
 void QTextHtmlExporter::emitTable(const QTextTable *table)
 {
     QTextTableFormat format = table->format();
@@ -2267,9 +2567,7 @@ void QTextHtmlExporter::emitTable(const QTextTable *table)
     if (format.hasProperty(QTextFormat::TableCellPadding))
         emitAttribute("cellpadding", QString::number(format.cellPadding()));
 
-    QBrush bg = format.background();
-    if (bg != Qt::NoBrush)
-        emitAttribute("bgcolor", bg.color().name());
+    emitBackgroundAttribute(format);
 
     html += QLatin1Char('>');
 
@@ -2317,35 +2615,47 @@ void QTextHtmlExporter::emitTable(const QTextTable *table)
             if (cell.rowSpan() > 1)
                 emitAttribute("rowspan", QString::number(cell.rowSpan()));
 
-            const QTextCharFormat cellFormat = cell.format();
-            QBrush bg = cellFormat.background();
-            if (bg != Qt::NoBrush)
-                emitAttribute("bgcolor", bg.color().name());
+            const QTextTableCellFormat cellFormat = cell.format().toTableCellFormat();
+            emitBackgroundAttribute(cellFormat);
 
             QTextCharFormat oldDefaultCharFormat = defaultCharFormat;
 
             QTextCharFormat::VerticalAlignment valign = cellFormat.verticalAlignment();
+
+            QString styleString;
             if (valign >= QTextCharFormat::AlignMiddle && valign <= QTextCharFormat::AlignBottom) {
-                html += QLatin1String(" style=\" vertical-align:");
+                styleString += QLatin1String(" vertical-align:");
                 switch (valign) {
                 case QTextCharFormat::AlignMiddle:
-                    html += QLatin1String("middle");
+                    styleString += QLatin1String("middle");
                     break;
                 case QTextCharFormat::AlignTop:
-                    html += QLatin1String("top");
+                    styleString += QLatin1String("top");
                     break;
                 case QTextCharFormat::AlignBottom:
-                    html += QLatin1String("bottom");
+                    styleString += QLatin1String("bottom");
                     break;
                 default:
                     break;
                 }
-                html += QLatin1String(";\"");
+                styleString += QLatin1Char(';');
 
                 QTextCharFormat temp;
                 temp.setVerticalAlignment(valign);
                 defaultCharFormat.merge(temp);
             }
+
+            if (cellFormat.hasProperty(QTextFormat::TableCellLeftPadding))
+                styleString += QLatin1String(" padding-left:") + QString::number(cellFormat.leftPadding()) + QLatin1Char(';');
+            if (cellFormat.hasProperty(QTextFormat::TableCellRightPadding))
+                styleString += QLatin1String(" padding-right:") + QString::number(cellFormat.rightPadding()) + QLatin1Char(';');
+            if (cellFormat.hasProperty(QTextFormat::TableCellTopPadding))
+                styleString += QLatin1String(" padding-top:") + QString::number(cellFormat.topPadding()) + QLatin1Char(';');
+            if (cellFormat.hasProperty(QTextFormat::TableCellBottomPadding))
+                styleString += QLatin1String(" padding-bottom:") + QString::number(cellFormat.bottomPadding()) + QLatin1Char(';');
+
+            if (!styleString.isEmpty())
+                html += QLatin1String(" style=\"") + styleString + QLatin1Char('\"');
 
             html += QLatin1Char('>');
 
@@ -2406,11 +2716,8 @@ void QTextHtmlExporter::emitTextFrame(const QTextFrame *f)
     emitTextLength("height", format.height());
 
     // root frame's bcolor goes in the <body> tag
-    if (frameType != RootFrame) {
-        QBrush bg = format.background();
-        if (bg != Qt::NoBrush)
-            emitAttribute("bgcolor", bg.color().name());
-    }
+    if (frameType != RootFrame)
+        emitBackgroundAttribute(format);
 
     html += QLatin1Char('>');
     html += QLatin1String("\n<tr>\n<td style=\"border: none;\">");
@@ -2465,9 +2772,7 @@ void QTextHtmlExporter::emitFrameStyle(const QTextFrameFormat &format, FrameType
     The \a encoding parameter specifies the value for the charset attribute
     in the html header. For example if 'utf-8' is specified then the
     beginning of the generated html will look like this:
-    \code
-    <html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>...
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextdocument.cpp 1
 
     If no encoding is specified then no such meta information is generated.
 
@@ -2477,10 +2782,12 @@ void QTextHtmlExporter::emitFrameStyle(const QTextFrameFormat &format, FrameType
 
     \sa {Supported HTML Subset}
 */
+#ifndef QT_NO_TEXTHTMLPARSER
 QString QTextDocument::toHtml(const QByteArray &encoding) const
 {
     return QTextHtmlExporter(this).toHtml(encoding);
 }
+#endif // QT_NO_TEXTHTMLPARSER
 
 /*!
     Returns a vector of text formats for all the formats used in the document.
@@ -2503,3 +2810,11 @@ QTextDocumentPrivate *QTextDocument::docHandle() const
     return const_cast<QTextDocumentPrivate *>(d);
 }
 
+/*!
+    \since 4.4
+    \fn QTextDocument::undoCommandAdded()
+
+    This signal is emitted  every time a new level of undo is added to the QTextDocument.
+*/
+
+QT_END_NAMESPACE

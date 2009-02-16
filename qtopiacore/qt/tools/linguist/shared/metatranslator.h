@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,45 +44,11 @@
 #include <QList>
 #include <QtCore/QDir>
 
+QT_BEGIN_NAMESPACE
+
 class QIODevice;
 class QTextCodec;
-
-class MetaTranslatorMessage : public TranslatorMessage
-{
-public:
-    enum Type { Unfinished, Finished, Obsolete };
-
-    MetaTranslatorMessage();
-    MetaTranslatorMessage( const char *context, const char *sourceText,
-                           const char *comment, const QString &fileName,
-                           int lineNumber,
-                           const QStringList& translations = QStringList(),
-                           bool utf8 = false, Type type = Unfinished, bool plural = false );
-    MetaTranslatorMessage( const MetaTranslatorMessage& m );
-
-    MetaTranslatorMessage& operator=( const MetaTranslatorMessage& m );
-
-    void setType( Type nt ) { ty = nt; }
-    Type type() const { return ty; }
-    bool utf8() const { return utfeight; }
-    bool isPlural() const { return m_plural; }
-    void setPlural(bool isplural) { m_plural = isplural; }
-    bool operator==( const MetaTranslatorMessage& m ) const;
-    bool operator!=( const MetaTranslatorMessage& m ) const
-    { return !operator==( m ); }
-    bool operator<( const MetaTranslatorMessage& m ) const;
-    bool operator<=( const MetaTranslatorMessage& m )
-    { return !operator>( m ); }
-    bool operator>( const MetaTranslatorMessage& m ) const
-    { return this->operator<( m ); }
-    bool operator>=( const MetaTranslatorMessage& m ) const
-    { return !operator<( m ); }
-
-private:
-    bool utfeight;
-    Type ty;
-    bool m_plural;
-};
+class QXmlErrorHandler;
 
 class MetaTranslator
 {
@@ -108,54 +68,60 @@ public:
                   bool ignoreUnfinished = false,
                   Translator::SaveMode mode = Translator::Stripped ) const;
 
-    bool contains( const char *context, const char *sourceText,
-                   const char *comment ) const;
-                   
-    MetaTranslatorMessage find( const char *context, const char *sourceText,
-                   const char *comment ) const;
+    bool contains(const QByteArray &context, const QByteArray &sourceText,
+        const QByteArray &comment) const;
 
-    MetaTranslatorMessage find(const char *context, const char *comment, 
-                    const QString &fileName, int lineNumber) const;
-    
-    void insert( const MetaTranslatorMessage& m );
+    TranslatorMessage find(const QByteArray &context,
+        const QByteArray &sourceText, const QByteArray &comment) const;
+
+    TranslatorMessage find(const QByteArray &context,
+        const QByteArray &comment, const QString &fileName, int lineNumber) const;
+
+    void insert( const TranslatorMessage& m );
 
     void stripObsoleteMessages();
     void stripEmptyContexts();
+    void stripNonPluralForms();
+    void stripIdenticalSourceTranslations();
+    void makeFileNamesAbsolute();
 
-	void setCodec( const char *name ); // kill me
-	void setCodecForTr( const char *name ) { setCodec(name); }
-	QTextCodec *codecForTr() const { return codec; }
+    void setXmlErrorHandler(QXmlErrorHandler* handler) { xmlErrorHandler = handler; }
+    void setCodec( const char *name ); // kill me
+    void setCodecForTr( const char *name ) { setCodec(name); }
+    QTextCodec *codecForTr() const { return codec; }
     QString toUnicode( const char *str, bool utf8 ) const;
 
     QString languageCode() const;
     static void languageAndCountry(const QString &languageCode, QLocale::Language *lang, QLocale::Country *country);
     void setLanguageCode(const QString &languageCode);
-    QList<MetaTranslatorMessage> messages() const;
-    QList<MetaTranslatorMessage> translatedMessages() const;
+    QList<TranslatorMessage> messages() const;
+    QList<TranslatorMessage> translatedMessages() const;
     static int grammaticalNumerus(QLocale::Language language, QLocale::Country country);
-    static QStringList normalizedTranslations(const MetaTranslatorMessage& m, 
+    static QStringList normalizedTranslations(const TranslatorMessage& m,
                     QLocale::Language lang, QLocale::Country country);
 
 private:
-    void makeFileNamesAbsolute(const QDir &oldPath);
-
-    typedef QMap<MetaTranslatorMessage, int> TMM;       // int stores the sequence position.
-    typedef QMap<int, MetaTranslatorMessage> TMMInv;    // Used during save operation. Seems to use the map only the get the sequence order right.
-
+    typedef QMap<TranslatorMessage, int> TMM;       // int stores the sequence position.
+    typedef QMap<int, TranslatorMessage> TMMInv;    // Used during save operation. Seems to use the map only the get the sequence order right.
     bool saveTS( const QString& filename ) const;
     bool saveXLIFF( const QString& filename) const;
 
     TMM mm;
     QByteArray codecName;
     QTextCodec *codec;
-    QString m_language;     // A string beginning with a 2 or 3 letter language code (ISO 639-1 or ISO-639-2),
-                            // followed by the optional country variant to distinguist between country-specific variations
-                            // of the language. The language code and country code are always separated by '_'
-                            // Note that the language part can also be a 3-letter ISO 639-2 code.
-                            // Legal examples:
-                            // 'pt'         portuguese, assumes portuguese from portugal
-                            // 'pt_BR'      Brazilian portuguese (ISO 639-1 language code)
-                            // 'por_BR'     Brazilian portuguese (ISO 639-2 language code)
+    QDir m_originalPath;
+    QXmlErrorHandler* xmlErrorHandler;
+
+    // A string beginning with a 2 or 3 letter language code (ISO 639-1
+    // or ISO-639-2), followed by the optional country variant to distinguish
+    //  between country-specific variations of the language. The language code
+    // and country code are always separated by '_'
+    // Note that the language part can also be a 3-letter ISO 639-2 code.
+    // Legal examples:
+    // 'pt'         portuguese, assumes portuguese from portugal
+    // 'pt_BR'      Brazilian portuguese (ISO 639-1 language code)
+    // 'por_BR'     Brazilian portuguese (ISO 639-2 language code)
+    QString m_language;
 };
 
 /*
@@ -165,5 +131,7 @@ private:
 #define ContextComment "QT_LINGUIST_INTERNAL_CONTEXT_COMMENT"
 
 bool saveXLIFF( const MetaTranslator &mt, const QString& filename);
+
+QT_END_NAMESPACE
 
 #endif

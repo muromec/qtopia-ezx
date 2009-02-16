@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include "qbrush.h"
 
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QPen
@@ -77,26 +73,11 @@
 
     For example:
 
-    \code
-        QPainter painter(this);
-        QPen pen(Qt::green, 3, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin);
-        painter.setPen(pen);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpen.cpp 0
 
     which is equivalent to
 
-    \code
-        QPainter painter(this);
-        QPen pen();  // creates a default pen
-
-        pen.setStyle(Qt::DashDotLine);
-        pen.setWidth(3);
-        pen.setBrush(Qt::green);
-        pen.setCapStyle(Qt::RoundCap);
-        pen.setJoinStyle(Qt::RoundJoin);
-
-        painter.setPen(pen);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpen.cpp 1
 
     The default pen is a solid black brush with 0 width, square
     cap style (Qt::SquareCap), and  bevel join style (Qt::BevelJoin).
@@ -148,16 +129,7 @@
     spaces. For example, the custom pattern shown above is created
     using the following code:
 
-    \code
-    QPen pen;
-    QVector<qreal> dashes;
-    qreal space = 4;
-
-    dashes << 1 << space << 3 << space << 9 << space
-               << 27 << space << 9;
-
-    pen.setDashPattern(dashes);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpen.cpp 2
 
     Note that the dash pattern is specified in units of the pens
     width, e.g. a dash of length 5 in width 10 is 50 pixels long.
@@ -252,7 +224,7 @@ public:
     QPenPrivate(const QBrush &brush, qreal width, Qt::PenStyle, Qt::PenCapStyle,
                 Qt::PenJoinStyle _joinStyle);
 
-    QAtomic ref;
+    QAtomicInt ref;
     qreal width;
     QBrush brush;
     Qt::PenStyle style;
@@ -280,49 +252,31 @@ inline QPenPrivate::QPenPrivate(const QBrush &_brush, qreal _width, Qt::PenStyle
 static const Qt::PenCapStyle qpen_default_cap = Qt::SquareCap;
 static const Qt::PenJoinStyle qpen_default_join = Qt::BevelJoin;
 
-
-class QPenStatic
+#ifndef QT_NO_THREAD
+// Special deleter that only deletes if the ref-count goes to zero
+template <>
+class QGlobalStaticDeleter<QPenPrivate>
 {
 public:
-    QPenPrivate *pointer;
-    bool destroyed;
-
-    inline QPenStatic()
-        : pointer(0), destroyed(false)
+    QGlobalStatic<QPenPrivate> &globalStatic;
+    QGlobalStaticDeleter(QGlobalStatic<QPenPrivate> &_globalStatic)
+        : globalStatic(_globalStatic)
     { }
 
-    inline ~QPenStatic()
+    inline ~QGlobalStaticDeleter()
     {
-        if (!pointer->ref.deref())
-            delete pointer;
-        pointer = 0;
-        destroyed = true;
+        if (!globalStatic.pointer->ref.deref())
+            delete globalStatic.pointer;
+        globalStatic.pointer = 0;
+        globalStatic.destroyed = true;
     }
 };
+#endif
 
-
-static QPenPrivate *defaultPenInstance()
-{
-    static QPenStatic defaultPen;
-    if (!defaultPen.pointer && !defaultPen.destroyed) {
-        QPenPrivate *x = new QPenPrivate(Qt::black, 0, Qt::SolidLine,
-                                         qpen_default_cap, qpen_default_join);
-        if (!q_atomic_test_and_set_ptr(&defaultPen.pointer, 0, x))
-            delete x;
-    }
-    return defaultPen.pointer;
-}
-
-static QPenPrivate *nullPenInstance()
-{
-    static QPenStatic defaultPen;
-    if (!defaultPen.pointer && !defaultPen.destroyed) {
-        QPenPrivate *x = new QPenPrivate(Qt::black, 0, Qt::NoPen, qpen_default_cap, qpen_default_join);
-        if (!q_atomic_test_and_set_ptr(&defaultPen.pointer, 0, x))
-            delete x;
-    }
-    return defaultPen.pointer;
-}
+Q_GLOBAL_STATIC_WITH_ARGS(QPenPrivate, defaultPenInstance,
+                          (Qt::black, 0, Qt::SolidLine, qpen_default_cap, qpen_default_join))
+Q_GLOBAL_STATIC_WITH_ARGS(QPenPrivate, nullPenInstance,
+                          (Qt::black, 0, Qt::NoPen, qpen_default_cap, qpen_default_join))
 
 /*!
     Constructs a default black solid line pen with 0 width.
@@ -421,9 +375,9 @@ void QPen::detach()
     x->dashPattern = d->dashPattern;
     x->dashOffset = d->dashOffset;
     x->cosmetic = d->cosmetic;
-    x = qAtomicSetPtr(&d, x);
-    if (!x->ref.deref())
-        delete x;
+    if (!d->ref.deref())
+        delete d;
+    d = x;
 }
 
 
@@ -529,27 +483,23 @@ QVector<qreal> QPen::dashPattern() const
     \row
     \o \inlineimage qpen-custom.png
     \o
-    \code
-    QPen pen;
-    QVector<qreal> dashes;
-    qreal space = 4;
-    dashes << 1 << space << 3 << space << 9 << space
-               << 27 << space << 9;
-    pen.setDashPattern(dashes);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpen.cpp 3
     \endtable
 
-    The dash pattern is specified in units of the pens width, e.g. a
-    dash of length 5 in width 10 is 50 pixels long. Each dash is also
-    subject to cap styles so a dash of 1 with square cap set will
-    extend 0.5 pixels out in each direction resulting in a total width
-    of 2.
+    The dash pattern is specified in units of the pens width; e.g. a
+    dash of length 5 in width 10 is 50 pixels long. Note that a pen
+    with zero width is equivalent to a cosmetic pen with a width of 1
+    pixel.
+
+    Each dash is also subject to cap styles so a dash of 1 with square
+    cap set will extend 0.5 pixels out in each direction resulting in
+    a total width of 2.
 
     Note that the default cap style is Qt::SquareCap, meaning that a
     square line end covers the end point and extends beyond it by half
     the line width.
 
-    \sa setStyle(), dashPattern(), setCapStyle()
+    \sa setStyle(), dashPattern(), setCapStyle(), setCosmetic()
  */
 void QPen::setDashPattern(const QVector<qreal> &pattern)
 {
@@ -876,7 +826,8 @@ bool QPen::operator==(const QPen &p) const
                           && (d->style != Qt::CustomDashLine
                               || (qFuzzyCompare(p.dashOffset(), dashOffset()) &&
                                   p.dashPattern() == dashPattern()))
-                          && p.d->brush == d->brush);
+                          && p.d->brush == d->brush
+                          && p.d->cosmetic == d->cosmetic);
 }
 
 
@@ -914,7 +865,7 @@ QDataStream &operator<<(QDataStream &s, const QPen &p)
         s << (quint8)(p.style() | p.capStyle() | p.joinStyle());
     } else {
         s << (quint16)(p.style() | p.capStyle() | p.joinStyle());
-        s << p.isCosmetic();
+        s << (bool)(p.d->cosmetic);
     }
 
     if (s.version() < 7) {
@@ -1034,5 +985,8 @@ QDebug operator<<(QDebug dbg, const QPen &p)
 
 /*!
     \typedef QPen::DataPtr
+
     \internal
 */
+
+QT_END_NAMESPACE

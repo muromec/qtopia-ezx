@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,21 +39,64 @@
 #include "layoutinfo_p.h"
 
 #include <QtDesigner/abstractformwindow.h>
+#include <QtDesigner/QDesignerFormWindowInterface>
+#include <QtDesigner/QDesignerFormEditorInterface>
+#include <QtDesigner/QDesignerPropertySheetExtension>
+#include <QtDesigner/QExtensionManager>
 
 #include <QtGui/QLayout>
 #include <QtGui/QPainter>
+#include <QtGui/qevent.h>
 #include <QtCore/qdebug.h>
 
-using namespace qdesigner_internal;
+QT_BEGIN_NAMESPACE
 
-Spacer::Spacer(QWidget *parent)
-    : QWidget(parent),
-      orient(Qt::Vertical), interactive(true), sh(20, 40)
+// The Spacer widget is Designer representation of  QLayoutItem.
+// It uses QLayoutItem's sizeHint property as QWidget
+// sizeHint and the QLayoutItem's sizeType property as QWidget size policy.
+// If it is not within a layout, it adds a margin (m_SizeOffset) around it
+// to avoid being shrunk to an invisible state when the sizeHint is reset to 0,0
+// and enables sizeHandle-resizing. In a layout, however, this m_SizeOffset
+// should not be applied for  pixel-exact design.
+
+Spacer::Spacer(QWidget *parent) :
+    QWidget(parent),
+    m_SizeOffset(3, 3), // A small offset to ensure the spacer is still visible when reset to size 0,0
+    m_orientation(Qt::Vertical),
+    m_interactive(true),
+    m_layoutState(UnknownLayoutState),
+    m_sizeHint(0, 0)
 {
     setAttribute(Qt::WA_MouseNoMask);
     m_formWindow = QDesignerFormWindowInterface::findFormWindow(this);
-
     setSizeType(QSizePolicy::Expanding);
+}
+
+bool Spacer::event(QEvent *e)
+{
+    switch (e->type()) {
+    case QEvent::ToolTip:
+        updateToolTip(); // Tooltip includes size, so, refresh on demand
+        break;
+    case QEvent::ParentChange: // Cache information about 'being in layout' which is expensive to calculate.
+        m_layoutState = UnknownLayoutState;
+        break;
+    default:
+        break;
+    }
+    return QWidget::event(e);
+}
+
+bool Spacer::isInLayout() const
+{
+    if (m_layoutState == UnknownLayoutState) {
+        m_layoutState = OutsideLayout;
+        if (m_formWindow)
+            if (const QWidget *parent = parentWidget())
+                if (qdesigner_internal::LayoutInfo::layoutType(m_formWindow->core(), parent) != qdesigner_internal::LayoutInfo::NoLayout)
+                    m_layoutState = InLayout;
+    }
+    return m_layoutState == InLayout;
 }
 
 void Spacer::paintEvent(QPaintEvent *)
@@ -70,136 +107,158 @@ void Spacer::paintEvent(QPaintEvent *)
 
     QPainter p(this);
     p.setPen(Qt::blue);
+    const int w = width();
+    const int h = height();
+    if (w * h == 0)
+        return;
 
-    if (orient == Qt::Horizontal) {
+    if (w <= m_SizeOffset.width() || h <= m_SizeOffset.height()) {
+        const int lw = w - 1;
+        const int lh = h - 1;
+        switch (m_orientation) {
+        case Qt::Horizontal:
+            p.drawLine(0,  0, 0,  lh);
+            p.drawLine(lw, 0, lw, lh);
+            break;
+        case Qt::Vertical:
+            p.drawLine(0, 0,  lw, 0);
+            p.drawLine(0, lh, lw, lh);
+            break;
+        }
+        return;
+    }
+    if (m_orientation == Qt::Horizontal) {
         const int dist = 3;
-        const int amplitude = qMin(3, height() / 3);
-        const int base = height() / 2;
+        const int amplitude = qMin(3, h / 3);
+        const int base = h / 2;
         int i = 0;
         p.setPen(Qt::white);
-        for (i = 0; i < width() / 3 +2; ++i)
+        for (i = 0; i < w / 3 +2; ++i)
             p.drawLine(i * dist, base - amplitude, i * dist + dist / 2, base + amplitude);
         p.setPen(Qt::blue);
-        for (i = 0; i < width() / 3 +2; ++i)
+        for (i = 0; i < w / 3 +2; ++i)
             p.drawLine(i * dist + dist / 2, base + amplitude, i * dist + dist, base - amplitude);
-        int y = height()/2;
+        const int y = h/2;
         p.drawLine(0, y-10, 0, y+10);
-        p.drawLine(width() - 1, y-10, width() - 1, y+10);
+        p.drawLine(w - 1, y-10, w - 1, y+10);
     } else {
         const int dist = 3;
-        const int amplitude = qMin(3, width() / 3);
-        const int base = width() / 2;
+        const int amplitude = qMin(3, w / 3);
+        const int base = w / 2;
         int i = 0;
         p.setPen(Qt::white);
-        for (i = 0; i < height() / 3 +2; ++i)
+        for (i = 0; i < h / 3 +2; ++i)
             p.drawLine(base - amplitude, i * dist, base + amplitude,i * dist + dist / 2);
         p.setPen(Qt::blue);
-        for (i = 0; i < height() / 3 +2; ++i)
+        for (i = 0; i < h / 3 +2; ++i)
             p.drawLine(base + amplitude, i * dist + dist / 2, base - amplitude, i * dist + dist);
-        int x = width()/2;
+        const int x = w/2;
         p.drawLine(x-10, 0, x+10, 0);
-        p.drawLine(x-10, height() - 1, x+10, height() - 1);
+        p.drawLine(x-10, h - 1, x+10, h - 1);
     }
 }
 
 void Spacer::resizeEvent(QResizeEvent* e)
 {
     QWidget::resizeEvent(e);
+    // When resized by widget handle dragging after a reset (QSize(0, 0)):
+    // Mark the property as changed (geometry and sizeHint are in sync except for 'changed').
+    if (m_formWindow) {
+        const QSize oldSize = e->oldSize();
+        if (oldSize.isNull() || oldSize.width() <= m_SizeOffset.width() || oldSize.height() <= m_SizeOffset.height())
+            if (QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(m_formWindow->core()->extensionManager(), this))
+                sheet->setChanged(sheet->indexOf(QLatin1String("sizeHint")), true);
+    }
+
     updateMask();
 
-    if (!interactive)
+    if (!m_interactive)
         return;
 
-    if (!parentWidget() || (m_formWindow && LayoutInfo::layoutType(m_formWindow->core(), parentWidget()) == LayoutInfo::NoLayout))
-        sh = size();
+    if (!isInLayout()) { // Allow size-handle resize only if not in layout
+        const QSize currentSize = size();
+        if (currentSize.width() >= m_SizeOffset.width() && currentSize.height() >= m_SizeOffset.height())
+            m_sizeHint = currentSize - m_SizeOffset;
+    }
 }
 
 void Spacer::updateMask()
 {
     QRegion r(rect());
-    if (orient == Qt::Horizontal) {
-        const int amplitude = qMin(3, height() / 3);
-        const int base = height() / 2;
-        r = r.subtract(QRect(1, 0, width() - 2, base - amplitude));
-        r = r.subtract(QRect(1, base + amplitude, width() - 2, height() - base - amplitude));
-    } else {
-        const int amplitude = qMin(3, width() / 3);
-        const int base = width() / 2;
-        r = r.subtract(QRect(0, 1, base - amplitude, height() - 2));
-        r = r.subtract(QRect(base + amplitude, 1, width() - base - amplitude, height() - 2));
+    const int w = width();
+    const int h = height();
+    if (w > 1 && h > 1) {
+        if (m_orientation == Qt::Horizontal) {
+            const int amplitude = qMin(3, h / 3);
+            const int base = h / 2;
+            r = r.subtract(QRect(1, 0, w - 2, base - amplitude));
+            r = r.subtract(QRect(1, base + amplitude, w - 2, h - base - amplitude));
+        } else {
+            const int amplitude = qMin(3, w / 3);
+            const int base = w / 2;
+            r = r.subtract(QRect(0, 1, base - amplitude, h - 2));
+            r = r.subtract(QRect(base + amplitude, 1, w - base - amplitude, h - 2));
+        }
     }
     setMask(r);
 }
 
 void Spacer::setSizeType(QSizePolicy::Policy t)
 {
-    QSizePolicy sizeP;
-    if (orient == Qt::Vertical)
-        sizeP = QSizePolicy(QSizePolicy::Minimum, t);
-    else
-        sizeP = QSizePolicy(t, QSizePolicy::Minimum);
+    const QSizePolicy sizeP = m_orientation == Qt::Vertical ? QSizePolicy(QSizePolicy::Minimum, t) : QSizePolicy(t, QSizePolicy::Minimum);
     setSizePolicy(sizeP);
 }
 
 
 QSizePolicy::Policy Spacer::sizeType() const
 {
-    if (orient == Qt::Vertical)
-        return sizePolicy().verticalPolicy();
-    return sizePolicy().horizontalPolicy();
+    return m_orientation == Qt::Vertical ? sizePolicy().verticalPolicy() : sizePolicy().horizontalPolicy();
 }
 
 Qt::Alignment Spacer::alignment() const
 {
-    if (orient == Qt::Vertical)
-        return Qt::AlignHCenter;
-    return Qt::AlignVCenter;
-}
-
-QSize Spacer::minimumSize() const
-{
-    QSize s = QSize(20,20);
-    if (sizeType() == QSizePolicy::Expanding)
-        if (orient == Qt::Vertical)
-            s.rheight() = 0;
-        else
-            s.rwidth() = 0;
-    return s;
+    // For grid layouts
+    return m_orientation == Qt::Vertical ?  Qt::AlignHCenter : Qt::AlignVCenter;
 }
 
 QSize Spacer::sizeHint() const
 {
-    return sh;
+    return isInLayout() ? m_sizeHint : m_sizeHint + m_SizeOffset;
 }
 
-void Spacer::setSizeHint(const QSize &s)
+QSize Spacer::sizeHintProperty() const
 {
-    sh = s;
+    return m_sizeHint;
+}
 
-    if (!parentWidget() || (m_formWindow && LayoutInfo::layoutType(m_formWindow->core(), parentWidget()) == LayoutInfo::NoLayout))
-        resize(sizeHint());
+void Spacer::setSizeHintProperty(const QSize &s)
+{
+    m_sizeHint = s;
+
+    if (!isInLayout()) // Visible resize only if not in layout
+        resize(s + m_SizeOffset);
 
     updateGeometry();
 }
 
 Qt::Orientation Spacer::orientation() const
 {
-    return orient;
+    return m_orientation;
 }
 
 void Spacer::setOrientation(Qt::Orientation o)
 {
-    if (orient == o)
+    if (m_orientation == o)
         return;
 
-    QSizePolicy::Policy st = sizeType();
-    orient = o;
+    const QSizePolicy::Policy st = sizeType(); // flip size type
+    m_orientation = o;
     setSizeType(st);
 
-    if (interactive) {
-        sh = QSize(sh.height(), sh.width());
-        if (!parentWidget() || (m_formWindow && LayoutInfo::layoutType(m_formWindow->core(), parentWidget()) == LayoutInfo::NoLayout))
-            resize(height(), width());
+    if (m_interactive) {
+        m_sizeHint = QSize(m_sizeHint.height(), m_sizeHint.width());
+        if (!isInLayout())
+            resize(m_sizeHint + m_SizeOffset);
     }
 
     updateMask();
@@ -207,3 +266,11 @@ void Spacer::setOrientation(Qt::Orientation o)
     updateGeometry();
 }
 
+void Spacer::updateToolTip()
+{
+    const QString format = m_orientation == Qt::Horizontal ? tr("Horizontal Spacer '%1', %2 x %3") : tr("Vertical Spacer '%1', %2 x %3");
+    QString msg = format.arg(objectName()).arg(m_sizeHint.width()).arg(m_sizeHint.height());
+    setToolTip(msg);
+}
+
+QT_END_NAMESPACE

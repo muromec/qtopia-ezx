@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,6 +64,8 @@
 #include "qaccessible.h"
 #endif
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class Q3ComboBox q3combobox.h
     \brief The Q3ComboBox widget is a combined button and popup list.
@@ -92,16 +88,11 @@
     Q3ComboBox provides two different constructors. The simplest
     constructor creates an "old-style" combobox in Motif (or Aqua)
     style:
-    \code
-        Q3ComboBox *c = new Q3ComboBox(this, tr("read-only combobox"));
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3combobox.cpp 0
 
     The other constructor creates a new-style combobox in Motif style,
     and can create both read-only and editable comboboxes:
-    \code
-        Q3ComboBox *c1 = new Q3ComboBox(false, this, tr("read-only combobox"));
-        Q3ComboBox *c2 = new Q3ComboBox(true, this, tr("editable combobox"));
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3combobox.cpp 1
 
     New-style comboboxes use a list box in both Motif and Windows
     styles, and both the content size and the on-screen size of the
@@ -732,10 +723,7 @@ void Q3ComboBox::insertStringList( const QStringList &list, int index )
     terminated with 0.
 
     Example:
-    \code
-	static const char* items[] = { "red", "green", "blue", 0 };
-	combo->insertStrList( items );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3combobox.cpp 2
 
     \sa insertStringList()
 */
@@ -1442,6 +1430,8 @@ void Q3ComboBox::mouseDoubleClickEvent( QMouseEvent *e )
 
 void Q3ComboBox::keyPressEvent( QKeyEvent *e )
 {
+    bool handleEventHere = d->usingListBox() || !d->poppedUp;
+
     int c = currentItem();
     if ( ( e->key() == Qt::Key_F4 && e->state() == 0 ) ||
 	 ( e->key() == Qt::Key_Down && (e->state() & Qt::AltModifier) ) ||
@@ -1452,15 +1442,15 @@ void Q3ComboBox::keyPressEvent( QKeyEvent *e )
 	    popup();
 	}
 	return;
-    } else if ( d->usingListBox() && e->key() == Qt::Key_Up ) {
+    } else if ( handleEventHere && e->key() == Qt::Key_Up ) {
 	if ( c > 0 )
 	    setCurrentItem( c-1 );
-    } else if ( d->usingListBox() && e->key() == Qt::Key_Down ) {
+    } else if ( handleEventHere && e->key() == Qt::Key_Down ) {
 	if ( ++c < count() )
 	    setCurrentItem( c );
-    } else if ( d->usingListBox() && e->key() == Qt::Key_Home && ( !d->ed || !d->ed->hasFocus() ) ) {
+    } else if ( handleEventHere && e->key() == Qt::Key_Home && ( !d->ed || !d->ed->hasFocus() ) ) {
 	setCurrentItem( 0 );
-    } else if ( d->usingListBox() && e->key() == Qt::Key_End && ( !d->ed || !d->ed->hasFocus() ) ) {
+    } else if ( handleEventHere && e->key() == Qt::Key_End && ( !d->ed || !d->ed->hasFocus() ) ) {
 	setCurrentItem( count()-1 );
     } else if ( !d->ed && e->ascii() >= 32 && !e->text().isEmpty() ) {
 	if ( !d->completionTimer->isActive() ) {
@@ -2356,5 +2346,7 @@ void Q3ComboBox::hide()
     else if (d->popup())
 	d->popup()->hide();
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_COMBOBOX

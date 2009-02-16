@@ -14,28 +14,29 @@
 #include "harfbuzz-gpos-private.h"
 #include "harfbuzz-open-private.h"
 #include "harfbuzz-gdef-private.h"
+#include "harfbuzz-shaper.h"
 
 struct  GPOS_Instance_
 {
   HB_GPOSHeader*  gpos;
-  FT_Face          face;
-  FT_Bool          dvi;
-  FT_UShort        load_flags;  /* how the glyph should be loaded */
-  FT_Bool          r2l;
+  HB_Font          font;
+  HB_Bool          dvi;
+  HB_UShort        load_flags;  /* how the glyph should be loaded */
+  HB_Bool          r2l;
 
-  FT_UShort        last;        /* the last valid glyph -- used
+  HB_UShort        last;        /* the last valid glyph -- used
 				   with cursive positioning     */
-  FT_Pos           anchor_x;    /* the coordinates of the anchor point */
-  FT_Pos           anchor_y;    /* of the last valid glyph             */
+  HB_Fixed           anchor_x;    /* the coordinates of the anchor point */
+  HB_Fixed           anchor_y;    /* of the last valid glyph             */
 };
 
 typedef struct GPOS_Instance_  GPOS_Instance;
 
 
-static FT_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
-				       FT_UShort         lookup_index,
+static HB_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
+				       HB_UShort         lookup_index,
 				       HB_Buffer        buffer,
-				       FT_UShort         context_length,
+				       HB_UShort         context_length,
 				       int               nesting_level );
 
 
@@ -43,51 +44,44 @@ static FT_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
 /* the client application must replace this with something more
    meaningful if multiple master fonts are to be supported.     */
 
-static FT_Error  default_mmfunc( FT_Face      face,
-				 FT_UShort    metric_id,
-				 FT_Pos*      metric_value,
+static HB_Error  default_mmfunc( HB_Font      font,
+				 HB_UShort    metric_id,
+				 HB_Fixed*      metric_value,
 				 void*        data )
 {
-  FT_UNUSED(face);
-  FT_UNUSED(metric_id);
-  FT_UNUSED(metric_value);
-  FT_UNUSED(data);
+  HB_UNUSED(font);
+  HB_UNUSED(metric_id);
+  HB_UNUSED(metric_value);
+  HB_UNUSED(data);
   return HB_Err_No_MM_Interpreter;
 }
 
 
 
-FT_Error  HB_Load_GPOS_Table( FT_Face          face,
+HB_Error  HB_Load_GPOS_Table( HB_Stream stream, 
 			      HB_GPOSHeader** retptr,
-			      HB_GDEFHeader*  gdef )
+			      HB_GDEFHeader*  gdef,
+			      HB_Stream       gdefStream )
 {
-  FT_ULong         cur_offset, new_offset, base_offset;
+  HB_UInt         cur_offset, new_offset, base_offset;
 
-  FT_UShort        i, num_lookups;
   HB_GPOSHeader*  gpos;
-  HB_Lookup*      lo;
 
-  FT_Stream  stream = face->stream;
-  FT_Error   error;
-  FT_Memory  memory = face->memory;
+  HB_Error   error;
 
 
   if ( !retptr )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   if ( !stream )
-    return FT_Err_Invalid_Face_Handle;
+    return HB_Err_Invalid_Face_Handle;
 
-  if (( error = _hb_ftglue_face_goto_table( face, TTAG_GPOS, stream ) ))
-    return error;
 
   base_offset = FILE_Pos();
 
   if ( ALLOC ( gpos, sizeof( *gpos ) ) )
     return error;
 
-  gpos->memory = memory;
-  gpos->gfunc = FT_Load_Glyph;
   gpos->mmfunc = default_mmfunc;
 
   /* skip version */
@@ -103,7 +97,7 @@ FT_Error  HB_Load_GPOS_Table( FT_Face          face,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_ScriptList( &gpos->ScriptList,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
     goto Fail4;
   (void)FILE_Seek( cur_offset );
 
@@ -117,7 +111,7 @@ FT_Error  HB_Load_GPOS_Table( FT_Face          face,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_FeatureList( &gpos->FeatureList,
-				   stream ) ) != FT_Err_Ok )
+				   stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -131,7 +125,7 @@ FT_Error  HB_Load_GPOS_Table( FT_Face          face,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_LookupList( &gpos->LookupList,
-				  stream, HB_Type_GPOS ) ) != FT_Err_Ok )
+				  stream, HB_Type_GPOS ) ) != HB_Err_Ok )
     goto Fail2;
 
   gpos->gdef = gdef;      /* can be NULL */
@@ -145,38 +139,23 @@ FT_Error  HB_Load_GPOS_Table( FT_Face          face,
      `MarkAttachClassDef_offset' is not zero (nevertheless, a build of
      a constructed mark attach table is not supported currently).       */
 
-  if ( gdef &&
-       gdef->MarkAttachClassDef_offset && !gdef->MarkAttachClassDef.loaded )
-  {
-    lo          = gpos->LookupList.Lookup;
-    num_lookups = gpos->LookupList.LookupCount;
-
-    for ( i = 0; i < num_lookups; i++ )
-    {
-      if ( lo[i].LookupFlag & HB_LOOKUP_FLAG_IGNORE_SPECIAL_MARKS )
-      {
-	if ( FILE_Seek( gdef->MarkAttachClassDef_offset ) ||
-	     ( error = _HB_OPEN_Load_ClassDefinition( &gdef->MarkAttachClassDef,
-					     256, stream ) ) != FT_Err_Ok )
-	  goto Fail1;
-
-	break;
-      }
-    }
-  }
+  if ( ( error =  _HB_GDEF_LoadMarkAttachClassDef_From_LookupFlags( gdef, gdefStream,
+								     gpos->LookupList.Lookup,
+								     gpos->LookupList.LookupCount ) ) )
+    goto Fail1;
 
   *retptr = gpos;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
-  _HB_OPEN_Free_LookupList( &gpos->LookupList, HB_Type_GPOS, memory );
+  _HB_OPEN_Free_LookupList( &gpos->LookupList, HB_Type_GPOS );
 
 Fail2:
-  _HB_OPEN_Free_FeatureList( &gpos->FeatureList, memory );
+  _HB_OPEN_Free_FeatureList( &gpos->FeatureList );
 
 Fail3:
-  _HB_OPEN_Free_ScriptList( &gpos->ScriptList, memory );
+  _HB_OPEN_Free_ScriptList( &gpos->ScriptList );
 
 Fail4:
   FREE( gpos );
@@ -185,17 +164,15 @@ Fail4:
 }
 
 
-FT_Error  HB_Done_GPOS_Table( HB_GPOSHeader* gpos )
+HB_Error  HB_Done_GPOS_Table( HB_GPOSHeader* gpos )
 {
-  FT_Memory memory = gpos->memory;
-
-  _HB_OPEN_Free_LookupList( &gpos->LookupList, HB_Type_GPOS, memory );
-  _HB_OPEN_Free_FeatureList( &gpos->FeatureList, memory );
-  _HB_OPEN_Free_ScriptList( &gpos->ScriptList, memory );
+  _HB_OPEN_Free_LookupList( &gpos->LookupList, HB_Type_GPOS );
+  _HB_OPEN_Free_FeatureList( &gpos->FeatureList );
+  _HB_OPEN_Free_ScriptList( &gpos->ScriptList );
 
   FREE( gpos );
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -211,15 +188,14 @@ FT_Error  HB_Done_GPOS_Table( HB_GPOSHeader* gpos )
    `record' -- offsets for device tables in ValueRecords are taken from
    the parent table and not the parent record.                          */
 
-static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
-				   FT_UShort         format,
-				   FT_ULong          base_offset,
-				   FT_Stream         stream )
+static HB_Error  Load_ValueRecord( HB_ValueRecord*  vr,
+				   HB_UShort         format,
+				   HB_UInt          base_offset,
+				   HB_Stream         stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_ULong cur_offset, new_offset;
+  HB_UInt cur_offset, new_offset;
 
 
   if ( format & HB_GPOS_FORMAT_HAVE_X_PLACEMENT )
@@ -286,7 +262,7 @@ static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &vr->XPlacementDevice,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	return error;
       (void)FILE_Seek( cur_offset );
     }
@@ -317,7 +293,7 @@ static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &vr->YPlacementDevice,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	goto Fail3;
       (void)FILE_Seek( cur_offset );
     }
@@ -348,7 +324,7 @@ static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &vr->XAdvanceDevice,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	goto Fail2;
       (void)FILE_Seek( cur_offset );
     }
@@ -379,7 +355,7 @@ static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &vr->YAdvanceDevice,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	goto Fail1;
       (void)FILE_Seek( cur_offset );
     }
@@ -442,56 +418,55 @@ static FT_Error  Load_ValueRecord( HB_ValueRecord*  vr,
   else
     vr->YIdAdvance = 0;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
-  _HB_OPEN_Free_Device( &vr->YAdvanceDevice, memory );
+  _HB_OPEN_Free_Device( &vr->YAdvanceDevice );
 
 Fail2:
-  _HB_OPEN_Free_Device( &vr->XAdvanceDevice, memory );
+  _HB_OPEN_Free_Device( &vr->XAdvanceDevice );
 
 Fail3:
-  _HB_OPEN_Free_Device( &vr->YPlacementDevice, memory );
+  _HB_OPEN_Free_Device( &vr->YPlacementDevice );
   return error;
 }
 
 
 static void  Free_ValueRecord( HB_ValueRecord*  vr,
-			       FT_UShort         format,
-			       FT_Memory         memory )
+			       HB_UShort         format )
 {
   if ( format & HB_GPOS_FORMAT_HAVE_Y_ADVANCE_DEVICE )
-    _HB_OPEN_Free_Device( &vr->YAdvanceDevice, memory );
+    _HB_OPEN_Free_Device( &vr->YAdvanceDevice );
   if ( format & HB_GPOS_FORMAT_HAVE_X_ADVANCE_DEVICE )
-    _HB_OPEN_Free_Device( &vr->XAdvanceDevice, memory );
+    _HB_OPEN_Free_Device( &vr->XAdvanceDevice );
   if ( format & HB_GPOS_FORMAT_HAVE_Y_PLACEMENT_DEVICE )
-    _HB_OPEN_Free_Device( &vr->YPlacementDevice, memory );
+    _HB_OPEN_Free_Device( &vr->YPlacementDevice );
   if ( format & HB_GPOS_FORMAT_HAVE_X_PLACEMENT_DEVICE )
-    _HB_OPEN_Free_Device( &vr->XPlacementDevice, memory );
+    _HB_OPEN_Free_Device( &vr->XPlacementDevice );
 }
 
 
-static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
+static HB_Error  Get_ValueRecord( GPOS_Instance*    gpi,
 				  HB_ValueRecord*  vr,
-				  FT_UShort         format,
+				  HB_UShort         format,
 				  HB_Position      gd )
 {
-  FT_Pos           value;
-  FT_Short         pixel_value;
-  FT_Error         error = FT_Err_Ok;
+  HB_Fixed           value;
+  HB_Short         pixel_value;
+  HB_Error         error = HB_Err_Ok;
   HB_GPOSHeader*  gpos = gpi->gpos;
 
-  FT_UShort  x_ppem, y_ppem;
-  FT_Fixed   x_scale, y_scale;
+  HB_UShort  x_ppem, y_ppem;
+  HB_16Dot16   x_scale, y_scale;
 
 
   if ( !format )
-    return FT_Err_Ok;
+    return HB_Err_Ok;
 
-  x_ppem  = gpi->face->size->metrics.x_ppem;
-  y_ppem  = gpi->face->size->metrics.y_ppem;
-  x_scale = gpi->face->size->metrics.x_scale;
-  y_scale = gpi->face->size->metrics.y_scale;
+  x_ppem  = gpi->font->x_ppem;
+  y_ppem  = gpi->font->y_ppem;
+  x_scale = gpi->font->x_scale;
+  y_scale = gpi->font->y_scale;
 
   /* design units -> fractional pixel */
 
@@ -534,7 +509,7 @@ static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
 
   if ( format & HB_GPOS_FORMAT_HAVE_X_ID_PLACEMENT )
   {
-    error = (gpos->mmfunc)( gpi->face, vr->XIdPlacement,
+    error = (gpos->mmfunc)( gpi->font, vr->XIdPlacement,
 			    &value, gpos->data );
     if ( error )
       return error;
@@ -542,7 +517,7 @@ static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
   }
   if ( format & HB_GPOS_FORMAT_HAVE_Y_ID_PLACEMENT )
   {
-    error = (gpos->mmfunc)( gpi->face, vr->YIdPlacement,
+    error = (gpos->mmfunc)( gpi->font, vr->YIdPlacement,
 			    &value, gpos->data );
     if ( error )
       return error;
@@ -550,7 +525,7 @@ static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
   }
   if ( format & HB_GPOS_FORMAT_HAVE_X_ID_ADVANCE )
   {
-    error = (gpos->mmfunc)( gpi->face, vr->XIdAdvance,
+    error = (gpos->mmfunc)( gpi->font, vr->XIdAdvance,
 			    &value, gpos->data );
     if ( error )
       return error;
@@ -558,7 +533,7 @@ static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
   }
   if ( format & HB_GPOS_FORMAT_HAVE_Y_ID_ADVANCE )
   {
-    error = (gpos->mmfunc)( gpi->face, vr->YIdAdvance,
+    error = (gpos->mmfunc)( gpi->font, vr->YIdAdvance,
 			    &value, gpos->data );
     if ( error )
       return error;
@@ -574,13 +549,11 @@ static FT_Error  Get_ValueRecord( GPOS_Instance*    gpi,
 /* AnchorFormat3 */
 /* AnchorFormat4 */
 
-static FT_Error  Load_Anchor( HB_Anchor*  an,
-			      FT_Stream    stream )
+static HB_Error  Load_Anchor( HB_Anchor*  an,
+			      HB_Stream    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
-
-  FT_ULong cur_offset, new_offset, base_offset;
+  HB_Error  error;
+  HB_UInt cur_offset, new_offset, base_offset;
 
 
   base_offset = FILE_Pos();
@@ -633,7 +606,7 @@ static FT_Error  Load_Anchor( HB_Anchor*  an,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &an->af.af3.XDeviceTable,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	return error;
       (void)FILE_Seek( cur_offset );
     }
@@ -658,7 +631,7 @@ static FT_Error  Load_Anchor( HB_Anchor*  an,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = _HB_OPEN_Load_Device( &an->af.af3.YDeviceTable,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	goto Fail;
       (void)FILE_Seek( cur_offset );
     }
@@ -684,48 +657,45 @@ static FT_Error  Load_Anchor( HB_Anchor*  an,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
-  _HB_OPEN_Free_Device( &an->af.af3.XDeviceTable, memory );
+  _HB_OPEN_Free_Device( &an->af.af3.XDeviceTable );
   return error;
 }
 
 
-static void  Free_Anchor( HB_Anchor*  an,
-			  FT_Memory    memory)
+static void  Free_Anchor( HB_Anchor*  an)
 {
   if ( an->PosFormat == 3 )
   {
-    _HB_OPEN_Free_Device( &an->af.af3.YDeviceTable, memory );
-    _HB_OPEN_Free_Device( &an->af.af3.XDeviceTable, memory );
+    _HB_OPEN_Free_Device( &an->af.af3.YDeviceTable );
+    _HB_OPEN_Free_Device( &an->af.af3.XDeviceTable );
   }
 }
 
 
-static FT_Error  Get_Anchor( GPOS_Instance*   gpi,
+static HB_Error  Get_Anchor( GPOS_Instance*   gpi,
 			     HB_Anchor*      an,
-			     FT_UShort        glyph_index,
-			     FT_Pos*          x_value,
-			     FT_Pos*          y_value )
+			     HB_UShort        glyph_index,
+			     HB_Fixed*          x_value,
+			     HB_Fixed*          y_value )
 {
-  FT_Error  error = FT_Err_Ok;
+  HB_Error  error = HB_Err_Ok;
 
-  FT_Outline       outline;
   HB_GPOSHeader*  gpos = gpi->gpos;
-  FT_UShort        ap;
+  HB_UShort        ap;
 
-  FT_Short         pixel_value;
-  FT_UShort        load_flags;
+  HB_Short         pixel_value;
 
-  FT_UShort        x_ppem, y_ppem;
-  FT_Fixed         x_scale, y_scale;
+  HB_UShort        x_ppem, y_ppem;
+  HB_16Dot16         x_scale, y_scale;
 
 
-  x_ppem  = gpi->face->size->metrics.x_ppem;
-  y_ppem  = gpi->face->size->metrics.y_ppem;
-  x_scale = gpi->face->size->metrics.x_scale;
-  y_scale = gpi->face->size->metrics.y_scale;
+  x_ppem  = gpi->font->x_ppem;
+  y_ppem  = gpi->font->y_ppem;
+  x_scale = gpi->font->x_scale;
+  y_scale = gpi->font->y_scale;
 
   switch ( an->PosFormat )
   {
@@ -740,35 +710,20 @@ static FT_Error  Get_Anchor( GPOS_Instance*   gpi,
     break;
 
   case 2:
-    /* glyphs must be scaled */
-
-    load_flags = gpi->load_flags & ~FT_LOAD_NO_SCALE;
-
     if ( !gpi->dvi )
     {
-      error = (gpos->gfunc)( gpi->face, glyph_index, load_flags );
-      if ( error )
-	return error;
-
-      if ( gpi->face->glyph->format != ft_glyph_format_outline )
-	return HB_Err_Invalid_GPOS_SubTable;
-
+      hb_uint32 n_points = 0;
       ap = an->af.af2.AnchorPoint;
-
-      outline = gpi->face->glyph->outline;
-
-      /* if outline.n_points is set to zero by gfunc(), we use the
+      if (!gpi->font->klass->getPointInOutline)
+          goto no_contour_point;
+      error = gpi->font->klass->getPointInOutline(gpi->font, glyph_index, gpi->load_flags, ap, x_value, y_value, &n_points);
+      if (error)
+          return error;
+      /* if outline.n_points is set to zero, we use the
 	 design coordinate value pair.  This can happen e.g. for
 	 sbit glyphs                                               */
-
-      if ( !outline.n_points )
-	goto no_contour_point;
-
-      if ( ap >= outline.n_points )
-	return HB_Err_Invalid_GPOS_SubTable;
-
-      *x_value = outline.points[ap].x;
-      *y_value = outline.points[ap].y;
+      if (!n_points)
+          goto no_contour_point;
     }
     else
     {
@@ -794,12 +749,12 @@ static FT_Error  Get_Anchor( GPOS_Instance*   gpi,
     break;
 
   case 4:
-    error = (gpos->mmfunc)( gpi->face, an->af.af4.XIdAnchor,
+    error = (gpos->mmfunc)( gpi->font, an->af.af4.XIdAnchor,
 			    x_value, gpos->data );
     if ( error )
       return error;
 
-    error = (gpos->mmfunc)( gpi->face, an->af.af4.YIdAnchor,
+    error = (gpos->mmfunc)( gpi->font, an->af.af4.YIdAnchor,
 			    y_value, gpos->data );
     if ( error )
       return error;
@@ -812,14 +767,13 @@ static FT_Error  Get_Anchor( GPOS_Instance*   gpi,
 
 /* MarkArray */
 
-static FT_Error  Load_MarkArray ( HB_MarkArray*  ma,
-				  FT_Stream       stream )
+static HB_Error  Load_MarkArray ( HB_MarkArray*  ma,
+				  HB_Stream       stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort        n, m, count;
-  FT_ULong         cur_offset, new_offset, base_offset;
+  HB_UShort        n, m, count;
+  HB_UInt         cur_offset, new_offset, base_offset;
 
   HB_MarkRecord*  mr;
 
@@ -852,26 +806,25 @@ static FT_Error  Load_MarkArray ( HB_MarkArray*  ma,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = Load_Anchor( &mr[n].MarkAnchor, stream ) ) != FT_Err_Ok )
+	 ( error = Load_Anchor( &mr[n].MarkAnchor, stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_Anchor( &mr[m].MarkAnchor, memory );
+    Free_Anchor( &mr[m].MarkAnchor );
 
   FREE( mr );
   return error;
 }
 
 
-static void  Free_MarkArray( HB_MarkArray*  ma,
-			     FT_Memory       memory )
+static void  Free_MarkArray( HB_MarkArray*  ma )
 {
-  FT_UShort        n, count;
+  HB_UShort        n, count;
 
   HB_MarkRecord*  mr;
 
@@ -882,7 +835,7 @@ static void  Free_MarkArray( HB_MarkArray*  ma,
     mr    = ma->MarkRecord;
 
     for ( n = 0; n < count; n++ )
-      Free_Anchor( &mr[n].MarkAnchor, memory );
+      Free_Anchor( &mr[n].MarkAnchor );
 
     FREE( mr );
   }
@@ -894,15 +847,14 @@ static void  Free_MarkArray( HB_MarkArray*  ma,
 /* SinglePosFormat1 */
 /* SinglePosFormat2 */
 
-static FT_Error  Load_SinglePos( HB_GPOS_SubTable* st,
-				 FT_Stream       stream )
+static HB_Error  Load_SinglePos( HB_GPOS_SubTable* st,
+				 HB_Stream       stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_SinglePos*   sp = &st->single;
 
-  FT_UShort         n, m, count, format;
-  FT_ULong          cur_offset, new_offset, base_offset;
+  HB_UShort         n, m, count, format;
+  HB_UInt          cur_offset, new_offset, base_offset;
 
   HB_ValueRecord*  vr;
 
@@ -924,7 +876,7 @@ static FT_Error  Load_SinglePos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &sp->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &sp->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -964,24 +916,23 @@ static FT_Error  Load_SinglePos( HB_GPOS_SubTable* st,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; m++ )
-    Free_ValueRecord( &vr[m], format, memory );
+    Free_ValueRecord( &vr[m], format );
 
   FREE( vr );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &sp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &sp->Coverage );
   return error;
 }
 
 
-static void  Free_SinglePos( HB_GPOS_SubTable* st,
-			     FT_Memory       memory )
+static void  Free_SinglePos( HB_GPOS_SubTable* st )
 {
-  FT_UShort         n, count, format;
+  HB_UShort         n, count, format;
   HB_SinglePos*   sp = &st->single;
 
   HB_ValueRecord*  v;
@@ -992,7 +943,7 @@ static void  Free_SinglePos( HB_GPOS_SubTable* st,
   switch ( sp->PosFormat )
   {
   case 1:
-    Free_ValueRecord( &sp->spf.spf1.Value, format, memory );
+    Free_ValueRecord( &sp->spf.spf1.Value, format );
     break;
 
   case 2:
@@ -1002,45 +953,45 @@ static void  Free_SinglePos( HB_GPOS_SubTable* st,
       v     = sp->spf.spf2.Value;
 
       for ( n = 0; n < count; n++ )
-	Free_ValueRecord( &v[n], format, memory );
+	Free_ValueRecord( &v[n], format );
 
       FREE( v );
     }
     break;
   }
 
-  _HB_OPEN_Free_Coverage( &sp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &sp->Coverage );
 }
 
-static FT_Error  Lookup_DefaultPos(  GPOS_Instance*    gpi,
+static HB_Error  Lookup_DefaultPos(  GPOS_Instance*    gpi,
 				     HB_GPOS_SubTable* st,
 				     HB_Buffer        buffer,
-				     FT_UShort         flags,
-				     FT_UShort         context_length,
+				     HB_UShort         flags,
+				     HB_UShort         context_length,
 				     int               nesting_level )
 {
-  FT_UNUSED(gpi);
-  FT_UNUSED(st);
-  FT_UNUSED(buffer);
-  FT_UNUSED(flags);
-  FT_UNUSED(context_length);
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(gpi);
+  HB_UNUSED(st);
+  HB_UNUSED(buffer);
+  HB_UNUSED(flags);
+  HB_UNUSED(context_length);
+  HB_UNUSED(nesting_level);
   return HB_Err_Not_Covered;
 }
 
-static FT_Error  Lookup_SinglePos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_SinglePos( GPOS_Instance*    gpi,
 				   HB_GPOS_SubTable* st,
 				   HB_Buffer        buffer,
-				   FT_UShort         flags,
-				   FT_UShort         context_length,
+				   HB_UShort         flags,
+				   HB_UShort         context_length,
 				   int               nesting_level )
 {
-  FT_UShort        index, property;
-  FT_Error         error;
+  HB_UShort        index, property;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_SinglePos*   sp = &st->single;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( context_length != 0xFFFF && context_length < 1 )
     return HB_Err_Not_Covered;
@@ -1076,7 +1027,7 @@ static FT_Error  Lookup_SinglePos( GPOS_Instance*    gpi,
 
   (buffer->in_pos)++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -1084,16 +1035,15 @@ static FT_Error  Lookup_SinglePos( GPOS_Instance*    gpi,
 
 /* PairSet */
 
-static FT_Error  Load_PairSet ( HB_PairSet*  ps,
-				FT_UShort     format1,
-				FT_UShort     format2,
-				FT_Stream     stream )
+static HB_Error  Load_PairSet ( HB_PairSet*  ps,
+				HB_UShort     format1,
+				HB_UShort     format2,
+				HB_Stream     stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, m, count;
-  FT_ULong              base_offset;
+  HB_UShort             n, m, count;
+  HB_UInt              base_offset;
 
   HB_PairValueRecord*  pvr;
 
@@ -1137,21 +1087,21 @@ static FT_Error  Load_PairSet ( HB_PairSet*  ps,
       if ( error )
       {
 	if ( format1 )
-	  Free_ValueRecord( &pvr[n].Value1, format1, memory );
+	  Free_ValueRecord( &pvr[n].Value1, format1 );
 	goto Fail;
       }
     }
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
   {
     if ( format1 )
-      Free_ValueRecord( &pvr[m].Value1, format1, memory );
+      Free_ValueRecord( &pvr[m].Value1, format1 );
     if ( format2 )
-      Free_ValueRecord( &pvr[m].Value2, format2, memory );
+      Free_ValueRecord( &pvr[m].Value2, format2 );
   }
 
   FREE( pvr );
@@ -1160,11 +1110,10 @@ Fail:
 
 
 static void  Free_PairSet( HB_PairSet*  ps,
-			   FT_UShort     format1,
-			   FT_UShort     format2,
-			   FT_Memory     memory )
+			   HB_UShort     format1,
+			   HB_UShort     format2 )
 {
-  FT_UShort             n, count;
+  HB_UShort             n, count;
 
   HB_PairValueRecord*  pvr;
 
@@ -1177,9 +1126,9 @@ static void  Free_PairSet( HB_PairSet*  ps,
     for ( n = 0; n < count; n++ )
     {
       if ( format1 )
-	Free_ValueRecord( &pvr[n].Value1, format1, memory );
+	Free_ValueRecord( &pvr[n].Value1, format1 );
       if ( format2 )
-	Free_ValueRecord( &pvr[n].Value2, format2, memory );
+	Free_ValueRecord( &pvr[n].Value2, format2 );
     }
 
     FREE( pvr );
@@ -1189,16 +1138,15 @@ static void  Free_PairSet( HB_PairSet*  ps,
 
 /* PairPosFormat1 */
 
-static FT_Error  Load_PairPos1( HB_PairPosFormat1*  ppf1,
-				FT_UShort            format1,
-				FT_UShort            format2,
-				FT_Stream            stream )
+static HB_Error  Load_PairPos1( HB_PairPosFormat1*  ppf1,
+				HB_UShort            format1,
+				HB_UShort            format2,
+				HB_Stream            stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort     n, m, count;
-  FT_ULong      cur_offset, new_offset, base_offset;
+  HB_UShort     n, m, count;
+  HB_UInt      cur_offset, new_offset, base_offset;
 
   HB_PairSet*  ps;
 
@@ -1231,16 +1179,16 @@ static FT_Error  Load_PairPos1( HB_PairPosFormat1*  ppf1,
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
 	 ( error = Load_PairSet( &ps[n], format1,
-				 format2, stream ) ) != FT_Err_Ok )
+				 format2, stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_PairSet( &ps[m], format1, format2, memory );
+    Free_PairSet( &ps[m], format1, format2 );
 
   FREE( ps );
   return error;
@@ -1248,11 +1196,10 @@ Fail:
 
 
 static void  Free_PairPos1( HB_PairPosFormat1*  ppf1,
-			    FT_UShort            format1,
-			    FT_UShort            format2,
-			    FT_Memory            memory )
+			    HB_UShort            format1,
+			    HB_UShort            format2 )
 {
-  FT_UShort     n, count;
+  HB_UShort     n, count;
 
   HB_PairSet*  ps;
 
@@ -1263,7 +1210,7 @@ static void  Free_PairPos1( HB_PairPosFormat1*  ppf1,
     ps    = ppf1->PairSet;
 
     for ( n = 0; n < count; n++ )
-      Free_PairSet( &ps[n], format1, format2, memory );
+      Free_PairSet( &ps[n], format1, format2 );
 
     FREE( ps );
   }
@@ -1272,16 +1219,15 @@ static void  Free_PairPos1( HB_PairPosFormat1*  ppf1,
 
 /* PairPosFormat2 */
 
-static FT_Error  Load_PairPos2( HB_PairPosFormat2*  ppf2,
-				FT_UShort            format1,
-				FT_UShort            format2,
-				FT_Stream            stream )
+static HB_Error  Load_PairPos2( HB_PairPosFormat2*  ppf2,
+				HB_UShort            format1,
+				HB_UShort            format2,
+				HB_Stream            stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort          m, n, k, count1, count2;
-  FT_ULong           cur_offset, new_offset1, new_offset2, base_offset;
+  HB_UShort          m, n, k, count1, count2;
+  HB_UInt           cur_offset, new_offset1, new_offset2, base_offset;
 
   HB_Class1Record*  c1r;
   HB_Class2Record*  c2r;
@@ -1306,11 +1252,11 @@ static FT_Error  Load_PairPos2( HB_PairPosFormat2*  ppf2,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset1 ) ||
        ( error = _HB_OPEN_Load_ClassDefinition( &ppf2->ClassDef1, count1,
-				       stream ) ) != FT_Err_Ok )
+				       stream ) ) != HB_Err_Ok )
     return error;
   if ( FILE_Seek( new_offset2 ) ||
        ( error = _HB_OPEN_Load_ClassDefinition( &ppf2->ClassDef2, count2,
-				       stream ) ) != FT_Err_Ok )
+				       stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -1346,7 +1292,7 @@ static FT_Error  Load_PairPos2( HB_PairPosFormat2*  ppf2,
 	if ( error )
 	{
 	  if ( format1 )
-	    Free_ValueRecord( &c2r[n].Value1, format1, memory );
+	    Free_ValueRecord( &c2r[n].Value1, format1 );
 	  goto Fail0;
 	}
       }
@@ -1358,14 +1304,14 @@ static FT_Error  Load_PairPos2( HB_PairPosFormat2*  ppf2,
     for ( k = 0; k < n; k++ )
     {
       if ( format1 )
-	Free_ValueRecord( &c2r[k].Value1, format1, memory );
+	Free_ValueRecord( &c2r[k].Value1, format1 );
       if ( format2 )
-	Free_ValueRecord( &c2r[k].Value2, format2, memory );
+	Free_ValueRecord( &c2r[k].Value2, format2 );
     }
     goto Fail1;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( k = 0; k < m; k++ )
@@ -1375,9 +1321,9 @@ Fail1:
     for ( n = 0; n < count2; n++ )
     {
       if ( format1 )
-	Free_ValueRecord( &c2r[n].Value1, format1, memory );
+	Free_ValueRecord( &c2r[n].Value1, format1 );
       if ( format2 )
-	Free_ValueRecord( &c2r[n].Value2, format2, memory );
+	Free_ValueRecord( &c2r[n].Value2, format2 );
     }
 
     FREE( c2r );
@@ -1386,20 +1332,19 @@ Fail1:
   FREE( c1r );
 Fail2:
 
-  _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef2, memory );
+  _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef2 );
 
 Fail3:
-  _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef1, memory );
+  _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef1 );
   return error;
 }
 
 
 static void  Free_PairPos2( HB_PairPosFormat2*  ppf2,
-			    FT_UShort            format1,
-			    FT_UShort            format2,
-			    FT_Memory            memory )
+			    HB_UShort            format1,
+			    HB_UShort            format2)
 {
-  FT_UShort          m, n, count1, count2;
+  HB_UShort          m, n, count1, count2;
 
   HB_Class1Record*  c1r;
   HB_Class2Record*  c2r;
@@ -1418,9 +1363,9 @@ static void  Free_PairPos2( HB_PairPosFormat2*  ppf2,
       for ( n = 0; n < count2; n++ )
       {
 	if ( format1 )
-	  Free_ValueRecord( &c2r[n].Value1, format1, memory );
+	  Free_ValueRecord( &c2r[n].Value1, format1 );
 	if ( format2 )
-	  Free_ValueRecord( &c2r[n].Value2, format2, memory );
+	  Free_ValueRecord( &c2r[n].Value2, format2 );
       }
 
       FREE( c2r );
@@ -1428,21 +1373,20 @@ static void  Free_PairPos2( HB_PairPosFormat2*  ppf2,
 
     FREE( c1r );
 
-    _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef2, memory );
-    _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef1, memory );
+    _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef2 );
+    _HB_OPEN_Free_ClassDefinition( &ppf2->ClassDef1 );
   }
 }
 
 
-static FT_Error  Load_PairPos( HB_GPOS_SubTable* st,
-			       FT_Stream     stream )
+static HB_Error  Load_PairPos( HB_GPOS_SubTable* st,
+			       HB_Stream     stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_PairPos*     pp = &st->pair;
 
-  FT_UShort         format1, format2;
-  FT_ULong          cur_offset, new_offset, base_offset;
+  HB_UShort         format1, format2;
+  HB_UInt          cur_offset, new_offset, base_offset;
 
 
   base_offset = FILE_Pos();
@@ -1460,7 +1404,7 @@ static FT_Error  Load_PairPos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &pp->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &pp->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -1482,18 +1426,17 @@ static FT_Error  Load_PairPos( HB_GPOS_SubTable* st,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
-  _HB_OPEN_Free_Coverage( &pp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &pp->Coverage );
   return error;
 }
 
 
-static void  Free_PairPos( HB_GPOS_SubTable* st,
-			   FT_Memory     memory )
+static void  Free_PairPos( HB_GPOS_SubTable* st )
 {
-  FT_UShort  format1, format2;
+  HB_UShort  format1, format2;
   HB_PairPos*     pp = &st->pair;
 
 
@@ -1503,28 +1446,28 @@ static void  Free_PairPos( HB_GPOS_SubTable* st,
   switch ( pp->PosFormat )
   {
   case 1:
-    Free_PairPos1( &pp->ppf.ppf1, format1, format2, memory );
+    Free_PairPos1( &pp->ppf.ppf1, format1, format2 );
     break;
 
   case 2:
-    Free_PairPos2( &pp->ppf.ppf2, format1, format2, memory );
+    Free_PairPos2( &pp->ppf.ppf2, format1, format2 );
     break;
   }
 
-  _HB_OPEN_Free_Coverage( &pp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &pp->Coverage );
 }
 
 
-static FT_Error  Lookup_PairPos1( GPOS_Instance*       gpi,
+static HB_Error  Lookup_PairPos1( GPOS_Instance*       gpi,
 				  HB_PairPosFormat1*  ppf1,
 				  HB_Buffer           buffer,
-				  FT_UShort            first_pos,
-				  FT_UShort            index,
-				  FT_UShort            format1,
-				  FT_UShort            format2 )
+				  HB_UInt              first_pos,
+				  HB_UShort            index,
+				  HB_UShort            format1,
+				  HB_UShort            format2 )
 {
-  FT_Error              error;
-  FT_UShort             numpvr, glyph2;
+  HB_Error              error;
+  HB_UShort             numpvr, glyph2;
 
   HB_PairValueRecord*  pvr;
 
@@ -1557,15 +1500,15 @@ static FT_Error  Lookup_PairPos1( GPOS_Instance*       gpi,
 }
 
 
-static FT_Error  Lookup_PairPos2( GPOS_Instance*       gpi,
+static HB_Error  Lookup_PairPos2( GPOS_Instance*       gpi,
 				  HB_PairPosFormat2*  ppf2,
 				  HB_Buffer           buffer,
-				  FT_UShort            first_pos,
-				  FT_UShort            format1,
-				  FT_UShort            format2 )
+				  HB_UInt              first_pos,
+				  HB_UShort            format1,
+				  HB_UShort            format2 )
 {
-  FT_Error           error;
-  FT_UShort          cl1, cl2;
+  HB_Error           error;
+  HB_UShort          cl1, cl2;
 
   HB_Class1Record*  c1r;
   HB_Class2Record*  c2r;
@@ -1592,19 +1535,20 @@ static FT_Error  Lookup_PairPos2( GPOS_Instance*       gpi,
 }
 
 
-static FT_Error  Lookup_PairPos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_PairPos( GPOS_Instance*    gpi,
 				 HB_GPOS_SubTable* st,
 				 HB_Buffer        buffer,
-				 FT_UShort         flags,
-				 FT_UShort         context_length,
+				 HB_UShort         flags,
+				 HB_UShort         context_length,
 				 int               nesting_level )
 {
-  FT_Error         error;
-  FT_UShort        index, property, first_pos;
+  HB_Error         error;
+  HB_UShort        index, property;
+  HB_UInt          first_pos;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_PairPos*     pp = &st->pair;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( buffer->in_pos >= buffer->in_length - 1 )
     return HB_Err_Not_Covered;           /* Not enough glyphs in stream */
@@ -1631,8 +1575,12 @@ static FT_Error  Lookup_PairPos( GPOS_Instance*    gpi,
       return error;
 
     if ( buffer->in_pos == buffer->in_length )
-      return HB_Err_Not_Covered;
+      {
+	buffer->in_pos = first_pos;
+        return HB_Err_Not_Covered;
+      }
     (buffer->in_pos)++;
+
   }
 
   switch ( pp->PosFormat )
@@ -1671,15 +1619,14 @@ static FT_Error  Lookup_PairPos( GPOS_Instance*    gpi,
 
 /* CursivePosFormat1 */
 
-static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
-				  FT_Stream        stream )
+static HB_Error  Load_CursivePos( HB_GPOS_SubTable* st,
+				  HB_Stream        stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_CursivePos*  cp = &st->cursive;
 
-  FT_UShort             n, m, count;
-  FT_ULong              cur_offset, new_offset, base_offset;
+  HB_UShort             n, m, count;
+  HB_UInt              cur_offset, new_offset, base_offset;
 
   HB_EntryExitRecord*  eer;
 
@@ -1696,7 +1643,7 @@ static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &cp->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &cp->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -1716,7 +1663,7 @@ static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
 
   for ( n = 0; n < count; n++ )
   {
-    FT_ULong entry_offset;
+    HB_UInt entry_offset;
 
     if ( ACCESS_Frame( 2L ) )
       return error;
@@ -1732,7 +1679,7 @@ static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = Load_Anchor( &eer[n].EntryAnchor,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
 	goto Fail1;
       (void)FILE_Seek( cur_offset );
     }
@@ -1753,10 +1700,10 @@ static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = Load_Anchor( &eer[n].ExitAnchor,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
       {
 	if ( entry_offset )
-	  Free_Anchor( &eer[n].EntryAnchor, memory );
+	  Free_Anchor( &eer[n].EntryAnchor );
 	goto Fail1;
       }
       (void)FILE_Seek( cur_offset );
@@ -1765,27 +1712,26 @@ static FT_Error  Load_CursivePos( HB_GPOS_SubTable* st,
       eer[n].ExitAnchor.PosFormat   = 0;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; m++ )
   {
-    Free_Anchor( &eer[m].EntryAnchor, memory );
-    Free_Anchor( &eer[m].ExitAnchor, memory );
+    Free_Anchor( &eer[m].EntryAnchor );
+    Free_Anchor( &eer[m].ExitAnchor );
   }
 
   FREE( eer );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &cp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &cp->Coverage );
   return error;
 }
 
 
-static void  Free_CursivePos( HB_GPOS_SubTable* st,
-			      FT_Memory        memory )
+static void  Free_CursivePos( HB_GPOS_SubTable* st )
 {
-  FT_UShort             n, count;
+  HB_UShort             n, count;
   HB_CursivePos*  cp = &st->cursive;
 
   HB_EntryExitRecord*  eer;
@@ -1798,34 +1744,34 @@ static void  Free_CursivePos( HB_GPOS_SubTable* st,
 
     for ( n = 0; n < count; n++ )
     {
-      Free_Anchor( &eer[n].EntryAnchor, memory );
-      Free_Anchor( &eer[n].ExitAnchor, memory );
+      Free_Anchor( &eer[n].EntryAnchor );
+      Free_Anchor( &eer[n].ExitAnchor );
     }
 
     FREE( eer );
   }
 
-  _HB_OPEN_Free_Coverage( &cp->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &cp->Coverage );
 }
 
 
-static FT_Error  Lookup_CursivePos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_CursivePos( GPOS_Instance*    gpi,
 				    HB_GPOS_SubTable* st,
 				    HB_Buffer        buffer,
-				    FT_UShort         flags,
-				    FT_UShort         context_length,
+				    HB_UShort         flags,
+				    HB_UShort         context_length,
 				    int               nesting_level )
 {
-  FT_UShort        index, property;
-  FT_Error         error;
+  HB_UShort        index, property;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_CursivePos*  cp = &st->cursive;
 
   HB_EntryExitRecord*  eer;
-  FT_Pos                entry_x, entry_y;
-  FT_Pos                exit_x, exit_y;
+  HB_Fixed                entry_x, entry_y;
+  HB_Fixed                exit_x, exit_y;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( context_length != 0xFFFF && context_length < 1 )
   {
@@ -2028,7 +1974,7 @@ end:
 
   (buffer->in_pos)++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -2036,15 +1982,14 @@ end:
 
 /* BaseArray */
 
-static FT_Error  Load_BaseArray( HB_BaseArray*  ba,
-				 FT_UShort       num_classes,
-				 FT_Stream       stream )
+static HB_Error  Load_BaseArray( HB_BaseArray*  ba,
+				 HB_UShort       num_classes,
+				 HB_Stream       stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort        m, n, k, count;
-  FT_ULong         cur_offset, new_offset, base_offset;
+  HB_UShort        m, n, k, count;
+  HB_UInt         cur_offset, new_offset, base_offset;
 
   HB_BaseRecord*  br;
   HB_Anchor*      ban;
@@ -2092,7 +2037,7 @@ static FT_Error  Load_BaseArray( HB_BaseArray*  ba,
 
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
-	   ( error = Load_Anchor( &ban[n], stream ) ) != FT_Err_Ok )
+	   ( error = Load_Anchor( &ban[n], stream ) ) != HB_Err_Ok )
 	goto Fail0;
       (void)FILE_Seek( cur_offset );
     }
@@ -2100,11 +2045,11 @@ static FT_Error  Load_BaseArray( HB_BaseArray*  ba,
     continue;
   Fail0:
     for ( k = 0; k < n; k++ )
-      Free_Anchor( &ban[k], memory );
+      Free_Anchor( &ban[k] );
     goto Fail;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( k = 0; k < m; k++ )
@@ -2112,7 +2057,7 @@ Fail:
     ban = br[k].BaseAnchor;
 
     for ( n = 0; n < num_classes; n++ )
-      Free_Anchor( &ban[n], memory );
+      Free_Anchor( &ban[n] );
 
     FREE( ban );
   }
@@ -2123,10 +2068,9 @@ Fail:
 
 
 static void  Free_BaseArray( HB_BaseArray*  ba,
-			     FT_UShort       num_classes,
-			     FT_Memory       memory )
+			     HB_UShort       num_classes )
 {
-  FT_UShort        m, n, count;
+  HB_UShort        m, n, count;
 
   HB_BaseRecord*  br;
   HB_Anchor*      ban;
@@ -2142,7 +2086,7 @@ static void  Free_BaseArray( HB_BaseArray*  ba,
       ban = br[m].BaseAnchor;
 
       for ( n = 0; n < num_classes; n++ )
-	Free_Anchor( &ban[n], memory );
+	Free_Anchor( &ban[n] );
 
       FREE( ban );
     }
@@ -2154,14 +2098,13 @@ static void  Free_BaseArray( HB_BaseArray*  ba,
 
 /* MarkBasePosFormat1 */
 
-static FT_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
-				   FT_Stream         stream )
+static HB_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
+				   HB_Stream         stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_MarkBasePos* mbp = &st->markbase;
 
-  FT_ULong  cur_offset, new_offset, base_offset;
+  HB_UInt  cur_offset, new_offset, base_offset;
 
 
   base_offset = FILE_Pos();
@@ -2179,7 +2122,7 @@ static FT_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &mbp->MarkCoverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &mbp->MarkCoverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -2192,7 +2135,7 @@ static FT_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &mbp->BaseCoverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &mbp->BaseCoverage, stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -2206,7 +2149,7 @@ static FT_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = Load_MarkArray( &mbp->MarkArray, stream ) ) != FT_Err_Ok )
+       ( error = Load_MarkArray( &mbp->MarkArray, stream ) ) != HB_Err_Ok )
     goto Fail2;
   (void)FILE_Seek( cur_offset );
 
@@ -2220,45 +2163,44 @@ static FT_Error  Load_MarkBasePos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = Load_BaseArray( &mbp->BaseArray, mbp->ClassCount,
-				 stream ) ) != FT_Err_Ok )
+				 stream ) ) != HB_Err_Ok )
     goto Fail1;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
-  Free_MarkArray( &mbp->MarkArray, memory );
+  Free_MarkArray( &mbp->MarkArray );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &mbp->BaseCoverage, memory );
+  _HB_OPEN_Free_Coverage( &mbp->BaseCoverage );
 
 Fail3:
-  _HB_OPEN_Free_Coverage( &mbp->MarkCoverage, memory );
+  _HB_OPEN_Free_Coverage( &mbp->MarkCoverage );
   return error;
 }
 
 
-static void  Free_MarkBasePos( HB_GPOS_SubTable* st,
-			       FT_Memory         memory )
+static void  Free_MarkBasePos( HB_GPOS_SubTable* st )
 {
   HB_MarkBasePos* mbp = &st->markbase;
 
-  Free_BaseArray( &mbp->BaseArray, mbp->ClassCount, memory );
-  Free_MarkArray( &mbp->MarkArray, memory );
-  _HB_OPEN_Free_Coverage( &mbp->BaseCoverage, memory );
-  _HB_OPEN_Free_Coverage( &mbp->MarkCoverage, memory );
+  Free_BaseArray( &mbp->BaseArray, mbp->ClassCount );
+  Free_MarkArray( &mbp->MarkArray );
+  _HB_OPEN_Free_Coverage( &mbp->BaseCoverage );
+  _HB_OPEN_Free_Coverage( &mbp->MarkCoverage );
 }
 
 
-static FT_Error  Lookup_MarkBasePos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_MarkBasePos( GPOS_Instance*    gpi,
 				     HB_GPOS_SubTable* st,
 				     HB_Buffer        buffer,
-				     FT_UShort         flags,
-				     FT_UShort         context_length,
+				     HB_UShort         flags,
+				     HB_UShort         context_length,
 				     int               nesting_level )
 {
-  FT_UShort        i, j, mark_index, base_index, property, class;
-  FT_Pos           x_mark_value, y_mark_value, x_base_value, y_base_value;
-  FT_Error         error;
+  HB_UShort        i, j, mark_index, base_index, property, class;
+  HB_Fixed           x_mark_value, y_mark_value, x_base_value, y_base_value;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_MarkBasePos* mbp = &st->markbase;
 
@@ -2270,7 +2212,7 @@ static FT_Error  Lookup_MarkBasePos( GPOS_Instance*    gpi,
 
   HB_Position     o;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( context_length != 0xFFFF && context_length < 1 )
     return HB_Err_Not_Covered;
@@ -2361,7 +2303,7 @@ static FT_Error  Lookup_MarkBasePos( GPOS_Instance*    gpi,
 
   (buffer->in_pos)++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -2369,15 +2311,14 @@ static FT_Error  Lookup_MarkBasePos( GPOS_Instance*    gpi,
 
 /* LigatureAttach */
 
-static FT_Error  Load_LigatureAttach( HB_LigatureAttach*  lat,
-				      FT_UShort            num_classes,
-				      FT_Stream            stream )
+static HB_Error  Load_LigatureAttach( HB_LigatureAttach*  lat,
+				      HB_UShort            num_classes,
+				      HB_Stream            stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             m, n, k, count;
-  FT_ULong              cur_offset, new_offset, base_offset;
+  HB_UShort             m, n, k, count;
+  HB_UInt              cur_offset, new_offset, base_offset;
 
   HB_ComponentRecord*  cr;
   HB_Anchor*           lan;
@@ -2423,7 +2364,7 @@ static FT_Error  Load_LigatureAttach( HB_LigatureAttach*  lat,
 
 	cur_offset = FILE_Pos();
 	if ( FILE_Seek( new_offset ) ||
-	     ( error = Load_Anchor( &lan[n], stream ) ) != FT_Err_Ok )
+	     ( error = Load_Anchor( &lan[n], stream ) ) != HB_Err_Ok )
 	  goto Fail0;
 	(void)FILE_Seek( cur_offset );
       }
@@ -2434,11 +2375,11 @@ static FT_Error  Load_LigatureAttach( HB_LigatureAttach*  lat,
     continue;
   Fail0:
     for ( k = 0; k < n; k++ )
-      Free_Anchor( &lan[k], memory );
+      Free_Anchor( &lan[k] );
     goto Fail;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( k = 0; k < m; k++ )
@@ -2446,7 +2387,7 @@ Fail:
     lan = cr[k].LigatureAnchor;
 
     for ( n = 0; n < num_classes; n++ )
-      Free_Anchor( &lan[n], memory );
+      Free_Anchor( &lan[n] );
 
     FREE( lan );
   }
@@ -2457,10 +2398,9 @@ Fail:
 
 
 static void  Free_LigatureAttach( HB_LigatureAttach*  lat,
-				  FT_UShort            num_classes,
-				  FT_Memory            memory )
+				  HB_UShort            num_classes )
 {
-  FT_UShort        m, n, count;
+  HB_UShort        m, n, count;
 
   HB_ComponentRecord*  cr;
   HB_Anchor*           lan;
@@ -2476,7 +2416,7 @@ static void  Free_LigatureAttach( HB_LigatureAttach*  lat,
       lan = cr[m].LigatureAnchor;
 
       for ( n = 0; n < num_classes; n++ )
-	Free_Anchor( &lan[n], memory );
+	Free_Anchor( &lan[n] );
 
       FREE( lan );
     }
@@ -2488,15 +2428,14 @@ static void  Free_LigatureAttach( HB_LigatureAttach*  lat,
 
 /* LigatureArray */
 
-static FT_Error  Load_LigatureArray( HB_LigatureArray*  la,
-				     FT_UShort           num_classes,
-				     FT_Stream           stream )
+static HB_Error  Load_LigatureArray( HB_LigatureArray*  la,
+				     HB_UShort           num_classes,
+				     HB_Stream           stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort            n, m, count;
-  FT_ULong             cur_offset, new_offset, base_offset;
+  HB_UShort            n, m, count;
+  HB_UInt             cur_offset, new_offset, base_offset;
 
   HB_LigatureAttach*  lat;
 
@@ -2529,16 +2468,16 @@ static FT_Error  Load_LigatureArray( HB_LigatureArray*  la,
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
 	 ( error = Load_LigatureAttach( &lat[n], num_classes,
-					stream ) ) != FT_Err_Ok )
+					stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_LigatureAttach( &lat[m], num_classes, memory );
+    Free_LigatureAttach( &lat[m], num_classes );
 
   FREE( lat );
   return error;
@@ -2546,10 +2485,9 @@ Fail:
 
 
 static void  Free_LigatureArray( HB_LigatureArray*  la,
-				 FT_UShort           num_classes,
-				 FT_Memory           memory )
+				 HB_UShort           num_classes )
 {
-  FT_UShort            n, count;
+  HB_UShort            n, count;
 
   HB_LigatureAttach*  lat;
 
@@ -2560,7 +2498,7 @@ static void  Free_LigatureArray( HB_LigatureArray*  la,
     lat   = la->LigatureAttach;
 
     for ( n = 0; n < count; n++ )
-      Free_LigatureAttach( &lat[n], num_classes, memory );
+      Free_LigatureAttach( &lat[n], num_classes );
 
     FREE( lat );
   }
@@ -2569,14 +2507,13 @@ static void  Free_LigatureArray( HB_LigatureArray*  la,
 
 /* MarkLigPosFormat1 */
 
-static FT_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
-				  FT_Stream        stream )
+static HB_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
+				  HB_Stream        stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_MarkLigPos*  mlp = &st->marklig;
 
-  FT_ULong  cur_offset, new_offset, base_offset;
+  HB_UInt  cur_offset, new_offset, base_offset;
 
 
   base_offset = FILE_Pos();
@@ -2591,7 +2528,7 @@ static FT_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &mlp->MarkCoverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &mlp->MarkCoverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -2605,7 +2542,7 @@ static FT_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_Coverage( &mlp->LigatureCoverage,
-				stream ) ) != FT_Err_Ok )
+				stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -2619,7 +2556,7 @@ static FT_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = Load_MarkArray( &mlp->MarkArray, stream ) ) != FT_Err_Ok )
+       ( error = Load_MarkArray( &mlp->MarkArray, stream ) ) != HB_Err_Ok )
     goto Fail2;
   (void)FILE_Seek( cur_offset );
 
@@ -2633,46 +2570,45 @@ static FT_Error  Load_MarkLigPos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = Load_LigatureArray( &mlp->LigatureArray, mlp->ClassCount,
-				     stream ) ) != FT_Err_Ok )
+				     stream ) ) != HB_Err_Ok )
     goto Fail1;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
-  Free_MarkArray( &mlp->MarkArray, memory );
+  Free_MarkArray( &mlp->MarkArray );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &mlp->LigatureCoverage, memory );
+  _HB_OPEN_Free_Coverage( &mlp->LigatureCoverage );
 
 Fail3:
-  _HB_OPEN_Free_Coverage( &mlp->MarkCoverage, memory );
+  _HB_OPEN_Free_Coverage( &mlp->MarkCoverage );
   return error;
 }
 
 
-static void  Free_MarkLigPos( HB_GPOS_SubTable* st,
-			      FT_Memory        memory)
+static void  Free_MarkLigPos( HB_GPOS_SubTable* st)
 {
   HB_MarkLigPos*  mlp = &st->marklig;
 
-  Free_LigatureArray( &mlp->LigatureArray, mlp->ClassCount, memory );
-  Free_MarkArray( &mlp->MarkArray, memory );
-  _HB_OPEN_Free_Coverage( &mlp->LigatureCoverage, memory );
-  _HB_OPEN_Free_Coverage( &mlp->MarkCoverage, memory );
+  Free_LigatureArray( &mlp->LigatureArray, mlp->ClassCount );
+  Free_MarkArray( &mlp->MarkArray );
+  _HB_OPEN_Free_Coverage( &mlp->LigatureCoverage );
+  _HB_OPEN_Free_Coverage( &mlp->MarkCoverage );
 }
 
 
-static FT_Error  Lookup_MarkLigPos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_MarkLigPos( GPOS_Instance*    gpi,
 				    HB_GPOS_SubTable* st,
 				    HB_Buffer        buffer,
-				    FT_UShort         flags,
-				    FT_UShort         context_length,
+				    HB_UShort         flags,
+				    HB_UShort         context_length,
 				    int               nesting_level )
 {
-  FT_UShort        i, j, mark_index, lig_index, property, class;
-  FT_UShort        mark_glyph;
-  FT_Pos           x_mark_value, y_mark_value, x_lig_value, y_lig_value;
-  FT_Error         error;
+  HB_UShort        i, j, mark_index, lig_index, property, class;
+  HB_UShort        mark_glyph;
+  HB_Fixed           x_mark_value, y_mark_value, x_lig_value, y_lig_value;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_MarkLigPos*  mlp = &st->marklig;
 
@@ -2680,13 +2616,13 @@ static FT_Error  Lookup_MarkLigPos( GPOS_Instance*    gpi,
   HB_LigatureArray*    la;
   HB_LigatureAttach*   lat;
   HB_ComponentRecord*  cr;
-  FT_UShort             comp_index;
+  HB_UShort             comp_index;
   HB_Anchor*           mark_anchor;
   HB_Anchor*           lig_anchor;
 
   HB_Position    o;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( context_length != 0xFFFF && context_length < 1 )
     return HB_Err_Not_Covered;
@@ -2793,7 +2729,7 @@ static FT_Error  Lookup_MarkLigPos( GPOS_Instance*    gpi,
 
   (buffer->in_pos)++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -2801,15 +2737,14 @@ static FT_Error  Lookup_MarkLigPos( GPOS_Instance*    gpi,
 
 /* Mark2Array */
 
-static FT_Error  Load_Mark2Array( HB_Mark2Array*  m2a,
-				  FT_UShort        num_classes,
-				  FT_Stream        stream )
+static HB_Error  Load_Mark2Array( HB_Mark2Array*  m2a,
+				  HB_UShort        num_classes,
+				  HB_Stream        stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort         k, m, n, count;
-  FT_ULong          cur_offset, new_offset, base_offset;
+  HB_UShort         k, m, n, count;
+  HB_UInt          cur_offset, new_offset, base_offset;
 
   HB_Mark2Record*  m2r;
   HB_Anchor*       m2an;
@@ -2851,7 +2786,7 @@ static FT_Error  Load_Mark2Array( HB_Mark2Array*  m2a,
 
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
-	   ( error = Load_Anchor( &m2an[n], stream ) ) != FT_Err_Ok )
+	   ( error = Load_Anchor( &m2an[n], stream ) ) != HB_Err_Ok )
 	goto Fail0;
       (void)FILE_Seek( cur_offset );
     }
@@ -2859,11 +2794,11 @@ static FT_Error  Load_Mark2Array( HB_Mark2Array*  m2a,
     continue;
   Fail0:
     for ( k = 0; k < n; k++ )
-      Free_Anchor( &m2an[k], memory );
+      Free_Anchor( &m2an[k] );
     goto Fail;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( k = 0; k < m; k++ )
@@ -2871,7 +2806,7 @@ Fail:
     m2an = m2r[k].Mark2Anchor;
 
     for ( n = 0; n < num_classes; n++ )
-      Free_Anchor( &m2an[n], memory );
+      Free_Anchor( &m2an[n] );
 
     FREE( m2an );
   }
@@ -2882,10 +2817,9 @@ Fail:
 
 
 static void  Free_Mark2Array( HB_Mark2Array*  m2a,
-			      FT_UShort        num_classes,
-			      FT_Memory        memory )
+			      HB_UShort        num_classes )
 {
-  FT_UShort         m, n, count;
+  HB_UShort         m, n, count;
 
   HB_Mark2Record*  m2r;
   HB_Anchor*       m2an;
@@ -2901,7 +2835,7 @@ static void  Free_Mark2Array( HB_Mark2Array*  m2a,
       m2an = m2r[m].Mark2Anchor;
 
       for ( n = 0; n < num_classes; n++ )
-	Free_Anchor( &m2an[n], memory );
+	Free_Anchor( &m2an[n] );
 
       FREE( m2an );
     }
@@ -2913,14 +2847,13 @@ static void  Free_Mark2Array( HB_Mark2Array*  m2a,
 
 /* MarkMarkPosFormat1 */
 
-static FT_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
-				   FT_Stream         stream )
+static HB_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
+				   HB_Stream         stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
   HB_MarkMarkPos* mmp = &st->markmark;
 
-  FT_ULong  cur_offset, new_offset, base_offset;
+  HB_UInt  cur_offset, new_offset, base_offset;
 
 
   base_offset = FILE_Pos();
@@ -2936,7 +2869,7 @@ static FT_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_Coverage( &mmp->Mark1Coverage,
-				stream ) ) != FT_Err_Ok )
+				stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -2950,7 +2883,7 @@ static FT_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_Coverage( &mmp->Mark2Coverage,
-				stream ) ) != FT_Err_Ok )
+				stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -2964,7 +2897,7 @@ static FT_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = Load_MarkArray( &mmp->Mark1Array, stream ) ) != FT_Err_Ok )
+       ( error = Load_MarkArray( &mmp->Mark1Array, stream ) ) != HB_Err_Ok )
     goto Fail2;
   (void)FILE_Seek( cur_offset );
 
@@ -2978,46 +2911,45 @@ static FT_Error  Load_MarkMarkPos( HB_GPOS_SubTable* st,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = Load_Mark2Array( &mmp->Mark2Array, mmp->ClassCount,
-				  stream ) ) != FT_Err_Ok )
+				  stream ) ) != HB_Err_Ok )
     goto Fail1;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
-  Free_MarkArray( &mmp->Mark1Array, memory );
+  Free_MarkArray( &mmp->Mark1Array );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &mmp->Mark2Coverage, memory );
+  _HB_OPEN_Free_Coverage( &mmp->Mark2Coverage );
 
 Fail3:
-  _HB_OPEN_Free_Coverage( &mmp->Mark1Coverage, memory );
+  _HB_OPEN_Free_Coverage( &mmp->Mark1Coverage );
   return error;
 }
 
 
-static void  Free_MarkMarkPos( HB_GPOS_SubTable* st,
-			       FT_Memory         memory)
+static void  Free_MarkMarkPos( HB_GPOS_SubTable* st)
 {
   HB_MarkMarkPos* mmp = &st->markmark;
 
-  Free_Mark2Array( &mmp->Mark2Array, mmp->ClassCount, memory );
-  Free_MarkArray( &mmp->Mark1Array, memory );
-  _HB_OPEN_Free_Coverage( &mmp->Mark2Coverage, memory );
-  _HB_OPEN_Free_Coverage( &mmp->Mark1Coverage, memory );
+  Free_Mark2Array( &mmp->Mark2Array, mmp->ClassCount );
+  Free_MarkArray( &mmp->Mark1Array );
+  _HB_OPEN_Free_Coverage( &mmp->Mark2Coverage );
+  _HB_OPEN_Free_Coverage( &mmp->Mark1Coverage );
 }
 
 
-static FT_Error  Lookup_MarkMarkPos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_MarkMarkPos( GPOS_Instance*    gpi,
 				     HB_GPOS_SubTable* st,
 				     HB_Buffer        buffer,
-				     FT_UShort         flags,
-				     FT_UShort         context_length,
+				     HB_UShort         flags,
+				     HB_UShort         context_length,
 				     int               nesting_level )
 {
-  FT_UShort        i, j, mark1_index, mark2_index, property, class;
-  FT_Pos           x_mark1_value, y_mark1_value,
+  HB_UShort        i, j, mark1_index, mark2_index, property, class;
+  HB_Fixed           x_mark1_value, y_mark1_value,
 		   x_mark2_value, y_mark2_value;
-  FT_Error         error;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
   HB_MarkMarkPos* mmp = &st->markmark;
 
@@ -3029,7 +2961,7 @@ static FT_Error  Lookup_MarkMarkPos( GPOS_Instance*    gpi,
 
   HB_Position    o;
 
-  FT_UNUSED(nesting_level);
+  HB_UNUSED(nesting_level);
 
   if ( context_length != 0xFFFF && context_length < 1 )
     return HB_Err_Not_Covered;
@@ -3121,7 +3053,7 @@ static FT_Error  Lookup_MarkMarkPos( GPOS_Instance*    gpi,
 
   (buffer->in_pos)++;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -3129,15 +3061,15 @@ static FT_Error  Lookup_MarkMarkPos( GPOS_Instance*    gpi,
    7 or 8).  This is only called after we've determined that the stream
    matches the subrule.                                                 */
 
-static FT_Error  Do_ContextPos( GPOS_Instance*        gpi,
-				FT_UShort             GlyphCount,
-				FT_UShort             PosCount,
+static HB_Error  Do_ContextPos( GPOS_Instance*        gpi,
+				HB_UShort             GlyphCount,
+				HB_UShort             PosCount,
 				HB_PosLookupRecord*  pos,
 				HB_Buffer            buffer,
 				int                   nesting_level )
 {
-  FT_Error  error;
-  FT_UShort i, old_pos;
+  HB_Error  error;
+  HB_UInt   i, old_pos;
 
 
   i = 0;
@@ -3167,7 +3099,7 @@ static FT_Error  Do_ContextPos( GPOS_Instance*        gpi,
     }
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -3175,14 +3107,13 @@ static FT_Error  Do_ContextPos( GPOS_Instance*        gpi,
 
 /* PosRule */
 
-static FT_Error  Load_PosRule( HB_PosRule*  pr,
-			       FT_Stream     stream )
+static HB_Error  Load_PosRule( HB_PosRule*  pr,
+			       HB_Stream     stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, count;
-  FT_UShort*            i;
+  HB_UShort             n, count;
+  HB_UShort*            i;
 
   HB_PosLookupRecord*  plr;
 
@@ -3199,7 +3130,7 @@ static FT_Error  Load_PosRule( HB_PosRule*  pr,
 
   count = pr->GlyphCount - 1;         /* only GlyphCount - 1 elements */
 
-  if ( ALLOC_ARRAY( pr->Input, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( pr->Input, count, HB_UShort ) )
     return error;
 
   i = pr->Input;
@@ -3232,7 +3163,7 @@ static FT_Error  Load_PosRule( HB_PosRule*  pr,
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
@@ -3243,8 +3174,7 @@ Fail2:
 }
 
 
-static void  Free_PosRule( HB_PosRule*  pr,
-			   FT_Memory     memory )
+static void  Free_PosRule( HB_PosRule*  pr )
 {
   FREE( pr->PosLookupRecord );
   FREE( pr->Input );
@@ -3253,14 +3183,13 @@ static void  Free_PosRule( HB_PosRule*  pr,
 
 /* PosRuleSet */
 
-static FT_Error  Load_PosRuleSet( HB_PosRuleSet*  prs,
-				  FT_Stream        stream )
+static HB_Error  Load_PosRuleSet( HB_PosRuleSet*  prs,
+				  HB_Stream        stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort     n, m, count;
-  FT_ULong      cur_offset, new_offset, base_offset;
+  HB_UShort     n, m, count;
+  HB_UInt      cur_offset, new_offset, base_offset;
 
   HB_PosRule*  pr;
 
@@ -3292,26 +3221,25 @@ static FT_Error  Load_PosRuleSet( HB_PosRuleSet*  prs,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = Load_PosRule( &pr[n], stream ) ) != FT_Err_Ok )
+	 ( error = Load_PosRule( &pr[n], stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_PosRule( &pr[m], memory );
+    Free_PosRule( &pr[m] );
 
   FREE( pr );
   return error;
 }
 
 
-static void  Free_PosRuleSet( HB_PosRuleSet*  prs,
-			      FT_Memory        memory )
+static void  Free_PosRuleSet( HB_PosRuleSet*  prs )
 {
-  FT_UShort     n, count;
+  HB_UShort     n, count;
 
   HB_PosRule*  pr;
 
@@ -3322,7 +3250,7 @@ static void  Free_PosRuleSet( HB_PosRuleSet*  prs,
     pr    = prs->PosRule;
 
     for ( n = 0; n < count; n++ )
-      Free_PosRule( &pr[n], memory );
+      Free_PosRule( &pr[n] );
 
     FREE( pr );
   }
@@ -3331,14 +3259,13 @@ static void  Free_PosRuleSet( HB_PosRuleSet*  prs,
 
 /* ContextPosFormat1 */
 
-static FT_Error  Load_ContextPos1( HB_ContextPosFormat1*  cpf1,
-				   FT_Stream               stream )
+static HB_Error  Load_ContextPos1( HB_ContextPosFormat1*  cpf1,
+				   HB_Stream               stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort        n, m, count;
-  FT_ULong         cur_offset, new_offset, base_offset;
+  HB_UShort        n, m, count;
+  HB_UInt         cur_offset, new_offset, base_offset;
 
   HB_PosRuleSet*  prs;
 
@@ -3354,7 +3281,7 @@ static FT_Error  Load_ContextPos1( HB_ContextPosFormat1*  cpf1,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &cpf1->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &cpf1->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -3383,29 +3310,28 @@ static FT_Error  Load_ContextPos1( HB_ContextPosFormat1*  cpf1,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = Load_PosRuleSet( &prs[n], stream ) ) != FT_Err_Ok )
+	 ( error = Load_PosRuleSet( &prs[n], stream ) ) != HB_Err_Ok )
       goto Fail1;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; m++ )
-    Free_PosRuleSet( &prs[m], memory );
+    Free_PosRuleSet( &prs[m] );
 
   FREE( prs );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &cpf1->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &cpf1->Coverage );
   return error;
 }
 
 
-static void  Free_ContextPos1( HB_ContextPosFormat1*  cpf1,
-			    FT_Memory               memory )
+static void  Free_ContextPos1( HB_ContextPosFormat1*  cpf1 )
 {
-  FT_UShort        n, count;
+  HB_UShort        n, count;
 
   HB_PosRuleSet*  prs;
 
@@ -3416,29 +3342,28 @@ static void  Free_ContextPos1( HB_ContextPosFormat1*  cpf1,
     prs   = cpf1->PosRuleSet;
 
     for ( n = 0; n < count; n++ )
-      Free_PosRuleSet( &prs[n], memory );
+      Free_PosRuleSet( &prs[n] );
 
     FREE( prs );
   }
 
-  _HB_OPEN_Free_Coverage( &cpf1->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &cpf1->Coverage );
 }
 
 
 /* PosClassRule */
 
-static FT_Error  Load_PosClassRule( HB_ContextPosFormat2*  cpf2,
+static HB_Error  Load_PosClassRule( HB_ContextPosFormat2*  cpf2,
 				    HB_PosClassRule*       pcr,
-				    FT_Stream               stream )
+				    HB_Stream               stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, count;
+  HB_UShort             n, count;
 
-  FT_UShort*            c;
+  HB_UShort*            c;
   HB_PosLookupRecord*  plr;
-  FT_Bool*              d;
+  HB_Bool*              d;
 
 
   if ( ACCESS_Frame( 4L ) )
@@ -3456,7 +3381,7 @@ static FT_Error  Load_PosClassRule( HB_ContextPosFormat2*  cpf2,
 
   count = pcr->GlyphCount - 1;        /* only GlyphCount - 1 elements */
 
-  if ( ALLOC_ARRAY( pcr->Class, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( pcr->Class, count, HB_UShort ) )
     return error;
 
   c = pcr->Class;
@@ -3498,7 +3423,7 @@ static FT_Error  Load_PosClassRule( HB_ContextPosFormat2*  cpf2,
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
@@ -3509,8 +3434,7 @@ Fail2:
 }
 
 
-static void  Free_PosClassRule( HB_PosClassRule*  pcr,
-				FT_Memory          memory )
+static void  Free_PosClassRule( HB_PosClassRule*  pcr )
 {
   FREE( pcr->PosLookupRecord );
   FREE( pcr->Class );
@@ -3519,15 +3443,14 @@ static void  Free_PosClassRule( HB_PosClassRule*  pcr,
 
 /* PosClassSet */
 
-static FT_Error  Load_PosClassSet( HB_ContextPosFormat2*  cpf2,
+static HB_Error  Load_PosClassSet( HB_ContextPosFormat2*  cpf2,
 				   HB_PosClassSet*        pcs,
-				   FT_Stream               stream )
+				   HB_Stream               stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort          n, m, count;
-  FT_ULong           cur_offset, new_offset, base_offset;
+  HB_UShort          n, m, count;
+  HB_UInt           cur_offset, new_offset, base_offset;
 
   HB_PosClassRule*  pcr;
 
@@ -3560,26 +3483,25 @@ static FT_Error  Load_PosClassSet( HB_ContextPosFormat2*  cpf2,
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
 	 ( error = Load_PosClassRule( cpf2, &pcr[n],
-				      stream ) ) != FT_Err_Ok )
+				      stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_PosClassRule( &pcr[m], memory );
+    Free_PosClassRule( &pcr[m] );
 
   FREE( pcr );
   return error;
 }
 
 
-static void  Free_PosClassSet( HB_PosClassSet*  pcs,
-			       FT_Memory         memory )
+static void  Free_PosClassSet( HB_PosClassSet*  pcs )
 {
-  FT_UShort          n, count;
+  HB_UShort          n, count;
 
   HB_PosClassRule*  pcr;
 
@@ -3590,7 +3512,7 @@ static void  Free_PosClassSet( HB_PosClassSet*  pcs,
     pcr   = pcs->PosClassRule;
 
     for ( n = 0; n < count; n++ )
-      Free_PosClassRule( &pcr[n], memory );
+      Free_PosClassRule( &pcr[n] );
 
     FREE( pcr );
   }
@@ -3599,14 +3521,13 @@ static void  Free_PosClassSet( HB_PosClassSet*  pcs,
 
 /* ContextPosFormat2 */
 
-static FT_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
-				   FT_Stream               stream )
+static HB_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
+				   HB_Stream               stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort         n, m, count;
-  FT_ULong          cur_offset, new_offset, base_offset;
+  HB_UShort         n, m, count;
+  HB_UInt          cur_offset, new_offset, base_offset;
 
   HB_PosClassSet*  pcs;
 
@@ -3622,7 +3543,7 @@ static FT_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &cpf2->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &cpf2->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -3641,7 +3562,7 @@ static FT_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
        ( error = _HB_OPEN_Load_ClassDefinition( &cpf2->ClassDef, count,
-				       stream ) ) != FT_Err_Ok )
+				       stream ) ) != HB_Err_Ok )
     goto Fail3;
   (void)FILE_Seek( cur_offset );
 
@@ -3667,7 +3588,7 @@ static FT_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = Load_PosClassSet( cpf2, &pcs[n],
-				       stream ) ) != FT_Err_Ok )
+				       stream ) ) != HB_Err_Ok )
 	goto Fail1;
       (void)FILE_Seek( cur_offset );
     }
@@ -3680,27 +3601,26 @@ static FT_Error  Load_ContextPos2( HB_ContextPosFormat2*  cpf2,
     }
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; n++ )
-    Free_PosClassSet( &pcs[m], memory );
+    Free_PosClassSet( &pcs[m] );
 
   FREE( pcs );
 
 Fail2:
-  _HB_OPEN_Free_ClassDefinition( &cpf2->ClassDef, memory );
+  _HB_OPEN_Free_ClassDefinition( &cpf2->ClassDef );
 
 Fail3:
-  _HB_OPEN_Free_Coverage( &cpf2->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &cpf2->Coverage );
   return error;
 }
 
 
-static void  Free_ContextPos2( HB_ContextPosFormat2*  cpf2,
-			    FT_Memory               memory )
+static void  Free_ContextPos2( HB_ContextPosFormat2*  cpf2 )
 {
-  FT_UShort         n, count;
+  HB_UShort         n, count;
 
   HB_PosClassSet*  pcs;
 
@@ -3711,26 +3631,25 @@ static void  Free_ContextPos2( HB_ContextPosFormat2*  cpf2,
     pcs   = cpf2->PosClassSet;
 
     for ( n = 0; n < count; n++ )
-      Free_PosClassSet( &pcs[n], memory );
+      Free_PosClassSet( &pcs[n] );
 
     FREE( pcs );
   }
 
-  _HB_OPEN_Free_ClassDefinition( &cpf2->ClassDef, memory );
-  _HB_OPEN_Free_Coverage( &cpf2->Coverage, memory );
+  _HB_OPEN_Free_ClassDefinition( &cpf2->ClassDef );
+  _HB_OPEN_Free_Coverage( &cpf2->Coverage );
 }
 
 
 /* ContextPosFormat3 */
 
-static FT_Error  Load_ContextPos3( HB_ContextPosFormat3*  cpf3,
-				   FT_Stream               stream )
+static HB_Error  Load_ContextPos3( HB_ContextPosFormat3*  cpf3,
+				   HB_Stream               stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, count;
-  FT_ULong              cur_offset, new_offset, base_offset;
+  HB_UShort             n, count;
+  HB_UInt              cur_offset, new_offset, base_offset;
 
   HB_Coverage*         c;
   HB_PosLookupRecord*  plr;
@@ -3766,7 +3685,7 @@ static FT_Error  Load_ContextPos3( HB_ContextPosFormat3*  cpf3,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = _HB_OPEN_Load_Coverage( &c[n], stream ) ) != FT_Err_Ok )
+	 ( error = _HB_OPEN_Load_Coverage( &c[n], stream ) ) != HB_Err_Ok )
       goto Fail2;
     (void)FILE_Seek( cur_offset );
   }
@@ -3791,24 +3710,23 @@ static FT_Error  Load_ContextPos3( HB_ContextPosFormat3*  cpf3,
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
 
 Fail2:
   for ( n = 0; n < count; n++ )
-    _HB_OPEN_Free_Coverage( &c[n], memory );
+    _HB_OPEN_Free_Coverage( &c[n] );
 
   FREE( c );
   return error;
 }
 
 
-static void  Free_ContextPos3( HB_ContextPosFormat3*  cpf3,
-			    FT_Memory               memory )
+static void  Free_ContextPos3( HB_ContextPosFormat3*  cpf3 )
 {
-  FT_UShort      n, count;
+  HB_UShort      n, count;
 
   HB_Coverage*  c;
 
@@ -3821,7 +3739,7 @@ static void  Free_ContextPos3( HB_ContextPosFormat3*  cpf3,
     c     = cpf3->Coverage;
 
     for ( n = 0; n < count; n++ )
-      _HB_OPEN_Free_Coverage( &c[n], memory );
+      _HB_OPEN_Free_Coverage( &c[n] );
 
     FREE( c );
   }
@@ -3830,10 +3748,10 @@ static void  Free_ContextPos3( HB_ContextPosFormat3*  cpf3,
 
 /* ContextPos */
 
-static FT_Error  Load_ContextPos( HB_GPOS_SubTable* st,
-				  FT_Stream        stream )
+static HB_Error  Load_ContextPos( HB_GPOS_SubTable* st,
+				  HB_Stream        stream )
 {
-  FT_Error  error;
+  HB_Error  error;
   HB_ContextPos*   cp = &st->context;
 
 
@@ -3859,42 +3777,41 @@ static FT_Error  Load_ContextPos( HB_GPOS_SubTable* st,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;               /* never reached */
+  return HB_Err_Ok;               /* never reached */
 }
 
 
-static void  Free_ContextPos( HB_GPOS_SubTable* st,
-			      FT_Memory        memory )
+static void  Free_ContextPos( HB_GPOS_SubTable* st )
 {
   HB_ContextPos*   cp = &st->context;
 
   switch ( cp->PosFormat )
   {
   case 1:
-    Free_ContextPos1( &cp->cpf.cpf1, memory );
+    Free_ContextPos1( &cp->cpf.cpf1 );
     break;
 
   case 2:
-    Free_ContextPos2( &cp->cpf.cpf2, memory );
+    Free_ContextPos2( &cp->cpf.cpf2 );
     break;
 
   case 3:
-    Free_ContextPos3( &cp->cpf.cpf3, memory );
+    Free_ContextPos3( &cp->cpf.cpf3 );
     break;
   }
 }
 
 
-static FT_Error  Lookup_ContextPos1( GPOS_Instance*          gpi,
+static HB_Error  Lookup_ContextPos1( GPOS_Instance*          gpi,
 				     HB_ContextPosFormat1*  cpf1,
 				     HB_Buffer              buffer,
-				     FT_UShort               flags,
-				     FT_UShort               context_length,
+				     HB_UShort               flags,
+				     HB_UShort               context_length,
 				     int                     nesting_level )
 {
-  FT_UShort        index, property;
-  FT_UShort        i, j, k, numpr;
-  FT_Error         error;
+  HB_UShort        index, property;
+  HB_UShort        i, j, k, numpr;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
 
   HB_PosRule*     pr;
@@ -3928,7 +3845,7 @@ static FT_Error  Lookup_ContextPos1( GPOS_Instance*          gpi,
 	if ( error && error != HB_Err_Not_Covered )
 	  return error;
 
-	if ( j + pr[k].GlyphCount - i == (FT_Long)buffer->in_length )
+	if ( j + pr[k].GlyphCount - i == (HB_Int)buffer->in_length )
 	  goto next_posrule;
 	j++;
       }
@@ -3950,20 +3867,19 @@ static FT_Error  Lookup_ContextPos1( GPOS_Instance*          gpi,
 }
 
 
-static FT_Error  Lookup_ContextPos2( GPOS_Instance*          gpi,
+static HB_Error  Lookup_ContextPos2( GPOS_Instance*          gpi,
 				     HB_ContextPosFormat2*  cpf2,
 				     HB_Buffer              buffer,
-				     FT_UShort               flags,
-				     FT_UShort               context_length,
+				     HB_UShort               flags,
+				     HB_UShort               context_length,
 				     int                     nesting_level )
 {
-  FT_UShort          index, property;
-  FT_Error           error;
-  FT_Memory          memory = gpi->face->memory;
-  FT_UShort          i, j, k, known_classes;
+  HB_UShort          index, property;
+  HB_Error           error;
+  HB_UShort          i, j, k, known_classes;
 
-  FT_UShort*         classes;
-  FT_UShort*         cl;
+  HB_UShort*         classes;
+  HB_UShort*         cl;
   HB_GPOSHeader*    gpos = gpi->gpos;
 
   HB_PosClassSet*   pcs;
@@ -3984,7 +3900,7 @@ static FT_Error  Lookup_ContextPos2( GPOS_Instance*          gpi,
   if ( error )
     return error;
 
-  if ( ALLOC_ARRAY( classes, cpf2->MaxContextLength, FT_UShort ) )
+  if ( ALLOC_ARRAY( classes, cpf2->MaxContextLength, HB_UShort ) )
     return error;
 
   error = _HB_OPEN_Get_Class( &cpf2->ClassDef, IN_CURGLYPH(),
@@ -4021,7 +3937,7 @@ static FT_Error  Lookup_ContextPos2( GPOS_Instance*          gpi,
 	if ( error && error != HB_Err_Not_Covered )
 	  goto End;
 
-	if ( j + pr->GlyphCount - i == (FT_Long)buffer->in_length )
+	if ( j + pr->GlyphCount - i == (HB_Int)buffer->in_length )
 	  goto next_posclassrule;
 	j++;
       }
@@ -4058,15 +3974,15 @@ End:
 }
 
 
-static FT_Error  Lookup_ContextPos3( GPOS_Instance*          gpi,
+static HB_Error  Lookup_ContextPos3( GPOS_Instance*          gpi,
 				     HB_ContextPosFormat3*  cpf3,
 				     HB_Buffer              buffer,
-				     FT_UShort               flags,
-				     FT_UShort               context_length,
+				     HB_UShort               flags,
+				     HB_UShort               context_length,
 				     int                     nesting_level )
 {
-  FT_Error         error;
-  FT_UShort        index, i, j, property;
+  HB_Error         error;
+  HB_UShort        index, i, j, property;
   HB_GPOSHeader*  gpos = gpi->gpos;
 
   HB_Coverage*    c;
@@ -4093,7 +4009,7 @@ static FT_Error  Lookup_ContextPos3( GPOS_Instance*          gpi,
       if ( error && error != HB_Err_Not_Covered )
 	return error;
 
-      if ( j + cpf3->GlyphCount - i == (FT_Long)buffer->in_length )
+      if ( j + cpf3->GlyphCount - i == (HB_Int)buffer->in_length )
 	return HB_Err_Not_Covered;
       j++;
     }
@@ -4110,11 +4026,11 @@ static FT_Error  Lookup_ContextPos3( GPOS_Instance*          gpi,
 }
 
 
-static FT_Error  Lookup_ContextPos( GPOS_Instance*    gpi,
+static HB_Error  Lookup_ContextPos( GPOS_Instance*    gpi,
 				    HB_GPOS_SubTable* st,
 				    HB_Buffer        buffer,
-				    FT_UShort         flags,
-				    FT_UShort         context_length,
+				    HB_UShort         flags,
+				    HB_UShort         context_length,
 				    int               nesting_level )
 {
   HB_ContextPos*   cp = &st->context;
@@ -4137,7 +4053,7 @@ static FT_Error  Lookup_ContextPos( GPOS_Instance*    gpi,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;               /* never reached */
+  return HB_Err_Ok;               /* never reached */
 }
 
 
@@ -4145,16 +4061,15 @@ static FT_Error  Lookup_ContextPos( GPOS_Instance*    gpi,
 
 /* ChainPosRule */
 
-static FT_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
-				    FT_Stream          stream )
+static HB_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
+				    HB_Stream          stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, count;
-  FT_UShort*            b;
-  FT_UShort*            i;
-  FT_UShort*            l;
+  HB_UShort             n, count;
+  HB_UShort*            b;
+  HB_UShort*            i;
+  HB_UShort*            l;
 
   HB_PosLookupRecord*  plr;
 
@@ -4170,7 +4085,7 @@ static FT_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
 
   count = cpr->BacktrackGlyphCount;
 
-  if ( ALLOC_ARRAY( cpr->Backtrack, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpr->Backtrack, count, HB_UShort ) )
     return error;
 
   b = cpr->Backtrack;
@@ -4194,7 +4109,7 @@ static FT_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
 
   count = cpr->InputGlyphCount - 1;  /* only InputGlyphCount - 1 elements */
 
-  if ( ALLOC_ARRAY( cpr->Input, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpr->Input, count, HB_UShort ) )
     goto Fail4;
 
   i = cpr->Input;
@@ -4218,7 +4133,7 @@ static FT_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
 
   count = cpr->LookaheadGlyphCount;
 
-  if ( ALLOC_ARRAY( cpr->Lookahead, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpr->Lookahead, count, HB_UShort ) )
     goto Fail3;
 
   l = cpr->Lookahead;
@@ -4258,7 +4173,7 @@ static FT_Error  Load_ChainPosRule( HB_ChainPosRule*  cpr,
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
@@ -4275,8 +4190,7 @@ Fail4:
 }
 
 
-static void  Free_ChainPosRule( HB_ChainPosRule*  cpr,
-				FT_Memory          memory )
+static void  Free_ChainPosRule( HB_ChainPosRule*  cpr )
 {
   FREE( cpr->PosLookupRecord );
   FREE( cpr->Lookahead );
@@ -4287,14 +4201,13 @@ static void  Free_ChainPosRule( HB_ChainPosRule*  cpr,
 
 /* ChainPosRuleSet */
 
-static FT_Error  Load_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
-				       FT_Stream             stream )
+static HB_Error  Load_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
+				       HB_Stream             stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort          n, m, count;
-  FT_ULong           cur_offset, new_offset, base_offset;
+  HB_UShort          n, m, count;
+  HB_UInt           cur_offset, new_offset, base_offset;
 
   HB_ChainPosRule*  cpr;
 
@@ -4326,26 +4239,25 @@ static FT_Error  Load_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = Load_ChainPosRule( &cpr[n], stream ) ) != FT_Err_Ok )
+	 ( error = Load_ChainPosRule( &cpr[n], stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_ChainPosRule( &cpr[m], memory );
+    Free_ChainPosRule( &cpr[m] );
 
   FREE( cpr );
   return error;
 }
 
 
-static void  Free_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
-				   FT_Memory             memory )
+static void  Free_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs )
 {
-  FT_UShort          n, count;
+  HB_UShort          n, count;
 
   HB_ChainPosRule*  cpr;
 
@@ -4356,7 +4268,7 @@ static void  Free_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
     cpr   = cprs->ChainPosRule;
 
     for ( n = 0; n < count; n++ )
-      Free_ChainPosRule( &cpr[n], memory );
+      Free_ChainPosRule( &cpr[n] );
 
     FREE( cpr );
   }
@@ -4365,14 +4277,13 @@ static void  Free_ChainPosRuleSet( HB_ChainPosRuleSet*  cprs,
 
 /* ChainContextPosFormat1 */
 
-static FT_Error  Load_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
-					FT_Stream                    stream )
+static HB_Error  Load_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
+					HB_Stream                    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, m, count;
-  FT_ULong              cur_offset, new_offset, base_offset;
+  HB_UShort             n, m, count;
+  HB_UInt              cur_offset, new_offset, base_offset;
 
   HB_ChainPosRuleSet*  cprs;
 
@@ -4388,7 +4299,7 @@ static FT_Error  Load_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &ccpf1->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &ccpf1->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -4417,29 +4328,28 @@ static FT_Error  Load_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = Load_ChainPosRuleSet( &cprs[n], stream ) ) != FT_Err_Ok )
+	 ( error = Load_ChainPosRuleSet( &cprs[n], stream ) ) != HB_Err_Ok )
       goto Fail1;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; m++ )
-    Free_ChainPosRuleSet( &cprs[m], memory );
+    Free_ChainPosRuleSet( &cprs[m] );
 
   FREE( cprs );
 
 Fail2:
-  _HB_OPEN_Free_Coverage( &ccpf1->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &ccpf1->Coverage );
   return error;
 }
 
 
-static void  Free_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
-				 FT_Memory                    memory )
+static void  Free_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1 )
 {
-  FT_UShort             n, count;
+  HB_UShort             n, count;
 
   HB_ChainPosRuleSet*  cprs;
 
@@ -4450,32 +4360,31 @@ static void  Free_ChainContextPos1( HB_ChainContextPosFormat1*  ccpf1,
     cprs  = ccpf1->ChainPosRuleSet;
 
     for ( n = 0; n < count; n++ )
-      Free_ChainPosRuleSet( &cprs[n], memory );
+      Free_ChainPosRuleSet( &cprs[n] );
 
     FREE( cprs );
   }
 
-  _HB_OPEN_Free_Coverage( &ccpf1->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &ccpf1->Coverage );
 }
 
 
 /* ChainPosClassRule */
 
-static FT_Error  Load_ChainPosClassRule(
+static HB_Error  Load_ChainPosClassRule(
 		   HB_ChainContextPosFormat2*  ccpf2,
 		   HB_ChainPosClassRule*       cpcr,
-		   FT_Stream                    stream )
+		   HB_Stream                    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, count;
+  HB_UShort             n, count;
 
-  FT_UShort*            b;
-  FT_UShort*            i;
-  FT_UShort*            l;
+  HB_UShort*            b;
+  HB_UShort*            i;
+  HB_UShort*            l;
   HB_PosLookupRecord*  plr;
-  FT_Bool*              d;
+  HB_Bool*              d;
 
 
   if ( ACCESS_Frame( 2L ) )
@@ -4492,7 +4401,7 @@ static FT_Error  Load_ChainPosClassRule(
 
   count = cpcr->BacktrackGlyphCount;
 
-  if ( ALLOC_ARRAY( cpcr->Backtrack, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpcr->Backtrack, count, HB_UShort ) )
     return error;
 
   b = cpcr->Backtrack;
@@ -4528,7 +4437,7 @@ static FT_Error  Load_ChainPosClassRule(
 
   count = cpcr->InputGlyphCount - 1; /* only InputGlyphCount - 1 elements */
 
-  if ( ALLOC_ARRAY( cpcr->Input, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpcr->Input, count, HB_UShort ) )
     goto Fail4;
 
   i = cpcr->Input;
@@ -4561,7 +4470,7 @@ static FT_Error  Load_ChainPosClassRule(
 
   count = cpcr->LookaheadGlyphCount;
 
-  if ( ALLOC_ARRAY( cpcr->Lookahead, count, FT_UShort ) )
+  if ( ALLOC_ARRAY( cpcr->Lookahead, count, HB_UShort ) )
     goto Fail3;
 
   l = cpcr->Lookahead;
@@ -4607,7 +4516,7 @@ static FT_Error  Load_ChainPosClassRule(
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
@@ -4624,8 +4533,7 @@ Fail4:
 }
 
 
-static void  Free_ChainPosClassRule( HB_ChainPosClassRule*  cpcr,
-				     FT_Memory               memory )
+static void  Free_ChainPosClassRule( HB_ChainPosClassRule*  cpcr )
 {
   FREE( cpcr->PosLookupRecord );
   FREE( cpcr->Lookahead );
@@ -4636,16 +4544,15 @@ static void  Free_ChainPosClassRule( HB_ChainPosClassRule*  cpcr,
 
 /* PosClassSet */
 
-static FT_Error  Load_ChainPosClassSet(
+static HB_Error  Load_ChainPosClassSet(
 		   HB_ChainContextPosFormat2*  ccpf2,
 		   HB_ChainPosClassSet*        cpcs,
-		   FT_Stream                    stream )
+		   HB_Stream                    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort               n, m, count;
-  FT_ULong                cur_offset, new_offset, base_offset;
+  HB_UShort               n, m, count;
+  HB_UInt                cur_offset, new_offset, base_offset;
 
   HB_ChainPosClassRule*  cpcr;
 
@@ -4679,26 +4586,25 @@ static FT_Error  Load_ChainPosClassSet(
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
 	 ( error = Load_ChainPosClassRule( ccpf2, &cpcr[n],
-					   stream ) ) != FT_Err_Ok )
+					   stream ) ) != HB_Err_Ok )
       goto Fail;
     (void)FILE_Seek( cur_offset );
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail:
   for ( m = 0; m < n; m++ )
-    Free_ChainPosClassRule( &cpcr[m], memory );
+    Free_ChainPosClassRule( &cpcr[m] );
 
   FREE( cpcr );
   return error;
 }
 
 
-static void  Free_ChainPosClassSet( HB_ChainPosClassSet*  cpcs,
-				    FT_Memory              memory )
+static void  Free_ChainPosClassSet( HB_ChainPosClassSet*  cpcs )
 {
-  FT_UShort               n, count;
+  HB_UShort               n, count;
 
   HB_ChainPosClassRule*  cpcr;
 
@@ -4709,21 +4615,21 @@ static void  Free_ChainPosClassSet( HB_ChainPosClassSet*  cpcs,
     cpcr  = cpcs->ChainPosClassRule;
 
     for ( n = 0; n < count; n++ )
-      Free_ChainPosClassRule( &cpcr[n], memory );
+      Free_ChainPosClassRule( &cpcr[n] );
 
     FREE( cpcr );
   }
 }
 
 
-static FT_Error GPOS_Load_EmptyOrClassDefinition( HB_ClassDefinition*  cd,
-					     FT_UShort             limit,
-					     FT_ULong              class_offset,
-					     FT_ULong              base_offset,
-					     FT_Stream             stream )
+static HB_Error GPOS_Load_EmptyOrClassDefinition( HB_ClassDefinition*  cd,
+					     HB_UShort             limit,
+					     HB_UInt              class_offset,
+					     HB_UInt              base_offset,
+					     HB_Stream             stream )
 {
-  FT_Error error;
-  FT_ULong               cur_offset;
+  HB_Error error;
+  HB_UInt               cur_offset;
 
   cur_offset = FILE_Pos();
 
@@ -4735,7 +4641,7 @@ static FT_Error GPOS_Load_EmptyOrClassDefinition( HB_ClassDefinition*  cd,
   else
      error = _HB_OPEN_Load_EmptyClassDefinition ( cd, stream );
 
-  if (error == FT_Err_Ok)
+  if (error == HB_Err_Ok)
     (void)FILE_Seek( cur_offset ); /* Changes error as a side-effect */
 
   return error;
@@ -4743,15 +4649,14 @@ static FT_Error GPOS_Load_EmptyOrClassDefinition( HB_ClassDefinition*  cd,
 
 /* ChainContextPosFormat2 */
 
-static FT_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
-					FT_Stream                    stream )
+static HB_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
+					HB_Stream                    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort              n, m, count;
-  FT_ULong               cur_offset, new_offset, base_offset;
-  FT_ULong               backtrack_offset, input_offset, lookahead_offset;
+  HB_UShort              n, m, count;
+  HB_UInt               cur_offset, new_offset, base_offset;
+  HB_UInt               backtrack_offset, input_offset, lookahead_offset;
 
   HB_ChainPosClassSet*  cpcs;
 
@@ -4767,7 +4672,7 @@ static FT_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
 
   cur_offset = FILE_Pos();
   if ( FILE_Seek( new_offset ) ||
-       ( error = _HB_OPEN_Load_Coverage( &ccpf2->Coverage, stream ) ) != FT_Err_Ok )
+       ( error = _HB_OPEN_Load_Coverage( &ccpf2->Coverage, stream ) ) != HB_Err_Ok )
     return error;
   (void)FILE_Seek( cur_offset );
 
@@ -4788,15 +4693,15 @@ static FT_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
 
   if ( ( error = GPOS_Load_EmptyOrClassDefinition( &ccpf2->BacktrackClassDef, 65535,
 					      backtrack_offset, base_offset,
-					      stream ) ) != FT_Err_Ok )
+					      stream ) ) != HB_Err_Ok )
     goto Fail5;
   if ( ( error = GPOS_Load_EmptyOrClassDefinition( &ccpf2->InputClassDef, count,
 					      input_offset, base_offset,
-					      stream ) ) != FT_Err_Ok )
+					      stream ) ) != HB_Err_Ok )
     goto Fail4;
   if ( ( error = GPOS_Load_EmptyOrClassDefinition( &ccpf2->LookaheadClassDef, 65535,
 					      lookahead_offset, base_offset,
-					      stream ) ) != FT_Err_Ok )
+					      stream ) ) != HB_Err_Ok )
     goto Fail3;
 
   ccpf2->ChainPosClassSet   = NULL;
@@ -4823,7 +4728,7 @@ static FT_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
       cur_offset = FILE_Pos();
       if ( FILE_Seek( new_offset ) ||
 	   ( error = Load_ChainPosClassSet( ccpf2, &cpcs[n],
-					    stream ) ) != FT_Err_Ok )
+					    stream ) ) != HB_Err_Ok )
 	goto Fail1;
       (void)FILE_Seek( cur_offset );
     }
@@ -4836,33 +4741,32 @@ static FT_Error  Load_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
     }
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   for ( m = 0; m < n; m++ )
-    Free_ChainPosClassSet( &cpcs[m], memory );
+    Free_ChainPosClassSet( &cpcs[m] );
 
   FREE( cpcs );
 
 Fail2:
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->LookaheadClassDef, memory );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->LookaheadClassDef );
 
 Fail3:
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->InputClassDef, memory );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->InputClassDef );
 
 Fail4:
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->BacktrackClassDef, memory );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->BacktrackClassDef );
 
 Fail5:
-  _HB_OPEN_Free_Coverage( &ccpf2->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &ccpf2->Coverage );
   return error;
 }
 
 
-static void  Free_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
-				 FT_Memory                    memory )
+static void  Free_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2 )
 {
-  FT_UShort              n, count;
+  HB_UShort              n, count;
 
   HB_ChainPosClassSet*  cpcs;
 
@@ -4873,30 +4777,29 @@ static void  Free_ChainContextPos2( HB_ChainContextPosFormat2*  ccpf2,
     cpcs  = ccpf2->ChainPosClassSet;
 
     for ( n = 0; n < count; n++ )
-      Free_ChainPosClassSet( &cpcs[n], memory );
+      Free_ChainPosClassSet( &cpcs[n] );
 
     FREE( cpcs );
   }
 
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->LookaheadClassDef, memory );
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->InputClassDef, memory );
-  _HB_OPEN_Free_ClassDefinition( &ccpf2->BacktrackClassDef, memory );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->LookaheadClassDef );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->InputClassDef );
+  _HB_OPEN_Free_ClassDefinition( &ccpf2->BacktrackClassDef );
 
-  _HB_OPEN_Free_Coverage( &ccpf2->Coverage, memory );
+  _HB_OPEN_Free_Coverage( &ccpf2->Coverage );
 }
 
 
 /* ChainContextPosFormat3 */
 
-static FT_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
-					FT_Stream                    stream )
+static HB_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
+					HB_Stream                    stream )
 {
-  FT_Error  error;
-  FT_Memory memory = stream->memory;
+  HB_Error  error;
 
-  FT_UShort             n, nb, ni, nl, m, count;
-  FT_UShort             backtrack_count, input_count, lookahead_count;
-  FT_ULong              cur_offset, new_offset, base_offset;
+  HB_UShort             n, nb, ni, nl, m, count;
+  HB_UShort             backtrack_count, input_count, lookahead_count;
+  HB_UInt              cur_offset, new_offset, base_offset;
 
   HB_Coverage*         b;
   HB_Coverage*         i;
@@ -4934,7 +4837,7 @@ static FT_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = _HB_OPEN_Load_Coverage( &b[nb], stream ) ) != FT_Err_Ok )
+	 ( error = _HB_OPEN_Load_Coverage( &b[nb], stream ) ) != HB_Err_Ok )
       goto Fail4;
     (void)FILE_Seek( cur_offset );
   }
@@ -4966,7 +4869,7 @@ static FT_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = _HB_OPEN_Load_Coverage( &i[ni], stream ) ) != FT_Err_Ok )
+	 ( error = _HB_OPEN_Load_Coverage( &i[ni], stream ) ) != HB_Err_Ok )
       goto Fail3;
     (void)FILE_Seek( cur_offset );
   }
@@ -4999,7 +4902,7 @@ static FT_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
 
     cur_offset = FILE_Pos();
     if ( FILE_Seek( new_offset ) ||
-	 ( error = _HB_OPEN_Load_Coverage( &l[nl], stream ) ) != FT_Err_Ok )
+	 ( error = _HB_OPEN_Load_Coverage( &l[nl], stream ) ) != HB_Err_Ok )
       goto Fail2;
     (void)FILE_Seek( cur_offset );
   }
@@ -5031,36 +4934,35 @@ static FT_Error  Load_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
 
   FORGET_Frame();
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 
 Fail1:
   FREE( plr );
 
 Fail2:
   for ( m = 0; m < nl; m++ )
-    _HB_OPEN_Free_Coverage( &l[m], memory );
+    _HB_OPEN_Free_Coverage( &l[m] );
 
   FREE( l );
 
 Fail3:
   for ( m = 0; m < ni; m++ )
-    _HB_OPEN_Free_Coverage( &i[m], memory );
+    _HB_OPEN_Free_Coverage( &i[m] );
 
   FREE( i );
 
 Fail4:
   for ( m = 0; m < nb; m++ )
-    _HB_OPEN_Free_Coverage( &b[m], memory );
+    _HB_OPEN_Free_Coverage( &b[m] );
 
   FREE( b );
   return error;
 }
 
 
-static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
-				 FT_Memory                    memory )
+static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3 )
 {
-  FT_UShort      n, count;
+  HB_UShort      n, count;
 
   HB_Coverage*  c;
 
@@ -5073,7 +4975,7 @@ static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
     c     = ccpf3->LookaheadCoverage;
 
     for ( n = 0; n < count; n++ )
-      _HB_OPEN_Free_Coverage( &c[n], memory );
+      _HB_OPEN_Free_Coverage( &c[n] );
 
     FREE( c );
   }
@@ -5084,7 +4986,7 @@ static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
     c     = ccpf3->InputCoverage;
 
     for ( n = 0; n < count; n++ )
-      _HB_OPEN_Free_Coverage( &c[n], memory );
+      _HB_OPEN_Free_Coverage( &c[n] );
 
     FREE( c );
   }
@@ -5095,7 +4997,7 @@ static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
     c     = ccpf3->BacktrackCoverage;
 
     for ( n = 0; n < count; n++ )
-      _HB_OPEN_Free_Coverage( &c[n], memory );
+      _HB_OPEN_Free_Coverage( &c[n] );
 
     FREE( c );
   }
@@ -5104,10 +5006,10 @@ static void  Free_ChainContextPos3( HB_ChainContextPosFormat3*  ccpf3,
 
 /* ChainContextPos */
 
-static FT_Error  Load_ChainContextPos( HB_GPOS_SubTable* st,
-				       FT_Stream             stream )
+static HB_Error  Load_ChainContextPos( HB_GPOS_SubTable* st,
+				       HB_Stream             stream )
 {
-  FT_Error  error;
+  HB_Error  error;
   HB_ChainContextPos*  ccp = &st->chain;
 
 
@@ -5133,44 +5035,43 @@ static FT_Error  Load_ChainContextPos( HB_GPOS_SubTable* st,
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;               /* never reached */
+  return HB_Err_Ok;               /* never reached */
 }
 
 
-static void  Free_ChainContextPos( HB_GPOS_SubTable* st,
-				   FT_Memory             memory )
+static void  Free_ChainContextPos( HB_GPOS_SubTable* st )
 {
   HB_ChainContextPos*  ccp = &st->chain;
 
   switch ( ccp->PosFormat )
   {
   case 1:
-    Free_ChainContextPos1( &ccp->ccpf.ccpf1, memory );
+    Free_ChainContextPos1( &ccp->ccpf.ccpf1 );
     break;
 
   case 2:
-    Free_ChainContextPos2( &ccp->ccpf.ccpf2, memory );
+    Free_ChainContextPos2( &ccp->ccpf.ccpf2 );
     break;
 
   case 3:
-    Free_ChainContextPos3( &ccp->ccpf.ccpf3, memory );
+    Free_ChainContextPos3( &ccp->ccpf.ccpf3 );
     break;
   }
 }
 
 
-static FT_Error  Lookup_ChainContextPos1(
+static HB_Error  Lookup_ChainContextPos1(
 		   GPOS_Instance*               gpi,
 		   HB_ChainContextPosFormat1*  ccpf1,
 		   HB_Buffer                   buffer,
-		   FT_UShort                    flags,
-		   FT_UShort                    context_length,
+		   HB_UShort                    flags,
+		   HB_UShort                    context_length,
 		   int                          nesting_level )
 {
-  FT_UShort          index, property;
-  FT_UShort          i, j, k, num_cpr;
-  FT_UShort          bgc, igc, lgc;
-  FT_Error           error;
+  HB_UShort          index, property;
+  HB_UShort          i, j, k, num_cpr;
+  HB_UShort          bgc, igc, lgc;
+  HB_Error           error;
   HB_GPOSHeader*    gpos = gpi->gpos;
 
   HB_ChainPosRule*  cpr;
@@ -5246,7 +5147,7 @@ static FT_Error  Lookup_ChainContextPos1(
 	if ( error && error != HB_Err_Not_Covered )
 	  return error;
 
-	if ( j + igc - i + lgc == (FT_Long)buffer->in_length )
+	if ( j + igc - i + lgc == (HB_Int)buffer->in_length )
 	  goto next_chainposrule;
 	j++;
       }
@@ -5265,7 +5166,7 @@ static FT_Error  Lookup_ChainContextPos1(
 	if ( error && error != HB_Err_Not_Covered )
 	  return error;
 
-	if ( j + lgc - i == (FT_Long)buffer->in_length )
+	if ( j + lgc - i == (HB_Int)buffer->in_length )
 	  goto next_chainposrule;
 	j++;
       }
@@ -5288,30 +5189,29 @@ static FT_Error  Lookup_ChainContextPos1(
 }
 
 
-static FT_Error  Lookup_ChainContextPos2(
+static HB_Error  Lookup_ChainContextPos2(
 		   GPOS_Instance*               gpi,
 		   HB_ChainContextPosFormat2*  ccpf2,
 		   HB_Buffer                   buffer,
-		   FT_UShort                    flags,
-		   FT_UShort                    context_length,
+		   HB_UShort                    flags,
+		   HB_UShort                    context_length,
 		   int                          nesting_level )
 {
-  FT_UShort              index, property;
-  FT_Memory              memory = gpi->face->memory;
-  FT_Error               error;
-  FT_UShort              i, j, k;
-  FT_UShort              bgc, igc, lgc;
-  FT_UShort              known_backtrack_classes,
+  HB_UShort              index, property;
+  HB_Error               error;
+  HB_UShort              i, j, k;
+  HB_UShort              bgc, igc, lgc;
+  HB_UShort              known_backtrack_classes,
 			 known_input_classes,
 			 known_lookahead_classes;
 
-  FT_UShort*             backtrack_classes;
-  FT_UShort*             input_classes;
-  FT_UShort*             lookahead_classes;
+  HB_UShort*             backtrack_classes;
+  HB_UShort*             input_classes;
+  HB_UShort*             lookahead_classes;
 
-  FT_UShort*             bc;
-  FT_UShort*             ic;
-  FT_UShort*             lc;
+  HB_UShort*             bc;
+  HB_UShort*             ic;
+  HB_UShort*             lc;
   HB_GPOSHeader*        gpos = gpi->gpos;
 
   HB_ChainPosClassSet*  cpcs;
@@ -5332,15 +5232,15 @@ static FT_Error  Lookup_ChainContextPos2(
   if ( error )
     return error;
 
-  if ( ALLOC_ARRAY( backtrack_classes, ccpf2->MaxBacktrackLength, FT_UShort ) )
+  if ( ALLOC_ARRAY( backtrack_classes, ccpf2->MaxBacktrackLength, HB_UShort ) )
     return error;
   known_backtrack_classes = 0;
 
-  if ( ALLOC_ARRAY( input_classes, ccpf2->MaxInputLength, FT_UShort ) )
+  if ( ALLOC_ARRAY( input_classes, ccpf2->MaxInputLength, HB_UShort ) )
     goto End3;
   known_input_classes = 1;
 
-  if ( ALLOC_ARRAY( lookahead_classes, ccpf2->MaxLookaheadLength, FT_UShort ) )
+  if ( ALLOC_ARRAY( lookahead_classes, ccpf2->MaxLookaheadLength, HB_UShort ) )
     goto End2;
   known_lookahead_classes = 0;
 
@@ -5418,7 +5318,7 @@ static FT_Error  Lookup_ChainContextPos2(
 	if ( error && error != HB_Err_Not_Covered )
 	  goto End1;
 
-	if ( j + igc - i + lgc == (FT_Long)buffer->in_length )
+	if ( j + igc - i + lgc == (HB_Int)buffer->in_length )
 	  goto next_chainposclassrule;
 	j++;
       }
@@ -5448,7 +5348,7 @@ static FT_Error  Lookup_ChainContextPos2(
 	if ( error && error != HB_Err_Not_Covered )
 	  goto End1;
 
-	if ( j + lgc - i == (FT_Long)buffer->in_length )
+	if ( j + lgc - i == (HB_Int)buffer->in_length )
 	  goto next_chainposclassrule;
 	j++;
       }
@@ -5491,17 +5391,17 @@ End3:
 }
 
 
-static FT_Error  Lookup_ChainContextPos3(
+static HB_Error  Lookup_ChainContextPos3(
 		   GPOS_Instance*               gpi,
 		   HB_ChainContextPosFormat3*  ccpf3,
 		   HB_Buffer                   buffer,
-		   FT_UShort                    flags,
-		   FT_UShort                    context_length,
+		   HB_UShort                    flags,
+		   HB_UShort                    context_length,
 		   int                          nesting_level )
 {
-  FT_UShort        index, i, j, property;
-  FT_UShort        bgc, igc, lgc;
-  FT_Error         error;
+  HB_UShort        index, i, j, property;
+  HB_UShort        bgc, igc, lgc;
+  HB_Error         error;
   HB_GPOSHeader*  gpos = gpi->gpos;
 
   HB_Coverage*    bc;
@@ -5562,7 +5462,7 @@ static FT_Error  Lookup_ChainContextPos3(
       if ( error && error != HB_Err_Not_Covered )
 	return error;
 
-      if ( j + igc - i + lgc == (FT_Long)buffer->in_length )
+      if ( j + igc - i + lgc == (HB_Int)buffer->in_length )
 	return HB_Err_Not_Covered;
       j++;
     }
@@ -5584,7 +5484,7 @@ static FT_Error  Lookup_ChainContextPos3(
       if ( error && error != HB_Err_Not_Covered )
 	return error;
 
-      if ( j + lgc - i == (FT_Long)buffer->in_length )
+      if ( j + lgc - i == (HB_Int)buffer->in_length )
 	return HB_Err_Not_Covered;
       j++;
     }
@@ -5602,12 +5502,12 @@ static FT_Error  Lookup_ChainContextPos3(
 }
 
 
-static FT_Error  Lookup_ChainContextPos(
+static HB_Error  Lookup_ChainContextPos(
 		   GPOS_Instance*        gpi,
 		   HB_GPOS_SubTable* st,
 		   HB_Buffer            buffer,
-		   FT_UShort             flags,
-		   FT_UShort             context_length,
+		   HB_UShort             flags,
+		   HB_UShort             context_length,
 		   int                   nesting_level )
 {
   HB_ChainContextPos*  ccp = &st->chain;
@@ -5633,7 +5533,7 @@ static FT_Error  Lookup_ChainContextPos(
     return HB_Err_Invalid_GPOS_SubTable_Format;
   }
 
-  return FT_Err_Ok;               /* never reached */
+  return HB_Err_Ok;               /* never reached */
 }
 
 
@@ -5644,18 +5544,18 @@ static FT_Error  Lookup_ChainContextPos(
 
 
 
-FT_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
-				 FT_ULong         script_tag,
-				 FT_UShort*       script_index )
+HB_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
+				 HB_UInt         script_tag,
+				 HB_UShort*       script_index )
 {
-  FT_UShort          n;
+  HB_UShort          n;
 
   HB_ScriptList*    sl;
   HB_ScriptRecord*  sr;
 
 
   if ( !gpos || !script_index )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
@@ -5665,7 +5565,7 @@ FT_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
     {
       *script_index = n;
 
-      return FT_Err_Ok;
+      return HB_Err_Ok;
     }
 
   return HB_Err_Not_Covered;
@@ -5673,28 +5573,28 @@ FT_Error  HB_GPOS_Select_Script( HB_GPOSHeader*  gpos,
 
 
 
-FT_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
-				   FT_ULong         language_tag,
-				   FT_UShort        script_index,
-				   FT_UShort*       language_index,
-				   FT_UShort*       req_feature_index )
+HB_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
+				   HB_UInt         language_tag,
+				   HB_UShort        script_index,
+				   HB_UShort*       language_index,
+				   HB_UShort*       req_feature_index )
 {
-  FT_UShort           n;
+  HB_UShort           n;
 
   HB_ScriptList*     sl;
   HB_ScriptRecord*   sr;
-  HB_Script*         s;
+  HB_ScriptTable*         s;
   HB_LangSysRecord*  lsr;
 
 
   if ( !gpos || !language_index || !req_feature_index )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
 
   if ( script_index >= sl->ScriptCount )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   s   = &sr[script_index].Script;
   lsr = s->LangSysRecord;
@@ -5705,7 +5605,7 @@ FT_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
       *language_index = n;
       *req_feature_index = lsr[n].LangSys.ReqFeatureIndex;
 
-      return FT_Err_Ok;
+      return HB_Err_Ok;
     }
 
   return HB_Err_Not_Covered;
@@ -5716,27 +5616,27 @@ FT_Error  HB_GPOS_Select_Language( HB_GPOSHeader*  gpos,
    default language (DefaultLangSys)                              */
 
 
-FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
-				  FT_ULong         feature_tag,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_UShort*       feature_index )
+HB_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
+				  HB_UInt         feature_tag,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UShort*       feature_index )
 {
-  FT_UShort           n;
+  HB_UShort           n;
 
   HB_ScriptList*     sl;
   HB_ScriptRecord*   sr;
-  HB_Script*         s;
+  HB_ScriptTable*         s;
   HB_LangSysRecord*  lsr;
   HB_LangSys*        ls;
-  FT_UShort*          fi;
+  HB_UShort*          fi;
 
   HB_FeatureList*    fl;
   HB_FeatureRecord*  fr;
 
 
   if ( !gpos || !feature_index )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
@@ -5745,7 +5645,7 @@ FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
   fr = fl->FeatureRecord;
 
   if ( script_index >= sl->ScriptCount )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   s   = &sr[script_index].Script;
   lsr = s->LangSysRecord;
@@ -5755,7 +5655,7 @@ FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
   else
   {
     if ( language_index >= s->LangSysCount )
-      return FT_Err_Invalid_Argument;
+      return HB_Err_Invalid_Argument;
 
     ls = &lsr[language_index].LangSys;
   }
@@ -5771,7 +5671,7 @@ FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
     {
       *feature_index = fi[n];
 
-      return FT_Err_Ok;
+      return HB_Err_Ok;
     }
   }
 
@@ -5782,26 +5682,24 @@ FT_Error  HB_GPOS_Select_Feature( HB_GPOSHeader*  gpos,
 /* The next three functions return a null-terminated list */
 
 
-FT_Error  HB_GPOS_Query_Scripts( HB_GPOSHeader*  gpos,
-				 FT_ULong**       script_tag_list )
+HB_Error  HB_GPOS_Query_Scripts( HB_GPOSHeader*  gpos,
+				 HB_UInt**       script_tag_list )
 {
-  FT_Error           error;
-  FT_Memory          memory;
-  FT_UShort          n;
-  FT_ULong*          stl;
+  HB_Error           error;
+  HB_UShort          n;
+  HB_UInt*          stl;
 
   HB_ScriptList*    sl;
   HB_ScriptRecord*  sr;
 
 
   if ( !gpos || !script_tag_list )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
-  memory = gpos->memory;
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
 
-  if ( ALLOC_ARRAY( stl, sl->ScriptCount + 1, FT_ULong ) )
+  if ( ALLOC_ARRAY( stl, sl->ScriptCount + 1, HB_UInt ) )
     return error;
 
   for ( n = 0; n < sl->ScriptCount; n++ )
@@ -5810,40 +5708,38 @@ FT_Error  HB_GPOS_Query_Scripts( HB_GPOSHeader*  gpos,
 
   *script_tag_list = stl;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
 
-FT_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
-				   FT_UShort        script_index,
-				   FT_ULong**       language_tag_list )
+HB_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
+				   HB_UShort        script_index,
+				   HB_UInt**       language_tag_list )
 {
-  FT_Error            error;
-  FT_Memory           memory;
-  FT_UShort           n;
-  FT_ULong*           ltl;
+  HB_Error            error;
+  HB_UShort           n;
+  HB_UInt*           ltl;
 
   HB_ScriptList*     sl;
   HB_ScriptRecord*   sr;
-  HB_Script*         s;
+  HB_ScriptTable*    s;
   HB_LangSysRecord*  lsr;
 
 
   if ( !gpos || !language_tag_list )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
-  memory = gpos->memory;
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
 
   if ( script_index >= sl->ScriptCount )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   s   = &sr[script_index].Script;
   lsr = s->LangSysRecord;
 
-  if ( ALLOC_ARRAY( ltl, s->LangSysCount + 1, FT_ULong ) )
+  if ( ALLOC_ARRAY( ltl, s->LangSysCount + 1, HB_UInt ) )
     return error;
 
   for ( n = 0; n < s->LangSysCount; n++ )
@@ -5852,7 +5748,7 @@ FT_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
 
   *language_tag_list = ltl;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
@@ -5860,31 +5756,29 @@ FT_Error  HB_GPOS_Query_Languages( HB_GPOSHeader*  gpos,
    default language (DefaultLangSys)                              */
 
 
-FT_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_ULong**       feature_tag_list )
+HB_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UInt**       feature_tag_list )
 {
-  FT_UShort           n;
-  FT_Error            error;
-  FT_Memory           memory;
-  FT_ULong*           ftl;
+  HB_UShort           n;
+  HB_Error            error;
+  HB_UInt*           ftl;
 
   HB_ScriptList*     sl;
   HB_ScriptRecord*   sr;
-  HB_Script*         s;
+  HB_ScriptTable*    s;
   HB_LangSysRecord*  lsr;
   HB_LangSys*        ls;
-  FT_UShort*          fi;
+  HB_UShort*          fi;
 
   HB_FeatureList*    fl;
   HB_FeatureRecord*  fr;
 
 
   if ( !gpos || !feature_tag_list )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
-  memory = gpos->memory;
   sl = &gpos->ScriptList;
   sr = sl->ScriptRecord;
 
@@ -5892,7 +5786,7 @@ FT_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
   fr = fl->FeatureRecord;
 
   if ( script_index >= sl->ScriptCount )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   s   = &sr[script_index].Script;
   lsr = s->LangSysRecord;
@@ -5902,14 +5796,14 @@ FT_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
   else
   {
     if ( language_index >= s->LangSysCount )
-      return FT_Err_Invalid_Argument;
+      return HB_Err_Invalid_Argument;
 
     ls = &lsr[language_index].LangSys;
   }
 
   fi = ls->FeatureIndex;
 
-  if ( ALLOC_ARRAY( ftl, ls->FeatureCount + 1, FT_ULong ) )
+  if ( ALLOC_ARRAY( ftl, ls->FeatureCount + 1, HB_UInt ) )
     return error;
 
   for ( n = 0; n < ls->FeatureCount; n++ )
@@ -5925,15 +5819,15 @@ FT_Error  HB_GPOS_Query_Features( HB_GPOSHeader*  gpos,
 
   *feature_tag_list = ftl;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
-typedef FT_Error  (*Lookup_Pos_Func_Type)  ( GPOS_Instance*    gpi,
+typedef HB_Error  (*Lookup_Pos_Func_Type)  ( GPOS_Instance*    gpi,
 					     HB_GPOS_SubTable* st,
 					     HB_Buffer        buffer,
-					     FT_UShort         flags,
-					     FT_UShort         context_length,
+					     HB_UShort         flags,
+					     HB_UShort         context_length,
 					     int               nesting_level );
 static const Lookup_Pos_Func_Type Lookup_Pos_Call_Table[] = {
   Lookup_DefaultPos,
@@ -5948,16 +5842,16 @@ static const Lookup_Pos_Func_Type Lookup_Pos_Call_Table[] = {
   Lookup_DefaultPos,		/* HB_GPOS_LOOKUP_EXTENSION  9 */
 };
 
-/* Do an individual subtable lookup.  Returns FT_Err_Ok if positioning
+/* Do an individual subtable lookup.  Returns HB_Err_Ok if positioning
    has been done, or HB_Err_Not_Covered if not.                        */
-static FT_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
-				       FT_UShort         lookup_index,
+static HB_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
+				       HB_UShort         lookup_index,
 				       HB_Buffer        buffer,
-				       FT_UShort         context_length,
+				       HB_UShort         context_length,
 				       int               nesting_level )
 {
-  FT_Error             error = HB_Err_Not_Covered;
-  FT_UShort            i, flags, lookup_count;
+  HB_Error             error = HB_Err_Not_Covered;
+  HB_UShort            i, flags, lookup_count;
   HB_GPOSHeader*       gpos = gpi->gpos;
   HB_Lookup*           lo;
   int		       lookup_type;
@@ -5999,16 +5893,16 @@ static FT_Error  GPOS_Do_Glyph_Lookup( GPOS_Instance*    gpi,
 }
 
 
-static FT_Error  Load_DefaultPos( HB_GPOS_SubTable* st,
-				  FT_Stream         stream )
+static HB_Error  Load_DefaultPos( HB_GPOS_SubTable* st,
+				  HB_Stream         stream )
 {
-  FT_UNUSED(st);
-  FT_UNUSED(stream);
+  HB_UNUSED(st);
+  HB_UNUSED(stream);
   return HB_Err_Invalid_GPOS_SubTable_Format;
 }
 
-typedef FT_Error  (*Load_Pos_Func_Type)( HB_GPOS_SubTable* st,
-					 FT_Stream         stream );
+typedef HB_Error  (*Load_Pos_Func_Type)( HB_GPOS_SubTable* st,
+					 HB_Stream         stream );
 static const Load_Pos_Func_Type Load_Pos_Call_Table[] = {
   Load_DefaultPos,
   Load_SinglePos,		/* HB_GPOS_LOOKUP_SINGLE     1 */
@@ -6022,9 +5916,9 @@ static const Load_Pos_Func_Type Load_Pos_Call_Table[] = {
   Load_DefaultPos,		/* HB_GPOS_LOOKUP_EXTENSION  9 */
 };
 
-FT_Error  _HB_GPOS_Load_SubTable( HB_GPOS_SubTable*  st,
-				  FT_Stream     stream,
-				  FT_UShort     lookup_type )
+HB_Error  _HB_GPOS_Load_SubTable( HB_GPOS_SubTable*  st,
+				  HB_Stream     stream,
+				  HB_UShort     lookup_type )
 {
   Load_Pos_Func_Type Func;
 
@@ -6037,15 +5931,12 @@ FT_Error  _HB_GPOS_Load_SubTable( HB_GPOS_SubTable*  st,
 }
 
 
-static void  Free_DefaultPos( HB_GPOS_SubTable* st,
-			      FT_Memory         memory )
+static void  Free_DefaultPos( HB_GPOS_SubTable* st )
 {
-  FT_UNUSED(st);
-  FT_UNUSED(memory);
+  HB_UNUSED(st);
 }
 
-typedef void (*Free_Pos_Func_Type)( HB_GPOS_SubTable* st,
-				    FT_Memory         memory );
+typedef void (*Free_Pos_Func_Type)( HB_GPOS_SubTable* st );
 static const Free_Pos_Func_Type Free_Pos_Call_Table[] = {
   Free_DefaultPos,
   Free_SinglePos,		/* HB_GPOS_LOOKUP_SINGLE     1 */
@@ -6060,8 +5951,7 @@ static const Free_Pos_Func_Type Free_Pos_Call_Table[] = {
 };
 
 void  _HB_GPOS_Free_SubTable( HB_GPOS_SubTable*  st,
-			      FT_Memory     memory,
-			      FT_UShort     lookup_type )
+			      HB_UShort     lookup_type )
 {
   Free_Pos_Func_Type Func;
 
@@ -6070,21 +5960,21 @@ void  _HB_GPOS_Free_SubTable( HB_GPOS_SubTable*  st,
 
   Func = Free_Pos_Call_Table[lookup_type];
 
-  Func ( st, memory );
+  Func ( st );
 }
 
 
 
 /* apply one lookup to the input string object */
 
-static FT_Error  GPOS_Do_String_Lookup( GPOS_Instance*    gpi,
-				   FT_UShort         lookup_index,
+static HB_Error  GPOS_Do_String_Lookup( GPOS_Instance*    gpi,
+				   HB_UShort         lookup_index,
 				   HB_Buffer        buffer )
 {
-  FT_Error         error, retError = HB_Err_Not_Covered;
+  HB_Error         error, retError = HB_Err_Not_Covered;
   HB_GPOSHeader*  gpos = gpi->gpos;
 
-  FT_UInt*  properties = gpos->LookupList.Properties;
+  HB_UInt*  properties = gpos->LookupList.Properties;
 
   int       nesting_level = 0;
 
@@ -6130,9 +6020,9 @@ static FT_Error  GPOS_Do_String_Lookup( GPOS_Instance*    gpi,
 }
 
 
-static FT_Error  Position_CursiveChain ( HB_Buffer     buffer )
+static HB_Error  Position_CursiveChain ( HB_Buffer     buffer )
 {
-  FT_ULong   i, j;
+  HB_UInt   i, j;
   HB_Position positions = buffer->positions;
 
   /* First handle all left-to-right connections */
@@ -6151,27 +6041,27 @@ static FT_Error  Position_CursiveChain ( HB_Buffer     buffer )
       positions[j].y_pos += positions[j - positions[j].cursive_chain].y_pos;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
-FT_Error  HB_GPOS_Add_Feature( HB_GPOSHeader*  gpos,
-			       FT_UShort        feature_index,
-			       FT_UInt          property )
+HB_Error  HB_GPOS_Add_Feature( HB_GPOSHeader*  gpos,
+			       HB_UShort        feature_index,
+			       HB_UInt          property )
 {
-  FT_UShort    i;
+  HB_UShort    i;
 
   HB_Feature  feature;
-  FT_UInt*     properties;
-  FT_UShort*   index;
-  FT_UShort    lookup_count;
+  HB_UInt*     properties;
+  HB_UShort*   index;
+  HB_UShort    lookup_count;
 
   /* Each feature can only be added once */
 
   if ( !gpos ||
        feature_index >= gpos->FeatureList.FeatureCount ||
        gpos->FeatureList.ApplyCount == gpos->FeatureList.FeatureCount )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   gpos->FeatureList.ApplyOrder[gpos->FeatureList.ApplyCount++] = feature_index;
 
@@ -6183,25 +6073,25 @@ FT_Error  HB_GPOS_Add_Feature( HB_GPOSHeader*  gpos,
 
   for ( i = 0; i < feature.LookupListCount; i++ )
   {
-    FT_UShort lookup_index = index[i];
+    HB_UShort lookup_index = index[i];
     if (lookup_index < lookup_count)
       properties[lookup_index] |= property;
   }
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
 
-FT_Error  HB_GPOS_Clear_Features( HB_GPOSHeader*  gpos )
+HB_Error  HB_GPOS_Clear_Features( HB_GPOSHeader*  gpos )
 {
-  FT_UShort i;
+  HB_UShort i;
 
-  FT_UInt*  properties;
+  HB_UInt*  properties;
 
 
   if ( !gpos )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   gpos->FeatureList.ApplyCount = 0;
 
@@ -6210,58 +6100,45 @@ FT_Error  HB_GPOS_Clear_Features( HB_GPOSHeader*  gpos )
   for ( i = 0; i < gpos->LookupList.LookupCount; i++ )
     properties[i] = 0;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 
 
-FT_Error  HB_GPOS_Register_Glyph_Function( HB_GPOSHeader*    gpos,
-					   HB_GlyphFunction  gfunc )
-{
-  if ( !gpos )
-    return FT_Err_Invalid_Argument;
-
-  gpos->gfunc = gfunc;
-
-  return FT_Err_Ok;
-}
-
-
-
-FT_Error  HB_GPOS_Register_MM_Function( HB_GPOSHeader*  gpos,
+HB_Error  HB_GPOS_Register_MM_Function( HB_GPOSHeader*  gpos,
 					HB_MMFunction   mmfunc,
 					void*            data )
 {
   if ( !gpos )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
   gpos->mmfunc = mmfunc;
   gpos->data   = data;
 
-  return FT_Err_Ok;
+  return HB_Err_Ok;
 }
 
 /* If `dvi' is TRUE, glyph contour points for anchor points and device
    tables are ignored -- you will get device independent values.         */
 
 
-FT_Error  HB_GPOS_Apply_String( FT_Face            face,
+HB_Error  HB_GPOS_Apply_String( HB_Font            font,
 				HB_GPOSHeader*    gpos,
-				FT_UShort          load_flags,
+				HB_UShort          load_flags,
 				HB_Buffer         buffer,
-				FT_Bool            dvi,
-				FT_Bool            r2l )
+				HB_Bool            dvi,
+				HB_Bool            r2l )
 {
-  FT_Error       error, retError = HB_Err_Not_Covered;
+  HB_Error       error, retError = HB_Err_Not_Covered;
   GPOS_Instance  gpi;
-  FT_UShort      i, j, feature_index, lookup_count;
+  HB_UShort      i, j, feature_index, lookup_count;
   HB_Feature    feature;
 
-  if ( !face || !gpos ||
+  if ( !font || !gpos ||
        !buffer || buffer->in_length == 0 || buffer->in_pos >= buffer->in_length )
-    return FT_Err_Invalid_Argument;
+    return HB_Err_Invalid_Argument;
 
-  gpi.face       = face;
+  gpi.font       = font;
   gpi.gpos       = gpos;
   gpi.load_flags = load_flags;
   gpi.r2l        = r2l;
@@ -6277,7 +6154,7 @@ FT_Error  HB_GPOS_Apply_String( FT_Face            face,
 
     for ( j = 0; j < feature.LookupListCount; j++ )
     {
-      FT_UShort lookup_index = feature.LookupListIndex[j];
+      HB_UShort lookup_index = feature.LookupListIndex[j];
 
       /* Skip nonexistant lookups */
       if (lookup_index >= lookup_count)

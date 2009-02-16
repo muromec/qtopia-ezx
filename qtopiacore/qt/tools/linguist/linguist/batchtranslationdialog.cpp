@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,7 +42,9 @@
 #include "phrase.h"
 #include "messagemodel.h"
 
-CheckableListModel::CheckableListModel(QObject *parent) 
+QT_BEGIN_NAMESPACE
+
+CheckableListModel::CheckableListModel(QObject *parent)
 : QStandardItemModel(parent)
 {
 }
@@ -66,14 +62,14 @@ BatchTranslationDialog::BatchTranslationDialog(MessageModel *model, QWidget *w)
     connect(m_ui.cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
     connect(m_ui.moveUpButton, SIGNAL(clicked()), this, SLOT(movePhraseBookUp()));
     connect(m_ui.moveDownButton, SIGNAL(clicked()), this, SLOT(movePhraseBookDown()));
-    
+
     m_ui.phrasebookList->setModel(&m_model);
     m_ui.phrasebookList->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_ui.phrasebookList->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
 
-void BatchTranslationDialog::setPhraseBooks(const QList<PhraseBook> &phrasebooks)
+void BatchTranslationDialog::setPhraseBooks(const QList<PhraseBook *> &phrasebooks)
 {
     m_model.clear();
     m_model.insertColumn(0);
@@ -81,18 +77,16 @@ void BatchTranslationDialog::setPhraseBooks(const QList<PhraseBook> &phrasebooks
     int count = phrasebooks.count();
     m_model.insertRows(0, count);
     for (int i = 0; i < count; ++i) {
-        QString name = phrasebooks[i].friendlyPhraseBookName();
-        //QString name = QLatin1String("language %1");
-        name = name.arg(i);
-        m_model.setData(m_model.index(i,0), name);
-        m_model.setData(m_model.index(i,0), Qt::Checked, Qt::CheckStateRole);
+        QString name = phrasebooks[i]->friendlyPhraseBookName();
+        m_model.setData(m_model.index(i, 0), name);
+        m_model.setData(m_model.index(i, 0), Qt::Checked, Qt::CheckStateRole);
     }
 }
 
 PhraseBook *BatchTranslationDialog::GetNamedPhraseBook(const QString &name)
 {
     for (int i = 0; i < m_phrasebooks.count(); ++i) {
-        if (m_phrasebooks[i].friendlyPhraseBookName() == name) return &m_phrasebooks[i];
+        if (m_phrasebooks[i]->friendlyPhraseBookName() == name) return m_phrasebooks[i];
     }
     return 0;
 }
@@ -122,10 +116,9 @@ void BatchTranslationDialog::startTranslation()
             if (checkState == Qt::Checked) {
                 QVariant pbname = m_model.data(m_model.index(b, 0));
                 PhraseBook *pb = GetNamedPhraseBook(pbname.toString());
-                for (int p = 0; p < pb->count(); ++p) {
-                    Phrase ph = pb->at(p);
-                    if (ph.source() == m->sourceText() && !m->finished()) {
-                        m->setTranslation(ph.target());
+                foreach (const Phrase *ph, pb->phrases()) {
+                    if (ph->source() == m->sourceText() && !m->finished()) {
+                        m->setTranslation(ph->target());
                         m->setFinished(m_ui.ckMarkFinished->isChecked());
                         ++translatedcount;
                     }
@@ -145,7 +138,7 @@ void BatchTranslationDialog::startTranslation()
     setCursor(oldCursor);
     m_messagemodel->updateAll();
     emit finished();
-    QMessageBox::information(this, tr("Linguist batch translator"), 
+    QMessageBox::information(this, tr("Linguist batch translator"),
         tr("Batch translated %n entries", "", translatedcount), QMessageBox::Ok);
 
     //### update stats
@@ -184,3 +177,4 @@ void BatchTranslationDialog::movePhraseBookDown()
     }
 }
 
+QT_END_NAMESPACE

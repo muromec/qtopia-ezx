@@ -14,7 +14,7 @@ To use the virtual framebuffer:
 
 1. Ensure QT_NO_QWS_VFB is not set in qconfig.h (when you configure Qt,
     add the -qvfb option).
-2. Start qvfb (qvfb should be compiled as a normal Qt/X11 application,
+2. Start qvfb (qvfb should be compiled as a normal Qt for X11 application,
     NOT as a Qtopia Core application!).
 3. Start a Qtopia Core server (i.e. construct QApplication with
    QApplication::GuiServer flag, or run a client with the -qws option).

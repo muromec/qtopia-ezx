@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -85,6 +79,8 @@
 #ifdef QT_TEXTEDIT_OPTIMIZATION
 #define LOGOFFSET(i) d->logOffset + i
 #endif
+
+QT_BEGIN_NAMESPACE
 
 struct QUndoRedoInfoPrivate
 {
@@ -336,20 +332,7 @@ static bool block_set_alignment = false;
 
     Loading and saving text is achieved using setText() and text(),
     for example:
-    \code
-    QFile file(fileName); // Read the text from a file
-    if (file.open(IO_ReadOnly)) {
-        QTextStream stream(&file);
-        textEdit->setText(stream.read());
-    }
-
-    QFile file(fileName); // Write the text to a file
-    if (file.open(IO_WriteOnly)) {
-        QTextStream stream(&file);
-        stream << textEdit->text();
-        textEdit->setModified(false);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textedit.cpp 0
 
     By default the text edit wraps words at whitespace to fit within
     the text edit widget. The setWordWrap() function is used to
@@ -393,10 +376,10 @@ static bool block_set_alignment = false;
     navigation, and text may only be selected with the mouse:
     \table
     \header \i Keypresses \i Action
-    \row \i Qt::UpArrow        \i Move one line up
-    \row \i Qt::DownArrow        \i Move one line down
-    \row \i Qt::LeftArrow        \i Move one character left
-    \row \i Qt::RightArrow        \i Move one character right
+    \row \i Up        \i Move one line up
+    \row \i Down        \i Move one line down
+    \row \i Left        \i Move one character left
+    \row \i Right        \i Move one character right
     \row \i PageUp        \i Move one (viewport) page up
     \row \i PageDown        \i Move one (viewport) page down
     \row \i Home        \i Move to the beginning of the text
@@ -445,22 +428,11 @@ static bool block_set_alignment = false;
     color="#223344">}. Bold, italic and underline settings can be
     specified by the tags \c {<b>}, \c <i> and \c {<u>}. Note that a
     tag does not necessarily have to be closed. A valid example:
-    \code
-    This is <font color=red>red</font> while <b>this</b> is <font color=blue>blue</font>.
-    <font color=green><font color=yellow>Yellow,</font> and <u>green</u>.
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textedit.cpp 1
 
     Stylesheets can also be used in Qt::LogText mode. To create and use a
     custom tag, you could do the following:
-    \code
-    Q3TextEdit * log = new Q3TextEdit(this);
-    log->setTextFormat(Qt::LogText);
-    Q3StyleSheetItem * item = new Q3StyleSheetItem(log->styleSheet(), "mytag");
-    item->setColor("red");
-    item->setFontWeight(QFont::Bold);
-    item->setFontUnderline(true);
-    log->append("This is a <mytag>custom tag</mytag>!");
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textedit.cpp 2
     Note that only the color, bold, underline and italic attributes of
     a Q3StyleSheetItem is used in Qt::LogText mode.
 
@@ -540,14 +512,14 @@ static bool block_set_alignment = false;
                       (also Shift+Delete under Windows)
     \row \i Ctrl+Z \i Undo the last operation
     \row \i Ctrl+Y \i Redo the last operation
-    \row \i Qt::LeftArrow            \i Move the cursor one character left
-    \row \i Ctrl+Qt::LeftArrow  \i Move the cursor one word left
-    \row \i Qt::RightArrow            \i Move the cursor one character right
-    \row \i Ctrl+Qt::RightArrow \i Move the cursor one word right
-    \row \i Qt::UpArrow            \i Move the cursor one line up
-    \row \i Ctrl+Qt::UpArrow    \i Move the cursor one word up
-    \row \i Qt::DownArrow            \i Move the cursor one line down
-    \row \i Ctrl+Down Arrow \i Move the cursor one word down
+    \row \i Left            \i Move the cursor one character left
+    \row \i Ctrl+Left  \i Move the cursor one word left
+    \row \i Right            \i Move the cursor one character right
+    \row \i Ctrl+Right \i Move the cursor one word right
+    \row \i Up            \i Move the cursor one line up
+    \row \i Ctrl+Qt::Up    \i Move the cursor one word up
+    \row \i DownArrow            \i Move the cursor one line down
+    \row \i Ctrl+Down \i Move the cursor one word down
     \row \i PageUp            \i Move the cursor one page up
     \row \i PageDown            \i Move the cursor one page down
     \row \i Home            \i Move the cursor to the beginning of the line
@@ -560,9 +532,8 @@ static bool block_set_alignment = false;
     \endtable
 
     To select (mark) text hold down the Shift key whilst pressing one
-    of the movement keystrokes, for example, \e{Shift+Right Arrow}
-    will select the character to the right, and \e{Shift+Ctrl+Right
-    Arrow} will select the word to the right, etc.
+    of the movement keystrokes, for example, \e{Shift+Right}
+    will select the character to the right, and \e{Shift+Ctrl+Right} will select the word to the right, etc.
 
     By default the text edit widget operates in insert mode so all
     text that the user enters is inserted into the text edit and any
@@ -1376,11 +1347,11 @@ void Q3TextEdit::keyPressEvent(QKeyEvent *e)
     default: {
             unsigned char ascii = e->text().length() ? e->text().unicode()->latin1() : 0;
             if (e->text().length() &&
-                (!(e->state() & Qt::ControlButton) &&
+                ((!(e->state() & Qt::ControlButton) &&
 #ifndef Q_OS_MAC
                   !(e->state() & Qt::AltButton) &&
 #endif
-                  !(e->state() & Qt::MetaButton) ||
+                  !(e->state() & Qt::MetaButton)) ||
                  (((e->state() & (Qt::ControlButton | Qt::AltButton))) == (Qt::ControlButton|Qt::AltButton))) &&
                  (!ascii || ascii >= 32 || e->text() == QString(QLatin1Char('\t')))) {
                 clearUndoRedoInfo = false;
@@ -2685,7 +2656,7 @@ void Q3TextEdit::handleMouseMove(const QPoint& pos)
     if (!mousePressed)
         return;
 
-    if (!scrollTimer->isActive() && pos.y() < contentsY() || pos.y() > contentsY() + visibleHeight())
+    if ((!scrollTimer->isActive() && pos.y() < contentsY()) || pos.y() > contentsY() + visibleHeight())
         scrollTimer->start(100, false);
     else if (scrollTimer->isActive() && pos.y() >= contentsY() && pos.y() <= contentsY() + visibleHeight())
         scrollTimer->stop();
@@ -6978,7 +6949,7 @@ void Q3TextEdit::optimDoAutoScroll()
         repaintContents(contentsX(), y, width(), h);
     }
 
-    if (!scrollTimer->isActive() && pos.y() < 0 || pos.y() > height())
+    if ((!scrollTimer->isActive() && pos.y() < 0) || pos.y() > height())
         scrollTimer->start(100, false);
     else if (scrollTimer->isActive() && pos.y() >= 0 && pos.y() <= height())
         scrollTimer->stop();
@@ -7263,5 +7234,7 @@ Q3SyntaxHighlighter * Q3TextEdit::syntaxHighlighter() const
     else
         return 0;
 }
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_TEXTEDIT

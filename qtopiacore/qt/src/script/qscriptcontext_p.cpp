@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,6 +51,8 @@
 #include "qscriptextenumeration_p.h"
 
 #include <math.h> // floor & friends...
+
+QT_BEGIN_NAMESPACE
 
 #define Q_SCRIPT_NO_PRINT_GENERATED_CODE
 
@@ -89,7 +85,7 @@ static inline void qscript_uint_to_string_helper(uint i, QString &s)
 
 static inline void qscript_uint_to_string(qsreal i, QString &s)
 {
-    if (i < 0)
+    if ((i < 0) || (i > 0xFFFFFFFF))
         return; // nothing to do
 
     qsreal x = ::fmod(i, 10);
@@ -104,11 +100,12 @@ static inline void qscript_uint_to_string(qsreal i, QString &s)
     qscript_uint_to_string_helper(uint(i), s);
 }
 
-static inline qint32 toArrayIndex(const QScriptValueImpl &v)
+static inline quint32 toArrayIndex(const QScriptValueImpl &v)
 {
     if (v.isNumber()) {
-        if (floor(v.m_number_value) == v.m_number_value)
-            return v.toUInt32();
+        quint32 ui = v.toUInt32();
+        if (qsreal(ui) == v.m_number_value)
+            return ui;
     } else if (v.isString()) {
         QByteArray bytes = v.m_string_value->s.toUtf8();
         char *eptr;
@@ -118,7 +115,7 @@ static inline qint32 toArrayIndex(const QScriptValueImpl &v)
             return pos;
         }
     }
-    return -1;
+    return 0xFFFFFFFF;
 }
 
 #define CREATE_MEMBER(__obj__, __name__, __member__, __flags__) do { \
@@ -323,7 +320,7 @@ QString ScriptFunction::toString(QScriptContextPrivate *context) const
     QString str;
     QTextStream out(&str, QIODevice::WriteOnly);
     PrettyPretty pp(eng, out);
-    pp(m_definition, /*indent=*/ 1);
+    pp(m_definition, /*indent=*/ 0);
     return str;
 }
 
@@ -335,8 +332,18 @@ QString ScriptFunction::fileName() const
 QString ScriptFunction::functionName() const
 {
     if (!m_definition->name)
-        return QLatin1String("<anonymous>");
+        return QString();
     return m_definition->name->s;
+}
+
+int ScriptFunction::startLineNumber() const
+{
+    return m_definition->startLine;
+}
+
+int ScriptFunction::endLineNumber() const
+{
+    return m_definition->endLine;
 }
 
 } // namespace QScript
@@ -363,8 +370,8 @@ bool QScriptContextPrivate::resolveField(QScriptEnginePrivate *eng,
         return false;
 
     if (QScript::Ecma::Array::Instance *arrayInstance = eng->arrayConstructor->get(object)) {
-        qint32 pos = toArrayIndex(m);
-        if (pos != -1) {
+        quint32 pos = toArrayIndex(m);
+        if (pos != 0xFFFFFFFF) {
             *value = arrayInstance->value.at(pos);
 
             if (! value->isValid())
@@ -385,18 +392,35 @@ bool QScriptContextPrivate::resolveField(QScriptEnginePrivate *eng,
     if (! object.resolve(nameId, &member, &base, QScriptValue::ResolveFull)) // ### ...
         return false;
 
-    if (base.m_class == eng->m_globalObject.m_class)
+    if (base.classInfo() == eng->m_globalObject.classInfo())
         stackPtr[-1] = base;
-    else if (object.m_class == eng->m_class_with)
+    else if (object.classInfo() == eng->m_class_with)
         stackPtr[-1] = object.prototype();
 
     base.get(member, value);
+
+    if (member.isGetterOrSetter()) {
+        // call the getter function
+        QScriptValueImpl getter;
+        if (member.isGetter()) {
+            getter = *value;
+        } else {
+            if (!base.m_object_value->findGetter(&member)) {
+                eng->newUndefined(value);
+                return true;
+            }
+            base.get(member, &getter);
+        }
+        *value = getter.call(object);
+    }
 
     return true;
 }
 
 void QScriptContextPrivate::execute(QScript::Code *code)
 {
+    int oldCurrentLine = currentLine;
+    int oldCurrentColumn = currentColumn;
     QScript::Code *oldCode = m_code;
     m_code = code;
 
@@ -412,8 +436,12 @@ void QScriptContextPrivate::execute(QScript::Code *code)
 
     QScriptEnginePrivate *eng = QScriptEnginePrivate::get(engine());
 
-    if (!parentContext())
+    bool wasEvaluating = eng->m_evaluating;
+    if (!wasEvaluating) {
         eng->setupProcessEvents();
+        eng->resetAbortFlag();
+    }
+    eng->m_evaluating = true;
 
     // set up the temp stack
     if (! tempStack)
@@ -427,10 +455,13 @@ void QScriptContextPrivate::execute(QScript::Code *code)
     m_result = undefined;
     firstInstruction = code->firstInstruction;
     lastInstruction = code->lastInstruction;
-    iPtr = code->firstInstruction; // ### kill iPtr
+    iPtr = code->firstInstruction;
 
     m_scopeChain = m_activation;
 
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng->notifyFunctionEntry(this);
+#endif
 
 #ifndef Q_SCRIPT_DIRECT_CODE
 
@@ -438,6 +469,7 @@ void QScriptContextPrivate::execute(QScript::Code *code)
 #  define Next() goto Lfetch
 #  define Done() goto Ldone
 #  define HandleException() goto Lhandle_exception
+#  define Abort() goto Labort
 
 Lfetch:
 
@@ -448,8 +480,9 @@ Lfetch:
 #  define Next() goto *iPtr->code
 #  define Done() goto Ldone
 #  define HandleException() goto Lhandle_exception
+#  define Abort() goto Labort
 
-    static void *jump_table [] = {
+    static void * const jump_table[] = {
 
 #  define Q_SCRIPT_DEFINE_OPERATOR(op) &&I(op),
 #  include "instruction.table"
@@ -508,6 +541,13 @@ Ltop:
         ++iPtr;
     }   Next();
 
+    I(LoadActivation):
+    {
+        CHECK_TEMPSTACK(1);
+        *++stackPtr = m_activation;
+        ++iPtr;
+    }   Next();
+
     I(LoadNull):
     {
         CHECK_TEMPSTACK(1);
@@ -545,7 +585,15 @@ Ltop:
         ++iPtr;
     }   Next();
 
+    I(Swap):
+    {
+        QScriptValueImpl tmp = stackPtr[0];
+        *stackPtr = stackPtr[-1];
+        stackPtr[-1] = tmp;
+        ++iPtr;
+    }   Next();
 
+    
     I(Receive):
     {
         int n = iPtr->operand[0].m_int_value;
@@ -572,6 +620,7 @@ Ltop:
         QScriptObject *instance = m_scopeChain.m_object_value;
         if (instance->findMember(memberName, &member)) {
             instance->get(member, ++stackPtr);
+            base = m_scopeChain;
         } else {
             if (m_scopeChain.resolve_helper(memberName, &member, &base, QScriptValue::ResolveFull)) {
                 base.get(member, ++stackPtr);
@@ -585,7 +634,7 @@ Ltop:
             }
         }
         if (member.isGetterOrSetter()) {
-            // call the getter function
+            // locate the getter function
             QScriptValueImpl getter;
             if (member.isGetter()) {
                 getter = *stackPtr;
@@ -597,10 +646,15 @@ Ltop:
                 }
                 base.get(member, &getter);
             }
-            if (m_scopeChain.m_class == eng->m_class_with)
-                *stackPtr = getter.call(m_scopeChain.prototype());
-            else
-                *stackPtr = getter.call(m_scopeChain);
+            // decide the this-object. This is the object that actually
+            // has the getter (in its prototype chain).
+            QScriptValueImpl object = m_scopeChain;
+            while (!object.resolve(memberName, &member, &base, QScriptValue::ResolvePrototype))
+                object = object.scope();
+            if (object.classInfo() == eng->m_class_with)
+                object = object.prototype();
+
+            *stackPtr = getter.call(object);
             if (hasUncaughtException()) {
                 stackPtr -= 1;
                 Done();
@@ -739,13 +793,19 @@ Ltop:
 
         if (nested_data->m_state == QScriptContext::ExceptionState) {
             eng->popContext();
-            Done();
+            if (eng->shouldAbort())
+                Abort();
+            else
+                Done();
         }
 
         CHECK_TEMPSTACK(1);
         *++stackPtr = nested_data->m_result;
 
         eng->popContext();
+
+        if (eng->shouldAbort())
+            Abort();
 
         ++iPtr;
     }   Next();
@@ -916,7 +976,10 @@ Ltop:
 
         if (nested_data->m_state == QScriptContext::ExceptionState) {
             eng->popContext();
-            Done();
+            if (eng->shouldAbort())
+                Abort();
+            else
+                Done();
         }
 
         CHECK_TEMPSTACK(1);
@@ -924,6 +987,9 @@ Ltop:
         *++stackPtr = nested_data->m_result;
 
         eng->popContext();
+
+        if (eng->shouldAbort())
+            Abort();
 
         ++iPtr;
     }   Next();
@@ -940,12 +1006,12 @@ Ltop:
         const QScriptValueImpl &m = stackPtr[0];
 
         QScript::Ecma::Array::Instance *arrayInstance = 0;
-        if (object.m_class == eng->arrayConstructor->classInfo())
-            arrayInstance = static_cast<QScript::Ecma::Array::Instance *> (object.m_object_value->m_data.data());
+        if (object.classInfo() == eng->arrayConstructor->classInfo())
+            arrayInstance = static_cast<QScript::Ecma::Array::Instance *> (object.m_object_value->m_data);
 
         if (arrayInstance) {
-            qint32 pos = toArrayIndex(m);
-            if (pos != -1) {
+            quint32 pos = toArrayIndex(m);
+            if (pos != 0xFFFFFFFF) {
                 *--stackPtr = arrayInstance->value.at(pos);
 
                 if (! stackPtr->isValid())
@@ -1004,16 +1070,21 @@ Ltop:
         ++iPtr;
     }   Next();
 
-    I(FetchArguments):
+    I(LazyArguments):
     {
-        CHECK_TEMPSTACK(1);
-        if (!m_arguments.isValid()) {
-            if (m_activation.objectValue() == m_thisObject.objectValue())
-                eng->newUndefined(&m_arguments); // ### arguments array parsed from command line
-            else
-                eng->newArguments(&m_arguments, m_activation, argc, m_callee);
+        QScript::Member member;
+        QScriptValueImpl base;
+        QScriptNameIdImpl *arguments = eng->idTable()->id_arguments;
+        if (!m_activation.resolve(arguments, &member, &base, QScriptValue::ResolveLocal)) {
+            CREATE_MEMBER(m_activation, arguments, &member, QScriptValue::Undeletable);
+            if (!m_arguments.isValid()) {
+                if (m_activation.strictlyEquals(eng->globalObject()))
+                    eng->newUndefined(&m_arguments);
+                else
+                    eng->newArguments(&m_arguments, m_activation, argc, m_callee);
+            }
+            m_activation.put(member, m_arguments);
         }
-        *++stackPtr = m_arguments;
         ++iPtr;
     }   Next();
 
@@ -1058,7 +1129,7 @@ Ltop:
         const QScriptValueImpl &m = stackPtr[-2];
         QScriptValueImpl &value = stackPtr[0];
 
-        qint32 pos = -1;
+        quint32 pos = 0xFFFFFFFF;
 
         QScript::Ecma::Array::Instance *arrayInstance = eng->arrayConstructor->get(object);
         if (arrayInstance)
@@ -1066,7 +1137,7 @@ Ltop:
 
         stackPtr -= 3;
 
-        if (pos != -1)
+        if (pos != 0xFFFFFFFF)
             arrayInstance->value.assign(pos, value);
 
         else {
@@ -1092,8 +1163,7 @@ Ltop:
 
             if (value.isString() && ! value.m_string_value->unique)
                 eng->newNameId(&value, value.m_string_value->s);
-            if (object.m_class == eng->m_class_with)
-                object = object.prototype();
+
             if (member.isGetterOrSetter()) {
                 // find and call setter(value)
                 QScriptValueImpl setter;
@@ -1105,12 +1175,24 @@ Ltop:
                     }
                 }
                 base.get(member, &setter);
+
+                if (!isMemberAssignment) {
+                    // decide the this-object. This is the object that actually
+                    // has the setter (in its prototype chain).
+                    while (!object.resolve(memberName, &member, &base, QScriptValue::ResolvePrototype))
+                        object = object.scope();
+                    if (object.classInfo() == eng->m_class_with)
+                        object = object.prototype();
+                }
+
                 value = setter.call(object, QScriptValueImplList() << value);
                 if (hasUncaughtException()) {
                     stackPtr -= 1;
                     Done();
                 }
             } else {
+                if (object.classInfo() == eng->m_class_with)
+                    object = object.prototype();
                 if (isMemberAssignment && (base.m_object_value != object.m_object_value)) {
                     base = object;
                     CREATE_MEMBER(base, memberName, &member, /*flags=*/0);
@@ -1213,14 +1295,13 @@ Ltop:
         QScriptValueImpl ctor = stackPtr[0];
         bool result = false;
 
-        if (!ctor.isObject()) {
+        // only Function implements [[hasInstance]]
+        if (!ctor.isFunction()) {
             stackPtr -= 2;
             throwTypeError(QLatin1String("invalid 'instanceof' operand"));
             HandleException();
         }
 
-        // ### fixme, this is not according to spec
-        // only Function implements [[hasInstance]]
         if (object.isObject()) {
             QScriptValueImpl prototype = ctor.property(eng->idTable()->id_prototype);
             if (!prototype.isObject()) {
@@ -1363,6 +1444,11 @@ Ltop:
 
     I(Branch):
     {
+        eng->maybeProcessEvents();
+        if (hasUncaughtException())
+            HandleException();
+        if (eng->shouldAbort())
+            Abort();
         iPtr += iPtr->operand[0].m_int_value;
     }   Next();
 
@@ -1581,13 +1667,15 @@ Ltop:
 
     I(PostDecr):
     {
+        // ### most of the code is duplicated from PostIncr -- try to merge
         if (! stackPtr[0].isReference()) {
             stackPtr -= 1;
             throwSyntaxError(QLatin1String("invalid decrement operand"));
             HandleException();
         }
 
-        QScriptValue::ResolveFlags mode = QScriptValue::ResolveFlags(stackPtr[0].m_int_value);
+        QScriptValue::ResolveFlags mode = QScriptValue::ResolveFlags(stackPtr[0].m_int_value)
+                                          | QScriptValue::ResolvePrototype;
 
         --stackPtr;
 
@@ -1614,17 +1702,15 @@ Ltop:
                 }
             }
             base = object;
-        } else {
-            if (! object.resolve_helper(memberName, &member, &base, mode)) {
-                if (!isMemberAssignment) {
-                    stackPtr -= 2;
-                    throwNotDefined(memberName);
-                    HandleException();
-                }
-                base = object;
-                CREATE_MEMBER(base, memberName, &member, /*flags=*/0);
-                base.put(member, undefined);
+        } else if (! object.resolve_helper(memberName, &member, &base, mode)) {
+            if (!isMemberAssignment) {
+                stackPtr -= 2;
+                throwNotDefined(memberName);
+                HandleException();
             }
+            base = object;
+            CREATE_MEMBER(base, memberName, &member, /*flags=*/0);
+            base.put(member, undefined);
         }
 
         QScriptValueImpl getter;
@@ -1853,37 +1939,32 @@ Ltop:
 
     I(TypeOf):
     {
-        QScriptValueImpl object;
+        QScriptValueImpl value;
 
         bool isReference = stackPtr[0].isReference();
 
         if (! isReference) { // we have a value
-            object = stackPtr[0];
-        } else if (resolveField(eng, &stackPtr[-1], &object)) {
+            value = stackPtr[0];
+        } else if (resolveField(eng, &stackPtr[-1], &value)) {
             stackPtr -= 2;
             if (hasUncaughtException()) {
                 stackPtr -= 1;
                 HandleException();
             }
         } else {
-            object = undefined;
+            value = undefined;
             stackPtr -= 2;
         }
 
         QString typeName;
 
-        switch (object.type()) {
-
+        switch (value.type()) {
         case QScript::UndefinedType:
             typeName = QLatin1String("undefined");
             break;
 
         case QScript::NullType:
             typeName = QLatin1String("object");
-            break;
-
-        case QScript::ActivationType: // ### checkme
-            typeName = QLatin1String("global");
             break;
 
         case QScript::BooleanType:
@@ -1899,17 +1980,17 @@ Ltop:
             typeName = QLatin1String("string");
             break;
 
-        case QScript::FunctionType:
-            typeName = QLatin1String("function");
+        case QScript::ReferenceType:
+            typeName = QLatin1String("reference");
             break;
 
-        case QScript::VariantType:
-            typeName = QLatin1String("variant");
+        case QScript::PointerType:
+            typeName = QLatin1String("pointer");
             break;
 
-        default:
-            if (!stackPtr->isObject())
-                typeName = QLatin1String("undefined");
+        case QScript::ObjectType:
+            if (value.isFunction())
+                typeName = QLatin1String("function");
             else
                 typeName = QLatin1String("object");
             break;
@@ -1923,9 +2004,17 @@ Ltop:
     {
         eng->maybeGC();
         eng->maybeProcessEvents();
+        if (hasUncaughtException())
+            HandleException();
+        if (eng->shouldAbort())
+            Abort();
         currentLine = iPtr->operand[0].m_int_value;
         currentColumn = iPtr->operand[1].m_int_value;
         ++iPtr;
+
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng->notifyPositionChange(this);
+#endif
     }   Next();
 
     I(Delete):
@@ -1972,7 +2061,7 @@ Ltop:
     I(ToFirstElement): {
         QScript::Ext::Enumeration::Instance *e = eng->enumerationConstructor->get(stackPtr[0]);
         Q_ASSERT(e != 0);
-        e->toFirst();
+        e->toFront();
         --stackPtr;
         ++iPtr;
     }   Next();
@@ -2020,7 +2109,12 @@ Ltop:
     {
         Q_ASSERT(stackPtr->isValid());
         m_result = *stackPtr--;
+        if (!m_result.isError() && !exceptionHandlerContext())
+            eng->m_exceptionBacktrace = backtrace();
         m_state = QScriptContext::ExceptionState;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng->notifyException(this);
+#endif
     }   HandleException();
 
     I(Ret):
@@ -2106,28 +2200,39 @@ Ldone:
             m_scopeChain = object.m_object_value->m_scope;
             catching = false;
         }
+
         // see if we have an exception handler in this context
-        int offset = iPtr - code->firstInstruction;
-        for (int i = 0; i < code->exceptionHandlers.count(); ++i) {
-            QScript::ExceptionHandlerDescriptor e = code->exceptionHandlers.at(i);
-            if (offset >= e.startInstruction() && offset <= e.endInstruction()) {
-                // go to the handler
-                iPtr = code->firstInstruction + e.handlerInstruction();
-                recover();
-                goto Ltop;
-            }
+        const QScriptInstruction *exPtr = findExceptionHandler(iPtr);
+        if (exPtr) {
+            // go to the handler
+            iPtr = exPtr;
+            recover();
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+            eng->notifyExceptionCatch(this);
+#endif
+            goto Ltop;
         }
     }
 
+Labort:
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    eng->notifyFunctionExit(this);
+#endif
+
     eng->maybeGC();
 
+    currentLine = oldCurrentLine;
+    currentColumn = oldCurrentColumn;
     m_code = oldCode;
+
+    eng->m_evaluating = wasEvaluating;
 }
 
 QScriptValueImpl QScriptContextPrivate::throwError(QScriptContext::Error error, const QString &text)
 {
     QScriptEnginePrivate *eng_p = QScriptEnginePrivate::get(engine());
     QScript::Ecma::Error *ctor = eng_p->errorConstructor;
+    m_result.invalidate();
     switch (error) {
     case QScriptContext::ReferenceError:
         ctor->newReferenceError(&m_result, text);
@@ -2150,8 +2255,20 @@ QScriptValueImpl QScriptContextPrivate::throwError(QScriptContext::Error error, 
     }
     setDebugInformation(&m_result);
     m_state = QScriptContext::ExceptionState;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        eng_p->notifyException(this);
+#endif
     return m_result;
 }
+
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+qint64 QScriptContextPrivate::scriptId() const
+{
+    if (!m_code)
+        return -1;
+    return m_code->astPool->id();
+}
+#endif
 
 QString QScriptContextPrivate::fileName() const
 {
@@ -2165,8 +2282,9 @@ QString QScriptContextPrivate::functionName() const
     if (!m_callee.isValid())
         return QString();
     QScriptFunction *fun = m_callee.toFunction();
-    Q_ASSERT(fun);
-    return fun->functionName();
+    if (fun)
+        return fun->functionName();
+    return QString();
 }
 
 void QScriptContextPrivate::setDebugInformation(QScriptValueImpl *error) const
@@ -2205,8 +2323,18 @@ QStringList QScriptContextPrivate::backtrace() const
         QString functionName = ctx_p->functionName();
         if (!functionName.isEmpty())
             s += functionName;
-        else
-            s += QLatin1String("<global>");
+        else {
+            if (ctx->parentContext()) {
+                if (ctx_p->callee().isFunction()
+                    && ctx_p->callee().toFunction()->type() != QScriptFunction::Script) {
+                    s += QLatin1String("<native>");
+                } else {
+                    s += QLatin1String("<anonymous>");
+                }
+            } else {
+                s += QLatin1String("<global>");
+            }
+        }
         s += QLatin1String("(");
         for (int i = 0; i < ctx_p->argc; ++i) {
             if (i > 0)
@@ -2263,7 +2391,13 @@ bool QScriptContextPrivate::eq_cmp_helper(QScriptValueImpl lhs, QScriptValueImpl
     else if (lhs.isString() && isNumerical(rhs))
         return eng->convertToNativeString(lhs) == eng->convertToNativeString(rhs);
 
-    if (lhs.isObject() && ! rhs.isNull()) {
+    else if (lhs.isBoolean())
+        return eq_cmp(QScriptValueImpl(eng, eng->convertToNativeDouble(lhs)), rhs);
+
+    else if (rhs.isBoolean())
+        return eq_cmp(lhs, QScriptValueImpl(eng, eng->convertToNativeDouble(rhs)));
+
+    else if (lhs.isObject() && ! rhs.isNull()) {
         lhs = eng->toPrimitive(lhs);
 
         if (lhs.isValid() && ! lhs.isObject())
@@ -2322,6 +2456,10 @@ bool QScriptContextPrivate::lt_cmp_helper(QScriptValueImpl lhs, QScriptValueImpl
 
     qsreal n1 = eng->convertToNativeDouble(lhs);
     qsreal n2 = eng->convertToNativeDouble(rhs);
+#if defined Q_CC_MSVC && !defined Q_CC_MSVC_NET
+    if (qIsNaN(n1) || qIsNaN(n2))
+        return false;
+#endif
     return n1 < n2;
 }
 
@@ -2345,5 +2483,58 @@ bool QScriptContextPrivate::le_cmp_helper(QScriptValueImpl lhs, QScriptValueImpl
     qsreal n2 = eng->convertToNativeDouble(rhs);
     return n1 <= n2;
 }
+
+const QScriptInstruction *QScriptContextPrivate::findExceptionHandler(
+    const QScriptInstruction *ip) const
+{
+    Q_ASSERT(m_code);
+    int offset = ip - m_code->firstInstruction;
+    for (int i = 0; i < m_code->exceptionHandlers.count(); ++i) {
+        QScript::ExceptionHandlerDescriptor e = m_code->exceptionHandlers.at(i);
+        if (offset >= e.startInstruction() && offset <= e.endInstruction()) {
+            return m_code->firstInstruction + e.handlerInstruction();
+        }
+    }
+    return 0;
+}
+
+const QScriptInstruction *QScriptContextPrivate::findExceptionHandlerRecursive(
+    const QScriptInstruction *ip, QScriptContextPrivate **handlerContext) const
+{
+    const QScriptContextPrivate *ctx = this;
+    const QScriptInstruction *iip = ip;
+    while (ctx) {
+        if (ctx->m_code) {
+            const QScriptInstruction *ep = ctx->findExceptionHandler(iip);
+            if (ep) {
+                Q_ASSERT(handlerContext);
+                *handlerContext = const_cast<QScriptContextPrivate*>(ctx);
+                return ep;
+            }
+        }
+        ctx = QScriptContextPrivate::get(ctx->parentContext());
+        if (ctx)
+            iip = ctx->iPtr;
+    }
+    return 0;
+}
+
+/*!
+  Requires that iPtr in current context is in sync
+*/
+QScriptContextPrivate *QScriptContextPrivate::exceptionHandlerContext() const
+{
+    QScriptContextPrivate *handlerContext;
+    if (findExceptionHandlerRecursive(iPtr, &handlerContext))
+        return handlerContext;
+    return 0;
+}
+
+QScriptContext *QScriptContextPrivate::get(QScriptContextPrivate *d)
+{
+    return d->q_func();
+}
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

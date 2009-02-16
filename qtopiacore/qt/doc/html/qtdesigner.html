@@ -2,10 +2,10 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/qtdesigner.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/qtdesigner.qdoc -->
 <head>
-  <title>Qt 4.3: QtDesigner Module</title>
-  <link rel="prev" href="qtxml.html" />
+  <title>Qt 4.4: QtDesigner Module</title>
+  <link rel="prev" href="qt3support.html" />
   <link rel="contents" href="modules.html" />
   <link rel="next" href="qtuitools.html" />
   <link href="classic.css" rel="stylesheet" type="text/css" />
@@ -13,10 +13,10 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
-[Previous: <a href="qtxml.html">QtXml Module</a>]
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
+[Previous: <a href="qt3support.html">Qt3Support Module</a>]
 [<a href="modules.html">Qt's Modules</a>]
 [Next: <a href="qtuitools.html">QtUiTools Module</a>]
 </p>
@@ -54,13 +54,14 @@
 <pre> #include &lt;QtDesigner&gt;</pre>
 <p>To link against the module, add this line to your <tt>qmake</tt> .pro file:</p>
 <pre> CONFIG += designer</pre>
+<p><b>Note:</b> These classes are part of the <a href="opensourceedition.html">Qt Open Source Edition</a> and <a href="commercialeditions.html">Qt Full Framework Edition</a> for commercial users.</p>
 <ul><li><a href="#creating-custom-widget-plugins">Creating Custom Widget Plugins</a></li>
 <li><a href="#retrieving-access-to-qt-designer-components">Retrieving Access to <i>Qt Designer</i> Components</a></li>
 <li><a href="#creating-user-interfaces-at-run-time">Creating User Interfaces at Run-Time</a></li>
 </ul>
 <a name="creating-custom-widget-plugins"></a>
 <h3>Creating Custom Widget Plugins</h3>
-<p>When implementing a custom widget plugin for <i>Qt Designer</i>, you must subclass <a href="qdesignercustomwidgetinterface.html">QDesignerCustomWidgetInterface</a> to expose your custom widget to <i>Qt Designer</i>. A single custom widget plugin is build as a separate library. If you want to include several custom widget plugins in the same library, you must in addition subclass <a href="qdesignercustomwidgetcollectioninterface.html">QDesignerCustomWidgetCollectionInterface</a>.</p>
+<p>When implementing a custom widget plugin for <i>Qt Designer</i>, you must subclass <a href="qdesignercustomwidgetinterface.html">QDesignerCustomWidgetInterface</a> to expose your custom widget to <i>Qt Designer</i>. A single custom widget plugin is built as a separate library. If you want to include several custom widget plugins in the same library, you must in addition subclass <a href="qdesignercustomwidgetcollectioninterface.html">QDesignerCustomWidgetCollectionInterface</a>.</p>
 <p>To provide your custom widget plugin with the expected behavior and functionality within <i>Qt Designer</i>'s workspace you can subclass the associated extension classes:</p>
 <p>The <a href="qdesignercontainerextension.html">QDesignerContainerExtension</a> class allows you to add pages to a custom multi-page container. The <a href="qdesignertaskmenuextension.html">QDesignerTaskMenuExtension</a> class allows you to add custom menu entries to <i>Qt Designer</i>'s task menu. The <a href="qdesignermembersheetextension.html">QDesignerMemberSheetExtension</a> class allows you to manipulate a widget's member functions which is displayed when configuring connections using <i>Qt Designer</i>'s mode for editing signals and slots. And finally, the <a href="qdesignerpropertysheetextension.html">QDesignerPropertySheetExtension</a> class allows you to manipulate a widget's properties which is displayed in <i>Qt Designer</i>'s property editor.</p>
 <p align="center"><img src="images/qtdesignerextensions.png" /></p><p>In <i>Qt Designer</i> the extensions are not created until they are required. For that reason, when implementing extensions, you must also subclass <a href="qextensionfactory.html">QExtensionFactory</a>, i.e create a class that is able to make instances of your extensions. In addition, you must make <i>Qt Designer</i>'s extension manager register your factory; the extension manager controls the construction of extensions as they are required, and you can access it through <a href="qdesignerformeditorinterface.html">QDesignerFormEditorInterface</a> and <a href="qextensionmanager.html">QExtensionManager</a>.</p>
@@ -84,14 +85,14 @@
 <p>For a complete example using <a href="quiloader.html">QUiLoader</a>, see the <a href="designer-calculatorbuilder.html">Calculator Builder example</a>.</p>
 <p>See also <a href="designer-manual.html">Qt Designer Manual</a> and <a href="qtuitools.html">QtUiTools Module</a>.</p>
 <p>
-[Previous: <a href="qtxml.html">QtXml Module</a>]
+[Previous: <a href="qt3support.html">Qt3Support Module</a>]
 [<a href="modules.html">Qt's Modules</a>]
 [Next: <a href="qtuitools.html">QtUiTools Module</a>]
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

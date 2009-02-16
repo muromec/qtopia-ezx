@@ -1,4 +1,4 @@
 TEMPLATE = subdirs
-SUBDIRS  = src updater
+!wince*: SUBDIRS += updater
+wince*: contains(QT_CONFIG, cetest): SUBDIRS += wince
 CONFIG += ordered
-

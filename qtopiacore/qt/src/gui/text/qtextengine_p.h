@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -70,173 +64,24 @@
 #ifndef QT_BUILD_COMPAT_LIB
 #include "private/qtextdocument_p.h"
 #endif
+#include "private/qharfbuzz_p.h"
+#include "private/qfixed_p.h"
 
 #include <stdlib.h>
+
+QT_BEGIN_NAMESPACE
 
 class QFontPrivate;
 class QFontEngine;
 
 class QString;
-class QOpenType;
 class QPainter;
 
 class QAbstractTextDocumentLayout;
 
-struct QFixed {
-public:
-    QFixed() : val(0) {}
-    QFixed(int i) : val(i<<6) {}
-    QFixed(long i) : val(i<<6) {}
-    QFixed &operator=(int i) { val = (i<<6); return *this; }
-    QFixed &operator=(long i) { val = (i<<6); return *this; }
-
-    static QFixed fromReal(qreal r) { QFixed f; f.val = (int)(r*qreal(64)); return f; }
-    static QFixed fromFixed(int fixed) { QFixed f; f.val = fixed; return f; }
-
-    inline int value() const { return val; }
-    inline void setValue(int value) { val = value; }
-
-    inline int toInt() const { return (((val)+32) & -64)>>6; }
-    inline qreal toReal() const { return ((qreal)val)/(qreal)64; }
-
-    inline int truncate() const { return val>>6; }
-    inline QFixed round() const { QFixed f; f.val = ((val)+32) & -64; return f; }
-    inline QFixed floor() const { QFixed f; f.val = (val) & -64; return f; }
-    inline QFixed ceil() const { QFixed f; f.val = (val+63) & -64; return f; }
-
-    inline QFixed operator+(int i) const { QFixed f; f.val = (val + (i<<6)); return f; }
-    inline QFixed operator+(uint i) const { QFixed f; f.val = (val + (i<<6)); return f; }
-    inline QFixed operator+(const QFixed &other) const { QFixed f; f.val = (val + other.val); return f; }
-    inline QFixed &operator+=(int i) { val += (i<<6); return *this; }
-    inline QFixed &operator+=(uint i) { val += (i<<6); return *this; }
-    inline QFixed &operator+=(const QFixed &other) { val += other.val; return *this; }
-    inline QFixed operator-(int i) const { QFixed f; f.val = (val - (i<<6)); return f; }
-    inline QFixed operator-(uint i) const { QFixed f; f.val = (val - (i<<6)); return f; }
-    inline QFixed operator-(const QFixed &other) const { QFixed f; f.val = (val - other.val); return f; }
-    inline QFixed &operator-=(int i) { val -= (i<<6); return *this; }
-    inline QFixed &operator-=(uint i) { val -= (i<<6); return *this; }
-    inline QFixed &operator-=(const QFixed &other) { val -= other.val; return *this; }
-    inline QFixed operator-() const { QFixed f; f.val = -val; return f; }
-
-    inline bool operator==(const QFixed &other) const { return val == other.val; }
-    inline bool operator!=(const QFixed &other) const { return val != other.val; }
-    inline bool operator<(const QFixed &other) const { return val < other.val; }
-    inline bool operator>(const QFixed &other) const { return val > other.val; }
-    inline bool operator<=(const QFixed &other) const { return val <= other.val; }
-    inline bool operator>=(const QFixed &other) const { return val >= other.val; }
-    inline bool operator!() const { return !val; }
-
-    inline QFixed &operator/=(int x) { val /= x; return *this; }
-    inline QFixed &operator/=(const QFixed &o) {
-        if (o.val == 0) {
-            val = 0x7FFFFFFFL;
-        } else {
-            bool neg = false;
-            qint64 a = val;
-            qint64 b = o.val;
-            if (a < 0) { a = -a; neg = true; }
-            if (b < 0) { b = -b; neg = !neg; }
-
-            int res = (int)(((a << 6) + (b >> 1)) / b);
-
-            val = (neg ? -res : res);
-        }
-        return *this;
-    }
-    inline QFixed operator/(int d) const { QFixed f; f.val = val/d; return f; }
-    inline QFixed operator/(QFixed b) const { QFixed f = *this; return (f /= b); }
-    inline QFixed operator>>(int d) const { QFixed f = *this; f.val >>= d; return f; }
-    inline QFixed &operator*=(int i) { val *= i; return *this; }
-    inline QFixed &operator*=(uint i) { val *= i; return *this; }
-    inline QFixed &operator*=(const QFixed &o) {
-        bool neg = false;
-        qint64 a = val;
-        qint64 b = o.val;
-        if (a < 0) { a = -a; neg = true; }
-        if (b < 0) { b = -b; neg = !neg; }
-
-        int res = (int)((a * b + 0x20L) >> 6);
-        val = neg ? -res : res;
-        return *this;
-    }
-    inline QFixed operator*(int i) const { QFixed f = *this; return (f *= i); }
-    inline QFixed operator*(uint i) const { QFixed f = *this; return (f *= i); }
-    inline QFixed operator*(const QFixed &o) const { QFixed f = *this; return (f *= o); }
-
-private:
-    QFixed(qreal i) : val((int)(i*qreal(64))) {}
-    QFixed &operator=(qreal i) { val = (int)(i*qreal(64)); return *this; }
-    inline QFixed operator+(qreal i) const { QFixed f; f.val = (val + (int)(i*qreal(64))); return f; }
-    inline QFixed &operator+=(qreal i) { val += (int)(i*64); return *this; }
-    inline QFixed operator-(qreal i) const { QFixed f; f.val = (val - (int)(i*qreal(64))); return f; }
-    inline QFixed &operator-=(qreal i) { val -= (int)(i*64); return *this; }
-    inline QFixed &operator/=(qreal r) { val = (int)(val/r); return *this; }
-    inline QFixed operator/(qreal d) const { QFixed f; f.val = (int)(val/d); return f; }
-    inline QFixed &operator*=(qreal d) { val = (int) (val*d); return *this; }
-    inline QFixed operator*(qreal d) const { QFixed f = *this; return (f *= d); }
-    int val;
-};
-Q_DECLARE_TYPEINFO(QFixed, Q_PRIMITIVE_TYPE);
-
-#define QFIXED_MAX (INT_MAX/256)
-
-inline int qRound(const QFixed &f) { return f.toInt(); }
-
-inline QFixed operator*(int i, const QFixed &d) { return d*i; }
-inline QFixed operator+(int i, const QFixed &d) { return d+i; }
-inline QFixed operator-(int i, const QFixed &d) { return -(d-i); }
-inline QFixed operator*(uint i, const QFixed &d) { return d*i; }
-inline QFixed operator+(uint i, const QFixed &d) { return d+i; }
-inline QFixed operator-(uint i, const QFixed &d) { return -(d-i); }
-// inline QFixed operator*(qreal d, const QFixed &d2) { return d2*d; }
-
-inline bool operator==(const QFixed &f, int i) { return f.value() == (i<<6); }
-inline bool operator==(int i, const QFixed &f) { return f.value() == (i<<6); }
-inline bool operator!=(const QFixed &f, int i) { return f.value() != (i<<6); }
-inline bool operator!=(int i, const QFixed &f) { return f.value() != (i<<6); }
-inline bool operator<=(const QFixed &f, int i) { return f.value() <= (i<<6); }
-inline bool operator<=(int i, const QFixed &f) { return (i<<6) <= f.value(); }
-inline bool operator>=(const QFixed &f, int i) { return f.value() >= (i<<6); }
-inline bool operator>=(int i, const QFixed &f) { return (i<<6) >= f.value(); }
-inline bool operator<(const QFixed &f, int i) { return f.value() < (i<<6); }
-inline bool operator<(int i, const QFixed &f) { return (i<<6) < f.value(); }
-inline bool operator>(const QFixed &f, int i) { return f.value() > (i<<6); }
-inline bool operator>(int i, const QFixed &f) { return (i<<6) > f.value(); }
-
-inline QDebug &operator<<(QDebug &dbg, const QFixed &f)
-{ return dbg << f.toReal(); }
-
-struct QFixedPoint {
-    QFixed x;
-    QFixed y;
-    inline QFixedPoint() {}
-    inline QFixedPoint(const QFixed &_x, const QFixed &_y) : x(_x), y(_y) {}
-    QPointF toPointF() const { return QPointF(x.toReal(), y.toReal()); }
-    static QFixedPoint fromPointF(const QPointF &p) {
-        return QFixedPoint(QFixed::fromReal(p.x()), QFixed::fromReal(p.y()));
-    }
-};
-Q_DECLARE_TYPEINFO(QFixedPoint, Q_PRIMITIVE_TYPE);
-
-inline QFixedPoint operator-(const QFixedPoint &p1, const QFixedPoint &p2)
-{ return QFixedPoint(p1.x - p2.x, p1.y - p2.y); }
-inline QFixedPoint operator+(const QFixedPoint &p1, const QFixedPoint &p2)
-{ return QFixedPoint(p1.x + p2.x, p1.y + p2.y); }
-
-struct QFixedSize {
-    QFixed width;
-    QFixed height;
-    QSizeF toSizeF() const { return QSizeF(width.toReal(), height.toReal()); }
-    static QFixedSize fromSizeF(const QSizeF &s) {
-        QFixedSize size;
-        size.width = QFixed::fromReal(s.width());
-        size.height = QFixed::fromReal(s.height());
-        return size;
-    }
-};
-Q_DECLARE_TYPEINFO(QFixedSize, Q_PRIMITIVE_TYPE);
 
 struct QScriptItem;
+/// Internal QTextItem
 class QTextItemInt : public QTextItem
 {
 public:
@@ -253,11 +98,11 @@ public:
     RenderFlags flags;
     bool justified;
     QTextCharFormat::UnderlineStyle underlineStyle;
+    const QTextCharFormat charFormat;
     int num_chars;
     const QChar *chars;
     const unsigned short *logClusters;
     const QFont *f;
-    QColor underlineColor;
 
     QGlyphLayout *glyphs;
     int num_glyphs;
@@ -268,7 +113,7 @@ public:
 // this uses the same coordinate system as Qt, but a different one to freetype.
 // * y is usually negative, and is equal to the ascent.
 // * negative yoff means the following stuff is drawn higher up.
-// the characters bounding rect is given by QRect(x,y,width,height), it's advance by
+// the characters bounding rect is given by QRect(x,y,width,height), its advance by
 // xoo and yoff
 struct glyph_metrics_t
 {
@@ -291,108 +136,58 @@ struct glyph_metrics_t
 };
 Q_DECLARE_TYPEINFO(glyph_metrics_t, Q_PRIMITIVE_TYPE);
 
-typedef unsigned int glyph_t;
-
-#if defined(Q_WS_X11) || defined (Q_WS_QWS) || defined (Q_WS_MAC)
-
-
-struct QScriptAnalysis
+struct Q_AUTOTEST_EXPORT QScriptAnalysis
 {
-    unsigned short script    : 7;
-    unsigned short override  : 1;  // Set when in LRO/RLO embedding
+    enum Flags {
+        None = 0,
+        Lowercase = 1,
+        Uppercase = 2,
+        SmallCaps = 3,
+        Tab = 4,
+        TabOrObject = Tab,
+        Object = 5
+    };
+    unsigned short script    : 8;
     unsigned short bidiLevel : 6;  // Unicode Bidi algorithm embedding level (0-61)
-    unsigned short reserved  : 2;
-    bool operator == (const QScriptAnalysis &other) {
-        return
-            script == other.script &&
-            bidiLevel == other.bidiLevel;
-        // ###
-//             && override == other.override;
+    unsigned short flags     : 3;
+    inline bool operator == (const QScriptAnalysis &other) const {
+        return script == other.script && bidiLevel == other.bidiLevel && flags == other.flags;
     }
-
 };
 Q_DECLARE_TYPEINFO(QScriptAnalysis, Q_PRIMITIVE_TYPE);
 
-#elif defined(Q_WS_WIN)
-
-struct QScriptAnalysis {
-    unsigned short script         :10;
-    unsigned short rtl            :1;
-    unsigned short layoutRTL      :1;
-    unsigned short linkBefore     :1;
-    unsigned short linkAfter      :1;
-    unsigned short logicalOrder   :1;
-    unsigned short noGlyphIndex   :1;
-    unsigned short bidiLevel         :5;
-    unsigned short override          :1;
-    unsigned short inhibitSymSwap    :1;
-    unsigned short charShape         :1;
-    unsigned short digitSubstitute   :1;
-    unsigned short inhibitLigate     :1;
-    unsigned short fDisplayZWG        :1;
-    unsigned short arabicNumContext  :1;
-    unsigned short gcpClusters       :1;
-    unsigned short reserved          :1;
-    unsigned short engineReserved    :2;
-};
-Q_DECLARE_TYPEINFO(QScriptAnalysis, Q_PRIMITIVE_TYPE);
-
-inline bool operator == (const QScriptAnalysis &sa1, const QScriptAnalysis &sa2)
+struct QGlyphJustification
 {
-    return
-        sa1.script == sa2.script &&
-        sa1.bidiLevel == sa2.bidiLevel;
-        // ###
-//             && override == other.override;
-}
-
-#endif
-
-struct QGlyphLayout
-{
-    inline QGlyphLayout()
-        : glyph(0), justificationType(0), nKashidas(0), space_18d6(0)
-        {}
-
-    // highest value means highest priority for justification. Justification is done by first inserting kashidas
-    // starting with the highest priority positions, then stretching spaces, afterwards extending inter char
-    // spacing, and last spacing between arabic words.
-    // NoJustification is for example set for arabic where no Kashida can be inserted or for diacritics.
-    enum Justification {
-        NoJustification= 0,   // Justification can't be applied after this glyph
-        Arabic_Space   = 1,   // This glyph represents a space inside arabic text
-        Character      = 2,   // Inter-character justification point follows this glyph
-        Space          = 4,   // This glyph represents a blank outside an Arabic run
-        Arabic_Normal  = 7,   // Normal Middle-Of-Word glyph that connects to the right (begin)
-        Arabic_Waw     = 8,    // Next character is final form of Waw/Ain/Qaf/Fa
-        Arabic_BaRa    = 9,   // Next two chars are Ba + Ra/Ya/AlefMaksura
-        Arabic_Alef    = 10,  // Next character is final form of Alef/Tah/Lam/Kaf/Gaf
-        Arabic_HaaDal  = 11,  // Next character is final form of Haa/Dal/Taa Marbutah
-        Arabic_Seen    = 12,  // Initial or Medial form Of Seen/Sad
-        Arabic_Kashida = 13   // Kashida(U+640) in middle of word
-    };
-
-    glyph_t glyph;
-    struct Attributes {
-        unsigned short justification   :4;  // Justification class
-        unsigned short clusterStart    :1;  // First glyph of representation of cluster
-        unsigned short mark            :1;  // needs to be positioned around base char
-        unsigned short zeroWidth       :1;  // ZWJ, ZWNJ etc, with no width
-        unsigned short dontPrint       :1;
-        unsigned short combiningClass  :8;
-    };
-    Attributes attributes;
-    QFixedPoint advance;
-    QFixedPoint offset;
+    inline QGlyphJustification()
+        : type(0), nKashidas(0), space_18d6(0)
+    {}
 
     enum JustificationType {
         JustifyNone,
         JustifySpace,
         JustifyKashida
     };
-    uint justificationType :2;
+
+    uint type :2;
     uint nKashidas : 6; // more do not make sense...
     uint space_18d6 : 24;
+};
+Q_DECLARE_TYPEINFO(QGlyphJustification, Q_PRIMITIVE_TYPE);
+
+struct QGlyphLayout
+{
+    inline QGlyphLayout()
+        : glyph(0)
+        {}
+
+    HB_Glyph glyph;
+    HB_GlyphAttributes attributes;
+    QFixedPoint advance;
+    QFixedPoint offset;
+    QGlyphJustification justification;
+
+    inline QFixed effectiveAdvance() const
+    { return (advance.x + QFixed::fromFixed(justification.space_18d6)) * !attributes.dontPrint; }
 };
 Q_DECLARE_TYPEINFO(QGlyphLayout, Q_PRIMITIVE_TYPE);
 
@@ -404,33 +199,20 @@ inline bool qIsControlChar(ushort uc)
             || uc >= 0x206a /* ISS, ASS, IAFS, AFS, NADS, NODS */);
 }
 
-
-struct QCharAttributes {
-    enum LineBreakType {
-        NoBreak,
-        SoftHyphen,
-        Break,
-        ForcedBreak
-    };
-    uchar lineBreakType  :2;
-    uchar whiteSpace     :1;     // A unicode whitespace character, except NBSP, ZWNBSP
-    uchar charStop       :1;     // Valid cursor position (for left/right arrow)
-};
-Q_DECLARE_TYPEINFO(QCharAttributes, Q_PRIMITIVE_TYPE);
-
-struct QScriptItem
+struct Q_AUTOTEST_EXPORT QScriptItem
 {
-    inline QScriptItem() : position(0), isSpace(false), isTab(false),
-                           isObject(false),
-                           num_glyphs(0), descent(-1), ascent(-1), width(-1),
-                           glyph_data_offset(0) {}
+    inline QScriptItem()
+        : position(0),
+          num_glyphs(0), descent(-1), ascent(-1), width(-1),
+          glyph_data_offset(0) {}
+    inline QScriptItem(int p, const QScriptAnalysis &a)
+        : position(p), analysis(a),
+          num_glyphs(0), descent(-1), ascent(-1), width(-1),
+          glyph_data_offset(0) {}
 
     int position;
     QScriptAnalysis analysis;
-    unsigned short isSpace  : 1;
-    unsigned short isTab    : 1;
-    unsigned short isObject : 1;
-    int num_glyphs;
+    unsigned short num_glyphs;
     QFixed descent;
     QFixed ascent;
     QFixed width;
@@ -443,7 +225,7 @@ Q_DECLARE_TYPEINFO(QScriptItem, Q_MOVABLE_TYPE);
 
 typedef QVector<QScriptItem> QScriptItemArray;
 
-struct QScriptLine
+struct Q_AUTOTEST_EXPORT QScriptLine
 {
     QScriptLine()
         : from(0), length(0),
@@ -520,13 +302,14 @@ public:
     Q_DECLARE_FLAGS(ShaperFlags, ShaperFlag)
 
     void invalidate();
+    void clearLineData();
 
     void validate() const;
     void itemize() const;
 
     static void bidiReorder(int numRuns, const quint8 *levels, int *visualOrder);
 
-    const QCharAttributes *attributes() const;
+    const HB_CharAttributes *attributes() const;
 
     void shape(int item) const;
 
@@ -555,8 +338,21 @@ public:
     QFont font(const QScriptItem &si) const;
     inline QFont font() const { return fnt; }
 
+    /**
+     * Returns a pointer to an array of log clusters, offset at the script item.
+     * Each item in the array is a unsigned short.  For each character in the original string there is an entry in the table
+     * so there is a one to one correlation in indexes between the original text and the index in the logcluster.
+     * The value of each item is the position in the glyphs array. Multiple similar pointers in the logclusters array imply
+     * that one glyph is used for more than one character.
+     * \sa glyphs()
+     */
     inline unsigned short *logClusters(const QScriptItem *si) const
         { return layoutData->logClustersPtr+si->position; }
+    /**
+     * Returns an array of QGlyphLayout items, offset at the script item.
+     * Each item in the array matches one glyph in the text, storing the advance, position etc.
+     * \sa logClusters()
+     */
     inline QGlyphLayout *glyphs(const QScriptItem *si) const
         { return layoutData->glyphPtr + si->glyph_data_offset; }
 
@@ -585,7 +381,8 @@ public:
     }
     int formatIndex(const QScriptItem *si) const;
 
-    QFixed nextTab(const QScriptItem *si, QFixed x) const;
+    /// returns the width of tab at index (in the tabs array) with the tab-start at position x
+    QFixed calculateTabWidth(int index, QFixed x) const;
 
     mutable QScriptLineArray lines;
 
@@ -623,10 +420,19 @@ public:
 
     QString elidedText(Qt::TextElideMode mode, const QFixed &width, int flags = 0) const;
 
+    void shapeLine(const QScriptLine &line);
+
 private:
     void setBoundary(int strPos) const;
     void addRequiredBoundaries() const;
     void shapeText(int item) const;
+    void shapeTextWithHarfbuzz(int item) const;
+#if defined(Q_OS_WINCE)
+    void shapeTextWithCE(int item) const;
+#endif
+#if defined(Q_WS_MAC)
+    void shapeTextWithAtsui(int item) const;
+#endif
     void splitItem(int item, int pos) const;
 
     void resolveAdditionalFormats() const;
@@ -643,5 +449,6 @@ public:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QTextEngine::ShaperFlags)
 
+QT_END_NAMESPACE
 
 #endif // QTEXTENGINE_P_H

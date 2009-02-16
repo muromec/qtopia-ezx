@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/dialogs/qwizard.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/dialogs/qwizard.cpp -->
 <head>
-  <title>Qt 4.3: QWizard Class Reference</title>
+  <title>Qt 4.4: QWizard Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QWizard Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QWizard Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QWizard class provides a framework for wizards. <a href="#details">More...</a></p>
 <pre> #include &lt;QWizard&gt;</pre><p>Inherits <a href="qdialog.html">QDialog</a>.</p>
@@ -45,7 +45,7 @@
 </table></p>
 <ul>
 <li><div class="fn"/>2 properties inherited from <a href="qdialog.html#properties">QDialog</a></li>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -87,9 +87,9 @@
 </ul>
 <ul>
 <li><div class="fn"/>5 public functions inherited from <a href="qdialog.html#public-functions">QDialog</a></li>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -272,7 +272,7 @@
 <p>Here, we call <a href="qwizardpage.html#field">QWizardPage::field</a>() to access the contents of the <tt>className</tt> field (which was defined in the <tt>ClassInfoPage</tt>) and use it to initialize the <tt>OuputFilePage</tt>. The field's contents is returned as a <a href="qvariant.html">QVariant</a>.</p>
 <p>When we create a field using <a href="qwizardpage.html#registerField">QWizardPage::registerField</a>(), we pass a unique field name and a widget. We can also provide a Qt property name and a &quot;changed&quot; signal (a signal that is emitted when the property changes) as third and fourth arguments; however, this is not necessary for the most common Qt widgets, such as <a href="qlineedit.html">QLineEdit</a>, <a href="qcheckbox.html">QCheckBox</a>, and <a href="qcombobox.html">QComboBox</a>, because QWizard knows which properties to look for.</p>
 <a name="mandatory-fields"></a><p>If an asterisk (<tt>*</tt>) is appended to the name when the property is registered, the field is a <i>mandatory field</i>. When a page has mandatory fields, the <b>Next</b> and/or <b>Finish</b> buttons are enabled only when all mandatory fields are filled.</p>
-<p>To consider a field &quot;filled&quot;, QWizard simply checks that the field's current value doesn't equal the original value (the value it had when <a href="qwizard.html#initializePage">initializePage</a>() was called). For <a href="qlineedit.html">QLineEdit</a>, QWizard also checks that <a href="qlineedit.html#acceptableInput-prop">hasAcceptableInput()</a> returns true, to honor any validator or mask.</p>
+<p>To consider a field &quot;filled&quot;, QWizard simply checks that the field's current value doesn't equal the original value (the value it had when <a href="qwizard.html#initializePage">initializePage</a>() was called). For <a href="qlineedit.html">QLineEdit</a> and <a href="qabstractspinbox.html">QAbstractSpinBox</a> subclasses, QWizard also checks that <a href="qlineedit.html#acceptableInput-prop">hasAcceptableInput()</a> returns true, to honor any validator or mask.</p>
 <p>QWizard's mandatory field mechanism is provided for convenience. A more powerful (but also more cumbersome) alternative is to reimplement <a href="qwizardpage.html#isComplete">QWizardPage::isComplete</a>() and to emit the <a href="qwizardpage.html#completeChanged">QWizardPage::completeChanged</a>() signal whenever the page becomes complete or incomplete.</p>
 <p>The enabled/disabled state of the <b>Next</b> and/or <b>Finish</b> buttons is one way to perform validation on the user input. Another way is to reimplement <a href="qwizard.html#validateCurrentPage">validateCurrentPage</a>() (or <a href="qwizardpage.html#validatePage">QWizardPage::validatePage</a>()) to perform some last-minute validation (and show an error message if the user has entered incomplete or invalid information). If the function returns true, the next page is shown (or the wizard finishes); otherwise, the current page stays up.</p>
 <a name="creating-linear-wizards"></a>
@@ -462,6 +462,7 @@
 <h3 class="fn"><a name="currentId-prop"></a>currentId : const int</h3>
 <p>This property holds the ID of the current page.</p>
 <p>This property cannot be set directly. To change the current page, call <a href="qwizard.html#next">next</a>(), <a href="qwizard.html#back">back</a>(), or <a href="qwizard.html#restart">restart</a>().</p>
+<p>By default, this property has a value of -1, indicating that no page is currently shown.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>int currentId () const</b></li>
@@ -473,7 +474,7 @@
 <ul>
 <li>Windows: <a href="qwizard.html#WizardOption-enum">HelpButtonOnRight</a>.</li>
 <li>Mac OS X: <a href="qwizard.html#WizardOption-enum">NoDefaultButton</a> and <a href="qwizard.html#WizardOption-enum">NoCancelButton</a>.</li>
-<li>X11 and QWS (Qtopia Core): none.</li>
+<li>X11 and QWS (Qt for Embedded Linux): none.</li>
 </ul>
 <p>Access functions:</p>
 <ul>
@@ -510,7 +511,7 @@
 <p>See also <a href="qwizardpage.html#title-prop">QWizardPage::title</a> and <a href="qwizard.html#subTitleFormat-prop">subTitleFormat</a>.</p>
 <h3 class="fn"><a name="wizardStyle-prop"></a>wizardStyle : <a href="qwizard.html#WizardStyle-enum">WizardStyle</a></h3>
 <p>This property holds the look and feel of the wizard.</p>
-<p>By default, <a href="qwizard.html">QWizard</a> uses the <a href="qwizard.html#WizardStyle-enum">AeroStyle</a> on a Windows Vista system with alpha compositing enabled, regardless of the current widget style. If this is not the case, the default wizard style depends on the current widget style as follows: <a href="qwizard.html#WizardStyle-enum">MacStyle</a> is the default if the current widget style is <a href="qmacstyle.html">QMacStyle</a>, <a href="qwizard.html#WizardStyle-enum">ModernStyle</a> is the default if the current widget style is <a href="qwindowsstyle.html">QWindowsStyle</a>, and <a href="qwizard.html#WizardStyle-enum">ClassicStyle</a> is the default in all other cases.</p>
+<p>By default, <a href="qwizard.html">QWizard</a> uses the <a href="qwizard.html#WizardStyle-enum">AeroStyle</a> on a Windows Vista system with alpha compositing enabled, regardless of the current widget style. If this is not the case, the default wizard style depends on the current widget style as follows: <a href="qwizard.html#WizardStyle-enum">MacStyle</a> is the default if the current widget style is QMacStyle, <a href="qwizard.html#WizardStyle-enum">ModernStyle</a> is the default if the current widget style is <a href="qwindowsstyle.html">QWindowsStyle</a>, and <a href="qwizard.html#WizardStyle-enum">ClassicStyle</a> is the default in all other cases.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>WizardStyle wizardStyle () const</b></li>
@@ -541,7 +542,7 @@
 <p>By default, the text on buttons depends on the <a href="qwizard.html#wizardStyle-prop">wizardStyle</a>. For example, on Mac OS X, the <b>Next</b> button is called <b>Continue</b>.</p>
 <p>See also <a href="qwizard.html#button">button</a>(), <a href="qwizard.html#setButton">setButton</a>(), <a href="qwizard.html#setButtonText">setButtonText</a>(), <a href="qwizardpage.html#buttonText">QWizardPage::buttonText</a>(), and <a href="qwizardpage.html#setButtonText">QWizardPage::setButtonText</a>().</p>
 <h3 class="fn"><a name="cleanupPage"></a>void QWizard::cleanupPage ( int <i>id</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
-<p>This virtual function is called by <a href="qwizard.html">QWizard</a> when the user clicks <b>Back</b> (unless the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set).</p>
+<p>This virtual function is called by <a href="qwizard.html">QWizard</a> to clean up page <i>id</i> just before the user leaves it by clicking <b>Back</b> (unless the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set).</p>
 <p>The default implementation calls <a href="qwizardpage.html#cleanupPage">QWizardPage::cleanupPage</a>() on page(<i>id</i>).</p>
 <p>See also <a href="qwizardpage.html#cleanupPage">QWizardPage::cleanupPage</a>() and <a href="qwizard.html#initializePage">initializePage</a>().</p>
 <h3 class="fn"><a name="currentIdChanged"></a>void QWizard::currentIdChanged ( int <i>id</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
@@ -597,7 +598,7 @@
  }</pre>
 <p>See also <a href="qwizard.html#customButtonClicked">customButtonClicked</a>().</p>
 <h3 class="fn"><a name="initializePage"></a>void QWizard::initializePage ( int <i>id</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
-<p>This virtual function is called by <a href="qwizard.html">QWizard</a> to prepare page <i>id</i> just before it is shown. (However, if the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set, this function is only called the first time the page is shown.)</p>
+<p>This virtual function is called by <a href="qwizard.html">QWizard</a> to prepare page <i>id</i> just before it is shown as a result of the user clicking <b>Next</b>. (However, if the <a href="qwizard.html#WizardOption-enum">QWizard::IndependentPages</a> option is set, this function is only called the first time the page is shown.)</p>
 <p>By reimplementing this function, you can ensure that the page's fields are properly initialized based on fields from previous pages.</p>
 <p>The default implementation calls <a href="qwizardpage.html#initializePage">QWizardPage::initializePage</a>() on page(<i>id</i>).</p>
 <p>See also <a href="qwizardpage.html#initializePage">QWizardPage::initializePage</a>() and <a href="qwizard.html#cleanupPage">cleanupPage</a>().</p>
@@ -633,7 +634,7 @@
  {
      ...
      QList&lt;QWizard::WizardButton&gt; layout;
-     layout &lt;&lt; QWizard::Stretch &lt;&lt; QWizard::BackButton &lt;&lt; QWizard::CloseButton
+     layout &lt;&lt; QWizard::Stretch &lt;&lt; QWizard::BackButton &lt;&lt; QWizard::CancelButton
             &lt;&lt; QWizard::NextButton &lt;&lt; QWizard::FinishButton;
      setButtonLayout(layout);
      ...
@@ -689,8 +690,8 @@
 <p>See also <a href="qwizard.html#hasVisitedPage">hasVisitedPage</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

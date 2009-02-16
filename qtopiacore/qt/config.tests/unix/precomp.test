@@ -19,17 +19,17 @@ EOF
 EOF
 
     rm -f header.pchi
-    $COMPILER -create_pch header.pchi -include header.h -c header.cpp -o header.o >/dev/null 2>&1 \
-        && $COMPILER -use_pch header.pchi -include header.h -c source.cpp -o source.o >/dev/null 2>&1 \
+    $COMPILER -pch-create header.pchi -include header.h -c header.cpp -o header.o >/dev/null 2>&1 \
+        && $COMPILER -pch-use header.pchi -include header.h -c source.cpp -o source.o >/dev/null 2>&1 \
         && PRECOMP_SUPPORT=yes
 
     rm -f header.h header.cpp source.cpp
     rm -f header.pchi header.o source.o
     ;;
 
-g++)
-    case `"$COMPILER" --version 2>/dev/null` in
-    *3.3*)
+*g++*|c++)
+    case `"$COMPILER" -dumpversion 2>/dev/null` in
+    3.*)
         ;;
     *)
 

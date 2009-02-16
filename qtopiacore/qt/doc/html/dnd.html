@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/dnd.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/dnd.qdoc -->
 <head>
-  <title>Qt 4.3: Drag and Drop</title>
+  <title>Qt 4.4: Drag and Drop</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Drag and Drop<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Drag and Drop<br /><span class="subtitle"></span>
 </h1>
 <p>Drag and drop provides a simple visual mechanism which users can use to transfer information between and within applications. (In the literature this is referred to as a &quot;direct manipulation model&quot;.) Drag and drop is similar in function to the clipboard's cut and paste mechanism.</p>
 <ul><li><a href="#configuration">Configuration</a></li>
@@ -137,6 +137,7 @@
 <p>Of course, for this case we could have simply used <a href="qmimedata.html#setImageData">setImageData()</a> instead to supply image data in a variety of formats:</p>
 <pre>     mimeData-&gt;setImageData(QVariant(*imageLabel-&gt;pixmap()));</pre>
 <p>The <a href="qbytearray.html">QByteArray</a> approach is still useful in this case because it provides greater control over the amount of data stored in the <a href="qmimedata.html">QMimeData</a> object.</p>
+<p>Note that custom datatypes used in item views must be declared as <a href="qmetaobject.html">meta objects</a> and that stream operators for them must be implemented.</p>
 <a name="drop-actions"></a>
 <h3>Drop Actions</h3>
 <p>In the clipboard model, the user can <i>cut</i> or <i>copy</i> the source information, then later paste it. Similarly in the drag and drop model, the user can drag a <i>copy</i> of the information or they can drag the information itself to a new place (<i>moving</i> it). The drag and drop model has an additional complication for the programmer: The program doesn't know whether the user wants to cut or copy the information until the operation is complete. This often makes no difference when dragging information between applications, but within an application it is important to check which drop action was used.</p>
@@ -223,7 +224,7 @@
 </ul>
 <a name="interoperating-with-other-applications"></a>
 <h3>Interoperating with Other Applications</h3>
-<p>On X11, the public <a href="http://www.newplanetsoftware.com/xdnd/">XDND protocol</a> is used, while on Windows Qt uses the OLE standard, and Qt/Mac uses the Carbon Drag Manager. On X11, XDND uses MIME, so no translation is necessary. The Qt API is the same regardless of the platform. On Windows, MIME-aware applications can communicate by using clipboard format names that are MIME types. Already some Windows applications use MIME naming conventions for their clipboard formats. Internally, Qt uses <a href="qwindowsmime.html">QWindowsMime</a> and <a href="qmacpasteboardmime.html">QMacPasteboardMime</a> for translating proprietary clipboard formats to and from MIME types.</p>
+<p>On X11, the public <a href="http://www.newplanetsoftware.com/xdnd/">XDND protocol</a> is used, while on Windows Qt uses the OLE standard, and Qt for Mac OS X uses the Carbon Drag Manager. On X11, XDND uses MIME, so no translation is necessary. The Qt API is the same regardless of the platform. On Windows, MIME-aware applications can communicate by using clipboard format names that are MIME types. Already some Windows applications use MIME naming conventions for their clipboard formats. Internally, Qt uses QWindowsMime and QMacPasteboardMime for translating proprietary clipboard formats to and from MIME types.</p>
 <p>On X11, Qt also supports drops via the Motif Drag &amp; Drop Protocol. The implementation incorporates some code that was originally written by Daniel Dardailler, and adapted for Qt by Matt Koss &lt;koss@napri.sk&gt; and Trolltech. Here is the original copyright notice:</p>
 <div style="padding: 0.5em; background: #e0e0e0; color: black"><p>Copyright 1996 Daniel Dardailler.</p>
 <p>Permission to use, copy, modify, distribute, and sell this software for any purpose is hereby granted without fee, provided that the above copyright notice appear in all copies and that both that copyright notice and this permission notice appear in supporting documentation, and that the name of Daniel Dardailler not be used in advertising or publicity pertaining to distribution of the software without specific, written prior permission. Daniel Dardailler makes no representations about the suitability of this software for any purpose. It is provided &quot;as is&quot; without express or implied warranty.</p>
@@ -231,8 +232,8 @@
 </div><p>Note: The Motif Drag &amp; Drop Protocol only allows receivers to request data in response to a <a href="qdropevent.html">QDropEvent</a>. If you attempt to request data in response to e.g&#x2e; a <a href="qdragmoveevent.html">QDragMoveEvent</a>, an empty <a href="qbytearray.html">QByteArray</a> is returned.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

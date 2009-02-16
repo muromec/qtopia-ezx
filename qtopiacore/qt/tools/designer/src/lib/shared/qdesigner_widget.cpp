@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,7 +40,22 @@
 
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtGui/QPainter>
+#include <QtGui/QStyle>
+#include <QtGui/QStyleOption>
 #include <QtGui/qevent.h>
+
+QT_BEGIN_NAMESPACE
+
+/* QDesignerDialog / QDesignerWidget are used to paint a grid on QDialog and QWidget main containers
+ * and container extension pages.
+ * The paint routines work as follows:
+ * We need to clean the background here (to make the parent grid disappear in case we are a container page
+ * and to make palette background settings take effect),
+ * which would normally break style sheets with background settings.
+ * So, we manually make the style paint after cleaning. On top comes the grid
+ * In addition, this code works around
+ * the QStyleSheetStyle setting Qt::WA_StyledBackground to false for subclasses of QWidget.
+ */
 
 QDesignerDialog::QDesignerDialog(QDesignerFormWindowInterface *fw, QWidget *parent) :
     QDialog(parent),
@@ -56,12 +65,13 @@ QDesignerDialog::QDesignerDialog(QDesignerFormWindowInterface *fw, QWidget *pare
 
 void QDesignerDialog::paintEvent(QPaintEvent *e)
 {
-    if (m_formWindow && m_formWindow->gridVisible()) {
-        m_formWindow->designerGrid().paint(this, e);
-    } else {
-        QPainter p(this);
-        p.fillRect(e->rect(), palette().brush(QPalette::Window));
-    }
+    QPainter p(this);
+    QStyleOption opt;
+    opt.initFrom(this);
+    p.fillRect(e->rect(), palette().brush(backgroundRole()));
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+    if (m_formWindow && m_formWindow->gridVisible())
+        m_formWindow->designerGrid().paint(p, this, e);
 }
 
 QDesignerWidget::QDesignerWidget(QDesignerFormWindowInterface* formWindow, QWidget *parent)  :
@@ -81,13 +91,13 @@ QDesignerFormWindowInterface* QDesignerWidget::formWindow() const
 
 void QDesignerWidget::paintEvent(QPaintEvent *e)
 {
+    QPainter p(this);
+    QStyleOption opt;
+    opt.initFrom(this);
+    p.fillRect(e->rect(), palette().brush(backgroundRole()));
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
     if (m_formWindow && m_formWindow->gridVisible())
-        m_formWindow->designerGrid().paint(this, e);
-    else
-        QWidget::paintEvent(e);
+        m_formWindow->designerGrid().paint(p, this, e);
 }
 
-void QDesignerWidget::dragEnterEvent(QDragEnterEvent *)
-{
-//    e->setAccepted(QTextDrag::canDecode(e));
-}
+QT_END_NAMESPACE

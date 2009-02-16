@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,7 @@
 #include "qscriptcontext_p.h"
 #include "qscriptmember_p.h"
 #include "qscriptobject_p.h"
+#include "qscriptclassdata_p.h"
 
 #include <QtCore/QStringList>
 #include <QtCore/QtDebug>
@@ -57,21 +52,64 @@
 
 #include <limits.h>
 
+QT_BEGIN_NAMESPACE
+
 namespace QScript { namespace Ecma {
 
-String::StringClassData::StringClassData(QScriptClassInfo *classInfo):
+class StringClassData: public QScriptClassData
+{
+    QScriptClassInfo *m_classInfo;
+
+public:
+    StringClassData(QScriptClassInfo *classInfo);
+    virtual ~StringClassData();
+
+    inline QScriptClassInfo *classInfo() const
+        { return m_classInfo; }
+
+    virtual bool resolve(const QScriptValueImpl &object,
+                         QScriptNameIdImpl *nameId,
+                         QScript::Member *member, QScriptValueImpl *base);
+    virtual bool get(const QScriptValueImpl &object, const Member &member,
+                     QScriptValueImpl *out_value);
+    virtual bool put(QScriptValueImpl *object, const Member &member,
+                     const QScriptValueImpl &value);
+    virtual QScriptClassDataIterator *newIterator(const QScriptValueImpl &object);
+};
+
+class StringClassDataIterator: public QScriptClassDataIterator
+{
+public:
+    StringClassDataIterator(int length);
+    virtual ~StringClassDataIterator();
+
+    virtual bool hasNext() const;
+    virtual void next(QScript::Member *member);
+
+    virtual bool hasPrevious() const;
+    virtual void previous(QScript::Member *member);
+
+    virtual void toFront();
+    virtual void toBack();
+
+private:
+    int m_length;
+    int m_pos;
+};
+
+StringClassData::StringClassData(QScriptClassInfo *classInfo):
     m_classInfo(classInfo)
 {
 }
 
-String::StringClassData::~StringClassData()
+StringClassData::~StringClassData()
 {
 }
 
-bool String::StringClassData::resolve(const QScriptValueImpl &object,
-                                      QScriptNameIdImpl *nameId,
-                                      QScript::Member *member,
-                                      QScriptValueImpl *base)
+bool StringClassData::resolve(const QScriptValueImpl &object,
+                              QScriptNameIdImpl *nameId,
+                              QScript::Member *member,
+                              QScriptValueImpl *base)
 {
     if (object.classInfo() != classInfo())
         return false;
@@ -81,23 +119,28 @@ bool String::StringClassData::resolve(const QScriptValueImpl &object,
     if (nameId == eng->idTable()->id_length) {
         member->native(nameId, /*id=*/ 0,
                        QScriptValue::Undeletable
-                       | QScriptValue::ReadOnly);
+                       | QScriptValue::ReadOnly
+                       | QScriptValue::SkipInEnumeration);
         *base = object;
         return true;
     }
 
     bool ok = false;
     int index = nameId->s.toInt(&ok);
+    if (!ok || (index < 0))
+        return false;
 
-    if (ok)
-        member->native(nameId, index, QScriptValue::Undeletable);
+    QScriptNameIdImpl *ref = object.internalValue().stringValue();
+    if (index >= ref->s.length())
+        return false;
 
-    return ok;
+    member->native(nameId, index, QScriptValue::Undeletable | QScriptValue::ReadOnly);
+    return true;
 }
 
-bool String::StringClassData::get(const QScriptValueImpl &object,
-                                  const QScript::Member &member,
-                                  QScriptValueImpl *result)
+bool StringClassData::get(const QScriptValueImpl &object,
+                          const QScript::Member &member,
+                          QScriptValueImpl *result)
 {
     Q_ASSERT(member.isValid());
 
@@ -123,77 +166,93 @@ bool String::StringClassData::get(const QScriptValueImpl &object,
     return true;
 }
 
-int String::StringClassData::extraMemberCount(const QScriptValueImpl &object)
+bool StringClassData::put(QScriptValueImpl *, const Member &,
+                          const QScriptValueImpl &)
 {
-    if (object.classInfo() != classInfo())
-        return 0;
-
-    QScriptNameIdImpl *ref = object.internalValue().stringValue();
-    return ref->s.length();
-}
-
-bool String::StringClassData::extraMember(const QScriptValueImpl &object,
-                                          int index, Member *member)
-{
-    if (object.classInfo() != classInfo())
-        return false;
-
-    member->native(/*nameId=*/ 0, index, QScriptValue::Undeletable);
+    // writes to string elements are ignored
     return true;
 }
 
-String::String(QScriptEnginePrivate *eng):
-    Core(eng)
+QScriptClassDataIterator *StringClassData::newIterator(const QScriptValueImpl &object)
 {
-    m_classInfo = eng->registerClass(QLatin1String("String"));
-    QExplicitlySharedDataPointer<QScriptClassData> data(new StringClassData(m_classInfo));
-    m_classInfo->setData(data);
+    QScriptNameIdImpl *id = object.internalValue().stringValue();
+    return new StringClassDataIterator(id->s.length());
+}
 
-    publicPrototype.invalidate();
+StringClassDataIterator::StringClassDataIterator(int length)
+{
+    m_length = length;
+    m_pos = 0;
+}
+
+StringClassDataIterator::~StringClassDataIterator()
+{
+}
+
+bool StringClassDataIterator::hasNext() const
+{
+    return m_pos < m_length;
+}
+
+void StringClassDataIterator::next(QScript::Member *member)
+{
+    member->native(/*nameId=*/ 0, m_pos, QScriptValue::Undeletable | QScriptValue::ReadOnly);
+    ++m_pos;
+}
+
+bool StringClassDataIterator::hasPrevious() const
+{
+    return (m_pos - 1) >= 0;
+}
+
+void StringClassDataIterator::previous(QScript::Member *member)
+{
+    --m_pos;
+    member->native(/*nameId=*/ 0, m_pos, QScriptValue::Undeletable | QScriptValue::ReadOnly);
+}
+
+void StringClassDataIterator::toFront()
+{
+    m_pos = 0;
+}
+
+void StringClassDataIterator::toBack()
+{
+    m_pos = m_length;
+}
+
+
+
+String::String(QScriptEnginePrivate *eng):
+    Core(eng, QLatin1String("String"), QScriptClassInfo::StringType)
+{
+    QExplicitlySharedDataPointer<QScriptClassData> data(new StringClassData(classInfo()));
+    classInfo()->setData(data);
+
     newString(&publicPrototype, QString());
 
     eng->newConstructor(&ctor, this, publicPrototype);
 
-    const QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("valueOf"),
-                                eng->createFunction(method_valueOf, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("charAt"),
-                                eng->createFunction(method_charAt, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("charCodeAt"),
-                                eng->createFunction(method_charCodeAt, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("concat"),
-                                eng->createFunction(method_concat, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("indexOf"),
-                                eng->createFunction(method_indexOf, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("lastIndexOf"),
-                                eng->createFunction(method_lastIndexOf, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("localeCompare"),
-                                eng->createFunction(method_localeCompare, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("match"),
-                                eng->createFunction(method_match, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("replace"),
-                                eng->createFunction(method_replace, 2, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("search"),
-                                eng->createFunction(method_search, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("slice"),
-                                eng->createFunction(method_slice, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("split"),
-                                eng->createFunction(method_split, 2, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("substring"),
-                                eng->createFunction(method_substring, 2, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toLowerCase"),
-                                eng->createFunction(method_toLowerCase, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toLocaleLowerCase"),
-                                eng->createFunction(method_toLocaleLowerCase, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toUpperCase"),
-                                eng->createFunction(method_toUpperCase, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toLocaleUpperCase"),
-                                eng->createFunction(method_toLocaleUpperCase, 0, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 0);
+    addPrototypeFunction(QLatin1String("valueOf"), method_valueOf, 0);
+    addPrototypeFunction(QLatin1String("charAt"), method_charAt, 1);
+    addPrototypeFunction(QLatin1String("charCodeAt"), method_charCodeAt, 1);
+    addPrototypeFunction(QLatin1String("concat"), method_concat, 0);
+    addPrototypeFunction(QLatin1String("indexOf"), method_indexOf, 1);
+    addPrototypeFunction(QLatin1String("lastIndexOf"), method_lastIndexOf, 1);
+    addPrototypeFunction(QLatin1String("localeCompare"), method_localeCompare, 1);
+    addPrototypeFunction(QLatin1String("match"), method_match, 1);
+    addPrototypeFunction(QLatin1String("replace"), method_replace, 2);
+    addPrototypeFunction(QLatin1String("search"), method_search, 1);
+    addPrototypeFunction(QLatin1String("slice"), method_slice, 0);
+    addPrototypeFunction(QLatin1String("split"), method_split, 2);
+    addPrototypeFunction(QLatin1String("substring"), method_substring, 2);
+    addPrototypeFunction(QLatin1String("toLowerCase"), method_toLowerCase, 0);
+    addPrototypeFunction(QLatin1String("toLocaleLowerCase"), method_toLocaleLowerCase, 0);
+    addPrototypeFunction(QLatin1String("toUpperCase"), method_toUpperCase, 0);
+    addPrototypeFunction(QLatin1String("toLocaleUpperCase"), method_toLocaleUpperCase, 0);
 
-    ctor.setProperty(QLatin1String("fromCharCode"),
-                     eng->createFunction(method_fromCharCode, 1, m_classInfo), flags);
+    addConstructorFunction(QLatin1String("fromCharCode"), method_fromCharCode, 1);
 }
 
 String::~String()
@@ -202,6 +261,9 @@ String::~String()
 
 void String::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionEntry(context);
+#endif
     QString value;
 
     if (context->argumentCount() > 0)
@@ -217,6 +279,9 @@ void String::execute(QScriptContextPrivate *context)
         obj.setPrototype(publicPrototype);
         context->setReturnValue(obj);
     }
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionExit(context);
+#endif
 }
 
 void String::newString(QScriptValueImpl *result, const QString &value)
@@ -669,5 +734,7 @@ QScriptValueImpl String::method_fromCharCode(QScriptContextPrivate *context, QSc
 }
 
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

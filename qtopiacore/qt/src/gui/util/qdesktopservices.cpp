@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,8 @@
 #include <qcoreapplication.h>
 #include <qurl.h>
 #include <qmutex.h>
+
+QT_BEGIN_NAMESPACE
 
 class QOpenUrlHandlerRegistry : public QObject
 {
@@ -140,18 +136,7 @@ void QOpenUrlHandlerRegistry::handlerDestroyed(QObject *handler)
     URLs, and by registering a handler it becomes possible to display the help text
     inside the application:
 
-    \code
-    class MyHelpHandler : public QObject
-    {
-        Q_OBJECT
-    public:
-        ...
-    public slots:
-        void showHelp(const QUrl &url);
-    };
-
-    QDesktopServices::setUrlHandler("help", helpInstance, "showHelp");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_util_qdesktopservices.cpp 0
 
     If inside the handler you decide that you can't open the requested
     URL, you can just call QDesktopServices::openUrl() again with the
@@ -162,22 +147,20 @@ void QOpenUrlHandlerRegistry::handlerDestroyed(QObject *handler)
 */
 
 /*!
-    Opens the given \a url in the appropriate web browser for the user's desktop
+    Opens the given \a url in the appropriate Web browser for the user's desktop
     environment, and returns true if successful; otherwise returns false.
 
-    If the URL is a reference to a local file (i.e. the URL scheme is "file") then
-    it will be opened with a suitable application instead of a web browser.
+    If the URL is a reference to a local file (i.e., the URL scheme is "file") then
+    it will be opened with a suitable application instead of a Web browser.
 
     If a \c mailto URL is specified, the user's e-mail client will be used to open a
     composer window containing the options specified in the URL, similar to the way
-    \c mailto links are handled by a web browser.
+    \c mailto links are handled by a Web browser.
 
     For example, the following URL contains a recipient (\c{user@foo.com}), a
     subject (\c{Test}), and a message body (\c{Just a test}):
 
-    \code
-    mailto:user@foo.com?subject=Test&body=Just a test
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_util_qdesktopservices.cpp 1
 
     \warning Although many e-mail clients can send attachments and are
     Unicode-aware, the user may have configured their client without these features.
@@ -230,7 +213,7 @@ bool QDesktopServices::openUrl(const QUrl &url)
     Note that the handler will always be called from within the same thread that
     calls QDesktopServices::openUrl().
 
-    \sa openUrl()
+    \sa openUrl(), unsetUrlHandler()
 */
 void QDesktopServices::setUrlHandler(const QString &scheme, QObject *receiver, const char *method)
 {
@@ -249,12 +232,58 @@ void QDesktopServices::setUrlHandler(const QString &scheme, QObject *receiver, c
 }
 
 /*!
-    Removes a previously set url handler for the specified \a scheme.
+    Removes a previously set URL handler for the specified \a scheme.
+
+    \sa setUrlHandler()
 */
 void QDesktopServices::unsetUrlHandler(const QString &scheme)
 {
     setUrlHandler(scheme, 0, 0);
 }
+
+/*!
+    \enum QDesktopServices::StandardLocation
+    \since 4.4
+
+    This enum describes the different locations that can be queried
+    by QDesktopServices::storageLocation and QDesktopServices::displayName.
+
+    \value DesktopLocation Returns the users desktop.
+    \value DocumentsLocation Returns the users document.
+    \value FontsLocation Returns the users fonts.
+    \value ApplicationsLocation Returns the users applications.
+    \value MusicLocation Returns the users music.
+    \value MoviesLocation Returns the users movies.
+    \value PicturesLocation Returns the users pictures.
+    \value TempLocation Returns the system's temporary directory.
+    \value HomeLocation Returns the user's home directory.
+    \value DataLocation Returns a directory location where persistent application
+           data can be stored.  QCoreApplication::applicationName and
+           QCoreApplication::organizationName should be set to work
+           on all platforms.
+
+    \sa storageLocation() displayName()
+*/
+
+/*!
+    \fn QString QDesktopServices::storageLocation(StandardLocation type)
+    \since 4.4
+
+    Returns the default system directory where files of \a type belong, or an empty string
+    if the location cannot be determined.
+
+    \note The storage location returned can be a directory that does not exist; i.e., it
+    may need to be created by the system or the user.
+*/
+
+/*!
+    \fn QString QDesktopServices::displayName(StandardLocation type)
+
+    Returns a localized display name for the given location \a type or
+    an empty QString if no relevant location can be found.
+*/
+
+QT_END_NAMESPACE
 
 #include "qdesktopservices.moc"
 

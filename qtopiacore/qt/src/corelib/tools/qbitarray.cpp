@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,6 +39,8 @@
 #include <qdatastream.h>
 #include <qdebug.h>
 #include <string.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QBitArray
@@ -64,9 +60,7 @@
     The following code constructs a QBitArray containing 200 bits
     initialized to false (0):
 
-    \code
-        QBitArray ba(200);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 0
 
     To initialize the bits to true, either pass \c true as second
     argument to the constructor, or call fill() later on.
@@ -77,24 +71,13 @@
     bit that can be used on the left side of an assignment. For
     example:
 
-    \code
-        QBitArray ba;
-        ba.resize(3);
-        ba[0] = true;
-        ba[1] = false;
-        ba[2] = true;
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 1
 
     For technical reasons, it is more efficient to use testBit() and
     setBit() to access bits in the array than operator[](). For
     example:
 
-    \code
-        QBitArray ba(3);
-        ba.setBit(0, true);
-        ba.setBit(1, false);
-        ba.setBit(2, true);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 2
 
     QBitArray supports \c{&} (\link operator&() AND\endlink), \c{|}
     (\link operator|() OR\endlink), \c{^} (\link operator^()
@@ -103,18 +86,7 @@
     as the built-in C++ bitwise operators of the same name. For
     example:
 
-    \code
-        QBitArray x(5);
-        x.setBit(3, true);
-        // x: [ 0, 0, 0, 1, 0 ]
-
-        QBitArray y(5);
-        y.setBit(4, true);
-        // y: [ 0, 0, 0, 0, 1 ]
-
-        x |= y;
-        // x: [ 0, 0, 0, 1, 1 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 3
 
     For historical reasons, QBitArray distinguishes between a null
     bit array and an empty bit array. A \e null bit array is a bit
@@ -123,16 +95,7 @@
     array is always empty, but an empty bit array isn't necessarily
     null:
 
-    \code
-        QBitArray().isNull();           // returns true
-        QBitArray().isEmpty();          // returns true
-
-        QBitArray(0).isNull();          // returns false
-        QBitArray(0).isEmpty();         // returns true
-
-        QBitArray(3).isNull();          // returns false
-        QBitArray(3).isEmpty();         // returns false
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 4
 
     All functions except isNull() treat null bit arrays the same as
     empty bit arrays; for example, QBitArray() compares equal to
@@ -259,11 +222,7 @@ void QBitArray::resize(int size)
     Returns true if this bit array is null; otherwise returns false.
 
     Example:
-    \code
-        QBitArray().isNull();           // returns true
-        QBitArray(0).isNull();          // returns false
-        QBitArray(3).isNull();          // returns false
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 5
 
     Qt makes a distinction between null bit arrays and empty bit
     arrays for historical reasons. For most applications, what
@@ -280,14 +239,7 @@ void QBitArray::resize(int size)
     the bit array is resized to \a size beforehand.
 
     Example:
-    \code
-        QBitArray ba(8);
-        ba.fill(true);
-        // ba: [ 1, 1, 1, 1, 1, 1, 1, 1 ]
-
-        ba.fill(false, 2);
-        // ba: [ 0, 0 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 6
 
     \sa resize()
 */
@@ -414,12 +366,7 @@ void QBitArray::fill(bool value, int begin, int end)
     \a i < size()).
 
     Example:
-    \code
-        QBitArray a(3);
-        a[0] = false;
-        a[1] = true;
-        a[2] = a[0] ^ a[1];
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 7
 
     The return value is of type QBitRef, a helper class for QBitArray.
     When you get an object of type QBitRef, you can assign to
@@ -491,13 +438,7 @@ void QBitArray::fill(bool value, int begin, int end)
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        a &= b;                         // a: [ 1, 0, 0 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 8
 
     \sa operator&(), operator|=(), operator^=(), operator~()
 */
@@ -526,13 +467,7 @@ QBitArray &QBitArray::operator&=(const QBitArray &other)
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        a |= b;                         // a: [ 1, 1, 1 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 9
 
     \sa operator|(), operator&=(), operator^=(), operator~()
 */
@@ -558,13 +493,7 @@ QBitArray &QBitArray::operator|=(const QBitArray &other)
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        a ^= b;                         // a: [ 0, 1, 1 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 10
 
     \sa operator^(), operator&=(), operator|=(), operator~()
 */
@@ -585,12 +514,7 @@ QBitArray &QBitArray::operator^=(const QBitArray &other)
     array.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b;
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b = ~a;                         // b: [ 0, 1, 0 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 11
 
     \sa operator&(), operator|(), operator^()
 */
@@ -622,14 +546,7 @@ QBitArray QBitArray::operator~() const
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        QBitArray c;
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        c = a & b;                      // c: [ 1, 0, 0 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 12
 
     \sa QBitArray::operator&=(), operator|(), operator^()
 */
@@ -652,14 +569,7 @@ QBitArray operator&(const QBitArray &a1, const QBitArray &a2)
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        QBitArray c;
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        c = a | b;                      // c: [ 1, 1, 1 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 13
 
     \sa QBitArray::operator|=(), operator&(), operator^()
 */
@@ -682,14 +592,7 @@ QBitArray operator|(const QBitArray &a1, const QBitArray &a2)
     taken to be 0.
 
     Example:
-    \code
-        QBitArray a(3);
-        QBitArray b(2);
-        QBitArray c;
-        a[0] = 1; a[1] = 0; a[2] = 1;   // a: [ 1, 0, 1 ]
-        b[0] = 1; b[1] = 0;             // b: [ 1, 1 ]
-        c = a ^ b;                      // c: [ 0, 1, 1 ]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qbitarray.cpp 14
 
     \sa QBitArray::operator^=(), operator&(), operator|()
 */
@@ -817,3 +720,5 @@ QDataStream &operator>>(QDataStream &in, QBitArray &ba)
     \typedef QBitArray::DataPtr
     \internal
 */
+
+QT_END_NAMESPACE

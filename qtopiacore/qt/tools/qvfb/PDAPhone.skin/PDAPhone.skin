@@ -4,6 +4,7 @@ Down=pda_down.png
 Screen=42 59 176 220 
 Cursor=finger.png 20 20
 Areas=10
+HasMouseHover=false
 
 "Power"	     0x0100000a  117  21  141 42
 "Context1"   0x01100000   43 284  74 315

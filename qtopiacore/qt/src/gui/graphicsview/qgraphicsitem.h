@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,7 +45,11 @@
 #include <QtGui/qpainterpath.h>
 #include <QtGui/qpixmap.h>
 
+class tst_QGraphicsItem;
+
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Gui)
 
@@ -68,6 +66,7 @@ class QGraphicsSceneHoverEvent;
 class QGraphicsSceneMouseEvent;
 class QGraphicsSceneWheelEvent;
 class QGraphicsScene;
+class QGraphicsWidget;
 class QInputMethodEvent;
 class QKeyEvent;
 class QMatrix;
@@ -104,7 +103,26 @@ public:
         ItemTransformChange,
         ItemPositionHasChanged,
         ItemTransformHasChanged,
-        ItemSceneChange
+        ItemSceneChange,
+        ItemVisibleHasChanged,
+        ItemEnabledHasChanged,
+        ItemSelectedHasChanged,
+        ItemParentHasChanged,
+        ItemSceneHasChanged,
+        ItemCursorChange,
+        ItemCursorHasChanged,
+        ItemToolTipChange,
+        ItemToolTipHasChanged,
+        ItemFlagsChange,
+        ItemFlagsHaveChanged,
+        ItemZValueChange,
+        ItemZValueHasChanged
+    };
+
+    enum CacheMode {
+        NoCache,
+        ItemCoordinateCache,
+        DeviceCoordinateCache
     };
 
     QGraphicsItem(QGraphicsItem *parent = 0
@@ -119,8 +137,14 @@ public:
 
     QGraphicsItem *parentItem() const;
     QGraphicsItem *topLevelItem() const;
+    QGraphicsWidget *parentWidget() const;
+    QGraphicsWidget *topLevelWidget() const;
+    QGraphicsWidget *window() const;
     void setParentItem(QGraphicsItem *parent);
-    QList<QGraphicsItem *> children() const;
+    QList<QGraphicsItem *> children() const; // ### obsolete
+    QList<QGraphicsItem *> childItems() const;
+    bool isWidget() const;
+    bool isWindow() const;
 
     QGraphicsItemGroup *group() const;
     void setGroup(QGraphicsItemGroup *group);
@@ -128,6 +152,9 @@ public:
     GraphicsItemFlags flags() const;
     void setFlag(GraphicsItemFlag flag, bool enabled = true);
     void setFlags(GraphicsItemFlags flags);
+
+    CacheMode cacheMode() const;
+    void setCacheMode(CacheMode mode, const QSize &cacheSize = QSize());
 
 #ifndef QT_NO_TOOLTIP
     QString toolTip() const;
@@ -142,6 +169,7 @@ public:
 #endif
 
     bool isVisible() const;
+    bool isVisibleTo(const QGraphicsItem *parent) const;
     void setVisible(bool visible);
     inline void hide() { setVisible(false); }
     inline void show() { setVisible(true); }
@@ -158,8 +186,10 @@ public:
     Qt::MouseButtons acceptedMouseButtons() const;
     void setAcceptedMouseButtons(Qt::MouseButtons buttons);
 
-    bool acceptsHoverEvents() const;
-    void setAcceptsHoverEvents(bool enabled);
+    bool acceptsHoverEvents() const; // obsolete
+    void setAcceptsHoverEvents(bool enabled); // obsolete
+    bool acceptHoverEvents() const;
+    void setAcceptHoverEvents(bool enabled);
 
     bool handlesChildEvents() const;
     void setHandlesChildEvents(bool enabled);
@@ -167,6 +197,11 @@ public:
     bool hasFocus() const;
     void setFocus(Qt::FocusReason focusReason = Qt::OtherFocusReason);
     void clearFocus();
+
+    void grabMouse();
+    void ungrabMouse();
+    void grabKeyboard();
+    void ungrabKeyboard();
 
     // Positioning in scene coordinates
     QPointF pos() const;
@@ -216,10 +251,15 @@ public:
     virtual bool isObscuredBy(const QGraphicsItem *item) const;
     virtual QPainterPath opaqueArea() const;
 
+    QRegion boundingRegion(const QTransform &itemToDeviceTransform) const;
+    qreal boundingRegionGranularity() const;
+    void setBoundingRegionGranularity(qreal granularity);
+
     // Drawing
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0) = 0;
     void update(const QRectF &rect = QRectF());
     inline void update(qreal x, qreal y, qreal width, qreal height);
+    void scroll(qreal dx, qreal dy, const QRectF &rect = QRectF());
 
     // Coordinate mapping
     QPointF mapToItem(const QGraphicsItem *item, const QPointF &point) const;
@@ -261,6 +301,8 @@ public:
     inline QPolygonF mapFromScene(qreal x, qreal y, qreal w, qreal h) const;
 
     bool isAncestorOf(const QGraphicsItem *child) const;
+    QGraphicsItem *commonAncestorItem(const QGraphicsItem *other) const;
+    bool isUnderMouse() const;
 
     // Custom data
     QVariant data(int key) const;
@@ -325,15 +367,13 @@ private:
     friend class QGraphicsSceneFindItemBspTreeVisitor;
     friend class QGraphicsView;
     friend class QGraphicsViewPrivate;
-    friend class tst_QGraphicsItem;
+    friend class QGraphicsWidget;
+    friend class ::tst_QGraphicsItem;
     friend bool qt_closestLeaf(const QGraphicsItem *, const QGraphicsItem *);
     friend bool qt_closestItemFirst(const QGraphicsItem *, const QGraphicsItem *);
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QGraphicsItem::GraphicsItemFlags)
-Q_DECLARE_METATYPE(QGraphicsItem *)
-Q_DECLARE_METATYPE(QGraphicsScene *)
-
 inline void QGraphicsItem::setPos(qreal ax, qreal ay)
 { setPos(QPointF(ax, ay)); }
 inline void QGraphicsItem::ensureVisible(qreal ax, qreal ay, qreal w, qreal h, int xmargin, int ymargin)
@@ -908,7 +948,13 @@ template <class T> inline T qgraphicsitem_cast(const QGraphicsItem *item)
 
 #ifndef QT_NO_DEBUG_STREAM
 Q_GUI_EXPORT QDebug operator<<(QDebug debug, QGraphicsItem *item);
+Q_GUI_EXPORT QDebug operator<<(QDebug debug, QGraphicsItem::GraphicsItemChange change);
 #endif
+
+QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(QGraphicsItem *)
+Q_DECLARE_METATYPE(QGraphicsScene *)
 
 QT_END_HEADER
 

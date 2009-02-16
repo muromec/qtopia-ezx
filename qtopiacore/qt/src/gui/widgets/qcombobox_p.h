@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,7 +54,8 @@
 #ifndef QT_NO_COMBOBOX
 #include "QtGui/qabstractslider.h"
 #include "QtGui/qapplication.h"
-#include "qitemdelegate.h"
+#include "QtGui/qitemdelegate.h"
+#include "QtGui/qstandarditemmodel.h"
 #include "QtGui/qlineedit.h"
 #include "QtGui/qlistview.h"
 #include "QtGui/qpainter.h"
@@ -77,11 +72,13 @@
 
 #include <limits.h>
 
+QT_BEGIN_NAMESPACE
+
 class QComboBoxListView : public QListView
 {
     Q_OBJECT
 public:
-        QComboBoxListView(QComboBox *cmb = 0) : combo(cmb){};
+    QComboBoxListView(QComboBox *cmb = 0) : combo(cmb) {}
 
 protected:
     void resizeEvent(QResizeEvent *event)
@@ -129,7 +126,7 @@ private:
 
 class QStandardItemModel;
 
-class QComboBoxPrivateScroller : public QWidget
+class Q_AUTOTEST_EXPORT QComboBoxPrivateScroller : public QWidget
 {
     Q_OBJECT
 
@@ -210,7 +207,7 @@ private:
     bool fast;
 };
 
-class QComboBoxPrivateContainer : public QFrame
+class Q_AUTOTEST_EXPORT QComboBoxPrivateContainer : public QFrame
 {
     Q_OBJECT
 
@@ -257,7 +254,7 @@ private:
 class QComboMenuDelegate : public QAbstractItemDelegate
 {
 public:
-    QComboMenuDelegate(QObject *parent, QComboBox *cmb) : QAbstractItemDelegate(parent), mCombo(cmb), pal(QApplication::palette("QMenu")) {}
+    QComboMenuDelegate(QObject *parent, QComboBox *cmb) : QAbstractItemDelegate(parent), mCombo(cmb) {}
 
 protected:
     void paint(QPainter *painter,
@@ -270,8 +267,6 @@ protected:
     QSize sizeHint(const QStyleOptionViewItem &option,
                    const QModelIndex &index) const {
         QStyleOptionMenuItem opt = getStyleOption(option, index);
-        QVariant value = index.model()->data(index, Qt::FontRole);
-        QFont fnt = value.isValid() ? qvariant_cast<QFont>(value) : option.font;
         return mCombo->style()->sizeFromContents(
             QStyle::CT_MenuItem, &opt, option.rect.size(), mCombo);
     }
@@ -280,7 +275,53 @@ private:
     QStyleOptionMenuItem getStyleOption(const QStyleOptionViewItem &option,
                                         const QModelIndex &index) const;
     QComboBox *mCombo;
-    QPalette pal;
+};
+
+// Note that this class is intentionally not using QStyledItemDelegate 
+// Vista does not use the new theme for combo boxes and there might 
+// be other side effects from using the new class
+class QComboBoxDelegate : public QItemDelegate
+{
+public:
+    QComboBoxDelegate(QObject *parent, QComboBox *cmb) : QItemDelegate(parent), mCombo(cmb) {}
+
+    static bool isSeparator(const QModelIndex &index) {
+        return index.data(Qt::AccessibleDescriptionRole).toString() == QString::fromLatin1("separator");
+    }
+    static void setSeparator(QAbstractItemModel *model, const QModelIndex &index) {
+        model->setData(index, QString::fromLatin1("separator"), Qt::AccessibleDescriptionRole);
+        if (QStandardItemModel *m = qobject_cast<QStandardItemModel*>(model))
+            if (QStandardItem *item = m->itemFromIndex(index))
+                item->setFlags(item->flags() & ~(Qt::ItemIsSelectable|Qt::ItemIsEnabled));
+    }
+
+protected:
+    void paint(QPainter *painter,
+               const QStyleOptionViewItem &option,
+               const QModelIndex &index) const {
+        if (isSeparator(index)) {
+            QRect rect = option.rect;
+            if (const QStyleOptionViewItemV3 *v3 = qstyleoption_cast<const QStyleOptionViewItemV3*>(&option))
+                if (const QAbstractItemView *view = qobject_cast<const QAbstractItemView*>(v3->widget))
+                    rect.setWidth(view->viewport()->width());
+            QStyleOption opt;
+            opt.rect = rect;
+            mCombo->style()->drawPrimitive(QStyle::PE_IndicatorToolBarSeparator, &opt, painter, mCombo);
+        } else {
+            QItemDelegate::paint(painter, option, index);
+        }
+    }
+
+    QSize sizeHint(const QStyleOptionViewItem &option,
+                   const QModelIndex &index) const {
+        if (isSeparator(index)) {
+            int pm = mCombo->style()->pixelMetric(QStyle::PM_DefaultFrameWidth, 0, mCombo);
+            return QSize(pm, pm);
+        }
+        return QItemDelegate::sizeHint(option, index);
+    }
+private:
+    QComboBox *mCombo;
 };
 
 class QComboBoxPrivate : public QWidgetPrivate
@@ -320,6 +361,7 @@ public:
     QString itemText(const QModelIndex &index) const;
     int itemRole() const;
     void updateLayoutDirection();
+    void setCurrentIndex(const QModelIndex &index);
 
     QAbstractItemModel *model;
     QLineEdit *lineEdit;
@@ -349,7 +391,11 @@ public:
 #ifndef QT_NO_COMPLETER
     QPointer<QCompleter> completer;
 #endif
+    static QPalette viewContainerPalette(QComboBox *cmb)
+    { return cmb->d_func()->viewContainer()->palette(); }
 };
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_COMBOBOX
 

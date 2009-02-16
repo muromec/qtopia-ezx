@@ -27,6 +27,9 @@
 <section ref="designer-resources.html" title="Editing Resources with Qt Designer">
     <keyword ref="designer-resources.html">Editing Resources with Qt Designer</keyword>
 </section>
+<section ref="designer-stylesheet.html" title="Using Stylesheets with Qt Designer">
+    <keyword ref="designer-stylesheet.html">Using Stylesheets with Qt Designer</keyword>
+</section>
 <section ref="designer-customizing-forms.html" title="Customizing Qt Designer Forms">
     <keyword ref="designer-customizing-forms.html">Customizing Qt Designer Forms</keyword>
 </section>

@@ -1,4 +1,4 @@
-TARGET  = qsvg
+TARGET  = qsvgicon
 include(../../qpluginbase.pri)
 
 HEADERS += qsvgiconengine.h

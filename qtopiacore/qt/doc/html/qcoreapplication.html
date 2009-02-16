@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/kernel/qcoreapplication.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/kernel/qcoreapplication.cpp -->
 <head>
-  <title>Qt 4.3: QCoreApplication Class Reference</title>
+  <title>Qt 4.4: QCoreApplication Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QCoreApplication Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QCoreApplication Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QCoreApplication class provides an event loop for console Qt applications. <a href="#details">More...</a></p>
 <pre> #include &lt;QCoreApplication&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
@@ -31,6 +31,7 @@
 <h3>Properties</h3>
 <ul>
 <li><div class="fn"/><b><a href="qcoreapplication.html#applicationName-prop">applicationName</a></b> : QString</li>
+<li><div class="fn"/><b><a href="qcoreapplication.html#applicationVersion-prop">applicationVersion</a></b> : QString</li>
 <li><div class="fn"/><b><a href="qcoreapplication.html#organizationDomain-prop">organizationDomain</a></b> : QString</li>
 <li><div class="fn"/><b><a href="qcoreapplication.html#organizationName-prop">organizationName</a></b> : QString</li>
 </ul>
@@ -45,7 +46,7 @@
 <li><div class="fn"/>bool <b><a href="qcoreapplication.html#filterEvent">filterEvent</a></b> ( void * <i>message</i>, long * <i>result</i> )</li>
 <li><div class="fn"/>virtual bool <b><a href="qcoreapplication.html#notify">notify</a></b> ( QObject * <i>receiver</i>, QEvent * <i>event</i> )</li>
 <li><div class="fn"/>EventFilter <b><a href="qcoreapplication.html#setEventFilter">setEventFilter</a></b> ( EventFilter <i>filter</i> )</li>
-<li><div class="fn"/>virtual bool <b><a href="qcoreapplication.html#winEventFilter">winEventFilter</a></b> ( MSG * <i>msg</i>, long * <i>result</i> )</li>
+<li><div class="fn"/>virtual bool <b><a href="qcoreapplication.html#winEventFilter">winEventFilter</a></b> ( MSG * <i>message</i>, long * <i>result</i> )</li>
 </ul>
 <ul>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
@@ -73,6 +74,8 @@
 <li><div class="fn"/>QString <b><a href="qcoreapplication.html#applicationDirPath">applicationDirPath</a></b> ()</li>
 <li><div class="fn"/>QString <b><a href="qcoreapplication.html#applicationFilePath">applicationFilePath</a></b> ()</li>
 <li><div class="fn"/>QString <b><a href="qcoreapplication.html#applicationName-prop">applicationName</a></b> ()</li>
+<li><div class="fn"/>qint64 <b><a href="qcoreapplication.html#applicationPid">applicationPid</a></b> ()</li>
+<li><div class="fn"/>QString <b><a href="qcoreapplication.html#applicationVersion-prop">applicationVersion</a></b> ()</li>
 <li><div class="fn"/>QStringList <b><a href="qcoreapplication.html#arguments">arguments</a></b> ()</li>
 <li><div class="fn"/>bool <b><a href="qcoreapplication.html#closingDown">closingDown</a></b> ()</li>
 <li><div class="fn"/>int <b><a href="qcoreapplication.html#exec">exec</a></b> ()</li>
@@ -96,6 +99,7 @@
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#sendPostedEvents">sendPostedEvents</a></b> ( QObject * <i>receiver</i>, int <i>event_type</i> )</li>
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#sendPostedEvents-2">sendPostedEvents</a></b> ()</li>
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#applicationName-prop">setApplicationName</a></b> ( const QString &amp; <i>application</i> )</li>
+<li><div class="fn"/>void <b><a href="qcoreapplication.html#applicationVersion-prop">setApplicationVersion</a></b> ( const QString &amp; <i>version</i> )</li>
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#setAttribute">setAttribute</a></b> ( Qt::ApplicationAttribute <i>attribute</i>, bool <i>on</i> = true )</li>
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#setLibraryPaths">setLibraryPaths</a></b> ( const QStringList &amp; <i>paths</i> )</li>
 <li><div class="fn"/>void <b><a href="qcoreapplication.html#organizationDomain-prop">setOrganizationDomain</a></b> ( const QString &amp; <i>orgDomain</i> )</li>
@@ -159,7 +163,16 @@
 <li><div class="fn"/><b>QString applicationName ()</b></li>
 <li><div class="fn"/><b>void setApplicationName ( const QString &amp; <i>application</i> )</b></li>
 </ul>
-<p>See also <a href="qcoreapplication.html#organizationName-prop">organizationName</a> and <a href="qcoreapplication.html#organizationDomain-prop">organizationDomain</a>.</p>
+<p>See also <a href="qcoreapplication.html#organizationName-prop">organizationName</a>, <a href="qcoreapplication.html#organizationDomain-prop">organizationDomain</a>, and <a href="qcoreapplication.html#applicationVersion-prop">applicationVersion</a>.</p>
+<h3 class="fn"><a name="applicationVersion-prop"></a>applicationVersion : <a href="qstring.html">QString</a></h3>
+<p>This property holds the version of this application.</p>
+<p>This property was introduced in Qt 4.4.</p>
+<p>Access functions:</p>
+<ul>
+<li><div class="fn"/><b>QString applicationVersion ()</b></li>
+<li><div class="fn"/><b>void setApplicationVersion ( const QString &amp; <i>version</i> )</b></li>
+</ul>
+<p>See also <a href="qcoreapplication.html#applicationName-prop">applicationName</a>, <a href="qcoreapplication.html#organizationName-prop">organizationName</a>, and <a href="qcoreapplication.html#organizationDomain-prop">organizationDomain</a>.</p>
 <h3 class="fn"><a name="organizationDomain-prop"></a>organizationDomain : <a href="qstring.html">QString</a></h3>
 <p>This property holds the Internet domain of the organization that wrote this application.</p>
 <p>The value is used by the <a href="qsettings.html">QSettings</a> class when it is constructed using the empty constructor. This saves having to repeat this information each time a <a href="qsettings.html">QSettings</a> object is created.</p>
@@ -169,7 +182,7 @@
 <li><div class="fn"/><b>QString organizationDomain ()</b></li>
 <li><div class="fn"/><b>void setOrganizationDomain ( const QString &amp; <i>orgDomain</i> )</b></li>
 </ul>
-<p>See also <a href="qcoreapplication.html#organizationName-prop">organizationName</a> and <a href="qcoreapplication.html#applicationName-prop">applicationName</a>.</p>
+<p>See also <a href="qcoreapplication.html#organizationName-prop">organizationName</a>, <a href="qcoreapplication.html#applicationName-prop">applicationName</a>, and <a href="qcoreapplication.html#applicationVersion-prop">applicationVersion</a>.</p>
 <h3 class="fn"><a name="organizationName-prop"></a>organizationName : <a href="qstring.html">QString</a></h3>
 <p>This property holds the name of the organization that wrote this application.</p>
 <p>The value is used by the <a href="qsettings.html">QSettings</a> class when it is constructed using the empty constructor. This saves having to repeat this information each time a <a href="qsettings.html">QSettings</a> object is created.</p>
@@ -193,7 +206,7 @@
 <p>The signal is particularly useful if your application has to do some last-second cleanup. Note that no user interaction is possible in this state.</p>
 <p>See also <a href="qcoreapplication.html#quit">quit</a>().</p>
 <h3 class="fn"><a name="addLibraryPath"></a>void QCoreApplication::addLibraryPath ( const <a href="qstring.html">QString</a> &amp; <i>path</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
-<p>Appends <i>path</i> to the end of the library path list. If <i>path</i> is empty or already in the path list, the path list is not changed.</p>
+<p>Prepends <i>path</i> to the end of the library path list. If <i>path</i> is empty or already in the path list, the path list is not changed.</p>
 <p>The default path list consists of a single entry, the installation directory for plugins. The default installation directory for plugins is <tt>INSTALL/plugins</tt>, where <tt>INSTALL</tt> is the directory where Qt was installed.</p>
 <p>See also <a href="qcoreapplication.html#removeLibraryPath">removeLibraryPath</a>(), <a href="qcoreapplication.html#libraryPaths">libraryPaths</a>(), and <a href="qcoreapplication.html#setLibraryPaths">setLibraryPaths</a>().</p>
 <h3 class="fn"><a name="applicationDirPath"></a><a href="qstring.html">QString</a> QCoreApplication::applicationDirPath ()&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -207,12 +220,15 @@
 <p>For example, if you have installed Qt in the <tt>/usr/local/qt</tt> directory, and you run the <tt>regexp</tt> example, this function will return &quot;/usr/local/qt/examples/tools/regexp/regexp&quot;.</p>
 <p><b>Warning:</b> On Unix, this function assumes that argv[0] contains the file name of the executable (which it normally does). It also assumes that the current directory hasn't been changed by the application.</p>
 <p>See also <a href="qcoreapplication.html#applicationDirPath">applicationDirPath</a>().</p>
+<h3 class="fn"><a name="applicationPid"></a><a href="qtglobal.html#qint64-typedef">qint64</a> QCoreApplication::applicationPid ()&nbsp;&nbsp;<tt> [static]</tt></h3>
+<p>Returns the current process ID for the application.</p>
+<p>This function was introduced in Qt 4.4.</p>
 <h3 class="fn"><a name="arguments"></a><a href="qstringlist.html">QStringList</a> QCoreApplication::arguments ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the list of command-line arguments.</p>
 <p>arguments().at(0) is the program name, arguments().at(1) is the first argument, and arguments().last() is the last argument.</p>
 <p>Calling this function is slow - you should store the result in a variable when parsing the command line.</p>
 <p><b>Warning:</b> On Unix, this list is built from the argc and argv parameters passed to the constructor in the main() function. The string-data in argv is interpreted using <a href="qstring.html#fromLocal8Bit">QString::fromLocal8Bit</a>(); hence it is not possible to pass i.e&#x2e; Japanese command line arguments on a system that runs in a latin1 locale. Most modern Unix systems do not have this limitation, as they are Unicode based.</p>
-<p>On NT-based Windows, this limitation does not apply either.</p>
+<p>On NT-based Windows, this limitation does not apply either. On Windows, the arguments() are not built from the contents of argv/argc, as the content does not support Unicode. Instead, the arguments() are constructed from the return value of <a href="http://msdn2.microsoft.com/en-us/library/ms683156(VS.85).aspx">GetCommandLine()</a>.</p>
 <p>This function was introduced in Qt 4.1.</p>
 <h3 class="fn"><a name="closingDown"></a>bool QCoreApplication::closingDown ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns true if the application objects are being destroyed; otherwise returns false.</p>
@@ -241,7 +257,8 @@
 <h3 class="fn"><a name="installTranslator"></a>void QCoreApplication::installTranslator ( <a href="qtranslator.html">QTranslator</a> * <i>translationFile</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Adds the translation file <i>translationFile</i> to the list of translation files to be used for translations.</p>
 <p>Multiple translation files can be installed. Translations are searched for in the last installed translation file on, back to the first installed translation file. The search stops as soon as a matching translation is found.</p>
-<p>See also <a href="qcoreapplication.html#removeTranslator">removeTranslator</a>(), <a href="qcoreapplication.html#translate">translate</a>(), and <a href="qtranslator.html#load">QTranslator::load</a>().</p>
+<p>Installing or removing a <a href="qtranslator.html">QTranslator</a>, or changing an installed <a href="qtranslator.html">QTranslator</a> generates a <a href="qevent.html#Type-enum">LanguageChange</a> event for the <a href="qcoreapplication.html">QCoreApplication</a> instance. A <a href="qapplication.html">QApplication</a> instance will propagate the event to all toplevel windows, where a reimplementation of changeEvent can re-translate the user interface by passing user-visible strings via the <a href="qobject.html#tr">tr</a>() function to the respective property setters. User-interface classes generated by <a href="designer-manual.html#qt-designer">Qt Designer</a> provide a <tt>retranslateUi()</tt> function that can be called.</p>
+<p>See also <a href="qcoreapplication.html#removeTranslator">removeTranslator</a>(), <a href="qcoreapplication.html#translate">translate</a>(), <a href="qtranslator.html#load">QTranslator::load</a>(), and <a href="i18n.html#dynamic-translation">Dynamic Translation</a>.</p>
 <h3 class="fn"><a name="instance"></a>QCoreApplication * QCoreApplication::instance ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns a pointer to the application's <a href="qcoreapplication.html">QCoreApplication</a> (or <a href="qapplication.html">QApplication</a>) instance.</p>
 <h3 class="fn"><a name="libraryPaths"></a><a href="qstringlist.html">QStringList</a> QCoreApplication::libraryPaths ()&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -326,8 +343,9 @@
 <p>See also <a href="qcoreapplication.html#postEvent">postEvent</a>() and <a href="qcoreapplication.html#notify">notify</a>().</p>
 <h3 class="fn"><a name="sendPostedEvents"></a>void QCoreApplication::sendPostedEvents ( <a href="qobject.html">QObject</a> * <i>receiver</i>, int <i>event_type</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Immediately dispatches all events which have been previously queued with <a href="qcoreapplication.html#postEvent">QCoreApplication::postEvent</a>() and which are for the object <i>receiver</i> and have the event type <i>event_type</i>.</p>
-<p>Note that events from the window system are <i>not</i> dispatched by this function, but by <a href="qcoreapplication.html#processEvents">processEvents</a>().</p>
+<p>Events from the window system are <i>not</i> dispatched by this function, but by <a href="qcoreapplication.html#processEvents">processEvents</a>().</p>
 <p>If <i>receiver</i> is null, the events of <i>event_type</i> are sent for all objects. If <i>event_type</i> is 0, all the events are sent for <i>receiver</i>.</p>
+<p><b>Note:</b> This method must be called from the same thread as its <a href="qobject.html">QObject</a> parameter, <i>receiver</i>.</p>
 <p>See also <a href="qcoreapplication.html#flush">flush</a>() and <a href="qcoreapplication.html#postEvent">postEvent</a>().</p>
 <h3 class="fn"><a name="sendPostedEvents-2"></a>void QCoreApplication::sendPostedEvents ()&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -364,9 +382,7 @@
 <p>See also <a href="qobject.html#tr">QObject::tr</a>(), <a href="qcoreapplication.html#installTranslator">installTranslator</a>(), and <a href="qtextcodec.html#codecForTr">QTextCodec::codecForTr</a>().</p>
 <h3 class="fn"><a name="translate-2"></a><a href="qstring.html">QString</a> QCoreApplication::translate ( const char * <i>context</i>, const char * <i>sourceText</i>, const char * <i>comment</i> = 0, <a href="qcoreapplication.html#Encoding-enum">Encoding</a> <i>encoding</i> = CodecForTr )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<h3 class="fn"><a name="winEventFilter"></a>bool QCoreApplication::winEventFilter ( MSG * <i>msg</i>, long * <i>result</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>The message procedure calls this function for every message received. Reimplement this function if you want to process window messages <i>msg</i> that are not processed by Qt. If you don't want the event to be processed by Qt, then return true and set <i>result</i> to the value that the window procedure should return. Otherwise return false.</p>
-<p>It is only directly addressed messages that are filtered. To handle system wide messages, such as messages from a registered hot key, you need to install an event filter on the event dispatcher, which is returned from <a href="qabstracteventdispatcher.html#instance">QAbstractEventDispatcher::instance</a>().</p>
+<h3 class="fn"><a name="winEventFilter"></a>bool QCoreApplication::winEventFilter ( MSG * <i>message</i>, long * <i>result</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <hr />
 <h2>Related Non-Members</h2>
 <h3 class="fn"><a name="qAddPostRoutine"></a>void qAddPostRoutine ( QtCleanUpFunction <i>ptr</i> )</h3>
@@ -434,8 +450,8 @@
 <p>See also <a href="qobject.html#Q_OBJECT">Q_OBJECT</a>, <a href="qobject.html#tr">QObject::tr</a>(), and <a href="qobject.html#trUtf8">QObject::trUtf8</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

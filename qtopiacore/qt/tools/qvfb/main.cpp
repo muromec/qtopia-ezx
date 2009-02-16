@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,6 +42,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#ifdef Q_WS_X11
+#include <QX11Info>
+#endif
+
+QT_BEGIN_NAMESPACE
 
 void fn_quit_qvfb(int)
 {
@@ -59,12 +58,12 @@ void fn_quit_qvfb(int)
 void usage( const char *app )
 {
     printf( "Usage: %s [-width width] [-height height] [-depth depth] [-zoom zoom]"
-	    "[-mmap] [-nocursor] [-qwsdisplay :id] [-skin skindirectory]\n"
+	    "[-mmap] [-nocursor] [-qwsdisplay :id] [-x11display :id] [-skin skindirectory]\n"
 	    "Supported depths: 1, 4, 8, 32\n", app );
 }
 int qvfb_protocol = 0;
 
-int main( int argc, char *argv[] )
+int runQVfb( int argc, char *argv[] )
 {
     Q_INIT_RESOURCE(qvfb);
 
@@ -72,9 +71,11 @@ int main( int argc, char *argv[] )
 
     int width = 0;
     int height = 0;
-    int depth = 32;
+    int depth = -32; // default, but overridable by skin
+    bool depthSet = false;
     int rotation = 0;
     bool cursor = true;
+    QVFb::DisplayType displayType = QVFb::QWS;
     double zoom = 1.0;
     QString displaySpec( ":0" );
     QString skin;
@@ -89,6 +90,7 @@ int main( int argc, char *argv[] )
 	    skin = argv[++i];
 	} else if ( arg == "-depth" ) {
 	    depth = atoi( argv[++i] );
+	    depthSet = true;
 	} else if ( arg == "-nocursor" ) {
 	    cursor = false;
 	} else if ( arg == "-mmap" ) {
@@ -97,6 +99,17 @@ int main( int argc, char *argv[] )
 	    zoom = atof( argv[++i] );
 	} else if ( arg == "-qwsdisplay" ) {
 	    displaySpec = argv[++i];
+	    displayType = QVFb::QWS;
+#ifdef Q_WS_X11
+	} else if ( arg == "-x11display" ) {
+	    displaySpec = argv[++i];
+	    displayType = QVFb::X11;
+
+	    // Usually only the default X11 depth will work with Xnest,
+	    // so override the default of 32 with the actual X11 depth.
+	    if (!depthSet)
+		depth = -QX11Info::appDepth(); // default, but overridable by skin
+#endif
 	} else {
 	    printf( "Unknown parameter %s\n", arg.toLatin1().constData() );
 	    usage( argv[0] );
@@ -113,7 +126,7 @@ int main( int argc, char *argv[] )
     }
     QRegExp rotRegExp( "Rot[0-9]+" );
     m = rotRegExp.indexIn( displaySpec, 0 );
-    len = r.matchedLength();
+    len = rotRegExp.matchedLength();
     if ( m >= 0 ) {
 	rotation = displaySpec.mid( m+3, len-3 ).toInt();
     }
@@ -122,11 +135,18 @@ int main( int argc, char *argv[] )
     signal(SIGINT, fn_quit_qvfb);
     signal(SIGTERM, fn_quit_qvfb);
 
-    QVFb mw( displayId, width, height, depth, rotation, skin );
+    QVFb mw( displayId, width, height, depth, rotation, skin, displayType );
     mw.setZoom(zoom);
     //app.setMainWidget( &mw );
     mw.enableCursor(cursor);
     mw.show();
 
     return app.exec();
+}
+
+QT_END_NAMESPACE
+
+int main( int argc, char *argv[] )
+{
+    return QT_PREPEND_NAMESPACE(runQVfb)(argc, argv);
 }

@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/accessible.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/accessible.qdoc -->
 <head>
-  <title>Qt 4.3: Accessibility</title>
+  <title>Qt 4.4: Accessibility</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Accessibility<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Accessibility<br /><span class="subtitle"></span>
 </h1>
 <ul><li><a href="#introduction">Introduction</a></li>
 <li><a href="#architecture">Architecture</a></li>
@@ -50,7 +50,7 @@
 <li><a href="qaccessible.html#RelationFlag-enum">Relation</a>: Describes the relationship between objects in the object tree. This is used for navigation.</li>
 </ul>
 <p>The clients also have some possibilities to get the content of objects, e.g&#x2e;, a button's text; the object provides strings defined by the <a href="qaccessible.html#Text-enum">QAccessible::Text</a> enum, that give information about content.</p>
-<p>The objects can be in a number of different states as defined by the <a href="qaccessible.html#StateFlag-enum">State</a> enum. Examples of states are whether the object is disabled, if it has focus, or if it provides a popup menu.</p>
+<p>The objects can be in a number of different states as defined by the <a href="qaccessible.html#StateFlag-enum">State</a> enum. Examples of states are whether the object is disabled, if it has focus, or if it provides a pop-up menu.</p>
 <a name="the-accessible-object-tree"></a>
 <h3>The Accessible Object Tree</h3>
 <p>As mentioned, a tree structure is built from the accessible objects of an application. By navigating through the tree, the clients can access all elements in the UI. Object relations give clients information about the UI. For instance, a slider handle is a child of the slider to which it belongs. <a href="qaccessible.html#RelationFlag-enum">QAccessible::Relation</a> describes the various relationships the clients can ask objects for.</p>
@@ -58,7 +58,7 @@
 <p>AT-Clients have access to the accessibility object tree through the root object in the tree, which is the <a href="qapplication.html">QApplication</a>. They can query other objects through QAccessible::navigate(), which fetches objects based on <a href="qaccessible.html#RelationFlag-enum">Relation</a>s. The children of any node is 1-based numbered. The child numbered 0 is the object itself. The children of all interfaces are numbered this way, i.e&#x2e;, it is not a fixed numbering from the root node in the entire tree.</p>
 <p>Qt provides accessible interfaces for its widgets. Interfaces for any <a href="qobject.html">QObject</a> subclass can be requested through QAccessible::queryInterface(). A default implementation is provided if a more specialized interface is not defined. An AT-Client cannot acquire an interface for accessible objects that do not have an equivalent <a href="qobject.html">QObject</a>, e.g&#x2e;, scroll bar handles, but they appear as normal objects through interfaces of parent accessible objects, e.g&#x2e;, you can query their relationships with QAccessible::relationTo().</p>
 <p>To illustrate, we present an image of an accessible object tree. Beneath the tree is a table with examples of object relationships.</p>
-<p align="center"><img src="images/accessibleobjecttree.png" /></p><p>The labels in top-down order are: the <a href="qaccessibleinterface.html">QAccessibleInterface</a> class name, the widget for which an interface is provided, and the <a href="qaccessible.html#Role-enum">Role</a> of the object. The Position, PageLeft, and PageRight are the slider handle, the sldier groove left and right of the handle; these accessible objects do not have an equivalent <a href="qobject.html">QObject</a>.</p>
+<p align="center"><img src="images/accessibleobjecttree.png" /></p><p>The labels in top-down order are: the <a href="qaccessibleinterface.html">QAccessibleInterface</a> class name, the widget for which an interface is provided, and the <a href="qaccessible.html#Role-enum">Role</a> of the object. The Position, PageLeft and PageRight correspond to the slider handle, the slider groove left and the slider groove right, respectively. These accessible objects do not have an equivalent <a href="qobject.html">QObject</a>.</p>
 <p><table width="40%" align="center" cellpadding="2" cellspacing="1" border="0">
 <thead><tr valign="top" class="qt-style"><th>Source Object</th><th>Target Object</th><th>Relation</th></tr></thead>
 <tr valign="top" class="odd"><td>Slider</td><td>Indicator</td><td>Controller</td></tr>
@@ -79,9 +79,9 @@
 <p>To provide accessibility support for a widget or other user interface element, you need to implement the <a href="qaccessibleinterface.html">QAccessibleInterface</a> and distribute it in a <a href="qaccessibleplugin.html">QAccessiblePlugin</a>. It is also possible to compile the interface into the application and provide a <a href="qaccessible.html#InterfaceFactory-typedef">QAccessible::InterfaceFactory</a> for it. The factory can be used if you link statically or do not want the added complexity of plugins. This can be an advantage if you, for instance, are delivering a 3-rd party library.</p>
 <p>All widgets and other user interface elements should have interfaces and plugins. If you want your application to support accessibility, you will need to consider the following:</p>
 <ul>
-<li>Qt already supports accessibility for its own widgets. A good way to ensure accessibility compliance is to use Qt's widgets as much as possible.</li>
-<li>You need to send accessibility events from the custom user interface elements that you implement, which are usually custom widgets.</li>
-<li><a href="qaccessibleinterface.html">QAccessibleInterface</a> needs to be implemented for widgets that you want to make available to accessibility clients.</li>
+<li>Qt already implements accessibility for its own widgets. We therefore recommend that you use Qt widgets where possible.</li>
+<li>A <a href="qaccessibleinterface.html">QAccessibleInterface</a> needs to be implemented for each element that you want to make available to accessibility clients.</li>
+<li>You need to send accessibility events from the custom user interface elements that you implement.</li>
 </ul>
 <p>In general, it is recommended that you are somewhat familiar with MSAA, which Qt originally was built for. You should also study the enum values of <a href="qaccessible.html">QAccessible</a>, which describe the roles, actions, relationships, and events that you need to consider.</p>
 <p>Note that you can examine how Qt's widgets implement their accessibility. One major problem with the MSAA standard is that interfaces are often implemented in an inconsistent way. This makes life difficult for clients and often leads to guesswork on object functionality.</p>
@@ -275,8 +275,8 @@
  }</pre>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

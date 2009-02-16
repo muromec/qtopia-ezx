@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,8 +56,24 @@
 
 #include <shlobj.h>
 
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
 #include <commdlg.h>
+#  ifndef BFFM_SETSELECTION
+#    define BFFM_SETSELECTION (WM_USER + 102)
+#  endif
+// Windows Mobile has a broken definition for BROWSEINFO
+// Only compile fix
+typedef struct qt_priv_browseinfo {
+    HWND          hwndOwner;
+    LPCITEMIDLIST pidlRoot;
+    LPTSTR        pszDisplayName;
+    LPCTSTR       lpszTitle;
+    UINT          ulFlags;
+    BFFCALLBACK   lpfn;
+    LPARAM        lParam;
+    int           iImage;
+} qt_BROWSEINFO;
+bool qt_priv_ptr_valid = false;
 #endif
 
 
@@ -71,15 +81,16 @@
 //
 // resolving the W methods manually is needed, because Windows 95 doesn't include
 // these methods in Shell32.lib (not even stubs!), so you'd get an unresolved symbol
-// when Qt calls getEsistingDirectory(), etc.
+// when Qt calls getExistingDirectory(), etc.
 typedef LPITEMIDLIST (WINAPI *PtrSHBrowseForFolder)(BROWSEINFO*);
 static PtrSHBrowseForFolder ptrSHBrowseForFolder = 0;
 typedef BOOL (WINAPI *PtrSHGetPathFromIDList)(LPITEMIDLIST,LPWSTR);
 static PtrSHGetPathFromIDList ptrSHGetPathFromIDList = 0;
 
+QT_BEGIN_NAMESPACE
+
 static void qt_win_resolve_libs()
 {
-#ifndef Q_OS_TEMP
     static bool triedResolve = false;
 
     if (!triedResolve) {
@@ -97,18 +108,21 @@ static void qt_win_resolve_libs()
 
         triedResolve = true;
         if (!(QSysInfo::WindowsVersion & QSysInfo::WV_DOS_based)) {
+#if !defined(Q_OS_WINCE)
             QLibrary lib(QLatin1String("shell32"));
             ptrSHBrowseForFolder = (PtrSHBrowseForFolder) lib.resolve("SHBrowseForFolderW");
             ptrSHGetPathFromIDList = (PtrSHGetPathFromIDList) lib.resolve("SHGetPathFromIDListW");
+#else
+            // CE stores them in a different lib and does not use unicode version
+    	    HINSTANCE handle = LoadLibraryW(L"Ceshell");
+            ptrSHBrowseForFolder = (PtrSHBrowseForFolder)GetProcAddress(handle, L"SHBrowseForFolder");
+            ptrSHGetPathFromIDList = (PtrSHGetPathFromIDList)GetProcAddress(handle, L"SHGetPathFromIDList");
+            if (ptrSHBrowseForFolder && ptrSHGetPathFromIDList)
+                qt_priv_ptr_valid = true;
+#endif
         }
     }
-#endif
 }
-#ifdef Q_OS_TEMP
-#define PtrSHBrowseForFolder SHBrowseForFolder ;
-#define PtrSHGetPathFromIDList SHGetPathFromIDList;
-#endif
-
 
 extern const char* qt_file_dialog_filter_reg_exp; // defined in qfiledialog.cpp
 extern QStringList qt_make_filter_list(const QString &filter);
@@ -132,7 +146,11 @@ static QStringList qt_win_make_filters_list(const QString &filter)
     QString f(filter);
 
     if (f.isEmpty())
+#ifndef Q_OS_WINCE
         f = QFileDialog::tr("All Files (*)");
+#else
+        f = QFileDialog::tr("All Files (*.*)");
+#endif
 
     return qt_make_filter_list(f);
 }
@@ -161,7 +179,7 @@ static QString qt_win_selected_filter(const QString &filter, DWORD idx)
     return qt_win_make_filters_list(filter).at((int)idx - 1);
 }
 
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
 // Static vars for OFNA funcs:
 static QByteArray aInitDir;
 static QByteArray aInitSel;
@@ -296,7 +314,6 @@ static OPENFILENAME* qt_win_make_OFN(QWidget *parent,
     ofn->lpstrInitialDir = (TCHAR *)tInitDir.utf16();
     ofn->lpstrTitle = (TCHAR *)tTitle.utf16();
     ofn->Flags = (OFN_NOCHANGEDIR | OFN_HIDEREADONLY | OFN_EXPLORER);
-
     if (mode == QFileDialog::ExistingFile ||
          mode == QFileDialog::ExistingFiles)
         ofn->Flags |= (OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST);
@@ -481,6 +498,12 @@ QString qt_win_get_save_file_name(const QFileDialogArgs &args,
         }
         qt_win_clean_up_OFNA(&ofn);
     });
+#if defined(Q_OS_WINCE)
+    int semIndex = result.indexOf(QLatin1Char(';'));
+    if (semIndex >= 0)
+        result = result.left(semIndex);
+#endif
+
     QApplicationPrivate::leaveModal(&modal_widget);
 
     qt_win_eatMouseMove();
@@ -614,7 +637,6 @@ static int __stdcall winGetExistDirCallbackProc(HWND hwnd,
                                                 LPARAM lParam,
                                                 LPARAM lpData)
 {
-#ifndef Q_OS_TEMP
     if (uMsg == BFFM_INITIALIZED && lpData != 0) {
         QString *initDir = (QString *)(lpData);
         if (!initDir->isEmpty()) {
@@ -647,7 +669,6 @@ static int __stdcall winGetExistDirCallbackProc(HWND hwnd,
             SendMessageA(hwnd, BFFM_SETSTATUSTEXT, 1, LPARAM(path));
         });
     }
-#endif
     return 0;
 }
 
@@ -658,7 +679,6 @@ static int __stdcall winGetExistDirCallbackProc(HWND hwnd,
 
 QString qt_win_get_existing_directory(const QFileDialogArgs &args)
 {
-#ifndef Q_OS_TEMP
     QString currentDir = QDir::currentPath();
     QString result;
     QWidget *parent = args.parent;
@@ -673,6 +693,7 @@ QString qt_win_get_existing_directory(const QFileDialogArgs &args)
     modal_widget.setAttribute(Qt::WA_NoChildEventsForParent, true);
     modal_widget.setParent(parent, Qt::Window);
     QApplicationPrivate::enterModal(&modal_widget);
+#if !defined(Q_OS_WINCE)
     QT_WA({
         qt_win_resolve_libs();
         QString initDir = QDir::toNativeSeparators(args.directory);
@@ -691,19 +712,21 @@ QString qt_win_get_existing_directory(const QFileDialogArgs &args)
         bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT | BIF_NEWDIALOGSTYLE;
         bi.lpfn = winGetExistDirCallbackProc;
         bi.lParam = LPARAM(&initDir);
-        LPITEMIDLIST pItemIDList = ptrSHBrowseForFolder(&bi);
-        if (pItemIDList) {
-            ptrSHGetPathFromIDList(pItemIDList, path);
-            IMalloc *pMalloc;
-            if (SHGetMalloc(&pMalloc) != NOERROR)
+        if (ptrSHBrowseForFolder) {
+            LPITEMIDLIST pItemIDList = ptrSHBrowseForFolder(&bi);
+            if (pItemIDList && ptrSHGetPathFromIDList) {
+                ptrSHGetPathFromIDList(pItemIDList, path);
+                IMalloc *pMalloc;
+                if (SHGetMalloc(&pMalloc) != NOERROR)
+                    result = QString();
+                else {
+                    pMalloc->Free(pItemIDList);
+                    pMalloc->Release();
+                    result = QString::fromUtf16((ushort*)path);
+                }
+            } else
                 result = QString();
-            else {
-                pMalloc->Free(pItemIDList);
-                pMalloc->Release();
-                result = QString::fromUtf16((ushort*)path);
-            }
-        } else
-            result = QString();
+        }
         tTitle = QString();
     } , {
         QString initDir = QDir::toNativeSeparators(args.directory);
@@ -735,6 +758,41 @@ QString qt_win_get_existing_directory(const QFileDialogArgs &args)
         } else
             result = QString();
     });
+#else
+    qt_win_resolve_libs();
+    QString initDir = QDir::toNativeSeparators(args.directory);
+    TCHAR path[MAX_PATH];
+    TCHAR initPath[MAX_PATH];
+    memset(initPath, 0 , MAX_PATH*sizeof(TCHAR));
+    memset(path, 0, MAX_PATH*sizeof(TCHAR));
+    tTitle = args.caption;
+    qt_BROWSEINFO bi;
+    Q_ASSERT(!parent ||parent->testAttribute(Qt::WA_WState_Created));
+    bi.hwndOwner = (parent ? parent->winId() : 0);
+    bi.pidlRoot = NULL;
+    bi.lpszTitle = (TCHAR*)tTitle.utf16();
+    bi.pszDisplayName = initPath;
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT | BIF_NEWDIALOGSTYLE;
+    bi.lpfn = winGetExistDirCallbackProc;
+    bi.lParam = LPARAM(&initDir);
+    if (ptrSHBrowseForFolder) {
+        LPITEMIDLIST pItemIDList = ptrSHBrowseForFolder((BROWSEINFO*)&bi);
+        if (pItemIDList && ptrSHGetPathFromIDList) {
+            ptrSHGetPathFromIDList(pItemIDList, path);
+            IMalloc *pMalloc;
+            if (SHGetMalloc(&pMalloc) != NOERROR)
+                result = QString();
+            else {
+                pMalloc->Free(pItemIDList);
+                pMalloc->Release();
+                result = QString::fromUtf16((ushort*)path);
+            }
+        } else
+            result = QString();
+    }
+    tTitle = QString();
+
+#endif
     QApplicationPrivate::leaveModal(&modal_widget);
 
     qt_win_eatMouseMove();
@@ -748,10 +806,9 @@ QString qt_win_get_existing_directory(const QFileDialogArgs &args)
     if (!result.isEmpty())
         result.replace(QLatin1String("\\"), QLatin1String("/"));
     return result;
-#else
-    return QString();
-#endif
 }
 
+
+QT_END_NAMESPACE
 
 #endif

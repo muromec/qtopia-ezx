@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,6 +49,8 @@
 
 #include <private/qstandarditemmodel_p.h>
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 class QStandardItemModelLessThan
 {
@@ -358,8 +354,11 @@ bool QStandardItemPrivate::insertRows(int row, const QList<QStandardItem*> &item
             children.insert(index, columnCount() * count, 0);
     }
     for (int i = 0; i < items.count(); ++i) {
+        QStandardItem *item = items.at(i);
+        item->d_func()->model = model;
+        item->d_func()->parent = q;
         int index = childIndex(i + row, 0);
-        children.replace(index, items.at(i));
+        children.replace(index, item);
     }
     if (model)
         model->d_func()->rowsInserted(q, row, count);
@@ -768,6 +767,14 @@ QStandardItem *QStandardItem::parent() const
 /*!
     Sets the item's data for the given \a role to the specified \a value.
 
+    If you subclass QStandardItem and reimplement this function, your
+    reimplementation should call emitDataChanged() if you do not call
+    the base implementation of setData(). This will ensure that e.g.
+    views using the model are notified of the changes.
+    
+    \note The default implementation treats Qt::EditRole and Qt::DisplayRole
+    as referring to the same data.
+
     \sa Qt::ItemDataRole, data(), setFlags()
 */
 void QStandardItem::setData(const QVariant &value, int role)
@@ -797,6 +804,9 @@ void QStandardItem::setData(const QVariant &value, int role)
 /*!
     Returns the item's data for the given \a role, or an invalid
     QVariant if there is no data for the role.
+    
+    \note The default implementation treats Qt::EditRole and Qt::DisplayRole
+    as referring to the same data.  
 */
 QVariant QStandardItem::data(int role) const
 {
@@ -808,6 +818,25 @@ QVariant QStandardItem::data(int role) const
             return (*it).value;
     }
     return QVariant();
+}
+
+/*!
+  \since 4.4
+
+  Causes the model associated with this item to emit a
+  \l{QAbstractItemModel::dataChanged()}{dataChanged}() signal for this
+  item.
+
+  You normally only need to call this function if you have subclassed
+  QStandardItem and reimplemented data() and/or setData().
+
+  \sa setData()
+*/
+void QStandardItem::emitDataChanged()
+{
+    Q_D(QStandardItem);
+    if (d->model)
+        d->model->d_func()->itemChanged(this);
 }
 
 /*!
@@ -1202,7 +1231,7 @@ void QStandardItem::setTristate(bool tristate)
 /*!
   \fn bool QStandardItem::isTristate() const
 
-  Returns whether the item is tristate; that is, if it's checkable with tree
+  Returns whether the item is tristate; that is, if it's checkable with three
   separate states.
 
   The default value is false.
@@ -1769,8 +1798,11 @@ bool QStandardItem::operator<(const QStandardItem &other) const
 }
 
 /*!
-    Sorts the children of the item using the given \a order,
-    by the values in the given \a column.
+    Sorts the children of the item using the given \a order, by the values in
+    the given \a column.
+    
+    \note This function is recursive, therefore it sorts the children of the
+    item, its grandchildren, etc.
 
     \sa {operator<()}
 */
@@ -1896,8 +1928,7 @@ QDataStream &operator<<(QDataStream &out, const QStandardItem &item)
     custom views). For performance and flexibility, you may want to subclass
     QAbstractItemModel to provide support for different kinds of data
     repositories. For example, the QDirModel provides a model interface to the
-    underlying file system, and does not actually store file information
-    internally.
+    underlying file system.
 
     When you want a list or tree, you typically create an empty
     QStandardItemModel and use appendRow() to add items to the model, and
@@ -1918,27 +1949,11 @@ QDataStream &operator<<(QDataStream &out, const QStandardItem &item)
 
     An example usage of QStandardItemModel to create a table:
 
-    \code
-            QStandardItemModel model(4, 4);
-            for (int row = 0; row < 4; ++row) {
-                for (int column = 0; column < 4; ++column) {
-                    QStandardItem *item = new QStandardItem(QString("row %0, column %1").arg(row).arg(column));
-                    model.setItem(row, column, item);
-                }
-            }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qstandarditemmodel.cpp 0
 
     An example usage of QStandardItemModel to create a tree:
 
-    \code
-            QStandardItemModel model;
-            QStandardItem *parentItem = model.invisibleRootItem();
-            for (int i = 0; i < 4; ++i) {
-                QStandardItem *item = new QStandardItem(QString("item %0").arg(i));
-                parentItem->appendRow(item);
-                parentItem = item;
-            }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qstandarditemmodel.cpp 1
 
     After setting the model on a view, you typically want to react to user
     actions, such as an item being clicked. Since a QAbstractItemView provides
@@ -1950,32 +1965,19 @@ QDataStream &operator<<(QDataStream &out, const QStandardItem &item)
     a QAbstractItemView signal, such as QAbstractItemView::clicked(). First
     you connect the view's signal to a slot in your class:
 
-    \code
-        QTreeView *treeView = new QTreeView(this);
-        treeView->setModel(myStandardItemModel);
-        connect(treeView, SIGNAL(clicked(QModelIndex)),
-                this, SLOT(clicked(QModelIndex)));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qstandarditemmodel.cpp 2
 
     When you receive the signal, you call itemFromIndex() on the given model
     index to get a pointer to the item:
 
-    \code
-        void MyWidget::clicked(const QModelIndex &index)
-        {
-            QStandardItem *item = myStandardItemModel->itemFromIndex(index);
-            // Do stuff with the item ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qstandarditemmodel.cpp 3
 
     Conversely, you must obtain the QModelIndex of an item when you want to
     invoke a model/view function that takes an index as argument. You can
     obtain the index either by using the model's indexFromItem() function, or,
     equivalently, by calling QStandardItem::index():
 
-    \code
-        treeView->scrollTo(item->index());
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_itemviews_qstandarditemmodel.cpp 4
 
     You are, of course, not required to use the item-based approach; you could
     instead rely entirely on the QAbstractItemModel interface when working with
@@ -2187,6 +2189,9 @@ QStandardItem *QStandardItemModel::item(int row, int column) const
     through the QStandardItem API, making it possible to write functions that
     can treat top-level items and their children in a uniform way; for
     example, recursive functions involving a tree model.
+
+    \note Calling \l{QAbstractItemModel::index()}{index()} on the QStandardItem object
+    retrieved from this function is not valid.
 */
 QStandardItem *QStandardItemModel::invisibleRootItem() const
 {
@@ -2842,6 +2847,8 @@ void QStandardItemModel::sort(int column, Qt::SortOrder order)
   \fn QObject *QStandardItemModel::parent() const
   \internal
 */
+
+QT_END_NAMESPACE
 
 #include "moc_qstandarditemmodel.cpp"
 

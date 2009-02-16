@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -72,6 +66,8 @@
 
 typedef __m64 m64;
 
+QT_BEGIN_NAMESPACE
+
 struct QMMXCommonIntrinsics
 {
     static inline m64 alpha(m64 x) {
@@ -98,7 +94,7 @@ struct QMMXCommonIntrinsics
     }
 
     static inline m64 interpolate_pixel_256(const m64 &x, const m64 &a,
-                                            const m64 &y, const m64 &b)
+                                           const m64 &y, const m64 &b)
     {
         m64 res = _mm_adds_pu16(_mm_mullo_pi16(x, a), _mm_mullo_pi16(y, b));
         return _mm_srli_pi16(res, 8);
@@ -152,7 +148,7 @@ static void QT_FASTCALL comp_func_solid_Clear(uint *dest, int length, uint, uint
         return;
 
     if (const_alpha == 255) {
-        QT_MEMFILL_UINT(dest, length, 0);
+        qt_memfill(static_cast<quint32*>(dest), quint32(0), length);
     } else {
         C_FF; C_80; C_00;
         m64 ia = MM::negate(MM::load_alpha(const_alpha));
@@ -167,7 +163,7 @@ template <class MM>
 static void QT_FASTCALL comp_func_Clear(uint *dest, const uint *, int length, uint const_alpha)
 {
     if (const_alpha == 255) {
-        QT_MEMFILL_UINT(dest, length, 0);
+        qt_memfill(static_cast<quint32*>(dest), quint32(0), length);
     } else {
         C_FF; C_80; C_00;
         m64 ia = MM::negate(MM::load_alpha(const_alpha));
@@ -185,7 +181,7 @@ template <class MM>
 static void QT_FASTCALL comp_func_solid_Source(uint *dest, int length, uint src, uint const_alpha)
 {
     if (const_alpha == 255) {
-        QT_MEMFILL_UINT(dest, length, src);
+        qt_memfill(static_cast<quint32*>(dest), quint32(src), length);
     } else {
         C_FF; C_80; C_00;
         const m64 a = MM::load_alpha(const_alpha);
@@ -224,7 +220,7 @@ template <class MM>
 static void QT_FASTCALL comp_func_solid_SourceOver(uint *dest, int length, uint src, uint const_alpha)
 {
     if ((const_alpha & qAlpha(src)) == 255) {
-        QT_MEMFILL_UINT(dest, length, src);
+        qt_memfill(static_cast<quint32*>(dest), quint32(src), length);
     } else {
         C_FF; C_80; C_00;
         m64 s = MM::load(src);
@@ -647,7 +643,7 @@ static inline void qt_blend_color_argb_x86(int count, const QSpan *spans,
         while (count--) {
             uint *target = ((uint *)data->rasterBuffer->scanLine(spans->y)) + spans->x;
             if (spans->coverage == 255) {
-                QT_MEMFILL_UINT(target, spans->len, data->solid.color);
+                qt_memfill(static_cast<quint32*>(target), quint32(data->solid.color), spans->len);
             } else {
                 // dest = s * ca + d * (1 - sa*ca) --> dest = s * ca + d * (1-ca)
                 m64 ca = MM::load_alpha(spans->coverage);
@@ -676,9 +672,13 @@ static inline void qt_blend_color_argb_x86(int count, const QSpan *spans,
 struct QMMXIntrinsics : public QMMXCommonIntrinsics
 {
     static inline void end() {
-        _mm_empty();
+#if !defined(Q_OS_WINCE) 
+       _mm_empty();
+#endif
     }
 };
 #endif // QT_HAVE_MMX
+
+QT_END_NAMESPACE
 
 #endif // QDRAWHELPER_MMX_P_H

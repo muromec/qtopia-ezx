@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,7 +46,7 @@
 #include <propertyeditor/propertyeditor.h>
 #include <objectinspector/objectinspector.h>
 #include <taskmenu/taskmenu_component.h>
-#include <resourceeditor_p.h>
+#include "qtresourceview_p.h"
 #include <qdesigner_integration_p.h>
 #include <signalsloteditor/signalsloteditorwindow.h>
 
@@ -66,26 +60,52 @@
 
 #include <QtCore/qplugin.h>
 #include <QtCore/QDir>
+#include <QtCore/QTextStream>
+#include <QtCore/QDebug>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 
 // ### keep it in sync with Q_IMPORT_PLUGIN in qplugin.h
 #define DECLARE_PLUGIN_INSTANCE(PLUGIN) \
-        class Static##PLUGIN##PluginInstance{ \
-        public: \
-                Static##PLUGIN##PluginInstance() {                      \
-                extern void qRegisterStaticPluginInstanceFunction(QtPluginInstanceFunction); \
-                extern QObject *qt_plugin_instance_##PLUGIN(); \
-                qRegisterStaticPluginInstanceFunction(qt_plugin_instance_##PLUGIN); \
-                } \
-        };
+    extern QT_PREPEND_NAMESPACE(QObject) *qt_plugin_instance_##PLUGIN(); \
+    class Static##PLUGIN##PluginInstance { public: \
+        Static##PLUGIN##PluginInstance() {                      \
+            QT_PREPEND_NAMESPACE(qRegisterStaticPluginInstanceFunction) \
+                (&qt_plugin_instance_##PLUGIN); \
+        } \
+    };
 
 #define INIT_PLUGIN_INSTANCE(PLUGIN) \
-        do { \
-            Static##PLUGIN##PluginInstance instance; Q_UNUSED(instance); \
-        } while (0)
+    do { \
+        Static##PLUGIN##PluginInstance instance; \
+        Q_UNUSED(instance); \
+    } while (0)
 
 DECLARE_PLUGIN_INSTANCE(SignalSlotEditorPlugin)
 DECLARE_PLUGIN_INSTANCE(BuddyEditorPlugin)
 DECLARE_PLUGIN_INSTANCE(TabOrderEditorPlugin)
+
+static void initResources()
+{
+    // Q_INIT_RESOURCE only usable in functions in global namespace
+    Q_INIT_RESOURCE(formeditor);
+    Q_INIT_RESOURCE(widgetbox);
+}
+
+
+static void initInstances()
+{
+    static bool plugins_initialized = false;
+
+    if (!plugins_initialized) {
+        INIT_PLUGIN_INSTANCE(SignalSlotEditorPlugin);
+        INIT_PLUGIN_INSTANCE(BuddyEditorPlugin);
+        INIT_PLUGIN_INSTANCE(TabOrderEditorPlugin);
+        plugins_initialized = true;
+    }
+}
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QDesignerComponents
@@ -107,8 +127,7 @@ DECLARE_PLUGIN_INSTANCE(TabOrderEditorPlugin)
     Initializes the resources used by the components.*/
 void QDesignerComponents::initializeResources()
 {
-    Q_INIT_RESOURCE(formeditor);
-    Q_INIT_RESOURCE(widgetbox);
+    initResources();
 }
 
 /*!
@@ -122,16 +141,7 @@ void QDesignerComponents::initializePlugins(QDesignerFormEditorInterface *core)
     Constructs a form editor interface with the given \a parent.*/
 QDesignerFormEditorInterface *QDesignerComponents::createFormEditor(QObject *parent)
 {
-    static bool plugins_initialized = false;
-
-    if (!plugins_initialized) {
-        INIT_PLUGIN_INSTANCE(SignalSlotEditorPlugin);
-        INIT_PLUGIN_INSTANCE(BuddyEditorPlugin);
-        INIT_PLUGIN_INSTANCE(TabOrderEditorPlugin);
-
-        plugins_initialized = true;
-    }
-
+    initInstances();
     return new qdesigner_internal::FormEditor(parent);
 }
 
@@ -140,6 +150,34 @@ QDesignerFormEditorInterface *QDesignerComponents::createFormEditor(QObject *par
 QObject *QDesignerComponents::createTaskMenu(QDesignerFormEditorInterface *core, QObject *parent)
 {
     return new qdesigner_internal::TaskMenuComponent(core, parent);
+}
+
+static inline int qtMajorVersion(int qtVersion) { return qtVersion >> 16; }
+static inline int qtMinorVersion(int qtVersion) { return (qtVersion >> 8) & 0xFF; }
+static inline void setMinorVersion(int minorVersion, int *qtVersion)
+{
+    *qtVersion &= ~0xFF00;
+    *qtVersion |= minorVersion << 8;
+}
+
+// Build the version-dependent name of the user widget box file, '$HOME.designer/widgetbox4.4.xml'
+static inline QString widgetBoxFileName(int qtVersion, const QDesignerLanguageExtension *lang = 0)
+{
+    QString rc; {
+        const QChar dot = QLatin1Char('.');
+        QTextStream str(&rc);
+        str << QDir::homePath() << QDir::separator() << QLatin1String(".designer") << QDir::separator()
+            << QLatin1String("widgetbox");
+        // The naming convention using the version was introduced with 4.4
+        const int major = qtMajorVersion(qtVersion);
+        const int minor = qtMinorVersion(qtVersion);
+        if (major >= 4 &&  minor >= 4)
+            str << major << dot << minor;
+        if (lang)
+            str << dot << lang->uiExtension();
+        str << QLatin1String(".xml");
+    }
+    return rc;
 }
 
 /*!
@@ -163,16 +201,20 @@ QDesignerWidgetBoxInterface *QDesignerComponents::createWidgetBox(QDesignerFormE
         widgetBox->load();
     } while (false);
 
-    QString rc = QDir::homePath();
-    rc += QLatin1String("/.designer");
-    rc += QLatin1String("/widgetbox");
-    if (lang) {
-        rc += QLatin1Char('.');
-        rc += lang->uiExtension();
-    }
-    rc += QLatin1String(".xml");
+    const QString userWidgetBoxFile = widgetBoxFileName(QT_VERSION, lang);
 
-    widgetBox->setFileName(rc);
+    widgetBox->setFileName(userWidgetBoxFile);
+    if (!QFileInfo(userWidgetBoxFile).exists()) {
+        // check previous version, that is, are we running the new version for the first time
+        // If so, try to copy the old widget box file
+        if (const int minv = qtMinorVersion(QT_VERSION)) {
+            int oldVersion = QT_VERSION;
+            setMinorVersion(minv - 1, &oldVersion);
+            const QString oldWidgetBoxFile = widgetBoxFileName(oldVersion, lang);
+            if (QFileInfo(oldWidgetBoxFile).exists())
+                QFile::copy(oldWidgetBoxFile, userWidgetBoxFile);
+        }
+    }
     widgetBox->load();
 
     return widgetBox;
@@ -208,7 +250,10 @@ QWidget *QDesignerComponents::createResourceEditor(QDesignerFormEditorInterface 
         if (w)
             return w;
     }
-    return new qdesigner_internal::ResourceEditor(core, true, parent);
+    QtResourceView *resourceView = new QtResourceView(core, parent);
+    resourceView->setResourceModel(core->resourceModel());
+    resourceView->setSettingsKey(QLatin1String("ResourceBrowser"));
+    return resourceView;
 }
 
 /*!
@@ -217,4 +262,6 @@ QWidget *QDesignerComponents::createSignalSlotEditor(QDesignerFormEditorInterfac
 {
     return new qdesigner_internal::SignalSlotEditorWindow(core, parent);
 }
+
+QT_END_NAMESPACE
 

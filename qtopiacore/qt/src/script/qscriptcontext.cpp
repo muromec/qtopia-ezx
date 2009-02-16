@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,11 +39,14 @@
 
 #ifndef QT_NO_SCRIPT
 
+#include "qscriptcontextinfo.h"
 #include "qscriptengine_p.h"
 #include "qscriptvalueimpl_p.h"
 #include "qscriptcontext_p.h"
 #include "qscriptmember_p.h"
 #include "qscriptobject_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
   \since 4.3
@@ -66,9 +63,7 @@
   QScriptEngine::newFunction()) that will be called from script
   code. For example, when the script code
 
-  \code
-  foo(20.5, "hello", new Object())
-  \endcode
+  \snippet doc/src/snippets/code/src_script_qscriptcontext.cpp 0
 
   is evaluated, a QScriptContext will be created, and the context will
   carry the arguments as QScriptValues; in this particular case, the
@@ -77,30 +72,54 @@
   containing a Qt Script object.
 
   Use argumentCount() to get the number of arguments passed to the
-  function, and argument() to get an argument at a certain index.
+  function, and argument() to get an argument at a certain index. The
+  argumentsObject() function returns a Qt Script array object
+  containing all the arguments; you can use the QScriptValueIterator
+  to iterate over its elements, or pass the array on as arguments to
+  another script function using QScriptValue::call().
 
   Use thisObject() to get the `this' object associated with the function call,
-  and setThisObject() to set the `this' object.
+  and setThisObject() to set the `this' object. If you are implementing a
+  native "instance method", you typically fetch the thisObject() and access
+  one or more of its properties:
 
-  Use isCalledAsConstructor() to determine if the function was called as a
-  constructor (e.g. \c{"new foo()"} (as constructor) or just \c{"foo()"}).
+  \snippet doc/src/snippets/code/src_script_qscriptcontext.cpp 1
+
+  Use isCalledAsConstructor() to determine if the function was called
+  as a constructor (e.g. \c{"new foo()"} (as constructor) or just
+  \c{"foo()"}).  When a function is called as a constructor, the
+  thisObject() contains the newly constructed object that the function
+  is expected to initialize.
 
   Use throwValue() or throwError() to throw an exception.
 
   Use callee() to obtain the QScriptValue that represents the function being
-  called.
+  called. This can for example be used to call the function recursively.
 
   Use parentContext() to get a pointer to the context that precedes
-  this context in the activation stack.
+  this context in the activation stack. This is mostly useful for
+  debugging purposes (e.g. when constructing some form of backtrace).
+
+  The activationObject() function returns the object that is used to
+  hold the local variables associated with this function call. You can
+  replace the activation object by calling setActivationObject(). A
+  typical usage of these functions is when you want script code to be
+  evaluated in the context of the parent context, e.g. to implement an
+  include() function:
+
+  \snippet doc/src/snippets/code/src_script_qscriptcontext.cpp 2
+
+  Use backtrace() to get a human-readable backtrace associated with
+  this context. This can be useful for debugging purposes when
+  implementing native functions. The toString() function provides a
+  string representation of the context. (QScriptContextInfo provides
+  more detailed debugging-related information about the
+  QScriptContext.)
 
   Use engine() to obtain a pointer to the QScriptEngine that this context
   resides in.
 
-  Use backtrace() to get a human-readable backtrace associated with this
-  context. This can be useful for debugging purposes when implementing
-  native functions.
-
-  \sa QScriptEngine::newFunction(), QScriptable
+  \sa QScriptContextInfo, QScriptEngine::newFunction(), QScriptable
 */
 
 /*!
@@ -142,6 +161,9 @@ QScriptValue QScriptContext::throwValue(const QScriptValue &value)
     Q_D(QScriptContext);
     d->m_result = QScriptValuePrivate::valueOf(value);
     d->m_state = QScriptContext::ExceptionState;
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+        d->enginePrivate()->notifyException(d);
+#endif
     return value;
 }
 
@@ -151,6 +173,11 @@ QScriptValue QScriptContext::throwValue(const QScriptValue &value)
 
   The \a text will be stored in the \c{message} property of the error
   object.
+
+  The error object will be initialized to contain information about
+  the location where the error occurred; specifically, it will have
+  properties \c{lineNumber}, \c{fileName} and \c{stack}. These
+  properties are described in \l {QtScript Extensions to ECMAScript}.
 
   \sa throwValue(), state()
 */
@@ -370,12 +397,78 @@ QScriptContext::ExecutionState QScriptContext::state() const
 
   Each line is of the form \c{<function-name>(<arguments>)@<file-name>:<line-number>}.
 
-  \sa QScriptEngine::uncaughtExceptionBacktrace()
+  To access individual pieces of debugging-related information (for
+  example, to construct your own backtrace representation), use
+  QScriptContextInfo.
+
+  \sa QScriptEngine::uncaughtExceptionBacktrace(), QScriptContextInfo, toString()
 */
 QStringList QScriptContext::backtrace() const
 {
     Q_D(const QScriptContext);
     return d->backtrace();
 }
+
+static QString safeValueToString(const QScriptValue &value)
+{
+    if (value.isObject())
+        return QLatin1String("[object Object]");
+    else
+        return value.toString();
+}
+
+/*!
+  \since 4.4
+
+  Returns a string representation of this context.
+  This is useful for debugging.
+
+  \sa backtrace()
+*/
+QString QScriptContext::toString() const
+{
+    QScriptContextInfo info(this);
+    QString result;
+
+    QString functionName = info.functionName();
+    if (functionName.isEmpty()) {
+        if (parentContext()) {
+            if (info.functionType() == QScriptContextInfo::ScriptFunction)
+                result.append(QLatin1String("<anonymous>"));
+            else
+                result.append(QLatin1String("<native>"));
+        } else {
+            result.append(QLatin1String("<global>"));
+        }
+    } else {
+        result.append(functionName);
+    }
+
+    QStringList parameterNames = info.functionParameterNames();
+    result.append(QLatin1String(" ("));
+    for (int i = 0; i < argumentCount(); ++i) {
+        if (i > 0)
+            result.append(QLatin1String(", "));
+        if (i < parameterNames.count()) {
+            result.append(parameterNames.at(i));
+            result.append(QLatin1Char('='));
+        }
+        QScriptValue arg = argument(i);
+        result.append(safeValueToString(arg));
+    }
+    result.append(QLatin1String(")"));
+
+    QString fileName = info.fileName();
+    int lineNumber = info.lineNumber();
+    result.append(QLatin1String(" at "));
+    if (!fileName.isEmpty()) {
+        result.append(fileName);
+        result.append(QLatin1Char(':'));
+    }
+    result.append(QString::number(lineNumber));
+    return result;
+}
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

@@ -1,47 +1,40 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qwsevent_qws.h"
+
+QT_BEGIN_NAMESPACE
 
 QWSEvent *QWSEvent::factory(int type)
 {
@@ -113,6 +106,9 @@ QWSEvent *QWSEvent::factory(int type)
     case QWSEvent::Font:
         event = new QWSFontEvent;
         break;
+    case QWSEvent::ScreenTransformation:
+        event = new QWSScreenTransformationEvent;
+        break;
     default:
         qCritical("QWSEvent::factory() : Unknown event type %08x!", type);
     }
@@ -123,9 +119,9 @@ QWSEvent *QWSEvent::factory(int type)
     \class QWSEvent
     \ingroup qws
 
-    \brief The QWSEvent class encapsulates an event in Qtopia Core.
+    \brief The QWSEvent class encapsulates an event in Qt for Embedded Linux.
 
-    When running a \l {Qtopia Core} application, it either runs as a
+    When running a \l{Qt for Embedded Linux} application, it either runs as a
     server or connects to an existing server. All system generated
     events are passed to the server application which then propagates
     the event to the appropriate client.
@@ -137,7 +133,7 @@ QWSEvent *QWSEvent::factory(int type)
     request. Finally, the server forwards the event, encapsulated by
     an instance of the QWSEvent class, to the appropriate client.
 
-    \image qtopiacore-client.png
+    \image qt-embedded-client.png
 
     The server communicates with the client applications over the UNIX
     domain socket. You can retrieve direct access to all the events a
@@ -148,7 +144,7 @@ QWSEvent *QWSEvent::factory(int type)
     event. Internally, each type is represented by a QWSEvent
     subclass, e.g., \c QWSKeyEvent.
 
-    \sa QWSServer, QWSClient, {Qtopia Core Architecture}
+    \sa QWSServer, QWSClient, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -159,9 +155,9 @@ QWSEvent *QWSEvent::factory(int type)
     \value NoEvent No event has occurred.
     \value Connected An application has connected to the server.
     \value Mouse A mouse button is pressed or released, or the mouse cursor is moved.
-             See also \l {Qtopia Core Pointer Handling}.
+             See also \l{Qt for Embedded Linux Pointer Handling}.
     \value Focus A window has lost or received focus.
-    \value Key A key is pressed or released. See also \l {Qtopia Core Character Input}.
+    \value Key A key is pressed or released. See also \l{Qt for Embedded Linux Character Input}.
     \value Region A region has changed.
     \value Creation The server has created an ID, typically for a window.
     \value PropertyNotify A property has changed.
@@ -179,6 +175,8 @@ QWSEvent *QWSEvent::factory(int type)
     \value NEvent The number of events has changed.
     \value Embed An event used internally to implement embedded windows. See also
            QWSEmbedWidget.
+    \value ScreenTransformation An event used internally to notify the client processes
+    that the screen has changed for example, rotation, etc.
     \omitvalue Font
     \omitvalue IMInit
 */
@@ -208,4 +206,4 @@ QWSEvent *QWSEvent::factory(int type)
    \internal
 */
 
-
+QT_END_NAMESPACE

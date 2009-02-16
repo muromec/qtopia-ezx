@@ -1,46 +1,36 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
-
 
 #ifndef QT_NO_QWS_TRANSFORMED
 
@@ -48,7 +38,7 @@
 #include <qscreendriverfactory_qws.h>
 #include <qvector.h>
 #include <private/qpainter_p.h>
-#include <private/qdrawhelper_p.h>
+#include <private/qmemrotate_p.h>
 #include <qmatrix.h>
 
 #include <unistd.h>
@@ -61,6 +51,8 @@
 
 #include <qwindowsystem_qws.h>
 #include <qwsdisplay_qws.h>
+
+QT_BEGIN_NAMESPACE
 
 //#define QT_REGION_DEBUG
 
@@ -75,7 +67,6 @@ public:
 #ifdef QT_QWS_DEPTH_GENERIC
     bool doGenericColors;
 #endif
-    QScreen *subscreen;
     QTransformedScreen *q;
 };
 
@@ -84,19 +75,18 @@ QTransformedScreenPrivate::QTransformedScreenPrivate(QTransformedScreen *parent)
 #ifdef QT_QWS_DEPTH_GENERIC
       doGenericColors(false),
 #endif
-      subscreen(0), q(parent)
+      q(parent)
 {
 }
 
-// Global function -----------------------------------------------------------
-static QTransformedScreen *qt_trans_screen = 0;
-
-void qws_setScreenTransformation(int t)
+extern "C"
+#ifndef QT_BUILD_GUI_LIB
+Q_DECL_EXPORT
+#endif
+void qws_setScreenTransformation(QScreen *that, int t)
 {
-    if (qt_trans_screen) {
-        qt_trans_screen->setTransformation((QTransformedScreen::Transformation)t);
-        qwsServer->refresh();
-    }
+    QTransformedScreen *tscreen = static_cast<QTransformedScreen*>(that);
+    tscreen->setTransformation((QTransformedScreen::Transformation)t);
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +102,7 @@ void qws_setScreenTransformation(int t)
     \brief The QTransformedScreen class implements a screen driver for
     a transformed screen.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
     Custom screen drivers can be added by subclassing the
     QScreenDriverPlugin class, using the QScreenDriverFactory class to
     dynamically load the driver into the application, but there should
@@ -149,14 +139,13 @@ void qws_setScreenTransformation(int t)
 
 /*!
     Constructs a QTransformedScreen object. The \a displayId argument
-    identifies the Qtopia Core server to connect to.
+    identifies the Qt for Embedded Linux server to connect to.
 */
 QTransformedScreen::QTransformedScreen(int displayId)
-    : QScreen(displayId)
+    : QProxyScreen(displayId, QScreen::TransformedClass)
 {
     d_ptr = new QTransformedScreenPrivate(this);
     d_ptr->transformation = None;
-    qt_trans_screen = this;
 
 #ifdef QT_REGION_DEBUG
     qDebug() << "QTransformedScreen::QTransformedScreen";
@@ -165,18 +154,6 @@ QTransformedScreen::QTransformedScreen(int displayId)
 
 void QTransformedScreenPrivate::configure()
 {
-    q->d = subscreen->depth();
-    q->w = subscreen->width();
-    q->h = subscreen->height();
-    q->dw = subscreen->deviceWidth();
-    q->dh = subscreen->deviceHeight();
-    q->lstep = subscreen->linestep();
-    q->data = subscreen->base();
-    q->lstep = subscreen->linestep();
-    q->size = subscreen->screenSize();
-    q->setPixelFormat(subscreen->pixelFormat());
-
-    q->setOffset(subscreen->offset());
     // ###: works because setTransformation recalculates unconditionally
     q->setTransformation(transformation);
 }
@@ -238,7 +215,8 @@ bool QTransformedScreen::connect(const QString &displaySpec)
             dspec.prepend(QLatin1String(":"));
 
     const int id = getDisplayId(dspec);
-    d_ptr->subscreen = qt_get_screen(id, dspec.toLatin1().constData());
+    QScreen *s = qt_get_screen(id, dspec.toLatin1().constData());
+    setScreen(s);
 
 #ifdef QT_QWS_DEPTH_GENERIC
     d_ptr->doGenericColors = dspec.contains(QLatin1String("genericcolors"));
@@ -271,6 +249,18 @@ int QTransformedScreen::transformOrientation() const
 }
 
 /*!
+    \reimp
+*/
+void QTransformedScreen::exposeRegion(QRegion region, int changing)
+{
+    if (!data || d_ptr->transformation == None) {
+        QProxyScreen::exposeRegion(region, changing);
+        return;
+    }
+    QScreen::exposeRegion(region, changing);
+}
+
+/*!
     Rotates this screen object according to the specified \a transformation.
 
     \sa transformation()
@@ -278,14 +268,14 @@ int QTransformedScreen::transformOrientation() const
 void QTransformedScreen::setTransformation(Transformation transformation)
 {
     d_ptr->transformation = transformation;
-    QSize s = mapFromDevice(QSize(dw, dh));
-    w = s.width();
-    h = s.height();
+    QSize size = mapFromDevice(QSize(dw, dh));
+    w = size.width();
+    h = size.height();
 
-    const QScreen *screen = d_ptr->subscreen;
-    s = mapFromDevice(QSize(screen->physicalWidth(), screen->physicalHeight()));
-    physWidth = s.width();
-    physHeight = s.height();
+    const QScreen *s = screen();
+    size = mapFromDevice(QSize(s->physicalWidth(), s->physicalHeight()));
+    physWidth = size.width();
+    physHeight = size.height();
 
 #ifdef QT_REGION_DEBUG
     qDebug() << "QTransformedScreen::setTransformation" << transformation
@@ -307,48 +297,33 @@ template <class DST, class SRC>
 static inline void blit90(QScreen *screen, const QImage &image,
                           const QRect &rect, const QPoint &topLeft)
 {
-    const int sstride = image.bytesPerLine() / sizeof(SRC);
-    const int dstride = screen->linestep() / sizeof(DST);
-    const SRC *src = reinterpret_cast<const SRC *>(image.bits())
-                     + rect.top() * sstride + rect.left();
-    DST *dest = reinterpret_cast<DST*>(screen->base())
-                + topLeft.y() * dstride + topLeft.x();
-    const int h = rect.height();
-    const int w = rect.width();
-
-    qt_memrotate90(src, w, h, sstride, dest, dstride);
+    const SRC *src = (const SRC*)(image.scanLine(rect.top())) + rect.left();
+    DST *dest = (DST*)(screen->base() + topLeft.y() * screen->linestep())
+                + topLeft.x();
+    qt_memrotate90(src, rect.width(), rect.height(), image.bytesPerLine(),
+                   dest, screen->linestep());
 }
 
 template <class DST, class SRC>
 static inline void blit180(QScreen *screen, const QImage &image,
                            const QRect &rect, const QPoint &topLeft)
 {
-    const int sstride = image.bytesPerLine() / sizeof(SRC);
-    const int dstride = screen->linestep() / sizeof(DST);
-    const SRC *src = reinterpret_cast<const SRC *>(image.bits())
-                     + rect.top() * sstride + rect.left();
-    DST *dest = reinterpret_cast<DST*>(screen->base())
-                + topLeft.y() * dstride + topLeft.x();
-    const int h = rect.height();
-    const int w = rect.width();
-
-    qt_memrotate180(src, w, h, sstride, dest, dstride);
+    const SRC *src = (const SRC*)(image.scanLine(rect.top())) + rect.left();
+    DST *dest = (DST*)(screen->base() + topLeft.y() * screen->linestep())
+                + topLeft.x();
+    qt_memrotate180(src, rect.width(), rect.height(), image.bytesPerLine(),
+                    dest, screen->linestep());
 }
 
 template <class DST, class SRC>
 static inline void blit270(QScreen *screen, const QImage &image,
                            const QRect &rect, const QPoint &topLeft)
 {
-    const int sstride = image.bytesPerLine() / sizeof(SRC);
-    const int dstride = screen->linestep() / sizeof(DST);
-    const SRC *src = reinterpret_cast<const SRC *>(image.bits())
-                     + rect.top() * sstride + rect.left();
-    DST *dest = reinterpret_cast<DST*>(screen->base())
-                + topLeft.y() * dstride + topLeft.x();
-    const int h = rect.height();
-    const int w = rect.width();
-
-    qt_memrotate270(src, w, h, sstride, dest, dstride);
+    const SRC *src = (const SRC *)(image.scanLine(rect.top())) + rect.left();
+    DST *dest = (DST*)(screen->base() + topLeft.y() * screen->linestep())
+                + topLeft.x();
+    qt_memrotate270(src, rect.width(), rect.height(), image.bytesPerLine(),
+                    dest, screen->linestep());
 }
 
 typedef void (*BlitFunc)(QScreen *, const QImage &, const QRect &, const QPoint &);
@@ -378,7 +353,7 @@ void QTransformedScreen::blit(const QImage &image, const QPoint &topLeft,
 {
     const Transformation trans = d_ptr->transformation;
     if (trans == None) {
-        d_ptr->subscreen->blit(image, topLeft, region);
+        QProxyScreen::blit(image, topLeft, region);
         return;
     }
 
@@ -406,18 +381,16 @@ void QTransformedScreen::blit(const QImage &image, const QPoint &topLeft,
             SET_BLIT_FUNC(quint32, quint32, trans, func);
         break;
 #endif
-#ifdef QT_QWS_DEPTH_24
+#if defined(QT_QWS_DEPTH_24) || defined(QT_QWS_DEPTH18)
     case 24:
-        SET_BLIT_FUNC(quint24, quint32, trans, func);
-        break;
-#endif
-#ifdef QT_QWS_DEPTH_18
     case 18:
-        SET_BLIT_FUNC(quint18, quint32, trans, func);
+        SET_BLIT_FUNC(quint24, quint24, trans, func);
         break;
 #endif
-#ifdef QT_QWS_DEPTH_16
+#if defined(QT_QWS_DEPTH_16) || defined(QT_QWS_DEPTH_15) || defined(QT_QWS_DEPTH_12)
     case 16:
+    case 15:
+    case 12:
         if (image.depth() == 16)
             SET_BLIT_FUNC(quint16, quint16, trans, func);
         else
@@ -467,14 +440,14 @@ void QTransformedScreen::blit(const QImage &image, const QPoint &topLeft,
 */
 void QTransformedScreen::solidFill(const QColor &color, const QRegion &region)
 {
-    QRegion tr = mapToDevice(region, QSize(w,h));
+    const QRegion tr = mapToDevice(region, QSize(w,h));
 
     Q_ASSERT(tr.boundingRect() == mapToDevice(region.boundingRect(), QSize(w,h)));
 
 #ifdef QT_REGION_DEBUG
     qDebug() << "QTransformedScreen::solidFill region" << region << "transformed" << tr;
 #endif
-    d_ptr->subscreen->solidFill(color, tr);
+    QProxyScreen::solidFill(color, tr);
 }
 
 /*!
@@ -508,7 +481,7 @@ QSize QTransformedScreen::mapFromDevice(const QSize &s) const
         return QSize(s.height(), s.width());
         break;
     }
-        return s;
+    return s;
 }
 
 /*!
@@ -631,7 +604,7 @@ QRect QTransformedScreen::mapFromDevice(const QRect &r, const QSize &s) const
 QRegion QTransformedScreen::mapToDevice(const QRegion &rgn, const QSize &s) const
 {
     if (d_ptr->transformation == None)
-        return rgn;
+        return QProxyScreen::mapToDevice(rgn, s);
 
 #ifdef QT_REGION_DEBUG
     qDebug() << "mapToDevice size" << s << "rgn:  " << rgn;
@@ -682,7 +655,8 @@ QRegion QTransformedScreen::mapToDevice(const QRegion &rgn, const QSize &s) cons
 QRegion QTransformedScreen::mapFromDevice(const QRegion &rgn, const QSize &s) const
 {
     if (d_ptr->transformation == None)
-        return rgn;
+        return QProxyScreen::mapFromDevice(rgn, s);
+
 #ifdef QT_REGION_DEBUG
     qDebug() << "fromDevice: realRegion count:  " << rgn.rects().size() << " isEmpty? " << rgn.isEmpty() << "  bounds:" << rgn.boundingRect();
 #endif
@@ -729,186 +703,10 @@ QRegion QTransformedScreen::mapFromDevice(const QRegion &rgn, const QSize &s) co
 /*!
     \reimp
 */
-void QTransformedScreen::disconnect()
-{
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->disconnect();
-        delete d_ptr->subscreen;
-        d_ptr->subscreen = 0;
-    }
-}
-
-/*!
-    \reimp
-*/
-bool QTransformedScreen::initDevice()
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->initDevice();
-
-    return false;
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::shutdownDevice()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->shutdownDevice();
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::setMode(int w,int h, int d)
-{
-    if (d_ptr->subscreen) {
-        d_ptr->subscreen->setMode(w, h, d);
-        d_ptr->configure();
-        exposeRegion(region(), 0);
-    }
-}
-
-/*!
-    \reimp
-*/
-bool QTransformedScreen::supportsDepth(int depth) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->supportsDepth(depth);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::save()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->save();
-    QScreen::save();
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::restore()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->restore();
-    QScreen::restore();
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::blank(bool on)
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->blank(on);
-}
-
-/*!
-    \reimp
-*/
-bool QTransformedScreen::onCard(const unsigned char *ptr) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->onCard(ptr);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-bool QTransformedScreen::onCard(const unsigned char *ptr, ulong &offset) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->onCard(ptr, offset);
-    return false;
-}
-
-/*!
-    \reimp
-*/
-bool QTransformedScreen::isInterlaced() const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->isInterlaced();
-    return false;
-}
-
-/*!
-    \reimp
-*/
-int QTransformedScreen::memoryNeeded(const QString &str)
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->memoryNeeded(str);
-    else
-        return QScreen::memoryNeeded(str);
-}
-
-/*!
-    \reimp
-*/
-int QTransformedScreen::sharedRamSize(void *ptr)
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->sharedRamSize(ptr);
-    else
-        return QScreen::sharedRamSize(ptr);
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::haltUpdates()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->haltUpdates();
-}
-
-/*!
-    \reimp
-*/
-void QTransformedScreen::resumeUpdates()
-{
-    if (d_ptr->subscreen)
-        d_ptr->subscreen->resumeUpdates();
-}
-
-/*!
-    \reimp
-*/
 void QTransformedScreen::setDirty(const QRect& rect)
 {
-    if (!d_ptr->subscreen)
-        return;
-
     const QRect r = mapToDevice(rect, QSize(width(), height()));
-    d_ptr->subscreen->setDirty(r);
-}
-
-/*!
-    \reimp
-*/
-QWSWindowSurface* QTransformedScreen::createSurface(QWidget *widget) const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->createSurface(widget);
-    return QScreen::createSurface(widget);
-}
-
-/*!
-    \reimp
-*/
-QList<QScreen*> QTransformedScreen::subScreens() const
-{
-    if (d_ptr->subscreen)
-        return d_ptr->subscreen->subScreens();
-    return QScreen::subScreens();
+    QProxyScreen::setDirty(r);
 }
 
 /*!
@@ -916,14 +714,10 @@ QList<QScreen*> QTransformedScreen::subScreens() const
 */
 QRegion QTransformedScreen::region() const
 {
-    QRegion deviceRegion;
-    if (d_ptr->subscreen)
-        deviceRegion = d_ptr->subscreen->region();
-    else
-        deviceRegion = QScreen::region();
-
-    const QSize size(deviceWidth(), deviceHeight());
-    return mapFromDevice(deviceRegion, size);
+    QRegion deviceRegion = QProxyScreen::region();
+    return mapFromDevice(deviceRegion, QSize(deviceWidth(), deviceHeight()));
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_QWS_TRANSFORMED

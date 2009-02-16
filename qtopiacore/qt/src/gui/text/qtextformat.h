@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,8 +45,11 @@
 #include <QtCore/qvariant.h>
 #include <QtGui/qpen.h>
 #include <QtGui/qbrush.h>
+#include <QtGui/qtextoption.h>
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 QT_MODULE(Gui)
 
@@ -68,6 +65,7 @@ class QTextListFormat;
 class QTextTableFormat;
 class QTextFrameFormat;
 class QTextImageFormat;
+class QTextTableCellFormat;
 class QTextFormat;
 class QTextObject;
 class QTextCursor;
@@ -147,6 +145,7 @@ public:
         BackgroundBrush = 0x820,
         ForegroundBrush = 0x821,
         // Internal to qtextlayout.cpp: ObjectSelectionBrush = 0x822
+        BackgroundImageUrl = 0x823,
 
         // paragraph
         BlockAlignment = 0x1010,
@@ -155,11 +154,16 @@ public:
         BlockLeftMargin = 0x1032,
         BlockRightMargin = 0x1033,
         TextIndent = 0x1034,
+        TabPositions = 0x1035,
         BlockIndent = 0x1040,
         BlockNonBreakableLines = 0x1050,
         BlockTrailingHorizontalRulerWidth = 0x1060,
 
         // character properties
+        FirstFontProperty = 0x1FE0,
+        FontCapitalization = FirstFontProperty,
+        FontLetterSpacing = 0x1FE1,
+        FontWordSpacing = 0x1FE2,
         FontFamily = 0x2000,
         FontPointSize = 0x2001,
         FontSizeAdjustment = 0x2002,
@@ -171,6 +175,7 @@ public:
         FontStrikeOut = 0x2007,
         FontFixedPitch = 0x2008,
         FontPixelSize = 0x2009,
+        LastFontProperty = FontPixelSize,
 
         TextUnderlineColor = 0x2010,
         TextVerticalAlignment = 0x2021,
@@ -211,6 +216,11 @@ public:
         TableCellRowSpan = 0x4810,
         TableCellColumnSpan = 0x4811,
 
+        TableCellTopPadding = 0x4812,
+        TableCellBottomPadding = 0x4813,
+        TableCellLeftPadding = 0x4814,
+        TableCellRightPadding = 0x4815,
+
         // image properties
         ImageName = 0x5000,
         ImageWidth = 0x5010,
@@ -230,6 +240,7 @@ public:
         NoObject,
         ImageObject,
         TableObject,
+        TableCellObject,
 
         UserObject = 0x1000
     };
@@ -289,6 +300,7 @@ public:
     inline bool isFrameFormat() const { return type() == FrameFormat; }
     inline bool isImageFormat() const { return type() == CharFormat && objectType() == ImageObject; }
     inline bool isTableFormat() const { return type() == FrameFormat && objectType() == TableObject; }
+    inline bool isTableCellFormat() const { return type() == CharFormat && objectType() == TableCellObject; }
 
     QTextBlockFormat toBlockFormat() const;
     QTextCharFormat toCharFormat() const;
@@ -296,6 +308,7 @@ public:
     QTextTableFormat toTableFormat() const;
     QTextFrameFormat toFrameFormat() const;
     QTextImageFormat toImageFormat() const;
+    QTextTableCellFormat toTableCellFormat() const;
 
     bool operator==(const QTextFormat &rhs) const;
     inline bool operator!=(const QTextFormat &rhs) const { return !operator==(rhs); }
@@ -381,6 +394,18 @@ public:
     { setProperty(FontItalic, italic); }
     inline bool fontItalic() const
     { return boolProperty(FontItalic); }
+    inline void setFontCapitalization(QFont::Capitalization capitalization)
+    { setProperty(FontCapitalization, capitalization); }
+    inline QFont::Capitalization fontCapitalization() const
+    { return static_cast<QFont::Capitalization>(intProperty(FontCapitalization)); }
+    inline void setFontLetterSpacing(qreal spacing)
+    { setProperty(FontLetterSpacing, spacing); }
+    inline qreal fontLetterSpacing() const
+    { return doubleProperty(FontLetterSpacing); }
+    inline void setFontWordSpacing(qreal spacing)
+    { setProperty(FontWordSpacing, spacing); }
+    inline qreal fontWordSpacing() const
+    { return doubleProperty(FontWordSpacing); }
 
     inline void setFontUnderline(bool underline)
     { setProperty(TextUnderlineStyle, underline ? SingleUnderline : NoUnderline); }
@@ -449,6 +474,10 @@ public:
     inline void setTableCellColumnSpan(int tableCellColumnSpan);
     inline int tableCellColumnSpan() const
     { int s = intProperty(TableCellColumnSpan); if (s == 0) s = 1; return s; }
+
+protected:
+    explicit QTextCharFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
 };
 
 inline void QTextCharFormat::setTableCellRowSpan(int atableCellRowSpan)
@@ -514,6 +543,13 @@ public:
     { setProperty(PageBreakPolicy, int(flags)); }
     inline PageBreakFlags pageBreakPolicy() const
     { return PageBreakFlags(intProperty(PageBreakPolicy)); }
+
+    void setTabPositions(const QList<QTextOption::Tab> &tabs);
+    QList<QTextOption::Tab> tabPositions() const;
+
+protected:
+    explicit QTextBlockFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
 };
 
 inline void QTextBlockFormat::setAlignment(Qt::Alignment aalignment)
@@ -547,6 +583,9 @@ public:
     inline int indent() const
     { return intProperty(ListIndent); }
 
+protected:
+    explicit QTextListFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
 };
 
 inline void QTextListFormat::setStyle(Style astyle)
@@ -573,6 +612,10 @@ public:
     inline void setHeight(qreal height);
     inline qreal height() const
     { return doubleProperty(ImageHeight); }
+
+protected:
+    explicit QTextImageFormat(const QTextFormat &format);
+    friend class QTextFormat;
 };
 
 inline void QTextImageFormat::setName(const QString &aname)
@@ -667,6 +710,10 @@ public:
     { setProperty(PageBreakPolicy, int(flags)); }
     inline PageBreakFlags pageBreakPolicy() const
     { return PageBreakFlags(intProperty(PageBreakPolicy)); }
+
+protected:
+    explicit QTextFrameFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
 };
 
 inline void QTextFrameFormat::setBorder(qreal aborder)
@@ -732,6 +779,10 @@ public:
     { setProperty(TableHeaderRowCount, count); }
     inline int headerRowCount() const
     { return intProperty(TableHeaderRowCount); }
+
+protected:
+    explicit QTextTableFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
 };
 
 inline void QTextTableFormat::setColumns(int acolumns)
@@ -746,6 +797,83 @@ inline void QTextTableFormat::setCellPadding(qreal apadding)
 
 inline void QTextTableFormat::setAlignment(Qt::Alignment aalignment)
 { setProperty(BlockAlignment, int(aalignment)); }
+
+class Q_GUI_EXPORT QTextTableCellFormat : public QTextCharFormat
+{
+public:
+    QTextTableCellFormat();
+
+    inline bool isValid() const { return isTableCellFormat(); }
+
+    inline void setTopPadding(qreal padding);
+    inline qreal topPadding() const;
+
+    inline void setBottomPadding(qreal padding);
+    inline qreal bottomPadding() const;
+
+    inline void setLeftPadding(qreal padding);
+    inline qreal leftPadding() const;
+
+    inline void setRightPadding(qreal padding);
+    inline qreal rightPadding() const;
+
+    inline void setPadding(qreal padding);
+
+protected:
+    explicit QTextTableCellFormat(const QTextFormat &fmt);
+    friend class QTextFormat;
+};
+
+inline void QTextTableCellFormat::setTopPadding(qreal padding)
+{
+    setProperty(TableCellTopPadding, padding);
+}
+
+inline qreal QTextTableCellFormat::topPadding() const
+{
+    return doubleProperty(TableCellTopPadding);
+}
+
+inline void QTextTableCellFormat::setBottomPadding(qreal padding)
+{
+    setProperty(TableCellBottomPadding, padding);
+}
+
+inline qreal QTextTableCellFormat::bottomPadding() const
+{
+    return doubleProperty(TableCellBottomPadding);
+}
+
+inline void QTextTableCellFormat::setLeftPadding(qreal padding)
+{
+    setProperty(TableCellLeftPadding, padding);
+}
+
+inline qreal QTextTableCellFormat::leftPadding() const
+{
+    return doubleProperty(TableCellLeftPadding);
+}
+
+inline void QTextTableCellFormat::setRightPadding(qreal padding)
+{
+    setProperty(TableCellRightPadding, padding);
+}
+
+inline qreal QTextTableCellFormat::rightPadding() const
+{
+    return doubleProperty(TableCellRightPadding);
+}
+
+inline void QTextTableCellFormat::setPadding(qreal padding)
+{
+    setTopPadding(padding);
+    setBottomPadding(padding);
+    setLeftPadding(padding);
+    setRightPadding(padding);
+}
+
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

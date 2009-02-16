@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,8 @@
 
 #include "pagegenerator.h"
 #include "tree.h"
+
+QT_BEGIN_NAMESPACE
 
 PageGenerator::PageGenerator()
 {
@@ -74,15 +70,18 @@ QString PageGenerator::fileBase(const Node *node)
 	node = node->parent();
 
     QString base = node->doc().baseName();
-    if (base.isEmpty()) {
+    if (!base.isEmpty())
+        return base;
+
 	const Node *p = node;
 
         forever {
             base.prepend(p->name());
-            if (!p->parent() || p->parent()->name().isEmpty() || p->parent()->type() == Node::Fake)
+        const Node *pp = p->parent();
+        if (!pp || pp->name().isEmpty() || pp->type() == Node::Fake)
                 break;
-            base.prepend("-");
-            p = p->parent();
+        base.prepend(QLatin1Char('-'));
+        p = pp;
         }
 
         if (node->type() == Node::Fake) {
@@ -92,17 +91,45 @@ QString PageGenerator::fileBase(const Node *node)
 #endif
         }
 
-	base.replace(QRegExp("[^A-Za-z0-9]+"), " ");
-	base = base.trimmed();
-	base.replace(" ", "-");
-	base = base.toLower();
+    // the code below is effectively equivalent to:
+    //   base.replace(QRegExp("[^A-Za-z0-9]+"), " ");
+    //   base = base.trimmed();
+    //   base.replace(" ", "-");
+    //   base = base.toLower();
+    // as this function accounted for ~8% of total running time
+    // we optimize a bit...
+
+    QString res;
+    // +5 prevents realloc in fileName() below
+    res.reserve(base.size() + 5);
+    bool begun = false;
+    for (int i = 0; i != base.size(); ++i) {
+        QChar c = base.at(i);
+        uint u = c.unicode();
+        if (u >= 'A' && u <= 'Z')
+            u -= 'A' - 'a';
+        if ((u >= 'a' &&  u <= 'z') || (u >= '0' && u <= '9')) {
+            res += QLatin1Char(u);
+            begun = true;
+        } else if (begun) {
+            res += QLatin1Char('-');
+            begun = false;
+        }
     }
-    return base;
+    while (res.endsWith(QLatin1Char('-')))
+        res.chop(1);
+    return res;
 }
 
 QString PageGenerator::fileName( const Node *node )
 {
-    return fileBase(node) + "." + fileExtension(node);
+    if (!node->url().isEmpty())
+        return node->url();
+
+    QString name = fileBase(node);
+    name += QLatin1Char('.');
+    name += fileExtension(node);
+    return name;
 }
 
 QString PageGenerator::outFileName()
@@ -163,3 +190,5 @@ void PageGenerator::generateInnerNode( const InnerNode *node,
 	++c;
     }
 }
+
+QT_END_NAMESPACE

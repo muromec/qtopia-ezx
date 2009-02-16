@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,6 +44,8 @@
 
 #include "qlayoutengine_p.h"
 #include "qlayout_p.h"
+
+QT_BEGIN_NAMESPACE
 
 /*
     Returns true if the \a widget can be added to the \a layout;
@@ -508,8 +504,9 @@ void QBoxLayoutPrivate::calcHfw(int w)
     QBoxLayout also includes two margin widths:
 
     \list
-    \o setMargin() sets the width of the outer border. This is the width
-       of the reserved space along each of the QBoxLayout's four sides.
+    \o setContentsMargins() sets the width of the outer border on 
+       each side of the widget. This is the width of the reserved space 
+       along each of the QBoxLayout's four sides.
     \o setSpacing() sets the width between neighboring boxes. (You
        can use addSpacing() to get more space at a particular spot.)
     \endlist
@@ -696,8 +693,7 @@ QSize QBoxLayout::maximumSize() const
     if (d->dirty)
         const_cast<QBoxLayout*>(this)->d_func()->setupGeom();
 
-    QSize s = d->maxSize;
-    s = s.boundedTo(QSize(QLAYOUTSIZE_MAX, QLAYOUTSIZE_MAX));
+    QSize s = d->maxSize.boundedTo(QSize(QLAYOUTSIZE_MAX, QLAYOUTSIZE_MAX));
 
     if (alignment() & Qt::AlignHorizontal_Mask)
         s.setWidth(QLAYOUTSIZE_MAX);
@@ -921,11 +917,9 @@ void QBoxLayout::insertSpacing(int index, int size)
 
     QLayoutItem *b;
     if (horz(d->dir))
-        b = new QSpacerItem(size, 0, QSizePolicy::Fixed,
-                             QSizePolicy::Minimum);
+        b = QLayoutPrivate::createSpacerItem(this, size, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
     else
-        b = new QSpacerItem(0, size, QSizePolicy::Minimum,
-                             QSizePolicy::Fixed);
+        b = QLayoutPrivate::createSpacerItem(this, 0, size, QSizePolicy::Minimum, QSizePolicy::Fixed);
 
     QBoxLayoutItem *it = new QBoxLayoutItem(b);
     it->magic = true;
@@ -948,13 +942,32 @@ void QBoxLayout::insertStretch(int index, int stretch)
 
     QLayoutItem *b;
     if (horz(d->dir))
-        b = new QSpacerItem(0, 0, QSizePolicy::Expanding,
-                             QSizePolicy::Minimum);
+        b = QLayoutPrivate::createSpacerItem(this, 0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
     else
-        b = new QSpacerItem(0, 0, QSizePolicy::Minimum,
-                             QSizePolicy::Expanding);
+        b = QLayoutPrivate::createSpacerItem(this, 0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
 
     QBoxLayoutItem *it = new QBoxLayoutItem(b, stretch);
+    it->magic = true;
+    d->list.insert(index, it);
+    invalidate();
+}
+
+/*!
+    \since 4.4
+
+    Inserts \a spacerItem at position \a index, with zero minimum
+    size and stretch factor. If \a index is negative the
+    space is added at the end.
+
+    \sa addSpacerItem(), insertStretch(), insertSpacing()
+*/
+void QBoxLayout::insertSpacerItem(int index, QSpacerItem *spacerItem)
+{
+    Q_D(QBoxLayout);
+    if (index < 0)                                // append
+        index = d->list.count();
+
+    QBoxLayoutItem *it = new QBoxLayoutItem(spacerItem);
     it->magic = true;
     d->list.insert(index, it);
     invalidate();
@@ -1008,7 +1021,7 @@ void QBoxLayout::insertWidget(int index, QWidget *widget, int stretch,
     addChildWidget(widget);
     if (index < 0)                                // append
         index = d->list.count();
-    QWidgetItem *b = new QWidgetItem(widget);
+    QWidgetItem *b = QLayoutPrivate::createWidgetItem(this, widget);
     b->setAlignment(alignment);
     QBoxLayoutItem *it = new QBoxLayoutItem(b, stretch);
     d->list.insert(index, it);
@@ -1036,6 +1049,18 @@ void QBoxLayout::addSpacing(int size)
 void QBoxLayout::addStretch(int stretch)
 {
     insertStretch(-1, stretch);
+}
+
+/*!
+    \since 4.4
+
+    Adds \a spacerItem to the end of this box layout.
+
+    \sa addSpacing(), addStretch()
+*/
+void QBoxLayout::addSpacerItem(QSpacerItem *spacerItem)
+{
+    insertSpacerItem(-1, spacerItem);
 }
 
 /*!
@@ -1086,9 +1111,9 @@ void QBoxLayout::addStrut(int size)
     Q_D(QBoxLayout);
     QLayoutItem *b;
     if (horz(d->dir))
-        b = new QSpacerItem(0, size, QSizePolicy::Fixed, QSizePolicy::Minimum);
+        b = QLayoutPrivate::createSpacerItem(this, 0, size, QSizePolicy::Fixed, QSizePolicy::Minimum);
     else
-        b = new QSpacerItem(size, 0, QSizePolicy::Minimum, QSizePolicy::Fixed);
+        b = QLayoutPrivate::createSpacerItem(this, size, 0, QSizePolicy::Minimum, QSizePolicy::Fixed);
 
     QBoxLayoutItem *it = new QBoxLayoutItem(b);
     it->magic = true;
@@ -1112,6 +1137,8 @@ void QBoxLayout::addStrut(int size)
 bool QBoxLayout::setStretchFactor(QWidget *widget, int stretch)
 {
     Q_D(QBoxLayout);
+    if (!widget)
+        return false;
     for (int i = 0; i < d->list.size(); ++i) {
         QBoxLayoutItem *box = d->list.at(i);
         if (box->item->widget() == widget) {
@@ -1214,14 +1241,13 @@ QBoxLayout::Direction QBoxLayout::direction() const
 
     The simplest use of the class is like this:
 
-    \quotefromfile snippets/layouts/layouts.cpp
-    \skipto window = new QWidget
-    \printline window
-    \printline button1
-    \printuntil button5
-    \printline layout = new QHBoxLayout
-    \printuntil window->setLayout(layout)
-    \printline show
+    \snippet doc/src/snippets/layouts/layouts.cpp 0
+    \snippet doc/src/snippets/layouts/layouts.cpp 1
+    \snippet doc/src/snippets/layouts/layouts.cpp 2
+    \codeline
+    \snippet doc/src/snippets/layouts/layouts.cpp 3
+    \snippet doc/src/snippets/layouts/layouts.cpp 4
+    \snippet doc/src/snippets/layouts/layouts.cpp 5
 
     First, we create the widgets we want in the layout. Then, we
     create the QHBoxLayout object and add the widgets into the
@@ -1333,15 +1359,13 @@ QHBoxLayout::~QHBoxLayout()
 
     The simplest use of the class is like this:
 
-    \quotefromfile snippets/layouts/layouts.cpp
-    \skipto layout = new QHBoxLayout
-    \skipto window = new QWidget
-    \printline window
-    \printline button1
-    \printuntil button5
-    \printline layout = new QVBoxLayout
-    \printuntil window->setLayout(layout)
-    \printline show
+    \snippet doc/src/snippets/layouts/layouts.cpp 6
+    \snippet doc/src/snippets/layouts/layouts.cpp 7
+    \snippet doc/src/snippets/layouts/layouts.cpp 8
+    \codeline
+    \snippet doc/src/snippets/layouts/layouts.cpp 9
+    \snippet doc/src/snippets/layouts/layouts.cpp 10
+    \snippet doc/src/snippets/layouts/layouts.cpp 11
 
     First, we create the widgets we want in the layout. Then, we
     create the QVBoxLayout object and add the widgets into the
@@ -1469,3 +1493,4 @@ QVBoxLayout::~QVBoxLayout()
     Use spacing() instead.
 */
 
+QT_END_NAMESPACE

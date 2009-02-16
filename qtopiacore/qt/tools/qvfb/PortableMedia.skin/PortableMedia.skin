@@ -3,6 +3,7 @@ Up=portablemedia.png
 Down=portablemedia-pressed.png
 Screen=18 20 480 272
 Areas=7
+HasMouseHover=false
 
 "Context1" 0x01100000 530 192 565 223
 "Back"     0x01000061 530 138 565 173

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,6 +51,8 @@
 #if defined(Q_WS_WIN)
 #include "qt_windows.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 #define QDATETIMEEDIT_HIDDEN_CHAR QLatin1Char('0')
 
@@ -250,7 +246,7 @@ public:
     }
     void setSectionSelection(int sec, int selstart, int selend)
     {
-        if (sec < 0 || sec >= sections.count())
+        if (sec < 0 || sec > (int)sections.count())
             return;
         sections[sec].setSelectionStart(selstart);
         sections[sec].setSelectionEnd(selend);
@@ -352,13 +348,13 @@ public:
 
     int mapSection(int sec)
     {
-        return (sec >= 0 && sec < sections.count() ? sections[sec].index() : -1);
+        return sections[sec].index();
     }
 
 protected:
     void applyFocusSelection()
     {
-        if (focusSec > -1 && focusSec < sections.count()) {
+        if (focusSec > -1) {
             int selstart = sections[focusSec].selectionStart();
             int selend = sections[focusSec].selectionEnd();
             parag->setSelection(Q3TextDocument::Standard, selstart, selend);
@@ -426,7 +422,7 @@ public:
     void changeEvent(QEvent *e)
     {
 	if (e->type() == QEvent::EnabledChange && isEnabled()) {
-	    Q3DateEdit *de = ::qobject_cast<Q3DateEdit*>(parentWidget());
+	    Q3DateEdit *de = qobject_cast<Q3DateEdit*>(parentWidget());
 	    if (de) {
 		setUpEnabled(de->date() < de->maxValue());
 		setDownEnabled(de->date() > de->minValue());
@@ -869,13 +865,7 @@ public:
     information. It is recommended that the Q3DateEdit be initialised
     with a date, e.g.
 
-    \code
-    Q3DateEdit *dateEdit = new Q3DateEdit(QDate::currentDate(), this);
-    dateEdit->setRange(QDate::currentDate().addDays(-365),
-                        QDate::currentDate().addDays( 365));
-    dateEdit->setOrder(Q3DateEdit::MDY);
-    dateEdit->setAutoAdvance(true);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3datetimeedit.cpp 0
 
     Here we've created a new Q3DateEdit object initialised with today's
     date and restricted the valid date range to today plus or minus
@@ -1800,11 +1790,7 @@ public:
     they complete a section using setAutoAdvance(). Times appear in
     hour, minute, second order. It is recommended that the Q3TimeEdit
     is initialised with a time, e.g.
-    \code
-    QTime timeNow = QTime::currentTime();
-    Q3TimeEdit *timeEdit = new Q3TimeEdit(timeNow, this);
-    timeEdit->setRange(timeNow, timeNow.addSecs(60 * 60));
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3datetimeedit.cpp 1
     Here we've created a Q3TimeEdit widget set to the current time.
     We've also set the minimum value to the current time and the
     maximum time to one hour from now.
@@ -2622,11 +2608,7 @@ public:
 
     It is recommended that the Q3DateTimeEdit is initialised with a
     datetime, e.g.
-    \code
-    Q3DateTimeEdit *dateTimeEdit = new Q3DateTimeEdit(QDateTime::currentDateTime(), this);
-    dateTimeEdit->dateEdit()->setRange(QDateTime::currentDate(),
-                                        QDateTime::currentDate().addDays(7));
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3datetimeedit.cpp 2
     Here we've created a new Q3DateTimeEdit set to the current date and
     time, and set the date to have a minimum date of now and a maximum
     date of a week from now.
@@ -2832,6 +2814,8 @@ bool Q3DateTimeEdit::autoAdvance() const
     Returns the internal widget used for editing the time part of the
     datetime.
 */
+
+QT_END_NAMESPACE
 
 #include "q3datetimeedit.moc"
 

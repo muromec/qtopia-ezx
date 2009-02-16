@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the plugins of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 extern "C" {
 #include "tiffio.h"
 }
+
+QT_BEGIN_NAMESPACE
 
 tsize_t qtiffReadProc(thandle_t fd, tdata_t buf, tsize_t size)
 {
@@ -121,8 +117,9 @@ bool QTiffHandler::canRead(QIODevice *device)
 
     // current implementation uses TIFFClientOpen which needs to be
     // able to seek, so sequential devices are not supported
-    return !device->isSequential()
-        && (device->peek(4) == "\x49\x49\x2A\x00" || device->peek(4) == "\x4D\x4D\x00\x2A");
+    QByteArray header = device->peek(4);
+    return header == QByteArray::fromRawData("\x49\x49\x2A\x00", 4)
+           || header == QByteArray::fromRawData("\x4D\x4D\x00\x2A", 4);
 }
 
 bool QTiffHandler::read(QImage *image)
@@ -147,14 +144,33 @@ bool QTiffHandler::read(QImage *image)
         TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &width);
         TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &height);
         tiffImage = QImage(width, height, QImage::Format_ARGB32);
-        size_t npixels = width * height;
-        uint32 *raster = reinterpret_cast<uint32*>(_TIFFmalloc(tsize_t(npixels * sizeof(uint32))));
-        if (raster != 0) {
-            if (TIFFReadRGBAImage(tiff, width, height, raster, 0)) {
+        if (!tiffImage.isNull()) {
+            if (TIFFReadRGBAImageOriented(tiff, width, height, reinterpret_cast<uint32 *>(tiffImage.bits()), ORIENTATION_TOPLEFT, 0)) {
+                uint32 resUnit = RESUNIT_NONE;
+                float resX = 0;
+                float resY = 0;
+                TIFFGetField(tiff, TIFFTAG_RESOLUTIONUNIT, &resUnit);
+                TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resX);
+                TIFFGetField(tiff, TIFFTAG_YRESOLUTION, &resY);
+                switch(resUnit) {
+                    case RESUNIT_CENTIMETER:
+                        tiffImage.setDotsPerMeterX(qRound(resX * 100));
+                        tiffImage.setDotsPerMeterY(qRound(resY * 100));
+                        break;
+                    case RESUNIT_INCH:
+                        tiffImage.setDotsPerMeterX(qRound(resX * (100 / 2.54)));
+                        tiffImage.setDotsPerMeterY(qRound(resY * (100 / 2.54)));		
+                        break;
+                    default:
+                        // do nothing as defaults have already
+						// been set within the QImage class
+                        break;
+                }
                 for (uint32 y=0; y<height; ++y)
-                    convert32BitOrder(&raster[(height-y-1)*width], tiffImage.scanLine(y), width);
+                    convert32BitOrder(tiffImage.scanLine(y), width);
+            } else {
+                tiffImage = QImage();
             }
-            _TIFFfree(raster);
         }
         TIFFClose(tiff);
     }
@@ -171,8 +187,6 @@ bool QTiffHandler::write(const QImage &image)
     if (!device()->isWritable())
         return false;
 
-    QImage convertedImage = image.convertToFormat(QImage::Format_ARGB32);
-
     TIFF *tiff = TIFFClientOpen("foo",
                                 "w",
                                 this,
@@ -185,10 +199,9 @@ bool QTiffHandler::write(const QImage &image)
                                 qtiffUnmapProc);
 
     if (tiff) {
-        int width = convertedImage.width();
-        int height = convertedImage.height();
-        int depth = convertedImage.depth();
-        int bytesPerLine = convertedImage.bytesPerLine();
+        int width = image.width();
+        int height = image.height();
+        int depth = 32;
 
         if (!TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width)
                 || !TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height)
@@ -201,20 +214,29 @@ bool QTiffHandler::write(const QImage &image)
             return false;
         }
 
-        uint32 *bytes = reinterpret_cast<uint32*>(_TIFFmalloc(bytesPerLine));
-        for (int y=0; y < height; ++y) {
-            if (QSysInfo::ByteOrder == QSysInfo::LittleEndian)
-                convert32BitOrder(convertedImage.scanLine(y), bytes, width);
-            else
-                convert32BitOrderBigEndian(convertedImage.scanLine(y), bytes, width);
+        // try to do the ARGB32 conversion in chunks no greater than 16 MB
+        int chunks = (width * height * 4 / (1024 * 1024 * 16)) + 1;
+        int chunkHeight = qMax(height / chunks, 1);
 
-            if (TIFFWriteScanline(tiff, bytes, y) != 1) {
-                _TIFFfree(bytes);
-                TIFFClose(tiff);
-                return false;
+        int y = 0;
+        while (y < height) {
+            QImage chunk = image.copy(0, y, width, qMin(chunkHeight, height - y)).convertToFormat(QImage::Format_ARGB32);
+
+            int chunkStart = y;
+            int chunkEnd = y + chunk.height();
+            while (y < chunkEnd) {
+                if (QSysInfo::ByteOrder == QSysInfo::LittleEndian)
+                    convert32BitOrder(chunk.scanLine(y - chunkStart), width);
+                else
+                    convert32BitOrderBigEndian(chunk.scanLine(y - chunkStart), width);
+
+                if (TIFFWriteScanline(tiff, reinterpret_cast<uint32 *>(chunk.scanLine(y - chunkStart)), y) != 1) {
+                    TIFFClose(tiff);
+                    return false;
+                }
+                ++y;
             }
         }
-        _TIFFfree(bytes);
         TIFFClose(tiff);
     } else {
         return false;
@@ -270,12 +292,11 @@ bool QTiffHandler::supportsOption(ImageOption option) const
     return (option == Size) || (option == CompressionRatio);
 }
 
-void QTiffHandler::convert32BitOrder(const void *source, void *destination, int width)
+void QTiffHandler::convert32BitOrder(void *buffer, int width)
 {
-    const uint32 *src = reinterpret_cast<const uint32 *>(source);
-    uint32 *target = reinterpret_cast<uint32 *>(destination);
+    uint32 *target = reinterpret_cast<uint32 *>(buffer);
     for (int32 x=0; x<width; ++x) {
-        uint32 p = src[x];
+        uint32 p = target[x];
         // convert between ARGB and ABGR
         target[x] = (p & 0xff000000)
                     | ((p & 0x00ff0000) >> 16)
@@ -284,15 +305,16 @@ void QTiffHandler::convert32BitOrder(const void *source, void *destination, int 
     }
 }
 
-void QTiffHandler::convert32BitOrderBigEndian(const void *source, void *destination, int width)
+void QTiffHandler::convert32BitOrderBigEndian(void *buffer, int width)
 {
-    const uint32 *src = reinterpret_cast<const uint32 *>(source);
-    uint32 *target = reinterpret_cast<uint32 *>(destination);
+    uint32 *target = reinterpret_cast<uint32 *>(buffer);
     for (int32 x=0; x<width; ++x) {
-        uint32 p = src[x];
+        uint32 p = target[x];
         target[x] = (p & 0xff000000) >> 24
                     | (p & 0x00ff0000) << 8
                     | (p & 0x0000ff00) << 8
                     | (p & 0x000000ff) << 8;
     }
 }
+
+QT_END_NAMESPACE

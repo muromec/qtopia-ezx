@@ -1,46 +1,41 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
+#include "lupdate.h"
 #include <metatranslator.h>
 
 #include <QFile>
@@ -52,6 +47,8 @@
 #include <QDebug>
 
 #include <ctype.h>
+
+QT_BEGIN_NAMESPACE
 
 enum { Tok_Eof, Tok_class, Tok_return, Tok_tr,
        Tok_translate, Tok_Ident, Tok_Package,
@@ -66,13 +63,13 @@ class Scope
         QString name;
         enum Type {Clazz, Function, Other} type;
         int line;
-       
-        Scope(QString name, Type type, int line) :
+
+        Scope(const QString & name, Type type, int line) :
                 name(name),
                 type(type),
                 line(line)
         {}
-        
+
         ~Scope()
         {}
 };
@@ -82,7 +79,7 @@ class Scope
   should be self-explanatory.
 */
 
-static QByteArray yyFileName;
+static QString yyFileName;
 static QChar yyCh;
 static QString yyIdent;
 static QString yyComment;
@@ -108,19 +105,18 @@ static QString yyPackage;
 static QStack<Scope*> yyScope;
 static QString yyDefaultContext;
 
-static QChar getChar() {
-    yyInPos ++;
-    if(yyInPos == yyInStr.length() || yyInStr.isEmpty())
-    {
-        if( yyInTextStream->atEnd() ) {
+static QChar getChar()
+{
+    ++yyInPos;
+    if (yyInPos == yyInStr.length() || yyInStr.isEmpty()) {
+        if( yyInTextStream->atEnd() )
             return 0;
-        }
-        
+
         yyInStr = yyInTextStream->readLine();
 
         yyCurLineNo ++;
         yyInPos = -1;
-        return QChar('\n');
+        return QLatin1Char('\n');
     }
     return yyInStr.at( yyInPos );
 }
@@ -130,28 +126,27 @@ static int getToken()
     const char tab[] = "bfnrt\"\'\\";
     const char backTab[] = "\b\f\n\r\t\"\'\\";
 
-    yyIdent = "";
-    yyComment = "";
-    yyString = "";
-    
+    yyIdent.clear();
+    yyComment.clear();
+    yyString.clear();
+
     while ( yyCh != 0 ) {
         yyLineNo = yyCurLineNo;
-        
+
         if ( yyCh.isLetter() || yyCh.toLatin1() == '_' ) {
             do {
                 yyIdent.append(yyCh);
                 yyCh = getChar();
             } while ( yyCh.isLetterOrNumber() || yyCh.toLatin1() == '_' );
-            
-            if(yyTok != Tok_Dot)
-            {
+
+            if (yyTok != Tok_Dot) {
                 switch ( yyIdent.at(0).toLatin1() ) {
                     case 'r':
-                        if ( yyIdent == "return" )
+                        if ( yyIdent == QLatin1String("return") )
                             return Tok_return;
                         break;
                      case 'c':
-                        if ( yyIdent == "class" )
+                        if ( yyIdent == QLatin1String("class") )
                             return Tok_class;
                     break;
                 }
@@ -159,53 +154,51 @@ static int getToken()
             switch ( yyIdent.at(0).toLatin1() ) {
             case 'T':
                 // TR() for when all else fails
-                if ( yyIdent == "TR" ){
+                if ( yyIdent == QLatin1String("TR") )
                     return Tok_tr;
-                }    
                 break;
             case 'p':
-                if( yyIdent == "package" )
+                if( yyIdent == QLatin1String("package") )
                     return Tok_Package;
                 break;
             case 't':
-                if ( yyIdent == "tr" ) {
+                if ( yyIdent == QLatin1String("tr") )
                     return Tok_tr;
-                } else if ( yyIdent == "translate" ) {
+                if ( yyIdent == QLatin1String("translate") )
                     return Tok_translate;
                 }
-            }
             return Tok_Ident;
         } else {
             switch ( yyCh.toLatin1() ) {
-                
+
             case '/':
                 yyCh = getChar();
-                if ( yyCh == '/' ) {
+                if ( yyCh == QLatin1Char('/') ) {
                     do {
                         yyCh = getChar();
                         yyComment.append(yyCh);
-                    } while ( yyCh != 0 && yyCh.toLatin1() != '\n' );
+                    } while ( yyCh != 0 && yyCh != QLatin1Char('\n') );
                     return Tok_Comment;
-                    
-                } else if ( yyCh == '*' ) {
+
+                } else if ( yyCh == QLatin1Char('*') ) {
                     bool metAster = false;
                     bool metAsterSlash = false;
-                    
+
                     while ( !metAsterSlash ) {
                         yyCh = getChar();
                         if ( yyCh == EOF ) {
                             qFatal( "%s: Unterminated Java comment starting at"
                                     " line %d\n",
-                                    (const char *) yyFileName, yyLineNo );
-                            
+                                    qPrintable(yyFileName), yyLineNo );
+
                             return Tok_Comment;
                         }
-                        
+
                         yyComment.append( yyCh );
-                        
-                        if ( yyCh == '*' )
+
+                        if ( yyCh == QLatin1Char('*') )
                             metAster = true;
-                        else if ( metAster && yyCh == '/' )
+                        else if ( metAster && yyCh == QLatin1Char('/') )
                             metAsterSlash = true;
                         else
                             metAster = false;
@@ -217,14 +210,14 @@ static int getToken()
                 break;
             case '"':
                 yyCh = getChar();
-                
-                while ( yyCh != 0 && yyCh != '\n' && yyCh != '"' ) {
-                    if ( yyCh == '\\' ) {
+
+                while ( yyCh != 0 && yyCh != QLatin1Char('\n') && yyCh != QLatin1Char('"') ) {
+                    if ( yyCh == QLatin1Char('\\') ) {
                         yyCh = getChar();
-                        if ( yyCh == 'u' ) {
+                        if ( yyCh == QLatin1Char('u') ) {
                             yyCh = getChar();
                             uint unicode(0);
-                            for(int i = 4; i > 0; i--) {
+                            for (int i = 4; i > 0; --i) {
                                 unicode = unicode << 4;
                                 if( yyCh.isDigit() ) {
                                     unicode += yyCh.digitValue();
@@ -232,7 +225,8 @@ static int getToken()
                                 else {
                                     int sub(yyCh.toLower().toAscii() - 87);
                                     if( sub > 15 || sub < 10) {
-                                        qFatal( "%s:%d: Invalid Unicode", (const char *) yyFileName, yyLineNo );    
+                                        qFatal( "%s:%d: Invalid Unicode",
+                                            qPrintable(yyFileName), yyLineNo );
                                     }
                                     unicode += sub;
                                 }
@@ -240,11 +234,11 @@ static int getToken()
                             }
                             yyString.append(QChar(unicode));
                         }
-                        else if ( yyCh == '\n' ) {
+                        else if ( yyCh == QLatin1Char('\n') ) {
                             yyCh = getChar();
                         }
                         else {
-                            yyString.append( backTab[strchr( tab, yyCh.toAscii() ) - tab] );
+                            yyString.append( QLatin1Char(backTab[strchr( tab, yyCh.toAscii() ) - tab]) );
                             yyCh = getChar();
                         }
                     } else {
@@ -252,25 +246,26 @@ static int getToken()
                         yyCh = getChar();
                     }
                 }
-                
-                if ( yyCh != '"' )
-                    qFatal( "%s:%d: Unterminated string", (const char *) yyFileName, yyLineNo );
-                
+
+                if ( yyCh != QLatin1Char('"') )
+                    qFatal( "%s:%d: Unterminated string",
+                        qPrintable(yyFileName), yyLineNo );
+
                 yyCh = getChar();
-                
+
                 return Tok_String;
-                
+
             case ':':
                 yyCh = getChar();
                 return Tok_Colon;
             case '\'':
                 yyCh = getChar();
-                 
-                if ( yyCh == '\\' )
+
+                if ( yyCh == QLatin1Char('\\') )
                     yyCh = getChar();
                 do {
                     yyCh = getChar();
-                } while ( yyCh != 0 && yyCh != '\'' );
+                } while ( yyCh != 0 && yyCh != QLatin1Char('\'') );
                 yyCh = getChar();
                 break;
             case '{':
@@ -302,11 +297,11 @@ static int getToken()
                 return Tok_Semicolon;
             case '+':
                 yyCh = getChar();
-		if( yyCh == '+' ){
+                if (yyCh == QLatin1Char('+')) {
                     yyCh = getChar();
                     return Tok_PlusPlus;
 		}
-		if( yyCh == '=' ){
+                if( yyCh == QLatin1Char('=') ){
                     yyCh = getChar();
                     return Tok_PlusEq;
 		}
@@ -323,15 +318,15 @@ static int getToken()
             case '9':
                 {
                     QByteArray ba;
-                    ba+=yyCh;
+                    ba += yyCh.toLatin1();
                     yyCh = getChar();
-                    bool hex = yyCh == 'x';
+                    bool hex = yyCh == QLatin1Char('x');
                     if ( hex ) {
-                        ba+=yyCh;
+                        ba += yyCh.toLatin1();
                         yyCh = getChar();
                     }
                     while ( hex ? isxdigit(yyCh.toLatin1()) : yyCh.isDigit() ) {
-                        ba+=yyCh;
+                        ba += yyCh.toLatin1();
                         yyCh = getChar();
                     }
                     bool ok;
@@ -364,11 +359,13 @@ static bool matchString( QString &s )
     yyTok = getToken();
     while ( yyTok == Tok_Plus ) {
         yyTok = getToken();
-        if(yyTok == Tok_String)
+        if (yyTok == Tok_String)
             s += yyString;
         else {
-	    qWarning( "%s:%d: String used in translation can only contain strings concatenated with other strings, not expresions or numbers.", (const char *) yyFileName, yyLineNo );
-	    return false;  
+            qWarning( "%s:%d: String used in translation can only contain strings"
+                " concatenated with other strings, not expressions or numbers.",
+                qPrintable(yyFileName), yyLineNo );
+            return false;
         }
         yyTok = getToken();
     }
@@ -412,7 +409,7 @@ static bool matchExpression()
     if (match(Tok_Integer)) {
         return true;
     }
-    
+
     int parenlevel = 0;
     while (match(Tok_Ident) || parenlevel > 0) {
         if (yyTok == Tok_RightParen) {
@@ -440,15 +437,15 @@ static const QString context()
       QString context(yyPackage);
       bool innerClass = false;
       for (int i = 0; i < yyScope.size(); ++i) {
-         if (yyScope.at(i)->type == Scope::Clazz){
-             if(innerClass)
-                 context.append("$");
+         if (yyScope.at(i)->type == Scope::Clazz) {
+             if (innerClass)
+                 context.append(QLatin1String("$"));
              else
-                 context.append(".");
-                         
+                 context.append(QLatin1String("."));
+
              context.append(yyScope.at(i)->name);
              innerClass = true;
-         }    
+         }
      }
      return context.isEmpty() ? yyDefaultContext : context;
 }
@@ -458,7 +455,7 @@ static void parse( MetaTranslator *tor )
     QString text;
     QString com;
 
-    yyCh = getChar();    
+    yyCh = getChar();
 
     yyTok = getToken();
     while ( yyTok != Tok_Eof ) {
@@ -470,7 +467,7 @@ static void parse( MetaTranslator *tor )
             }
             else {
                 qFatal( "%s:%d: Class must be followed by a classname",
-                                          (const char *) yyFileName, yyLineNo );
+                                          qPrintable(yyFileName), yyLineNo );
             }
             while (!match(Tok_LeftBrace)) {
                 yyTok = getToken();
@@ -480,9 +477,9 @@ static void parse( MetaTranslator *tor )
         case Tok_tr:
             yyTok = getToken();
             if ( match(Tok_LeftParen) && matchString(text) ) {
-                com = "";
+                com.clear();
                 bool plural = false;
-                
+
                 if ( match(Tok_RightParen) ) {
                     // no comment
                 } else if (match(Tok_Comma) && matchStringOrNull(com)) {   //comment
@@ -492,8 +489,9 @@ static void parse( MetaTranslator *tor )
                         plural = true;
                     }
                 }
-                tor->insert( MetaTranslatorMessage(context().toUtf8(), text.toUtf8(), com.toUtf8(), QLatin1String(yyFileName), yyLineNo,
-                    QStringList(), true, MetaTranslatorMessage::Unfinished, plural) );
+                tor->insert( TranslatorMessage(context().toUtf8(),
+                    text.toUtf8(), com.toUtf8(), "", yyFileName, yyLineNo,
+                    QStringList(), true, TranslatorMessage::Unfinished, plural) );
             }
             break;
         case Tok_translate:
@@ -505,7 +503,7 @@ static void parse( MetaTranslator *tor )
                      match(Tok_Comma) &&
                      matchString(text) ) {
 
-                    com = "";
+                    com.clear();
                     bool plural = false;
                     if (!match(Tok_RightParen)) {
                         // look for comment
@@ -521,8 +519,9 @@ static void parse( MetaTranslator *tor )
                             break;
                         }
                     }
-                    tor->insert( MetaTranslatorMessage(contextOverride.toUtf8(), text.toUtf8(), com.toUtf8(), QLatin1String(yyFileName), yyLineNo,
-                                                       QStringList(), true, MetaTranslatorMessage::Unfinished, plural) );
+                    tor->insert( TranslatorMessage(contextOverride.toUtf8(),
+                        text.toUtf8(), com.toUtf8(), "", yyFileName, yyLineNo,
+                        QStringList(), true, TranslatorMessage::Unfinished, plural) );
                 }
             }
             break;
@@ -530,27 +529,26 @@ static void parse( MetaTranslator *tor )
         case Tok_Ident:
             yyTok = getToken();
             break;
-            
+
         case Tok_RightBrace:
-            if ( yyScope.isEmpty() )
-            {
+            if ( yyScope.isEmpty() ) {
                 qFatal( "%s:%d: Unbalanced right brace in Java code\n",
-                        (const char *)yyFileName, yyLineNo );
+                        qPrintable(yyFileName), yyLineNo );
             }
             else
                 delete (yyScope.pop());
             yyTok = getToken();
             break;
-            
+
          case Tok_LeftBrace:
-            yyScope.push(new Scope("", Scope::Other, yyLineNo));
+            yyScope.push(new Scope(QString(), Scope::Other, yyLineNo));
             yyTok = getToken();
             break;
-            
+
         case Tok_Semicolon:
             yyTok = getToken();
             break;
-            
+
         case Tok_Package:
             yyTok = getToken();
             while(!match(Tok_Semicolon)) {
@@ -559,57 +557,60 @@ static void parse( MetaTranslator *tor )
                         yyPackage.append(yyIdent);
                         break;
                     case Tok_Dot:
-                        yyPackage.append(".");
+                        yyPackage.append(QLatin1String("."));
                         break;
                     default:
                          qFatal( "%s:%d: Package keyword should be followed by com.package.name;",
-                                          (const char *) yyFileName, yyLineNo );
+                                          qPrintable(yyFileName), yyLineNo );
                          break;
                 }
                 yyTok = getToken();
             }
             break;
-            
+
         default:
             yyTok = getToken();
         }
     }
-    
+
     if ( !yyScope.isEmpty() )
         qFatal( "%s:%d: Unbalanced braces in Java code\n",
-                 (const char *)yyFileName, yyScope.top()->line );
+                 qPrintable(yyFileName), yyScope.top()->line );
     else if ( yyParenDepth != 0 )
         qFatal( "%s:%d: Unbalanced parentheses in Java code\n",
-                 (const char *)yyFileName, yyParenLineNo );
+                 qPrintable(yyFileName), yyParenLineNo );
 }
 
-void fetchtr_java( const char *fileName,  MetaTranslator *tor,
-                   const char *defaultContext, bool mustExist, const QByteArray &codecForSource )
+void LupdateApplication::fetchtr_java( const QString &fileName, MetaTranslator *tor,
+    const QString &defaultContext, bool mustExist, const QByteArray &codecForSource )
 {
-    yyDefaultContext = defaultContext;   
+    yyDefaultContext = defaultContext;
     yyInPos = -1;
     yyFileName = fileName;
-    yyPackage = "";
-    yyInStr = "";
-    yyScope.clear();    
+    yyPackage.clear();
+    yyInStr.clear();
+    yyScope.clear();
     yyTok = -1;
     yyParenDepth = 0;
     yyCurLineNo = 0;
     yyParenLineNo = 1;
-    
+
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         if( mustExist )
-            qFatal( "lupdate error: Cannot open java source file '%s'\n", fileName);
+            qFatal( "lupdate error: Cannot open java source file '%s'\n",
+                qPrintable(fileName));
     }
-    
+
     yyInTextStream = new QTextStream( &file );
-    
-    if( !codecForSource.isEmpty() ) {
+
+    if (!codecForSource.isEmpty()) {
         yyInTextStream->setCodec( QTextCodec::codecForName(codecForSource) );
     }
-    
+
     parse( tor );
-    
+
     delete( yyInTextStream );
 }
+
+QT_END_NAMESPACE

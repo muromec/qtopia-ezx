@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -59,6 +53,8 @@
 #include "qevent.h"
 #include "q3url.h"
 #include "qhttp.h"
+
+QT_BEGIN_NAMESPACE
 
 //#define Q3HTTP_DEBUG
 
@@ -352,17 +348,12 @@ void Q3HttpCloseRequest::start( Q3Http *http )
     consists of a name followed by a colon, a single space, and the
     field value. (See RFC 1945.) Field names are case-insensitive. A
     typical header field looks like this:
-    \code
-    content-type: text/html
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 0
 
     In the API the header field name is called the "key" and the
     content is called the "value". You can get and set a header
     field's value by using its key with value() and setValue(), e.g.
-    \code
-    header.setValue( "content-type", "text/html" );
-    QString contentType = header.value( "content-type" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 1
 
     Some fields are so common that getters and setters are provided
     for them as a convenient alternative to using \l value() and
@@ -1019,10 +1010,7 @@ QString Q3HttpRequestHeader::toString() const
     do not use it directly, but rather through a QUrlOperator, for
     example:
 
-    \code
-    QUrlOperator op( "http://www.trolltech.com" );
-    op.get( "index.html" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 2
 
     This code will only work if the Q3Http class is registered; to
     register the class, you must call q3InitNetworkProtocols() before
@@ -1059,12 +1047,7 @@ QString Q3HttpRequestHeader::toString() const
     from the Trolltech home page (i.e. the URL
     http://www.trolltech.com/index.html):
 
-    \code
-    Q3HttpRequestHeader header( "GET", "/index.html" );
-    header.setValue( "Host", "www.trolltech.com" );
-    http->setHost( "www.trolltech.com" );
-    http->request( header );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 3
 
     For the common HTTP requests \c GET, \c POST and \c HEAD, Q3Http
     provides the convenience functions get(), post() and head(). They
@@ -1072,36 +1055,12 @@ QString Q3HttpRequestHeader::toString() const
     special header fields, they are easier to use. The above example
     can also be written as:
 
-    \code
-    http->setHost( "www.trolltech.com" ); // id == 1
-    http->get( "/index.html" );           // id == 2
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 4
 
     For this example the following sequence of signals is emitted
     (with small variations, depending on network traffic, etc.):
 
-    \code
-    requestStarted( 1 )
-    requestFinished( 1, false )
-
-    requestStarted( 2 )
-    stateChanged( Connecting )
-    stateChanged( Sending )
-    dataSendProgress( 77, 77 )
-    stateChanged( Reading )
-    responseHeaderReceived( responseheader )
-    dataReadProgress( 5388, 0 )
-    readyRead( responseheader )
-    dataReadProgress( 18300, 0 )
-    readyRead( responseheader )
-    stateChanged( Connected )
-    requestFinished( 2, false )
-
-    done( false )
-
-    stateChanged( Closing )
-    stateChanged( Unconnected )
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 5
 
     The dataSendProgress() and dataReadProgress() signals in the above
     example are useful if you want to show a \link QProgressBar
@@ -1126,28 +1085,13 @@ QString Q3HttpRequestHeader::toString() const
 
     For example, if you have the following sequence of reqeusts
 
-    \code
-    http->setHost( "www.foo.bar" );       // id == 1
-    http->get( "/index.html" );           // id == 2
-    http->post( "register.html", data );  // id == 3
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 6
 
     and the get() request fails because the host lookup fails, then
     the post() request is never executed and the signals would look
     like this:
 
-    \code
-    requestStarted( 1 )
-    requestFinished( 1, false )
-
-    requestStarted( 2 )
-    stateChanged( HostLookup )
-    requestFinished( 2, true )
-
-    done( true )
-
-    stateChanged( Unconnected )
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3http.cpp 7
 
     You can then get details about the error with the error() and
     errorString() functions. Note that only unexpected behaviour, like
@@ -2368,5 +2312,7 @@ void Q3Http::clientStateChanged( int state )
 	}
     }
 }
+
+QT_END_NAMESPACE
 
 #endif

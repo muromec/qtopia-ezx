@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,150 +39,426 @@
 TRANSLATOR qdesigner_internal::RichTextEditorDialog
 */
 
-#include <QtCore/QPointer>
-#include <QtCore/QMap>
+#include "richtexteditor_p.h"
+#include "htmlhighlighter_p.h"
+#include "iconselector_p.h"
+#include "ui_addlinkdialog.h"
 
-#include <QtGui/QToolBar>
-#include <QtGui/QComboBox>
+#include "iconloader_p.h"
+
+#include <QtDesigner/QDesignerFormEditorInterface>
+
+#include <QtCore/QList>
+#include <QtCore/QMap>
+#include <QtCore/QPointer>
+
 #include <QtGui/QAction>
+#include <QtGui/QColorDialog>
+#include <QtGui/QComboBox>
+#include <QtGui/QFontDatabase>
 #include <QtGui/QTextCursor>
 #include <QtGui/QPainter>
 #include <QtGui/QIcon>
+#include <QtGui/QMenu>
 #include <QtGui/QMoveEvent>
+#include <QtGui/QTabWidget>
 #include <QtGui/QTextDocument>
 #include <QtGui/QTextBlock>
+#include <QtGui/QToolBar>
+#include <QtGui/QToolButton>
 #include <QtGui/QVBoxLayout>
 #include <QtGui/QHBoxLayout>
 #include <QtGui/QPushButton>
 #include <QtGui/QDialogButtonBox>
 
-#include <QtCore/qdebug.h>
-
-#include "iconloader_p.h"
-#include "richtexteditor_p.h"
-
-static bool operator < (const QColor &c1, const QColor &c2)
-{
-    if (c1.red() != c2.red())
-        return c1.red() < c2.red();
-    if (c1.green() != c2.green())
-        return c1.green() < c2.green();
-    return c1.blue() < c2.blue();
-}
+QT_BEGIN_NAMESPACE
 
 namespace qdesigner_internal {
+
+class RichTextEditor : public QTextEdit
+{
+    Q_OBJECT
+public:
+    RichTextEditor(QWidget *parent = 0);
+    void setDefaultFont(const QFont &font);
+
+    QToolBar *createToolBar(QDesignerFormEditorInterface *core, QWidget *parent = 0);
+
+public slots:
+    void setFontBold(bool b);
+    void setFontPointSize(double);
+    void setText(const QString &text);
+    QString text(Qt::TextFormat format) const;
+
+signals:
+    void stateChanged();
+};
+
+class AddLinkDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    AddLinkDialog(RichTextEditor *editor, QWidget *parent = 0);
+    ~AddLinkDialog();
+
+    int showDialog();
+
+public slots:
+    void accept();
+
+private:
+    RichTextEditor *m_editor;
+    Ui::AddLinkDialog *m_ui;
+};
+
+AddLinkDialog::AddLinkDialog(RichTextEditor *editor, QWidget *parent) :
+    QDialog(parent),
+    m_ui(new Ui::AddLinkDialog)
+{
+    m_ui->setupUi(this);
+
+    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+    m_editor = editor;
+}
+
+AddLinkDialog::~AddLinkDialog()
+{
+    delete m_ui;
+}
+
+int AddLinkDialog::showDialog()
+{
+    // Set initial focus
+    const QTextCursor cursor = m_editor->textCursor();
+    if (cursor.hasSelection()) {
+        m_ui->titleInput->setText(cursor.selectedText());
+        m_ui->urlInput->setFocus();
+    } else {
+        m_ui->titleInput->setFocus();
+    }
+
+    return exec();
+}
+
+void AddLinkDialog::accept()
+{
+    const QString title = m_ui->titleInput->text();
+    const QString url = m_ui->urlInput->text();
+
+    if (!title.isEmpty()) {
+        QString html = QLatin1String("<a href=\"");
+        html += url;
+        html += QLatin1String("\">");
+        html += title;
+        html += QLatin1String("</a>");
+
+        m_editor->insertHtml(html);
+    }
+
+    m_ui->titleInput->clear();
+    m_ui->urlInput->clear();
+
+    QDialog::accept();
+}
+
+class HtmlTextEdit : public QTextEdit
+{
+    Q_OBJECT
+
+public:
+    HtmlTextEdit(QWidget *parent = 0)
+        : QTextEdit(parent)
+    {}
+
+    void contextMenuEvent(QContextMenuEvent *event);
+
+private slots:
+    void actionTriggered(QAction *action);
+};
+
+void HtmlTextEdit::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu *menu = createStandardContextMenu();
+    QMenu *htmlMenu = new QMenu(tr("Insert HTML entity"), menu);
+
+    typedef struct {
+        const char *text;
+        const char *entity;
+    } Entry;
+
+    const Entry entries[] = {
+        { "&&amp; (&&)", "&amp;" },
+        { "&&nbsp;", "&nbsp;" },
+        { "&&lt; (<)", "&lt;" },
+        { "&&gt; (>)", "&gt;" },
+        { "&&copy; (Copyright)", "&copy;" },
+        { "&&reg; (Trade Mark)", "&reg;" },
+    };
+
+    for (int i = 0; i < 6; ++i) {
+        QAction *entityAction = new QAction(QLatin1String(entries[i].text),
+                                            htmlMenu);
+        entityAction->setData(QLatin1String(entries[i].entity));
+        htmlMenu->addAction(entityAction);
+    }
+
+    menu->addMenu(htmlMenu);
+    connect(htmlMenu, SIGNAL(triggered(QAction*)),
+                      SLOT(actionTriggered(QAction*)));
+    menu->exec(event->globalPos());
+    delete menu;
+}
+
+void HtmlTextEdit::actionTriggered(QAction *action)
+{
+    insertPlainText(action->data().toString());
+}
+
+class ColorAction : public QAction
+{
+    Q_OBJECT
+
+public:
+    ColorAction(QObject *parent);
+
+    const QColor& color() const { return m_color; }
+    void setColor(const QColor &color);
+
+signals:
+    void colorChanged(const QColor &color);
+
+private slots:
+    void chooseColor();
+
+private:
+    QColor m_color;
+};
+
+ColorAction::ColorAction(QObject *parent):
+    QAction(parent)
+{
+    setText(tr("Text Color"));
+    setColor(Qt::black);
+    connect(this, SIGNAL(triggered()), this, SLOT(chooseColor()));
+}
+
+void ColorAction::setColor(const QColor &color)
+{
+    if (color == m_color)
+        return;
+    m_color = color;
+    QPixmap pix(24, 24);
+    QPainter painter(&pix);
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.fillRect(pix.rect(), m_color);
+    painter.setPen(m_color.darker());
+    painter.drawRect(pix.rect().adjusted(0, 0, -1, -1));
+    setIcon(pix);
+}
+
+void ColorAction::chooseColor()
+{
+    const QColor col = QColorDialog::getColor(m_color, 0);
+    if (col.isValid() && col != m_color) {
+        setColor(col);
+        emit colorChanged(m_color);
+    }
+}
 
 class RichTextEditorToolBar : public QToolBar
 {
     Q_OBJECT
 public:
-    RichTextEditorToolBar(RichTextEditor *editor, QWidget *parent = 0);
+    RichTextEditorToolBar(QDesignerFormEditorInterface *core,
+                          RichTextEditor *editor,
+                          QWidget *parent = 0);
 
 public slots:
     void updateActions();
 
 private slots:
+    void alignmentActionTriggered(QAction *action);
     void sizeInputActivated(const QString &size);
-    void colorInputActivated(const QString &color);
+    void colorChanged(const QColor &color);
+    void setVAlignSuper(bool super);
+    void setVAlignSub(bool sub);
+    void insertLink();
+    void insertImage();
 
 private:
     QAction *m_bold_action;
     QAction *m_italic_action;
     QAction *m_underline_action;
+    QAction *m_valign_sup_action;
+    QAction *m_valign_sub_action;
+    QAction *m_align_left_action;
+    QAction *m_align_center_action;
+    QAction *m_align_right_action;
+    QAction *m_align_justify_action;
+    QAction *m_link_action;
+    QAction *m_image_action;
+    ColorAction *m_color_action;
     QComboBox *m_font_size_input;
-    QComboBox *m_color_input;
 
+    QDesignerFormEditorInterface *m_core;
     QPointer<RichTextEditor> m_editor;
-
-    typedef QMap<QColor, QString> ColorMap;
-    ColorMap m_color_map;
 };
 
 static QAction *createCheckableAction(const QIcon &icon, const QString &text,
-                                    QObject *receiver, const char *slot,
-                                    QObject *parent = 0)
+                                      QObject *receiver, const char *slot,
+                                      QObject *parent = 0)
 {
     QAction *result = new QAction(parent);
     result->setIcon(icon);
     result->setText(text);
     result->setCheckable(true);
     result->setChecked(false);
-    QObject::connect(result, SIGNAL(triggered(bool)), receiver, slot);
+    if (slot)
+        QObject::connect(result, SIGNAL(triggered(bool)), receiver, slot);
     return result;
 }
 
-static QIcon iconForColor(const QColor &color)
+RichTextEditorToolBar::RichTextEditorToolBar(QDesignerFormEditorInterface *core,
+                                             RichTextEditor *editor,
+                                             QWidget *parent) :
+    QToolBar(parent),
+    m_link_action(new QAction(this)),
+    m_image_action(new QAction(this)),
+    m_color_action(new ColorAction(this)),
+    m_font_size_input(new QComboBox),
+    m_core(core),
+    m_editor(editor)
 {
-    QPixmap result(12, 12);
-    QPainter painter(&result);
-    painter.setPen(Qt::black);
-    painter.setBrush(color);
-    painter.drawRect(0, 0, result.width() - 1, result.height() - 1);
-    painter.end();
-    return QIcon(result);
-}
+    // Font size combo box
+    m_font_size_input->setEditable(false);
+    const QList<int> font_sizes = QFontDatabase::standardSizes();
+    foreach (int font_size, font_sizes)
+        m_font_size_input->addItem(QString::number(font_size));
 
-RichTextEditorToolBar::RichTextEditorToolBar(RichTextEditor *editor,
-                                                QWidget *parent)
-    : QToolBar(parent)
-{
-    m_editor = editor;
+    connect(m_font_size_input, SIGNAL(activated(QString)),
+            this, SLOT(sizeInputActivated(QString)));
+    addWidget(m_font_size_input);
 
-    m_bold_action = createCheckableAction(createIconSet(QLatin1String("textbold.png")),
+    addSeparator();
+
+    // Bold, italic and underline buttons
+
+    m_bold_action = createCheckableAction(
+            createIconSet(QLatin1String("textbold.png")),
             tr("Bold"), editor, SLOT(setFontBold(bool)), this);
     m_bold_action->setShortcut(tr("CTRL+B"));
     addAction(m_bold_action);
 
-    m_italic_action = createCheckableAction(createIconSet(QLatin1String("textitalic.png")),
+    m_italic_action = createCheckableAction(
+            createIconSet(QLatin1String("textitalic.png")),
             tr("Italic"), editor, SLOT(setFontItalic(bool)), this);
     m_italic_action->setShortcut(tr("CTRL+I"));
-
     addAction(m_italic_action);
-    m_underline_action = createCheckableAction(createIconSet(QLatin1String("textunder.png")),
+
+    m_underline_action = createCheckableAction(
+            createIconSet(QLatin1String("textunder.png")),
             tr("Underline"), editor, SLOT(setFontUnderline(bool)), this);
     m_underline_action->setShortcut(tr("CTRL+U"));
     addAction(m_underline_action);
 
-    m_font_size_input = new QComboBox(this);
-    m_font_size_input->setEditable(false);
-    for (int i = 4; i < 30; ++i)
-        m_font_size_input->addItem(QString::number(i));
-    connect(m_font_size_input, SIGNAL(activated(QString)),
-                this, SLOT(sizeInputActivated(QString)));
-    addWidget(m_font_size_input);
+    addSeparator();
 
-    QStringList color_names = QColor::colorNames();
-    color_names.removeAll(QLatin1String("transparent"));
-    foreach (QString color, color_names)
-        m_color_map.insert(QColor(color), color);
+    // Left, center, right and justified alignment buttons
 
-    m_color_input = new QComboBox(this);
-    foreach (QString color, color_names)
-        m_color_input->addItem(iconForColor(color), color);
-    connect(m_color_input, SIGNAL(activated(QString)),
-                this, SLOT(colorInputActivated(QString)));
-    addWidget(m_color_input);
+    QActionGroup *alignment_group = new QActionGroup(this);
+    connect(alignment_group, SIGNAL(triggered(QAction*)),
+                             SLOT(alignmentActionTriggered(QAction*)));
+
+    m_align_left_action = createCheckableAction(
+            createIconSet(QLatin1String("textleft.png")),
+            tr("Left Align"), editor, 0, alignment_group);
+    addAction(m_align_left_action);
+
+    m_align_center_action = createCheckableAction(
+            createIconSet(QLatin1String("textcenter.png")),
+            tr("Center"), editor, 0, alignment_group);
+    addAction(m_align_center_action);
+
+    m_align_right_action = createCheckableAction(
+            createIconSet(QLatin1String("textright.png")),
+            tr("Right Align"), editor, 0, alignment_group);
+    addAction(m_align_right_action);
+
+    m_align_justify_action = createCheckableAction(
+            createIconSet(QLatin1String("textjustify.png")),
+            tr("Justify"), editor, 0, alignment_group);
+    addAction(m_align_justify_action);
+
+    addSeparator();
+
+    // Superscript and subscript buttons
+
+    m_valign_sup_action = createCheckableAction(
+            createIconSet(QLatin1String("textsuperscript.png")),
+            tr("Superscript"),
+            this, SLOT(setVAlignSuper(bool)), this);
+    addAction(m_valign_sup_action);
+
+    m_valign_sub_action = createCheckableAction(
+            createIconSet(QLatin1String("textsubscript.png")),
+            tr("Subscript"),
+            this, SLOT(setVAlignSub(bool)), this);
+    addAction(m_valign_sub_action);
+
+    addSeparator();
+
+    // Insert hyperlink and image buttons
+
+    m_link_action->setIcon(createIconSet(QLatin1String("textanchor.png")));
+    m_link_action->setText(tr("Insert &Link"));
+    connect(m_link_action, SIGNAL(triggered()), SLOT(insertLink()));
+    addAction(m_link_action);
+
+    m_image_action->setIcon(createIconSet(QLatin1String("insertimage.png")));
+    m_image_action->setText(tr("Insert &Image"));
+    connect(m_image_action, SIGNAL(triggered()), SLOT(insertImage()));
+    addAction(m_image_action);
+
+    addSeparator();
+
+    // Text color button
+    connect(m_color_action, SIGNAL(colorChanged(QColor)),
+            this, SLOT(colorChanged(QColor)));
+    addAction(m_color_action);
 
     connect(editor, SIGNAL(textChanged()), this, SLOT(updateActions()));
+    connect(editor, SIGNAL(stateChanged()), this, SLOT(updateActions()));
 
     updateActions();
 }
 
-void RichTextEditorToolBar::colorInputActivated(const QString &s)
+void RichTextEditorToolBar::alignmentActionTriggered(QAction *action)
 {
-    QColor color(s);
-    if (!color.isValid())
-        return;
+    Qt::Alignment new_alignment;
 
+    if (action == m_align_left_action) {
+        new_alignment = Qt::AlignLeft;
+    } else if (action == m_align_center_action) {
+        new_alignment = Qt::AlignCenter;
+    } else if (action == m_align_right_action) {
+        new_alignment = Qt::AlignRight;
+    } else {
+        new_alignment = Qt::AlignJustify;
+    }
+
+    m_editor->setAlignment(new_alignment);
+}
+
+void RichTextEditorToolBar::colorChanged(const QColor &color)
+{
     m_editor->setTextColor(color);
     m_editor->setFocus();
 }
 
 void RichTextEditorToolBar::sizeInputActivated(const QString &size)
 {
-    if (m_editor == 0)
-        return;
-
     bool ok;
     int i = size.toInt(&ok);
     if (!ok)
@@ -198,6 +468,44 @@ void RichTextEditorToolBar::sizeInputActivated(const QString &size)
     m_editor->setFocus();
 }
 
+void RichTextEditorToolBar::setVAlignSuper(bool super)
+{
+    const QTextCharFormat::VerticalAlignment align = super ?
+        QTextCharFormat::AlignSuperScript : QTextCharFormat::AlignNormal;
+
+    QTextCharFormat charFormat = m_editor->currentCharFormat();
+    charFormat.setVerticalAlignment(align);
+    m_editor->setCurrentCharFormat(charFormat);
+
+    m_valign_sub_action->setChecked(false);
+}
+
+void RichTextEditorToolBar::setVAlignSub(bool sub)
+{
+    const QTextCharFormat::VerticalAlignment align = sub ?
+        QTextCharFormat::AlignSubScript : QTextCharFormat::AlignNormal;
+
+    QTextCharFormat charFormat = m_editor->currentCharFormat();
+    charFormat.setVerticalAlignment(align);
+    m_editor->setCurrentCharFormat(charFormat);
+
+    m_valign_sup_action->setChecked(false);
+}
+
+void RichTextEditorToolBar::insertLink()
+{
+    AddLinkDialog linkDialog(m_editor, this);
+    linkDialog.showDialog();
+    m_editor->setFocus();
+}
+
+void RichTextEditorToolBar::insertImage()
+{
+    const QString path = IconSelector::choosePixmapResource(m_core, m_core->resourceModel(), QString(), this);
+    if (!path.isEmpty())
+        m_editor->insertHtml(QLatin1String("<img src=\"") + path + QLatin1String("\"/>"));
+}
+
 void RichTextEditorToolBar::updateActions()
 {
     if (m_editor == 0) {
@@ -205,36 +513,51 @@ void RichTextEditorToolBar::updateActions()
         return;
     }
 
-    QTextCursor cursor = m_editor->textCursor();
+    const Qt::Alignment alignment = m_editor->alignment();
+    const QTextCursor cursor = m_editor->textCursor();
+    const QTextCharFormat charFormat = cursor.charFormat();
+    const QFont font = charFormat.font();
+    const QTextCharFormat::VerticalAlignment valign =
+        charFormat.verticalAlignment();
+    const bool superScript = valign == QTextCharFormat::AlignSuperScript;
+    const bool subScript = valign == QTextCharFormat::AlignSubScript;
 
-    QTextCharFormat char_format = cursor.charFormat();
+    if (alignment & Qt::AlignLeft) {
+        m_align_left_action->setChecked(true);
+    } else if (alignment & Qt::AlignRight) {
+        m_align_right_action->setChecked(true);
+    } else if (alignment & Qt::AlignHCenter) {
+        m_align_center_action->setChecked(true);
+    } else {
+        m_align_justify_action->setChecked(true);
+    }
 
-    m_bold_action->setChecked(char_format.fontWeight() == QFont::Bold);
-    m_italic_action->setChecked(char_format.fontItalic());
-    m_underline_action->setChecked(char_format.fontUnderline());
+    m_bold_action->setChecked(font.bold());
+    m_italic_action->setChecked(font.italic());
+    m_underline_action->setChecked(font.underline());
+    m_valign_sup_action->setChecked(superScript);
+    m_valign_sub_action->setChecked(subScript);
 
-    int size = (int) char_format.fontPointSize();
-    if (size == 0) // workaround for a bug in QTextEdit
-        size = (int) m_editor->document()->defaultFont().pointSize();
-    int idx = m_font_size_input->findText(QString::number(size));
+    const int size = font.pointSize();
+    const int idx = m_font_size_input->findText(QString::number(size));
     if (idx != -1)
         m_font_size_input->setCurrentIndex(idx);
 
-    QString color = m_color_map.value(m_editor->textColor());
-    idx = m_color_input->findText(color);
-    m_color_input->setCurrentIndex(idx);
+    m_color_action->setColor(m_editor->textColor());
 }
 
 RichTextEditor::RichTextEditor(QWidget *parent)
     : QTextEdit(parent)
 {
     connect(this, SIGNAL(currentCharFormatChanged(QTextCharFormat)),
-                this, SIGNAL(textChanged()));
+            this, SIGNAL(stateChanged()));
+    connect(this, SIGNAL(cursorPositionChanged()),
+            this, SIGNAL(stateChanged()));
 }
 
-QToolBar *RichTextEditor::createToolBar(QWidget *parent)
+QToolBar *RichTextEditor::createToolBar(QDesignerFormEditorInterface *core, QWidget *parent)
 {
-    return new RichTextEditorToolBar(this, parent);
+    return new RichTextEditorToolBar(core, this, parent);
 }
 
 void RichTextEditor::setFontBold(bool b)
@@ -268,83 +591,60 @@ void RichTextEditor::setDefaultFont(const QFont &font)
     emit textChanged();
 }
 
-static bool compareFontSizes(const QFont &font1, const QFont &font2)
-{
-    int ps1 = font1.pointSize();
-    if (ps1 == -1 && font1.pointSizeF() > 0)
-        ps1 = (int) font1.pointSizeF();
-
-    int ps2 = font2.pointSize();
-    if (ps2 == -1 && font2.pointSizeF() > 0)
-        ps2 = (int) font2.pointSizeF();
-
-    if (ps1 != -1 || ps2 != -1)
-        return ps1 == ps2;
-
-    return font1.pixelSize() == font2.pixelSize();
-}
-
-static inline bool compareFonts(const QFont &font1, const QFont &font2)
-{
-    return font1.family() == font2.family()
-            && compareFontSizes(font1, font2)
-            && font1.bold() == font2.bold()
-            && font1.italic() == font2.italic()
-            && font1.overline() == font2.overline()
-            && font1.underline() == font2.underline()
-            && font1.strikeOut() == font2.strikeOut();
-}
-
-Qt::TextFormat RichTextEditor::detectFormat() const
-{
-    Qt::TextFormat result = Qt::PlainText;
-
-    QFont default_font = document()->defaultFont();
-    QTextCursor cursor(document()->begin());
-    cursor.movePosition(QTextCursor::End);
-    while (!cursor.atStart()) {
-        QFont font = cursor.charFormat().font();
-        if (!compareFonts(font, default_font)) {
-            result = Qt::RichText;
-            break;
-        }
-        cursor.movePosition(QTextCursor::Left);
-    }
-
-    return result;
-};
-
 QString RichTextEditor::text(Qt::TextFormat format) const
 {
-    bool richtext = true;
-
-    if (format == Qt::PlainText)
-        richtext = false;
-    else if (format != Qt::RichText)
-        richtext = detectFormat() == Qt::RichText;
-
-    if (richtext)
-        return toHtml();
-    else
+    switch (format) {
+    case Qt::LogText:
+    case Qt::PlainText:
         return toPlainText();
+    case Qt::RichText:
+        return toHtml();
+    case Qt::AutoText:
+        break;
+    }
+    const QString html = toHtml();
+    const QString plain = toPlainText();
+    QTextEdit tester;
+    tester.setPlainText(plain);
+    return tester.toHtml() == html ? plain : html;
 }
 
-RichTextEditorDialog::RichTextEditorDialog(QWidget *parent)
-    : QDialog(parent)
+RichTextEditorDialog::RichTextEditorDialog(QDesignerFormEditorInterface *core, QWidget *parent)  :
+    QDialog(parent),
+    m_editor(new RichTextEditor()),
+    m_text_edit(new HtmlTextEdit),
+    m_tab_widget(new QTabWidget),
+    m_state(Clean)
 {
     setWindowTitle(tr("Edit text"));
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->setMargin(1);
-    m_editor = new RichTextEditor(this);
-    QToolBar *tool_bar = m_editor->createToolBar(this);
-    tool_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addWidget(tool_bar);
-    layout->addWidget(m_editor);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok
-                                                        | QDialogButtonBox::Cancel, Qt::Horizontal,
-                                                       this);
+    m_text_edit->setAcceptRichText(false);
+    new HtmlHighlighter(m_text_edit);
+
+    connect(m_editor, SIGNAL(textChanged()), this, SLOT(richTextChanged()));
+    connect(m_text_edit, SIGNAL(textChanged()), this, SLOT(sourceChanged()));
+
+    // The toolbar needs to be created after the RichTextEditor
+    QToolBar *tool_bar = m_editor->createToolBar(core);
+    tool_bar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+    QWidget *rich_edit = new QWidget;
+    QVBoxLayout *rich_edit_layout = new QVBoxLayout(rich_edit);
+    rich_edit_layout->addWidget(tool_bar);
+    rich_edit_layout->addWidget(m_editor);
+
+    QWidget *plain_edit = new QWidget;
+    QVBoxLayout *plain_edit_layout = new QVBoxLayout(plain_edit);
+    plain_edit_layout->addWidget(m_text_edit);
+
+    m_tab_widget->setTabPosition(QTabWidget::South);
+    m_tab_widget->addTab(rich_edit, tr("Rich Text"));
+    m_tab_widget->addTab(plain_edit, tr("Source"));
+    connect(m_tab_widget, SIGNAL(currentChanged(int)),
+                          SLOT(tabIndexChanged(int)));
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal);
     QPushButton *ok_button = buttonBox->button(QDialogButtonBox::Ok);
     ok_button->setText(tr("&OK"));
     ok_button->setDefault(true);
@@ -352,16 +652,85 @@ RichTextEditorDialog::RichTextEditorDialog(QWidget *parent)
     connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
 
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(m_tab_widget);
     layout->addWidget(buttonBox);
+
+    m_editor->setFocus();
 }
 
-RichTextEditor *RichTextEditorDialog::editor()
+int RichTextEditorDialog::showDialog()
 {
-    return m_editor;
+    m_tab_widget->setCurrentIndex(0);
+    m_editor->selectAll();
+    m_editor->setFocus();
+
+    return exec();
+}
+
+void RichTextEditorDialog::setDefaultFont(const QFont &font)
+{
+    m_editor->setDefaultFont(font);
+}
+
+void RichTextEditorDialog::setText(const QString &text)
+{
+    m_editor->setText(text);
+    m_text_edit->setPlainText(text);
+    m_state = Clean;
+}
+
+QString RichTextEditorDialog::text(Qt::TextFormat format) const
+{
+    // In autotext mode, if the user has changed the source, use that
+    if (format == Qt::AutoText && (m_state == Clean || m_state == SourceChanged))
+        return m_text_edit->toPlainText();
+    // If the plain text HTML editor is selected, first copy its contents over
+    // to the rich text editor so that it is converted to Qt-HTML or actual
+    // plain text.
+    if (m_tab_widget->currentIndex() == SourceIndex && m_state == SourceChanged)
+        m_editor->setHtml(m_text_edit->toPlainText());
+    return m_editor->text(format);
+}
+
+void RichTextEditorDialog::tabIndexChanged(int newIndex)
+{
+    // Anything changed, is there a need for a conversion?
+    if (newIndex == SourceIndex && m_state != RichTextChanged)
+        return;
+    if (newIndex == RichTextIndex && m_state != SourceChanged)
+        return;
+    const State oldState = m_state;
+    // Remember the cursor position, since it is invalidated by setPlainText
+    QTextEdit *new_edit = (newIndex == SourceIndex) ? m_text_edit : m_editor;
+    const int position = new_edit->textCursor().position();
+
+    if (newIndex == SourceIndex)
+        m_text_edit->setPlainText(m_editor->text(Qt::RichText));
+    else
+        m_editor->setHtml(m_text_edit->toPlainText());
+
+    QTextCursor cursor = new_edit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    if (cursor.position() > position) {
+        cursor.setPosition(position);
+    }
+    new_edit->setTextCursor(cursor);
+    m_state = oldState; // Changed is triggered by setting the text
+}
+
+void RichTextEditorDialog::richTextChanged()
+{
+    m_state = RichTextChanged;
+}
+
+void RichTextEditorDialog::sourceChanged()
+{
+    m_state = SourceChanged;
 }
 
 } // namespace qdesigner_internal
 
+QT_END_NAMESPACE
+
 #include "richtexteditor.moc"
-
-

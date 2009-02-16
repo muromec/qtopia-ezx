@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,149 +43,22 @@
 #include <private/qt_x11_p.h>
 #include "qx11info_x11.h"
 
-/*!
-    \class QPaintDevice
-    \brief The QPaintDevice class is the base class of objects that
-    can be painted.
-
-    \ingroup multimedia
-
-    A paint device is an abstraction of a two-dimensional space that
-    can be drawn using a QPainter.  Its default coordinate system has
-    its origin located at the top-left position. X increases to the
-    right and Y increases downwards. The unit is one pixel.
-
-    The drawing capabilities of QPaintDevice are currently implemented
-    by the QWidget, QImage, QPixmap, QGLPixelBuffer, QPicture, and
-    QPrinter subclasses.
-
-    To implement support for a new backend, you must derive from
-    QPaintDevice and reimplement the virtual paintEngine() function to
-    tell QPainter which paint engine should be used to draw on this
-    particular device. Note that you also must create a corresponding
-    paint engine to be able to draw on the device, i.e derive from
-    QPaintEngine and reimplement its virtual functions.
-
-    \warning Qt requires that a QApplication object exists before
-    any paint devices can be created. Paint devices access window
-    system resources, and these resources are not initialized before
-    an application object is created.
-
-    The QPaintDevice class provides several functions returning the
-    various device metrics: The depth() function returns its bit depth
-    (number of bit planes). The height() function returns its height
-    in default coordinate system units (e.g. pixels for QPixmap and
-    QWidget) while heightMM() returns the height of the device in
-    millimeters. Similiarily, the width() and widthMM() functions
-    return the width of the device in default coordinate system units
-    and in millimeters, respectively. Alternatively, the protected
-    metric() function can be used to retrieve the metric information
-    by specifying the desired PaintDeviceMetric as argument.
-
-    The logicalDpiX() and logicalDpiY() functions return the
-    horizontal and vertical resolution of the device in dots per
-    inch. The physicalDpiX() and physicalDpiY() functions also return
-    the resolution of the device in dots per inch, but note that if
-    the logical and vertical resolution differ, the corresponding
-    QPaintEngine must handle the mapping. Finally, the numColors()
-    function returns the number of different colors available for the
-    paint device.
-
-    \sa QPaintEngine, QPainter, {The Coordinate System}, {The Paint
-    System}
-*/
-
-/*!
-    \enum QPaintDevice::PaintDeviceMetric
-
-    Describes the various metrics of a paint device.
-
-    \value PdmWidth The width of the paint device in default
-    coordinate system units (e.g. pixels for QPixmap and QWidget). See
-    also width().
-
-    \value PdmHeight The height of the paint device in default
-    coordinate system units (e.g. pixels for QPixmap and QWidget). See
-    also height().
-
-    \value PdmWidthMM The width of the paint device in millimeters. See
-    also widthMM().
-
-    \value PdmHeightMM  The height of the paint device in millimeters. See
-    also heightMM().
-
-    \value PdmNumColors The number of different colors available for
-    the paint device. See also numColors().
-
-    \value PdmDepth The bit depth (number of bit planes) of the paint
-    device. See also depth().
-
-    \value PdmDpiX The horizontal resolution of the device in dots per
-    inch. See also logicalDpiX().
-
-    \value PdmDpiY  The vertical resolution of the device in dots per inch. See
-    also logicalDpiY().
-
-    \value PdmPhysicalDpiX The horizontal resolution of the device in
-    dots per inch. See also physicalDpiX().
-
-    \value PdmPhysicalDpiY The vertical resolution of the device in
-    dots per inch. See also physicalDpiY().
-
-    \sa metric()
-*/
-
-/*!
-    Constructs a paint device. This constructor can be invoked only from
-    subclasses of QPaintDevice.
-*/
+QT_BEGIN_NAMESPACE
 
 QPaintDevice::QPaintDevice()
 {
     painters = 0;
 }
 
-/*!
-    Destroys the paint device and frees window system resources.
-*/
+extern void qt_painter_removePaintDevice(QPaintDevice *); //qpainter.cpp
 
 QPaintDevice::~QPaintDevice()
 {
     if (paintingActive())
         qWarning("QPaintDevice: Cannot destroy paint device that is being "
                   "painted");
-    extern void qt_painter_removePaintDevice(QPaintDevice *); //qpainter.cpp
     qt_painter_removePaintDevice(this);
 }
-
-/*!
-    \fn int QPaintDevice::devType() const
-
-    \internal
-
-    Returns the device type identifier, which is QInternal::Widget
-    if the device is a QWidget, QInternal::Pixmap if it's a
-    QPixmap, QInternal::Printer if it's a QPrinter,
-    QInternal::Picture if it's a QPicture, or
-    QInternal::UnknownDevice in other cases.
-*/
-
-/*!
-    \fn bool QPaintDevice::paintingActive() const
-
-    Returns true if the device is currently being painted on, i.e. someone has
-    called QPainter::begin() but not yet called QPainter::end() for
-    this device; otherwise returns false.
-
-    \sa QPainter::isActive()
-*/
-
-/*!
-    \fn QPaintEngine *QPaintDevice::paintEngine() const
-
-    Returns a pointer to the paint engine used for drawing on the
-    device.
-*/
 
 /*! \internal
 
@@ -224,14 +91,6 @@ const Q_GUI_EXPORT QX11Info *qt_x11Info(const QPaintDevice *pd)
         return &static_cast<const QPixmap *>(pd)->x11Info();
     return 0;
 }
-
-/*!
-    \fn int QPaintDevice::metric(PaintDeviceMetric metric) const
-
-    Returns the metric information for  the given paint device \a metric.
-
-    \sa PaintDeviceMetric
-*/
 
 int QPaintDevice::metric(PaintDeviceMetric) const
 {
@@ -569,102 +428,4 @@ int QPaintDevice::x11AppDpiY(int screen)
 #endif
 
 
-/*!
-    \fn int QPaintDevice::width() const
-
-    Returns the width of the paint device in default coordinate system
-    units (e.g. pixels for QPixmap and QWidget).
-
-    \sa widthMM()
-*/
-
-/*!
-    \fn int QPaintDevice::height() const
-
-    Returns the height of the paint device in default coordinate
-    system units (e.g. pixels for QPixmap and QWidget).
-
-    \sa heightMM()
-*/
-
-/*!
-    \fn int QPaintDevice::widthMM() const
-
-    Returns the width of the paint device in millimeters.
-
-    \sa width()
-*/
-
-/*!
-    \fn int QPaintDevice::heightMM() const
-
-    Returns the height of the paint device in millimeters.
-
-    \sa height()
-*/
-
-/*!
-    \fn int QPaintDevice::numColors() const
-
-    Returns the number of different colors available for the paint
-    device. Since this value is an int, it will not be sufficient to represent
-    the number of colors on 32 bit displays, in this case INT_MAX is
-    returned instead.
-*/
-
-/*!
-    \fn int QPaintDevice::depth() const
-
-    Returns the bit depth (number of bit planes) of the paint device.
-*/
-
-/*!
-    \fn int QPaintDevice::logicalDpiX() const
-
-    Returns the horizontal resolution of the device in dots per inch,
-    which is used when computing font sizes. For X11, this is usually
-    the same as could be computed from widthMM(), but it varies on
-    Windows.
-
-    Note that if the logicalDpiX() doesn't equal the physicalDpiX(),
-    the corresponding QPaintEngine must handle the resolution mapping.
-
-    \sa logicalDpiY(), physicalDpiX()
-*/
-
-/*!
-    \fn int QPaintDevice::logicalDpiY() const
-
-    Returns the vertical resolution of the device in dots per inch,
-    which is used when computing font sizes. For X11, this is usually
-    the same as could be computed from heightMM(), but it varies on
-    Windows.
-
-    Note that if the logicalDpiY() doesn't equal the physicalDpiY(),
-    the corresponding QPaintEngine must handle the resolution mapping.
-
-    \sa  logicalDpiX(), physicalDpiY()
-*/
-
-/*!
-    \fn int QPaintDevice::physicalDpiX() const
-
-    Returns the horizontal resolution of the device in dots per inch.
-
-    Note that if the physicalDpiX() doesn't equal the logicalDpiX(),
-    the corresponding QPaintEngine must handle the resolution mapping.
-
-    \sa  physicalDpiY(),  logicalDpiX()
-*/
-
-/*!
-    \fn int QPaintDevice::physicalDpiY() const
-
-    Returns the horizontal resolution of the device in dots per inch.
-
-    Note that if the physicalDpiY() doesn't equal the logicalDpiY(),
-    the corresponding QPaintEngine must handle the resolution mapping.
-
-    \sa  physicalDpiX(),  logicalDpiY()
-*/
-
+QT_END_NAMESPACE

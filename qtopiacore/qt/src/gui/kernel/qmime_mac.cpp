@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -69,6 +63,13 @@
 #include "qurl.h"
 #include "qmap.h"
 #include <private/qt_mac_p.h>
+
+#ifdef Q_WS_MAC32
+#include <QuickTime/QuickTime.h>
+#include "qlibrary.h"
+#endif
+
+QT_BEGIN_NAMESPACE
 
 extern CGImageRef qt_mac_createCGImageFromQImage(const QImage &img, const QImage **imagePtr = 0); // qpaintengine_mac.cpp
 
@@ -346,15 +347,69 @@ QList<QByteArray> QMacPasteboardMimeUnicodeText::convertFromMime(const QString &
     QList<QByteArray> ret;
     QString string = data.toString();
     if(flavor == QLatin1String("public.utf8-plain-text"))
-        ret.append(string.toLatin1());
+        ret.append(string.toUtf8());
     else if (flavor == QLatin1String("public.utf16-plain-text"))
         ret.append(QByteArray((char*)string.utf16(), string.length()*2));
     return ret;
 }
 
+class QMacPasteboardMimeHTMLText : public QMacPasteboardMime {
+public:
+    QMacPasteboardMimeHTMLText() : QMacPasteboardMime(MIME_ALL) { }
+    QString convertorName();
+
+    QString flavorFor(const QString &mime);
+    QString mimeFor(QString flav);
+    bool canConvert(const QString &mime, QString flav);
+    QVariant convertToMime(const QString &mime, QList<QByteArray> data, QString flav);
+    QList<QByteArray> convertFromMime(const QString &mime, QVariant data, QString flav);
+};
+
+QString QMacPasteboardMimeHTMLText::convertorName()
+{
+    return QLatin1String("HTML");
+}
+
+QString QMacPasteboardMimeHTMLText::flavorFor(const QString &mime)
+{
+    if (mime == QLatin1String("text/html"))
+        return QLatin1String("public.html");
+    return QString();
+}
+
+QString QMacPasteboardMimeHTMLText::mimeFor(QString flav)
+{
+    if (flav == QLatin1String("public.html"))
+        return QLatin1String("text/html");
+    return QString();
+}
+
+bool QMacPasteboardMimeHTMLText::canConvert(const QString &mime, QString flav)
+{
+    return flavorFor(mime) == flav;
+}
+
+QVariant QMacPasteboardMimeHTMLText::convertToMime(const QString &mimeType, QList<QByteArray> data, QString flavor)
+{
+    if (!canConvert(mimeType, flavor))
+        return QVariant();
+    if (data.count() > 1)
+        qWarning("QMacPasteboardMimeHTMLText: Cannot handle multiple member data");
+    return data.first();
+}
+
+QList<QByteArray> QMacPasteboardMimeHTMLText::convertFromMime(const QString &mime, QVariant data, QString flavor)
+{
+    QList<QByteArray> ret;
+    if (!canConvert(mime, flavor))
+        return ret;
+    ret.append(data.toByteArray());
+    return ret;
+}
+
+
 #ifdef Q_WS_MAC32
-#include <QuickTime/QuickTime.h>
-#include "qlibrary.h"
+
 typedef ComponentResult (*PtrGraphicsImportSetDataHandle)(GraphicsImportComponent, Handle);
 typedef ComponentResult (*PtrGraphicsImportCreateCGImage)(GraphicsImportComponent, CGImageRef*, UInt32);
 typedef ComponentResult (*PtrGraphicsExportSetInputCGImage)(GraphicsExportComponent, CGImageRef);
@@ -757,6 +812,7 @@ static bool qt_mac_openMimeRegistry(bool global, QIODevice::OpenMode mode, QFile
     }
     return file.open(mode);
 }
+
 static void qt_mac_loadMimeRegistry(QFile &file, QMap<QString, int> &registry, int &max)
 {
     file.reset();
@@ -776,7 +832,7 @@ bool QMacPasteboardMimeQt3Any::loadMimeRegistry()
         if(!qt_mac_openMimeRegistry(true, QIODevice::ReadWrite, library_file)) {
             QFile global;
             if(qt_mac_openMimeRegistry(true, QIODevice::ReadOnly, global)) {
-                ::qt_mac_loadMimeRegistry(global, mime_registry, current_max);
+                qt_mac_loadMimeRegistry(global, mime_registry, current_max);
                 global.close();
             }
             if(!qt_mac_openMimeRegistry(false, QIODevice::ReadWrite, library_file)) {
@@ -791,7 +847,7 @@ bool QMacPasteboardMimeQt3Any::loadMimeRegistry()
     if(!mime_registry_loaded.isNull() && mime_registry_loaded == fi.lastModified())
         return true;
     mime_registry_loaded = fi.lastModified();
-    ::qt_mac_loadMimeRegistry(library_file, mime_registry, current_max);
+    qt_mac_loadMimeRegistry(library_file, mime_registry, current_max);
     return true;
 }
 
@@ -900,6 +956,7 @@ void QMacPasteboardMime::initialize()
 #endif
         new QMacPasteboardMimeUnicodeText;
         new QMacPasteboardMimePlainText;
+        new QMacPasteboardMimeHTMLText;
         new QMacPasteboardMimeFileUri;
 
         //make sure our "non-standard" types are always last! --Sam
@@ -1034,3 +1091,5 @@ QList<QMacPasteboardMime*> QMacPasteboardMime::all(uchar t)
   All subclasses must reimplement this pure virtual function.
 */
 
+
+QT_END_NAMESPACE

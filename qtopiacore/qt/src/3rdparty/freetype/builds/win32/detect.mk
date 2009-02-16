@@ -94,17 +94,17 @@ ifeq ($(PLATFORM),win32)
 
   ifneq ($(findstring list,$(MAKECMDGOALS)),)  # test for the "list" target
     dump_target_list:
-	    @echo Ã¿
+	    @echo ÿ
 	    @echo $(PROJECT_TITLE) build system -- supported compilers
-	    @echo Ã¿
+	    @echo ÿ
 	    @echo Several command-line compilers are supported on Win32:
-	    @echo Ã¿
-	    @echo Ã¿Ã¿make setupÃ¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿gcc (with Mingw)
-	    @echo Ã¿Ã¿make setup visualcÃ¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Microsoft Visual C++
-	    @echo Ã¿Ã¿make setup bcc32Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Borland C/C++
-	    @echo Ã¿Ã¿make setup lccÃ¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Win32-LCC
-	    @echo Ã¿Ã¿make setup intelcÃ¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Ã¿Intel C/C++
-	    @echo Ã¿
+	    @echo ÿ
+	    @echo ÿÿmake setupÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿgcc (with Mingw)
+	    @echo ÿÿmake setup visualcÿÿÿÿÿÿÿÿÿÿÿÿÿMicrosoft Visual C++
+	    @echo ÿÿmake setup bcc32ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿBorland C/C++
+	    @echo ÿÿmake setup lccÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿWin32-LCC
+	    @echo ÿÿmake setup intelcÿÿÿÿÿÿÿÿÿÿÿÿÿÿIntel C/C++
+	    @echo ÿ
 
     setup: dump_target_list
     .PHONY: dump_target_list list
@@ -172,4 +172,12 @@ ifeq ($(PLATFORM),win32)
 
   ifneq ($(findstring devel-gcc,$(MAKECMDGOALS)),)   # development target
     CONFIG_FILE := w32-dev.mk
-    CC          := 
+    CC          := gcc
+    devel-gcc: setup
+    .PHONY: devel-gcc
+  endif
+
+endif   # test PLATFORM win32
+
+
+# EOF

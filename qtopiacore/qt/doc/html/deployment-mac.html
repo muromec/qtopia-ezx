@@ -2,21 +2,21 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/deployment.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/deployment.qdoc -->
 <head>
-  <title>Qt 4.3: Deploying an Application on Qt/Mac</title>
+  <title>Qt 4.4: Deploying an Application on Mac OS X</title>
   <link rel="contents" href="deployment.html" />
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [<a href="deployment.html">Deploying Qt Applications</a>]
 </p>
-<h1 class="title">Deploying an Application on Qt/Mac<br /><span class="subtitle"></span>
+<h1 class="title">Deploying an Application on Mac OS X<br /><span class="subtitle"></span>
 </h1>
 <p>This documentation will describe how to create a bundle, and how to make sure that the application will find the resources it needs at run-time. We will demonstrate the procedures in terms of deploying the <a href="tools-plugandpaint.html">Plug &amp; Paint</a> application that is provided in Qt's examples directory.</p>
 <ul><li><a href="#the-bundle">The Bundle</a></li>
@@ -34,6 +34,8 @@
 <ul><li><a href="#qt-plugins">Qt Plugins</a></li>
 <li><a href="#additional-libraries">Additional Libraries</a></li>
 <li><a href="#mac-os-x-version-dependencies">Mac OS X Version Dependencies</a></li>
+<ul><li><a href="#deploying-phonon-applications-on-mac-os-x">Deploying Phonon Applications on Mac OS X</a></li>
+</ul>
 <li><a href="#architecture-dependencies">Architecture Dependencies</a></li>
 </ul>
 </ul>
@@ -43,7 +45,7 @@
 <p align="center"><img src="images/deployment-mac-bundlestructure.png" /></p><p>The bundle provides many advantages to the user. One primary advantage is that, since it is a single entity, it allows for drag-and-drop installation. As a programmer you can access bundle information in your own code. This is specific to Mac OS X and beyond the scope of this document. More information about bundles is available on <a href="http://developer.apple.com/documentation/CoreFoundation/Conceptual/CFBundles/index.html">Apple's Developer Website</a>.</p>
 <p>A Qt command line application on Mac OS X works similar to a command line application on Unix and Windows. You probably don't want to run it in a bundle: Add this to your application's .pro:</p>
 <pre> CONFIG-=app_bundle</pre>
-<p>This will tell <tt>qmake</tt> not to put the executable inside a bundle. Please refer to the <a href="deployment-x11.html">x11 deployment documentation</a> for information about how to deploy these &quot;bundle-less&quot; applications.</p>
+<p>This will tell <tt>qmake</tt> not to put the executable inside a bundle. Please refer to the <a href="deployment-x11.html">X11 deployment documentation</a> for information about how to deploy these &quot;bundle-less&quot; applications.</p>
 <a name="xcode"></a>
 <h2>Xcode</h2>
 <p>We will only concern ourselves with command-line tools here. While it is possible to use Xcode for this, Xcode has changed enough between each version that it makes it difficult to document it perfectly for each version. A future version of this document may include more information for using Xcode in the deployment process.</p>
@@ -235,19 +237,20 @@
 <p>If you store the frameworks in another location than in the bundle, the technique of linking your application is similar; you must make sure that the application and the frameworks agree where to be looking for the Qt libraries as well as the plugins.</p>
 <a name="creating-the-application-package"></a>
 <h3>Creating the Application Package</h3>
-<p>When you are done linking your application to Qt, either statically or as frameworks, the application is ready to be distributed. Apple provides a fair bit of information about how to do this and instead of repeating it here, we recommend that you consult their <a href="http://developer.apple.com/documentation/DeveloperTools/Conceptual/SoftwareDistribution/SoftwareDistribution.html">software distribution</a> documentation.</p>
+<p>When you are done linking your application to Qt, either statically or as frameworks, the application is ready to be distributed. Apple provides a fair bit of information about how to do this and instead of repeating it here, we recommend that you consult their <a href="http://developer.apple.com/documentation/DeveloperTools/Conceptual/SoftwareDistribution/index.html">software delivery</a> documentation.</p>
 <p>Although the process of deploying an application do have some pitfalls, once you know the various issues you can easily create packages that all your Mac OS X users will enjoy.</p>
 <a name="application-dependencies"></a>
 <h2>Application Dependencies</h2>
 <a name="qt-plugins"></a>
 <h3>Qt Plugins</h3>
-<p>Your application may also depend on one or more Qt plugins, such as the JPEG image format plugin or a SQL driver plugin. Be sure to distribute any Qt plugins that you need with your application.</p>
+<p>Your application may also depend on one or more Qt plugins, such as the JPEG image format plugin or a SQL driver plugin. Be sure to distribute any Qt plugins that you need with your application, and note that each type of plugin should be located within a specific subdirectory (such as <tt>imageformats</tt> or <tt>sqldrivers</tt>) within your distribution directory, as described below.</p>
 <p>The search path for Qt plugins (as well as a few other paths) is hard-coded into the <a href="qtcore.html">QtCore</a> library. By default, the first plugin search path will be hard-coded as <tt>/path/to/Qt/plugins</tt>. But using pre-determined paths has certain disadvantages. For example, they may not exist on the target machine. For that reason you need to examine various alternatives to make sure that the Qt plugins are found:</p>
 <ul>
 <li><a href="qt-conf.html">Using <tt>qt.conf</tt></a>. This is the recommended approach since it provides the most flexibility.</li>
 <li>Using <a href="qcoreapplication.html#addLibraryPath">QApplication::addLibraryPath</a>() or <a href="qcoreapplication.html#setLibraryPaths">QApplication::setLibraryPaths</a>().</li>
 <li>Using a third party installation utility to change the hard-coded paths in the <a href="qtcore.html">QtCore</a> library.</li>
 </ul>
+<p>The <a href="plugins-howto.html">How to Create Qt Plugins</a> document outlines the issues you need to pay attention to when building and deploying plugins for Qt applications.</p>
 <a name="additional-libraries"></a>
 <h3>Additional Libraries</h3>
 <p>You can check which libraries your application is linking against by using the <tt>otool</tt> tool. To use <tt>otool</tt>, all you need to do is to run it like this:</p>
@@ -263,23 +266,35 @@
 <p>However, there is a bit of a wrinkle to keep in mind when your are deploying. Mac OS X 10.4 (&quot;Tiger&quot;) ships GCC 4.0 as its default compiler. This is also the GCC compiler we use for building the binary Qt package. If you use GCC 4.0 to build your application, it will link against a dynamic libstdc++ that is only available on Mac OS X 10.4 and Mac OS X 10.3&#x2e;9&#x2e; The application will refuse to run on older versions of the operating system.</p>
 <p>For more information about C++ runtime environment, see <a href="http://developer.apple.com/documentation/DeveloperTools/Conceptual/CppRuntimeEnv/index.html">Apple's Developer Website</a></p>
 <p>If you want to deploy to versions of Mac OS X earlier than 10.3&#x2e;9, you must build with GCC 3.3 which is the default on Mac OS X 10.3&#x2e; GCC 3.3 is also available on the Mac OS X 10.4 &quot;Xcode Tools&quot; CD and as a download for earlier versions of Mac OS X from Apple (<a href="https://connect.apple.com/">connect.apple.com</a>). You can use Apple's <tt>gcc_select(1)</tt> command line tool to switch the default complier on your system.</p>
+<a name="deploying-phonon-applications-on-mac-os-x"></a>
+<h4>Deploying Phonon Applications on Mac OS X</h4>
+<ul>
+<li>If you build your Phonon application on Tiger, it will work on Tiger, Leopard and Panther.</li>
+<li>If you build your application on Leopard, it will <b>not</b> work on Panther unless you rename the libraries with the following command after you have built your application:<pre> install_name_tool -change /System/Library/Frameworks/CoreVideo.framework/
+ Versions/A/CoreVideo /System/Library/Frameworks/QuartzCore.framework/
+ Versions/A/QuartzCore libphonon_qt7.dylib</pre>
+<p>This command must be invoked in the directory where <tt>libphonon_qt7.dylib</tt> is located, usually in <tt>yourapp.app/Contents/plugins/phonon_backend/</tt>.</p>
+</li>
+<li>If you are using Leopard, but would like to build your application against Tiger, you can use:<pre> ./CONFIGURE - SDK MacOSX10.4u.sdk</pre>
+</li>
+</ul>
 <a name="architecture-dependencies"></a>
 <h3>Architecture Dependencies</h3>
-<p>The Qt/Mac libraries, tools, and examples can be built &quot;universal&quot; (i.e&#x2e; they run natively on both Intel and PowerPC machines). This is accomplished by passing <tt>-universal</tt> on the <tt>configure</tt> line of the source package, and requires that you use GCC 4.0&#x2e;x&#x2e; On PowerPC hardware you will need to pass the universal SDK as a command line argument to the Qt configure command. For example:</p>
-<pre>      ./configure (other arguments) -universal -sdk /Developer/SDKs/MacOSX10.4u.sdk</pre>
+<p>The Qt for Mac OS X libraries, tools, and examples can be built &quot;universal&quot; (i.e&#x2e; they run natively on both Intel and PowerPC machines). This is accomplished by passing <tt>-universal</tt> on the <tt>configure</tt> line of the source package, and requires that you use GCC 4.0&#x2e;x&#x2e; On PowerPC hardware you will need to pass the universal SDK as a command line argument to the Qt configure command. For example:</p>
+<pre> ./configure (other arguments) -universal -sdk /Developer/SDKs/MacOSX10.4u.sdk</pre>
 <p>From 4.1&#x2e;1 the Qt binary package is already universal.</p>
-<p>If you want to create a binary that runs on older versions of PowerPC and x86, it is possible to build Qt for the PowerPC using GCC 3.3, and for x86 one using GCC 4.0, and use Apple's <tt>lipo(1)</tt> tool to stitch them together. This is beyond the scope of this document and is not something we have tried, but Apple documents it on their <a href="http://developer.apple.com/documentation">developer website</a>.</p>
+<p>If you want to create a binary that runs on older versions of PowerPC and x86, it is possible to build Qt for the PowerPC using GCC 3.3, and for x86 one using GCC 4.0, and use Apple's <tt>lipo(1)</tt> tool to stitch them together. This is beyond the scope of this document and is not something we have tried, but Apple documents it on their <a href="http://developer.apple.com/documentation/">developer website</a>.</p>
 <p>Once you have a universal Qt, <i>qmake</i> will generate makefiles that will build for its host architecture by default. If you want to build for a specific architecture, you can control this with the <tt>CONFIG</tt> line in your <tt>.pro</tt> file. Use <tt>CONFIG+=ppc</tt> for PowerPC, and <tt>CONFIG+=x86</tt> for x86. If you desire both, simply add both to the <tt>CONFIG</tt> line. PowerPC users also need an SDK. For example:</p>
-<pre>     QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.4u.sdk
-     CONFIG+=x86 ppc</pre>
+<pre> QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.4u.sdk
+ CONFIG+=x86 ppc</pre>
 <p>Besides <tt>lipo</tt>, you can also check your binaries with the <tt>file(1)</tt> command line tool or the Finder.</p>
 <p>
 [<a href="deployment.html">Deploying Qt Applications</a>]
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

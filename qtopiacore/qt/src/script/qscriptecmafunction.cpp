@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,16 +48,106 @@
 #include <QtCore/QtDebug>
 
 #ifndef QT_NO_QOBJECT
-#include "qscriptextqobject_p.h"
-#include <QtCore/QMetaMethod>
+#   include "qscriptextqobject_p.h"
+#   include <QtCore/QMetaMethod>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 namespace QScript { namespace Ecma {
 
-Function::Function(QScriptEnginePrivate *eng, QScriptClassInfo *classInfo):
-    Core(eng), m_classInfo(classInfo)
+class FunctionClassData: public QScriptClassData
 {
-    publicPrototype = eng->createFunction(method_void, 0, m_classInfo); // public prototype
+    QScriptClassInfo *m_classInfo;
+
+public:
+    FunctionClassData(QScriptClassInfo *classInfo);
+    virtual ~FunctionClassData();
+
+    inline QScriptClassInfo *classInfo() const
+        { return m_classInfo; }
+
+    virtual bool resolve(const QScriptValueImpl &object,
+                         QScriptNameIdImpl *nameId,
+                         QScript::Member *member, QScriptValueImpl *base);
+    virtual bool get(const QScriptValueImpl &obj, const Member &m,
+                     QScriptValueImpl *out_value);
+    virtual bool put(QScriptValueImpl *object, const QScript::Member &member,
+                     const QScriptValueImpl &value);
+    virtual void mark(const QScriptValueImpl &object, int generation);
+};
+
+FunctionClassData::FunctionClassData(QScriptClassInfo *classInfo)
+    : m_classInfo(classInfo)
+{
+}
+
+FunctionClassData::~FunctionClassData()
+{
+}
+
+bool FunctionClassData::resolve(const QScriptValueImpl &object,
+                                QScriptNameIdImpl *nameId,
+                                QScript::Member *member, QScriptValueImpl *base)
+{
+    if (object.classInfo() != classInfo())
+        return false;
+
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(object.engine());
+
+    if ((nameId == eng->idTable()->id_length)
+        || (nameId == eng->idTable()->id_arguments)) {
+        member->native(nameId, /*id=*/ 0,
+                       QScriptValue::Undeletable
+                       | QScriptValue::ReadOnly
+                       | QScriptValue::SkipInEnumeration);
+        *base = object;
+        return true;
+    }
+
+    return false;
+}
+
+bool FunctionClassData::get(const QScriptValueImpl &object, const Member &member,
+                            QScriptValueImpl *result)
+{
+    if (object.classInfo() != classInfo())
+        return false;
+
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(object.engine());
+    if (! member.isNativeProperty())
+        return false;
+
+    if (member.nameId() == eng->idTable()->id_length) {
+        eng->newNumber(result, object.toFunction()->length);
+        return true;
+    } else if (member.nameId() == eng->idTable()->id_arguments) {
+        eng->newNull(result);
+        return true;
+    }
+
+    return false;
+}
+
+bool FunctionClassData::put(QScriptValueImpl *, const QScript::Member &,
+                            const QScriptValueImpl &)
+{
+    return false;
+}
+
+void FunctionClassData::mark(const QScriptValueImpl &object, int generation)
+{
+    if (object.classInfo() != classInfo())
+        return;
+    QScriptFunction *fun = object.toFunction();
+    QScriptEnginePrivate *eng = QScriptEnginePrivate::get(object.engine());
+    fun->mark(eng, generation);
+}
+
+Function::Function(QScriptEnginePrivate *eng, QScriptClassInfo *classInfo):
+    Core(eng, classInfo)
+{
+    publicPrototype = eng->createFunction(method_void, 0, classInfo); // public prototype
 }
 
 Function::~Function()
@@ -75,24 +159,27 @@ void Function::initialize()
     QScriptEnginePrivate *eng = engine();
     eng->newConstructor(&ctor, this, publicPrototype);
 
-    const QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("apply"),
-                                eng->createFunction(method_apply, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("call"),
-                                eng->createFunction(method_call, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("connect"),
-                                eng->createFunction(method_connect, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("disconnect"),
-                                eng->createFunction(method_disconnect, 1, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 1);
+    addPrototypeFunction(QLatin1String("apply"), method_apply, 1);
+    addPrototypeFunction(QLatin1String("call"), method_call, 1);
+    addPrototypeFunction(QLatin1String("connect"), method_connect, 1);
+    addPrototypeFunction(QLatin1String("disconnect"), method_disconnect, 1);
+
+    QExplicitlySharedDataPointer<QScriptClassData> data(new FunctionClassData(classInfo()));
+    classInfo()->setData(data);
 }
 
 void Function::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionEntry(context);
+#endif
     int lineNumber = context->currentLine;
     QString contents = buildFunction(context);
     engine()->evaluate(context, contents, lineNumber);
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionExit(context);
+#endif
 }
 
 QString Function::buildFunction(QScriptContextPrivate *context)
@@ -184,7 +271,7 @@ QScriptValueImpl Function::method_apply(QScriptContextPrivate *context, QScriptE
         }
     } else if (arg.classInfo() == eng->m_class_arguments) {
         QScript::ArgumentsObjectData *arguments;
-        arguments = static_cast<QScript::ArgumentsObjectData*> (arg.objectData().data());
+        arguments = static_cast<QScript::ArgumentsObjectData*> (arg.objectData());
         QScriptObject *activation = arguments->activation.objectValue();
         for (uint i = 0; i < arguments->length; ++i)
             args << activation->m_objects[i];
@@ -219,7 +306,14 @@ QScriptValueImpl Function::method_disconnect(QScriptContextPrivate *context, QSc
 
     QtFunction *qtSignal = static_cast<QtFunction*>(fun);
 
-    QMetaMethod sig = qtSignal->metaObject()->method(qtSignal->initialIndex());
+    const QMetaObject *meta = qtSignal->metaObject();
+    if (!meta) {
+        return context->throwError(
+            QScriptContext::TypeError,
+            QString::fromLatin1("Function.prototype.disconnect: cannot disconnect from deleted QObject"));
+    }
+
+    QMetaMethod sig = meta->method(qtSignal->initialIndex());
     if (sig.methodType() != QMetaMethod::Signal) {
         return context->throwError(QScriptContext::TypeError,
             QString::fromLatin1("Function.prototype.disconnect: %0::%1 is not a signal")
@@ -242,14 +336,13 @@ QScriptValueImpl Function::method_disconnect(QScriptContextPrivate *context, QSc
             slot = receiver.property(arg1.toString(), QScriptValue::ResolvePrototype);
     }
 
-    QScriptFunction *otherFun = slot.toFunction();
-    if (otherFun == 0) {
+    if (!slot.isFunction()) {
         return context->throwError(
             QScriptContext::TypeError,
             QLatin1String("Function.prototype.disconnect: target is not a function"));
     }
 
-    bool ok = qtSignal->destroyConnection(self, receiver, slot);
+    bool ok = eng->scriptDisconnect(self, receiver, slot);
     if (!ok) {
         return context->throwError(
             QString::fromLatin1("Function.prototype.disconnect: failed to disconnect from %0::%1")
@@ -258,6 +351,7 @@ QScriptValueImpl Function::method_disconnect(QScriptContextPrivate *context, QSc
     }
     return eng->undefinedValue();
 #else
+    Q_UNUSED(eng);
     return context->throwError(QScriptContext::TypeError,
                                QLatin1String("Function.prototype.disconnect"));
 #endif // QT_NO_QOBJECT
@@ -283,7 +377,14 @@ QScriptValueImpl Function::method_connect(QScriptContextPrivate *context, QScrip
 
     QtFunction *qtSignal = static_cast<QtFunction*>(fun);
 
-    QMetaMethod sig = qtSignal->metaObject()->method(qtSignal->initialIndex());
+    const QMetaObject *meta = qtSignal->metaObject();
+    if (!meta) {
+        return context->throwError(
+            QScriptContext::TypeError,
+            QString::fromLatin1("Function.prototype.connect: cannot connect to deleted QObject"));
+    }
+
+    QMetaMethod sig = meta->method(qtSignal->initialIndex());
     if (sig.methodType() != QMetaMethod::Signal) {
         return context->throwError(QScriptContext::TypeError,
             QString::fromLatin1("Function.prototype.connect: %0::%1 is not a signal")
@@ -306,14 +407,13 @@ QScriptValueImpl Function::method_connect(QScriptContextPrivate *context, QScrip
             slot = receiver.property(arg1.toString(), QScriptValue::ResolvePrototype);
     }
 
-    QScriptFunction *otherFun = slot.toFunction();
-    if (otherFun == 0) {
+    if (!slot.isFunction()) {
         return context->throwError(
             QScriptContext::TypeError,
             QLatin1String("Function.prototype.connect: target is not a function"));
     }
 
-    bool ok = qtSignal->createConnection(self, receiver, slot);
+    bool ok = eng->scriptConnect(self, receiver, slot);
     if (!ok) {
         return context->throwError(
             QString::fromLatin1("Function.prototype.connect: failed to connect to %0::%1")
@@ -330,5 +430,7 @@ QScriptValueImpl Function::method_connect(QScriptContextPrivate *context, QScrip
 }
 
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

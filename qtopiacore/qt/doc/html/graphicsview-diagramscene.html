@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/diagramscene.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/diagramscene.qdoc -->
 <head>
-  <title>Qt 4.3: Diagram Scene Example</title>
+  <title>Qt 4.4: Diagram Scene Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Diagram Scene Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Diagram Scene Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -178,7 +178,7 @@
      QGridLayout *layout = new QGridLayout;
      layout-&gt;addWidget(createCellWidget(tr(&quot;Conditional&quot;),
                                 DiagramItem::Conditional), 0, 0);
-     layout-&gt;addWidget(createCellWidget(tr(&quot;Proccess&quot;),
+     layout-&gt;addWidget(createCellWidget(tr(&quot;Process&quot;),
                        DiagramItem::Step),0, 1);
      layout-&gt;addWidget(createCellWidget(tr(&quot;Input/Output&quot;),
                        DiagramItem::Io), 1, 0);</pre>
@@ -385,7 +385,7 @@
  {
      scene-&gt;setMode(DiagramScene::Mode(pointerTypeGroup-&gt;checkedId()));
  }</pre>
-<p>The <tt>pointerTypeGroup</tt> decides whether the scene is in ItemMove or InsertLine mode. This button group is exclusive, i.e&#x2e;, only one button is checked at any time. As with the <tt>buttonGrup</tt> above we have assigned an id to the buttons that matches values of the DiagramScene::Mode enum, so that we can use the id to set the correct mode.</p>
+<p>The <tt>pointerTypeGroup</tt> decides whether the scene is in ItemMove or InsertLine mode. This button group is exclusive, i.e&#x2e;, only one button is checked at any time. As with the <tt>buttonGroup</tt> above we have assigned an id to the buttons that matches values of the DiagramScene::Mode enum, so that we can use the id to set the correct mode.</p>
 <p>Here is the <tt>bringToFront()</tt> slot:</p>
 <pre> void MainWindow::bringToFront()
  {
@@ -913,7 +913,7 @@
 <p>If the item has moved, we need to update the positions of the arrows connected to it. The implementation of <a href="qgraphicsitem.html">QGraphicsItem</a> does nothing, so we just return <i>value</i>.</p>
 <a name="diagramtextitem-class-definition"></a>
 <h2>DiagramTextItem Class Definition</h2>
-<p>The <tt>TextDiagramItem</tt> class inherits <a href="qgraphicstextitem.html">QGraphicsTextItem</a> and adds the possibility to move editable text items. Editable QGraphicsTextItems are designed to be fixed in place and editing starts when the user single clicks on the item. With <tt>DiagramTextItem</tt> the editing starts with a double click leaving single click available to move it.</p>
+<p>The <tt>TextDiagramItem</tt> class inherits <a href="qgraphicstextitem.html">QGraphicsTextItem</a> and adds the possibility to move editable text items. Editable QGraphicsTextItems are designed to be fixed in place and editing starts when the user single clicks on the item. With <tt>DiagramTextItem</tt> the editing starts with a double click leaving single click available to interact with and move it.</p>
 <pre> class DiagramTextItem : public QGraphicsTextItem
  {
      Q_OBJECT
@@ -933,8 +933,6 @@
  protected:
      QVariant itemChange(GraphicsItemChange change, const QVariant &amp;value);
      void focusOutEvent(QFocusEvent *event);
-     void mousePressEvent(QGraphicsSceneMouseEvent *event);
-     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
      void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event);
  };</pre>
 <p>We use <tt>itemChange()</tt> and <tt>focusOutEvent()</tt> to notify the <tt>DiagramScene</tt> when the text item loses focus and gets selected.</p>
@@ -953,7 +951,7 @@
 <pre> QVariant DiagramTextItem::itemChange(GraphicsItemChange change,
                       const QVariant &amp;value)
  {
-     if (change == QGraphicsItem::ItemSelectedChange)
+     if (change == QGraphicsItem::ItemSelectedHasChanged)
          emit selectedChange(this);
      return value;
  }</pre>
@@ -966,46 +964,14 @@
      QGraphicsTextItem::focusOutEvent(event);
  }</pre>
 <p><tt>DiagramScene</tt> uses the signal emitted when the text item looses remove the item if it is empty, i.e&#x2e;, it contains no text.</p>
-<p>Here is the <tt>mousePressEvent()</tt> function:</p>
-<pre> void DiagramTextItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
- {
-     scene()-&gt;clearSelection();
-     QGraphicsTextItem::mousePressEvent(event);
-     setSelected(true);
- }</pre>
-<p>We need to clear the selection, if any, and set the item selected as this is not the default behavior of <a href="qgraphicstextitem.html">QGraphicsTextItem</a>.</p>
-<p>This is the implementation of <tt>mouseMoveEvent()</tt>:</p>
-<pre> void DiagramTextItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
- {
-     if (textInteractionFlags() &amp; Qt::TextEditable) {
-         QGraphicsTextItem::mouseMoveEvent(event);
-     } else
-         QGraphicsItem::mouseMoveEvent(event);
- }</pre>
-<p>If we are editable, we want the <a href="qgraphicstextitem.html">QGraphicsTextItem</a> implementation to handle the event; otherwise we want to make it possible to move the item. We do this by calling the <a href="qgraphicsitem.html">QGraphicsItem</a> implementation as <a href="qgraphicstextitem.html">QGraphicsTextItem</a> is designed to be fixed in place.</p>
 <p>This is the implementation of <tt>mouseDoubleClickEvent()</tt>:</p>
 <pre> void DiagramTextItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event)
  {
-     setTextInteractionFlags(Qt::TextEditorInteraction);
-     QGraphicsSceneMouseEvent *mouseEvent =
-         new QGraphicsSceneMouseEvent(QEvent::GraphicsSceneMousePress);
-     mouseEvent-&gt;setAccepted(true);
-     mouseEvent-&gt;setPos(event-&gt;pos());
-     mouseEvent-&gt;setScenePos(event-&gt;scenePos());
-     mouseEvent-&gt;setScreenPos(event-&gt;screenPos());
-     mouseEvent-&gt;setButtonDownPos(Qt::LeftButton,
-         event-&gt;buttonDownPos(Qt::LeftButton));
-     mouseEvent-&gt;setButtonDownScreenPos(Qt::LeftButton,
-         event-&gt;buttonDownScreenPos(Qt::LeftButton));
-     mouseEvent-&gt;setButtonDownScenePos(Qt::LeftButton,
-         event-&gt;buttonDownScenePos(Qt::LeftButton));
-     mouseEvent-&gt;setWidget(event-&gt;widget());
-
-     QGraphicsTextItem::mousePressEvent(mouseEvent);
-
-     delete mouseEvent;
+     if (textInteractionFlags() == Qt::NoTextInteraction)
+         setTextInteractionFlags(Qt::TextEditorInteraction);
+     QGraphicsTextItem::mouseDoubleClickEvent(event);
  }</pre>
-<p>When we receive a double click event, we want the functionality provided by the <a href="qgraphicsitem.html#mousePressEvent">QGraphicsTextItem::mousePressEvent</a>() as this starts to edit the item. We cannot simply call that function with <i>event</i> as this is an event of type <a href="qevent.html#Type-enum">QEvent::GraphicsSceneMouseDoubleClick</a>. We therefore create a new event object of the GraphicsSceneMousePress type that <a href="qgraphicsitem.html#mousePressEvent">QGraphicsItem::mousePressEvent</a>() expects. Since we created our own event object, we need to delete it our selves.</p>
+<p>When we receive a double click event, we make the item editable by calling <a href="qgraphicstextitem.html#setTextInteractionFlags">QGraphicsTextItem::setTextInteractionFlags</a>(). We then forward the double-click to the item itself.</p>
 <a name="arrow-class-definition"></a>
 <h2>Arrow Class Definition</h2>
 <p>The <tt>Arrow</tt> class is a graphics item that connects two <tt>DiagramItems</tt>. It draws an arrow head to one of the items. To achieve this the item needs to paint itself and also re implement methods used by the graphics scene to check for collisions and selections. The class inherits QGraphicsLine item, and draws the arrowhead and moves with the items it connects.</p>
@@ -1144,8 +1110,8 @@
 <p>If the line is selected we draw to dotted lines that are parallel with the line of the arrow. We do not use the default implementation, which uses <a href="qgraphicsitem.html#boundingRect">boundingRect()</a> because the <a href="qrect.html">QRect</a> bounding rectangle is considerably larger than the line.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

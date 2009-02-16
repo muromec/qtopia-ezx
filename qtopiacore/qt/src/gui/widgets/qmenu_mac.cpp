@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
 #include <private/qmenubar_p.h>
 #include <private/qhiviewwidget_mac_p.h>
 
+QT_BEGIN_NAMESPACE
+
 /*****************************************************************************
   QMenu debug facilities
  *****************************************************************************/
@@ -67,10 +63,10 @@
 /*****************************************************************************
   QMenu globals
  *****************************************************************************/
-bool qt_mac_no_menubar_icons = false;
 bool qt_mac_no_native_menubar = false;
 bool qt_mac_no_menubar_merge = false;
 bool qt_mac_quit_menu_item_enabled = true;
+int qt_mac_menus_open_count = 0;
 
 static uint qt_mac_menu_static_cmd_id = 'QT00';
 struct QMenuMergeItem
@@ -193,6 +189,11 @@ static int qt_mac_CountMenuItems(MenuRef menu)
         return ret;
     }
     return 0;
+}
+
+bool qt_mac_menubar_is_open()
+{
+    return qt_mac_menus_open_count > 0;
 }
 
 //lookup a QMacMenuAction in a menu
@@ -323,6 +324,9 @@ static MenuCommand qt_mac_menu_merge_action(MenuRef merge, QMacMenuAction *actio
                     ++lastCustom;
             }
             ret = lastCustom;
+        } else {
+            // The list hasn't been created, so, must be the first one.
+            ret = kHICommandCustomMerge;
         }
         break;
     }
@@ -409,7 +413,8 @@ static QKeySequence qt_mac_menu_merge_accel(QMacMenuAction *action)
     return ret;
 }
 
-void Q_GUI_EXPORT qt_mac_set_menubar_icons(bool b) { qt_mac_no_menubar_icons = !b; }
+void Q_GUI_EXPORT qt_mac_set_menubar_icons(bool b)
+{ QApplication::instance()->setAttribute(Qt::AA_DontShowIconsInMenus, !b); }
 void Q_GUI_EXPORT qt_mac_set_native_menubar(bool b) { qt_mac_no_native_menubar = !b; }
 void Q_GUI_EXPORT qt_mac_set_menubar_merge(bool b) { qt_mac_no_menubar_merge = !b; }
 
@@ -456,9 +461,9 @@ bool qt_mac_activate_action(MenuRef menu, uint command, QAction::ActionEvent act
     QWidget *caused = 0;
     if (GetMenuItemProperty(menu, 0, kMenuCreatorQt, kMenuPropertyCausedQWidget, sizeof(caused), 0, &caused) == noErr) {
         MenuRef caused_menu = 0;
-        if (QMenu *qmenu2 = ::qobject_cast<QMenu*>(caused))
+        if (QMenu *qmenu2 = qobject_cast<QMenu*>(caused))
             caused_menu = qmenu2->macMenu();
-        else if (QMenuBar *qmenubar2 = ::qobject_cast<QMenuBar*>(caused))
+        else if (QMenuBar *qmenubar2 = qobject_cast<QMenuBar*>(caused))
             caused_menu = qmenubar2->macMenu();
         else
             caused_menu = 0;
@@ -466,13 +471,13 @@ bool qt_mac_activate_action(MenuRef menu, uint command, QAction::ActionEvent act
             //fire
             QWidget *widget = 0;
             GetMenuItemProperty(caused_menu, 0, kMenuCreatorQt, kMenuPropertyQWidget, sizeof(widget), 0, &widget);
-            if (QMenu *qmenu = ::qobject_cast<QMenu*>(widget)) {
+            if (QMenu *qmenu = qobject_cast<QMenu*>(widget)) {
                 if (action_e == QAction::Trigger) {
                     emit qmenu->triggered(action->action);
                 } else if (action_e == QAction::Hover) {
                     emit qmenu->hovered(action->action);
                 }
-            } else if (QMenuBar *qmenubar = ::qobject_cast<QMenuBar*>(widget)) {
+            } else if (QMenuBar *qmenubar = qobject_cast<QMenuBar*>(widget)) {
                 if (action_e == QAction::Trigger) {
                     emit qmenubar->triggered(action->action);
                 } else if (action_e == QAction::Hover) {
@@ -485,9 +490,9 @@ bool qt_mac_activate_action(MenuRef menu, uint command, QAction::ActionEvent act
             if (GetMenuItemProperty(caused_menu, 0, kMenuCreatorQt, kMenuPropertyCausedQWidget,
                                    sizeof(caused), 0, &caused) != noErr)
                 break;
-            if (QMenu *qmenu2 = ::qobject_cast<QMenu*>(caused))
+            if (QMenu *qmenu2 = qobject_cast<QMenu*>(caused))
                 caused_menu = qmenu2->macMenu();
-            else if (QMenuBar *qmenubar2 = ::qobject_cast<QMenuBar*>(caused))
+            else if (QMenuBar *qmenubar2 = qobject_cast<QMenuBar*>(caused))
                 caused_menu = qmenubar2->macMenu();
             else
                 caused_menu = 0;
@@ -585,8 +590,16 @@ static EventTypeSpec menu_events[] = {
     { kEventClassMenu, kEventMenuOpening },
     { kEventClassMenu, kEventMenuClosed }
 };
+
+// Special case for kEventMenuMatchKey, see qt_mac_create_menu below.
+static EventTypeSpec menu_menu_events[] = {
+    { kEventClassMenu, kEventMenuMatchKey }
+};
+
 OSStatus qt_mac_menu_event(EventHandlerCallRef er, EventRef event, void *)
 {
+    QScopedLoopLevelCounter loopLevelCounter(QApplicationPrivate::instance()->threadData);
+
     bool handled_event = true;
     UInt32 ekind = GetEventKind(event), eclass = GetEventClass(event);
     switch(eclass) {
@@ -628,19 +641,27 @@ OSStatus qt_mac_menu_event(EventHandlerCallRef er, EventRef event, void *)
     case kEventClassMenu: {
         MenuRef menu;
         GetEventParameter(event, kEventParamDirectObject, typeMenuRef, NULL, sizeof(menu), NULL, &menu);
-        if (ekind == kEventMenuTargetItem) {
+        if (ekind == kEventMenuMatchKey) {
+            // Don't activate any actions if we are showing a native modal dialog,
+            // the key events should go to the dialog in this case.
+            if (QApplicationPrivate::native_modal_dialog_active)
+                return menuItemNotFoundErr;
+
+             handled_event = false;
+        } else if (ekind == kEventMenuTargetItem) {
             MenuCommand command;
             GetEventParameter(event, kEventParamMenuCommand, typeMenuCommand,
                               0, sizeof(command), 0, &command);
             handled_event = qt_mac_activate_action(menu, command, QAction::Hover, false);
         } else if (ekind == kEventMenuOpening || ekind == kEventMenuClosed) {
+            qt_mac_menus_open_count += (ekind == kEventMenuOpening) ? 1 : -1;
             MenuRef mr;
             GetEventParameter(event, kEventParamDirectObject, typeMenuRef,
                               0, sizeof(mr), 0, &mr);
 
             QWidget *widget = 0;
             if (GetMenuItemProperty(mr, 0, kMenuCreatorQt, kMenuPropertyQWidget, sizeof(widget), 0, &widget) == noErr) {
-                if (QMenu *qmenu = ::qobject_cast<QMenu*>(widget)) {
+                if (QMenu *qmenu = qobject_cast<QMenu*>(widget)) {
                     handled_event = true;
                     if (ekind == kEventMenuOpening) {
                         emit qmenu->aboutToShow();
@@ -729,6 +750,14 @@ static MenuRef qt_mac_create_menu(QWidget *w)
     if (CreateNewMenu(0, 0, &ret) == noErr) {
         qt_mac_create_menu_event_handler();
         SetMenuItemProperty(ret, 0, kMenuCreatorQt, kMenuPropertyQWidget, sizeof(w), &w);
+
+        // kEventMenuMatchKey is only sent to the menu itself and not to
+        // the application, install a separate handler for that event.
+        EventHandlerRef eventHandlerRef;
+        InstallMenuEventHandler(ret, qt_mac_menu_event,
+                                GetEventTypeCount(menu_menu_events),
+                                menu_menu_events, 0, &eventHandlerRef);
+        menu_eventHandlers_hash()->insert(ret, eventHandlerRef);
     } else {
         qWarning("QMenu: Internal error");
     }
@@ -837,10 +866,42 @@ QMenuPrivate::QMacMenuPrivate::addAction(QMacMenuAction *action, QMacMenuAction 
         if (before) {
             InsertMenuItemTextWithCFString(action->menu, 0, qMax(before_index, 0), attr, action->command);
         } else {
-            MenuItemIndex tmpIndex;
-            AppendMenuItemTextWithCFString(action->menu, 0, attr, action->command, &tmpIndex);
-            index = tmpIndex;
-        }
+            // Append the menu item to the menu. If it is a kHICommandAbout or a kHICommandAboutQt append
+            // a separator also (to get a separator above "Preferences"), but make sure that we don't
+            // add separators between two "about" items.
+
+            // Build a set of all commands that could possibly be before the separator.
+            QSet<MenuCommand> mergedItems;
+            mergedItems.insert(kHICommandAbout);
+            mergedItems.insert(kHICommandAboutQt);
+            mergedItems.insert(kHICommandCustomMerge);
+
+            QMenuMergeList *list = 0;
+            if (GetMenuItemProperty(action->menu, 0, kMenuCreatorQt, kMenuPropertyMergeList,
+                        sizeof(list), 0, &list) == noErr && list) {
+                for (int i = 0; i < list->size(); ++i) {
+                    MenuCommand command = list->at(i).command;
+                    if (command > kHICommandCustomMerge) {
+                        mergedItems.insert(command);
+                    }
+                }
+            }
+
+            const int itemCount = CountMenuItems(action->menu);
+            MenuItemAttributes testattr;
+            GetMenuItemAttributes(action->menu, itemCount , &testattr);
+            if (mergedItems.contains(action->command)
+                 && (testattr & kMenuItemAttrSeparator)) {
+                    InsertMenuItemTextWithCFString(action->menu, 0, qMax(itemCount - 1, 0), attr, action->command);
+                    index = itemCount;
+                 } else {
+                    MenuItemIndex tmpIndex;
+                    AppendMenuItemTextWithCFString(action->menu, 0, attr, action->command, &tmpIndex);
+                    index = tmpIndex;
+                    if (mergedItems.contains(action->command))
+                        AppendMenuItemTextWithCFString(action->menu, 0, kMenuItemAttrSeparator, 0, &tmpIndex);
+                 }
+        } // ! before
 
         if (widget) {
             SetMenuItemProperty(action->menu, index, kMenuCreatorQt, kMenuPropertyWidgetActionWidget,
@@ -931,7 +992,8 @@ QMenuPrivate::QMacMenuPrivate::syncAction(QMacMenuAction *action)
 
     //icon
     data.whichData |= kMenuItemDataIconHandle;
-    if (!action->action->icon().isNull() && !qt_mac_no_menubar_icons) {
+    if (!action->action->icon().isNull()
+            && action->action->isIconVisibleInMenu()) {
         data.iconType = kMenuIconRefType;
         data.iconHandle = (Handle)qt_mac_create_iconref(action->action->icon().pixmap(22, QIcon::Normal));
     } else {
@@ -1256,6 +1318,49 @@ MenuRef QMenuBarPrivate::macMenu()
 */
 MenuRef QMenuBar::macMenu() {  return d_func()->macMenu(); }
 
+/* !
+    \internal
+    Ancestor function that crosses windows (QWidget::isAncestorOf
+    only considers widgets within the same window).
+*/
+static bool qt_mac_is_ancestor(QWidget* possibleAncestor, QWidget *child)
+{
+    QWidget * current = child->parentWidget();
+    while (current != 0) {
+        if (current == possibleAncestor)
+            return true;
+        current = current->parentWidget();
+    }
+    return false;
+}
+
+/* !
+    \internal
+    Returns true if the entries of menuBar should be disabled,
+    based on the modality type of modalWidget.
+*/
+static bool qt_mac_should_disable_menu(QMenuBar *menuBar, QWidget *modalWidget)
+{
+    if (modalWidget == 0 || menuBar == 0)
+        return false;
+    const Qt::WindowModality modality = modalWidget->windowModality();
+    if (modality == Qt::ApplicationModal) {
+        return true;
+    } else if (modality == Qt::WindowModal) {
+        QWidget * parent = menuBar->parentWidget();
+
+        // Special case for the global menu bar: It's not associated
+        // with a window so don't disable it.
+        if (parent == 0)
+            return false;
+
+        // Disable menu entries in menu bars that belong to ancestors of
+        // the modal widget, leave entries in unrelated menu bars enabled.
+        return qt_mac_is_ancestor(parent, modalWidget);
+    }
+    return false; // modality == NonModal
+}
+
 /*!
   \internal
 
@@ -1316,8 +1421,10 @@ bool QMenuBar::macUpdateMenuBar()
     if (mb) {
         if (MenuRef menu = mb->macMenu()) {
             SetRootMenu(menu);
-            if (mb != menubars()->value(qApp->activeModalWidget()))
-                qt_mac_set_modal_state(menu, QApplicationPrivate::modalState());
+            QWidget *modalWidget = qApp->activeModalWidget();
+            if (mb != menubars()->value(modalWidget)) {
+                qt_mac_set_modal_state(menu, qt_mac_should_disable_menu(mb, modalWidget));
+            }
         }
         qt_mac_current_menubar.qmenubar = mb;
         qt_mac_current_menubar.modal = QApplicationPrivate::modalState();
@@ -1328,8 +1435,10 @@ bool QMenuBar::macUpdateMenuBar()
             ret = true;
             if (MenuRef menu = qt_mac_current_menubar.qmenubar->macMenu()) {
                 SetRootMenu(menu);
-                if (qt_mac_current_menubar.qmenubar != menubars()->value(qApp->activeModalWidget()))
-                    qt_mac_set_modal_state(menu, QApplicationPrivate::modalState());
+                QWidget *modalWidget = qApp->activeModalWidget();
+                if (qt_mac_current_menubar.qmenubar != menubars()->value(modalWidget)) {
+                    qt_mac_set_modal_state(menu, qt_mac_should_disable_menu(mb, modalWidget));
+                }
             }
             qt_mac_current_menubar.modal = modal;
         }
@@ -1357,3 +1466,5 @@ bool QMenuPrivate::QMacMenuPrivate::merged(const QAction *action) const
     }
     return false;
 }
+
+QT_END_NAMESPACE

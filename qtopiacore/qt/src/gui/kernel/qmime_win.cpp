@@ -1,48 +1,41 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qmime.h"
-
 
 #include "qimagereader.h"
 #include "qimagewriter.h"
@@ -60,6 +53,12 @@
 #include "qvariant.h"
 #include "qtextdocument.h"
 #include "qdir.h"
+
+#if defined(Q_OS_WINCE)
+#include "qguifunctions_wince.h"
+#endif
+
+QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_IMAGEFORMAT_BMP
 #ifndef CF_DIBV5
@@ -80,33 +79,33 @@ struct _CIEXYZTRIPLE {
     _CIEXYZ  ciexyzRed, ciexyzGreen, ciexyzBlue;
 };
 
-struct BMP_BITMAPV5HEADER { 
-    DWORD  bV5Size; 
-    LONG   bV5Width; 
-    LONG   bV5Height; 
-    WORD   bV5Planes; 
-    WORD   bV5BitCount; 
-    DWORD  bV5Compression; 
-    DWORD  bV5SizeImage; 
-    LONG   bV5XPelsPerMeter; 
-    LONG   bV5YPelsPerMeter; 
-    DWORD  bV5ClrUsed; 
-    DWORD  bV5ClrImportant; 
-    DWORD  bV5RedMask; 
-    DWORD  bV5GreenMask; 
-    DWORD  bV5BlueMask; 
-    DWORD  bV5AlphaMask; 
-    DWORD  bV5CSType; 
-    _CIEXYZTRIPLE bV5Endpoints; 
-    DWORD  bV5GammaRed; 
-    DWORD  bV5GammaGreen; 
-    DWORD  bV5GammaBlue; 
-    DWORD  bV5Intent; 
-    DWORD  bV5ProfileData; 
-    DWORD  bV5ProfileSize; 
-    DWORD  bV5Reserved; 
+struct BMP_BITMAPV5HEADER {
+    DWORD  bV5Size;
+    LONG   bV5Width;
+    LONG   bV5Height;
+    WORD   bV5Planes;
+    WORD   bV5BitCount;
+    DWORD  bV5Compression;
+    DWORD  bV5SizeImage;
+    LONG   bV5XPelsPerMeter;
+    LONG   bV5YPelsPerMeter;
+    DWORD  bV5ClrUsed;
+    DWORD  bV5ClrImportant;
+    DWORD  bV5RedMask;
+    DWORD  bV5GreenMask;
+    DWORD  bV5BlueMask;
+    DWORD  bV5AlphaMask;
+    DWORD  bV5CSType;
+    _CIEXYZTRIPLE bV5Endpoints;
+    DWORD  bV5GammaRed;
+    DWORD  bV5GammaGreen;
+    DWORD  bV5GammaBlue;
+    DWORD  bV5Intent;
+    DWORD  bV5ProfileData;
+    DWORD  bV5ProfileSize;
+    DWORD  bV5Reserved;
 };
-static const int BMP_BITFIELDS = 3; 
+static const int BMP_BITFIELDS = 3;
 
 extern bool qt_read_dib(QDataStream&, QImage&); // qimage.cpp
 extern bool qt_write_dib(QDataStream&, QImage);   // qimage.cpp
@@ -210,7 +209,7 @@ private:
     QList<QWindowsMime*> mimes;
 };
 
-Q_GLOBAL_STATIC(QWindowsMimeList, mimeList);
+Q_GLOBAL_STATIC(QWindowsMimeList, theMimeList);
 
 
 /*!
@@ -259,7 +258,7 @@ list of available converters.
 */
 QWindowsMime::QWindowsMime()
 {
-    ::mimeList()->addWindowsMime(this);
+    theMimeList()->addWindowsMime(this);
 }
 
 /*!
@@ -268,7 +267,7 @@ list of available converters.
 */
 QWindowsMime::~QWindowsMime()
 {
-    ::mimeList()->removeWindowsMime(this);
+    theMimeList()->removeWindowsMime(this);
 }
 
 
@@ -278,8 +277,8 @@ QWindowsMime::~QWindowsMime()
 */
 int QWindowsMime::registerMimeType(const QString &mime)
 {
-#ifdef Q_OS_TEMP
-    int f = RegisterClipboardFormat(mime.utf16());
+#ifdef Q_OS_WINCE
+    int f = RegisterClipboardFormat(reinterpret_cast<const wchar_t *> (mime.utf16()));
 #else
     int f = RegisterClipboardFormatA(mime.toLocal8Bit());
 #endif
@@ -351,7 +350,7 @@ int QWindowsMime::registerMimeType(const QString &mime)
 
 QWindowsMime *QWindowsMime::converterFromMime(const FORMATETC &formatetc, const QMimeData *mimeData)
 {
-    QList<QWindowsMime*> mimes = ::mimeList()->windowsMimes();
+    QList<QWindowsMime*> mimes = theMimeList()->windowsMimes();
     for (int i=mimes.size()-1; i>=0; --i) {
         if (mimes.at(i)->canConvertFromMime(formatetc, mimeData))
             return mimes.at(i);
@@ -361,7 +360,7 @@ QWindowsMime *QWindowsMime::converterFromMime(const FORMATETC &formatetc, const 
 
 QWindowsMime *QWindowsMime::converterToMime(const QString &mimeType, IDataObject *pDataObj)
 {
-    QList<QWindowsMime*> mimes = ::mimeList()->windowsMimes();
+    QList<QWindowsMime*> mimes = theMimeList()->windowsMimes();
     for (int i=mimes.size()-1; i>=0; --i) {
         if (mimes.at(i)->canConvertToMime(mimeType, pDataObj))
             return mimes.at(i);
@@ -371,20 +370,24 @@ QWindowsMime *QWindowsMime::converterToMime(const QString &mimeType, IDataObject
 
 QVector<FORMATETC> QWindowsMime::allFormatsForMime(const QMimeData *mimeData)
 {
-    QList<QWindowsMime*> mimes = ::mimeList()->windowsMimes();
+    QList<QWindowsMime*> mimes = theMimeList()->windowsMimes();
     QVector<FORMATETC> formatics;
     formatics.reserve(20);
+#ifndef QT_NO_DRAGANDDROP
     QStringList formats = QInternalMimeData::formatsHelper(mimeData);
     for (int f=0; f<formats.size(); ++f) {
-        for (int i=mimes.size()-1; i>=0; --i) 
+        for (int i=mimes.size()-1; i>=0; --i)
             formatics += mimes.at(i)->formatsForMime(formats.at(f), mimeData);
     }
+#else
+    Q_UNUSED(mimeData);
+#endif //QT_NO_DRAGANDDROP
     return formatics;
 }
 
 QStringList QWindowsMime::allMimesForFormats(IDataObject *pDataObj)
 {
-    QList<QWindowsMime*> mimes = ::mimeList()->windowsMimes();
+    QList<QWindowsMime*> mimes = theMimeList()->windowsMimes();
     QStringList formats;
     LPENUMFORMATETC FAR fmtenum;
     HRESULT hr = pDataObj->EnumFormatEtc(DATADIR_GET, &fmtenum);
@@ -392,7 +395,7 @@ QStringList QWindowsMime::allMimesForFormats(IDataObject *pDataObj)
     if (hr == NOERROR) {
         FORMATETC fmtetc;
         while (S_OK == fmtenum->Next(1, &fmtetc, 0)) {
-#ifdef QMIME_DEBUG
+#if defined(QMIME_DEBUG) && !defined(Q_OS_WINCE)
             qDebug("QWindowsMime::allMimesForFormats()");
             char buf[256] = {0};
             GetClipboardFormatNameA(fmtetc.cfFormat, buf, 255);
@@ -543,6 +546,7 @@ QVariant QWindowsMimeText::convertToMime(const QString &mime, LPDATAOBJECT pData
         QByteArray data = getData(CF_UNICODETEXT, pDataObj);
         if (!data.isEmpty()) {
             str = QString::fromUtf16((const unsigned short *)data.data());
+            str.replace(QLatin1String("\r\n"), QLatin1String("\n"));
         } else {
             data = getData(CF_TEXT, pDataObj);
             if (!data.isEmpty()) {
@@ -822,7 +826,7 @@ QVariant QWindowsMimeHtml::convertToMime(const QString &mime, IDataObject *pData
 #endif
         int start = html.indexOf("StartFragment:");
         int end = html.indexOf("EndFragment:");
-      
+
         if (start != -1) {
             int startOffset = start + 14;
             int i = startOffset;
@@ -840,7 +844,7 @@ QVariant QWindowsMimeHtml::convertToMime(const QString &mime, IDataObject *pData
             QByteArray bytecount = html.mid(endOffset , i - endOffset);
             end = bytecount.toInt();
         }
-        
+
         if (end > start && start > 0) {
             html = "<!--StartFragment-->" + html.mid(start, end - start);
             html += "<!--EndFragment-->";
@@ -905,7 +909,11 @@ private:
 
 QWindowsMimeImage::QWindowsMimeImage()
 {
+#ifdef Q_OS_WINCE
+    CF_PNG = RegisterClipboardFormat(reinterpret_cast<const wchar_t *> (QString::fromLatin1("PNG").utf16()));
+#else
     CF_PNG = RegisterClipboardFormatA("PNG");
+#endif
 }
 
 QVector<FORMATETC> QWindowsMimeImage::formatsForMime(const QString &mimeType, const QMimeData *mimeData) const
@@ -931,7 +939,7 @@ QString QWindowsMimeImage::mimeForFormat(const FORMATETC &formatetc) const
 
 bool QWindowsMimeImage::canConvertToMime(const QString &mimeType, IDataObject *pDataObj) const
 {
-    if ((mimeType == QLatin1String("application/x-qt-image")) && 
+    if ((mimeType == QLatin1String("application/x-qt-image")) &&
         (canGetData(CF_DIB, pDataObj) || canGetData(CF_PNG, pDataObj)))
         return true;
     return false;
@@ -1109,7 +1117,9 @@ bool QBuiltInMimes::convertFromMime(const FORMATETC &formatetc, const QMimeData 
             r[byteLength+1] = 0;
             data = r;
         } else {
+#ifndef QT_NO_DRAGANDDROP
             data = QInternalMimeData::renderDataHelper(outFormats.value(getCf(formatetc)), mimeData);
+#endif //QT_NO_DRAGANDDROP
         }
         return setData(data, pmedium);
     }
@@ -1209,15 +1219,29 @@ QLastResortMimes::QLastResortMimes()
 bool QLastResortMimes::canConvertFromMime(const FORMATETC &formatetc, const QMimeData *mimeData) const
 {
     // really check
+#ifndef QT_NO_DRAGANDDROP
     return formatetc.tymed & TYMED_HGLOBAL
         && (formats.contains(formatetc.cfFormat)
-        || QInternalMimeData::hasFormatHelper(formats.value(formatetc.cfFormat), mimeData));
+        && QInternalMimeData::hasFormatHelper(formats.value(formatetc.cfFormat), mimeData));
+#else
+    Q_UNUSED(mimeData);
+    Q_UNUSED(formatetc);
+    return formatetc.tymed & TYMED_HGLOBAL
+        && formats.contains(formatetc.cfFormat);
+#endif //QT_NO_DRAGANDDROP
 }
 
 bool QLastResortMimes::convertFromMime(const FORMATETC &formatetc, const QMimeData *mimeData, STGMEDIUM * pmedium) const
 {
+#ifndef QT_NO_DRAGANDDROP
     return canConvertFromMime(formatetc, mimeData)
         && setData(QInternalMimeData::renderDataHelper(formats.value(getCf(formatetc)), mimeData), pmedium);
+#else
+    Q_UNUSED(mimeData);
+    Q_UNUSED(formatetc);
+    Q_UNUSED(pmedium);
+    return false;
+#endif //QT_NO_DRAGANDDROP
 }
 
 QVector<FORMATETC> QLastResortMimes::formatsForMime(const QString &mimeType, const QMimeData * /*mimeData*/) const
@@ -1236,12 +1260,12 @@ QVector<FORMATETC> QLastResortMimes::formatsForMime(const QString &mimeType, con
 }
 static const char *x_qt_windows_mime = "application/x-qt-windows-mime;value=\"";
 
-bool isCustomMimeType(const QString &mimeType) 
+bool isCustomMimeType(const QString &mimeType)
 {
     return mimeType.startsWith(QLatin1String(x_qt_windows_mime), Qt::CaseInsensitive);
 }
 
-QString customMimeType(const QString &mimeType) 
+QString customMimeType(const QString &mimeType)
 {
     int len = QString(QLatin1String(x_qt_windows_mime)).length();
     int n = mimeType.lastIndexOf(QLatin1Char('\"'))-len;
@@ -1252,7 +1276,11 @@ bool QLastResortMimes::canConvertToMime(const QString &mimeType, IDataObject *pD
 {
     if (isCustomMimeType(mimeType)) {
         QString clipFormat = customMimeType(mimeType);
+#ifdef Q_OS_WINCE
+        int cf = RegisterClipboardFormat(reinterpret_cast<const wchar_t *> (clipFormat.utf16()));
+#else
         int cf = RegisterClipboardFormatA(clipFormat.toLocal8Bit());
+#endif
         return canGetData(cf, pDataObj);
     } else if (formats.keys(mimeType).isEmpty()) {
         // if it is not in there then register it an see if we can get it
@@ -1272,7 +1300,11 @@ QVariant QLastResortMimes::convertToMime(const QString &mimeType, IDataObject *p
         QByteArray data;
         if (isCustomMimeType(mimeType)) {
             QString clipFormat = customMimeType(mimeType);
+#ifdef Q_OS_WINCE
+            int cf = RegisterClipboardFormat(reinterpret_cast<const wchar_t *> (clipFormat.utf16()));
+#else
             int cf = RegisterClipboardFormatA(clipFormat.toLocal8Bit());
+#endif
             data = getData(cf, pDataObj);
         } else if (formats.keys(mimeType).isEmpty()) {
             int cf = QWindowsMime::registerMimeType(mimeType);
@@ -1291,10 +1323,21 @@ QString QLastResortMimes::mimeForFormat(const FORMATETC &formatetc) const
     QString format = formats.value(getCf(formatetc));
     if (format.isEmpty()) {
         QByteArray ba;
-        ba.resize(256);
-        int len = GetClipboardFormatNameA(getCf(formatetc), ba.data(), 255);
+        QString clipFormat;
+        int len;
+        QT_WA({
+            ba.resize(256*2);
+            len = GetClipboardFormatNameW(getCf(formatetc), (TCHAR*)ba.data(), 255);
+            if (len) 
+                clipFormat = QString::fromUtf16((ushort *)ba.data(), len);
+        } , {
+            ba.resize(256);
+            len = GetClipboardFormatNameA(getCf(formatetc), ba.data(), 255);
+            if (len)
+                clipFormat = QString::fromLocal8Bit(ba.data(), len);
+       });
         if (len) {
-            QString clipFormat = QString::fromLocal8Bit(ba.data(), len);
+#ifndef QT_NO_DRAGANDDROP
             if (QInternalMimeData::canReadData(clipFormat))
                 format = clipFormat;
             else if((formatetc.cfFormat >= 0xC000)){
@@ -1315,6 +1358,7 @@ QString QLastResortMimes::mimeForFormat(const FORMATETC &formatetc) const
                         format = clipFormat;
                 }
             }
+#endif //QT_NO_DRAGANDDROP
         }
     }
     return format;
@@ -1373,25 +1417,25 @@ static bool qt_write_dibv5(QDataStream &s, QImage image)
     if (!d->isWritable())
         return false;
 
-    //depth will be always 32 
+    //depth will be always 32
     int bpl_bmp = image.width()*4;
 
     BMP_BITMAPV5HEADER bi ={0};
-    bi.bV5Size          = sizeof(BMP_BITMAPV5HEADER); 
+    bi.bV5Size          = sizeof(BMP_BITMAPV5HEADER);
     bi.bV5Width         = image.width();
     bi.bV5Height        = image.height();
     bi.bV5Planes        = 1;
     bi.bV5BitCount      = 32;
-    bi.bV5Compression   = BI_BITFIELDS; 
+    bi.bV5Compression   = BI_BITFIELDS;
     bi.bV5SizeImage     = bpl_bmp*image.height();
     bi.bV5XPelsPerMeter = 0;
     bi.bV5YPelsPerMeter = 0;
     bi.bV5ClrUsed       = 0;
     bi.bV5ClrImportant  = 0;
-    bi.bV5BlueMask      = 0x000000ff; 
-    bi.bV5GreenMask     = 0x0000ff00; 
-    bi.bV5RedMask       = 0x00ff0000; 
-    bi.bV5AlphaMask     = 0xff000000; 
+    bi.bV5BlueMask      = 0x000000ff;
+    bi.bV5GreenMask     = 0x0000ff00;
+    bi.bV5RedMask       = 0x00ff0000;
+    bi.bV5AlphaMask     = 0xff000000;
     bi.bV5CSType        = BMP_LCS_sRGB;         //LCS_sRGB
     bi.bV5Intent        = BMP_LCS_GM_IMAGES;    //LCS_GM_IMAGES
 
@@ -1411,7 +1455,7 @@ static bool qt_write_dibv5(QDataStream &s, QImage image)
     uchar *b;
 
     memset(buf, 0, bpl_bmp);
-    for (int y=image.height()-1; y>=0; y--) {        
+    for (int y=image.height()-1; y>=0; y--) {
         // write the image bits
         QRgb *p = (QRgb *)image.scanLine(y);
         QRgb *end = p + image.width();
@@ -1467,7 +1511,7 @@ static bool qt_read_dibv5(QDataStream &s, QImage &image)
     int comp = bi.bV5Compression;
     if (nbits != 32 || bi.bV5Planes != 1 || comp != BMP_BITFIELDS)
         return false; //Unsupported DIBV5 format
- 
+
     int w = bi.bV5Width, h = bi.bV5Height;
     int red_mask = bi.bV5RedMask;
     int green_mask = bi.bV5GreenMask;
@@ -1542,3 +1586,5 @@ static bool qt_read_dibv5(QDataStream &s, QImage &image)
 }
 
 #endif
+
+QT_END_NAMESPACE

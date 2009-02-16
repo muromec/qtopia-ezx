@@ -3,6 +3,7 @@
  ! Some notes to the DTD:
  !
  ! The location element is set as optional since it was introduced first in Qt 4.2.
+ ! The userdata element is set as optional since it was introduced first in Qt 4.4.
  !
   -->
 <!-- 
@@ -23,7 +24,7 @@
           encoding CDATA #IMPLIED>
 <!ELEMENT name %evilstring; >
 <!ELEMENT comment %evilstring; >
-<!ELEMENT message (location?, source, comment?, translation) >
+<!ELEMENT message (location?, source, comment?, translation, userdata?) >
 <!ATTLIST message
           encoding CDATA #IMPLIED
           numerus (yes|no) "no">
@@ -40,6 +41,7 @@
 <!ATTLIST translation
           type (unfinished|obsolete) #IMPLIED
           encoding CDATA #IMPLIED>
+<!ELEMENT userdata (#PCDATA)* >
 <!ELEMENT numerusform %evilstring; >
 
 

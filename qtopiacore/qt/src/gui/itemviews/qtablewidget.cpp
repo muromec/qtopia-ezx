@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 #include <qitemdelegate.h>
 #include <qpainter.h>
 #include <private/qtablewidget_p.h>
+
+QT_BEGIN_NAMESPACE
 
 QTableModel::QTableModel(int rows, int columns, QTableWidget *parent)
     : QAbstractTableModel(parent),
@@ -819,7 +815,7 @@ void QTableModel::setItemPrototype(const QTableWidgetItem *item)
 
 QStringList QTableModel::mimeTypes() const
 {
-    const QTableWidget *view = ::qobject_cast<const QTableWidget*>(QObject::parent());
+    const QTableWidget *view = qobject_cast<const QTableWidget*>(QObject::parent());
     return (view ? view->mimeTypes() : QStringList());
 }
 
@@ -833,7 +829,7 @@ QMimeData *QTableModel::mimeData(const QModelIndexList &indexes) const
     QList<QTableWidgetItem*> items;
     for (int i = 0; i < indexes.count(); ++i)
         items << item(indexes.at(i));
-    const QTableWidget *view = ::qobject_cast<const QTableWidget*>(QObject::parent());
+    const QTableWidget *view = qobject_cast<const QTableWidget*>(QObject::parent());
 
     // cachedIndexes is a little hack to avoid copying from QModelIndexList to
     // QList<QTreeWidgetItem*> and back again in the view
@@ -854,27 +850,31 @@ bool QTableModel::dropMimeData(const QMimeData *data, Qt::DropAction action,
         column = 0;
     }
 
-    QTableWidget *view = ::qobject_cast<QTableWidget*>(QObject::parent());
+    QTableWidget *view = qobject_cast<QTableWidget*>(QObject::parent());
     return (view ? view->dropMimeData(row, column, data, action) : false);
 }
 
 Qt::DropActions QTableModel::supportedDropActions() const
 {
-    const QTableWidget *view = ::qobject_cast<const QTableWidget*>(QObject::parent());
+    const QTableWidget *view = qobject_cast<const QTableWidget*>(QObject::parent());
     return (view ? view->supportedDropActions() : Qt::DropActions(Qt::IgnoreAction));
 }
 
 /*!
     \class QTableWidgetSelectionRange
 
-    \brief The QTableWidgetSelectionRange class provides a container for
-    storing a selection range in a QTableWidget.
+    \brief The QTableWidgetSelectionRange class provides a way to interact with
+    selection in a model without using model indexes and a selection model.
 
     \ingroup model-view
 
     The QTableWidgetSelectionRange class stores the top left and bottom
     right rows and columns of a selection range in a table. The
     selections in the table may consist of several selection ranges.
+
+    \note If the item within the selection range is marked as not selectable,
+    e.g., \c{itemFlags() & Qt::ItemIsSelectable == 0} then it will not appear
+    in the selection range.
 
     \sa QTableWidget
 */
@@ -986,9 +986,7 @@ QTableWidgetSelectionRange::~QTableWidgetSelectionRange()
     Top-level items are constructed without a parent then inserted at the
     position specified by a pair of row and column numbers:
 
-    \quotefile snippets/qtablewidget-using/mainwindow.cpp
-    \skipto QTableWidgetItem *newItem
-    \printuntil tableWidget->setItem(
+    \snippet doc/src/snippets/qtablewidget-using/mainwindow.cpp 3
 
     Each item can have its own background brush which is set with
     the setBackground() function. The current background brush can be
@@ -1001,7 +999,7 @@ QTableWidgetSelectionRange::~QTableWidgetSelectionRange()
     used both as the source of a drag and drop operation and as a drop target.
     Each item's flags can be changed by calling setFlags() with the appropriate
     value (see \l{Qt::ItemFlags}). Checkable items can be checked and unchecked
-    with the setChecked() function. The corresponding checked() function
+    with the setCheckState() function. The corresponding checkState() function
     indicates whether the item is currently checked.
 
     \section1 Subclassing
@@ -1109,7 +1107,7 @@ QTableWidgetSelectionRange::~QTableWidgetSelectionRange()
 void QTableWidgetItem::setFlags(Qt::ItemFlags aflags)
 {
     itemFlags = aflags;
-    if (QTableModel *model = (view ? ::qobject_cast<QTableModel*>(view->model()) : 0))
+    if (QTableModel *model = (view ? qobject_cast<QTableModel*>(view->model()) : 0))
         model->itemChanged(this);
 }
 
@@ -1157,7 +1155,9 @@ void QTableWidgetItem::setFlags(Qt::ItemFlags aflags)
 /*!
     \fn void QTableWidgetItem::setStatusTip(const QString &statusTip)
 
-    Sets the item's status tip to the string specified by \a statusTip.
+    Sets the status tip for the table item to the text specified by
+    \a statusTip. QTableWidget mouse tracking needs to be enabled for this
+    feature to work.
 
     \sa statusTip() setToolTip() setWhatsThis()
 */
@@ -1348,7 +1348,7 @@ QTableWidgetItem::QTableWidgetItem(const QIcon &icon, const QString &text, int t
 */
 QTableWidgetItem::~QTableWidgetItem()
 {
-    if (QTableModel *model = (view ? ::qobject_cast<QTableModel*>(view->model()) : 0))
+    if (QTableModel *model = (view ? qobject_cast<QTableModel*>(view->model()) : 0))
         model->removeItem(this);
     view = 0;
     delete d;
@@ -1383,7 +1383,7 @@ void QTableWidgetItem::setData(int role, const QVariant &value)
     }
     if (!found)
         values.append(QWidgetItemData(role, value));
-    if (QTableModel *model = (view ? ::qobject_cast<QTableModel*>(view->model()) : 0))
+    if (QTableModel *model = (view ? qobject_cast<QTableModel*>(view->model()) : 0))
         model->itemChanged(this);
 }
 
@@ -1513,24 +1513,18 @@ QTableWidgetItem &QTableWidgetItem::operator=(const QTableWidgetItem &other)
     Table widgets can be constructed with the required numbers of rows and
     columns:
 
-    \quotefile snippets/qtablewidget-using/mainwindow.cpp
-    \skipto tableWidget = new
-    \printuntil tableWidget = new
+    \snippet doc/src/snippets/qtablewidget-using/mainwindow.cpp 0
 
     Alternatively, tables can be constructed without a given size and resized
     later:
 
-    \quotefile snippets/qtablewidget-resizing/mainwindow.cpp
-    \skipto tableWidget = new
-    \printuntil tableWidget = new
-    \skipto tableWidget->setRowCount(
-    \printuntil tableWidget->setColumnCount(
+    \snippet doc/src/snippets/qtablewidget-resizing/mainwindow.cpp 0
+    \snippet doc/src/snippets/qtablewidget-resizing/mainwindow.cpp 1
 
     Items are created ouside the table (with no parent widget) and inserted
     into the table with setItem():
 
-    \skipto QTableWidgetItem *newItem
-    \printuntil tableWidget->setItem(
+    \snippet doc/src/snippets/qtablewidget-resizing/mainwindow.cpp 2
 
     If you want to enable sorting in your table widget, do so after you
     have populated it with items, otherwise sorting may interfere with
@@ -1545,9 +1539,7 @@ QTableWidgetItem &QTableWidgetItem::operator=(const QTableWidgetItem &other)
     construct a table item with an icon and aligned text, and use it as the
     header for a particular column:
 
-    \quotefile snippets/qtablewidget-using/mainwindow.cpp
-    \skipto QTableWidgetItem *cubesHeaderItem
-    \printuntil cubesHeaderItem->setTextAlignment
+    \snippet doc/src/snippets/qtablewidget-using/mainwindow.cpp 2
 
     The number of rows in the table can be found with rowCount(), and the
     number of columns with columnCount(). The table can be cleared with the
@@ -1568,11 +1560,17 @@ QTableWidgetItem &QTableWidgetItem::operator=(const QTableWidgetItem &other)
 /*!
     \property QTableWidget::rowCount
     \brief the number of rows in the table
+
+    By default, for a table constructed without row and column counts,
+    this property contains a value of 0.
 */
 
 /*!
     \property QTableWidget::columnCount
     \brief the number of columns in the table
+
+    By default, for a table constructed without row and column counts,
+    this property contains a value of 0.
 */
 
 void QTableWidgetPrivate::setup()
@@ -1968,8 +1966,12 @@ void QTableWidget::setItem(int row, int column, QTableWidgetItem *item)
 {
     Q_D(QTableWidget);
     if (item) {
-        item->view = this;
-        d->model()->setItem(row, column, item);
+        if (item->view != 0) {
+            qWarning("QTableWidget: cannot insert an item that is already owned by another QTableWidget");
+        } else {
+            item->view = this;
+            d->model()->setItem(row, column, item);
+        }
     } else {
         delete takeItem(row, column);
     }
@@ -2024,7 +2026,8 @@ QTableWidgetItem *QTableWidget::takeVerticalHeaderItem(int row)
 }
 
 /*!
-  Returns the horizontal header item for column \a column.
+    Returns the horizontal header item for column, \a column, if one has been
+    set; otherwise returns 0.
 */
 QTableWidgetItem *QTableWidget::horizontalHeaderItem(int column) const
 {
@@ -2129,7 +2132,8 @@ QTableWidgetItem *QTableWidget::currentItem() const
 /*!
     Sets the current item to \a item.
 
-    Depending on the current selection mode, the item may also be selected.
+    Depending on the current \l{QAbstractItemView::SelectionMode}{selection mode},
+    the item may also be selected.
 
     \sa currentItem(), setCurrentCell()
 */
@@ -2140,18 +2144,46 @@ void QTableWidget::setCurrentItem(QTableWidgetItem *item)
 }
 
 /*!
+  \since 4.4
+  
+  Sets the current item to be \a item, using the given \a command.
+
+  \sa currentItem(), setCurrentCell()
+*/
+void QTableWidget::setCurrentItem(QTableWidgetItem *item, QItemSelectionModel::SelectionFlags command)
+{
+    Q_D(QTableWidget);
+    d->selectionModel->setCurrentIndex(d->model()->index(item), command);
+}
+
+/*!
     \since 4.1
 
     Sets the current cell to be the cell at position (\a row, \a
     column).
 
-    Depending on the current selection mode, the cell may also be selected.
+    Depending on the current \l{QAbstractItemView::SelectionMode}{selection mode},
+    the cell may also be selected. 
 
     \sa setCurrentItem(), currentRow(), currentColumn()
 */
 void QTableWidget::setCurrentCell(int row, int column)
 {
     setCurrentIndex(model()->index(row, column, QModelIndex()));
+}
+
+/*!
+  \since 4.4
+  
+  Sets the current cell to be the cell at position (\a row, \a
+  column), using the given \a command.
+
+  \sa setCurrentItem(), currentRow(), currentColumn()
+*/
+void QTableWidget::setCurrentCell(int row, int column, QItemSelectionModel::SelectionFlags command)
+{
+    Q_D(QTableWidget);
+    d->selectionModel->setCurrentIndex(model()->index(row, column, QModelIndex()), command);
 }
 
 /*!
@@ -2221,11 +2253,13 @@ void QTableWidget::closePersistentEditor(QTableWidgetItem *item)
 }
 
 /*!
-  \since 4.1
+    \since 4.1
 
-  Returns the widget displayed in the cell in the given \a row and \a column.
+    Returns the widget displayed in the cell in the given \a row and \a column.
 
-  \sa setCellWidget()
+    \note The table takes ownership of the widget.
+
+    \sa setCellWidget()
 */
 QWidget *QTableWidget::cellWidget(int row, int column) const
 {
@@ -2234,11 +2268,13 @@ QWidget *QTableWidget::cellWidget(int row, int column) const
 }
 
 /*!
-  \since 4.1
+    \since 4.1
 
-  Sets the \a widget to be displayed in the cell in the given \a row and \a column.
+    Sets the \a widget to be displayed in the cell in the given \a row and \a column.
 
-  \sa cellWidget()
+    \note The table takes ownership of the widget.
+
+    \sa cellWidget()
 */
 void QTableWidget::setCellWidget(int row, int column, QWidget *widget)
 {
@@ -2483,7 +2519,7 @@ void QTableWidget::removeColumn(int column)
 /*!
    Removes all items in the view.
    This will also remove all selections.
-   The table dimentions stay the same.
+   The table dimensions stay the same.
 */
 
 void QTableWidget::clear()
@@ -2602,7 +2638,7 @@ QTableWidgetItem *QTableWidget::itemFromIndex(const QModelIndex &index) const
 */
 void QTableWidget::setModel(QAbstractItemModel * /*model*/)
 {
-    qFatal("QTableWidget::setModel() - Changing the model of the QTableWidget is not allowed.");
+    Q_ASSERT(!"QTableWidget::setModel() - Changing the model of the QTableWidget is not allowed.");
 }
 
 /*! \reimp */
@@ -2650,5 +2686,8 @@ void QTableWidget::dropEvent(QDropEvent *event) {
 }
 #endif
 
+QT_END_NAMESPACE
+
 #include "moc_qtablewidget.cpp"
+
 #endif // QT_NO_TABLEWIDGET

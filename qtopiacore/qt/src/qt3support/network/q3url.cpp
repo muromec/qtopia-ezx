@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +41,8 @@
 
 #include "q3cstring.h"
 #include "qdir.h"
+
+QT_BEGIN_NAMESPACE
 
 // used by q3filedialog.cpp
 bool qt_resolve_symlinks = true;
@@ -145,11 +141,7 @@ static void slashify( QString& s, bool allowMultiple = true )
 
     Q3Url is normally used like this:
 
-    \code
-    Q3Url url( "http://www.trolltech.com" );
-    // or
-    Q3Url url( "file:///home/myself/Mail", "Inbox" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 0
 
     You can then access and manipulate the various parts of the URL.
 
@@ -157,13 +149,7 @@ static void slashify( QString& s, bool allowMultiple = true )
     the necessary cast and assignment operators so you can do
     following:
 
-    \code
-    Q3Url url( "http://www.trolltech.com" );
-    QString s = url;
-    // or
-    QString s( "http://www.trolltech.com" );
-    Q3Url url( s );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 1
 
     Use the static functions, encode() and decode() to encode or
     decode a URL in a string. (They operate on the string in-place.)
@@ -233,22 +219,16 @@ bool Q3Url::isRelativeUrl( const QString &url )
     \a relUrl is taken as the new URL.
 
     For example, the path of
-    \code
-    Q3Url url( "ftp://ftp.trolltech.com/qt/source", "qt-2.1.0.tar.gz" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 2
     will be "/qt/srource/qt-2.1.0.tar.gz".
 
     On the other hand,
-    \code
-    Q3Url url( "ftp://ftp.trolltech.com/qt/source", "/usr/local" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 3
     will result in a new URL, "ftp://ftp.trolltech.com/usr/local",
     because "/usr/local" isn't relative.
 
     Similarly,
-    \code
-    Q3Url url( "ftp://ftp.trolltech.com/qt/source", "file:///usr/local" );
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 4
     will result in a new URL, with "/usr/local" as the path
     and "file" as the protocol.
 
@@ -1166,11 +1146,7 @@ QString Q3Url::dirPath() const
 /*!
     Encodes the \a url in-place into UTF-8.  For example
 
-    \code
-	QString url = http://www.trolltech.com
-	Q3Url::encode( url );
-	// url is now "http%3A//www%20trolltech%20com"
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 5
 
   \sa decode()
 */
@@ -1222,11 +1198,7 @@ static uchar hex_to_int( uchar c )
 /*!
     Decodes the \a url in-place into UTF-8.  For example
 
-    \code
-	QString url = "http%3A//www%20trolltech%20com"
-	Q3Url::decode( url );
-	// url is now "http://www.trolltech.com"
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3url.cpp 6
 
     \sa encode()
 */
@@ -1337,5 +1309,7 @@ bool Q3Url::cdUp()
     d->cleanPathDirty = true;
     return true;
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_URL

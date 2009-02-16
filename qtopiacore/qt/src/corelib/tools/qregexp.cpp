@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,9 +46,12 @@
 #include "qmutex.h"
 #include "qstring.h"
 #include "qstringlist.h"
+#include "qstringmatcher.h"
 #include "qvector.h"
 
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 // error strings for the regexp parser
 #define RXERR_OK         QT_TRANSLATE_NOOP("QRegExp", "no error occurred")
@@ -82,148 +79,156 @@
     \mainclass
     \keyword regular expression
 
-    Regular expressions, or "regexps", provide a way to find patterns
-    within text. This is useful in many contexts, for example:
+    A regular expression, or "regexp", is a pattern for matching
+    substrings in a text. This is useful in many contexts, e.g.,
 
     \table
     \row \i Validation
-         \i A regexp can be used to check whether a piece of text
-         meets some criteria, e.g. is an integer or contains no
-         whitespace.
+         \i A regexp can test whether a substring meets some criteria,
+         e.g. is an integer or contains no whitespace.
     \row \i Searching
-         \i Regexps provide a much more powerful means of searching
-         text than simple string matching does. For example we can
-         create a regexp which says "find one of the words 'mail',
-         'letter' or 'correspondence' but not any of the words
-         'email', 'mailman' 'mailer', 'letterbox', etc."
-    \row \i Search and Replace
-         \i A regexp can be used to replace a pattern with a piece of
-         text, for example replace all occurrences of '&' with
-         '\&amp;' except where the '&' is already followed by 'amp;'.
+         \i A regexp provides more powerful pattern matching than
+         simple substring matching, e.g., match one of the words
+         \e{mail}, \e{letter} or \e{correspondence}, but none of the
+         words \e{email}, \e{mailman}, \e{mailer}, \e{letterbox}, etc.
+     \row \i Search and Replace
+         \i A regexp can replace all occurrences of a substring with a
+         different substring, e.g., replace all occurrences of \e{&}
+         with \e{\&amp;} except where the \e{&} is already followed by
+         an \e{amp;}.
     \row \i String Splitting
          \i A regexp can be used to identify where a string should be
-         split into its component fields, e.g. splitting tab-delimited
-         strings.
+         split apart, e.g. splitting tab-delimited strings.
     \endtable
 
-    We present a very brief introduction to regexps, a description of
-    Qt's regexp language, some code examples, and finally the
-    function documentation itself. QRegExp is modeled on Perl's
-    regexp language, and also fully supports Unicode. QRegExp can
-    also be used in the weaker wildcard mode that works in a
-    similar way to command shells. It can even be feed with fixed
-    strings (see setPatternSyntax()). A good text on regexps is \e
-    {Mastering Regular Expressions} (Third Edition) by Jeffrey E. F.
-    Friedl, ISBN 0-596-52812-4.
+    A brief introduction to regexps is presented, a description of
+    Qt's regexp language, some examples, and the function
+    documentation itself. QRegExp is modeled on Perl's regexp
+    language. It fully supports Unicode. QRegExp can also be used in a
+    simpler, \e{wildcard mode} that is similar to the functionality
+    found in command shells. The syntax rules used by QRegExp can be
+    changed with setPatternSyntax(). In particular, the pattern syntax
+    can be set to QRegExp::FixedString, which means the pattern to be
+    matched is interpreted as a plain string, i.e., special characters
+    (e.g., backslash) are not escaped.
+
+    A good text on regexps is \e {Mastering Regular Expressions}
+    (Third Edition) by Jeffrey E. F.  Friedl, ISBN 0-596-52812-4.
 
     \tableofcontents
 
     \section1 Introduction
 
-    Regexps are built up from expressions, quantifiers, and assertions.
-    The simplest form of expression is simply a character, e.g.
-    \bold{x} or \bold{5}. An expression can also be a set of
-    characters. For example, \bold{[ABCD]}, will match an \bold{A} or
-    a \bold{B} or a \bold{C} or a \bold{D}. As a shorthand we could
-    write this as \bold{[A-D]}. If we want to match any of the
-    captital letters in the English alphabet we can write
-    \bold{[A-Z]}. A quantifier tells the regexp engine how many
-    occurrences of the expression we want, e.g. \bold{x{1,1}} means
-    match an \bold{x} which occurs at least once and at most once.
-    We'll look at assertions and more complex expressions later.
+    Regexps are built up from expressions, quantifiers, and
+    assertions. The simplest expression is a character, e.g. \bold{x}
+    or \bold{5}. An expression can also be a set of characters
+    enclosed in square brackets. \bold{[ABCD]} will match an \bold{A}
+    or a \bold{B} or a \bold{C} or a \bold{D}. We can write this same
+    expression as \bold{[A-D]}, and an experession to match any
+    captital letter in the English alphabet is written as
+    \bold{[A-Z]}.
+
+    A quantifier specifies the number of occurrences of an expression
+    that must be matched. \bold{x{1,1}} means match one and only one
+    \bold{x}. \bold{x{1,5}} means match a sequence of \bold{x}
+    characters that contains at least one \bold{x} but no more than
+    five.
 
     Note that in general regexps cannot be used to check for balanced
-    brackets or tags. For example if you want to match an opening html
-    \c{<b>} and its closing \c{<b>}, you can only use a regexp if you
-    know that these tags are not nested; the html fragment, \c{<b>bold
-    <b>bolder</b></b>} will not match as expected. If you know the
-    maximum level of nesting it is possible to create a regexp that
-    will match correctly, but for an unknown level of nesting, regexps
-    will fail.
+    brackets or tags. For example, a regexp can be written to match an
+    opening html \c{<b>} and its closing \c{</b>}, if the \c{<b>} tags
+    are not nested, but if the \c{<b>} tags are nested, that same
+    regexp will match an opening \c{<b>} tag with the wrong closing
+    \c{</b>}.  For the fragment \c{<b>bold <b>bolder</b></b>}, the
+    first \c{<b>} would be matched with the first \c{</b>}, which is
+    not correct. However, it is possible to write a regexp that will
+    match nested brackets or tags correctly, but only if the number of
+    nesting levels is fixed and known. If the number of nesting levels
+    is not fixed and known, it is impossible to write a regexp that
+    will not fail.
 
-    We'll start by writing a regexp to match integers in the range 0
-    to 99. We will require at least one digit so we will start with
-    \bold{[0-9]{1,1}} which means match a digit exactly once. This
-    regexp alone will match integers in the range 0 to 9. To match one
-    or two digits we can increase the maximum number of occurrences so
-    the regexp becomes \bold{[0-9]{1,2}} meaning match a digit at
-    least once and at most twice. However, this regexp as it stands
-    will not match correctly. This regexp will match one or two digits
-    \e within a string. To ensure that we match against the whole
-    string we must use the anchor assertions. We need \bold{^} (caret)
-    which when it is the first character in the regexp means that the
-    regexp must match from the beginning of the string. And we also
-    need \bold{$} (dollar) which when it is the last character in the
-    regexp means that the regexp must match until the end of the
-    string. So now our regexp is \bold{^[0-9]{1,2}$}. Note that
-    assertions, such as \bold{^} and \bold{$}, do not match any
-    characters.
+    Suppose we want a regexp to match integers in the range 0 to 99.
+    At least one digit is required, so we start with the expression
+    \bold{[0-9]{1,1}}, which matches a single digit exactly once. This
+    regexp matches integers in the range 0 to 9. To match integers up
+    to 99, increase the maximum number of occurrences to 2, so the
+    regexp becomes \bold{[0-9]{1,2}}. This regexp satisfies the
+    original requirement to match integers from 0 to 99, but it will
+    also match integers that occur in the middle of strings. If we
+    want the matched integer to be the whole string, we must use the
+    anchor assertions, \bold{^} (caret) and \bold{$} (dollar). When
+    \bold{^} is the first character in a regexp, it means the regexp
+    must match from the beginning of the string. When \bold{$} is the
+    last character of the regexp, it means the regexp must match to
+    the end of the string. The regexp becomes \bold{^[0-9]{1,2}$}.
+    Note that assertions, e.g. \bold{^} and \bold{$}, do not match
+    characters but locations in the string.
 
-    If you've seen regexps elsewhere, they may have looked different from
-    the ones above. This is because some sets of characters and some
-    quantifiers are so common that they have special symbols to
-    represent them. \bold{[0-9]} can be replaced with the symbol
-    \bold{\\d}. The quantifier to match exactly one occurrence,
-    \bold{{1,1}}, can be replaced with the expression itself. This means
-    that \bold{x{1,1}} is exactly the same as \bold{x} alone. So our 0
-    to 99 matcher could be written \bold{^\\d{1,2}$}. Another way of
-    writing it would be \bold{^\\d\\d{0,1}$}, i.e. from the start of the
-    string match a digit followed by zero or one digits. In practice
-    most people would write it \bold{^\\d\\d?$}. The \bold{?} is a
-    shorthand for the quantifier \bold{{0,1}}, i.e. a minimum of no
-    occurrences a maximum of one occurrence. This is used to make an
-    expression optional. The regexp \bold{^\\d\\d?$} means "from the
-    beginning of the string match one digit followed by zero or one
-    digits and then the end of the string".
+    If you have seen regexps described elsewhere, they may have looked
+    different from the ones shown here. This is because some sets of
+    characters and some quantifiers are so common that they have been
+    given special symbols to represent them. \bold{[0-9]} can be
+    replaced with the symbol \bold{\\d}. The quantifier to match
+    exactly one occurrence, \bold{{1,1}}, can be replaced with the
+    expression itself, i.e. \bold{x{1,1}} is the same as \bold{x}. So
+    our 0 to 99 matcher could be written as \bold{^\\d{1,2}$}. It can
+    also be written \bold{^\\d\\d{0,1}$}, i.e. \e{From the start of
+    the string, match a digit, followed immediately by 0 or 1 digits}.
+    In practice, it would be written as \bold{^\\d\\d?$}. The \bold{?}
+    is shorthand for the quantifier \bold{{0,1}}, i.e. 0 or 1
+    occurrences. \bold{?} makes an expression optional. The regexp
+    \bold{^\\d\\d?$} means \e{From the beginning of the string, match
+    one digit, followed immediately by 0 or 1 more digit, followed
+    immediately by end of string}.
 
-    Our second example is matching the words 'mail', 'letter' or
-    'correspondence' but without matching 'email', 'mailman',
-    'mailer', 'letterbox', etc. We'll start by just matching 'mail'. In
-    full the regexp is, \bold{m{1,1}a{1,1}i{1,1}l{1,1}}, but since
-    each expression itself is automatically quantified by \bold{{1,1}}
-    we can simply write this as \bold{mail}; an 'm' followed by an 'a'
-    followed by an 'i' followed by an 'l'. The symbol '|' (bar) is
-    used for \e alternation, so our regexp now becomes
-    \bold{mail|letter|correspondence} which means match 'mail' \e or
-    'letter' \e or 'correspondence'. Whilst this regexp will find the
-    words we want it will also find words we don't want such as
-    'email'. We will start by putting our regexp in parentheses,
-    \bold{(mail|letter|correspondence)}. Parentheses have two effects,
-    firstly they group expressions together and secondly they identify
-    parts of the regexp that we wish to \l{capturing text}{capture}.
-    Our regexp still matches any of the three words but now
-    they are grouped together as a unit. This is useful for building
-    up more complex regexps. It is also useful because it allows us to
-    examine which of the words actually matched. We need to use
-    another assertion, this time \bold{\\b} "word boundary":
-    \bold{\\b(mail|letter|correspondence)\\b}. This regexp means "match
-    a word boundary followed by the expression in parentheses followed
-    by another word boundary". The \bold{\\b} assertion matches at a \e
-    position in the regexp not a \e character in the regexp. A word
-    boundary is any non-word character such as a space a newline or
-    the beginning or end of the string.
+    To write a regexp that matches one of the words 'mail' \e or
+    'letter' \e or 'correspondence' but does not match words that
+    contain these words, e.g., 'email', 'mailman', 'mailer', and
+    'letterbox', start with a regexp that matches 'mail'. Expressed
+    fully, the regexp is \bold{m{1,1}a{1,1}i{1,1}l{1,1}}, but because
+    a character expression is automatically quantified by
+    \bold{{1,1}}, we can simplify the regexp to \bold{mail}, i.e., an
+    'm' followed by an 'a' followed by an 'i' followed by an 'l'. Now
+    we can use the vertical bar \bold{|}, which means \bold{or}, to
+    include the other two words, so our regexp for matching any of the
+    three words becomes \bold{mail|letter|correspondence}. Match
+    'mail' \bold{or} 'letter' \bold{or} 'correspondence'. While this
+    regexp will match one of the three words we want to match, it will
+    also match words we don't want to match, e.g., 'email'.  To
+    prevent the regexp from matching unwanted words, we must tell it
+    to begin and end the match at word boundaries. First we enclose
+    our regexp in parentheses, \bold{(mail|letter|correspondence)}.
+    Parentheses group expressions together, and they identify a part
+    of the regexp that we wish to \l{capturing text}{capture}.
+    Enclosing the expression in parentheses allows us to use it as a
+    component in more complex regexps. It also allows us to examine
+    which of the three words was actually matched. To force the match
+    to begin and end on word boundaries, we enclose the regexp in
+    \bold{\\b} \e{word boundary} assertions:
+    \bold{\\b(mail|letter|correspondence)\\b}.  Now the regexp means:
+    \e{Match a word boundary, followed by the regexp in parentheses,
+    followed by a word boundary}. The \bold{\\b} assertion matches a
+    \e position in the regexp, not a \e character. A word boundary is
+    any non-word character, e.g., a space, newline, or the beginning
+    or ending of a string.
 
-    For our third example we want to replace ampersands with the HTML
-    entity '\&amp;'. The regexp to match is simple: \bold{\&}, i.e.
-    match one ampersand. Unfortunately this will mess up our text if
-    some of the ampersands have already been turned into HTML
-    entities. So what we really want to say is replace an ampersand
-    providing it is not followed by 'amp;'. For this we need the
-    negative lookahead assertion and our regexp becomes:
-    \bold{\&(?!amp;)}. The negative lookahead assertion is introduced
-    with '(?!' and finishes at the ')'. It means that the text it
-    contains, 'amp;' in our example, must \e not follow the expression
-    that preceeds it.
+    If we want to replace ampersand characters with the HTML entity
+    \bold{\&amp;}, the regexp to match is simply \bold{\&}. But this
+    regexp will also match ampersands that have already been converted
+    to HTML entities. We want to replace only ampersands that are not
+    already followed by \bold{amp;}. For this, we need the negative
+    lookahead assertion, \bold{(?!}__\bold{)}. The regexp can then be
+    written as \bold{\&(?!amp;)}, i.e. \e{Match an ampersand that is}
+    \bold{not} \e{followed by} \bold{amp;}.
 
-    Regexps provide a rich language that can be used in a variety of
-    ways. For example suppose we want to count all the occurrences of
-    'Eric' and 'Eirik' in a string. Two valid regexps to match these
-    are \bold{\\b(Eric|Eirik)\\b} and \bold{\\bEi?ri[ck]\\b}. We need
-    the word boundary '\\b' so we don't get 'Ericsson' etc. The second
-    regexp actually matches more than we want, 'Eric', 'Erik', 'Eiric'
-    and 'Eirik'.
+    If we want to count all the occurrences of 'Eric' and 'Eirik' in a
+    string, two valid solutions are \bold{\\b(Eric|Eirik)\\b} and
+    \bold{\\bEi?ri[ck]\\b}. The word boundary assertion '\\b' is
+    required to avoid matching words that contain either name,
+    e.g. 'Ericsson'. Note that the second regexp matches more
+    spellings than we want: 'Eric', 'Erik', 'Eiric' and 'Eirik'.
 
-    We will implement some the examples above in the
+    Some of the examples discussed above are implemented in the
     \link #code-examples code examples \endlink section.
 
     \target characters-and-abbreviations-for-sets-of-characters
@@ -232,74 +237,75 @@
     \table
     \header \i Element \i Meaning
     \row \i \bold{c}
-         \i Any character represents itself unless it has a special
-         regexp meaning. Thus \bold{c} matches the character \e c.
+         \i A character represents itself unless it has a special
+         regexp meaning. e.g. \bold{c} matches the character \e c.
     \row \i \bold{\\c}
          \i A character that follows a backslash matches the character
-         itself except where mentioned below. For example if you
-         wished to match a literal caret at the beginning of a string
-         you would write \bold{\^}.
+         itself, except as specified below. e.g., To match a literal
+         caret at the beginning of a string, write \bold{\\^}.
     \row \i \bold{\\a}
-         \i This matches the ASCII bell character (BEL, 0x07).
+         \i Matches the ASCII bell (BEL, 0x07).
     \row \i \bold{\\f}
-         \i This matches the ASCII form feed character (FF, 0x0C).
+         \i Matches the ASCII form feed (FF, 0x0C).
     \row \i \bold{\\n}
-         \i This matches the ASCII line feed character (LF, 0x0A, Unix newline).
+         \i Matches the ASCII line feed (LF, 0x0A, Unix newline).
     \row \i \bold{\\r}
-         \i This matches the ASCII carriage return character (CR, 0x0D).
+         \i Matches the ASCII carriage return (CR, 0x0D).
     \row \i \bold{\\t}
-         \i This matches the ASCII horizontal tab character (HT, 0x09).
+         \i Matches the ASCII horizontal tab (HT, 0x09).
     \row \i \bold{\\v}
-         \i This matches the ASCII vertical tab character (VT, 0x0B).
+         \i Matches the ASCII vertical tab (VT, 0x0B).
     \row \i \bold{\\x\e{hhhh}}
-         \i This matches the Unicode character corresponding to the
+         \i Matches the Unicode character corresponding to the
          hexadecimal number \e{hhhh} (between 0x0000 and 0xFFFF).
     \row \i \bold{\\0\e{ooo}} (i.e., \\zero \e{ooo})
-         \i matches the ASCII/Latin1 character corresponding to the
-         octal number \e{ooo} (between 0 and 0377).
+         \i matches the ASCII/Latin1 character for the octal number
+         \e{ooo} (between 0 and 0377).
     \row \i \bold{. (dot)}
-         \i This matches any character (including newline).
+         \i Matches any character (including newline).
     \row \i \bold{\\d}
-         \i This matches a digit (QChar::isDigit()).
+         \i Matches a digit (QChar::isDigit()).
     \row \i \bold{\\D}
-         \i This matches a non-digit.
+         \i Matches a non-digit.
     \row \i \bold{\\s}
-         \i This matches a whitespace (QChar::isSpace()).
+         \i Matches a whitespace character (QChar::isSpace()).
     \row \i \bold{\\S}
-         \i This matches a non-whitespace.
+         \i Matches a non-whitespace character.
     \row \i \bold{\\w}
-         \i This matches a word character (QChar::isLetterOrNumber(), QChar::isMark(), or '_').
+         \i Matches a word character (QChar::isLetterOrNumber(), QChar::isMark(), or '_').
     \row \i \bold{\\W}
-         \i This matches a non-word character.
+         \i Matches a non-word character.
     \row \i \bold{\\\e{n}}
          \i The \e{n}-th \l backreference, e.g. \\1, \\2, etc.
     \endtable
 
-    \bold{Note:} The C++ compiler transforms backslashes in strings,
-    so to include a \bold{\\} in a regexp, you will need to enter it
-    twice, i.e. \c{\\}. To match the backslash character itself, you
-    will need four: \c{\\\\}.
+    \bold{Note:} The C++ compiler transforms backslashes in strings.
+    To include a \bold{\\} in a regexp, enter it twice, i.e. \c{\\}.
+    To match the backslash character itself, enter it four times, i.e.
+    \c{\\\\}.
 
     \target sets-of-characters
     \section1 Sets of Characters
 
-    Square brackets are used to match any character in the set of
-    characters contained within the square brackets. All the character
-    set abbreviations described above can be used within square
-    brackets. Apart from the character set abbreviations and the
-    following two exceptions no characters have special meanings in
-    square brackets.
+    Square brackets mean match any character contained in the square
+    brackets. The character set abbreviations described above can
+    appear in a character set in square brackets. Except for the
+    character set abbreviations and the following two exceptions, 
+    characters do not have special meanings in square brackets.
 
     \table
     \row \i \bold{^}
+
          \i The caret negates the character set if it occurs as the
-         first character, i.e. immediately after the opening square
-         bracket. For example, \bold{[abc]} matches 'a' or 'b' or 'c',
-         but \bold{[^abc]} matches anything \e except 'a' or 'b' or
-         'c'.
+         first character (i.e. immediately after the opening square
+         bracket). \bold{[abc]} matches 'a' or 'b' or 'c', but
+         \bold{[^abc]} matches anything \e but 'a' or 'b' or 'c'.
+
     \row \i \bold{-}
-         \i The dash is used to indicate a range of characters, for
-         example \bold{[W-Z]} matches 'W' or 'X' or 'Y' or 'Z'.
+
+         \i The dash indicates a range of characters. \bold{[W-Z]}
+         matches 'W' or 'X' or 'Y' or 'Z'.
+
     \endtable
 
     Using the predefined character set abbreviations is more portable
@@ -307,72 +313,74 @@
     example, \bold{[0-9]} matches a digit in Western alphabets but
     \bold{\\d} matches a digit in \e any alphabet.
 
-    Note that in most regexp literature sets of characters are called
-    "character classes".
+    Note: In other regexp documentation, sets of characters are often
+    called "character classes".
 
     \target quantifiers
     \section1 Quantifiers
 
-    By default an expression is automatically quantified by
+    By default, an expression is automatically quantified by
     \bold{{1,1}}, i.e. it should occur exactly once. In the following
-    list \bold{\e {E}} stands for any expression. An expression is a
-    character or an abbreviation for a set of characters or a set of
-    characters in square brackets or any parenthesised expression.
+    list, \bold{\e {E}} stands for expression. An expression is a
+    character, or an abbreviation for a set of characters, or a set of
+    characters in square brackets, or an expression in parentheses.
 
     \table
     \row \i \bold{\e {E}?}
-         \i Matches zero or one occurrence of \e E. This quantifier
-         means "the previous expression is optional" since it will
-         match whether or not the expression occurs in the string. It
-         is the same as \bold{\e {E}{0,1}}. For example \bold{dents?}
-         will match 'dent' and 'dents'.
+
+         \i Matches zero or one occurrences of \e E. This quantifier
+         means \e{The previous expression is optional}, because it
+         will match whether or not the expression is found. \bold{\e
+         {E}?} is the same as \bold{\e {E}{0,1}}. e.g., \bold{dents?}
+         matches 'dent' or 'dents'.
 
     \row \i \bold{\e {E}+}
-         \i Matches one or more occurrences of \e E. This is the same
-         as \bold{\e {E}{1,}}. For example, \bold{0+} will match
-         '0', '00', '000', etc.
+
+         \i Matches one or more occurrences of \e E. \bold{\e {E}+} is
+         the same as \bold{\e {E}{1,}}. e.g., \bold{0+} matches '0',
+         '00', '000', etc.
 
     \row \i \bold{\e {E}*}
-         \i Matches zero or more occurrences of \e E. This is the same
-         as \bold{\e {E}{0,}}. The \bold{*} quantifier is often
-         used by a mistake. Since it matches \e zero or more
-         occurrences it will match no occurrences at all. For example
-         if we want to match strings that end in whitespace and use
-         the regexp \bold{\\s*$} we would get a match on every string.
-         This is because we have said find zero or more whitespace
-         followed by the end of string, so even strings that don't end
-         in whitespace will match. The regexp we want in this case is
-         \bold{\\s+$} to match strings that have at least one
-         whitespace at the end.
+
+         \i Matches zero or more occurrences of \e E. It is the same
+         as \bold{\e {E}{0,}}. The \bold{*} quantifier is often used
+         in error where \bold{+} should be used. For example, if
+         \bold{\\s*$} is used in an expression to match strings that
+         end in whitespace, it will match every string because
+         \bold{\\s*$} means \e{Match zero or more whitespaces followed
+         by end of string}. The correct regexp to match strings that
+         have at least one trailing whitespace character is
+         \bold{\\s+$}.
 
     \row \i \bold{\e {E}{n}}
-         \i Matches exactly \e n occurrences of the expression. This
-         is the same as repeating the expression \e n times. For
-         example, \bold{x{5}} is the same as \bold{xxxxx}. It is also
-         the same as \bold{\e {E}{n,n}}, e.g. \bold{x{5,5}}.
+
+         \i Matches exactly \e n occurrences of \e E. \bold{\e {E}{n}}
+         is the same as repeating \e E \e n times. For example,
+         \bold{x{5}} is the same as \bold{xxxxx}. It is also the same
+         as \bold{\e {E}{n,n}}, e.g. \bold{x{5,5}}.
 
     \row \i \bold{\e {E}{n,}}
-         \i Matches at least \e n occurrences of the expression.
+         \i Matches at least \e n occurrences of \e E.
 
     \row \i \bold{\e {E}{,m}}
-         \i Matches at most \e m occurrences of the expression. This
+         \i Matches at most \e m occurrences of \e E. \bold{\e {E}{,m}}
          is the same as \bold{\e {E}{0,m}}.
 
     \row \i \bold{\e {E}{n,m}}
-         \i Matches at least \e n occurrences of the expression and at
-         most \e m occurrences of the expression.
+         \i Matches at least \e n and at most \e m occurrences of \e E.
     \endtable
 
-    If we wish to apply a quantifier to more than just the preceding
-    character we can use parentheses to group characters together in
-    an expression. For example, \bold{tag+} matches a 't' followed by
-    an 'a' followed by at least one 'g', whereas \bold{(tag)+} matches
-    at least one occurrence of 'tag'.
+    To apply a quantifier to more than just the preceding character,
+    use parentheses to group characters together in an expression. For
+    example, \bold{tag+} matches a 't' followed by an 'a' followed by
+    at least one 'g', whereas \bold{(tag)+} matches at least one
+    occurrence of 'tag'.
 
-    Note that quantifiers are "greedy". They will match as much text
-    as they can. For example, \bold{0+} will match as many zeros as it
-    can from the first zero it finds, e.g. '2.\underline{000}5'.
-    Quantifiers can be made non-greedy, see setMinimal().
+    Note: Quantifiers are normally "greedy". They always match as much
+    text as they can. For example, \bold{0+} matches the first zero it
+    finds and all the consecutive zeros after the first zero. Applied
+    to '20005', it matches'2\underline{000}5'. Quantifiers can be made
+    non-greedy, see setMinimal().
 
     \target capturing parentheses
     \target backreferences
@@ -422,18 +430,7 @@
     When the number of matches cannot be determined in advance, a
     common idiom is to use cap() in a loop. For example:
 
-    \code
-        QRegExp rx("(\\d+)");
-        QString str = "Offsets: 12 14 99 231 7";
-        QStringList list;
-        int pos = 0;
-
-        while ((pos = rx.indexIn(str, pos)) != -1) {
-            list << rx.cap(1);
-            pos += rx.matchedLength();
-        }
-        // list: ["12", "14", "99", "231", "7"]
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 0
 
     \target assertions
     \section1 Assertions
@@ -505,10 +502,10 @@
          \i Any character represents itself apart from those mentioned
          below. Thus \bold{c} matches the character \e c.
     \row \i \bold{?}
-         \i This matches any single character. It is the same as
+         \i Matches any single character. It is the same as
          \bold{.} in full regexps.
     \row \i \bold{*}
-         \i This matches zero or more of any characters. It is the
+         \i Matches zero or more of any characters. It is the
          same as \bold{.*} in full regexps.
     \row \i \bold{[...]}
          \i Sets of characters can be represented in square brackets,
@@ -524,12 +521,7 @@
     To test a string against a wildcard expression, use exactMatch().
     For example:
 
-    \code
-        QRegExp rx("*.txt");
-        rx.setPatternSyntax(QRegExp::Wildcard);
-        rx.exactMatch("README.txt");        // returns true
-        rx.exactMatch("welcome.txt.bak");   // returns false
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 1
 
     \target perl-users
     \section1 Notes for Perl Users
@@ -550,8 +542,9 @@
     (but see the \l{greedy quantifiers}{note above}). Non-greedy
     matching cannot be applied to individual quantifiers, but can be
     applied to all the quantifiers in the pattern. For example, to
-    match the Perl regexp \bold{ro+?m} requires: \code QRegExp
-    rx("ro+m"); rx.setMinimal(true); \endcode
+    match the Perl regexp \bold{ro+?m} requires:
+
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 2
 
     The equivalent of Perl's \c{/i} option is
     setCaseSensitivity(Qt::CaseInsensitive).
@@ -580,11 +573,7 @@
     the other hand, C++'s rules for literal strings can be used to
     achieve the same:
 
-    \code
-        QRegExp mark("\\b"      // word boundary
-                      "[Mm]ark" // the word we want to match
-                    );
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 3
 
     Both zero-width positive and zero-width negative lookahead
     assertions (?=pattern) and (?!pattern) are supported with the same
@@ -603,21 +592,12 @@
     \target code-examples
     \section1 Code Examples
 
-    \code
-        QRegExp rx("^\\d\\d?$");    // match integers 0 to 99
-        rx.indexIn("123");          // returns -1 (no match)
-        rx.indexIn("-6");           // returns -1 (no match)
-        rx.indexIn("6");            // returns 0 (matched as position 0)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 4
 
     The third string matches '\underline{6}'. This is a simple validation
     regexp for integers in the range 0 to 99.
 
-    \code
-        QRegExp rx("^\\S+$");       // match strings without whitespace
-        rx.indexIn("Hello world");  // returns -1 (no match)
-        rx.indexIn("This_is-OK");   // returns 0 (matched at position 0)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 5
 
     The second string matches '\underline{This_is-OK}'. We've used the
     character set abbreviation '\\S' (non-whitespace) and the anchors
@@ -627,52 +607,25 @@
     'letter' or 'correspondence' but only match whole words i.e. not
     'email'
 
-    \code
-        QRegExp rx("\\b(mail|letter|correspondence)\\b");
-        rx.indexIn("I sent you an email");     // returns -1 (no match)
-        rx.indexIn("Please write the letter"); // returns 17
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 6
 
     The second string matches "Please write the \underline{letter}". The
     word 'letter' is also captured (because of the parentheses). We
     can see what text we've captured like this:
 
-    \code
-        QString captured = rx.cap(1); // captured == "letter"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 7
 
     This will capture the text from the first set of capturing
     parentheses (counting capturing left parentheses from left to
     right). The parentheses are counted from 1 since cap(0) is the
     whole matched regexp (equivalent to '&' in most regexp engines).
 
-    \code
-        QRegExp rx("&(?!amp;)");      // match ampersands but not &amp;
-        QString line1 = "This & that";
-        line1.replace(rx, "&amp;");
-        // line1 == "This &amp; that"
-        QString line2 = "His &amp; hers & theirs";
-        line2.replace(rx, "&amp;");
-        // line2 == "His &amp; hers &amp; theirs"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 8
 
     Here we've passed the QRegExp to QString's replace() function to
     replace the matched text with new text.
 
-    \code
-        QString str = "One Eric another Eirik, and an Ericsson. "
-                      "How many Eiriks, Eric?";
-        QRegExp rx("\\b(Eric|Eirik)\\b"); // match Eric or Eirik
-        int pos = 0;    // where we are in the string
-        int count = 0;  // how many Eric and Eirik's we've counted
-        while (pos >= 0) {
-            pos = rx.indexIn(str, pos);
-            if (pos >= 0) {
-                ++pos;      // move along in str
-                ++count;    // count our Eric or Eirik
-            }
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 9
 
     We've used the indexIn() function to repeatedly match the regexp in
     the string. Note that instead of moving forward by one character
@@ -686,16 +639,7 @@
     One common use of regexps is to split lines of delimited data into
     their component fields.
 
-    \code
-        str = "Trolltech ASA\twww.trolltech.com\tNorway";
-        QString company, web, country;
-        rx.setPattern("^([^\t]+)\t([^\t]+)\t([^\t]+)$");
-        if (rx.indexIn(str) != -1) {
-            company = rx.cap(1);
-            web = rx.cap(2);
-            country = rx.cap(3);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 10
 
     In this example our input lines have the format company name, web
     address and country. Unfortunately the regexp is rather long and
@@ -705,21 +649,13 @@
     QString::split() function can take a separator string or regexp
     as an argument and split a string accordingly.
 
-    \code
-        QStringList field = str.split("\t");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 11
 
     Here field[0] is the company, field[1] the web address and so on.
 
     To imitate the matching of a shell we can use wildcard mode.
 
-    \code
-        QRegExp rx("*.html");
-        rx.setPatternSyntax(QRegExp::Wildcard);
-        rx.exactMatch("index.html");                // returns true
-        rx.exactMatch("default.htm");               // returns false
-        rx.exactMatch("readme.txt");                // returns false
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 12
 
     Wildcard matching can be convenient because of its simplicity, but
     any wildcard regexp can be defined using full regexps, e.g.
@@ -899,7 +835,6 @@ class QRegExpEngine;
 */
 struct QRegExpMatchState
 {
-    const QString *str; // a pointer to the input QString
     const QChar *in; // a pointer to the input string data
     int pos; // the current position in the string
     int caretPos;
@@ -932,7 +867,8 @@ struct QRegExpMatchState
 
     void drain() { bigArray.clear(); } // to save memory
     void prepareForMatch(QRegExpEngine *eng);
-    void match(const QString &str, int pos, bool minimal, bool oneTest, int caretIndex);
+    void match(const QChar *str, int len, int pos, bool minimal,
+        bool oneTest, int caretIndex);
     bool matchHere();
     bool testAnchor(int i, int a, const int *capBegin);
 };
@@ -1108,7 +1044,7 @@ public:
     void dump() const;
 #endif
 
-    int ref;
+    QAtomicInt ref;
 
 private:
     enum { CharClassBit = 0x10000, BackRefBit = 0x20000 };
@@ -1381,27 +1317,26 @@ void QRegExpMatchState::prepareForMatch(QRegExpEngine *eng)
   Tries to match in str and returns an array of (begin, length) pairs
   for captured text. If there is no match, all pairs are (-1, -1).
 */
-void QRegExpMatchState::match(const QString &str0, int pos0, bool minimal0, bool oneTest,
-                              int caretIndex)
+void QRegExpMatchState::match(const QChar *str0, int len0, int pos0,
+    bool minimal0, bool oneTest, int caretIndex)
 {
     bool matched = false;
     QChar char_null;
 
 #ifndef QT_NO_REGEXP_OPTIM
     if (eng->trivial && !oneTest) {
-        pos = str0.indexOf(eng->goodStr, pos0, eng->cs);
+        pos = qFindString(str0, len0, pos0, eng->goodStr.unicode(), eng->goodStr.length(), eng->cs);
         matchLen = eng->goodStr.length();
         matched = (pos != -1);
     } else
 #endif
     {
-        str = &str0;
-        in = str0.unicode();
+        in = str0;
         if (in == 0)
             in = &char_null;
         pos = pos0;
         caretPos = caretIndex;
-        len = str0.length();
+        len = len0;
         minimal = minimal0;
         matchLen = 0;
         oneTestMatchedLen = 0;
@@ -1487,7 +1422,7 @@ int QRegExpEngine::createState(int bref)
 
 /*
   The two following functions add a transition between all pairs of
-  states (i, j) where i is fond in from, and j is found in to.
+  states (i, j) where i is found in from, and j is found in to.
 
   Cat-transitions are distinguished from plus-transitions for
   capturing.
@@ -1804,13 +1739,13 @@ bool QRegExpMatchState::testAnchor(int i, int a, const int *capBegin)
 #endif
 #ifndef QT_NO_REGEXP_LOOKAHEAD
     if ((a & QRegExpEngine::Anchor_LookaheadMask) != 0) {
-        QString cstr((QChar *) in + pos + i, len - pos - i);
         const QVector<QRegExpLookahead *> &ahead = eng->ahead;
         for (j = 0; j < ahead.size(); j++) {
             if ((a & (QRegExpEngine::Anchor_FirstLookahead << j)) != 0) {
                 QRegExpMatchState matchState;
                 matchState.prepareForMatch(ahead[j]->eng);
-                matchState.match(cstr, 0, true, true, matchState.caretPos - matchState.pos - i);
+                matchState.match(in + pos + i, len - pos - i, 0,
+                    true, true, matchState.caretPos - matchState.pos - i);
                 if ((matchState.captured.at(0) == 0) == ahead[j]->neg)
                     return false;
             }
@@ -1841,7 +1776,8 @@ bool QRegExpMatchState::testAnchor(int i, int a, const int *capBegin)
 bool QRegExpEngine::goodStringMatch(QRegExpMatchState &matchState) const
 {
     int k = matchState.pos + goodEarlyStart;
-    while ((k = matchState.str->indexOf(goodStr, k, cs)) != -1) {
+    while ((k = qFindString(matchState.in, matchState.len, k,
+                goodStr.unicode(), goodStr.length(), cs)) != -1) {
         int from = k - goodLateStart;
         int to = k - goodEarlyStart;
         if (from > matchState.pos)
@@ -3100,7 +3036,7 @@ int QRegExpEngine::parse(const QChar *pattern, int len)
         QRegExpAutomatonState &state = s[i];
         if (!state.anchors.isEmpty()) {
             QMap<int, int>::iterator a = state.anchors.begin();
-            while (a != state.anchors.constEnd()) {
+            while (a != state.anchors.end()) {
                 if (a.value() == 0)
                     a = state.anchors.erase(a);
                 else
@@ -3304,7 +3240,7 @@ struct QRegExpPrivate
 {
     QRegExpEngine *eng;
     QRegExpEngineKey engineKey;
-    bool min;
+    bool minimal;
 #ifndef QT_NO_REGEXP_CAPTURE
     QString t; // last string passed to QRegExp::indexIn() or lastIndexIn()
     QStringList capturedCache; // what QRegExp::capturedTexts() returned last
@@ -3312,9 +3248,9 @@ struct QRegExpPrivate
     QRegExpMatchState matchState;
 
     inline QRegExpPrivate()
-        : eng(0), engineKey(QString(), QRegExp::RegExp, Qt::CaseSensitive), min(false) {}
+        : eng(0), engineKey(QString(), QRegExp::RegExp, Qt::CaseSensitive), minimal(false) { }
     inline QRegExpPrivate(const QRegExpEngineKey &key)
-        : eng(0), engineKey(key), min(false) {}
+        : eng(0), engineKey(key), minimal(false) {}
 };
 
 #if !defined(QT_NO_REGEXP_OPTIM)
@@ -3334,7 +3270,7 @@ static void derefEngine(QRegExpEngine *eng, const QRegExpEngineKey &key)
     QMutexLocker locker(mutex());
 #endif // QT_NO_REGEXP_OPTIM
 
-    if (!--eng->ref) {
+    if (!eng->ref.deref()) {
 #if !defined(QT_NO_REGEXP_OPTIM)
         if (globalEngineCache())
             globalEngineCache()->insert(key, eng, 4 + key.pattern.length() / 4);
@@ -3363,7 +3299,7 @@ static void prepareEngine_helper(QRegExpPrivate *priv)
         if (!priv->eng) {
             priv->eng = globalEngineCache()->take(priv->engineKey);
             if (priv->eng != 0)
-                ++priv->eng->ref;
+                priv->eng->ref.ref();
         }
 #endif // QT_NO_REGEXP_OPTIM
 
@@ -3496,11 +3432,11 @@ QRegExp &QRegExp::operator=(const QRegExp &rx)
     prepareEngine(rx.priv); // to allow sharing
     QRegExpEngine *otherEng = rx.priv->eng;
     if (otherEng)
-        ++otherEng->ref;
+        otherEng->ref.ref();
     invalidateEngine(priv);
     priv->eng = otherEng;
     priv->engineKey = rx.priv->engineKey;
-    priv->min = rx.priv->min;
+    priv->minimal = rx.priv->minimal;
 #ifndef QT_NO_REGEXP_CAPTURE
     priv->t = rx.priv->t;
     priv->capturedCache = rx.priv->capturedCache;
@@ -3521,7 +3457,7 @@ QRegExp &QRegExp::operator=(const QRegExp &rx)
 */
 bool QRegExp::operator==(const QRegExp &rx) const
 {
-    return priv->engineKey == rx.priv->engineKey && priv->min == rx.priv->min;
+    return priv->engineKey == rx.priv->engineKey && priv->minimal == rx.priv->minimal;
 }
 
 /*!
@@ -3667,11 +3603,11 @@ void QRegExp::setPatternSyntax(PatternSyntax syntax)
     Returns true if minimal (non-greedy) matching is enabled;
     otherwise returns false.
 
-    \sa caseSensitivity()
+    \sa caseSensitivity(), setMinimal()
 */
 bool QRegExp::isMinimal() const
 {
-    return priv->min;
+    return priv->minimal;
 }
 
 /*!
@@ -3693,9 +3629,10 @@ bool QRegExp::isMinimal() const
 */
 void QRegExp::setMinimal(bool minimal)
 {
-    priv->min = minimal;
+    priv->minimal = minimal;
 }
 
+// ### Qt 5: make non-const
 /*!
     Returns true if \a str is matched exactly by this regular
     expression; otherwise returns false. You can determine how much of
@@ -3719,7 +3656,7 @@ void QRegExp::setMinimal(bool minimal)
 bool QRegExp::exactMatch(const QString &str) const
 {
     prepareEngineForMatch(priv, str);
-    priv->matchState.match(str, 0, priv->min, true, 0);
+    priv->matchState.match(str.unicode(), str.length(), 0, priv->minimal, true, 0);
     if (priv->matchState.captured.at(1) == str.length()) {
         return true;
     } else {
@@ -3729,6 +3666,7 @@ bool QRegExp::exactMatch(const QString &str) const
     }
 }
 
+// ### Qt 5: make non-const
 /*!
     Attempts to find a match in \a str from position \a offset (0 by
     default). If \a offset is -1, the search starts at the last
@@ -3745,17 +3683,7 @@ bool QRegExp::exactMatch(const QString &str) const
     QString::replace().
 
     Example:
-    \code
-        QString str = "offsets: 1.23 .50 71.00 6.00";
-        QRegExp rx("\\d*\\.\\d+");    // primitive floating point matching
-        int count = 0;
-        int pos = 0;
-        while ((pos = rx.indexIn(str, pos)) != -1) {
-            ++count;
-            pos += rx.matchedLength();
-        }
-        // pos will be 9, 14, 18 and finally 24; count will end up as 4
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 13
 
     Although const, this function sets matchedLength(),
     capturedTexts() and pos().
@@ -3772,10 +3700,12 @@ int QRegExp::indexIn(const QString &str, int offset, CaretMode caretMode) const
     prepareEngineForMatch(priv, str);
     if (offset < 0)
         offset += str.length();
-    priv->matchState.match(str, offset, priv->min, false, caretIndex(offset, caretMode));
+    priv->matchState.match(str.unicode(), str.length(), offset,
+        priv->minimal, false, caretIndex(offset, caretMode));
     return priv->matchState.captured.at(0);
 }
 
+// ### Qt 5: make non-const
 /*!
     Attempts to find a match backwards in \a str from position \a
     offset. If \a offset is -1 (the default), the search starts at the
@@ -3807,7 +3737,8 @@ int QRegExp::lastIndexIn(const QString &str, int offset, CaretMode caretMode) co
     }
 
     while (offset >= 0) {
-        priv->matchState.match(str, offset, priv->min, true, caretIndex(offset, caretMode));
+        priv->matchState.match(str.unicode(), str.length(), offset,
+            priv->minimal, true, caretIndex(offset, caretMode));
         if (priv->matchState.captured.at(0) == offset)
             return offset;
         --offset;
@@ -3844,34 +3775,17 @@ int QRegExp::numCaptures() const
     (capturing) subexpression of the regexp.
 
     For example:
-    \code
-        QRegExp rx("(\\d+)(\\s*)(cm|inch(es)?)");
-        int pos = rx.indexIn("Length: 36 inches");
-        QStringList list = rx.capturedTexts();
-        // list is now ("36 inches", "36", " ", "inches", "es")
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 14
 
     The above example also captures elements that may be present but
     which we have no interest in. This problem can be solved by using
     non-capturing parentheses:
 
-    \code
-        QRegExp rx("(\\d+)(?:\\s*)(cm|inch(?:es)?)");
-        int pos = rx.indexIn("Length: 36 inches");
-        QStringList list = rx.capturedTexts();
-        // list is now ("36 inches", "36", "inches")
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 15
 
     Note that if you want to iterate over the list, you should iterate
     over a copy, e.g.
-    \code
-        QStringList list = rx.capturedTexts();
-        QStringList::iterator it = list.begin();
-        while (it != list.end()) {
-            myProcessing(*it);
-            ++it;
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 16
 
     Some regexps can match an indeterminate number of times. For
     example if the input string is "Offsets: 12 14 99 231 7" and the
@@ -3916,15 +3830,7 @@ QStringList QRegExp::capturedTexts()
     match has index 0 and the parenthesized subexpressions have
     indexes starting from 1 (excluding non-capturing parentheses).
 
-    \code
-        QRegExp rxlen("(\\d+)(?:\\s*)(cm|inch)");
-        int pos = rxlen.indexIn("Length: 189cm");
-        if (pos > -1) {
-            QString value = rxlen.cap(1); // "189"
-            QString unit = rxlen.cap(2);  // "cm"
-            // ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 17
 
     The order of elements matched by cap() is as follows. The first
     element, cap(0), is the entire matching string. Each subsequent
@@ -3945,13 +3851,7 @@ QString QRegExp::cap(int nth)
     of the whole match.
 
     Example:
-    \code
-        QRegExp rx("/([a-z]+)/([a-z]+)");
-        rx.indexIn("Output /dev/null");   // returns 7 (position of /dev/null)
-        rx.pos(0);                        // returns 7 (position of /dev/null)
-        rx.pos(1);                        // returns 8 (position of dev)
-        rx.pos(2);                        // returns 12 (position of null)
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 18
 
     For zero-length matches, pos() always returns -1. (For example, if
     cap(4) would return an empty string, pos(4) returns -1.) This is
@@ -3990,17 +3890,11 @@ QString QRegExp::errorString()
 
     Example:
 
-    \code
-        s1 = QRegExp::escape("bingo");   // s1 == "bingo"
-        s2 = QRegExp::escape("f(x)");    // s2 == "f\\(x\\)"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 19
 
     This function is useful to construct regexp patterns dynamically:
 
-    \code
-        QRegExp rx("(" + QRegExp::escape(name) +
-                   "|" + QRegExp::escape(alias) + ")");
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qregexp.cpp 20
 
     \sa setPatternSyntax()
 */
@@ -4125,3 +4019,5 @@ QDataStream &operator>>(QDataStream &in, QRegExp &regExp)
     return in;
 }
 #endif
+
+QT_END_NAMESPACE

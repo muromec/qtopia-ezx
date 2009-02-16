@@ -1,56 +1,55 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Linguist of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
+#include "lupdate.h"
 #include "metatranslator.h"
 #include "simtexth.h"
 #include <stdio.h>
+
+#include <QDebug>
+
+QT_BEGIN_NAMESPACE
 
 // defined in numberh.cpp
 extern int applyNumberHeuristic( MetaTranslator *tor );
 // defined in sametexth.cpp
 extern int applySameTextHeuristic( MetaTranslator *tor );
 
-typedef QList<MetaTranslatorMessage> TML;
+typedef QList<TranslatorMessage> TML;
 
 /*
   Merges two MetaTranslator objects into the first one. The first one
@@ -60,7 +59,7 @@ typedef QList<MetaTranslatorMessage> TML;
   translation yet.
 */
 
-void merge( const MetaTranslator *tor, const MetaTranslator *virginTor, MetaTranslator *outTor, bool verbose, bool noObsolete )
+void LupdateApplication::merge( const MetaTranslator *tor, const MetaTranslator *virginTor, MetaTranslator *outTor, bool verbose, bool noObsolete )
 {
     int known = 0;
     int neww = 0;
@@ -76,67 +75,74 @@ void merge( const MetaTranslator *tor, const MetaTranslator *virginTor, MetaTran
       are updated according to the virgin translator.
     */
     for ( it = all.begin(); it != all.end(); ++it ) {
-        MetaTranslatorMessage::Type newType = MetaTranslatorMessage::Finished;
-        MetaTranslatorMessage m = *it;
+        TranslatorMessage::Type newType = TranslatorMessage::Finished;
+        TranslatorMessage m = *it;
 
         // skip context comment
         if ( !QByteArray(m.sourceText()).isEmpty() ) {
-            MetaTranslatorMessage mv = virginTor->find(m.context(), m.sourceText(), m.comment());
+            TranslatorMessage mv = virginTor->find(m.context(), m.sourceText(), m.comment());
             if ( mv.isNull() ) {
                 mv = virginTor->find(m.context(), m.comment(), m.fileName(), m.lineNumber());
                 if ( mv.isNull() ) {
                     // did not find it in the virgin, mark it as obsolete
-                    newType = MetaTranslatorMessage::Obsolete;
-                    if ( m.type() != MetaTranslatorMessage::Obsolete )
+                    newType = TranslatorMessage::Obsolete;
+                    if ( m.type() != TranslatorMessage::Obsolete )
                         obsoleted++;
                 } else {
-                    // Do not just accept it if its on the same line number, but different source text.
-                    // Also check if the texts are more or less similar before we consider them to represent the same message...
+                    // Do not just accept it if its on the same line number,
+                    // but different source text.
+                    // Also check if the texts are more or less similar before
+                    // we consider them to represent the same message...
                     // ### The QString() cast is evil
                     if (getSimilarityScore(QLatin1String(m.sourceText()), mv.sourceText()) >= textSimilarityThreshold) {
                         // It is just slightly modified, assume that it is the same string
-                        m = MetaTranslatorMessage(m.context(), mv.sourceText(), m.comment(), m.fileName(), m.lineNumber(), m.translations(), mv.utf8());
+                        m = TranslatorMessage(m.context(), mv.sourceText(), m.comment(), "", m.fileName(), m.lineNumber(), m.translations(), mv.utf8());
                         m.setPlural(mv.isPlural());
 
-                        // Mark it as unfinished. (Since the source text was changed it might require re-translating...)
-                        newType = MetaTranslatorMessage::Unfinished;
+                        // Mark it as unfinished. (Since the source text
+                        // was changed it might require re-translating...)
+                        newType = TranslatorMessage::Unfinished;
                         ++similarTextHeuristicCount;
                     } else {
-                        // The virgin and vernacular sourceTexts are so different that we could not find it.
-                        newType = MetaTranslatorMessage::Obsolete;
-                        if ( m.type() != MetaTranslatorMessage::Obsolete )
+                        // The virgin and vernacular sourceTexts are so
+                        // different that we could not find it.
+                        newType = TranslatorMessage::Obsolete;
+                        if ( m.type() != TranslatorMessage::Obsolete )
                             obsoleted++;
                     }
                     neww++;
                 }
             } else {
                 switch ( m.type() ) {
-                case MetaTranslatorMessage::Finished:
+                case TranslatorMessage::Finished:
                 default:
                     if (m.isPlural() == mv.isPlural()) {
-                        newType = MetaTranslatorMessage::Finished;
+                        newType = TranslatorMessage::Finished;
                     } else {
-                        newType = MetaTranslatorMessage::Unfinished;
+                        newType = TranslatorMessage::Unfinished;
                     }
                     known++;
                     break;
-                case MetaTranslatorMessage::Unfinished:
-                    newType = MetaTranslatorMessage::Unfinished;
+                case TranslatorMessage::Unfinished:
+                    newType = TranslatorMessage::Unfinished;
                     known++;
                     break;
-                case MetaTranslatorMessage::Obsolete:
-                    newType = MetaTranslatorMessage::Unfinished;
+                case TranslatorMessage::Obsolete:
+                    newType = TranslatorMessage::Unfinished;
                     neww++;
                 }
 
-                // Always get the filename and linenumber info from the virgin Translator, in case it has changed location.
-                // This should also enable us to read a file that does not have the <location> element.
+                // Always get the filename and linenumber info from the
+                // virgin Translator, in case it has changed location.
+                // This should also enable us to read a file that does not
+                // have the <location> element.
+                // why not use operator=()? Because it overwrites e.g. userData.
                 m.setFileName(mv.fileName());
                 m.setLineNumber(mv.lineNumber());
-                m.setPlural(mv.isPlural());             // ### why not use operator=?
+                m.setPlural(mv.isPlural());
             }
 
-            if (newType == MetaTranslatorMessage::Obsolete && !m.isTranslated()) {
+            if (newType == TranslatorMessage::Obsolete && !m.isTranslated()) {
                 ++UntranslatedObsoleted;
             }
 
@@ -152,10 +158,10 @@ void merge( const MetaTranslator *tor, const MetaTranslator *virginTor, MetaTran
     all = virginTor->messages();
 
     for ( it = all.begin(); it != all.end(); ++it ) {
-        MetaTranslatorMessage mv = *it;
+        TranslatorMessage mv = *it;
         bool found = tor->contains(mv.context(), mv.sourceText(), mv.comment());
         if (!found) {
-            MetaTranslatorMessage m = tor->find(mv.context(), mv.comment(), mv.fileName(), mv.lineNumber());
+            TranslatorMessage m = tor->find(mv.context(), mv.comment(), mv.fileName(), mv.lineNumber());
             if (!m.isNull()) {
                 if (getSimilarityScore(QLatin1String(m.sourceText()), mv.sourceText()) >= textSimilarityThreshold) {
                     found = true;
@@ -186,32 +192,25 @@ void merge( const MetaTranslator *tor, const MetaTranslator *virginTor, MetaTran
 
     if ( verbose ) {
         int totalFound = neww + known;
-        fprintf( stderr, "    Found %d source text%s (%d new and %d already existing)\n",
-            totalFound, totalFound == 1 ? "" : "s", neww, known);
+        Console::out(tr("    Found %n source text(s) (%1 new and %2 already existing)\n", 0, totalFound).arg(neww).arg(known));
 
         if (obsoleted) {
             if (noObsolete) {
-                fprintf( stderr, "    Removed %d obsolete entr%s\n", 
-                obsoleted, obsoleted == 1 ? "y" : "ies" );
+                Console::out(tr("    Removed %n obsolete entries\n", 0, obsoleted));
             } else {
                 int total = obsoleted - UntranslatedObsoleted;
-                fprintf( stderr, "    Kept %d obsolete translation%s\n", 
-                total, total == 1 ? "" : "s" );
-
-                fprintf( stderr, "    Removed %d obsolete untranslated entr%s\n", 
-                UntranslatedObsoleted, UntranslatedObsoleted == 1 ? "y" : "ies" );
-
+                Console::out(tr("    Kept %n obsolete translation(s)\n", 0, total));
+                Console::out(tr("    Removed %n obsolete untranslated entries\n", 0, UntranslatedObsoleted));
             }
         }
 
-        if (sameNumberHeuristicCount) 
-            fprintf( stderr, "    Number heuristic provided %d translation%s\n", 
-                     sameNumberHeuristicCount, sameNumberHeuristicCount == 1 ? "" : "s" );
-        if (sameTextHeuristicCount) 
-            fprintf( stderr, "    Same-text heuristic provided %d translation%s\n", 
-                     sameTextHeuristicCount, sameTextHeuristicCount == 1 ? "" : "s" );
+        if (sameNumberHeuristicCount)
+            Console::out(tr("    Number heuristic provided %n translation(s)\n", 0, sameNumberHeuristicCount));
+        if (sameTextHeuristicCount)
+            Console::out(tr("    Same-text heuristic provided %n translation(s)\n", 0, sameTextHeuristicCount));
         if (similarTextHeuristicCount)
-            fprintf( stderr, "    Similar-text heuristic provided %d translation%s\n", 
-                     similarTextHeuristicCount, similarTextHeuristicCount == 1 ? "" : "s" );
+            Console::out(tr("    Similar-text heuristic provided %n translation(s)\n", 0, similarTextHeuristicCount));
     }
 }
+
+QT_END_NAMESPACE

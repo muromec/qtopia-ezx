@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -74,6 +68,8 @@
 
 #include "qobject_p.h"
 
+QT_BEGIN_NAMESPACE
+
 enum Tag { Tag_End = 1, Tag_SourceText16, Tag_Translation, Tag_Context16, Tag_Obsolete1,
            Tag_SourceText, Tag_Context, Tag_Comment, Tag_Obsolete2 };
 /*
@@ -91,8 +87,12 @@ static const uchar magic[MagicLength] = {
 
 static bool match(const uchar* found, const char* target, uint len)
 {
+    // catch the case if \a found has a zero-terminating symbol and \a len includes it.
+    // (normalize it to be without the zero-terminating symbol)
+    if (len > 0 && found[len-1] == '\0')
+        --len;
     // 0 means anything, "" means empty
-    return !found || qstrncmp((const char *)found, target, len) == 0 && target[len] == '\0';
+    return !found || (qstrncmp((const char *)found, target, len) == 0 && target[len] == '\0');
 }
 
 static uint elfHash(const char *name)
@@ -115,7 +115,7 @@ static uint elfHash(const char *name)
     return h;
 }
 
-static int numerus(int n, const uchar *rules, int rulesSize)
+static int numerusHelper(int n, const uchar *rules, int rulesSize)
 {
 #define CHECK_RANGE \
     do { \
@@ -257,9 +257,7 @@ public:
     it via QObject::tr(). Here's the \c main() function from the
     \l{linguist/hellotr}{Hello tr()} example:
 
-    \quotefromfile linguist/hellotr/main.cpp
-    \skipto main(
-    \printuntil }
+    \snippet examples/linguist/hellotr/main.cpp 2
 
     Note that the translator must be created \e before the
     application's widgets.
@@ -378,7 +376,7 @@ bool QTranslator::load(const QString & filename, const QString & directory,
     d->clear();
 
     QString prefix;
-    if (QFileInfo(filename).isRelative()) { 
+    if (QFileInfo(filename).isRelative()) {
         prefix = directory;
 	if (prefix.length() && !prefix.endsWith(QLatin1Char('/')))
 	    prefix += QLatin1Char('/');
@@ -595,7 +593,7 @@ static QString getMessage(const uchar *m, const uchar *end, const char *context,
         case Tag_Context: {
             quint32 len = read32(m);
             m += 4;
-            if (*m && !match(m, context, len))
+            if (!match(m, context, len))
                 return QString();
             m += len;
         }
@@ -666,7 +664,7 @@ QString QTranslatorPrivate::do_translate(const char *context, const char *source
 
     int numerus = 0;
     if (n >= 0)
-        numerus = ::numerus(n, numerusRulesArray, numerusRulesLength);
+        numerus = numerusHelper(n, numerusRulesArray, numerusRulesLength);
 
     for (;;) {
         quint32 h = elfHash(QByteArray(sourceText) + comment);
@@ -802,3 +800,5 @@ bool QTranslator::isEmpty() const
 */
 
 #endif // QT_NO_TRANSLATION
+
+QT_END_NAMESPACE

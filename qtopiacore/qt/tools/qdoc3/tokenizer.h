@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,6 +49,8 @@
 
 #include "location.h"
 
+QT_BEGIN_NAMESPACE
+
 /*
   Here come the C++ tokens we support.  The first part contains
   all-purpose tokens; then come keywords.
@@ -71,7 +67,7 @@ enum { Tok_Eoi, Tok_Ampersand, Tok_Aster, Tok_Caret, Tok_LeftParen, Tok_RightPar
        Tok_char, Tok_class, Tok_const, Tok_double, Tok_enum, Tok_explicit, Tok_friend, Tok_inline,
        Tok_int, Tok_long, Tok_namespace, Tok_operator, Tok_private, Tok_protected, Tok_public,
        Tok_short, Tok_signals, Tok_signed, Tok_slots, Tok_static, Tok_struct, Tok_template,
-       Tok_typedef, Tok_typename, Tok_union, Tok_unsigned, Tok_virtual, Tok_void, Tok_volatile,
+       Tok_typedef, Tok_typename, Tok_union, Tok_unsigned, Tok_using, Tok_virtual, Tok_void, Tok_volatile,
        Tok_int64, Tok_Q_OBJECT, Tok_Q_OVERRIDE, Tok_Q_PROPERTY, Tok_Q_DECLARE_SEQUENTIAL_ITERATOR,
        Tok_Q_DECLARE_MUTABLE_SEQUENTIAL_ITERATOR, Tok_Q_DECLARE_ASSOCIATIVE_ITERATOR,
        Tok_Q_DECLARE_MUTABLE_ASSOCIATIVE_ITERATOR, Tok_Q_DECLARE_FLAGS, Tok_Q_SIGNALS, Tok_Q_SLOTS,
@@ -88,14 +84,15 @@ enum { Tok_Eoi, Tok_Ampersand, Tok_Aster, Tok_Caret, Tok_LeftParen, Tok_RightPar
   Not every operator or keyword of C++ is recognized; only those that
   are interesting to us. Some Qt keywords or macros are also
   recognized.
-
-  The class is an abstract base class inherited by FileTokenizer and
-  StringTokenizer.
 */
+
 class Tokenizer
 {
 public:
-    virtual ~Tokenizer();
+    Tokenizer( const Location& loc, const QByteArray &in );
+    Tokenizer( const Location& loc, FILE *in );
+
+    ~Tokenizer();
 
     int getToken();
     void setParsingFnOrMacro(bool macro) { parsingMacro = macro; }
@@ -113,14 +110,9 @@ public:
     static void terminate();
     static bool isTrue(const QString &condition);
 
-protected:
-    Tokenizer();
-
-    virtual int getch();
-
-    void start( const Location& loc );
-
 private:
+    void init();
+    void start( const Location& loc );
     /*
       This limit on the length of a lexeme seems fairly high, but a
       doc comment can be arbitrarily long. The previous 65,536 limit
@@ -128,7 +120,29 @@ private:
     */
     enum { yyLexBufSize = 524288 };
 
-    int getChar();
+    int getch()
+    {
+        return yyPos == yyIn.size() ? EOF : yyIn[yyPos++];
+    }
+
+    inline int getChar()
+    {
+        if ( yyCh == EOF )
+            return EOF;
+        if ( yyLexLen < yyLexBufSize - 1 ) {
+            yyLex[yyLexLen++] = (char) yyCh;
+            yyLex[yyLexLen] = '\0';
+        }
+        yyCurLoc.advance( yyCh );
+        int ch = getch();
+        if (ch == EOF)
+            return EOF;
+        // cast explicitely to make sure the value of ch 
+        // is in range [0..255] to avoid assert messages 
+        // when using debug CRT that checks its input.
+        return int(uint(uchar(ch))); 
+    }
+
     int getTokenAfterPreprocessor();
     void pushSkipping( bool skip );
     bool popSkipping();
@@ -149,49 +163,12 @@ private:
 
     QString yyVersion;
     bool parsingMacro;
-};
 
-inline int Tokenizer::getChar() {
-    if ( yyCh == EOF )
-	return EOF;
-    if ( yyLexLen < yyLexBufSize - 1 ) {
-	yyLex[yyLexLen++] = (char) yyCh;
-	yyLex[yyLexLen] = '\0';
-    }
-    yyCurLoc.advance( yyCh );
-    return getch();
-}
-
-/*
-  The FileTokenizer class is a Tokenizer that gets its input from a
-  FILE *.
-*/
-class FileTokenizer : public Tokenizer
-{
-public:
-    FileTokenizer( const Location& loc, FILE *in );
-
-    virtual int getch();
-
-private:
-    FILE *yyIn;
-};
-
-/*
-  The StringTokenizer class is a Tokenizer that gets its input from a
-  char string.
-*/
-class StringTokenizer : public Tokenizer
-{
-public:
-    StringTokenizer( const Location& loc, const char *in, int len );
-
-    virtual int getch();
-
-private:
-    const char *yyIn;
+protected:
+    QByteArray yyIn;
     int yyPos;
-    int yyLen;
 };
+
+QT_END_NAMESPACE
 
 #endif

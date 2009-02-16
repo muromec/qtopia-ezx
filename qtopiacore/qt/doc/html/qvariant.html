@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/kernel/qvariant.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/kernel/qvariant.cpp -->
 <head>
-  <title>Qt 4.3: QVariant Class Reference</title>
+  <title>Qt 4.4: QVariant Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QVariant Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QVariant Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QVariant class acts like a union for the most common Qt data types. <a href="#details">More...</a></p>
 <pre> #include &lt;QVariant&gt;</pre><p>Inherited by <a href="qdbusvariant.html">QDBusVariant</a>.</p>
@@ -123,8 +123,8 @@
 <li><div class="fn"/>void <b><a href="qvariant.html#qVariantSetValue">qVariantSetValue</a></b> ( QVariant &amp; <i>variant</i>, const T &amp; <i>value</i> )</li>
 <li><div class="fn"/>T <b><a href="qvariant.html#qVariantValue">qVariantValue</a></b> ( const QVariant &amp; <i>value</i> )</li>
 <li><div class="fn"/>T <b><a href="qvariant.html#qvariant_cast">qvariant_cast</a></b> ( const QVariant &amp; <i>value</i> )</li>
-<li><div class="fn"/>bool <b><a href="qvariant.html#operator-not-eq-38">operator!=</a></b> ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qvariant.html#operator-eq-eq-51">operator==</a></b> ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qvariant.html#operator-not-eq-23">operator!=</a></b> ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qvariant.html#operator-eq-eq-41">operator==</a></b> ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -252,11 +252,12 @@
 <h3 class="fn"><a name="QVariant-9"></a>QVariant::QVariant ( <a href="qtglobal.html#qulonglong-typedef">qulonglong</a> <i>val</i> )</h3>
 <p>Constructs a new variant with an unsigned long long integer value, <i>val</i>.</p>
 <h3 class="fn"><a name="QVariant-10"></a>QVariant::QVariant ( bool <i>val</i> )</h3>
-<p>Constructs a new variant with a boolean value, <i>val</i>. The integer argument is a dummy, necessary for compatibility with some compilers.</p>
+<p>Constructs a new variant with a boolean value, <i>val</i>.</p>
 <h3 class="fn"><a name="QVariant-11"></a>QVariant::QVariant ( double <i>val</i> )</h3>
 <p>Constructs a new variant with a floating point value, <i>val</i>.</p>
 <h3 class="fn"><a name="QVariant-12"></a>QVariant::QVariant ( const char * <i>val</i> )</h3>
 <p>Constructs a new variant with a string value of <i>val</i>. The variant creates a deep copy of <i>val</i>, using the encoding set by <a href="qtextcodec.html#setCodecForCStrings">QTextCodec::setCodecForCStrings</a>().</p>
+<p>Note that <i>val</i> is converted to a <a href="qstring.html">QString</a> for storing in the variant and <a href="qvariant.html#type">QVariant::type</a>() will return <a href="qmetatype.html#Type-enum">QMetaType::QString</a> for the variant.</p>
 <p>You can disable this operator by defining <tt>QT_NO_CAST_FROM_ASCII</tt> when you compile your applications.</p>
 <p>See also <a href="qtextcodec.html#setCodecForCStrings">QTextCodec::setCodecForCStrings</a>().</p>
 <h3 class="fn"><a name="QVariant-13"></a>QVariant::QVariant ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>val</i> )</h3>
@@ -332,7 +333,7 @@
 <tr valign="top" class="even"><td><a href="qvariant.html#Type-enum">Rect</a></td><td><a href="qvariant.html#Type-enum">RectF</a></td></tr>
 <tr valign="top" class="odd"><td><a href="qvariant.html#Type-enum">String</a></td><td><a href="qvariant.html#Type-enum">Bool</a>, <a href="qvariant.html#Type-enum">ByteArray</a>, <a href="qvariant.html#Type-enum">Char</a>, <a href="qvariant.html#Type-enum">Color</a>, <a href="qvariant.html#Type-enum">Date</a>, <a href="qvariant.html#Type-enum">DateTime</a>, <a href="qvariant.html#Type-enum">Double</a>, <a href="qvariant.html#Type-enum">Font</a>, <a href="qvariant.html#Type-enum">Int</a>, <a href="qvariant.html#Type-enum">KeySequence</a>, <a href="qvariant.html#Type-enum">LongLong</a>, <a href="qvariant.html#Type-enum">StringList</a>, <a href="qvariant.html#Type-enum">Time</a>, <a href="qvariant.html#Type-enum">UInt</a>, <a href="qvariant.html#Type-enum">ULongLong</a></td></tr>
 <tr valign="top" class="even"><td><a href="qvariant.html#Type-enum">StringList</a></td><td><a href="qvariant.html#Type-enum">List</a>, <a href="qvariant.html#Type-enum">String</a> (if the list contains exactly one item)</td></tr>
-<tr valign="top" class="odd"><td><a href="qvariant.html#Type-enum">Time</a></td><td><a href="qvariant.html#Type-enum">DateTime</a>, <a href="qvariant.html#Type-enum">String</a></td></tr>
+<tr valign="top" class="odd"><td><a href="qvariant.html#Type-enum">Time</a></td><td><a href="qvariant.html#Type-enum">String</a></td></tr>
 <tr valign="top" class="even"><td><a href="qvariant.html#Type-enum">UInt</a></td><td><a href="qvariant.html#Type-enum">Bool</a>, <a href="qvariant.html#Type-enum">Char</a>, <a href="qvariant.html#Type-enum">Double</a>, <a href="qvariant.html#Type-enum">Int</a>, <a href="qvariant.html#Type-enum">LongLong</a>, <a href="qvariant.html#Type-enum">String</a>, <a href="qvariant.html#Type-enum">ULongLong</a></td></tr>
 <tr valign="top" class="odd"><td><a href="qvariant.html#Type-enum">ULongLong</a></td><td><a href="qvariant.html#Type-enum">Bool</a>, <a href="qvariant.html#Type-enum">Char</a>, <a href="qvariant.html#Type-enum">Double</a>, <a href="qvariant.html#Type-enum">Int</a>, <a href="qvariant.html#Type-enum">LongLong</a>, <a href="qvariant.html#Type-enum">String</a>, <a href="qvariant.html#Type-enum">UInt</a></td></tr>
 </table></p>
@@ -356,13 +357,15 @@
 <h3 class="fn"><a name="clear"></a>void QVariant::clear ()</h3>
 <p>Convert this variant to type Invalid and free up any resources used.</p>
 <h3 class="fn"><a name="convert"></a>bool QVariant::convert ( <a href="qvariant.html#Type-enum">Type</a> <i>t</i> )</h3>
-<p>Casts the variant to the requested type. If the cast cannot be done, the variant is set to the default value of the requested type (e.g&#x2e; an empty string if the requested type <i>t</i> is <a href="qvariant.html#Type-enum">QVariant::String</a>, an empty point array if the requested type <i>t</i> is <a href="qvariant.html#Type-enum">QVariant::Polygon</a>, etc). Returns true if the current type of the variant was successfully cast; otherwise returns false.</p>
-<p>See also <a href="qvariant.html#canConvert">canConvert</a>().</p>
+<p>Casts the variant to the requested type, <i>t</i>. If the cast cannot be done, the variant is cleared. Returns true if the current type of the variant was successfully cast; otherwise returns false.</p>
+<p><b>Warning:</b> For historical reasons, converting a null <a href="qvariant.html">QVariant</a> results in a null value of the desired type (e.g&#x2e;, an empty string for <a href="qstring.html">QString</a>) and a result of false.</p>
+<p>See also <a href="qvariant.html#canConvert">canConvert</a>() and <a href="qvariant.html#clear">clear</a>().</p>
 <h3 class="fn"><a name="fromValue"></a>QVariant QVariant::fromValue ( const T &amp; <i>value</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns a <a href="qvariant.html">QVariant</a> containing a copy of <i>value</i>. Behaves exactly like <a href="qvariant.html#setValue">setValue</a>() otherwise.</p>
 <p>Example:</p>
 <pre> MyCustomStruct s;
  return QVariant::fromValue(s);</pre>
+<p><b>Note:</b> If you are working with custom types, you should use the <a href="qmetatype.html#Q_DECLARE_METATYPE">Q_DECLARE_METATYPE</a>() macro to register your custom type.</p>
 <p><b>Warning:</b> This function is not available with MSVC 6. Use <a href="qvariant.html#qVariantFromValue">qVariantFromValue</a>() instead if you need to support that version of the compiler.</p>
 <p>See also <a href="qvariant.html#setValue">setValue</a>() and <a href="qvariant.html#value">value</a>().</p>
 <h3 class="fn"><a name="isNull"></a>bool QVariant::isNull () const</h3>
@@ -481,7 +484,11 @@
 <p>Returns the variant as a <a href="qurl.html">QUrl</a> if the variant has <a href="qvariant.html#type">type</a>() <a href="qvariant.html#Type-enum">Url</a>; otherwise returns an invalid <a href="qurl.html">QUrl</a>.</p>
 <p>See also <a href="qvariant.html#canConvert">canConvert</a>() and <a href="qvariant.html#convert">convert</a>().</p>
 <h3 class="fn"><a name="type"></a><a href="qvariant.html#Type-enum">Type</a> QVariant::type () const</h3>
-<p>Returns the storage type of the value stored in the variant. Usually it's best to test with <a href="qvariant.html#canConvert">canConvert</a>() whether the variant can deliver the data type you are interested in.</p>
+<p>Returns the storage type of the value stored in the variant. Although this function is declared as returning <a href="qvariant.html#Type-enum">QVariant::Type</a>, the return value should be interpreted as <a href="qmetatype.html#Type-enum">QMetaType::Type</a>. In particular, <a href="qvariant.html#Type-enum">QVariant::UserType</a> is returned here only if the value is equal or greater than <a href="qmetatype.html#Type-enum">QMetaType::User</a>.</p>
+<p>Note that return values in the ranges <a href="qvariant.html#Type-enum">QVariant::Char</a> through <a href="qvariant.html#Type-enum">QVariant::RegExp</a> and <a href="qvariant.html#Type-enum">QVariant::Font</a> through <a href="qvariant.html#Type-enum">QVariant::Transform</a> correspond to the values in the ranges <a href="qmetatype.html#Type-enum">QMetaType::QChar</a> through <a href="qmetatype.html#Type-enum">QMetaType::QRegExp</a> and <a href="qmetatype.html#Type-enum">QMetaType::QFont</a> through <a href="qmetatype.html#Type-enum">QMetaType::QTransform</a>.</p>
+<p>Pay particular attention when working with char and <a href="qchar.html">QChar</a> variants. Note that there is no <a href="qvariant.html">QVariant</a> constructor specifically for type char, but there is one for <a href="qchar.html">QChar</a>. For a variant of type <a href="qchar.html">QChar</a>, this function returns <a href="qvariant.html#Type-enum">QVariant::Char</a>, which is the same as <a href="qmetatype.html#Type-enum">QMetaType::QChar</a>, but for a variant of type <tt>char</tt>, this function returns <a href="qmetatype.html#Type-enum">QMetaType::Char</a>, which is <i>not</i> the same as <a href="qvariant.html#Type-enum">QVariant::Char</a>.</p>
+<p>Also note that the types <tt>void*</tt>, <tt>long</tt>, <tt>short</tt>, <tt>unsigned</tt> <tt>long</tt>, <tt>unsigned</tt> <tt>short</tt>, <tt>unsigned</tt> <tt>char</tt>, <tt>float</tt>, <tt>QObject*</tt>, and <tt>QWidget*</tt> are represented in <a href="qmetatype.html#Type-enum">QMetaType::Type</a> but not in <a href="qvariant.html#Type-enum">QVariant::Type</a>, and they can be returned by this function. However, they are considered to be user defined types when tested against <a href="qvariant.html#Type-enum">QVariant::Type</a>.</p>
+<p>To test whether an instance of <a href="qvariant.html">QVariant</a> contains a data type that is compatible with the data type you are interested in, use <a href="qvariant.html#canConvert">canConvert</a>().</p>
 <h3 class="fn"><a name="typeName"></a>const char * QVariant::typeName () const</h3>
 <p>Returns the name of the type stored in the variant. The returned strings describe the C++ datatype used to store the data: for example, &quot;<a href="qfont.html">QFont</a>&quot;, &quot;<a href="qstring.html">QString</a>&quot;, or &quot;<a href="qvariant.html#QVariantList-typedef">QVariantList</a>&quot;. An Invalid variant returns 0.</p>
 <h3 class="fn"><a name="typeToName"></a>const char * QVariant::typeToName ( <a href="qvariant.html#Type-enum">Type</a> <i>typ</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
@@ -513,7 +520,7 @@
 <p>Assigns the value of the variant <i>variant</i> to this variant.</p>
 <h3 class="fn"><a name="operator-eq-eq"></a>bool QVariant::operator== ( const QVariant &amp; <i>v</i> ) const</h3>
 <p>Compares this <a href="qvariant.html">QVariant</a> with <i>v</i> and returns true if they are equal; otherwise returns false.</p>
-<p><b>Warning:</b> This function doesn't support custom types registered with <a href="qmetatype.html#qRegisterMetaType">qRegisterMetaType</a>().</p>
+<p>In the case of custom types, their equalness operators are not called. Instead the values' addresses are compared.</p>
 <hr />
 <h2>Related Non-Members</h2>
 <h3 class="fn"><a name="QVariantList-typedef"></a>typedef QVariantList</h3>
@@ -543,18 +550,18 @@
 <p>Returns the given <i>value</i> converted to the template type <tt>T</tt>.</p>
 <p>This function is equivalent to <a href="qvariant.html#qVariantValue">qVariantValue</a>().</p>
 <p>See also <a href="qvariant.html#qVariantValue">qVariantValue</a>() and <a href="qvariant.html#value">QVariant::value</a>().</p>
-<h3 class="fn"><a name="operator-not-eq-38"></a>bool operator!= ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</h3>
+<h3 class="fn"><a name="operator-not-eq-23"></a>bool operator!= ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns false if <i>v1</i> and <i>v2</i> are equal; otherwise returns true.</p>
 <p><b>Warning:</b> This function doesn't support custom types registered with <a href="qmetatype.html#qRegisterMetaType">qRegisterMetaType</a>().</p>
-<h3 class="fn"><a name="operator-eq-eq-51"></a>bool operator== ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</h3>
+<h3 class="fn"><a name="operator-eq-eq-41"></a>bool operator== ( const QVariant &amp; <i>v1</i>, const QVariant &amp; <i>v2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if <i>v1</i> and <i>v2</i> are equal; otherwise returns false.</p>
 <p><b>Warning:</b> This function doesn't support custom types registered with <a href="qmetatype.html#qRegisterMetaType">qRegisterMetaType</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

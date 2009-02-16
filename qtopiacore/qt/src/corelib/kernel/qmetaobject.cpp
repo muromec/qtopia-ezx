@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
 #include "private/qmetaobject_p.h"
 
 #include <ctype.h>
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QMetaObject
@@ -128,7 +124,11 @@
 /*!
     \enum QMetaMethod::Access
 
-    \internal
+    This enum describes the access level of a method, following the conventions used in C++.
+
+    \value Private
+    \value Protected
+    \value Public
 */
 
 // do not touch without touching the moc as well
@@ -337,8 +337,14 @@ int QMetaObject::classInfoOffset() const
 }
 
 /*!
-    Returns the number of methods in this class. These include
-    signals and slots.
+    Returns the number of methods in this class, including the number of
+    properties provided by each base class. These include signals and slots
+    as well as normal member functions.
+
+    Use code like the following to obtain a QStringList containing the methods
+    specific to a given class:
+
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp methodCount
 
     \sa method(), methodOffset(), indexOfMethod()
 */
@@ -370,7 +376,13 @@ int QMetaObject::enumeratorCount() const
 }
 
 /*!
-    Returns the number of properties in this class.
+    Returns the number of properties in this class, including the number of
+    properties provided by each base class.
+
+    Use code like the following to obtain a QStringList containing the properties
+    specific to a given class:
+
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp propertyCount
 
     \sa property(), propertyOffset(), indexOfProperty()
 */
@@ -679,17 +691,7 @@ QMetaProperty QMetaObject::userProperty() const
 
     Example:
 
-    \code
-        class MyClass
-        {
-            Q_OBJECT
-            Q_CLASSINFO("author", "Sabrina Schweinsteiger")
-            Q_CLASSINFO("url", "http://doc.moosesoft.co.uk/1.0/")
-
-        public:
-            ...
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 0
 
     \sa classInfoCount(), classInfoOffset(), indexOfClassInfo()
  */
@@ -777,10 +779,7 @@ static char *qNormalizeType(char *d, int &templdepth, QByteArray &result)
 
     Example:
 
-    \code
-    QByteArray normType = QMetaObject::normalizedType(" int    const  *");
-    // normType is now "const int*"
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 1
 
     \sa normalizedSignature()
  */
@@ -877,10 +876,7 @@ QByteArray QMetaObject::normalizedSignature(const char *method)
     \l{QPushButton::animateClick()}{animateClick()} slot on a
     QPushButton:
 
-    \code
-        QMetaObject::invokeMethod(pushButton, "animateClick",
-                                  Qt::QueuedConnection);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 2
 
     With asynchronous method invocations, the parameters must be of
     types that are known to Qt's meta-object system, because Qt needs
@@ -888,9 +884,7 @@ QByteArray QMetaObject::normalizedSignature(const char *method)
     scenes. If you try to use a queued connection and get the error
     message
 
-    \code
-        QMetaObject::invokeMethod: Unable to handle unregistered datatype 'MyType'
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 3
 
     call qRegisterMetaType() to register the data type before you
     call invokeMethod().
@@ -898,14 +892,7 @@ QByteArray QMetaObject::normalizedSignature(const char *method)
     To synchronously invoke the \c compute(QString, int, double) slot on
     some arbitrary object \c obj retrieve its return value:
 
-    \code
-        QString retVal;
-        QMetaObject::invokeMethod(obj, "compute", Qt::DirectConnection,
-                                  Q_RETURN_ARG(QString, retVal),
-                                  Q_ARG(QString, "sqrt"),
-                                  Q_ARG(int, 42),
-                                  Q_ARG(double, 9.7));
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 4
 
     If the "compute" slot does not take exactly one QString, one int
     and one double in the specified order, the call will fail.
@@ -1014,12 +1001,18 @@ bool QMetaObject::invokeMethod(QObject *obj, const char *member, Qt::ConnectionT
             } else if (param[i]) {
                 qWarning("QMetaObject::invokeMethod: Unable to handle unregistered datatype '%s'",
                          typeNames[i]);
+                for (int x = 1; x < i; ++x) {
+                    if (types[x] && args[x])
+                        QMetaType::destroy(types[x], args[x]);
+                }
+                qFree(types);
+                qFree(args);
                 return false;
             }
         }
 
         if (type == Qt::QueuedConnection) {
-            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, -1, nargs, types, args));
+            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, nargs, types, args));
         } else {
             if (QThread::currentThread() == obj->thread()) {
                 qWarning("QMetaObject::invokeMethod: Dead lock detected in BlockingQueuedConnection: "
@@ -1029,11 +1022,10 @@ bool QMetaObject::invokeMethod(QObject *obj, const char *member, Qt::ConnectionT
 
             // blocking queued connection
 #ifdef QT_NO_THREAD
-            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, -1, nargs, types, args));
+            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, nargs, types, args));
 #else
             QSemaphore semaphore;
-            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, -1, nargs, types, args,
-                                                                &semaphore));
+            QCoreApplication::postEvent(obj, new QMetaCallEvent(idx, 0, -1, nargs, types, args, &semaphore));
             semaphore.acquire();
 #endif // QT_NO_THREAD
         }
@@ -1118,6 +1110,11 @@ bool QMetaObject::invokeMethod(QObject *obj, const char *member, Qt::ConnectionT
     \value Compatibility
     \value Cloned
     \value Scriptable
+*/
+
+/*!
+    \fn const QMetaObject *QMetaMethod::enclosingMetaObject() const
+    \internal
 */
 
 /*!
@@ -1296,6 +1293,12 @@ QMetaMethod::MethodType QMetaMethod::methodType() const
 
     \sa name()
 */
+
+/*!
+    \fn const QMetaObject *QMetaEnum::enclosingMetaObject() const
+    \internal
+*/
+
 
 /*!
     \fn QMetaEnum::QMetaEnum()
@@ -1509,6 +1512,10 @@ QByteArray QMetaEnum::valueToKeys(int value) const
     return keys;
 }
 
+static QByteArray qualifiedName(const QMetaEnum &e)
+{
+    return QByteArray(e.scope()) + "::" + e.name();
+}
 
 /*!
     \class QMetaProperty
@@ -1545,6 +1552,11 @@ QByteArray QMetaEnum::valueToKeys(int value) const
     returns false.
 
     \sa isReadable()
+*/
+
+/*!
+    \fn const QMetaObject *QMetaProperty::enclosingMetaObject() const
+    \internal
 */
 
 /*!
@@ -1600,8 +1612,11 @@ QVariant::Type QMetaProperty::type() const
         type = QVariant::LastType;
     if (type)
         return QVariant::Type(type);
-    if (isEnumType())
-        return QVariant::Int;
+    if (isEnumType()) {
+        int enumMetaTypeId = QMetaType::type(qualifiedName(menum));
+        if (enumMetaTypeId == 0)
+            return QVariant::Int;
+    }
 
     return QVariant::UserType;
 }
@@ -1620,6 +1635,10 @@ int QMetaProperty::userType() const
     QVariant::Type tp = type();
     if (tp != QVariant::UserType)
         return tp;
+    if (isEnumType()) {
+        int enumMetaTypeId = QMetaType::type(qualifiedName(menum));
+        return enumMetaTypeId;
+    }
     return QMetaType::type(typeName());
 }
 
@@ -1694,7 +1713,16 @@ QVariant QMetaProperty::read(const QObject *object) const
         return QVariant();
 
     uint t = QVariant::Int;
-    if (!isEnumType()) {
+    if (isEnumType()) {
+        /*
+          try to create a QVariant that can be converted to this enum
+          type (only works if the enum has already been registered
+          with QMetaType)
+        */
+        int enumMetaTypeId = QMetaType::type(qualifiedName(menum));
+        if (enumMetaTypeId != 0)
+            t = enumMetaTypeId;
+    } else {
         int handle = priv(mobj->d.data)->propertyData + 3*idx;
         uint flags = mobj->d.data[handle + 2];
         const char *typeName = mobj->d.stringdata + mobj->d.data[handle + 1];
@@ -1712,7 +1740,7 @@ QVariant QMetaProperty::read(const QObject *object) const
         }
     }
     QVariant value;
-    void *argv[1];
+    void *argv[2] = { 0, &value };
     if (t == QVariant::LastType) {
         argv[0] = &value;
     } else {
@@ -1722,7 +1750,11 @@ QVariant QMetaProperty::read(const QObject *object) const
     const_cast<QObject*>(object)->qt_metacall(QMetaObject::ReadProperty,
                                               idx + mobj->propertyOffset(),
                                               argv);
+    if (argv[1] == 0)
+        // "value" was changed
+        return value;
     if (t != QVariant::LastType && argv[0] != value.data())
+        // pointer or reference
         return QVariant((QVariant::Type)t, argv[0]);
     return value;
 }
@@ -1751,7 +1783,10 @@ bool QMetaProperty::write(QObject *object, const QVariant &value) const
             else
                 v = QVariant(menum.keyToValue(value.toByteArray()));
         } else if (v.type() != QVariant::Int && v.type() != QVariant::UInt) {
-            return false;
+            int enumMetaTypeId = QMetaType::type(qualifiedName(menum));
+            if ((enumMetaTypeId == 0) || (v.userType() != enumMetaTypeId) || !v.constData())
+                return false;
+            v = QVariant(*reinterpret_cast<const int *>(v.constData()));
         }
         v.convert(QVariant::Int);
     } else {
@@ -1774,7 +1809,7 @@ bool QMetaProperty::write(QObject *object, const QVariant &value) const
             return false;
     }
 
-    void *argv[1];
+    void *argv[2] = { 0, &v };
     if (t == QVariant::LastType)
         argv[0] = &v;
     else
@@ -1917,13 +1952,15 @@ bool QMetaProperty::isStored(const QObject *object) const
 }
 
 /*!
-    Returns true if this is the property that the user can editable for \a object;
-    otherwise returns false. I.e. the text property is the user editable property
+    Returns true if this property is designated as the \c USER
+    property, i.e., the one that the user can edit for \a object or
+    that is significant in some other way.  Otherwise it returns
+    false. e.g., the \c text property is the \c USER editable property
     of a QLineEdit.
 
-    If no \a object is given, the function returns false if the
-    \c{Q_PROPERTY()}'s \c USER attribute is false; otherwise returns
-    true (if the attribute is true or is a function or expression).
+    If \a object is null, the function returns false if the \c
+    {Q_PROPERTY()}'s \c USER attribute is false. Otherwise it returns
+    true.
 
     \sa QMetaObject::userProperty(), isDesignable(), isScriptable()
 */
@@ -1979,17 +2016,7 @@ bool QMetaProperty::isEditable(const QObject *object) const
     are specified using Q_CLASSINFO() in the source code. The
     information can be retrieved using name() and value(). For example:
 
-    \code
-        class MyClass
-        {
-            Q_OBJECT
-            Q_CLASSINFO("author", "Sabrina Schweinsteiger")
-            Q_CLASSINFO("url", "http://doc.moosesoft.co.uk/1.0/")
-
-        public:
-            ...
-        };
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_kernel_qmetaobject.cpp 5
 
     This mechanism is free for you to use in your Qt applications. Qt
     doesn't use it for any of its classes.
@@ -2000,6 +2027,11 @@ bool QMetaProperty::isEditable(const QObject *object) const
 
 /*!
     \fn QMetaClassInfo::QMetaClassInfo()
+    \internal
+*/
+
+/*!
+    \fn const QMetaObject *QMetaClassInfo::enclosingMetaObject() const
     \internal
 */
 
@@ -2097,3 +2129,5 @@ const char* QMetaClassInfo::value() const
     Constructs a QGenericReturnArgument object with the given \a name
     and \a data.
 */
+
+QT_END_NAMESPACE

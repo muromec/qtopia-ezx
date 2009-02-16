@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,8 @@
 #include "qsqltablemodel_p.h"
 
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 /*! \internal
     Populates our record with values.
@@ -251,10 +247,7 @@ QSqlRecord QSqlTableModelPrivate::primaryValues(int row)
     lower-level QSqlQuery and can be used to provide data to view
     classes such as QTableView. For example:
 
-    \quotefromfile snippets/sqldatabase/sqldatabase.cpp
-    \skipto QSqlTableModel_snippets
-    \skipto QSqlTableModel *model
-    \printuntil show()
+    \snippet doc/src/snippets/sqldatabase/sqldatabase.cpp 24
 
     We set the SQL table's name and the edit strategy, then we set up
     the labels displayed in the view header. The edit strategy
@@ -265,8 +258,7 @@ QSqlRecord QSqlTableModelPrivate::primaryValues(int row)
     QSqlTableModel can also be used to access a database
     programmatically, without binding it to a view:
 
-    \skipto QSqlTableModel model
-    \printuntil QString name =
+    \snippet doc/src/snippets/sqldatabase/sqldatabase.cpp 25
 
     The code snippet above extracts the \c salary field from record 4 in
     the result set of the query \c{SELECT * from employee}.
@@ -282,10 +274,6 @@ QSqlRecord QSqlTableModelPrivate::primaryValues(int row)
     the QSqlRelationalTableModel and QSqlRelationalDelegate if you
     want to resolve foreign keys.
 
-    The \l{QSQLITE} driver locks for updates until a select is finished.
-    QSqlTableModel fetches data (QSqlQuery::fetchMore()) as needed;
-    this may cause the updates to time out.
-
     \sa QSqlRelationalTableModel, QSqlQuery, {Model/View Programming},
         {Table Model Example}, {Cached Table Example}
 */
@@ -293,14 +281,16 @@ QSqlRecord QSqlTableModelPrivate::primaryValues(int row)
 /*!
     \fn QSqlTableModel::beforeDelete(int row)
 
-    This signal is emitted before the \a row is deleted.
+    This signal is emitted by deleteRowFromTable() before the \a row
+    is deleted from the currently active database table.
 */
 
 /*!
     \fn void QSqlTableModel::primeInsert(int row, QSqlRecord &record)
 
-    This signal is emitted when an insertion is initiated in the given
-    \a row. The \a record parameter can be written to (since it is a
+    This signal is emitted by insertRows(), when an insertion is
+    initiated in the given \a row of the currently active database
+    table. The \a record parameter can be written to (since it is a
     reference), for example to populate some fields with default
     values.
 */
@@ -308,16 +298,18 @@ QSqlRecord QSqlTableModelPrivate::primaryValues(int row)
 /*!
     \fn QSqlTableModel::beforeInsert(QSqlRecord &record)
 
-    This signal is emitted before a new row is inserted. The
-    values that are about to be inserted are stored in \a record
-    and can be modified before they will be inserted.
+    This signal is emitted by insertRowIntoTable() before a new row is
+    inserted into the currently active database table. The values that
+    are about to be inserted are stored in \a record and can be
+    modified before they will be inserted.
 */
 
 /*!
     \fn QSqlTableModel::beforeUpdate(int row, QSqlRecord &record)
 
-    This signal is emitted before the \a row is updated with the
-    values from \a record.
+    This signal is emitted by updateRowInTable() before the \a row is
+    updated in the currently active database table with the values
+    from \a record.
 
     Note that only values that are marked as generated will be updated.
     The generated flag can be set with \l QSqlRecord::setGenerated()
@@ -559,6 +551,7 @@ bool QSqlTableModel::setData(const QModelIndex &index, const QVariant &value, in
         if (row.op == QSqlTableModelPrivate::None) {
             row.op = QSqlTableModelPrivate::Update;
             row.rec = d->rec;
+			row.primaryValues = d->primaryValues(indexInQuery(index).row());
         }
         row.rec.setValue(index.column(), value);
         emit dataChanged(index, index);
@@ -601,7 +594,7 @@ bool QSqlTableModel::updateRowInTable(int row, const QSqlRecord &values)
     QSqlRecord rec(values);
     emit beforeUpdate(row, rec);
 
-    const QSqlRecord whereValues = d->primaryValues(row);
+    const QSqlRecord whereValues = d->strategy == OnManualSubmit ? d->cache[row].primaryValues : d->primaryValues(row);
     bool prepStatement = d->db.driver()->hasFeature(QSqlDriver::PreparedQueries);
     QString stmt = d->db.driver()->sqlStatement(QSqlDriver::UpdateStatement, d->tableName,
                                                 rec, prepStatement);
@@ -670,10 +663,14 @@ bool QSqlTableModel::deleteRowFromTable(int row)
 
     QSqlRecord rec = d->primaryValues(row);
     bool prepStatement = d->db.driver()->hasFeature(QSqlDriver::PreparedQueries);
-    QString stmt = d->db.driver()->sqlStatement(QSqlDriver::DeleteStatement, d->tableName,
-                                                QSqlRecord(), prepStatement);
-    QString where = d->db.driver()->sqlStatement(QSqlDriver::WhereStatement, d->tableName,
-                                                rec, prepStatement);
+    QString stmt = d->db.driver()->sqlStatement(QSqlDriver::DeleteStatement,
+                                                d->tableName,
+                                                QSqlRecord(),
+                                                prepStatement);
+    QString where = d->db.driver()->sqlStatement(QSqlDriver::WhereStatement,
+                                                 d->tableName,
+                                                 rec,
+                                                 prepStatement);
 
     if (stmt.isEmpty() || where.isEmpty()) {
         d->error = QSqlError(QLatin1String("Unable to delete row"), QString(),
@@ -1011,8 +1008,10 @@ QString QSqlTableModel::selectStatement() const
         return query;
     }
 
-    query = d->db.driver()->sqlStatement(QSqlDriver::SelectStatement, d->tableName,
-                                          d->rec, false);
+    query = d->db.driver()->sqlStatement(QSqlDriver::SelectStatement,
+                                         d->tableName,
+                                         d->rec,
+                                         false);
     if (query.isEmpty()) {
         d->error = QSqlError(QLatin1String("Unable to select fields from table ") + d->tableName,
                              QString(), QSqlError::StatementError);
@@ -1053,7 +1052,9 @@ bool QSqlTableModel::removeColumns(int column, int count, const QModelIndex &par
     does not support hierarchical structures, \a parent must be
     an invalid model index.
 
-    Emits the beforeDelete() signal before a row is deleted.
+    Emits the beforeDelete() signal before a row is deleted. When
+    the edit strategy is OnManualSubmit signal emission is delayed
+    until submitAll() is called.
 
     Returns true if all rows could be removed; otherwise returns
     false. Detailed error information can be retrieved using
@@ -1086,8 +1087,10 @@ bool QSqlTableModel::removeRows(int row, int count, const QModelIndex &parent)
                 return false;
             if (d->cache.value(idx).op == QSqlTableModelPrivate::Insert)
                 revertRow(idx);
-            else
+            else {
                 d->cache[idx].op = QSqlTableModelPrivate::Delete;
+                emit headerDataChanged(Qt::Vertical, idx, idx);
+            }
         }
         break;
     }
@@ -1316,3 +1319,5 @@ bool QSqlTableModel::setRecord(int row, const QSqlRecord &record)
     }
     return false;
 }
+
+QT_END_NAMESPACE

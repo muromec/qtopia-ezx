@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG  += qt assistant warn_on
+CONFIG  += qt warn_on
 QT += network
 
 build_all:!build_pass {
@@ -12,6 +12,10 @@ DESTDIR     = ../../bin
 DEPENDPATH += .
 INCLUDEPATH += .
 TARGET = pixeltool
+
+mac {
+    QMAKE_INFO_PLIST=Info_mac.plist
+}
 
 # Input
 SOURCES += main.cpp qpixeltool.cpp

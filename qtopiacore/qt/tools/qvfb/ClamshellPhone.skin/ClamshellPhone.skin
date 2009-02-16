@@ -4,6 +4,7 @@ Down=ClamshellPhone1-5-pressed.png
 Closed=ClamshellPhone1-5-closed.png
 Screen=72 84 176 208
 Areas=22
+HasMouseHover=false
 
 "Power"    0x0100000a 205 563 249 586
 "1"        0x0031 62 414 119 438

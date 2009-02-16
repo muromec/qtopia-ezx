@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include "qtextcursor.h"
 #include <QtCore/qdebug.h>
 #include <private/qwidget_p.h>
+
+QT_BEGIN_NAMESPACE
 
 class QSplashScreenPrivate : public QWidgetPrivate
 {
@@ -96,12 +92,9 @@ public:
    some initialization tasks are performed before the application's
    main window is shown:
 
-   \quotefromfile snippets/qsplashscreen/main.cpp
-   \skipto main(
-   \printuntil app.processEvents();
+   \snippet doc/src/snippets/qsplashscreen/main.cpp 0
    \dots
-   \skipto MainWindow
-   \printuntil /^\}/
+   \snippet doc/src/snippets/qsplashscreen/main.cpp 1
 
    The user can hide the splash screen by clicking on it with the
    mouse. Since the splash screen is typically displayed before the
@@ -112,21 +105,7 @@ public:
    for example, announcing connections established or modules loaded
    as the application starts up:
 
-   \code
-       QPixmap pixmap(":/splash.png");
-       QSplashScreen *splash = new QSplashScreen(pixmap);
-       splash->show();
-
-       ... // Loading some items
-       splash->showMessage("Loaded modules");
-
-       qApp->processEvents();
-
-       ... // Establishing connections
-       splash->showMessage("Established connections");
-
-       qApp->processEvents();
-   \endcode
+   \snippet doc/src/snippets/code/src_gui_widgets_qsplashscreen.cpp 0
 
    QSplashScreen supports this with the showMessage() function. If you
    wish to do your own drawing you can get a pointer to the pixmap
@@ -303,8 +282,8 @@ void QSplashScreenPrivate::drawContents()
 /*!
     \internal
 */
-inline QSplashScreenPrivate::QSplashScreenPrivate() : currAlign(Qt::AlignLeft) 
-{ 
+inline QSplashScreenPrivate::QSplashScreenPrivate() : currAlign(Qt::AlignLeft)
+{
 }
 
 /*!
@@ -321,7 +300,11 @@ void QSplashScreen::drawContents(QPainter *painter)
     r.setRect(r.x() + 5, r.y() + 5, r.width() - 10, r.height() - 10);
     if (Qt::mightBeRichText(d->currStatus)) {
         QTextDocument doc;
+#ifdef QT_NO_TEXTHTMLPARSER
+        doc.setPlainText(d->currStatus);
+#else
         doc.setHtml(d->currStatus);
+#endif
         doc.setTextWidth(r.width());
         QTextCursor cursor(&doc);
         cursor.select(QTextCursor::Document);
@@ -357,5 +340,7 @@ bool QSplashScreen::event(QEvent *e)
 {
     return QWidget::event(e);
 }
+
+QT_END_NAMESPACE
 
 #endif //QT_NO_SPLASHSCREEN

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -60,6 +54,8 @@
 
 #include "qfontengine_p.h"
 
+QT_BEGIN_NAMESPACE
+
 #define ObjectSelectionBrush (QTextFormat::ForegroundBrush + 1)
 
 static inline QFixed leadingSpaceWidth(QTextEngine *eng, const QScriptLine &line)
@@ -71,7 +67,7 @@ static inline QFixed leadingSpaceWidth(QTextEngine *eng, const QScriptLine &line
         return QFixed();
 
     int pos = line.length;
-    const QCharAttributes *attributes = eng->attributes();
+    const HB_CharAttributes *attributes = eng->attributes();
     while (pos > 0 && attributes[line.from + pos - 1].whiteSpace)
         --pos;
     return eng->width(line.from + pos, line.length - pos);
@@ -81,7 +77,8 @@ static QFixed alignLine(QTextEngine *eng, const QScriptLine &line)
 {
     QFixed x = 0;
     eng->justify(line);
-    if (!line.justified) {
+    // if width is QFIXED_MAX that means we used setNumColumns() and that implicitly makes this line left aligned.
+    if (!line.justified && line.width != QFIXED_MAX) {
         int align = eng->option.alignment();
         if (align & Qt::AlignJustify && eng->option.textDirection() == Qt::RightToLeft)
             align = Qt::AlignRight;
@@ -95,6 +92,8 @@ static QFixed alignLine(QTextEngine *eng, const QScriptLine &line)
 
 /*!
     \class QTextLayout::FormatRange
+    \reentrant
+
     \brief The QTextLayout::FormatRange structure is used to apply extra formatting information
     for a specified area in the text layout's content.
 
@@ -118,6 +117,8 @@ static QFixed alignLine(QTextEngine *eng, const QScriptLine &line)
 
 /*!
     \class QTextInlineObject
+    \reentrant
+
     \brief The QTextInlineObject class represents an inline object in
     a QTextLayout.
 
@@ -273,6 +274,8 @@ Qt::LayoutDirection QTextInlineObject::textDirection() const
 
 /*!
     \class QTextLayout
+    \reentrant
+
     \brief The QTextLayout class is used to lay out and paint a single
     paragraph of text.
 
@@ -297,30 +300,10 @@ Qt::LayoutDirection QTextInlineObject::textDirection() const
     device.
 
     Here's some pseudo code that presents the layout phase:
-    \code
-        int leading = fontMetrics.leading();
-        int height = 0;
-        qreal widthUsed = 0;
-        textLayout.beginLayout();
-        while (1) {
-            QTextLine line = textLayout.createLine();
-            if (!line.isValid())
-                break;
-
-            line.setLineWidth(lineWidth);
-            height += leading;
-            line.setPosition(QPoint(0, height));
-            height += line.height();
-            widthUsed = qMax(widthUsed, line.naturalTextWidth());
-        }
-        textLayout.endLayout();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextlayout.cpp 0
 
     The text can be drawn by calling the layout's draw() function:
-    \code
-        QPainter painter(this);
-        textLayout.draw(&painter, QPoint(0, 0));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextlayout.cpp 1
 
     The text layout's text is set in the constructor or with
     setText(). The layout can be seen as a sequence of QTextLine
@@ -375,8 +358,10 @@ QTextLayout::QTextLayout(const QString& text)
 */
 QTextLayout::QTextLayout(const QString& text, const QFont &font, QPaintDevice *paintdevice)
 {
-    QFontPrivate *f = paintdevice ? QFont(font, paintdevice).d : font.d;
-    d = new QTextEngine((text.isNull() ? (const QString&)QString::fromLatin1("") : text), f);
+    QFont f(font);
+    if (paintdevice)
+        f = QFont(font, paintdevice);
+    d = new QTextEngine((text.isNull() ? (const QString&)QString::fromLatin1("") : text), f.d);
 }
 
 /*!
@@ -422,11 +407,15 @@ QFont QTextLayout::font() const
     Sets the layout's text to the given \a string. The layout is
     invalidated and must be laid out again.
 
+    Notice that when using this QTextLayout as part of a QTextDocument this
+    method will have no effect.
+
     \sa text()
 */
 void QTextLayout::setText(const QString& string)
 {
     d->invalidate();
+    d->clearLineData();
     d->text = string;
 }
 
@@ -484,6 +473,7 @@ void QTextLayout::setPreeditArea(int position, const QString &text)
         d->specialData->preeditText = text;
     }
     d->invalidate();
+    d->clearLineData();
     if (d->block.docHandle())
         d->block.docHandle()->documentChange(d->block.position(), d->block.length());
 }
@@ -608,6 +598,7 @@ void QTextLayout::beginLayout()
     }
 #endif
     d->invalidate();
+    d->clearLineData();
     d->itemize();
     d->layoutData->inLayout = true;
 }
@@ -632,6 +623,17 @@ void QTextLayout::endLayout()
         d->freeMemory();
 }
 
+/*!  \since 4.4
+
+Clears the line information in the layout. After having called
+this function, lineCount() returns 0.
+ */
+void QTextLayout::clearLayout()
+{
+    d->clearLineData();
+}
+
+
 /*!
     Returns the next valid cursor position after \a oldPos that
     respects the given cursor \a mode.
@@ -641,7 +643,7 @@ void QTextLayout::endLayout()
 int QTextLayout::nextCursorPosition(int oldPos, CursorMode mode) const
 {
 //      qDebug("looking for next cursor pos for %d", oldPos);
-    const QCharAttributes *attributes = d->attributes();
+    const HB_CharAttributes *attributes = d->attributes();
     if (!attributes)
         return 0;
     int len = d->layoutData->string.length();
@@ -656,7 +658,7 @@ int QTextLayout::nextCursorPosition(int oldPos, CursorMode mode) const
             oldPos++;
 
         while (oldPos < len && !attributes[oldPos-1].whiteSpace
-               && !d->atWordSeparator(oldPos))
+               && !d->atWordSeparator(oldPos - 1))
             oldPos++;
     }
 //      qDebug("  -> %d", oldPos);
@@ -672,7 +674,7 @@ int QTextLayout::nextCursorPosition(int oldPos, CursorMode mode) const
 int QTextLayout::previousCursorPosition(int oldPos, CursorMode mode) const
 {
 //     qDebug("looking for previous cursor pos for %d", oldPos);
-    const QCharAttributes *attributes = d->attributes();
+    const HB_CharAttributes *attributes = d->attributes();
     if (!attributes || oldPos <= 0)
         return 0;
     oldPos--;
@@ -708,7 +710,7 @@ int QTextLayout::previousCursorPosition(int oldPos, CursorMode mode) const
 */
 bool QTextLayout::isValidCursorPosition(int pos) const
 {
-    const QCharAttributes *attributes = d->attributes();
+    const HB_CharAttributes *attributes = d->attributes();
     if (!attributes || pos < 0 || pos > (int)d->layoutData->string.length())
         return false;
     return attributes[pos].charStop;
@@ -873,6 +875,22 @@ qreal QTextLayout::maximumWidth() const
     return d->maxWidth.toReal();
 }
 
+/*!
+  \internal
+*/
+void QTextLayout::setFlags(int flags)
+{
+    if (flags & Qt::TextJustificationForced) {
+        d->option.setAlignment(Qt::AlignJustify);
+        d->forceJustification = true;
+    }
+    if (flags & (Qt::TextForceLeftToRight|Qt::TextForceRightToLeft)) {
+        d->ignoreBidi = true;
+        d->option.setTextDirection((flags & Qt::TextForceLeftToRight) ? Qt::LeftToRight : Qt::RightToLeft);
+    }
+}
+
+
 struct QTextLineItemIterator
 {
     QTextLineItemIterator(QTextEngine *eng, int lineNum, const QPointF &pos = QPointF(),
@@ -939,6 +957,8 @@ QTextLineItemIterator::QTextLineItemIterator(QTextEngine *_eng, int lineNum, con
     for (int i = 0; i < nItems; ++i)
         levels[i] = eng->layoutData->items[i+firstItem].analysis.bidiLevel;
     QTextEngine::bidiReorder(nItems, levels.data(), visualOrder.data());
+
+    eng->shapeLine(line);
 }
 
 QScriptItem &QTextLineItemIterator::next()
@@ -952,11 +972,8 @@ QScriptItem &QTextLineItemIterator::next()
     if (!si->num_glyphs)
         eng->shape(item);
 
-    if (si->isObject) {
+    if (si->analysis.flags >= QScriptAnalysis::TabOrObject) {
         itemWidth = si->width;
-        return *si;
-    } else if (si->isTab) {
-        itemWidth = eng->nextTab(si, x - pos_x) - (x - pos_x);
         return *si;
     }
 
@@ -979,7 +996,7 @@ QScriptItem &QTextLineItemIterator::next()
 
     itemWidth = 0;
     for (int g = glyphsStart; g < glyphsEnd; ++g)
-        itemWidth += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+        itemWidth += glyphs[g].effectiveAdvance();
 
     return *si;
 }
@@ -991,7 +1008,7 @@ bool QTextLineItemIterator::getSelectionBounds(QFixed *selectionX, QFixed *selec
     if (!selection)
         return false;
 
-    if (si->isObject || si->isTab) {
+    if (si->analysis.flags >= QScriptAnalysis::TabOrObject) {
         if (si->position >= selection->start + selection->length
             || si->position + itemLength <= selection->start)
             return false;
@@ -1013,14 +1030,14 @@ bool QTextLineItemIterator::getSelectionBounds(QFixed *selectionX, QFixed *selec
         QFixed swidth;
         if (si->analysis.bidiLevel %2) {
             for (int g = glyphsEnd - 1; g >= end_glyph; --g)
-                soff += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+                soff += glyphs[g].effectiveAdvance();
             for (int g = end_glyph - 1; g >= start_glyph; --g)
-                swidth += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+                swidth += glyphs[g].effectiveAdvance();
         } else {
             for (int g = glyphsStart; g < start_glyph; ++g)
-                soff += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+                soff += glyphs[g].effectiveAdvance();
             for (int g = start_glyph; g < end_glyph; ++g)
-                swidth += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+                swidth += glyphs[g].effectiveAdvance();
         }
 
         *selectionX = x + soff;
@@ -1030,22 +1047,9 @@ bool QTextLineItemIterator::getSelectionBounds(QFixed *selectionX, QFixed *selec
 }
 
 static void addSelectedRegionsToPath(QTextEngine *eng, int lineNumber, const QPointF &pos, QTextLayout::FormatRange *selection,
-                                     QPainterPath *region)
+                                     QPainterPath *region, QRectF boundingRect)
 {
     const QScriptLine &line = eng->lines[lineNumber];
-
-    if (!line.length) {
-        if (selection
-            && selection->start <= line.from
-            && selection->start + selection->length > line.from) {
-
-            const qreal lineHeight = line.height().toReal();
-            QRectF r(pos.x() + line.x.toReal(), pos.y() + line.y.toReal(),
-                     lineHeight / 2, lineHeight);
-            region->addRect(r);
-        }
-        return;
-    }
 
     QTextLineItemIterator iterator(eng, lineNumber, pos, selection);
 
@@ -1068,14 +1072,14 @@ static void addSelectedRegionsToPath(QTextEngine *eng, int lineNumber, const QPo
             }
 
             if (lastSelectionWidth > 0)
-                region->addRect(QRectF(lastSelectionX.toReal(), selectionY, lastSelectionWidth.toReal(), lineHeight));
+                region->addRect(boundingRect & QRectF(lastSelectionX.toReal(), selectionY, lastSelectionWidth.toReal(), lineHeight));
 
             lastSelectionX = selectionX;
             lastSelectionWidth = selectionWidth;
         }
     }
     if (lastSelectionWidth > 0)
-        region->addRect(QRectF(lastSelectionX.toReal(), selectionY, lastSelectionWidth.toReal(), lineHeight));
+        region->addRect(boundingRect & QRectF(lastSelectionX.toReal(), selectionY, lastSelectionWidth.toReal(), lineHeight));
 }
 
 /*!
@@ -1128,22 +1132,40 @@ void QTextLayout::draw(QPainter *p, const QPointF &pos, const QVector<FormatRang
 
         for (int line = firstLine; line < lastLine; ++line) {
             const QScriptLine &sl = d->lines[line];
+            QTextLine tl(line, d);
 
-            if (selection.format.boolProperty(QTextFormat::FullWidthSelection)
-                && selection.start >= sl.from
-                && (selection.start < sl.from + sl.length || !sl.length)
-               ) {
-                QRectF selectionRect;
-                selectionRect.setLeft(0);
-                selectionRect.setWidth(INT_MAX);
-                selectionRect.setY(position.y() + sl.y.toReal());
-                selectionRect.setHeight(sl.height().toReal());
-                region.addRect(selectionRect);
+            QRectF lineRect(tl.naturalTextRect());
+            lineRect.translate(position);
+
+            int sl_length = sl.length + (line == d->lines.size()-1? 1 : 0); // the infamous newline
+
+
+            if (sl.from > selection.start + selection.length || sl.from + sl_length <= selection.start)
+                continue; // no actual intersection
+
+            const bool selectionStartInLine = sl.from <= selection.start;
+            const bool selectionEndInLine = selection.start + selection.length < sl.from + sl_length;
+
+            if (!sl.length) {
+                lineRect.setWidth(lineRect.height()/2);
+                region.addRect(lineRect);
+            } else if (selectionStartInLine || selectionEndInLine) {
+                addSelectedRegionsToPath(d, line, position, &selection, &region, lineRect);
+            } else {
+                region.addRect(lineRect);
             }
 
-            addSelectedRegionsToPath(d, line, position, &selection, &region);
-        }
+            if (selection.format.boolProperty(QTextFormat::FullWidthSelection)) {
+                QRectF fullLineRect(tl.rect());
+                fullLineRect.translate(position);
+                fullLineRect.setRight(QFIXED_MAX);
+                if (!selectionEndInLine)
+                    region.addRect(QRectF(lineRect.topRight(), fullLineRect.bottomRight()));
+                if (!selectionStartInLine)
+                    region.addRect(QRectF(fullLineRect.topLeft(), lineRect.bottomLeft()));
+            }
 
+        }
         {
             const QPen oldPen = p->pen();
             const QBrush oldBrush = p->brush();
@@ -1255,6 +1277,8 @@ void QTextLayout::drawCursor(QPainter *p, const QPointF &pos, int cursorPosition
 
 /*!
     \class QTextLine
+    \reentrant
+
     \brief The QTextLine class represents a line of text inside a QTextLayout.
 
     \ingroup text
@@ -1418,9 +1442,24 @@ qreal QTextLine::naturalTextWidth() const
 void QTextLine::setLineWidth(qreal width)
 {
     QScriptLine &line = eng->lines[i];
+    if (!eng->layoutData) {
+        qWarning("QTextLine: Can't set a line width while not layouting.");
+        return;
+    }
+
+    if (width > QFIXED_MAX)
+        width = QFIXED_MAX;
+
     line.width = QFixed::fromReal(width);
+    if (line.length
+        && line.textWidth <= line.width
+        && line.from + line.length == eng->layoutData->string.length())
+        // no need to do anything if the line is already layouted and the last one. This optimisation helps
+        // when using things in a single line layout.
+        return;
     line.length = 0;
     line.textWidth = 0;
+
     layout_helper(INT_MAX);
 }
 
@@ -1434,7 +1473,7 @@ void QTextLine::setLineWidth(qreal width)
 void QTextLine::setNumColumns(int numColumns)
 {
     QScriptLine &line = eng->lines[i];
-    line.width = INT_MAX/256;
+    line.width = QFIXED_MAX;
     line.length = 0;
     line.textWidth = 0;
     layout_helper(numColumns);
@@ -1485,17 +1524,17 @@ static inline bool checkFullOtherwiseExtend(QScriptLine &line, QScriptLine &tmpD
 static inline void addNextCluster(int &pos, int end, QScriptLine &line, int &glyphCount,
                                   const QScriptItem &current, const unsigned short *logClusters, const QGlyphLayout *glyphs)
 {
-    int gp = logClusters[pos];
-    do {
+    int glyphPosition = logClusters[pos];
+    do { // got to the first next cluster
         ++pos;
         ++line.length;
-    } while (pos < end && logClusters[pos] == gp);
-    do {
-        line.textWidth += glyphs[gp].advance.x * !glyphs[gp].attributes.dontPrint;
-        ++gp;
-    } while (gp < current.num_glyphs && !glyphs[gp].attributes.clusterStart);
+    } while (pos < end && logClusters[pos] == glyphPosition);
+    do { // calculate the textWidth for the rest of the current cluster.
+        line.textWidth += glyphs[glyphPosition].advance.x * !glyphs[glyphPosition].attributes.dontPrint;
+        ++glyphPosition;
+    } while (glyphPosition < current.num_glyphs && !glyphs[glyphPosition].attributes.clusterStart);
 
-    Q_ASSERT((pos == end && gp == current.num_glyphs) || logClusters[pos] == gp);
+    Q_ASSERT((pos == end && glyphPosition == current.num_glyphs) || logClusters[pos] == glyphPosition);
 
     ++glyphCount;
 }
@@ -1530,13 +1569,13 @@ void QTextLine::layout_helper(int maxGlyphs)
     QFixed minw = 0;
     int glyphCount = 0;
 
-    LB_DEBUG("from: %d: item=%d, total %d width available %f", line.from, newItem, eng->layoutData->items.size(), line.width.toReal());
+    LB_DEBUG("from: %d: item=%d, total %d, width available %f", line.from, newItem, eng->layoutData->items.size(), line.width.toReal());
     QScriptLine tmpData;
     QScriptLine spaceData;
 
     Qt::Alignment alignment = eng->option.alignment();
 
-    const QCharAttributes *attributes = eng->attributes();
+    const HB_CharAttributes *attributes = eng->attributes();
     int pos = line.from;
     int end = 0;
     const QGlyphLayout *glyphs = 0;
@@ -1559,19 +1598,18 @@ void QTextLine::layout_helper(int maxGlyphs)
         tmpData.ascent = qMax(tmpData.ascent, current.ascent);
         tmpData.descent = qMax(tmpData.descent, current.descent);
 
-        if (current.isTab && (alignment & Qt::AlignLeft)) {
+        if (current.analysis.flags == QScriptAnalysis::Tab && (alignment & (Qt::AlignLeft | Qt::AlignRight | Qt::AlignCenter | Qt::AlignJustify))) {
             if (checkFullOtherwiseExtend(line, tmpData, spaceData, glyphCount, maxGlyphs, minw, manualWrap))
                 goto found;
 
             QFixed x = line.x + line.textWidth + tmpData.textWidth + spaceData.textWidth;
-            QFixed nx = eng->nextTab(&current, x);
-            spaceData.textWidth += nx - x;
+            spaceData.textWidth += eng->calculateTabWidth(item, x);
             spaceData.length++;
             newItem = item + 1;
             ++glyphCount;
             if (checkFullOtherwiseExtend(line, tmpData, spaceData, glyphCount, maxGlyphs, minw, manualWrap))
                 goto found;
-        } else if (current.isObject) {
+        } else if (current.analysis.flags == QScriptAnalysis::Object) {
             tmpData.length++;
 
             // the width of the linesep doesn't count into the textwidth
@@ -1597,12 +1635,17 @@ void QTextLine::layout_helper(int maxGlyphs)
         } else if (attributes[pos].whiteSpace) {
             while (pos < end && attributes[pos].whiteSpace)
                 addNextCluster(pos, end, spaceData, glyphCount, current, logClusters, glyphs);
+
+            if (!manualWrap && spaceData.textWidth > line.width) {
+                spaceData.textWidth = line.width; // ignore spaces that fall out of the line.
+                goto found;
+            }
         } else {
             bool sb_or_ws = false;
             do {
                 addNextCluster(pos, end, tmpData, glyphCount, current, logClusters, glyphs);
 
-                if (attributes[pos].whiteSpace || attributes[pos-1].lineBreakType != QCharAttributes::NoBreak) {
+                if (attributes[pos].whiteSpace || attributes[pos-1].lineBreakType != HB_NoBreak) {
                     sb_or_ws = true;
                     break;
                 } else if (breakany && attributes[pos].charStop) {
@@ -1612,7 +1655,7 @@ void QTextLine::layout_helper(int maxGlyphs)
             minw = qMax(tmpData.textWidth, minw);
 
             QFixed softHyphenWidth;
-            if (pos && attributes[pos - 1].lineBreakType == QCharAttributes::SoftHyphen) {
+            if (pos && attributes[pos - 1].lineBreakType == HB_SoftHyphen) {
                 // if we are splitting up a word because of
                 // a soft hyphen then we ...
                 //
@@ -1677,6 +1720,18 @@ found:
 
     line.justified = false;
     line.gridfitted = false;
+
+    if (eng->option.wrapMode() == QTextOption::WrapAtWordBoundaryOrAnywhere) {
+        if ((maxGlyphs != INT_MAX && glyphCount > maxGlyphs)
+            || (maxGlyphs == INT_MAX && line.textWidth > line.width)) {
+
+            eng->option.setWrapMode(QTextOption::WrapAnywhere);
+            line.length = 0;
+            line.textWidth = 0;
+            layout_helper(maxGlyphs);
+            eng->option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        }
+    }
 }
 
 /*!
@@ -1754,7 +1809,7 @@ static void drawMenuText(QPainter *p, QFixed x, QFixed y, const QScriptItem &si,
         gf.chars = eng->layoutData->string.unicode() + start;
         QFixed w = 0;
         while (gs < gtmp) {
-            w += (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+            w += glyphs[gs].effectiveAdvance();
             ++gs;
         }
         start = stmp;
@@ -1776,7 +1831,7 @@ static void drawMenuText(QPainter *p, QFixed x, QFixed y, const QScriptItem &si,
             gf.logClusters = logClusters + start - si.position;
             w = 0;
             while (gs < gtmp) {
-                w += (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+                w += glyphs[gs].effectiveAdvance();
                 ++gs;
             }
             ++start;
@@ -1828,7 +1883,7 @@ void QTextLine::draw(QPainter *p, const QPointF &pos, const QTextLayout::FormatR
             p->save();
             const qreal lineHeight = line.height().toReal();
             QRectF r(pos.x() + line.x.toReal(), pos.y() + line.y.toReal(),
-                     lineHeight / 2, lineHeight);
+                     lineHeight / 2, QFontMetrics(eng->font()).width(QLatin1Char(' ')));
             setPenAndDrawBackground(p, QPen(), selection->format, r);
             p->restore();
         }
@@ -1844,7 +1899,7 @@ void QTextLine::draw(QPainter *p, const QPointF &pos, const QTextLayout::FormatR
     while (!iterator.atEnd()) {
         QScriptItem &si = iterator.next();
 
-        if (si.isObject || si.isTab) {
+        if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
             if (eng->layoutData->string.at(si.position) == QChar::LineSeparator)
                 continue;
 
@@ -1856,7 +1911,7 @@ void QTextLine::draw(QPainter *p, const QPointF &pos, const QTextLayout::FormatR
                 if (selection)
                     format.merge(selection->format);
                 setPenAndDrawBackground(p, pen, format, QRectF(iterator.x.toReal(), (y - line.ascent).toReal(), iterator.itemWidth.toReal(), line.height().toReal()));
-                if (si.isObject && eng->block.docHandle()) {
+                if (si.analysis.flags == QScriptAnalysis::Object && eng->block.docHandle()) {
                     QFixed itemY = y - si.ascent;
                     if (format.verticalAlignment() == QTextCharFormat::AlignTop) {
                         itemY = y - line.ascent;
@@ -2013,11 +2068,14 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
     }
 
     int pos = *cursorPos;
-    int itm = eng->findItem(pos);
+    int itm;
     if (pos == line.from + (int)line.length) {
         // end of line ensure we have the last item on the line
         itm = eng->findItem(pos-1);
     }
+    else
+        itm = eng->findItem(pos);
+    eng->shapeLine(line);
 
     const QScriptItem *si = &eng->layoutData->items[itm];
     if (!si->num_glyphs)
@@ -2026,6 +2084,7 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
 
     QGlyphLayout *glyphs = eng->glyphs(si);
     unsigned short *logClusters = eng->logClusters(si);
+    Q_ASSERT(logClusters);
 
     int l = eng->length(itm);
     if (pos > l)
@@ -2064,10 +2123,7 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
         if (!si.num_glyphs)
             eng->shape(item);
 
-        if (si.isTab) {
-            x = eng->nextTab(&si, x);
-            continue;
-        } else if (si.isObject) {
+        if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
             x += si.width;
             continue;
         }
@@ -2082,30 +2138,46 @@ qreal QTextLine::cursorToX(int *cursorPos, Edge edge) const
         QGlyphLayout *glyphs = eng->glyphs(&si);
 
         while (gs <= ge) {
-            x += (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+            x += glyphs[gs].effectiveAdvance();
             ++gs;
         }
     }
 
     logClusters = eng->logClusters(si);
     glyphs = eng->glyphs(si);
-    if (si->isTab) {
-        if(pos == l)
-            x = eng->nextTab(si, x);
-    } else if (si->isObject) {
+    if (si->analysis.flags >= QScriptAnalysis::TabOrObject) {
         if(pos == l)
             x += si->width;
     } else {
+        int offsetInCluster = 0;
+        for (int i=pos-1; i >= 0; i--) {
+            if (logClusters[i] == glyph_pos)
+                offsetInCluster++;
+            else
+                break;
+        }
+
         if (reverse) {
             int end = qMin(lineEnd, si->position + l) - si->position;
             int glyph_end = end == l ? si->num_glyphs : logClusters[end];
             for (int i = glyph_end - 1; i >= glyph_pos; i--)
-                x += (glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].space_18d6)) * !glyphs[i].attributes.dontPrint;
+                x += glyphs[i].effectiveAdvance();
         } else {
             int start = qMax(line.from - si->position, 0);
             int glyph_start = logClusters[start];
             for (int i = glyph_start; i < glyph_pos; i++)
-                x += (glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].space_18d6)) *!glyphs[i].attributes.dontPrint;
+                x += glyphs[i].effectiveAdvance();
+        }
+        if (offsetInCluster > 0) { // in the case that the offset is inside a (multi-character) glyph, interpolate the position.
+            int clusterLength = 0;
+            for (int i=pos - offsetInCluster; i < line.length; i++) {
+                if (logClusters[i] == glyph_pos)
+                    clusterLength++;
+                else
+                    break;
+            }
+            if (clusterLength)
+                x+= glyphs[glyph_pos].advance.x * offsetInCluster / clusterLength;
         }
     }
 
@@ -2165,11 +2237,10 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
         // has to be in one of the runs
         QFixed pos;
 
+        eng->shapeLine(line);
         for (int i = 0; i < nItems; ++i) {
             int item = visualOrder[i]+firstItem;
             QScriptItem &si = eng->layoutData->items[item];
-            if (!si.num_glyphs)
-                eng->shape(item);
             int item_length = eng->length(item);
 //             qDebug("    item %d, visual %d x_remain=%f", i, item, x.toReal());
 
@@ -2183,14 +2254,12 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
             QGlyphLayout *glyphs = eng->glyphs(&si);
 
             QFixed item_width = 0;
-            if (si.isTab) {
-                item_width = eng->nextTab(&si, pos) - pos;
-            } else if (si.isObject) {
+            if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
                 item_width = si.width;
             } else {
                 int g = gs;
                 while (g <= ge) {
-                    item_width += (glyphs[g].advance.x + QFixed::fromFixed(glyphs[g].space_18d6)) * !glyphs[g].attributes.dontPrint;
+                    item_width += glyphs[g].effectiveAdvance();
                     ++g;
                 }
             }
@@ -2201,7 +2270,7 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
                 continue;
             }
 //             qDebug("      inside run");
-            if (si.isTab || si.isObject) {
+            if (si.analysis.flags >= QScriptAnalysis::TabOrObject) {
                 if (cpos == QTextLine::CursorOnCharacter)
                     return si.position;
                 bool left_half = (x - pos) < item_width/2;
@@ -2224,7 +2293,7 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
                             glyph_pos = gs;
                             break;
                         }
-                        pos -= (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+                        pos -= glyphs[gs].effectiveAdvance();
                         ++gs;
                     }
                 } else {
@@ -2235,7 +2304,7 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
                                 break;
                             glyph_pos = gs;
                         }
-                        pos += (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+                        pos += glyphs[gs].effectiveAdvance();
                         ++gs;
                     }
                 }
@@ -2248,7 +2317,7 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
                             glyph_pos = gs;
                             dist = qAbs(x-pos);
                         }
-                        pos -= (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+                        pos -= glyphs[gs].effectiveAdvance();
                         ++gs;
                     }
                 } else {
@@ -2257,7 +2326,7 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
                             glyph_pos = gs;
                             dist = qAbs(x-pos);
                         }
-                        pos += (glyphs[gs].advance.x + QFixed::fromFixed(glyphs[gs].space_18d6)) * !glyphs[gs].attributes.dontPrint;
+                        pos += glyphs[gs].effectiveAdvance();
                         ++gs;
                     }
                 }
@@ -2297,3 +2366,5 @@ int QTextLine::xToCursor(qreal _x, CursorPosition cpos) const
     pos = qMin(pos, maxPos);
     return pos;
 }
+
+QT_END_NAMESPACE

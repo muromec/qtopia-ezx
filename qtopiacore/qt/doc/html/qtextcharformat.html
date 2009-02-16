@@ -2,21 +2,22 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/text/qtextformat.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/text/qtextformat.cpp -->
 <head>
-  <title>Qt 4.3: QTextCharFormat Class Reference</title>
+  <title>Qt 4.4: QTextCharFormat Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QTextCharFormat Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QTextCharFormat Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QTextCharFormat class provides formatting information for characters in a <a href="qtextdocument.html">QTextDocument</a>. <a href="#details">More...</a></p>
 <pre> #include &lt;QTextCharFormat&gt;</pre><p>Inherits <a href="qtextformat.html">QTextFormat</a>.</p>
-<p>Inherited by <a href="qtextimageformat.html">QTextImageFormat</a>.</p>
+<p>Inherited by <a href="qtextimageformat.html">QTextImageFormat</a> and <a href="qtexttablecellformat.html">QTextTableCellFormat</a>.</p>
+<p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
 <ul>
 <li><a href="qtextcharformat-members.html">List of all members, including inherited members</a></li>
 <li><a href="qtextcharformat-obsolete.html">Obsolete members</a></li>
@@ -34,28 +35,34 @@
 <li><div class="fn"/>QString <b><a href="qtextcharformat.html#anchorHref">anchorHref</a></b> () const</li>
 <li><div class="fn"/>QStringList <b><a href="qtextcharformat.html#anchorNames">anchorNames</a></b> () const</li>
 <li><div class="fn"/>QFont <b><a href="qtextcharformat.html#font">font</a></b> () const</li>
+<li><div class="fn"/>QFont::Capitalization <b><a href="qtextcharformat.html#fontCapitalization">fontCapitalization</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qtextcharformat.html#fontFamily">fontFamily</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#fontFixedPitch">fontFixedPitch</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#fontItalic">fontItalic</a></b> () const</li>
+<li><div class="fn"/>qreal <b><a href="qtextcharformat.html#fontLetterSpacing">fontLetterSpacing</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#fontOverline">fontOverline</a></b> () const</li>
 <li><div class="fn"/>qreal <b><a href="qtextcharformat.html#fontPointSize">fontPointSize</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#fontStrikeOut">fontStrikeOut</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#fontUnderline">fontUnderline</a></b> () const</li>
 <li><div class="fn"/>int <b><a href="qtextcharformat.html#fontWeight">fontWeight</a></b> () const</li>
+<li><div class="fn"/>qreal <b><a href="qtextcharformat.html#fontWordSpacing">fontWordSpacing</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#isAnchor">isAnchor</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qtextcharformat.html#isValid">isValid</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setAnchor">setAnchor</a></b> ( bool <i>anchor</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setAnchorHref">setAnchorHref</a></b> ( const QString &amp; <i>value</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setAnchorNames">setAnchorNames</a></b> ( const QStringList &amp; <i>names</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFont">setFont</a></b> ( const QFont &amp; <i>font</i> )</li>
+<li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontCapitalization">setFontCapitalization</a></b> ( QFont::Capitalization <i>capitalization</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontFamily">setFontFamily</a></b> ( const QString &amp; <i>family</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontFixedPitch">setFontFixedPitch</a></b> ( bool <i>fixedPitch</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontItalic">setFontItalic</a></b> ( bool <i>italic</i> )</li>
+<li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontLetterSpacing">setFontLetterSpacing</a></b> ( qreal <i>spacing</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontOverline">setFontOverline</a></b> ( bool <i>overline</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontPointSize">setFontPointSize</a></b> ( qreal <i>size</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontStrikeOut">setFontStrikeOut</a></b> ( bool <i>strikeOut</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontUnderline">setFontUnderline</a></b> ( bool <i>underline</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontWeight">setFontWeight</a></b> ( int <i>weight</i> )</li>
+<li><div class="fn"/>void <b><a href="qtextcharformat.html#setFontWordSpacing">setFontWordSpacing</a></b> ( qreal <i>spacing</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setTextOutline">setTextOutline</a></b> ( const QPen &amp; <i>pen</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setToolTip">setToolTip</a></b> ( const QString &amp; <i>text</i> )</li>
 <li><div class="fn"/>void <b><a href="qtextcharformat.html#setUnderlineColor">setUnderlineColor</a></b> ( const QColor &amp; <i>color</i> )</li>
@@ -68,7 +75,7 @@
 <li><div class="fn"/>VerticalAlignment <b><a href="qtextcharformat.html#verticalAlignment">verticalAlignment</a></b> () const</li>
 </ul>
 <ul>
-<li><div class="fn"/>47 public functions inherited from <a href="qtextformat.html#public-functions">QTextFormat</a></li>
+<li><div class="fn"/>49 public functions inherited from <a href="qtextformat.html#public-functions">QTextFormat</a></li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -119,6 +126,10 @@
 <h3 class="fn"><a name="font"></a><a href="qfont.html">QFont</a> QTextCharFormat::font () const</h3>
 <p>Returns the font for this character format.</p>
 <p>See also <a href="qtextcharformat.html#setFont">setFont</a>().</p>
+<h3 class="fn"><a name="fontCapitalization"></a><a href="qfont.html#Capitalization-enum">QFont::Capitalization</a> QTextCharFormat::fontCapitalization () const</h3>
+<p>Returns the current capitalization type of the font.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#setFontCapitalization">setFontCapitalization</a>().</p>
 <h3 class="fn"><a name="fontFamily"></a><a href="qstring.html">QString</a> QTextCharFormat::fontFamily () const</h3>
 <p>Returns the text format's font family.</p>
 <p>See also <a href="qtextcharformat.html#setFontFamily">setFontFamily</a>() and <a href="qtextcharformat.html#font">font</a>().</p>
@@ -128,6 +139,10 @@
 <h3 class="fn"><a name="fontItalic"></a>bool QTextCharFormat::fontItalic () const</h3>
 <p>Returns true if the text format's font is italic; otherwise returns false.</p>
 <p>See also <a href="qtextcharformat.html#setFontItalic">setFontItalic</a>() and <a href="qtextcharformat.html#font">font</a>().</p>
+<h3 class="fn"><a name="fontLetterSpacing"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QTextCharFormat::fontLetterSpacing () const</h3>
+<p>Returns the current letter spacing percentage.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#setFontLetterSpacing">setFontLetterSpacing</a>().</p>
 <h3 class="fn"><a name="fontOverline"></a>bool QTextCharFormat::fontOverline () const</h3>
 <p>Returns true if the text format's font is overlined; otherwise returns false.</p>
 <p>See also <a href="qtextcharformat.html#setFontOverline">setFontOverline</a>() and <a href="qtextcharformat.html#font">font</a>().</p>
@@ -143,6 +158,10 @@
 <h3 class="fn"><a name="fontWeight"></a>int QTextCharFormat::fontWeight () const</h3>
 <p>Returns the text format's font weight.</p>
 <p>See also <a href="qtextcharformat.html#setFontWeight">setFontWeight</a>(), <a href="qtextcharformat.html#font">font</a>(), and <a href="qfont.html#Weight-enum">QFont::Weight</a>.</p>
+<h3 class="fn"><a name="fontWordSpacing"></a><a href="qtglobal.html#qreal-typedef">qreal</a> QTextCharFormat::fontWordSpacing () const</h3>
+<p>Returns the current word spacing value.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#setFontWordSpacing">setFontWordSpacing</a>().</p>
 <h3 class="fn"><a name="isAnchor"></a>bool QTextCharFormat::isAnchor () const</h3>
 <p>Returns true if the text is formatted as an anchor; otherwise returns false.</p>
 <p>See also <a href="qtextcharformat.html#setAnchor">setAnchor</a>(), <a href="qtextcharformat.html#setAnchorHref">setAnchorHref</a>(), and <a href="qtextcharformat.html#setAnchorNames">setAnchorNames</a>().</p>
@@ -164,6 +183,11 @@
 <h3 class="fn"><a name="setFont"></a>void QTextCharFormat::setFont ( const <a href="qfont.html">QFont</a> &amp; <i>font</i> )</h3>
 <p>Sets the text format's <i>font</i>.</p>
 <p>See also <a href="qtextcharformat.html#font">font</a>().</p>
+<h3 class="fn"><a name="setFontCapitalization"></a>void QTextCharFormat::setFontCapitalization ( <a href="qfont.html#Capitalization-enum">QFont::Capitalization</a> <i>capitalization</i> )</h3>
+<p>Sets the capitalization of the text that apppears in this font to <i>capitalization</i>.</p>
+<p>A font's capitalization makes the text appear in the selected capitalization mode.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#fontCapitalization">fontCapitalization</a>().</p>
 <h3 class="fn"><a name="setFontFamily"></a>void QTextCharFormat::setFontFamily ( const <a href="qstring.html">QString</a> &amp; <i>family</i> )</h3>
 <p>Sets the text format's font <i>family</i>.</p>
 <p>See also <a href="qtextcharformat.html#fontFamily">fontFamily</a>() and <a href="qtextcharformat.html#setFont">setFont</a>().</p>
@@ -173,6 +197,10 @@
 <h3 class="fn"><a name="setFontItalic"></a>void QTextCharFormat::setFontItalic ( bool <i>italic</i> )</h3>
 <p>If <i>italic</i> is true, sets the text format's font to be italic; otherwise the font will be non-italic.</p>
 <p>See also <a href="qtextcharformat.html#fontItalic">fontItalic</a>() and <a href="qtextcharformat.html#setFont">setFont</a>().</p>
+<h3 class="fn"><a name="setFontLetterSpacing"></a>void QTextCharFormat::setFontLetterSpacing ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>spacing</i> )</h3>
+<p>Sets the letter spacing of this format to the given <i>spacing</i>, in percent. A value of 100 indicates default spacing; a value of 200 doubles the amount of space a letter takes.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#fontLetterSpacing">fontLetterSpacing</a>().</p>
 <h3 class="fn"><a name="setFontOverline"></a>void QTextCharFormat::setFontOverline ( bool <i>overline</i> )</h3>
 <p>If <i>overline</i> is true, sets the text format's font to be overlined; otherwise the font is displayed non-overlined.</p>
 <p>See also <a href="qtextcharformat.html#fontOverline">fontOverline</a>() and <a href="qtextcharformat.html#setFont">setFont</a>().</p>
@@ -188,6 +216,10 @@
 <h3 class="fn"><a name="setFontWeight"></a>void QTextCharFormat::setFontWeight ( int <i>weight</i> )</h3>
 <p>Sets the text format's font weight to <i>weight</i>.</p>
 <p>See also <a href="qtextcharformat.html#fontWeight">fontWeight</a>(), <a href="qtextcharformat.html#setFont">setFont</a>(), and <a href="qfont.html#Weight-enum">QFont::Weight</a>.</p>
+<h3 class="fn"><a name="setFontWordSpacing"></a>void QTextCharFormat::setFontWordSpacing ( <a href="qtglobal.html#qreal-typedef">qreal</a> <i>spacing</i> )</h3>
+<p>Sets the word spacing of this format to the given <i>spacing</i>, in pixels.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qtextcharformat.html#fontWordSpacing">fontWordSpacing</a>().</p>
 <h3 class="fn"><a name="setTextOutline"></a>void QTextCharFormat::setTextOutline ( const <a href="qpen.html">QPen</a> &amp; <i>pen</i> )</h3>
 <p>Sets the pen used to draw the outlines of characters to the given <i>pen</i>.</p>
 <p>See also <a href="qtextcharformat.html#textOutline">textOutline</a>().</p>
@@ -224,8 +256,8 @@
 <p>See also <a href="qtextcharformat.html#setVerticalAlignment">setVerticalAlignment</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

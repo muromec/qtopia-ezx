@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -57,6 +51,8 @@
 #include "quoter.h"
 #include "separator.h"
 #include "tokenizer.h"
+
+QT_BEGIN_NAMESPACE
 
 QList<Generator *> Generator::generators;
 QMap<QString, QMap<QString, QString> > Generator::fmtLeftMaps;
@@ -501,31 +497,31 @@ void Generator::generateModuleWarning(const ClassNode *classe, CodeMarker *marke
 QString Generator::indent( int level, const QString& markedCode )
 {
     if ( level == 0 )
-	return markedCode;
+        return markedCode;
 
     QString t;
     int column = 0;
 
     int i = 0;
     while ( i < (int) markedCode.length() ) {
-	if ( markedCode[i] == '<' ) {
-	    while ( i < (int) markedCode.length() ) {
-		t += markedCode[i++];
-		if ( markedCode[i - 1] == '>' )
-		    break;
-	    }
-	} else {
-	    if ( markedCode[i] == '\n' ) {
-		column = 0;
-	    } else {
-		if ( column == 0 ) {
-		    for ( int j = 0; j < level; j++ )
-			t += ' ';
-		}
-		column++;
-	    }
-	    t += markedCode[i++];
-	}
+        if ( markedCode.at(i) == QLatin1Char('<') ) {
+            while ( i < (int) markedCode.length() ) {
+                t += markedCode.at(i++);
+                if ( markedCode.at(i - 1) == QLatin1Char('>') )
+                    break;
+            }
+        } else {
+            if ( markedCode.at(i) == QLatin1Char('\n') ) {
+                column = 0;
+            } else {
+                if ( column == 0 ) {
+                    for ( int j = 0; j < level; j++ )
+                        t += QLatin1Char(' ');
+                }
+                column++;
+            }
+            t += markedCode.at(i++);
+        }
     }
     return t;
 }
@@ -533,11 +529,11 @@ QString Generator::indent( int level, const QString& markedCode )
 QString Generator::plainCode( const QString& markedCode )
 {
     QString t = markedCode;
-    t.replace( tag, "" );
-    t.replace( quot, "\"" );
-    t.replace( gt, ">" );
-    t.replace( lt, "<" );
-    t.replace( amp, "&" );
+    t.replace( tag, QString() );
+    t.replace( quot, QLatin1String("\"") );
+    t.replace( gt, QLatin1String(">") );
+    t.replace( lt, QLatin1String("<") );
+    t.replace( amp, QLatin1String("&") );
     return t;
 }
 
@@ -565,13 +561,17 @@ QString Generator::typeString( const Node *node )
 QString Generator::imageFileName( const Node *relative, const QString& fileBase )
 {
     QString userFriendlyFilePath;
-    QString filePath = Config::findFile(relative->doc().location(), imageFiles, imageDirs, fileBase,
-					imgFileExts[format()], userFriendlyFilePath);
-    if (filePath.isEmpty())
-	return "";
+    QString filePath = Config::findFile(
+        relative->doc().location(), imageFiles, imageDirs, fileBase,
+        imgFileExts[format()], userFriendlyFilePath);
 
-    return "images/"
-           + Config::copyFile(relative->doc().location(), filePath, userFriendlyFilePath, outputDir() + "/images");
+    if (filePath.isEmpty())
+        return QString();
+
+    return QLatin1String("images/")
+           + Config::copyFile(relative->doc().location(),
+                              filePath, userFriendlyFilePath,
+                              outputDir() + QLatin1String("/images"));
 }
 
 void Generator::setImageFileExtensions( const QStringList& extensions )
@@ -702,6 +702,10 @@ void Generator::generateStatus( const Node *node, CodeMarker *marker )
                  << " for more information."
                  << Atom::ParaRight;
         }
+        break;
+    case Node::Internal:
+    default:
+        break;
     }
     generateText(text, node, marker);
 }
@@ -873,9 +877,12 @@ void Generator::appendSortedNames(Text& text, const ClassNode *classe,
 
     r = classes.begin();
     while ( r != classes.end() ) {
-        Text className;
-	appendFullName( className, (*r).node, classe, marker );
-        classMap[className.toString().toLower()] = className;
+        if ((*r).node->access() == Node::Public && (*r).node->status() != Node::Internal
+            && !(*r).node->doc().isEmpty()) {
+            Text className;
+	    appendFullName( className, (*r).node, classe, marker );
+            classMap[className.toString().toLower()] = className;
+	}
         ++r;
     }
 
@@ -884,7 +891,7 @@ void Generator::appendSortedNames(Text& text, const ClassNode *classe,
 
     foreach (className, classNames) {
         text << classMap[className];
-	text << separator( index++, classes.count() );
+	text << separator( index++, classNames.count() );
     }
 }
 
@@ -910,3 +917,5 @@ QString Generator::fullName(const Node *node, const Node *relative,
     else
         return marker->plainFullName(node, relative);
 }
+
+QT_END_NAMESPACE

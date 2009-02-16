@@ -2,20 +2,21 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/tools/qbytearray.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/tools/qbytearray.cpp -->
 <head>
-  <title>Qt 4.3: QByteArray Class Reference</title>
+  <title>Qt 4.4: QByteArray Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QByteArray Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QByteArray Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QByteArray class provides an array of bytes. <a href="#details">More...</a></p>
-<pre> #include &lt;QByteArray&gt;</pre><p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
+<pre> #include &lt;QByteArray&gt;</pre><p>Inherited by <a href="q3cstring.html" class="compat">Q3CString</a>.</p>
+<p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
 <ul>
 <li><a href="qbytearray-members.html">List of all members, including inherited members</a></li>
 <li><a href="qbytearray-qt3.html">Qt 3 support members</a></li>
@@ -33,7 +34,7 @@
 <li><div class="fn"/>QByteArray &amp; <b><a href="qbytearray.html#append-2">append</a></b> ( const QString &amp; <i>str</i> )</li>
 <li><div class="fn"/>QByteArray &amp; <b><a href="qbytearray.html#append-3">append</a></b> ( const char * <i>str</i> )</li>
 <li><div class="fn"/>QByteArray &amp; <b><a href="qbytearray.html#append-4">append</a></b> ( char <i>ch</i> )</li>
-<li><div class="fn"/>const char <b><a href="qbytearray.html#at">at</a></b> ( int <i>i</i> ) const</li>
+<li><div class="fn"/>char <b><a href="qbytearray.html#at">at</a></b> ( int <i>i</i> ) const</li>
 <li><div class="fn"/>int <b><a href="qbytearray.html#capacity">capacity</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qbytearray.html#chop">chop</a></b> ( int <i>n</i> )</li>
 <li><div class="fn"/>void <b><a href="qbytearray.html#clear">clear</a></b> ()</li>
@@ -118,6 +119,7 @@
 <li><div class="fn"/>long <b><a href="qbytearray.html#toLong">toLong</a></b> ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</li>
 <li><div class="fn"/>qlonglong <b><a href="qbytearray.html#toLongLong">toLongLong</a></b> ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</li>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#toLower">toLower</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qbytearray.html#toPercentEncoding">toPercentEncoding</a></b> ( const QByteArray &amp; <i>exclude</i> = QByteArray(), const QByteArray &amp; <i>include</i> = QByteArray(), char <i>percent</i> = '%' ) const</li>
 <li><div class="fn"/>short <b><a href="qbytearray.html#toShort">toShort</a></b> ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</li>
 <li><div class="fn"/>uint <b><a href="qbytearray.html#toUInt">toUInt</a></b> ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</li>
 <li><div class="fn"/>ulong <b><a href="qbytearray.html#toULong">toULong</a></b> ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</li>
@@ -141,15 +143,16 @@
 <li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt">operator&gt;</a></b> ( const QString &amp; <i>str</i> ) const</li>
 <li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq">operator&gt;=</a></b> ( const QString &amp; <i>str</i> ) const</li>
 <li><div class="fn"/>QByteRef <b><a href="qbytearray.html#operator-5b-5d">operator[]</a></b> ( int <i>i</i> )</li>
-<li><div class="fn"/>const char <b><a href="qbytearray.html#operator-5b-5d-2">operator[]</a></b> ( int <i>i</i> ) const</li>
+<li><div class="fn"/>char <b><a href="qbytearray.html#operator-5b-5d-2">operator[]</a></b> ( int <i>i</i> ) const</li>
 <li><div class="fn"/>QByteRef <b><a href="qbytearray.html#operator-5b-5d-3">operator[]</a></b> ( uint <i>i</i> )</li>
-<li><div class="fn"/>const char <b><a href="qbytearray.html#operator-5b-5d-4">operator[]</a></b> ( uint <i>i</i> ) const</li>
+<li><div class="fn"/>char <b><a href="qbytearray.html#operator-5b-5d-4">operator[]</a></b> ( uint <i>i</i> ) const</li>
 </ul>
 <a name="static-public-members"></a>
 <h3>Static Public Members</h3>
 <ul>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#fromBase64">fromBase64</a></b> ( const QByteArray &amp; <i>base64</i> )</li>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#fromHex">fromHex</a></b> ( const QByteArray &amp; <i>hexEncoded</i> )</li>
+<li><div class="fn"/>QByteArray <b><a href="qbytearray.html#fromPercentEncoding">fromPercentEncoding</a></b> ( const QByteArray &amp; <i>input</i>, char <i>percent</i> = '%' )</li>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#fromRawData">fromRawData</a></b> ( const char * <i>data</i>, int <i>size</i> )</li>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#number">number</a></b> ( int <i>n</i>, int <i>base</i> = 10 )</li>
 <li><div class="fn"/>QByteArray <b><a href="qbytearray.html#number-2">number</a></b> ( uint <i>n</i>, int <i>base</i> = 10 )</li>
@@ -176,38 +179,38 @@
 <li><div class="fn"/>int <b><a href="qbytearray.html#qstrnicmp">qstrnicmp</a></b> ( const char * <i>str1</i>, const char * <i>str2</i>, uint <i>len</i> )</li>
 <li><div class="fn"/>uint <b><a href="qbytearray.html#qstrnlen">qstrnlen</a></b> ( const char * <i>str</i>, uint <i>maxlen</i> )</li>
 <li><div class="fn"/>int <b><a href="qbytearray.html#qvsnprintf">qvsnprintf</a></b> ( char * <i>str</i>, size_t <i>n</i>, const char * <i>fmt</i>, va_list <i>ap</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-41">operator!=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-42">operator!=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-43">operator!=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-22">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-23">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, char <i>a2</i> )</li>
-<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-24">operator+</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-25">operator+</a></b> ( char <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-14">operator&lt;</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-15">operator&lt;</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-16">operator&lt;</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qbytearray.html#operator-lt-lt-61">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QByteArray &amp; <i>ba</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-11">operator&lt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-12">operator&lt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-13">operator&lt;=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-56">operator==</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-57">operator==</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-58">operator==</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-11">operator&gt;</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-12">operator&gt;</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-13">operator&gt;</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-11">operator&gt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-12">operator&gt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
-<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-13">operator&gt;=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qbytearray.html#operator-gt-gt-39">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QByteArray &amp; <i>ba</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-42">operator!=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-43">operator!=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-not-eq-44">operator!=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-17">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-30">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-31">operator+</a></b> ( const QByteArray &amp; <i>a1</i>, char <i>a2</i> )</li>
+<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-32">operator+</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>const QByteArray <b><a href="qbytearray.html#operator-2b-33">operator+</a></b> ( char <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-15">operator&lt;</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-16">operator&lt;</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-17">operator&lt;</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qbytearray.html#operator-lt-lt-106">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QByteArray &amp; <i>ba</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-12">operator&lt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-13">operator&lt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-lt-eq-14">operator&lt;=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-64">operator==</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-65">operator==</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-eq-eq-66">operator==</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-12">operator&gt;</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-13">operator&gt;</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-14">operator&gt;</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-12">operator&gt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-13">operator&gt;=</a></b> ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</li>
+<li><div class="fn"/>bool <b><a href="qbytearray.html#operator-gt-eq-14">operator&gt;=</a></b> ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qbytearray.html#operator-gt-gt-59">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QByteArray &amp; <i>ba</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
 <h2>Detailed Description</h2>
 <p>The QByteArray class provides an array of bytes.</p>
 <p>QByteArray can be used to store both raw bytes (including '\0's) and traditional 8-bit '\0'-terminated strings. Using QByteArray is much more convenient than using <tt>const char *</tt>. Behind the scenes, it always ensures that the data is followed by a '\0' terminator, and uses <a href="shared.html#implicit-sharing">implicit sharing</a> (copy-on-write) to reduce memory usage and avoid needless copying of data.</p>
-<p>In addition to QByteArray, Qt also provides the <a href="qstring.html">QString</a> class to store string data. For most purposes, <a href="qstring.html">QString</a> is the class you want to use. It stores 16-bit Unicode characters, making it easy to store non-ASCII/non-Latin-1 characters in your application. Furthermore, <a href="qstring.html">QString</a> is used throughout in the Qt API. The two main cases where QByteArray is appropriate are when you need to store raw binary data, and when memory conservation is critical (e.g&#x2e; with Qtopia Core).</p>
+<p>In addition to QByteArray, Qt also provides the <a href="qstring.html">QString</a> class to store string data. For most purposes, <a href="qstring.html">QString</a> is the class you want to use. It stores 16-bit Unicode characters, making it easy to store non-ASCII/non-Latin-1 characters in your application. Furthermore, <a href="qstring.html">QString</a> is used throughout in the Qt API. The two main cases where QByteArray is appropriate are when you need to store raw binary data, and when memory conservation is critical (e.g&#x2e;, with Qt for Embedded Linux).</p>
 <p>One way to initialize a QByteArray is simply to pass a <tt>const char *</tt> to its constructor. For example, the following code creates a byte array of size 5 containing the data &quot;Hello&quot;:</p>
 <pre> QByteArray ba(&quot;Hello&quot;);</pre>
 <p>Although the <a href="qbytearray.html#size">size</a>() is 5, the byte array also maintains an extra '\0' character at the end so that if a function is used that asks for a pointer to the underlying data (e.g&#x2e; a call to <a href="qbytearray.html#data">data</a>()), the data pointed to is guaranteed to be '\0'-terminated.</p>
@@ -257,8 +260,13 @@
  QByteArray(&quot;abc&quot;).isNull();     <span class="comment">// returns false</span>
  QByteArray(&quot;abc&quot;).isEmpty();    <span class="comment">// returns false</span></pre>
 <p>All functions except <a href="qbytearray.html#isNull">isNull</a>() treat null byte arrays the same as empty byte arrays. For example, <a href="qbytearray.html#data">data</a>() returns a pointer to a '\0' character for a null byte array (<i>not</i> a null pointer), and <a href="qbytearray.html#QByteArray">QByteArray</a>() compares equal to QByteArray(&quot;&quot;). We recommend that you always use <a href="qbytearray.html#isEmpty">isEmpty</a>() and avoid <a href="qbytearray.html#isNull">isNull</a>().</p>
-<a name="note-on-8-bit-character-comparisons"></a>
-<h3>Note on 8-bit Character Comparisons</h3>
+<a name="notes-on-locale"></a>
+<h3>Notes on Locale</h3>
+<a name="number-string-conversions"></a>
+<h4>Number-String Conversions</h4>
+<p>Functions that perform conversions between numeric data types and strings are performed in the C locale, irrespective of the user's locale settings. Use <a href="qstring.html">QString</a> to perform locale-aware conversions between numbers and strings.</p>
+<a name="8-bit-character-comparisons"></a>
+<h4>8-bit Character Comparisons</h4>
 <p>In QByteArray, the notion of uppercase and lowercase and of which character is greater than or less than another character is locale dependent. This affects functions that support a case insensitive option or that compare or lowercase or uppercase their arguments. Case insensitive operations and comparisons will be accurate if both strings contain only ASCII characters. (If <tt>$LC_CTYPE</tt> is set, most Unix systems do &quot;the right thing&quot;.) Functions that this affects include <a href="qbytearray.html#contains">contains</a>(), <a href="qbytearray.html#indexOf">indexOf</a>(), <a href="qbytearray.html#lastIndexOf">lastIndexOf</a>(), operator&lt;(), operator&lt;=(), operator&gt;(), operator&gt;=(), <a href="qbytearray.html#toLower">toLower</a>() and <a href="qbytearray.html#toUpper">toUpper</a>().</p>
 <p>This issue does not apply to QStrings since they represent characters using Unicode.</p>
 <p>See also <a href="qstring.html">QString</a> and <a href="qbitarray.html">QBitArray</a>.</p>
@@ -293,6 +301,7 @@
 <span class="comment"> // x == &quot;freedom&quot;</span></pre>
 <p>This is the same as insert(<a href="qbytearray.html#size">size</a>(), <i>ba</i>).</p>
 <p>This operation is typically very fast (<a href="containers.html#constant-time">constant time</a>), because <a href="qbytearray.html">QByteArray</a> preallocates extra space at the end of the character data so it can grow without reallocating the entire data each time.</p>
+<p>Note: <a href="qbytearray.html">QByteArray</a> is an <a href="shared.html#implicitly-shared">implicitly shared</a> class. Consequently, if <i>this</i> is an empty <a href="qbytearray.html">QByteArray</a>, then <i>this</i> will just share the data held in <i>ba</i>. In this case, no copying of data is done.</p>
 <p>See also <a href="qbytearray.html#operator-2b-eq">operator+=</a>(), <a href="qbytearray.html#prepend">prepend</a>(), and <a href="qbytearray.html#insert">insert</a>().</p>
 <h3 class="fn"><a name="append-2"></a>QByteArray &amp; QByteArray::append ( const <a href="qstring.html">QString</a> &amp; <i>str</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -304,7 +313,7 @@
 <h3 class="fn"><a name="append-4"></a>QByteArray &amp; QByteArray::append ( char <i>ch</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Appends the character <i>ch</i> to this byte array.</p>
-<h3 class="fn"><a name="at"></a>const char QByteArray::at ( int <i>i</i> ) const</h3>
+<h3 class="fn"><a name="at"></a>char QByteArray::at ( int <i>i</i> ) const</h3>
 <p>Returns the character at index position <i>i</i> in the byte array.</p>
 <p><i>i</i> must be a valid index position in the byte array (i.e&#x2e;, 0 &lt;= <i>i</i> &lt; <a href="qbytearray.html#size">size</a>()).</p>
 <p>See also <a href="qbytearray.html#operator-5b-5d">operator[]</a>().</p>
@@ -323,7 +332,7 @@
 <p>Clears the contents of the byte array and makes it empty.</p>
 <p>See also <a href="qbytearray.html#resize">resize</a>() and <a href="qbytearray.html#isEmpty">isEmpty</a>().</p>
 <h3 class="fn"><a name="constData"></a>const char * QByteArray::constData () const</h3>
-<p>Returns a pointer to the data stored in the byte array. The pointer can be used to access the bytes that compose the array. The data is '\0'-terminated. The pointer remains valid as long as the byte array isn't reallocated.</p>
+<p>Returns a pointer to the data stored in the byte array. The pointer can be used to access the bytes that compose the array. The data is '\0'-terminated. The pointer remains valid as long as the byte array isn't reallocated or destroyed.</p>
 <p>This function is mostly useful to pass a byte array to a function that accepts a <tt>const char *</tt>.</p>
 <p>Note: A <a href="qbytearray.html">QByteArray</a> can store any byte values including '\0's, but most functions that take <tt>char *</tt> arguments assume that the data ends at the first '\0' they encounter.</p>
 <p>See also <a href="qbytearray.html#data">data</a>() and <a href="qbytearray.html#operator-5b-5d">operator[]</a>().</p>
@@ -358,7 +367,7 @@
      cout &lt;&lt; &quot;[&quot; &lt;&lt; *data &lt;&lt; &quot;]&quot; &lt;&lt; endl;
      ++data;
  }</pre>
-<p>The pointer remains valid as long as the byte array isn't reallocated. For read-only access, <a href="qbytearray.html#constData">constData</a>() is faster because it never causes a <a href="shared.html#deep-copy">deep copy</a> to occur.</p>
+<p>The pointer remains valid as long as the byte array isn't reallocated or destroyed. For read-only access, <a href="qbytearray.html#constData">constData</a>() is faster because it never causes a <a href="shared.html#deep-copy">deep copy</a> to occur.</p>
 <p>This function is mostly useful to pass a byte array to a function that accepts a <tt>const char *</tt>.</p>
 <p>Note: A <a href="qbytearray.html">QByteArray</a> can store any byte values including '\0's, but most functions that take <tt>char *</tt> arguments assume that the data ends at the first '\0' they encounter.</p>
 <p>See also <a href="qbytearray.html#constData">constData</a>() and <a href="qbytearray.html#operator-5b-5d">operator[]</a>().</p>
@@ -400,10 +409,17 @@
 <pre> QByteArray text = QByteArray::fromHex(&quot;517420697320677265617421&quot;);
  text.data();            <span class="comment">// returns &quot;Qt is great</span>!&quot;</pre>
 <p>See also <a href="qbytearray.html#toHex">toHex</a>().</p>
+<h3 class="fn"><a name="fromPercentEncoding"></a>QByteArray QByteArray::fromPercentEncoding ( const QByteArray &amp; <i>input</i>, char <i>percent</i> = '%' )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<p>Returns a decoded copy of the URI/URL-style percent-encoded <i>input</i>. The <i>percent</i> parameter allows you to replace the '%' character for another (for instance, '_' or '=').</p>
+<p>For example:</p>
+<pre> QByteArray text = QByteArray::fromPercentEncoding(&quot;Qt%20is%20great%33&quot;);
+ text.data();            <span class="comment">// returns &quot;Qt is great</span>!&quot;</pre>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qbytearray.html#toPercentEncoding">toPercentEncoding</a>() and <a href="qurl.html#fromPercentEncoding">QUrl::fromPercentEncoding</a>().</p>
 <h3 class="fn"><a name="fromRawData"></a>QByteArray QByteArray::fromRawData ( const char * <i>data</i>, int <i>size</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
-<p>Constructs a <a href="qbytearray.html">QByteArray</a> that uses the first <i>size</i> characters in the array <i>data</i>. The bytes in <i>data</i> are <i>not</i> copied. The caller must be able to guarantee that <i>data</i> will not be deleted or modified as long as the <a href="qbytearray.html">QByteArray</a> (or an unmodified copy of it) exists.</p>
-<p>Any attempts to modify the <a href="qbytearray.html">QByteArray</a> or copies of it will cause it to create a deep copy of the data, ensuring that the raw data isn't modified.</p>
-<p>Here's an example of how we can read data using a <a href="qdatastream.html">QDataStream</a> on raw data in memory without requiring to copy the data into a <a href="qbytearray.html">QByteArray</a>:</p>
+<p>Constructs a <a href="qbytearray.html">QByteArray</a> that uses the first <i>size</i> bytes of the <i>data</i> array. The bytes are <i>not</i> copied. The <a href="qbytearray.html">QByteArray</a> will contain the <i>data</i> pointer. The caller guarantees that <i>data</i> will not be deleted or modified as long as this <a href="qbytearray.html">QByteArray</a> and any copies of it exist that have not been modified. In other words, because <a href="qbytearray.html">QByteArray</a> is an <a href="shared.html#implicitly-shared">implicitly shared</a> class and the instance returned by this function contains the <i>data</i> pointer, the caller must not delete <i>data</i> or modify it directly as long as the returned <a href="qbytearray.html">QByteArray</a> and any copies exist. However, <a href="qbytearray.html">QByteArray</a> does not take ownership of <i>data</i>, so the <a href="qbytearray.html">QByteArray</a> destructor will never delete the raw <i>data</i>, even when the last <a href="qbytearray.html">QByteArray</a> referring to <i>data</i> is destroyed.</p>
+<p>A subsequent attempt to modify the contents of the returned <a href="qbytearray.html">QByteArray</a> or any copy made from it will cause it to create a deep copy of the <i>data</i> array before doing the modification. This ensures that the raw <i>data</i> array itself will never be modified by <a href="qbytearray.html">QByteArray</a>.</p>
+<p>Here is an example of how to read data using a <a href="qdatastream.html">QDataStream</a> on raw data in memory without copying the raw data into a <a href="qbytearray.html">QByteArray</a>:</p>
 <pre>  static const char mydata[] = {
      0x00, 0x00, 0x03, 0x84, 0x78, 0x9c, 0x3b, 0x76,
      0xec, 0x18, 0xc3, 0x31, 0x0a, 0xf1, 0xcc, 0x99,
@@ -414,7 +430,7 @@
  QByteArray data = QByteArray::fromRawData(mydata, sizeof(mydata));
  QDataStream in(&amp;data, QIODevice::ReadOnly);
  ...</pre>
-<p><b>Warning:</b> A byte array created with fromRawData() is <i>not</i> null-terminated, unless the raw data contains a 0 character at position <i>size</i>. While that does not matter for <a href="qdatastream.html">QDataStream</a> or functions like <a href="qbytearray.html#indexOf">indexOf</a>(), passing the byte array to a function that accepts a <tt>const char *</tt> and expects it to be '\0'-terminated leads into trouble.</p>
+<p><b>Warning:</b> A byte array created with fromRawData() is <i>not</i> null-terminated, unless the raw data contains a 0 character at position <i>size</i>. While that does not matter for <a href="qdatastream.html">QDataStream</a> or functions like <a href="qbytearray.html#indexOf">indexOf</a>(), passing the byte array to a function accepting a <tt>const char *</tt> expected to be '\0'-terminated will fail.</p>
 <p>See also <a href="qbytearray.html#data">data</a>() and <a href="qbytearray.html#constData">constData</a>().</p>
 <h3 class="fn"><a name="indexOf"></a>int QByteArray::indexOf ( const QByteArray &amp; <i>ba</i>, int <i>from</i> = 0 ) const</h3>
 <p>Returns the index position of the first occurrence of the byte array <i>ba</i> in this byte array, searching forward from index position <i>from</i>. Returns -1 if <i>ba</i> could not be found.</p>
@@ -539,6 +555,7 @@
  QByteArray::number(n);              <span class="comment">// returns &quot;63&quot;</span>
  QByteArray::number(n, 16);          <span class="comment">// returns &quot;3f&quot;</span>
  QByteArray::number(n, 16).toUpper();  <span class="comment">// returns &quot;3F&quot;</span></pre>
+<p><b>Note:</b> The format of the number is not localized; the default C locale is used irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#setNum">setNum</a>() and <a href="qbytearray.html#toInt">toInt</a>().</p>
 <h3 class="fn"><a name="number-2"></a>QByteArray QByteArray::number ( <a href="qtglobal.html#uint-typedef">uint</a> <i>n</i>, int <i>base</i> = 10 )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -564,6 +581,7 @@
 <p>With 'e', 'E', and 'f', <i>prec</i> is the number of digits after the decimal point. With 'g' and 'G', <i>prec</i> is the maximum number of significant digits (trailing zeroes are omitted).</p>
 <pre> QByteArray ba = QByteArray::number(12.3456, 'E', 3);
 <span class="comment"> // ba == 1.235E+01</span></pre>
+<p><b>Note:</b> The format of the number is not localized; the default C locale is used irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#toDouble">toDouble</a>().</p>
 <h3 class="fn"><a name="prepend"></a>QByteArray &amp; QByteArray::prepend ( const QByteArray &amp; <i>ba</i> )</h3>
 <p>Prepends the byte array <i>ba</i> to this byte array and returns a reference to this byte array.</p>
@@ -573,6 +591,7 @@
  x.prepend(y);
 <span class="comment"> // x == &quot;airship&quot;</span></pre>
 <p>This is the same as insert(0, <i>ba</i>).</p>
+<p>Note: <a href="qbytearray.html">QByteArray</a> is an <a href="shared.html#implicitly-shared">implicitly shared</a> class. Consequently, if <i>this</i> is an empty <a href="qbytearray.html">QByteArray</a>, then <i>this</i> will just share the data held in <i>ba</i>. In this case, no copying of data is done.</p>
 <p>See also <a href="qbytearray.html#append">append</a>() and <a href="qbytearray.html#insert">insert</a>().</p>
 <h3 class="fn"><a name="prepend-2"></a>QByteArray &amp; QByteArray::prepend ( const char * <i>str</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -682,6 +701,7 @@
  int n = 63;
  ba.setNum(n);           <span class="comment">// ba == &quot;63&quot;</span>
  ba.setNum(n, 16);       <span class="comment">// ba == &quot;3f&quot;</span></pre>
+<p><b>Note:</b> The format of the number is not localized; the default C locale is used irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>() and <a href="qbytearray.html#toInt">toInt</a>().</p>
 <h3 class="fn"><a name="setNum-2"></a>QByteArray &amp; QByteArray::setNum ( <a href="qtglobal.html#uint-typedef">uint</a> <i>n</i>, int <i>base</i> = 10 )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
@@ -711,10 +731,12 @@
 <tr valign="top" class="odd"><td><tt>G</tt></td><td>use <tt>E</tt> or <tt>f</tt> format, whichever is the most concise</td></tr>
 </table></p>
 <p>With 'e', 'E', and 'f', <i>prec</i> is the number of digits after the decimal point. With 'g' and 'G', <i>prec</i> is the maximum number of significant digits (trailing zeroes are omitted).</p>
+<p><b>Note:</b> The format of the number is not localized; the default C locale is used irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#toDouble">toDouble</a>().</p>
 <h3 class="fn"><a name="setNum-8"></a>QByteArray &amp; QByteArray::setNum ( float <i>n</i>, char <i>f</i> = 'g', int <i>prec</i> = 6 )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Sets the byte array to the printed value of <i>n</i>, formatted in format <i>f</i> with precision <i>prec</i>, and returns a reference to the byte array.</p>
+<p><b>Note:</b> The format of the number is not localized; the default C locale is used irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#toFloat">toFloat</a>().</p>
 <h3 class="fn"><a name="simplified"></a>QByteArray QByteArray::simplified () const</h3>
 <p>Returns a byte array that has whitespace removed from the start and the end, and which has each sequence of internal whitespace replaced with a single space.</p>
@@ -765,11 +787,13 @@
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
 <pre> QByteArray string(&quot;1234.56&quot;);
  double a = string.toDouble();   <span class="comment">// a == 1234.56</span></pre>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toFloat"></a>float QByteArray::toFloat ( bool * <i>ok</i> = 0 ) const</h3>
 <p>Returns the byte array converted to a <tt>float</tt> value.</p>
 <p>Returns 0.0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toHex"></a>QByteArray QByteArray::toHex () const</h3>
 <p>Returns a hex encoded copy of the byte array. The hex encoding uses the numbers 0-9 and the letters a-f.</p>
@@ -783,6 +807,7 @@
  bool ok;
  int hex = str.toInt(&amp;ok, 16);     <span class="comment">// hex == 255, ok == true</span>
  int dec = str.toInt(&amp;ok, 10);     <span class="comment">// dec == 0, ok == false</span></pre>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toLong"></a>long QByteArray::toLong ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
 <p>Returns the byte array converted to a <tt>long</tt> int using base <i>base</i>, which is 10 by default and must be between 2 and 36, or 0.</p>
@@ -793,6 +818,7 @@
  bool ok;
  long hex = str.toLong(&amp;ok, 16);   <span class="comment">// hex == 255, ok == true</span>
  long dec = str.toLong(&amp;ok, 10);   <span class="comment">// dec == 0, ok == false</span></pre>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toLongLong"></a><a href="qtglobal.html#qlonglong-typedef">qlonglong</a> QByteArray::toLongLong ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
@@ -800,6 +826,7 @@
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toLower"></a>QByteArray QByteArray::toLower () const</h3>
 <p>Returns a lowercase copy of the byte array. The bytearray is interpreted as a Latin-1 encoded string.</p>
@@ -807,24 +834,40 @@
 <pre> QByteArray x(&quot;TROlltECH&quot;);
  QByteArray y = x.toLower();
 <span class="comment"> // y == &quot;trolltech&quot;</span></pre>
-<p>See also <a href="qbytearray.html#toUpper">toUpper</a>() and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#toUpper">toUpper</a>() and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
+<h3 class="fn"><a name="toPercentEncoding"></a>QByteArray QByteArray::toPercentEncoding ( const QByteArray &amp; <i>exclude</i> = QByteArray(), const QByteArray &amp; <i>include</i> = QByteArray(), char <i>percent</i> = '%' ) const</h3>
+<p>Returns a URI/URL-style percent-encoded copy of this byte array. The <i>percent</i> parameter allows you to override the default '%' character for another.</p>
+<p>By default, this function will encode all characters that are not one of the following:</p>
+<p>ALPHA (&quot;a&quot; to &quot;z&quot; and &quot;A&quot; to &quot;Z&quot;) / DIGIT (0 to 9) / &quot;-&quot; / &quot;.&quot; / &quot;_&quot; / &quot;~&quot;</p>
+<p>To prevent characters from being encoded pass them to <i>exclude</i>. To force characters to be encoded pass them to <i>include</i>. The <i>percent</i> character is always encoded.</p>
+<p>Example:</p>
+<pre> QByteArray text = &quot;{a fishy string?}&quot;;
+ QByteArray ba = text.toPercentEncoding(&quot;{}&quot;, &quot;s&quot;);
+ qDebug(ba.constData());
+<span class="comment"> // prints &quot;{a fi%73hy %73tring%3F}&quot;</span></pre>
+<p>The hex encoding uses the numbers 0-9 and the uppercase letters A-F.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qbytearray.html#fromPercentEncoding">fromPercentEncoding</a>() and <a href="qurl.html#toPercentEncoding">QUrl::toPercentEncoding</a>().</p>
 <h3 class="fn"><a name="toShort"></a>short QByteArray::toShort ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
 <p>Returns the byte array converted to a <tt>short</tt> using base <i>base</i>, which is 10 by default and must be between 2 and 36, or 0.</p>
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toUInt"></a><a href="qtglobal.html#uint-typedef">uint</a> QByteArray::toUInt ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
 <p>Returns the byte array converted to an <tt>unsigned int</tt> using base <i>base</i>, which is 10 by default and must be between 2 and 36, or 0.</p>
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toULong"></a><a href="qtglobal.html#ulong-typedef">ulong</a> QByteArray::toULong ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
 <p>Returns the byte array converted to an <tt>unsigned long int</tt> using base <i>base</i>, which is 10 by default and must be between 2 and 36, or 0.</p>
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toULongLong"></a><a href="qtglobal.html#qulonglong-typedef">qulonglong</a> QByteArray::toULongLong ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
@@ -832,12 +875,14 @@
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toUShort"></a><a href="qtglobal.html#ushort-typedef">ushort</a> QByteArray::toUShort ( bool * <i>ok</i> = 0, int <i>base</i> = 10 ) const</h3>
 <p>Returns the byte array converted to an <tt>unsigned short</tt> using base <i>base</i>, which is 10 by default and must be between 2 and 36, or 0.</p>
 <p>If <i>base</i> is 0, the base is determined automatically using the following rules: If the byte array begins with &quot;0x&quot;, it is assumed to be hexadecimal; if it begins with &quot;0&quot;, it is assumed to be octal; otherwise it is assumed to be decimal.</p>
 <p>Returns 0 if the conversion fails.</p>
 <p>If <i>ok</i> is not 0: if a conversion error occurs, *<i>ok</i> is set to false; otherwise *<i>ok</i> is set to true.</p>
+<p><b>Note:</b> The conversion of the number is performed in the default C locale, irrespective of the user's locale.</p>
 <p>See also <a href="qbytearray.html#number">number</a>().</p>
 <h3 class="fn"><a name="toUpper"></a>QByteArray QByteArray::toUpper () const</h3>
 <p>Returns an uppercase copy of the byte array. The bytearray is interpreted as a Latin-1 encoded string.</p>
@@ -845,7 +890,7 @@
 <pre> QByteArray x(&quot;TROlltECH&quot;);
  QByteArray y = x.toUpper();
 <span class="comment"> // y == &quot;TROLLTECH&quot;</span></pre>
-<p>See also <a href="qbytearray.html#toLower">toLower</a>() and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#toLower">toLower</a>() and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
 <h3 class="fn"><a name="trimmed"></a>QByteArray QByteArray::trimmed () const</h3>
 <p>Returns a byte array that has whitespace removed from the start and the end.</p>
 <p>Whitespace means any character for which the standard C++ isspace() function returns true. This includes the ASCII characters '\t', '\n', '\v', '\f', '\r', and ' '.</p>
@@ -863,7 +908,7 @@
  ba.truncate(5);             <span class="comment">// ba == &quot;Stock&quot;</span></pre>
 <p>See also <a href="qbytearray.html#chop">chop</a>(), <a href="qbytearray.html#resize">resize</a>(), and <a href="qbytearray.html#left">left</a>().</p>
 <h3 class="fn"><a name="operator-const-char--2a"></a>QByteArray::operator const char * () const</h3>
-<p>Returns a pointer to the data stored in the byte array. The pointer can be used to access the bytes that compose the array. The data is '\0'-terminated. The pointer remains valid as long as the array isn't reallocated.</p>
+<p>Returns a pointer to the data stored in the byte array. The pointer can be used to access the bytes that compose the array. The data is '\0'-terminated. The pointer remains valid as long as the array isn't reallocated or destroyed.</p>
 <p>This operator is mostly useful to pass a byte array to a function that accepts a <tt>const char *</tt>.</p>
 <p>Note: A <a href="qbytearray.html">QByteArray</a> can store any byte values including '\0's, but most functions that take <tt>char *</tt> arguments assume that the data ends at the first '\0' they encounter.</p>
 <p>See also <a href="qbytearray.html#constData">constData</a>().</p>
@@ -935,18 +980,19 @@
 <span class="comment"> // ba == &quot;ABCDEFGHIJ&quot;</span></pre>
 <p>The return value is of type QByteRef, a helper class for <a href="qbytearray.html">QByteArray</a>. When you get an object of type QByteRef, you can use it as if it were a char &amp;. If you assign to it, the assignment will apply to the character in the <a href="qbytearray.html">QByteArray</a> from which you got the reference.</p>
 <p>See also <a href="qbytearray.html#at">at</a>().</p>
-<h3 class="fn"><a name="operator-5b-5d-2"></a>const char QByteArray::operator[] ( int <i>i</i> ) const</h3>
+<h3 class="fn"><a name="operator-5b-5d-2"></a>char QByteArray::operator[] ( int <i>i</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Same as at(<i>i</i>).</p>
 <h3 class="fn"><a name="operator-5b-5d-3"></a>QByteRef QByteArray::operator[] ( <a href="qtglobal.html#uint-typedef">uint</a> <i>i</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<h3 class="fn"><a name="operator-5b-5d-4"></a>const char QByteArray::operator[] ( <a href="qtglobal.html#uint-typedef">uint</a> <i>i</i> ) const</h3>
+<h3 class="fn"><a name="operator-5b-5d-4"></a>char QByteArray::operator[] ( <a href="qtglobal.html#uint-typedef">uint</a> <i>i</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <hr />
 <h2>Related Non-Members</h2>
 <h3 class="fn"><a name="qChecksum"></a><a href="qtglobal.html#quint16-typedef">quint16</a> qChecksum ( const char * <i>data</i>, <a href="qtglobal.html#uint-typedef">uint</a> <i>len</i> )</h3>
 <p>Returns the CRC-16 checksum of the first <i>len</i> bytes of <i>data</i>.</p>
 <p>The checksum is independent of the byte order (endianness).</p>
+<p><b>Note:</b> This function is a 16-bit cache conserving (16 entry table) implementation of the CRC-16-CCITT algorithm.</p>
 <h3 class="fn"><a name="qCompress"></a>QByteArray qCompress ( const QByteArray &amp; <i>data</i>, int <i>compressionLevel</i> = -1 )</h3>
 <p>Compresses the <i>data</i> byte array and returns the compressed data in a new byte array.</p>
 <p>The <i>compressionLevel</i> parameter specifies how much compression should be used. Valid values are between 0 and 9, with 9 corresponding to the greatest compression (i.e&#x2e; smaller compressed data) at the cost of using a slower algorithm. Smaller values (8, 7, ..&#x2e;, 1) provide successively less compression at slightly faster speeds. The value 0 corresponds to no compression at all. The default value is -1, which specifies zlib's default compression.</p>
@@ -973,7 +1019,7 @@
 <p>Compares <i>str1</i> and <i>str2</i>. Returns a negative value if <i>str1</i> is less than <i>str2</i>, 0 if <i>str1</i> is equal to <i>str2</i> or a positive value if <i>str1</i> is greater than <i>str2</i>.</p>
 <p>Special case 1: Returns 0 if <i>str1</i> and <i>str2</i> are both 0.</p>
 <p>Special case 2: Returns an arbitrary non-zero value if <i>str1</i> is 0 or <i>str2</i> is 0 (but not both).</p>
-<p>See also <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
 <h3 class="fn"><a name="qstrcpy"></a>char * qstrcpy ( char * <i>dst</i>, const char * <i>src</i> )</h3>
 <p>Copies all the characters up to and including the '\0' from <i>src</i> into <i>dst</i> and returns a pointer to <i>dst</i>. If <i>src</i> is 0, it immediately returns 0.</p>
 <p>This function assumes that <i>dst</i> is large enough to hold the contents of <i>src</i>.</p>
@@ -988,7 +1034,7 @@
 <p>Returns a negative value if <i>str1</i> is less than <i>str2</i>, 0 if <i>str1</i> is equal to <i>str2</i> or a positive value if <i>str1</i> is greater than <i>str2</i>.</p>
 <p>Special case 1: Returns 0 if <i>str1</i> and <i>str2</i> are both 0.</p>
 <p>Special case 2: Returns a random non-zero value if <i>str1</i> is 0 or <i>str2</i> is 0 (but not both).</p>
-<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
 <h3 class="fn"><a name="qstrlen"></a><a href="qtglobal.html#uint-typedef">uint</a> qstrlen ( const char * <i>str</i> )</h3>
 <p>A safe <tt>strlen()</tt> function.</p>
 <p>Returns the number of characters that precede the terminating '\0', or 0 if <i>str</i> is 0.</p>
@@ -999,7 +1045,7 @@
 <p>Returns a negative value if <i>str1</i> is less than <i>str2</i>, 0 if <i>str1</i> is equal to <i>str2</i> or a positive value if <i>str1</i> is greater than <i>str2</i>.</p>
 <p>Special case 1: Returns 0 if <i>str1</i> and <i>str2</i> are both 0.</p>
 <p>Special case 2: Returns a random non-zero value if <i>str1</i> is 0 or <i>str2</i> is 0 (but not both).</p>
-<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), <a href="qbytearray.html#qstrnicmp">qstrnicmp</a>(), and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
 <h3 class="fn"><a name="qstrncpy"></a>char * qstrncpy ( char * <i>dst</i>, const char * <i>src</i>, <a href="qtglobal.html#uint-typedef">uint</a> <i>len</i> )</h3>
 <p>A safe <tt>strncpy()</tt> function.</p>
 <p>Copies at most <i>len</i> bytes from <i>src</i> (stopping at <i>len</i> or the terminating '\0' whichever comes first) into <i>dst</i> and returns a pointer to <i>dst</i>. Guarantees that <i>dst</i> is '\0'-terminated. If <i>src</i> or <i>dst</i> is 0, returns 0 immediately.</p>
@@ -1011,7 +1057,7 @@
 <p>Returns a negative value if <i>str1</i> is less than <i>str2</i>, 0 if <i>str1</i> is equal to <i>str2</i> or a positive value if <i>str1</i> is greater than <i>str2</i>.</p>
 <p>Special case 1: Returns 0 if <i>str1</i> and <i>str2</i> are both 0.</p>
 <p>Special case 2: Returns a random non-zero value if <i>str1</i> is 0 or <i>str2</i> is 0 (but not both).</p>
-<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), and <a href="qbytearray.html#note-on-8-bit-character-comparisons">Note on 8-bit character comparisons</a>.</p>
+<p>See also <a href="qbytearray.html#qstrcmp">qstrcmp</a>(), <a href="qbytearray.html#qstrncmp">qstrncmp</a>(), <a href="qbytearray.html#qstricmp">qstricmp</a>(), and <a href="qbytearray.html#8-bit-character-comparisons">8-bit Character Comparisons</a>.</p>
 <h3 class="fn"><a name="qstrnlen"></a><a href="qtglobal.html#uint-typedef">uint</a> qstrnlen ( const char * <i>str</i>, <a href="qtglobal.html#uint-typedef">uint</a> <i>maxlen</i> )</h3>
 <p>A safe <tt>strnlen()</tt> function.</p>
 <p>Returns the number of characters that precede the terminating '\0', but at most <i>maxlen</i>. If <i>str</i> is 0, returns 0.</p>
@@ -1024,87 +1070,88 @@
 <p><b>Warning:</b> Since vsnprintf() shows different behavior on certain platforms, you should not rely on the return value or on the fact that you will always get a 0 terminated string back.</p>
 <p>Ideally, you should never call this function but use <a href="qstring.html#sprintf">QString::sprintf</a>() instead.</p>
 <p>See also <a href="qbytearray.html#qsnprintf">qsnprintf</a>() and <a href="qstring.html#sprintf">QString::sprintf</a>().</p>
-<h3 class="fn"><a name="operator-not-eq-41"></a>bool operator!= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-not-eq-42"></a>bool operator!= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is not equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-not-eq-42"></a>bool operator!= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-not-eq-43"></a>bool operator!= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is not equal to string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-not-eq-43"></a>bool operator!= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-not-eq-44"></a>bool operator!= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is not equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-2b"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-2b-17"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns a byte array that is the result of concatenating byte array <i>a1</i> and byte array <i>a2</i>.</p>
 <p>See also <a href="qbytearray.html#operator-2b-eq">QByteArray::operator+=</a>().</p>
-<h3 class="fn"><a name="operator-2b-22"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-2b-30"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns a byte array that is the result of concatenating byte array <i>a1</i> and string <i>a2</i>.</p>
-<h3 class="fn"><a name="operator-2b-23"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, char <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-2b-31"></a>const QByteArray operator+ ( const QByteArray &amp; <i>a1</i>, char <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns a byte array that is the result of concatenating byte array <i>a1</i> and character <i>a2</i>.</p>
-<h3 class="fn"><a name="operator-2b-24"></a>const QByteArray operator+ ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-2b-32"></a>const QByteArray operator+ ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns a byte array that is the result of concatenating string <i>a1</i> and byte array <i>a2</i>.</p>
-<h3 class="fn"><a name="operator-2b-25"></a>const QByteArray operator+ ( char <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-2b-33"></a>const QByteArray operator+ ( char <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns a byte array that is the result of concatenating character <i>a1</i> and byte array <i>a2</i>.</p>
-<h3 class="fn"><a name="operator-lt-14"></a>bool operator&lt; ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-15"></a>bool operator&lt; ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically less than byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-lt-15"></a>bool operator&lt; ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-16"></a>bool operator&lt; ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically less than string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-lt-16"></a>bool operator&lt; ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-17"></a>bool operator&lt; ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is lexically less than byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-lt-lt-61"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QByteArray &amp; <i>ba</i> )</h3>
+<h3 class="fn"><a name="operator-lt-lt-106"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QByteArray &amp; <i>ba</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Writes byte array <i>ba</i> to the stream <i>out</i> and returns a reference to the stream.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream operators</a>.</p>
-<h3 class="fn"><a name="operator-lt-eq-11"></a>bool operator&lt;= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-eq-12"></a>bool operator&lt;= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically less than or equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-lt-eq-12"></a>bool operator&lt;= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-eq-13"></a>bool operator&lt;= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically less than or equal to string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-lt-eq-13"></a>bool operator&lt;= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-lt-eq-14"></a>bool operator&lt;= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is lexically less than or equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-eq-eq-56"></a>bool operator== ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-eq-eq-64"></a>bool operator== ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-eq-eq-57"></a>bool operator== ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-eq-eq-65"></a>bool operator== ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is equal to string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-eq-eq-58"></a>bool operator== ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-eq-eq-66"></a>bool operator== ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-11"></a>bool operator&gt; ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-12"></a>bool operator&gt; ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically greater than byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-12"></a>bool operator&gt; ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-13"></a>bool operator&gt; ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically greater than string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-13"></a>bool operator&gt; ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-14"></a>bool operator&gt; ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is lexically greater than byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-eq-11"></a>bool operator&gt;= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-eq-12"></a>bool operator&gt;= ( const QByteArray &amp; <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically greater than or equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-eq-12"></a>bool operator&gt;= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-eq-13"></a>bool operator&gt;= ( const QByteArray &amp; <i>a1</i>, const char * <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if byte array <i>a1</i> is lexically greater than or equal to string <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-eq-13"></a>bool operator&gt;= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
+<h3 class="fn"><a name="operator-gt-eq-14"></a>bool operator&gt;= ( const char * <i>a1</i>, const QByteArray &amp; <i>a2</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Returns true if string <i>a1</i> is lexically greater than or equal to byte array <i>a2</i>; otherwise returns false.</p>
-<h3 class="fn"><a name="operator-gt-gt-39"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QByteArray &amp; <i>ba</i> )</h3>
+<h3 class="fn"><a name="operator-gt-gt-59"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QByteArray &amp; <i>ba</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Reads a byte array into <i>ba</i> from the stream <i>in</i> and returns a reference to the stream.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream operators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

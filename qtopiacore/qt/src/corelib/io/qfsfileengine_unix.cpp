@@ -1,49 +1,46 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qplatformdefs.h"
 #include "qabstractfileengine.h"
 #include "private/qfsfileengine_p.h"
+
+#ifndef QT_NO_FSFILEENGINE
+
 #ifndef QT_NO_REGEXP
 # include "qregexp.h"
 #endif
@@ -53,12 +50,15 @@
 #include "qdebug.h"
 #include "qvarlengtharray.h"
 
+#include <sys/mman.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <errno.h>
 #if !defined(QWS) && defined(Q_OS_MAC)
 # include <private/qcore_mac_p.h>
 #endif
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \internal
@@ -114,7 +114,22 @@ static int openModeToOpenFlags(QIODevice::OpenMode mode)
             oflags |= QT_OPEN_TRUNC;
     }
 
+#ifdef O_CLOEXEC
+    // supported on Linux >= 2.6.23; avoids one extra system call
+    oflags |= O_CLOEXEC;
+#endif
     return oflags;
+}
+
+/*!
+    \internal
+
+    Sets the file descriptor to close on exec. That is, the file
+    descriptor is not inherited by child processes.
+*/
+static bool setCloseOnExec(int fd)
+{
+    return fd != -1 && fcntl(fd, F_SETFD, FD_CLOEXEC) != -1;
 }
 
 /*!
@@ -147,6 +162,11 @@ bool QFSFileEnginePrivate::nativeOpen(QIODevice::OpenMode openMode)
             return false;
         }
 
+#ifndef O_CLOEXEC
+        // not needed on Linux >= 2.6.23
+        setCloseOnExec(fd);     // ignore failure
+#endif
+
         // Seek to the end when in Append mode.
         if (flags & QFile::Append) {
             int ret;
@@ -176,6 +196,8 @@ bool QFSFileEnginePrivate::nativeOpen(QIODevice::OpenMode openMode)
                         qt_error_string(int(errno)));
             return false;
         }
+
+        setCloseOnExec(fileno(fh)); // ignore failure
 
         // Seek to the end when in Append mode.
         if (openMode & QIODevice::Append) {
@@ -268,7 +290,8 @@ qint64 QFSFileEnginePrivate::nativeRead(char *data, qint64 len)
             int v = 1;
             fcntl(QT_FILENO(fh), F_SETFL, oldFlags, &v, sizeof(v));
         }
-        if (readBytes == 0) {
+        if (readBytes == 0 && !feof(fh)) {
+            // if we didn't read anything and we're not at EOF, it must be an error
             q->setError(QFile::ReadError, qt_error_string(int(errno)));
             return -1;
         }
@@ -516,14 +539,14 @@ static bool _q_isMacHidden(const QString &path)
 
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
     if (QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4) {
-        err = FSPathMakeRefWithOptions(reinterpret_cast<const UInt8 *>(QFile::encodeName(path).constData()),
+        err = FSPathMakeRefWithOptions(reinterpret_cast<const UInt8 *>(QFile::encodeName(QDir::cleanPath(path)).constData()),
                                         kFSPathMakeRefDoNotFollowLeafSymlink, &fsRef, 0);
     } else
 #endif
     {
         QFileInfo fi(path);
         FSRef parentRef;
-        err = FSPathMakeRef(reinterpret_cast<const UInt8 *>(fi.absoluteDir().canonicalPath().toUtf8().constData()),
+        err = FSPathMakeRef(reinterpret_cast<const UInt8 *>(fi.absoluteDir().absolutePath().toUtf8().constData()),
                             &parentRef, 0);
         if (err == noErr) {
             QString fileName = fi.fileName();
@@ -690,47 +713,19 @@ QString QFSFileEngine::fileName(FileName file) const
         }
         return ret;
     } else if (file == CanonicalName || file == CanonicalPathName) {
-#if defined(__GLIBC__) && !defined(PATH_MAX)
-      char *cur = ::get_current_dir_name();
-      if (cur) {
-	QString ret;
-	char *tmp = ::canonicalize_file_name(d->nativeFilePath.constData());
-	if (tmp) {
-	  ret = QFile::decodeName(tmp);
-	  ::free(tmp);
-	}
-	::chdir(cur); // always make sure we go back to the current dir
-	::free(cur);
-#else
-        char cur[PATH_MAX+1];
-        if (::getcwd(cur, PATH_MAX)) {
-            QString ret;
-#  ifndef Q_OS_INTEGRITY // INTEGRITY has no realpath
-            char real[PATH_MAX+1];
-            // need the cast for old solaris versions of realpath that doesn't take
-            // a const char*.
-            if (::realpath(d->nativeFilePath.constData(), real))
-                ret = QFile::decodeName(QByteArray(real));
-#  endif
-            ::chdir(cur); // always make sure we go back to the current dir
-#endif
-            //check it
-            QT_STATBUF st;
-            if (QT_STAT(QFile::encodeName(ret), &st) != 0)
-                ret = QString();
-            if (!ret.isEmpty() && file == CanonicalPathName) {
-                int slash = ret.lastIndexOf(QLatin1Char('/'));
-                if (slash == -1)
-                    return QDir::currentPath();
-                else if (!slash)
-                    return QLatin1String("/");
-                return ret.left(slash);
-            }
-            return ret;
+        if (!(fileFlags(ExistsFlag) & ExistsFlag))
+            return QString();
+
+        QString ret = QFSFileEnginePrivate::canonicalized(fileName(AbsoluteName));
+        if (!ret.isEmpty() && file == CanonicalPathName) {
+            int slash = ret.lastIndexOf(QLatin1Char('/'));
+            if (slash == -1)
+                ret = QDir::currentPath();
+            else if (slash == 0)
+                ret = QLatin1String("/");
+            ret = ret.left(slash);
         }
-        if (file == CanonicalPathName)
-            return fileName(AbsolutePathName);
-        return fileName(AbsoluteName);
+        return ret;
     } else if (file == LinkName) {
         if (d->isSymlink()) {
 #if defined(__GLIBC__) && !defined(PATH_MAX)
@@ -834,7 +829,10 @@ uint QFSFileEngine::ownerId(FileOwner own) const
 QString QFSFileEngine::owner(FileOwner own) const
 {
 #if !defined(QT_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(Q_OS_OPENBSD)
-    QVarLengthArray<char, 1024> buf(sysconf(_SC_GETPW_R_SIZE_MAX));
+    int size_max = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (size_max == -1)
+        size_max = 1024;
+    QVarLengthArray<char, 1024> buf(size_max);
 #endif
 
     if (own == OwnerUser) {
@@ -850,7 +848,10 @@ QString QFSFileEngine::owner(FileOwner own) const
     } else if (own == OwnerGroup) {
         struct group *gr = 0;
 #if !defined(QT_NO_THREAD) && defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(Q_OS_OPENBSD)
-        buf.resize(sysconf(_SC_GETGR_R_SIZE_MAX));
+        size_max = sysconf(_SC_GETGR_R_SIZE_MAX);
+        if (size_max == -1)
+            size_max = 1024;
+        buf.resize(size_max);
         struct group entry;
         getgrgid_r(ownerId(own), &entry, buf.data(), buf.size(), &gr);
 #else
@@ -917,3 +918,70 @@ QDateTime QFSFileEngine::fileTime(FileTime time) const
     }
     return ret;
 }
+
+uchar *QFSFileEnginePrivate::map(qint64 offset, qint64 size, QFile::MemoryMapFlags flags)
+{
+    Q_Q(QFSFileEngine);
+    Q_UNUSED(flags);
+    if (offset < 0) {
+        q->setError(QFile::UnspecifiedError, qt_error_string(int(EINVAL)));
+        return 0;
+    }
+    if (openMode == QIODevice::NotOpen) {
+        q->setError(QFile::PermissionsError, qt_error_string(int(EACCES)));
+        return 0;
+    }
+    int access = 0;
+    if (openMode & QIODevice::ReadOnly) access |= PROT_READ;
+    if (openMode & QIODevice::WriteOnly) access |= PROT_WRITE;
+
+    int pagesSize = getpagesize();
+    int realOffset = offset / pagesSize;
+    int extra = offset % pagesSize;
+
+    void *mapAddress = mmap((void*)0, (size_t)size + extra,
+                   access, MAP_SHARED, nativeHandle(), realOffset * pagesSize);
+    if (MAP_FAILED != mapAddress) {
+        uchar *address = extra + static_cast<uchar*>(mapAddress);
+        maps[address] = QPair<int,int>(extra, size);
+        return address;
+    }
+
+    switch(errno) {
+    case EBADF:
+        q->setError(QFile::PermissionsError, qt_error_string(int(EACCES)));
+        break;
+    case ENFILE:
+    case ENOMEM:
+        q->setError(QFile::ResourceError, qt_error_string(int(errno)));
+        break;
+    case EINVAL:
+        // size are out of bounds
+    default:
+        q->setError(QFile::UnspecifiedError, qt_error_string(int(errno)));
+        break;
+    }
+    return 0;
+}
+
+bool QFSFileEnginePrivate::unmap(uchar *ptr)
+{
+    Q_Q(QFSFileEngine);
+    if (!maps.contains(ptr)) {
+        q->setError(QFile::PermissionsError, qt_error_string(EACCES));
+        return false;
+    }
+
+    uchar *start = ptr - maps[ptr].first;
+    int len = maps[ptr].second;
+    if (-1 == munmap(start, len)) {
+        q->setError(QFile::UnspecifiedError, qt_error_string(errno));
+        return false;
+    }
+    maps.remove(ptr);
+    return true;
+}
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_FSFILEENGINE

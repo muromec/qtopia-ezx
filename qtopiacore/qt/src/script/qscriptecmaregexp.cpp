@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -55,26 +49,20 @@
 #include <QtCore/QRegExp>
 #include <QtCore/QtDebug>
 
+QT_BEGIN_NAMESPACE
+
 namespace QScript { namespace Ecma {
 
 RegExp::RegExp(QScriptEnginePrivate *eng):
-    Core(eng)
+    Core(eng, QLatin1String("RegExp"), QScriptClassInfo::RegExpType)
 {
-    m_classInfo = eng->registerClass(QLatin1String("RegExp"));
-
-    publicPrototype.invalidate();
     newRegExp(&publicPrototype, QString(), QString());
 
     eng->newConstructor(&ctor, this, publicPrototype);
 
-    QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
-
-    publicPrototype.setProperty(QLatin1String("exec"),
-                                eng->createFunction(method_exec, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("test"),
-                                eng->createFunction(method_test, 1, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 1, m_classInfo), flags);
+    addPrototypeFunction(QLatin1String("exec"), method_exec, 1);
+    addPrototypeFunction(QLatin1String("test"), method_test, 1);
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 1);
 }
 
 RegExp::~RegExp()
@@ -84,15 +72,19 @@ RegExp::~RegExp()
 RegExp::Instance *RegExp::Instance::get(const QScriptValueImpl &object, QScriptClassInfo *klass)
 {
     if (! klass || klass == object.classInfo())
-        return QExplicitlySharedDataPointer<Instance> (static_cast<Instance*> (object.objectData().data()));
+        return static_cast<Instance*> (object.objectData());
 
     return 0;
 }
 
 void RegExp::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionEntry(context);
+#endif
     QString source;
     QString flags;
+    QScriptValueImpl error;
 
     if (context->argumentCount() > 0)
         source = context->argument(0).toString();
@@ -104,17 +96,20 @@ void RegExp::execute(QScriptContextPrivate *context)
             const QString legalFlags = QLatin1String("gim");
             for (int i = 0; i < flags.length(); ++i) {
                 if (legalFlags.indexOf(flags.at(i)) == -1) {
-                    context->throwError(
+                    error = context->throwError(
                         QScriptContext::SyntaxError,
                         QString::fromUtf8("invalid regular expression flag '%0'")
                         .arg(flags.at(i)));
-                    return;
+                    break;
                 }
             }
         }
     }
-
-    newRegExp(&context->m_result, source, flags);
+    if (!error.isValid())
+        newRegExp(&context->m_result, source, flags);
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionExit(context);
+#endif
 }
 
 void RegExp::newRegExp(QScriptValueImpl *result, const QString &pattern, const QString &flags)
@@ -133,7 +128,7 @@ void RegExp::newRegExp(QScriptValueImpl *result, const QString &pattern, const Q
 
     QScriptEnginePrivate *eng = engine();
     eng->newObject(result, publicPrototype, classInfo());
-    result->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
+    result->setObjectData(instance);
     result->setProperty(QLatin1String("source"), QScriptValueImpl(eng, pattern), QScriptValue::ReadOnly);
 #endif // QT_NO_REGEXP
 }
@@ -159,7 +154,7 @@ void RegExp::newRegExp_helper(QScriptValueImpl *result, const QRegExp &rx,
 
     QScriptEnginePrivate *eng = engine();
     eng->newObject(result, publicPrototype, classInfo());
-    result->setObjectData(QExplicitlySharedDataPointer<QScriptObjectData>(instance));
+    result->setObjectData(instance);
 
     QScriptValue::PropertyFlags propertyFlags = QScriptValue::SkipInEnumeration
                                                 | QScriptValue::Undeletable
@@ -260,5 +255,7 @@ QScriptValueImpl RegExp::method_toString(QScriptContextPrivate *context, QScript
 }
 
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

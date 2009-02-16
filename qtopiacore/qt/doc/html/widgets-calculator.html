@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/examples/calculator.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/examples/calculator.qdoc -->
 <head>
-  <title>Qt 4.3: Calculator Example</title>
+  <title>Qt 4.4: Calculator Example</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">Calculator Example<br /><span class="subtitle"></span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Calculator Example<br /><span class="subtitle"></span>
 </h1>
 <p>Files:</p>
 <ul>
@@ -55,13 +55,12 @@
      void setMemory();
      void addToMemory();</pre>
 <p>The <tt>Calculator</tt> class provides a simple calculator widget. It inherits from <a href="qdialog.html">QDialog</a> and has several private slots associated with the calculator's buttons. <a href="qobject.html#eventFilter">QObject::eventFilter</a>() is reimplemented to handle mouse events on the calculator's display.</p>
-<p>Buttons are grouped in categories according to their behavior. For example, all the digit buttons (labeled <b>0</b> to <b>9</b>) append a digit to the current operand. For these, we connect multiple buttons to the same slot (e.g&#x2e;, <tt>digitClicked()</tt>). The categories are digits, unary operators (<b>Sqrt</b>, <b>xÂ²</b>, <b>1/x</b>), additive operators (<b>+</b>, <b>-</b>), and multiplicative operators (<b>Ã—</b>, <b>Ã·</b>). The other buttons have their own slots.</p>
+<p>Buttons are grouped in categories according to their behavior. For example, all the digit buttons (labeled <b>0</b> to <b>9</b>) append a digit to the current operand. For these, we connect multiple buttons to the same slot (e.g&#x2e;, <tt>digitClicked()</tt>). The categories are digits, unary operators (<b>Sqrt</b>, <b>x²</b>, <b>1/x</b>), additive operators (<b>+</b>, <b>-</b>), and multiplicative operators (<b>×</b>, <b>÷</b>). The other buttons have their own slots.</p>
 <pre> private:
-     Button *createButton(const QString &amp;text, const QColor &amp;color,
-                          const char *member);
+     Button *createButton(const QString &amp;text, const char *member);
      void abortOperation();
      bool calculate(double rightOperand, const QString &amp;pendingOperator);</pre>
-<p>The private <tt>createButton()</tt> function is used as part of the widget construction. <tt>abortOperation()</tt> is called whenever a division by zero occurs or when a square root operation is applied to a negative number. <tt>calculate()</tt> applies a binary operator (<b>+</b>, <b>-</b>, <b>Ã—</b>, or <b>Ã·</b>).</p>
+<p>The private <tt>createButton()</tt> function is used as part of the widget construction. <tt>abortOperation()</tt> is called whenever a division by zero occurs or when a square root operation is applied to a negative number. <tt>calculate()</tt> applies a binary operator (<b>+</b>, <b>-</b>, <b>×</b>, or <b>÷</b>).</p>
 <pre>     double sumInMemory;
      double sumSoFar;
      double factorSoFar;
@@ -77,7 +76,7 @@
 <li><tt>pendingMultiplicativeOperator</tt> stores the last multiplicative operator clicked by the user.</li>
 <li><tt>waitingForOperand</tt> is <tt>true</tt> when the calculator is expecting the user to start typing an operand.</li>
 </ul>
-<p>Additive and multiplicative operators are treated differently because they have different precedences. For example, <b>1 + 2 Ã· 3</b> is interpreted as <b>1 + (2 Ã· 3)</b> because <b>Ã·</b> has higher precedence than <b>+</b>.</p>
+<p>Additive and multiplicative operators are treated differently because they have different precedences. For example, <b>1 + 2 ÷ 3</b> is interpreted as <b>1 + (2 ÷ 3)</b> because <b>÷</b> has higher precedence than <b>+</b>.</p>
 <p>The table below shows the evolution of the calculator state as the user enters a mathematical expression.</p>
 <p><table align="center" cellpadding="2" cellspacing="1" border="0">
 <thead><tr valign="top" class="qt-style"><th>User Input</th><th>Display</th><th>Sum so Far</th><th>Add. Op.</th><th>Factor so Far</th><th>Mult. Op.</th><th>Waiting for Operand?</th></tr></thead>
@@ -85,11 +84,11 @@
 <tr valign="top" class="even"><td><b>1</b></td><td>1</td><td>0</td><td></td><td></td><td></td><td><tt>false</tt></td></tr>
 <tr valign="top" class="odd"><td><b>1 +</b></td><td>1</td><td>1</td><td><b>+</b></td><td></td><td></td><td><tt>true</tt></td></tr>
 <tr valign="top" class="even"><td><b>1 + 2</b></td><td>2</td><td>1</td><td><b>+</b></td><td></td><td></td><td><tt>false</tt></td></tr>
-<tr valign="top" class="odd"><td><b>1 + 2 Ã·</b></td><td>2</td><td>1</td><td><b>+</b></td><td>2</td><td><b>Ã·</b></td><td><tt>true</tt></td></tr>
-<tr valign="top" class="even"><td><b>1 + 2 Ã· 3</b></td><td>3</td><td>1</td><td><b>+</b></td><td>2</td><td><b>Ã·</b></td><td><tt>false</tt></td></tr>
-<tr valign="top" class="odd"><td><b>1 + 2 Ã· 3 -</b></td><td>1.66667</td><td>1.66667</td><td><b>-</b></td><td></td><td></td><td><tt>true</tt></td></tr>
-<tr valign="top" class="even"><td><b>1 + 2 Ã· 3 - 4</b></td><td>4</td><td>1.66667</td><td><b>-</b></td><td></td><td></td><td><tt>false</tt></td></tr>
-<tr valign="top" class="odd"><td><b>1 + 2 Ã· 3 - 4 =</b></td><td>-2.33333</td><td>0</td><td></td><td></td><td></td><td><tt>true</tt></td></tr>
+<tr valign="top" class="odd"><td><b>1 + 2 ÷</b></td><td>2</td><td>1</td><td><b>+</b></td><td>2</td><td><b>÷</b></td><td><tt>true</tt></td></tr>
+<tr valign="top" class="even"><td><b>1 + 2 ÷ 3</b></td><td>3</td><td>1</td><td><b>+</b></td><td>2</td><td><b>÷</b></td><td><tt>false</tt></td></tr>
+<tr valign="top" class="odd"><td><b>1 + 2 ÷ 3 -</b></td><td>1.66667</td><td>1.66667</td><td><b>-</b></td><td></td><td></td><td><tt>true</tt></td></tr>
+<tr valign="top" class="even"><td><b>1 + 2 ÷ 3 - 4</b></td><td>4</td><td>1.66667</td><td><b>-</b></td><td></td><td></td><td><tt>false</tt></td></tr>
+<tr valign="top" class="odd"><td><b>1 + 2 ÷ 3 - 4 =</b></td><td>-2.33333</td><td>0</td><td></td><td></td><td></td><td><tt>true</tt></td></tr>
 </table></p>
 <p>Unary operators, such as <b>Sqrt</b>, require no special handling; they can be applied immediately since the operand is already known when the operator button is clicked.</p>
 <pre>     QLineEdit *display;
@@ -118,51 +117,32 @@
      display-&gt;setFont(font);</pre>
 <p>We create the <a href="qlineedit.html">QLineEdit</a> representing the calculator's display and set up some of its properties. In particular, we set it to be read-only.</p>
 <p>We also enlarge <tt>display</tt>'s font by 8 points.</p>
-<pre>     QColor digitColor(150, 205, 205);
-     QColor backspaceColor(225, 185, 135);
-     QColor memoryColor(100, 155, 155);
-     QColor operatorColor(155, 175, 195);
-
-     for (int i = 0; i &lt; NumDigitButtons; ++i) {
-         digitButtons[i] = createButton(QString::number(i), digitColor,
-                                        SLOT(digitClicked()));
+<pre>     for (int i = 0; i &lt; NumDigitButtons; ++i) {
+         digitButtons[i] = createButton(QString::number(i), SLOT(digitClicked()));
      }
 
-     Button *pointButton = createButton(tr(&quot;.&quot;), digitColor, SLOT(pointClicked()));
-     Button *changeSignButton = createButton(tr(&quot;\261&quot;), digitColor, SLOT(changeSignClicked()));
+     Button *pointButton = createButton(tr(&quot;.&quot;), SLOT(pointClicked()));
+     Button *changeSignButton = createButton(tr(&quot;\261&quot;), SLOT(changeSignClicked()));
 
-     Button *backspaceButton = createButton(tr(&quot;Backspace&quot;), backspaceColor,
-                                    SLOT(backspaceClicked()));
-     Button *clearButton = createButton(tr(&quot;Clear&quot;), backspaceColor, SLOT(clear()));
-     Button *clearAllButton = createButton(tr(&quot;Clear All&quot;), backspaceColor.light(120),
-                                   SLOT(clearAll()));
+     Button *backspaceButton = createButton(tr(&quot;Backspace&quot;), SLOT(backspaceClicked()));
+     Button *clearButton = createButton(tr(&quot;Clear&quot;), SLOT(clear()));
+     Button *clearAllButton = createButton(tr(&quot;Clear All&quot;), SLOT(clearAll()));
 
-     Button *clearMemoryButton = createButton(tr(&quot;MC&quot;), memoryColor,
-                                      SLOT(clearMemory()));
-     Button *readMemoryButton = createButton(tr(&quot;MR&quot;), memoryColor, SLOT(readMemory()));
-     Button *setMemoryButton = createButton(tr(&quot;MS&quot;), memoryColor, SLOT(setMemory()));
-     Button *addToMemoryButton = createButton(tr(&quot;M+&quot;), memoryColor,
-                                      SLOT(addToMemory()));
+     Button *clearMemoryButton = createButton(tr(&quot;MC&quot;), SLOT(clearMemory()));
+     Button *readMemoryButton = createButton(tr(&quot;MR&quot;), SLOT(readMemory()));
+     Button *setMemoryButton = createButton(tr(&quot;MS&quot;), SLOT(setMemory()));
+     Button *addToMemoryButton = createButton(tr(&quot;M+&quot;), SLOT(addToMemory()));
 
-     Button *divisionButton = createButton(tr(&quot;\367&quot;), operatorColor,
-                                   SLOT(multiplicativeOperatorClicked()));
-     Button *timesButton = createButton(tr(&quot;\327&quot;), operatorColor,
-                                SLOT(multiplicativeOperatorClicked()));
-     Button *minusButton = createButton(tr(&quot;-&quot;), operatorColor,
-                                SLOT(additiveOperatorClicked()));
-     Button *plusButton = createButton(tr(&quot;+&quot;), operatorColor,
-                               SLOT(additiveOperatorClicked()));
+     Button *divisionButton = createButton(tr(&quot;\367&quot;), SLOT(multiplicativeOperatorClicked()));
+     Button *timesButton = createButton(tr(&quot;\327&quot;), SLOT(multiplicativeOperatorClicked()));
+     Button *minusButton = createButton(tr(&quot;-&quot;), SLOT(additiveOperatorClicked()));
+     Button *plusButton = createButton(tr(&quot;+&quot;), SLOT(additiveOperatorClicked()));
 
-     Button *squareRootButton = createButton(tr(&quot;Sqrt&quot;), operatorColor,
-                                     SLOT(unaryOperatorClicked()));
-     Button *powerButton = createButton(tr(&quot;x\262&quot;), operatorColor,
-                                SLOT(unaryOperatorClicked()));
-     Button *reciprocalButton = createButton(tr(&quot;1/x&quot;), operatorColor,
-                                     SLOT(unaryOperatorClicked()));
-     Button *equalButton = createButton(tr(&quot;=&quot;), operatorColor.light(120),
-                                SLOT(equalClicked()));</pre>
-<p>We define four colors by specifying the red, green, and blue components on a scale from 0 to 255. Then, for each button, we call the private <tt>createButton()</tt> function with the proper text label, the associated color, and a slot to connect to the button.</p>
-<p>To make the <b>Clear All</b> and <b>=</b> buttons stand out, we call <a href="qcolor-obsolete.html#light">QColor::light</a>() with a factor of 120%, making these buttons 20% brighter than their neighbors.</p>
+     Button *squareRootButton = createButton(tr(&quot;Sqrt&quot;), SLOT(unaryOperatorClicked()));
+     Button *powerButton = createButton(tr(&quot;x\262&quot;), SLOT(unaryOperatorClicked()));
+     Button *reciprocalButton = createButton(tr(&quot;1/x&quot;), SLOT(unaryOperatorClicked()));
+     Button *equalButton = createButton(tr(&quot;=&quot;), SLOT(equalClicked()));</pre>
+<p>For each button, we call the private <tt>createButton()</tt> function with the proper text label and a slot to connect to the button.</p>
 <pre>     QGridLayout *mainLayout = new QGridLayout;
      mainLayout-&gt;setSizeConstraint(QLayout::SetFixedSize);
 
@@ -262,7 +242,7 @@
          factorSoFar = 0.0;
          pendingMultiplicativeOperator.clear();
      }</pre>
-<p>If <b>Ã—</b> or <b>Ã·</b> has been clicked earlier, without clicking <b>=</b> afterward, the current value in the display is the right operand of the <b>Ã—</b> or <b>Ã·</b> operator and we can finally perform the operation and update the display.</p>
+<p>If <b>×</b> or <b>÷</b> has been clicked earlier, without clicking <b>=</b> afterward, the current value in the display is the right operand of the <b>×</b> or <b>÷</b> operator and we can finally perform the operation and update the display.</p>
 <pre>     if (!pendingAdditiveOperator.isEmpty()) {
          if (!calculate(operand, pendingAdditiveOperator)) {
              abortOperation();
@@ -403,10 +383,9 @@
      sumInMemory += display-&gt;text().toDouble();
  }</pre>
 <p>The <tt>clearMemory()</tt> slot erases the sum kept in memory, <tt>readMemory()</tt> displays the sum as an operand, <tt>setMemory()</tt> replace the sum in memory with the current sum, and <tt>addToMemory()</tt> adds the current value to the value in memory. For <tt>setMemory()</tt> and <tt>addToMemory()</tt>, we start by calling <tt>equalClicked()</tt> to update <tt>sumSoFar</tt> and the value in the display.</p>
-<pre> Button *Calculator::createButton(const QString &amp;text, const QColor &amp;color,
-                                  const char *member)
+<pre> Button *Calculator::createButton(const QString &amp;text, const char *member)
  {
-     Button *button = new Button(text, color);
+     Button *button = new Button(text);
      connect(button, SIGNAL(clicked()), this, member);
      return button;
  }</pre>
@@ -441,22 +420,18 @@
      Q_OBJECT
 
  public:
-     Button(const QString &amp;text, const QColor &amp;color, QWidget *parent = 0);
+     Button(const QString &amp;text, QWidget *parent = 0);
 
      QSize sizeHint() const;
  };</pre>
-<p>The <tt>Button</tt> class has a convenience constructor that takes a text label and a color, and it reimplements <a href="qwidget.html#sizeHint-prop">QWidget::sizeHint</a>() to provide more space around the text than what <a href="qtoolbutton.html">QToolButton</a> normally provides.</p>
+<p>The <tt>Button</tt> class has a convenience constructor that takes a text label and a parent widget, and it reimplements <a href="qwidget.html#sizeHint-prop">QWidget::sizeHint</a>() to provide more space around the text than the amount <a href="qtoolbutton.html">QToolButton</a> normally provides.</p>
 <a name="button-class-implementation"></a>
 <h2>Button Class Implementation</h2>
-<pre> Button::Button(const QString &amp;text, const QColor &amp;color, QWidget *parent)
+<pre> Button::Button(const QString &amp;text, QWidget *parent)
      : QToolButton(parent)
  {
      setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
      setText(text);
-
-     QPalette newPalette = palette();
-     newPalette.setColor(QPalette::Button, color);
-     setPalette(newPalette);
  }</pre>
 <p>The buttons' appearance is determined by the layout of the calculator widget through the size and <a href="qwidget.html#sizePolicy-prop">size policy</a> of the layout's child widgets. The call to the <a href="qwidget.html#sizePolicy-prop">setSizePolicy()</a> function in the constructor ensures that the button will expand horizontally to fill all the available space; by default, <a href="qtoolbutton.html">QToolButton</a>s don't expand to fill available space. Without this call, the different buttons in a same column would have different widths.</p>
 <pre> QSize Button::sizeHint() const
@@ -475,7 +450,8 @@
 <p>The screenshot below shows how the <tt>Calculator</tt> widget would look like if we <i>didn't</i> set the horizontal size policy to <a href="qsizepolicy.html#Policy-enum">QSizePolicy::Expanding</a> in the constructor and if we didn't reimplement <a href="qwidget.html#sizeHint-prop">QWidget::sizeHint</a>().</p>
 <p align="center"><img src="images/calculator-ugly.png" alt="The Calculator example with default size policies and size hints" /></p><p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
-</tr></table></div></addre
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
+</tr></table></div></address></body>
+</html>

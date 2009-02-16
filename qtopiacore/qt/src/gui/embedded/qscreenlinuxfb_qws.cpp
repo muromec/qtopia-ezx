@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,8 +53,6 @@
 #include <limits.h>
 #include <signal.h>
 
-#include <qdebug.h>
-
 #include "qwindowsystem_qws.h"
 
 #if !defined(Q_OS_DARWIN) && !defined(Q_OS_FREEBSD)
@@ -73,6 +62,8 @@
 #include <asm/mtrr.h>
 #endif
 #endif
+
+QT_BEGIN_NAMESPACE
 
 extern int qws_client_id;
 
@@ -142,11 +133,10 @@ void QLinuxFbScreenPrivate::openTty()
                 doGraphicsMode = false;
         }
     }
-    if (!doGraphicsMode) {
-        // No blankin' screen, no blinkin' cursor!, no cursor!
-        const char termctl[] = "\033[9;0]\033[?33l\033[?25l\033[?1c";
-        ::write(ttyfd, termctl, sizeof(termctl));
-    }
+
+    // No blankin' screen, no blinkin' cursor!, no cursor!
+    const char termctl[] = "\033[9;0]\033[?33l\033[?25l\033[?1c";
+    ::write(ttyfd, termctl, sizeof(termctl));
 }
 
 void QLinuxFbScreenPrivate::closeTty()
@@ -154,13 +144,12 @@ void QLinuxFbScreenPrivate::closeTty()
     if (ttyfd == -1)
         return;
 
-    if (doGraphicsMode) {
+    if (doGraphicsMode)
         ioctl(ttyfd, KDSETMODE, oldKdMode);
-    } else {
-        // Blankin' screen, blinkin' cursor!
-        const char termctl[] = "\033[9;15]\033[?33h\033[?25h\033[?0c";
-        ::write(ttyfd, termctl, sizeof(termctl));
-    }
+
+    // Blankin' screen, blinkin' cursor!
+    const char termctl[] = "\033[9;15]\033[?33h\033[?25h\033[?0c";
+    ::write(ttyfd, termctl, sizeof(termctl));
 
     ::close(ttyfd);
     ttyfd = -1;
@@ -175,7 +164,7 @@ void QLinuxFbScreenPrivate::closeTty()
     \brief The QLinuxFbScreen class implements a screen driver for the
     Linux framebuffer.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
     Custom screen drivers can be added by subclassing the
     QScreenDriverPlugin class, using the QScreenDriverFactory class to
     dynamically load the driver into the application, but there should
@@ -215,14 +204,17 @@ void QLinuxFbScreenPrivate::closeTty()
     \fn QLinuxFbScreen::QLinuxFbScreen(int displayId)
 
     Constructs a QLinuxFbScreen object. The \a displayId argument
-    identifies the Qtopia Core server to connect to.
+    identifies the Qt for Embedded Linux server to connect to.
 */
 
 QLinuxFbScreen::QLinuxFbScreen(int display_id)
-    : QScreen(display_id), d_ptr(new QLinuxFbScreenPrivate)
+    : QScreen(display_id, LinuxFBClass), d_ptr(new QLinuxFbScreenPrivate)
 {
     canaccel=false;
     clearCacheFunc = &clearCache;
+#ifdef QT_QWS_CLIENTBLIT
+    setSupportsBlitInClients(true);
+#endif
 }
 
 /*!
@@ -236,11 +228,11 @@ QLinuxFbScreen::~QLinuxFbScreen()
 /*!
     \reimp
 
-    This is called by \l {Qtopia Core} clients to map in the framebuffer.
+    This is called by \l{Qt for Embedded Linux} clients to map in the framebuffer.
     It should be reimplemented by accelerated drivers to map in
     graphics card registers; those drivers should then call this
     function in order to set up offscreen memory management. The
-    device is specified in \a displaySpec, e.g. "/dev/fb".
+    device is specified in \a displaySpec; e.g. "/dev/fb".
 
     \sa disconnect()
 */
@@ -316,9 +308,17 @@ bool QLinuxFbScreen::connect(const QString &displaySpec)
 
     grayscale = vinfo.grayscale;
     d = vinfo.bits_per_pixel;
-    if (d == 24)
+    if (d == 24) {
         d = vinfo.red.length + vinfo.green.length + vinfo.blue.length;
-    lstep=finfo.line_length;
+        if (d <= 0)
+            d = 24; // reset if color component lengths are not reported
+    } else if (d == 16) {
+        d = vinfo.red.length + vinfo.green.length + vinfo.blue.length;
+        if (d <= 0)
+            d = 16;
+    }
+    lstep = finfo.line_length;
+
     int xoff = vinfo.xoffset;
     int yoff = vinfo.yoffset;
     const char* qwssize;
@@ -381,10 +381,7 @@ bool QLinuxFbScreen::connect(const QString &displaySpec)
     /* Figure out the size of the screen in bytes */
     size = h * lstep;
 
-    //    qDebug("Framebuffer base at %lx",finfo.smem_start);
-    //    qDebug("Registers base %lx",finfo.mmio_start);
-
-    mapsize=finfo.smem_len;
+    mapsize = finfo.smem_len;
 
     data = (unsigned char *)-1;
     if (d_ptr->fd != -1)
@@ -402,15 +399,9 @@ bool QLinuxFbScreen::connect(const QString &displaySpec)
         data += dataoffset;
     }
 
-    canaccel=useOffscreen();
-
-    if(mapsize-size<16384) {
-        canaccel=false;
-    }
-
-    if(canaccel) {
+    canaccel = useOffscreen();
+    if(canaccel)
         setupOffScreen();
-    }
 
     // Now read in palette
     if((vinfo.bits_per_pixel==8) || (vinfo.bits_per_pixel==4)) {
@@ -613,8 +604,8 @@ void QLinuxFbScreen::createPalette(fb_cmap &cmap, fb_var_screeninfo &vinfo, fb_f
 /*!
     \reimp
 
-    This is called by the \l {Qtopia Core} server at startup time. It turns
-    off console blinking, sets up the color palette, enables write
+    This is called by the \l{Qt for Embedded Linux} server at startup time.
+    It turns off console blinking, sets up the color palette, enables write
     combining on the framebuffer and initialises the off-screen memory
     manager.
 */
@@ -704,27 +695,20 @@ bool QLinuxFbScreen::initDevice()
         free(cmap.transp);
     }
 
-    canaccel=useOffscreen();
-
-    if(mapsize-size<16384) {
-        canaccel=false;
-    }
-
-    if(canaccel) {
-        setupOffScreen();
+    if (canaccel) {
         *entryp=0;
-        *lowest=mapsize;
-        insert_entry(*entryp,*lowest,*lowest);  // dummy entry to mark start
+        *lowest = mapsize;
+        insert_entry(*entryp, *lowest, *lowest);  // dummy entry to mark start
     }
 
-    shared->fifocount=0;
-    shared->buffer_offset=0xffffffff;  // 0 would be a sensible offset (screen)
-    shared->linestep=0;
-    shared->cliptop=0xffffffff;
-    shared->clipleft=0xffffffff;
-    shared->clipright=0xffffffff;
-    shared->clipbottom=0xffffffff;
-    shared->rop=0xffffffff;
+    shared->fifocount = 0;
+    shared->buffer_offset = 0xffffffff;  // 0 would be a sensible offset (screen)
+    shared->linestep = 0;
+    shared->cliptop = 0xffffffff;
+    shared->clipleft = 0xffffffff;
+    shared->clipright = 0xffffffff;
+    shared->clipbottom = 0xffffffff;
+    shared->rop = 0xffffffff;
 
 #ifdef QT_QWS_DEPTH_GENERIC
     if (pixelFormat() == QImage::Format_Invalid && screencols == 0
@@ -762,8 +746,8 @@ bool QLinuxFbScreen::initDevice()
 
 void QLinuxFbScreen::delete_entry(int pos)
 {
-    if (pos>*entryp || pos<0) {
-        qDebug("Attempt to delete odd pos! %d %d",pos,*entryp);
+    if (pos > *entryp || pos < 0) {
+        qWarning("Attempt to delete odd pos! %d %d", pos, *entryp);
         return;
     }
 
@@ -788,10 +772,10 @@ void QLinuxFbScreen::delete_entry(int pos)
     memmove(&entries[pos], &entries[pos+1], size*sizeof(QPoolEntry));
 }
 
-void QLinuxFbScreen::insert_entry(int pos,int start,int end)
+void QLinuxFbScreen::insert_entry(int pos, int start, int end)
 {
     if (pos > *entryp) {
-        qDebug("Attempt to insert odd pos! %d %d",pos,*entryp);
+        qWarning("Attempt to insert odd pos! %d %d",pos,*entryp);
         return;
     }
 
@@ -806,10 +790,10 @@ void QLinuxFbScreen::insert_entry(int pos,int start,int end)
 #endif
     }
 
-    if (pos==*entryp) {
-        entries[pos].start=start;
-        entries[pos].end=end;
-        entries[pos].clientId=qws_client_id;
+    if (pos == *entryp) {
+        entries[pos].start = start;
+        entries[pos].end = end;
+        entries[pos].clientId = qws_client_id;
         (*entryp)++;
         return;
     }
@@ -841,9 +825,8 @@ void QLinuxFbScreen::insert_entry(int pos,int start,int end)
 
 uchar * QLinuxFbScreen::cache(int amount)
 {
-    if(!canaccel || entryp==0) {
+    if (!canaccel || entryp == 0)
         return 0;
-    }
 
     qt_fbdpy->grab();
 
@@ -857,7 +840,7 @@ uchar * QLinuxFbScreen::cache(int amount)
         return 0;
     }
 
-    int align=pixmapOffsetAlignment();
+    int align = pixmapOffsetAlignment();
 
     if (*entryp > 1) {
         // Try to find a gap in the allocated blocks.
@@ -894,9 +877,10 @@ uchar * QLinuxFbScreen::cache(int amount)
 #endif
         return 0;
     }
-    insert_entry(*entryp,newlowest,*lowest);
+    insert_entry(*entryp, newlowest, *lowest);
     qt_fbdpy->ungrab();
-    return data+newlowest;
+
+    return data + newlowest;
 }
 
 /*!
@@ -941,17 +925,18 @@ void QLinuxFbScreen::deleteEntry(uchar * c)
     pos-=((unsigned long)data);
     unsigned int hold=(*entryp);
     for(unsigned int loopc=1;loopc<hold;loopc++) {
-        if(entries[loopc].start==pos) {
+        if (entries[loopc].start==pos) {
             if (entries[loopc].clientId == qws_client_id)
                 delete_entry(loopc);
             else
-                qDebug("Attempt to delete client id %d cache entry", entries[loopc].clientId);
+                qWarning("Attempt to delete client id %d cache entry",
+                         entries[loopc].clientId);
             qt_fbdpy->ungrab();
             return;
         }
     }
     qt_fbdpy->ungrab();
-    qDebug("Attempt to delete unknown offset %ld",pos);
+    qWarning("Attempt to delete unknown offset %ld",pos);
 }
 
 /*!
@@ -984,11 +969,14 @@ void QLinuxFbScreen::setupOffScreen()
     // Figure out position of offscreen memory
     // Set up pool entries pointer table and 64-bit align it
     int psize = size;
+
+    // hw: this causes the limitation of cursors to 64x64
+    // the cursor should rather use the normal pixmap mechanism
     psize += 4096;  // cursor data
     psize += 8;     // for alignment
     psize &= ~0x7;  // align
 
-    unsigned long pos=(unsigned long)data;
+    unsigned long pos = (unsigned long)data;
     pos += psize;
     entryp = ((int *)pos);
     lowest = ((unsigned int *)pos)+1;
@@ -996,16 +984,16 @@ void QLinuxFbScreen::setupOffScreen()
     entries = (QPoolEntry *)pos;
 
     // beginning of offscreen memory available for pixmaps.
-    cacheStart = psize + sizeof(int)*4 + sizeof(QPoolEntry);
+    cacheStart = psize + 4*sizeof(int) + sizeof(QPoolEntry);
 }
 
 /*!
     \reimp
 
-    This is called by the \l {Qtopia Core} server when it shuts down, and
-    should be inherited if you need to do any card-specific cleanup.
-    The default version hides the screen cursor and reenables the
-    blinking cursor and screen blanking.
+    This is called by the \l{Qt for Embedded Linux} server when it shuts
+    down, and should be inherited if you need to do any card-specific cleanup.
+    The default version hides the screen cursor and reenables the blinking
+    cursor and screen blanking.
 */
 
 void QLinuxFbScreen::shutdownDevice()
@@ -1121,8 +1109,8 @@ void QLinuxFbScreen::setMode(int nw,int nh,int nd)
     \reimp
 
     This doesn't do anything; accelerated drivers may wish to reimplement
-    it to save graphics cards registers. It's called by the \l {Qtopia Core} server
-    when the virtual console is switched.
+    it to save graphics cards registers. It's called by the
+    \l{Qt for Embedded Linux} server when the virtual console is switched.
 */
 
 void QLinuxFbScreen::save()
@@ -1136,7 +1124,7 @@ void QLinuxFbScreen::save()
     \reimp
 
     This is called when the virtual console is switched back to
-    \l {Qtopia Core} and restores the palette.
+    \l{Qt for Embedded Linux} and restores the palette.
 */
 void QLinuxFbScreen::restore()
 {
@@ -1213,24 +1201,73 @@ void QLinuxFbScreen::setPixelFormat(struct fb_var_screeninfo info)
 
     QImage::Format format = QImage::Format_Invalid;
 
-
-    // TODO: big endian
-
     switch (d) {
     case 32: {
         const fb_bitfield argb8888[4] = {{16, 8, 0}, {8, 8, 0},
                                          {0, 8, 0}, {24, 8, 0}};
-        if (memcmp(rgba, argb8888, 4 * sizeof(fb_bitfield)) == 0)
+        const fb_bitfield abgr8888[4] = {{0, 8, 0}, {8, 8, 0},
+                                         {16, 8, 0}, {24, 8, 0}};
+        if (memcmp(rgba, argb8888, 4 * sizeof(fb_bitfield)) == 0) {
             format = QImage::Format_ARGB32;
-        else if (memcmp(rgba, argb8888, 3 * sizeof(fb_bitfield)) == 0)
+        } else if (memcmp(rgba, argb8888, 3 * sizeof(fb_bitfield)) == 0) {
             format = QImage::Format_RGB32;
+        } else if (memcmp(rgba, abgr8888, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB32;
+            pixeltype = QScreen::BGRPixel;
+        }
+        break;
+    }
+    case 24: {
+        const fb_bitfield rgb888[4] = {{16, 8, 0}, {8, 8, 0},
+                                       {0, 8, 0}, {0, 0, 0}};
+        const fb_bitfield bgr888[4] = {{0, 8, 0}, {8, 8, 0},
+                                       {16, 8, 0}, {0, 0, 0}};
+        if (memcmp(rgba, rgb888, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB888;
+        } else if (memcmp(rgba, bgr888, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB888;
+            pixeltype = QScreen::BGRPixel;
+        }
+        break;
+    }
+    case 18: {
+        const fb_bitfield rgb666[4] = {{12, 6, 0}, {6, 6, 0},
+                                       {0, 6, 0}, {0, 0, 0}};
+        if (memcmp(rgba, rgb666, 3 * sizeof(fb_bitfield)) == 0)
+            format = QImage::Format_RGB666;
         break;
     }
     case 16: {
         const fb_bitfield rgb565[4] = {{11, 5, 0}, {5, 6, 0},
                                        {0, 5, 0}, {0, 0, 0}};
-        if (memcmp(rgba, rgb565, 3 * sizeof(fb_bitfield)) == 0)
+        const fb_bitfield bgr565[4] = {{0, 5, 0}, {5, 6, 0},
+                                       {11, 5, 0}, {0, 0, 0}};
+        if (memcmp(rgba, rgb565, 3 * sizeof(fb_bitfield)) == 0) {
             format = QImage::Format_RGB16;
+        } else if (memcmp(rgba, bgr565, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB16;
+            pixeltype = QScreen::BGRPixel;
+        }
+        break;
+    }
+    case 15: {
+        const fb_bitfield rgb1555[4] = {{10, 5, 0}, {5, 5, 0},
+                                        {0, 5, 0}, {15, 1, 0}};
+        const fb_bitfield bgr1555[4] = {{0, 5, 0}, {5, 5, 0},
+                                        {10, 5, 0}, {15, 1, 0}};
+        if (memcmp(rgba, rgb1555, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB555;
+        } else if (memcmp(rgba, bgr1555, 3 * sizeof(fb_bitfield)) == 0) {
+            format = QImage::Format_RGB555;
+            pixeltype = QScreen::BGRPixel;
+        }
+        break;
+    }
+    case 12: {
+        const fb_bitfield rgb444[4] = {{8, 4, 0}, {4, 4, 0},
+                                       {0, 4, 0}, {0, 0, 0}};
+        if (memcmp(rgba, rgb444, 3 * sizeof(fb_bitfield)) == 0)
+            format = QImage::Format_RGB444;
         break;
     }
     case 8:
@@ -1245,5 +1282,14 @@ void QLinuxFbScreen::setPixelFormat(struct fb_var_screeninfo info)
     QScreen::setPixelFormat(format);
 }
 
-#endif // QT_NO_QWS_LINUXFB
+bool QLinuxFbScreen::useOffscreen()
+{
+    if ((mapsize - size) < 16*1024)
+        return false;
 
+    return true;
+}
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_QWS_LINUXFB

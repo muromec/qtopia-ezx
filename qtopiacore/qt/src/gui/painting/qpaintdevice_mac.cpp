@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,7 +44,9 @@
 #include <qdebug.h>
 #include <private/qt_mac_p.h>
 #include <private/qprintengine_mac_p.h>
-#include <private/qpixmap_p.h>
+#include <private/qpixmap_mac_p.h>
+
+QT_BEGIN_NAMESPACE
 
 /*****************************************************************************
   Internal variables and functions
@@ -61,6 +57,7 @@
   External functions
  *****************************************************************************/
 
+extern void qt_painter_removePaintDevice(QPaintDevice *); //qpainter.cpp
 
 /*****************************************************************************
   QPaintDevice member functions
@@ -75,7 +72,6 @@ QPaintDevice::~QPaintDevice()
     if(paintingActive())
         qWarning("QPaintDevice: Cannot destroy paint device that is being "
                  "painted, be sure to QPainter::end() painters");
-    extern void qt_painter_removePaintDevice(QPaintDevice *); //qpainter.cpp
     qt_painter_removePaintDevice(this);
 }
 
@@ -118,12 +114,14 @@ Q_GUI_EXPORT GrafPtr qt_mac_qd_context(const QPaintDevice *device)
         return static_cast<GrafPtr>(static_cast<const QPixmap *>(device)->macQDHandle());
     } else if(device->devType() == QInternal::Widget) {
         return static_cast<GrafPtr>(static_cast<const QWidget *>(device)->macQDHandle());
-    } if(device->devType() == QInternal::Printer) {
+    } else if(device->devType() == QInternal::Printer) {
         QPaintEngine *engine = static_cast<const QPrinter *>(device)->paintEngine();
         return static_cast<GrafPtr>(static_cast<const QMacPrintEngine *>(engine)->handle());
     }
     return 0;
 }
+
+extern CGColorSpaceRef qt_mac_colorSpaceForDeviceType(const QPaintDevice *pdev);
 
 /*! \internal
 
@@ -136,33 +134,36 @@ Q_GUI_EXPORT GrafPtr qt_mac_qd_context(const QPaintDevice *device)
 
 Q_GUI_EXPORT CGContextRef qt_mac_cg_context(const QPaintDevice *pdev)
 {
-    if(pdev->devType() == QInternal::Pixmap) {
+    if (pdev->devType() == QInternal::Pixmap) {
         const QPixmap *pm = static_cast<const QPixmap*>(pdev);
-        CGColorSpaceRef colorspace = CGColorSpaceCreateDeviceRGB();
-        CGImageRef img = (CGImageRef)pm->macCGHandle();
+        CGColorSpaceRef colorspace = qt_mac_colorSpaceForDeviceType(pdev);
 #if (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4)
-        uint flags = CGImageGetAlphaInfo(img);
-        CGBitmapInfo (*CGImageGetBitmapInfo_ptr)(CGImageRef) = CGImageGetBitmapInfo;
-        if(CGImageGetBitmapInfo_ptr)
-            flags |= (*CGImageGetBitmapInfo_ptr)(img);
-#else
-        CGImageAlphaInfo flags = CGImageGetAlphaInfo(img);
+        uint flags = kCGImageAlphaPremultipliedFirst;
+#ifdef kCGBitmapByteOrder32Host //only needed because CGImage.h added symbols in the minor version
+        if(QSysInfo::MacintoshVersion >= QSysInfo::MV_10_4)
+            flags |= kCGBitmapByteOrder32Host;
 #endif
-        CGContextRef ret = CGBitmapContextCreate(pm->data->pixels, pm->data->w, pm->data->h,
-                                                 8, pm->data->nbytes / pm->data->h, colorspace,
+#else
+        CGImageAlphaInfo flags = kCGImageAlphaPremultipliedFirst;
+#endif
+        const QMacPixmapData *pmData = static_cast<const QMacPixmapData*>(pm->data);
+        CGContextRef ret = CGBitmapContextCreate(pmData->pixels, pmData->w, pmData->h,
+                                                 8, pmData->bytesPerRow, colorspace,
                                                  flags);
-        CGColorSpaceRelease(colorspace);
         if(!ret)
             qWarning("QPaintDevice: Unable to create context for pixmap (%d/%d/%d)",
-                     pm->data->w, pm->data->h, pm->data->nbytes);
-        CGContextTranslateCTM(ret, 0, pm->data->h);
+                     pmData->w, pmData->h, (pmData->bytesPerRow * pmData->h));
+        CGContextTranslateCTM(ret, 0, pmData->h);
         CGContextScaleCTM(ret, 1, -1);
-        CGImageRelease(img);
         return ret;
-    } else if(pdev->devType() == QInternal::Widget) {
+    } else if (pdev->devType() == QInternal::Widget) {
         CGContextRef ret = static_cast<CGContextRef>(static_cast<const QWidget *>(pdev)->macCGHandle());
         CGContextRetain(ret);
         return ret;
+    } else if (pdev->devType() == QInternal::MacQuartz) {
+        return static_cast<const QMacQuartzPaintDevice *>(pdev)->cgContext();
     }
     return 0;
 }
+
+QT_END_NAMESPACE

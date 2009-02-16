@@ -1,47 +1,42 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qwininputcontext_p.h"
+#include "qinputcontext_p.h"
 
 #include "qfont.h"
 #include "qwidget.h"
@@ -55,6 +50,12 @@
 /* Active Input method support on Win95/98/NT */
 #include <objbase.h>
 #include <initguid.h>
+
+#ifdef Q_IME_DEBUG
+#include "qdebug.h"
+#endif 
+
+QT_BEGIN_NAMESPACE
 
 DEFINE_GUID(IID_IActiveIMMApp,
 0x08c0e040, 0x62d1, 0x11d1, 0x93, 0x26, 0x0, 0x60, 0xb0, 0x67, 0xb8, 0x6e);
@@ -221,23 +222,48 @@ QWinInputContext::QWinInputContext(QObject *parent)
             aimmpump->Start();
     }
 
-#ifndef Q_OS_TEMP
-    // figure out whether a RTL language is installed
-    typedef BOOL(WINAPI *PtrIsValidLanguageGroup)(DWORD,DWORD);
-    PtrIsValidLanguageGroup isValidLanguageGroup = (PtrIsValidLanguageGroup)QLibrary::resolve(QLatin1String("kernel32"), "IsValidLanguageGroup");
-    if (isValidLanguageGroup) {
-        qt_use_rtl_extensions = isValidLanguageGroup(LGRPID_ARABIC, LGRPID_INSTALLED)
-                             || isValidLanguageGroup(LGRPID_HEBREW, LGRPID_INSTALLED);
-    }
-    qt_use_rtl_extensions |= IsValidLocale(MAKELCID(MAKELANGID(LANG_ARABIC, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
-                          || IsValidLocale(MAKELCID(MAKELANGID(LANG_HEBREW, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
+#ifndef Q_OS_WINCE
+    QSysInfo::WinVersion ver = QSysInfo::windowsVersion();
+    if (ver & QSysInfo::WV_NT_based  && ver >= QSysInfo::WV_VISTA) {
+        // Since the IsValidLanguageGroup/IsValidLocale functions always return true on 
+        // Vista, check the Keyboard Layouts for enabling RTL. 
+        UINT nLayouts = GetKeyboardLayoutList(0, 0);
+        if (nLayouts) {
+            HKL *lpList = new HKL[nLayouts];
+            GetKeyboardLayoutList(nLayouts, lpList);
+            for (int i = 0; i<(int)nLayouts; i++) {
+                WORD plangid = PRIMARYLANGID((quintptr)lpList[i]);
+                if (plangid == LANG_ARABIC 
+                    || plangid ==  LANG_HEBREW
+                    || plangid ==  LANG_FARSI
 #ifdef LANG_SYRIAC
-                          || IsValidLocale(MAKELCID(MAKELANGID(LANG_SYRIAC, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
+                    || plangid ==  LANG_SYRIAC
 #endif
-                          || IsValidLocale(MAKELCID(MAKELANGID(LANG_FARSI, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED);
+                    ) {
+                        qt_use_rtl_extensions = true;
+                        break;
+                }
+            }
+            delete []lpList;
+        }
+    } else {
+	    // figure out whether a RTL language is installed
+    	typedef BOOL(WINAPI *PtrIsValidLanguageGroup)(DWORD,DWORD);
+    	PtrIsValidLanguageGroup isValidLanguageGroup = (PtrIsValidLanguageGroup)QLibrary::resolve(QLatin1String("kernel32"), "IsValidLanguageGroup");
+    	if (isValidLanguageGroup) {
+        	qt_use_rtl_extensions = isValidLanguageGroup(LGRPID_ARABIC, LGRPID_INSTALLED)
+	            	                 || isValidLanguageGroup(LGRPID_HEBREW, LGRPID_INSTALLED);
+    	}
+    	qt_use_rtl_extensions |= IsValidLocale(MAKELCID(MAKELANGID(LANG_ARABIC, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
+        	                  || IsValidLocale(MAKELCID(MAKELANGID(LANG_HEBREW, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
+#ifdef LANG_SYRIAC
+            	              || IsValidLocale(MAKELCID(MAKELANGID(LANG_SYRIAC, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED)
+#endif
+                	          || IsValidLocale(MAKELCID(MAKELANGID(LANG_FARSI, SUBLANG_DEFAULT), SORT_DEFAULT), LCID_INSTALLED);
+    }
 #else
     qt_use_rtl_extensions = false;
-#endif // Q_OS_TEMP
+#endif
 
     WM_MSIME_MOUSE = QT_WA_INLINE(RegisterWindowMessage(L"MSIMEMouseOperation"), RegisterWindowMessageA("MSIMEMouseOperation"));
 }
@@ -301,16 +327,14 @@ static LONG getCompositionString(HIMC himc, DWORD dwIndex, LPVOID lpbuf, DWORD d
     LONG len = 0;
     if (unicode)
         *unicode = true;
-#ifndef Q_OS_TEMP
     if (aimm)
         aimm->GetCompositionStringW(himc, dwIndex, dBufLen, &len, lpbuf);
     else
-#endif
     {
         if(QSysInfo::WindowsVersion != QSysInfo::WV_95) {
             len = ImmGetCompositionStringW(himc, dwIndex, lpbuf, dBufLen);
         }
-#ifndef Q_OS_TEMP
+#if !defined(Q_OS_WINCE)
         else {
             len = ImmGetCompositionStringA(himc, dwIndex, lpbuf, dBufLen);
             if (unicode)
@@ -367,7 +391,6 @@ static QString getString(HIMC himc, DWORD dwindex, int *selStart = 0, int *selLe
     if (unicode) {
         return QString((QChar *)buffer, len/sizeof(QChar));
     }
-//#ifdef Q_OS_TEMP
     else {
         buffer[len] = 0;
         WCHAR *wc = new WCHAR[len+1];
@@ -377,7 +400,6 @@ static QString getString(HIMC himc, DWORD dwindex, int *selStart = 0, int *selLe
         delete [] wc;
         return res;
     }
-//#endif
 }
 
 void QWinInputContext::TranslateMessage(const MSG *msg)
@@ -389,9 +411,7 @@ void QWinInputContext::TranslateMessage(const MSG *msg)
 LRESULT QWinInputContext::DefWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     LRESULT retval;
-#ifndef Q_OS_TEMP
     if (!aimm || aimm->OnDefWindowProc(hwnd, msg, wParam, lParam, &retval) != S_OK)
-#endif
     {
         QT_WA({
             retval = ::DefWindowProc(hwnd, msg, wParam, lParam);
@@ -410,7 +430,7 @@ void QWinInputContext::update()
         return;
 
     Q_ASSERT(w->testAttribute(Qt::WA_WState_Created));
-    HIMC imc = getContext(w->winId());
+    HIMC imc = getContext(w->effectiveWinId());
 
     if (!imc)
         return;
@@ -436,6 +456,15 @@ void QWinInputContext::update()
     });
 
     QRect r = w->inputMethodQuery(Qt::ImMicroFocus).toRect();
+
+    // The ime window positions are based on the WinId with active focus.
+    QWidget *imeWnd = QWidget::find(::GetFocus());
+    if (imeWnd && !aimm) {
+        QPoint pt (r.topLeft());
+        pt = w->mapToGlobal(pt);
+        pt = imeWnd->mapFromGlobal(pt);
+        r.moveTo(pt);
+    }
 
     COMPOSITIONFORM cf;
     // ### need X-like inputStyle config settings
@@ -464,7 +493,7 @@ void QWinInputContext::update()
         ImmSetCandidateWindow(imc, &candf);
     }
 
-    releaseContext(w->winId(), imc);
+    releaseContext(w->effectiveWinId(), imc);
 }
 
 
@@ -485,9 +514,9 @@ bool QWinInputContext::endComposition()
 
     if (fw) {
         Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
-        HIMC imc = getContext(fw->winId());
+        HIMC imc = getContext(fw->effectiveWinId());
         notifyIME(imc, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
-        releaseContext(fw->winId(), imc);
+        releaseContext(fw->effectiveWinId(), imc);
         if(haveCaret) {
             DestroyCaret();
             haveCaret = false;
@@ -532,9 +561,9 @@ void QWinInputContext::reset()
 
     if (fw) {
         Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
-        HIMC imc = getContext(fw->winId());
+        HIMC imc = getContext(fw->effectiveWinId());
         notifyIME(imc, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
-        releaseContext(fw->winId(), imc);
+        releaseContext(fw->effectiveWinId(), imc);
     }
 
 }
@@ -553,8 +582,8 @@ bool QWinInputContext::startComposition()
     if (fw) {
         Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
         imePosition = 0;
-        haveCaret = CreateCaret(fw->winId(), 0, 1, 1);
-        HideCaret(fw->winId());
+        haveCaret = CreateCaret(fw->effectiveWinId(), 0, 1, 1);
+        HideCaret(fw->effectiveWinId());
         update();
     }
     return fw != 0;
@@ -595,7 +624,7 @@ bool QWinInputContext::composition(LPARAM lParam)
     QWidget *fw = qApp->focusWidget();
     if (fw) {
         Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
-        HIMC imc = getContext(fw->winId());
+        HIMC imc = getContext(fw->effectiveWinId());
         QInputMethodEvent e;
         if (lParam & (GCS_COMPSTR | GCS_COMPATTR | GCS_CURSORPOS)) {
             if (imePosition == -1)
@@ -641,7 +670,7 @@ bool QWinInputContext::composition(LPARAM lParam)
         }
         result = qt_sendSpontaneousEvent(fw, &e);
         update();
-        releaseContext(fw->winId(), imc);
+        releaseContext(fw->effectiveWinId(), imc);
     }
 #ifdef Q_IME_DEBUG
     qDebug("imecomposition: cursor pos at %d, str=%x", imePosition, str[0].unicode());
@@ -650,6 +679,98 @@ bool QWinInputContext::composition(LPARAM lParam)
 }
 
 static HIMC defaultContext = 0;
+
+// checks whether widget is a popup
+inline bool isPopup(QWidget *w)
+{
+    if (w && (w->windowFlags() & Qt::Popup) == Qt::Popup)
+        return true;
+    else 
+        return false;
+}
+// checks whether widget is in a popup
+inline bool isInPopup(QWidget *w)
+{
+    if (w && (isPopup(w) ||  isPopup(w->window())))
+        return true;
+    else 
+        return false;
+}
+
+// find the parent widget, which is a non popup toplevel
+// this is valid only if the widget is/in a popup
+inline QWidget *findParentforPopup(QWidget *w)
+{
+    QWidget *e = QWidget::find(w->effectiveWinId());
+    // check if this or its parent is a popup
+    while (isInPopup(e)) {
+        e = e->window()->parentWidget();
+        if (!e) 
+            break;
+        e = QWidget::find(e->effectiveWinId());
+    }
+    if (e)
+        return e->window();
+    else
+        return 0;
+}
+
+// enables or disables the ime 
+inline void enableIme(QWidget *w,  bool value) 
+{
+    if (value) {
+        // enable ime
+        if (defaultContext)
+            ImmAssociateContext(w->effectiveWinId(), defaultContext);
+    } else {
+        // disable ime
+        HIMC oldimc = ImmAssociateContext(w->effectiveWinId(), 0);
+        if (!defaultContext)
+            defaultContext = oldimc;
+    }
+}
+
+
+void QInputContextPrivate::updateImeStatus(QWidget *w, bool hasFocus)
+{
+    if (!w)
+        return;
+    bool e = w->testAttribute(Qt::WA_InputMethodEnabled) && w->isEnabled();
+    bool hasIme = e && hasFocus;
+#ifdef Q_IME_DEBUG
+    qDebug("%s HasFocus = %d hasIme = %d e = %d ", w->className(), hasFocus, hasIme, e);
+#endif
+    if (hasFocus || e) {
+        if (isInPopup(w))
+            QWinInputContext::enablePopupChild(w, hasIme);
+        else
+            QWinInputContext::enable(w, hasIme);
+    }
+}
+
+void QWinInputContext::enablePopupChild(QWidget *w, bool e)
+{
+    if (aimm) {
+        enable(w, e);
+        return;
+    }
+
+    if (!w || !isInPopup(w))
+        return;
+#ifdef Q_IME_DEBUG
+    qDebug("enablePopupChild: w=%s, enable = %s", w ? w->className() : "(null)" , e ? "true" : "false");
+#endif
+    QWidget *parent = findParentforPopup(w);
+    if (parent) {
+        // update ime status of the normal toplevel parent of the popup
+        enableIme(parent, e);
+    }
+    QWidget *toplevel = w->window();
+    if (toplevel) {
+        // update ime status of the toplevel popup
+        enableIme(toplevel, e);
+    }
+}
 
 void QWinInputContext::enable(QWidget *w, bool e)
 {
@@ -662,20 +783,17 @@ void QWinInputContext::enable(QWidget *w, bool e)
         if(aimm) {
             HIMC oldimc;
             if (!e) {
-                aimm->AssociateContext(w->winId(), 0, &oldimc);
+                aimm->AssociateContext(w->effectiveWinId(), 0, &oldimc);
                 if (!defaultContext)
                     defaultContext = oldimc;
             } else if (defaultContext) {
-                aimm->AssociateContext(w->winId(), defaultContext, &oldimc);
+                aimm->AssociateContext(w->effectiveWinId(), defaultContext, &oldimc);
             }
         } else {
-            if (!e) {
-                HIMC oldimc = ImmAssociateContext(w->winId(), 0);
-                if (!defaultContext)
-                    defaultContext = oldimc;
-            } else if (defaultContext) {
-                ImmAssociateContext(w->winId(), defaultContext);
-            }
+            // update ime status on the widget
+            QWidget *p = QWidget::find(w->effectiveWinId());
+            if (p)
+                enableIme(p, e);
         }
     }
 }
@@ -703,11 +821,13 @@ void QWinInputContext::mouseHandler(int pos, QMouseEvent *e)
     DWORD button = MK_LBUTTON;
 
     QWidget *fw = focusWidget();
-    Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
-    HIMC himc = getContext(fw->winId());
-    HWND ime_wnd = getDefaultIMEWnd(fw->winId());
-    SendMessage(ime_wnd, WM_MSIME_MOUSE, MAKELONG(MAKEWORD(button, pos == 0 ? 2 : 1), pos), (LPARAM)himc);
-    releaseContext(fw->winId(), himc);
+    if (fw) {
+        Q_ASSERT(fw->testAttribute(Qt::WA_WState_Created));
+        HIMC himc = getContext(fw->effectiveWinId());
+        HWND ime_wnd = getDefaultIMEWnd(fw->effectiveWinId());
+        SendMessage(ime_wnd, WM_MSIME_MOUSE, MAKELONG(MAKEWORD(button, pos == 0 ? 2 : 1), pos), (LPARAM)himc);
+        releaseContext(fw->effectiveWinId(), himc);
+    }
     //qDebug("mouseHandler: got value %d pos=%d", ret,pos);
 }
 
@@ -715,3 +835,5 @@ QString QWinInputContext::language()
 {
     return QString();
 }
+
+QT_END_NAMESPACE

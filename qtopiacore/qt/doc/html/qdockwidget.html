@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qdockwidget.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qdockwidget.cpp -->
 <head>
-  <title>Qt 4.3: QDockWidget Class Reference</title>
+  <title>Qt 4.4: QDockWidget Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QDockWidget Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QDockWidget Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QDockWidget class provides a widget that can be docked inside a <a href="qmainwindow.html">QMainWindow</a> or floated as a top-level window on the desktop. <a href="#details">More...</a></p>
 <pre> #include &lt;QDockWidget&gt;</pre><p>Inherits <a href="qwidget.html">QWidget</a>.</p>
@@ -33,7 +33,7 @@
 <li><div class="fn"/><b><a href="qdockwidget.html#floating-prop">floating</a></b> : bool</li>
 </ul>
 <ul>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -56,9 +56,9 @@
 <li><div class="fn"/>QWidget * <b><a href="qdockwidget.html#widget">widget</a></b> () const</li>
 </ul>
 <ul>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="signals"></a>
 <h3>Signals</h3>
@@ -96,12 +96,12 @@
 <h2>Detailed Description</h2>
 <p>The QDockWidget class provides a widget that can be docked inside a <a href="qmainwindow.html">QMainWindow</a> or floated as a top-level window on the desktop.</p>
 <p>QDockWidget provides the concept of dock widgets, also know as tool palettes or utility windows. Dock windows are secondary windows placed in the <i>dock widget area</i> around the <a href="qmainwindow.html#centralWidget">central widget</a> in a <a href="qmainwindow.html">QMainWindow</a>.</p>
-<p align="center"><img src="images/mainwindow-docks.png" /></p><p>Dock windows can be moved inside their current area, moved into new areas and floated (e.g&#x2e; undocked) by the end-user. The QDockWidget API allows the programmer to restrict the dock widgets ability to move, float and close, as well as the areas in which they can be placed.</p>
+<p align="center"><img src="images/mainwindow-docks.png" /></p><p>Dock windows can be moved inside their current area, moved into new areas and floated (e.g&#x2e;, undocked) by the end-user. The QDockWidget API allows the programmer to restrict the dock widgets ability to move, float and close, as well as the areas in which they can be placed.</p>
 <a name="appearance"></a>
 <h3>Appearance</h3>
 <p>A QDockWidget consists of a title bar and the content area. The title bar displays the dock widgets <a href="qwidget.html#windowTitle-prop">window title</a>, a <i>float</i> button and a <i>close</i> button. Depending on the state of the QDockWidget, the <i>float</i> and <i>close</i> buttons may be either disabled or not shown at all.</p>
 <p>The visual appearance of the title bar and buttons is dependent on the <a href="qstyle.html">style</a> in use.</p>
-<p>A QDockWidget acts as a wrapper for its child widget, set with <a href="qdockwidget.html#setWidget">setWidget</a>(). Custom size hints, minimum and maximum sizes and size policies should be implemented in the child widget. QDockWidget will respect them, adjusting its own constraints to include the frame and title. Size constraints should not be set on the QDockWidget itself, because they change depending on wether it is docked; a docked QDockWidget has no frame and a smaller title bar.</p>
+<p>A QDockWidget acts as a wrapper for its child widget, set with <a href="qdockwidget.html#setWidget">setWidget</a>(). Custom size hints, minimum and maximum sizes and size policies should be implemented in the child widget. QDockWidget will respect them, adjusting its own constraints to include the frame and title. Size constraints should not be set on the QDockWidget itself, because they change depending on whether it is docked; a docked QDockWidget has no frame and a smaller title bar.</p>
 <p>See also <a href="qmainwindow.html">QMainWindow</a> and <a href="mainwindows-dockwidgets.html">Dock Widgets Example</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
@@ -129,6 +129,7 @@
 <p>See also <a href="qt.html#DockWidgetArea-enum">Qt::DockWidgetArea</a>.</p>
 <h3 class="fn"><a name="features-prop"></a>features : <a href="qdockwidget.html#DockWidgetFeature-enum">DockWidgetFeatures</a></h3>
 <p>This property holds whether the dock widget is movable, closable, and floatable.</p>
+<p>By default, this property is set to a combination of <a href="qdockwidget.html#DockWidgetFeature-enum">DockWidgetClosable</a>, <a href="qdockwidget.html#DockWidgetFeature-enum">DockWidgetMovable</a> and <a href="qdockwidget.html#DockWidgetFeature-enum">DockWidgetFloatable</a>.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>DockWidgetFeatures features () const</b></li>
@@ -138,6 +139,7 @@
 <h3 class="fn"><a name="floating-prop"></a>floating : bool</h3>
 <p>This property holds whether the dock widget is floating.</p>
 <p>A floating dock widget is presented to the user as an independent window &quot;on top&quot; of its parent <a href="qmainwindow.html">QMainWindow</a>, instead of being docked in the <a href="qmainwindow.html">QMainWindow</a>.</p>
+<p>By default, this property is true.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>bool isFloating () const</b></li>
@@ -186,6 +188,8 @@
 <p>See also <a href="qdockwidget.html#titleBarWidget">titleBarWidget</a>() and <a href="qdockwidget.html#DockWidgetFeature-enum">DockWidgetVerticalTitleBar</a>.</p>
 <h3 class="fn"><a name="setWidget"></a>void QDockWidget::setWidget ( <a href="qwidget.html">QWidget</a> * <i>widget</i> )</h3>
 <p>Sets the widget for the dock widget to <i>widget</i>.</p>
+<p>If the dock widget is visible when <i>widget</i> is added, you must <a href="qwidget.html#show">show()</a> it explicitly.</p>
+<p>Note that you must add the layout of the <i>widget</i> before you call this function; if not, the <i>widget</i> will not be visible.</p>
 <p>See also <a href="qdockwidget.html#widget">widget</a>().</p>
 <h3 class="fn"><a name="titleBarWidget"></a><a href="qwidget.html">QWidget</a> * QDockWidget::titleBarWidget () const</h3>
 <p>Returns the custom title bar widget set on the <a href="qdockwidget.html">QDockWidget</a>, or 0 if no custom title bar has been set.</p>
@@ -206,8 +210,8 @@
 <p>See also <a href="qdockwidget.html#setWidget">setWidget</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

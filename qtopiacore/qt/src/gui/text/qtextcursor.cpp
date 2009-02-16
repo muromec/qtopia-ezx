@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,9 +44,12 @@
 #include "qtexttable.h"
 #include "qtexttable_p.h"
 #include "qtextengine_p.h"
+#include "qabstracttextdocumentlayout.h"
 
 #include <qtextlayout.h>
 #include <qdebug.h>
+
+QT_BEGIN_NAMESPACE
 
 enum {
     AdjustPrev = 0x1,
@@ -63,7 +60,7 @@ enum {
 
 QTextCursorPrivate::QTextCursorPrivate(QTextDocumentPrivate *p)
     : priv(p), x(0), position(0), anchor(0), adjusted_anchor(0),
-      currentCharFormat(-1)
+      currentCharFormat(-1), visualNavigation(false)
 {
     priv->addCursor(this);
 }
@@ -77,6 +74,7 @@ QTextCursorPrivate::QTextCursorPrivate(const QTextCursorPrivate &rhs)
     priv = rhs.priv;
     x = rhs.x;
     currentCharFormat = rhs.currentCharFormat;
+    visualNavigation = rhs.visualNavigation;
     priv->addCursor(this);
 }
 
@@ -123,13 +121,20 @@ QTextCursorPrivate::AdjustResult QTextCursorPrivate::adjustPosition(int position
 
 void QTextCursorPrivate::setX()
 {
-    QTextBlock block = priv->blocksFind(position);
-    const QTextLayout *layout = block.layout();
+    if (priv && priv->isInEditBlock()) {
+        x = -1; // mark dirty
+        return;
+    }
+
+    QTextBlock block = this->block();
+    const QTextLayout *layout = blockLayout(block);
     int pos = position - block.position();
 
     QTextLine line = layout->lineForTextPosition(pos);
     if (line.isValid())
         x = line.cursorToX(pos);
+    else
+        x = -1; // delayed init.  Makes movePosition() call setX later on again.
 }
 
 void QTextCursorPrivate::remove()
@@ -278,6 +283,67 @@ void QTextCursorPrivate::adjustCursor(QTextCursor::MoveOperation m)
     currentCharFormat = -1;
 }
 
+void QTextCursorPrivate::aboutToRemoveCell(int from, int to)
+{
+    Q_ASSERT(from <= to);
+    if (position == anchor)
+        return;
+
+    QTextTable *t = qobject_cast<QTextTable *>(priv->frameAt(position));
+    if (!t)
+        return;
+    QTextTableCell removedCellFrom = t->cellAt(from);
+    QTextTableCell removedCellEnd = t->cellAt(to);
+    if (! removedCellFrom.isValid() || !removedCellEnd.isValid())
+        return;
+
+    int curFrom = position;
+    int curTo = adjusted_anchor;
+    if (curTo < curFrom)
+        qSwap(curFrom, curTo);
+
+    QTextTableCell cellStart = t->cellAt(curFrom);
+    QTextTableCell cellEnd = t->cellAt(curTo);
+
+    if (cellStart.row() >= removedCellFrom.row() && cellEnd.row() <= removedCellEnd.row()
+            && cellStart.column() >= removedCellFrom.column()
+              && cellEnd.column() <= removedCellEnd.column()) { // selection is completely removed
+        // find a new position, as close as possible to where we were.
+        QTextTableCell cell;
+        if (removedCellFrom.row() == 0 && removedCellEnd.row() == t->rows()-1) // removed n columns
+            cell = t->cellAt(cellStart.row(), removedCellEnd.column()+1);
+        else if (removedCellFrom.column() == 0 && removedCellEnd.column() == t->columns()-1) // removed n rows
+            cell = t->cellAt(removedCellEnd.row() + 1, cellStart.column());
+
+        int newPosition;
+        if (cell.isValid())
+            newPosition = cell.firstPosition();
+        else
+            newPosition = t->lastPosition()+1;
+
+        setPosition(newPosition);
+        anchor = newPosition;
+        adjusted_anchor = newPosition;
+        x = 0;
+    }
+    else if (cellStart.row() >= removedCellFrom.row() && cellStart.row() <= removedCellEnd.row()
+        && cellEnd.row() > removedCellEnd.row()) {
+        int newPosition = t->cellAt(removedCellEnd.row() + 1, cellStart.column()).firstPosition();
+        if (position < anchor)
+            position = newPosition;
+        else
+            anchor = adjusted_anchor = newPosition;
+    }
+    else if (cellStart.column() >= removedCellFrom.column() && cellStart.column() <= removedCellEnd.column()
+        && cellEnd.column() > removedCellEnd.column()) {
+        int newPosition = t->cellAt(cellStart.row(), removedCellEnd.column()+1).firstPosition();
+        if (position < anchor)
+            position = newPosition;
+        else
+            anchor = adjusted_anchor = newPosition;
+    }
+}
+
 bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor::MoveMode mode)
 {
     currentCharFormat = -1;
@@ -296,13 +362,18 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
             op = QTextCursor::PreviousWord;
     }
 
-    const QTextLayout *layout = blockIt.layout();
+    const QTextLayout *layout = blockLayout(blockIt);
     int relativePos = position - blockIt.position();
-    QTextLine line = layout->lineForTextPosition(relativePos);
+    QTextLine line;
+    if (!priv->isInEditBlock())
+        line = layout->lineForTextPosition(relativePos);
 
     Q_ASSERT(priv->frameAt(position) == priv->frameAt(adjusted_anchor));
 
     int newPosition = position;
+
+    if (x == -1 && !priv->isInEditBlock() && (op == QTextCursor::Up || op == QTextCursor::Down))
+        setX();
 
     switch(op) {
     case QTextCursor::NoMove:
@@ -312,10 +383,9 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
         newPosition = 0;
         break;
     case QTextCursor::StartOfLine: {
-
-        if (!line.isValid())
-            break;
-        newPosition = blockIt.position() + line.textStart();
+        newPosition = blockIt.position();
+        if (line.isValid())
+            newPosition += line.textStart();
 
         break;
     }
@@ -337,7 +407,7 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
         break;
     case QTextCursor::StartOfWord: {
         QTextEngine *engine = layout->engine();
-        const QCharAttributes *attributes = engine->attributes();
+        const HB_CharAttributes *attributes = engine->attributes();
 
         if (relativePos == 0)
             return false;
@@ -377,7 +447,7 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
             } else {
                 blockIt = blockIt.previous();
             }
-            layout = blockIt.layout();
+            layout = blockLayout(blockIt);
             i = layout->lineCount()-1;
         }
         if (layout->lineCount()) {
@@ -394,8 +464,12 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
         newPosition = priv->length() - 1;
         break;
     case QTextCursor::EndOfLine: {
-        if (!line.isValid() || line.textLength() == 0)
+        if (!line.isValid() || line.textLength() == 0) {
+            if (blockIt.length() >= 1)
+                // position right before the block separator
+                newPosition = blockIt.position() + blockIt.length() - 1;
             break;
+        }
         newPosition = blockIt.position() + line.textStart() + line.textLength();
         if (line.lineNumber() < layout->lineCount() - 1) {
             const QString text = blockIt.text();
@@ -408,7 +482,7 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
     }
     case QTextCursor::EndOfWord: {
         QTextEngine *engine = layout->engine();
-        const QCharAttributes *attributes = engine->attributes();
+        const HB_CharAttributes *attributes = engine->attributes();
         const QString string = engine->layoutData->string;
 
         const int len = layout->engine()->layoutData->string.length();
@@ -471,7 +545,7 @@ bool QTextCursorPrivate::movePosition(QTextCursor::MoveOperation op, QTextCursor
 
             if (blockIt == priv->blocksEnd())
                 return false;
-            layout = blockIt.layout();
+            layout = blockLayout(blockIt);
             i = 0;
         }
         if (layout->lineCount()) {
@@ -563,7 +637,7 @@ void QTextCursorPrivate::selectedTableCells(int *firstRow, int *numRows, int *fi
     *numColumns = qMax(cell_pos.column() + cell_pos.columnSpan(), cell_anchor.column() + cell_anchor.columnSpan()) - *firstColumn;
 }
 
-static void setBlockCharFormat(QTextDocumentPrivate *priv, int pos1, int pos2,
+static void setBlockCharFormatHelper(QTextDocumentPrivate *priv, int pos1, int pos2,
                                const QTextCharFormat &format, QTextDocumentPrivate::FormatChangeMode changeMode)
 {
     QTextBlock it = priv->blocksFind(pos1);
@@ -576,7 +650,8 @@ static void setBlockCharFormat(QTextDocumentPrivate *priv, int pos1, int pos2,
     }
 }
 
-void QTextCursorPrivate::setBlockCharFormat(const QTextCharFormat &_format, QTextDocumentPrivate::FormatChangeMode changeMode)
+void QTextCursorPrivate::setBlockCharFormat(const QTextCharFormat &_format,
+    QTextDocumentPrivate::FormatChangeMode changeMode)
 {
     priv->beginEditBlock();
 
@@ -607,7 +682,7 @@ void QTextCursorPrivate::setBlockCharFormat(const QTextCharFormat &_format, QTex
 
                 int pos1 = cell.firstPosition();
                 int pos2 = cell.lastPosition();
-                ::setBlockCharFormat(priv, pos1, pos2, format, changeMode);
+                setBlockCharFormatHelper(priv, pos1, pos2, format, changeMode);
             }
         }
     } else {
@@ -618,7 +693,7 @@ void QTextCursorPrivate::setBlockCharFormat(const QTextCharFormat &_format, QTex
             pos2 = position;
         }
 
-        ::setBlockCharFormat(priv, pos1, pos2, format, changeMode);
+        setBlockCharFormatHelper(priv, pos1, pos2, format, changeMode);
     }
     priv->endEditBlock();
 }
@@ -715,8 +790,18 @@ void QTextCursorPrivate::setCharFormat(const QTextCharFormat &_format, QTextDocu
     }
 }
 
+
+QTextLayout *QTextCursorPrivate::blockLayout(QTextBlock &block) const{
+    QTextLayout *tl = block.layout();
+    if (!tl->lineCount() && priv->layout())
+        priv->layout()->blockBoundingRect(block);
+    return tl;
+}
+
 /*!
     \class QTextCursor
+    \reentrant
+
     \brief The QTextCursor class offers an API to access and modify QTextDocuments.
 
     \ingroup text
@@ -1028,25 +1113,78 @@ int QTextCursor::anchor() const
     If \a mode is \c KeepAnchor, the cursor selects the text it moves
     over. This is the same effect that the user achieves when they
     hold down the Shift key and move the cursor with the cursor keys.
+
+    \sa setVisualNavigation()
 */
 bool QTextCursor::movePosition(MoveOperation op, MoveMode mode, int n)
 {
     if (!d || !d->priv)
         return false;
     switch (op) {
-        case Start:
-        case StartOfLine:
-        case End:
-        case EndOfLine:
-            n = 1;
-            break;
-        default: break;
+    case Start:
+    case StartOfLine:
+    case End:
+    case EndOfLine:
+        n = 1;
+        break;
+    default: break;
     }
+
+    int previousPosition = d->position;
     for (; n > 0; --n) {
         if (!d->movePosition(op, mode))
             return false;
     }
+
+    if (d->visualNavigation && !d->block().isVisible()) {
+        QTextBlock b = d->block();
+        if (previousPosition < d->position) {
+            while (!b.next().isVisible())
+                b = b.next();
+            d->setPosition(b.position() + b.length() - 1);
+        } else {
+            while (!b.previous().isVisible())
+                b = b.previous();
+            d->setPosition(b.position());
+        }
+        while (d->movePosition(op, mode)
+               && !d->block().isVisible())
+            ;
+
+    }
     return true;
+}
+
+/*!
+  \since 4.4
+
+  Returns true if the cursor does visual navigation; otherwise
+  returns false.
+
+  Visual navigation means skipping over hidden text pragraphs. The
+  default is false.
+
+  \sa setVisualNavigation(), movePosition()
+ */
+bool QTextCursor::visualNavigation() const
+{
+    return d ? d->visualNavigation : false;
+}
+
+/*!
+  \since 4.4
+
+  Sets visual navigation to \a b.
+
+  Visual navigation means skipping over hidden text pragraphs. The
+  default is false.
+
+  \sa visualNavigation(), movePosition()
+ */
+void QTextCursor::setVisualNavigation(bool b)
+{
+    if (d)
+        d->visualNavigation = b;
 }
 
 /*!
@@ -1055,11 +1193,7 @@ bool QTextCursor::movePosition(MoveOperation op, MoveMode mode, int n)
 
     If there is a selection, the selection is deleted and replaced by
     \a text, for example:
-    \code
-    cursor.clearSelection();
-    cursor.movePosition(QTextCursor::NextWord, QTextCursor::KeepAnchor);
-    cursor.insertText("Hello World");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextcursor.cpp 0
     This clears any existing selection, selects the word at the cursor
     (i.e. from position() forward), and replaces the selection with
     the phrase "Hello World".
@@ -1130,8 +1264,7 @@ void QTextCursor::insertText(const QString &text, const QTextCharFormat &_format
             d->priv->insert(d->position, QString(text.unicode() + textStart, text.length() - textStart), formatIdx);
     }
     d->priv->endEditBlock();
-    if (!d->priv->isInEditBlock())
-        d->setX();
+    d->setX();
 }
 
 /*!
@@ -1212,6 +1345,8 @@ void QTextCursor::select(SelectionType selection)
             movePosition(EndOfWord, KeepAnchor);
             break;
         case BlockUnderCursor:
+            if (block.length() == 1) // no content
+                break;
             movePosition(StartOfBlock);
             // also select the paragraph separator
             if (movePosition(PreviousBlock)) {
@@ -1691,6 +1826,7 @@ void QTextCursor::insertBlock(const QTextBlockFormat &format, const QTextCharFor
     d->remove();
     d->insertBlock(format, charFormat);
     d->priv->endEditBlock();
+    d->setX();
 }
 
 /*!
@@ -1880,18 +2016,24 @@ void QTextCursor::insertFragment(const QTextDocumentFragment &fragment)
     d->remove();
     fragment.d->insert(*this);
     d->priv->endEditBlock();
+
+    if (fragment.d && fragment.d->doc)
+        d->priv->mergeCachedResources(fragment.d->doc->docHandle());
 }
 
 /*!
     \since 4.2
     Inserts the text \a html at the current position(). The text is interpreted as
     HTML.
-    
+
     \note When using this function with a style sheet, the style sheet will
     only apply to the current block in the document. In order to apply a style
     sheet throughout a document, use QTextDocument::setDefaultStyleSheet()
     instead.
 */
+
+#ifndef QT_NO_TEXTHTMLPARSER
+
 void QTextCursor::insertHtml(const QString &html)
 {
     if (!d || !d->priv)
@@ -1899,6 +2041,8 @@ void QTextCursor::insertHtml(const QString &html)
     QTextDocumentFragment fragment = QTextDocumentFragment::fromHtml(html, d->priv->document());
     insertFragment(fragment);
 }
+
+#endif // QT_NO_TEXTHTMLPARSER
 
 /*!
     \overload
@@ -1942,11 +2086,7 @@ void QTextCursor::insertImage(const QTextImageFormat &format)
     Convenience method for inserting the image with the given \a name at the
     current position().
 
-    \code
-    QImage img = ...
-    textDocument->addResource(QTextDocument::ImageResource, QUrl("myimage"), img);
-    cursor.insertImage("myimage");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextcursor.cpp 1
 */
 void QTextCursor::insertImage(const QString &name)
 {
@@ -2068,18 +2208,13 @@ bool QTextCursor::operator>(const QTextCursor &rhs) const
 
     For example:
 
-    \code
-    QTextCursor cursor(textDocument);
-    cursor.beginEditBlock();
-    cursor.insertText("Hello");
-    cursor.insertText("World");
-    cursor.endEditBlock();
-
-    textDocument->undo();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextcursor.cpp 2
 
     The call to undo() will cause both insertions to be undone,
     causing both "World" and "Hello" to be removed.
+
+    It is possible to nest calls to beginEditBlock and endEditBlock. The
+    top-most pair will determine the scope of the undo/redo operation.
 
     \sa endEditBlock()
  */
@@ -2099,21 +2234,7 @@ void QTextCursor::beginEditBlock()
 
     For example:
 
-    \code
-    QTextCursor cursor(textDocument);
-    cursor.beginEditBlock();
-    cursor.insertText("Hello");
-    cursor.insertText("World");
-    cursor.endEditBlock();
-
-    ...
-
-    cursor.joinPreviousEditBlock();
-    cursor.insertText("Hey");
-    cursor.endEditBlock();
-
-    textDocument->undo();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qtextcursor.cpp 3
 
     The call to undo() will cause all three insertions to be undone.
 
@@ -2157,7 +2278,7 @@ bool QTextCursor::isCopyOf(const QTextCursor &other) const
 
 /*!
     \since 4.2
-    Returns the number of the block the cursor is in.
+    Returns the number of the block the cursor is in, or 0 if the cursor is invalid.
 
     Note that this function only makes sense in documents without complex objects such
     as tables or frames.
@@ -2167,17 +2288,7 @@ int QTextCursor::blockNumber() const
     if (!d || !d->priv)
         return 0;
 
-    // ### naive implementation for now
-    QTextBlock currentBlock = d->block();
-    if (!currentBlock.isValid())
-        return 0;
-
-    int count = 0;
-    for (QTextBlock block = d->priv->blocksBegin();
-         block.isValid() && block != currentBlock;
-         block = block.next(), ++count) {
-    }
-    return count;
+    return d->block().blockNumber();
 }
 
 /*!
@@ -2193,8 +2304,7 @@ int QTextCursor::columnNumber() const
     if (!block.isValid())
         return 0;
 
-    const QTextLayout *layout = block.layout();
-    Q_ASSERT(layout); // can't happen
+    const QTextLayout *layout = d->blockLayout(block);
 
     const int relativePos = d->position - block.position();
 
@@ -2206,3 +2316,5 @@ int QTextCursor::columnNumber() const
         return 0;
     return relativePos - line.textStart();
 }
+
+QT_END_NAMESPACE

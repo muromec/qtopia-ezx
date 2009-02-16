@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qurl.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qurl.cpp -->
 <head>
-  <title>Qt 4.3: QUrl Class Reference</title>
+  <title>Qt 4.4: QUrl Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QUrl Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QUrl Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QUrl class provides a convenient interface for working with URLs. <a href="#details">More...</a></p>
 <pre> #include &lt;QUrl&gt;</pre><p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
@@ -36,13 +36,23 @@
 <li><div class="fn"/><b><a href="qurl.html#QUrl-3">QUrl</a></b> ( const QUrl &amp; <i>other</i> )</li>
 <li><div class="fn"/><b><a href="qurl.html#QUrl-4">QUrl</a></b> ( const QString &amp; <i>url</i>, ParsingMode <i>parsingMode</i> )</li>
 <li><div class="fn"/><b><a href="qurl.html#dtor.QUrl">~QUrl</a></b> ()</li>
+<li><div class="fn"/>void <b><a href="qurl.html#addEncodedQueryItem">addEncodedQueryItem</a></b> ( const QByteArray &amp; <i>key</i>, const QByteArray &amp; <i>value</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#addQueryItem">addQueryItem</a></b> ( const QString &amp; <i>key</i>, const QString &amp; <i>value</i> )</li>
+<li><div class="fn"/>QList&lt;QByteArray&gt; <b><a href="qurl.html#allEncodedQueryItemValues">allEncodedQueryItemValues</a></b> ( const QByteArray &amp; <i>key</i> ) const</li>
 <li><div class="fn"/>QStringList <b><a href="qurl.html#allQueryItemValues">allQueryItemValues</a></b> ( const QString &amp; <i>key</i> ) const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#authority">authority</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qurl.html#clear">clear</a></b> ()</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedFragment">encodedFragment</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedHost">encodedHost</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedPassword">encodedPassword</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedPath">encodedPath</a></b> () const</li>
 <li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedQuery">encodedQuery</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedQueryItemValue">encodedQueryItemValue</a></b> ( const QByteArray &amp; <i>key</i> ) const</li>
+<li><div class="fn"/>QList&lt;QPair&lt;QByteArray, QByteArray&gt; &gt; <b><a href="qurl.html#encodedQueryItems">encodedQueryItems</a></b> () const</li>
+<li><div class="fn"/>QByteArray <b><a href="qurl.html#encodedUserName">encodedUserName</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#errorString">errorString</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#fragment">fragment</a></b> () const</li>
+<li><div class="fn"/>bool <b><a href="qurl.html#hasEncodedQueryItem">hasEncodedQueryItem</a></b> ( const QByteArray &amp; <i>key</i> ) const</li>
 <li><div class="fn"/>bool <b><a href="qurl.html#hasFragment">hasFragment</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qurl.html#hasQuery">hasQuery</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qurl.html#hasQueryItem">hasQueryItem</a></b> ( const QString &amp; <i>key</i> ) const</li>
@@ -52,21 +62,29 @@
 <li><div class="fn"/>bool <b><a href="qurl.html#isRelative">isRelative</a></b> () const</li>
 <li><div class="fn"/>bool <b><a href="qurl.html#isValid">isValid</a></b> () const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#password">password</a></b> () const</li>
-<li><div class="fn"/>QString <b><a href="qurl.html#path">path</a></b> () const</li>
+<li><div class="fn"/>QString <b><a href="qurl.html#pathx">path</a></b> () const</li>
 <li><div class="fn"/>int <b><a href="qurl.html#port">port</a></b> () const</li>
 <li><div class="fn"/>int <b><a href="qurl.html#port-2">port</a></b> ( int <i>defaultPort</i> ) const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#queryItemValue">queryItemValue</a></b> ( const QString &amp; <i>key</i> ) const</li>
 <li><div class="fn"/>QList&lt;QPair&lt;QString, QString&gt; &gt; <b><a href="qurl.html#queryItems">queryItems</a></b> () const</li>
 <li><div class="fn"/>char <b><a href="qurl.html#queryPairDelimiter">queryPairDelimiter</a></b> () const</li>
 <li><div class="fn"/>char <b><a href="qurl.html#queryValueDelimiter">queryValueDelimiter</a></b> () const</li>
+<li><div class="fn"/>void <b><a href="qurl.html#removeAllEncodedQueryItems">removeAllEncodedQueryItems</a></b> ( const QByteArray &amp; <i>key</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#removeAllQueryItems">removeAllQueryItems</a></b> ( const QString &amp; <i>key</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#removeEncodedQueryItem">removeEncodedQueryItem</a></b> ( const QByteArray &amp; <i>key</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#removeQueryItem">removeQueryItem</a></b> ( const QString &amp; <i>key</i> )</li>
 <li><div class="fn"/>QUrl <b><a href="qurl.html#resolved">resolved</a></b> ( const QUrl &amp; <i>relative</i> ) const</li>
 <li><div class="fn"/>QString <b><a href="qurl.html#scheme">scheme</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setAuthority">setAuthority</a></b> ( const QString &amp; <i>authority</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedFragment">setEncodedFragment</a></b> ( const QByteArray &amp; <i>fragment</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedHost">setEncodedHost</a></b> ( const QByteArray &amp; <i>host</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedPassword">setEncodedPassword</a></b> ( const QByteArray &amp; <i>password</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedPath">setEncodedPath</a></b> ( const QByteArray &amp; <i>path</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setEncodedQuery">setEncodedQuery</a></b> ( const QByteArray &amp; <i>query</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedQueryItems">setEncodedQueryItems</a></b> ( const QList&lt;QPair&lt;QByteArray, QByteArray&gt; &gt; &amp; <i>query</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setEncodedUrl">setEncodedUrl</a></b> ( const QByteArray &amp; <i>encodedUrl</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setEncodedUrl-2">setEncodedUrl</a></b> ( const QByteArray &amp; <i>encodedUrl</i>, ParsingMode <i>parsingMode</i> )</li>
+<li><div class="fn"/>void <b><a href="qurl.html#setEncodedUserName">setEncodedUserName</a></b> ( const QByteArray &amp; <i>userName</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setFragment">setFragment</a></b> ( const QString &amp; <i>fragment</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setHost">setHost</a></b> ( const QString &amp; <i>host</i> )</li>
 <li><div class="fn"/>void <b><a href="qurl.html#setPassword">setPassword</a></b> ( const QString &amp; <i>password</i> )</li>
@@ -105,8 +123,8 @@
 <a name="related-non-members"></a>
 <h3>Related Non-Members</h3>
 <ul>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qurl.html#operator-lt-lt-103">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QUrl &amp; <i>url</i> )</li>
-<li><div class="fn"/>QDataStream &amp; <b><a href="qurl.html#operator-gt-gt-64">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QUrl &amp; <i>url</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qurl.html#operator-lt-lt-26">operator&lt;&lt;</a></b> ( QDataStream &amp; <i>out</i>, const QUrl &amp; <i>url</i> )</li>
+<li><div class="fn"/>QDataStream &amp; <b><a href="qurl.html#operator-gt-gt-13">operator&gt;&gt;</a></b> ( QDataStream &amp; <i>in</i>, QUrl &amp; <i>url</i> )</li>
 </ul>
 <a name="details"></a>
 <hr />
@@ -122,7 +140,7 @@
 <p>Calling <a href="qurl.html#isRelative">isRelative</a>() will tell whether or not the URL is relative. A relative URL can be resolved by passing it as argument to <a href="qurl.html#resolved">resolved</a>(), which returns an absolute URL. <a href="qurl.html#isParentOf">isParentOf</a>() is used for determining whether one URL is a parent of another.</p>
 <p><a href="qurl.html#fromLocalFile">fromLocalFile</a>() constructs a QUrl by parsing a local file path. <a href="qurl.html#toLocalFile">toLocalFile</a>() converts a URL to a local file path.</p>
 <p>The human readable representation of the URL is fetched with <a href="qurl.html#toString">toString</a>(). This representation is appropriate for displaying a URL to a user in unencoded form. The encoded form however, as returned by <a href="qurl.html#toEncoded">toEncoded</a>(), is for internal use, passing to web servers, mail clients and so on.</p>
-<p>QUrl conforms to the URI specification from <a href="http://www.rfc-editor.org/rfc/rfc3986.txt">RFC 3986</a> (Uniform Resource Identifier: Generic Syntax), and includes scheme extensions from <a href="http://www.rfc-editor.org/rfc/rfc1738.txt">RFC 1738</a> (Uniform Resource Locators).</p>
+<p>QUrl conforms to the URI specification from <a href="http://www.rfc-editor.org/rfc/rfc3986.txt">RFC 3986</a> (Uniform Resource Identifier: Generic Syntax), and includes scheme extensions from <a href="http://www.rfc-editor.org/rfc/rfc1738.txt">RFC 1738</a> (Uniform Resource Locators). Case folding rules in QUrl conform to <a href="http://www.rfc-editor.org/rfc/rfc3491.txt">RFC 3491</a> (Nameprep: A Stringprep Profile for Internationalized Domain Names (IDN)).</p>
 <p>See also <a href="qurlinfo.html">QUrlInfo</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
@@ -130,7 +148,7 @@
 <p>The formatting options define how the URL is formatted when written out as text.</p>
 <p><table border="1" cellpadding="2" cellspacing="1" width="100%">
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
-<tr><td valign="top"><tt>QUrl::None</tt></td><td align="center" valign="top"><tt>0x0</tt></td><td valign="top">The URL is left unchanged.</td></tr>
+<tr><td valign="top"><tt>QUrl::None</tt></td><td align="center" valign="top"><tt>0x0</tt></td><td valign="top">The format of the URL is unchanged.</td></tr>
 <tr><td valign="top"><tt>QUrl::RemoveScheme</tt></td><td align="center" valign="top"><tt>0x1</tt></td><td valign="top">The scheme is removed from the URL.</td></tr>
 <tr><td valign="top"><tt>QUrl::RemovePassword</tt></td><td align="center" valign="top"><tt>0x2</tt></td><td valign="top">Any password in the URL is removed.</td></tr>
 <tr><td valign="top"><tt>QUrl::RemoveUserInfo</tt></td><td align="center" valign="top"><tt>RemovePassword | 0x4</tt></td><td valign="top">Any user information in the URL is removed.</td></tr>
@@ -141,6 +159,7 @@
 <tr><td valign="top"><tt>QUrl::RemoveFragment</tt></td><td align="center" valign="top"><tt>0x80</tt></td><td valign="top">&nbsp;</td></tr>
 <tr><td valign="top"><tt>QUrl::StripTrailingSlash</tt></td><td align="center" valign="top"><tt>0x10000</tt></td><td valign="top">The trailing slash is removed if one is present.</td></tr>
 </table></p>
+<p>Note that the case folding rules in <a href="http://www.rfc-editor.org/rfc/rfc3491.txt">Nameprep</a>, which <a href="qurl.html">QUrl</a> conforms to, require host names to always be converted to lower case, regardless of the Qt::FormattingOptions used.</p>
 <p>The FormattingOptions type is a typedef for <a href="qflags.html">QFlags</a>&lt;FormattingOption&gt;. It stores an OR combination of FormattingOption values.</p>
 <h3 class="fn"><a name="ParsingMode-enum"></a>enum QUrl::ParsingMode</h3>
 <p>The parsing mode controls the way <a href="qurl.html">QUrl</a> parses strings.</p>
@@ -154,7 +173,7 @@
 <li>Spaces and &quot;%20&quot;: If an encoded URL contains a space, this will be replaced with &quot;%20&quot;. If a decoded URL contains &quot;%20&quot;, this will be replaced with a single space before the URL is parsed.</li>
 <li>Single &quot;%&quot; characters: Any occurrences of a percent character &quot;%&quot; not followed by exactly two hexadecimal characters (e.g&#x2e;, &quot;13% coverage.html&quot;) will be replaced by &quot;%25&quot;.</li>
 <li>Non-US-ASCII characters: An encoded URL should only contain US-ASCII characters. In TolerantMode, characters outside this range are automatically percent-encoded.</li>
-<li>Any occurrence of &quot;[&quot; and &quot;]&quot; following the host part of the URL is percent-encoded.</li>
+<li>Any occurrence of &quot;[&quot;, &quot;]&quot;, &quot;{&quot; or &quot;}&quot; following the host part of the URL is percent-encoded.</li>
 </ul>
 <hr />
 <h2>Member Function Documentation</h2>
@@ -175,8 +194,19 @@
 <p>See also <a href="qurl.html#setUrl">setUrl</a>().</p>
 <h3 class="fn"><a name="dtor.QUrl"></a>QUrl::~QUrl ()</h3>
 <p>Destructor; called immediately before the object is deleted.</p>
+<h3 class="fn"><a name="addEncodedQueryItem"></a>void QUrl::addEncodedQueryItem ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i>, const <a href="qbytearray.html">QByteArray</a> &amp; <i>value</i> )</h3>
+<p>Inserts the pair <i>key</i> = <i>value</i> into the query string of the URL.</p>
+<p>Note: this function does not verify that either <i>key</i> or <i>value</i> are properly encoded. It is the caller's responsibility to ensure that the query delimiters are properly encoded, if any.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#addQueryItem">addQueryItem</a>() and <a href="qurl.html#setQueryDelimiters">setQueryDelimiters</a>().</p>
 <h3 class="fn"><a name="addQueryItem"></a>void QUrl::addQueryItem ( const <a href="qstring.html">QString</a> &amp; <i>key</i>, const <a href="qstring.html">QString</a> &amp; <i>value</i> )</h3>
 <p>Inserts the pair <i>key</i> = <i>value</i> into the query string of the URL.</p>
+<p>See also <a href="qurl.html#addEncodedQueryItem">addEncodedQueryItem</a>().</p>
+<h3 class="fn"><a name="allEncodedQueryItemValues"></a><a href="qlist.html">QList</a>&lt;<a href="qbytearray.html">QByteArray</a>&gt; QUrl::allEncodedQueryItemValues ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i> ) const</h3>
+<p>Returns the a list of query string values whose key is equal to <i>key</i> from the URL.</p>
+<p>Note: if the encoded <i>key</i> does not match the encoded version of the query, this function will not work. That is, if the encoded query of this URL is &quot;search=Qt%20Rules&quot;, calling this function with <i>key</i> = &quot;%73earch&quot; will return an empty list.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#allQueryItemValues">allQueryItemValues</a>(), <a href="qurl.html#queryItemValue">queryItemValue</a>(), and <a href="qurl.html#encodedQueryItemValue">encodedQueryItemValue</a>().</p>
 <h3 class="fn"><a name="allQueryItemValues"></a><a href="qstringlist.html">QStringList</a> QUrl::allQueryItemValues ( const <a href="qstring.html">QString</a> &amp; <i>key</i> ) const</h3>
 <p>Returns the a list of query string values whose key is equal to <i>key</i> from the URL.</p>
 <p>See also <a href="qurl.html#queryItemValue">queryItemValue</a>().</p>
@@ -185,9 +215,40 @@
 <p>See also <a href="qurl.html#setAuthority">setAuthority</a>().</p>
 <h3 class="fn"><a name="clear"></a>void QUrl::clear ()</h3>
 <p>Resets the content of the <a href="qurl.html">QUrl</a>. After calling this function, the <a href="qurl.html">QUrl</a> is equal to one that has been constructed with the default empty constructor.</p>
+<h3 class="fn"><a name="encodedFragment"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedFragment () const</h3>
+<p>Returns the fragment of the URL if it is defined; otherwise an empty string is returned. The returned value will have its non-ASCII and other control characters percent-encoded, as in <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedFragment">setEncodedFragment</a>() and <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<h3 class="fn"><a name="encodedHost"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedHost () const</h3>
+<p>Returns the host part of the URL if it is defined; otherwise an empty string is returned.</p>
+<p>Note: encodedHost() does not return percent-encoded hostnames. Instead, the ACE-encoded (bare ASCII in Punycode encoding) form will be returned for any non-ASCII hostname.</p>
+<p>This function is equivalent to calling <a href="qurl.html#toAce">QUrl::toAce</a>() on the return value of <a href="qurl.html#host">host</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedHost">setEncodedHost</a>().</p>
+<h3 class="fn"><a name="encodedPassword"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedPassword () const</h3>
+<p>Returns the password of the URL if it is defined; otherwise an empty string is returned. The returned value will have its non-ASCII and other control characters percent-encoded, as in <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedPassword">setEncodedPassword</a>() and <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<h3 class="fn"><a name="encodedPath"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedPath () const</h3>
+<p>Returns the path of the URL if it is defined; otherwise an empty string is returned. The returned value will have its non-ASCII and other control characters percent-encoded, as in <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedPath">setEncodedPath</a>() and <a href="qurl.html#toEncoded">toEncoded</a>().</p>
 <h3 class="fn"><a name="encodedQuery"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedQuery () const</h3>
 <p>Returns the query string of the URL in percent encoded form.</p>
 <p>See also <a href="qurl.html#setEncodedQuery">setEncodedQuery</a>().</p>
+<h3 class="fn"><a name="encodedQueryItemValue"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedQueryItemValue ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i> ) const</h3>
+<p>Returns the first query string value whose key is equal to <i>key</i> from the URL.</p>
+<p>Note: if the encoded <i>key</i> does not match the encoded version of the query, this function will not work. That is, if the encoded query of this URL is &quot;search=Qt%20Rules&quot;, calling this function with <i>key</i> = &quot;%73earch&quot; will return an empty string.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#queryItemValue">queryItemValue</a>() and <a href="qurl.html#allQueryItemValues">allQueryItemValues</a>().</p>
+<h3 class="fn"><a name="encodedQueryItems"></a><a href="qlist.html">QList</a>&lt;<a href="qpair.html">QPair</a>&lt;<a href="qbytearray.html">QByteArray</a>, <a href="qbytearray.html">QByteArray</a>&gt; &gt; QUrl::encodedQueryItems () const</h3>
+<p>Returns the query string of the URL, as a map of encoded keys and values.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedQueryItems">setEncodedQueryItems</a>(), <a href="qurl.html#setQueryItems">setQueryItems</a>(), and <a href="qurl.html#setEncodedQuery">setEncodedQuery</a>().</p>
+<h3 class="fn"><a name="encodedUserName"></a><a href="qbytearray.html">QByteArray</a> QUrl::encodedUserName () const</h3>
+<p>Returns the user name of the URL if it is defined; otherwise an empty string is returned. The returned value will have its non-ASCII and other control characters percent-encoded, as in <a href="qurl.html#toEncoded">toEncoded</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setEncodedUserName">setEncodedUserName</a>().</p>
 <h3 class="fn"><a name="errorString"></a><a href="qstring.html">QString</a> QUrl::errorString () const</h3>
 <p>Returns a text string that explains why an URL is invalid in the case being; otherwise returns an empty string.</p>
 <p>This function was introduced in Qt 4.2.</p>
@@ -212,6 +273,11 @@
 <p>See also <a href="qurl.html#toLocalFile">toLocalFile</a>().</p>
 <h3 class="fn"><a name="fromPercentEncoding"></a><a href="qstring.html">QString</a> QUrl::fromPercentEncoding ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>input</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns a decoded copy of <i>input</i>. <i>input</i> is first decoded from percent encoding, then converted from UTF-8 to unicode.</p>
+<h3 class="fn"><a name="hasEncodedQueryItem"></a>bool QUrl::hasEncodedQueryItem ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i> ) const</h3>
+<p>Returns true if there is a query string pair whose key is equal to <i>key</i> from the URL.</p>
+<p>Note: if the encoded <i>key</i> does not match the encoded version of the query, this function will return false. That is, if the encoded query of this URL is &quot;search=Qt%20Rules&quot;, calling this function with <i>key</i> = &quot;%73earch&quot; will return false.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#hasQueryItem">hasQueryItem</a>().</p>
 <h3 class="fn"><a name="hasFragment"></a>bool QUrl::hasFragment () const</h3>
 <p>Returns true if this URL contains a fragment (i.e&#x2e;, if # was seen on it).</p>
 <p>This function was introduced in Qt 4.2.</p>
@@ -222,6 +288,7 @@
 <p>See also <a href="qurl.html#hasQueryItem">hasQueryItem</a>() and <a href="qurl.html#encodedQuery">encodedQuery</a>().</p>
 <h3 class="fn"><a name="hasQueryItem"></a>bool QUrl::hasQueryItem ( const <a href="qstring.html">QString</a> &amp; <i>key</i> ) const</h3>
 <p>Returns true if there is a query string pair whose key is equal to <i>key</i> from the URL.</p>
+<p>See also <a href="qurl.html#hasEncodedQueryItem">hasEncodedQueryItem</a>().</p>
 <h3 class="fn"><a name="host"></a><a href="qstring.html">QString</a> QUrl::host () const</h3>
 <p>Returns the host of the URL if it is defined; otherwise an empty string is returned.</p>
 <p>See also <a href="qurl.html#setHost">setHost</a>().</p>
@@ -249,8 +316,8 @@
  }</pre>
 <h3 class="fn"><a name="password"></a><a href="qstring.html">QString</a> QUrl::password () const</h3>
 <p>Returns the password of the URL if it is defined; otherwise an empty string is returned.</p>
-<p>See also <a href="qurl.html#setPassword">setPassword</a>() and <a href="qurl.html#setUserName">setUserName</a>().</p>
-<h3 class="fn"><a name="path"></a><a href="qstring.html">QString</a> QUrl::path () const</h3>
+<p>See also <a href="qurl.html#setPassword">setPassword</a>().</p>
+<h3 class="fn"><a name="pathx"></a><a href="qstring.html">QString</a> QUrl::path () const</h3>
 <p>Returns the path of the URL.</p>
 <p>See also <a href="qurl.html#setPath">setPath</a>().</p>
 <h3 class="fn"><a name="port"></a>int QUrl::port () const</h3>
@@ -273,9 +340,19 @@
 <p>Returns the character used to delimit between key-value pairs in the query string of the URL.</p>
 <h3 class="fn"><a name="queryValueDelimiter"></a>char QUrl::queryValueDelimiter () const</h3>
 <p>Returns the character used to delimit between keys and values in the query string of the URL.</p>
+<h3 class="fn"><a name="removeAllEncodedQueryItems"></a>void QUrl::removeAllEncodedQueryItems ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i> )</h3>
+<p>Removes all the query string pairs whose key is equal to <i>key</i> from the URL.</p>
+<p>Note: if the encoded <i>key</i> does not match the encoded version of the query, this function will not work. That is, if the encoded query of this URL is &quot;search=Qt%20Rules&quot;, calling this function with <i>key</i> = &quot;%73earch&quot; will do nothing.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#removeQueryItem">removeQueryItem</a>().</p>
 <h3 class="fn"><a name="removeAllQueryItems"></a>void QUrl::removeAllQueryItems ( const <a href="qstring.html">QString</a> &amp; <i>key</i> )</h3>
 <p>Removes all the query string pairs whose key is equal to <i>key</i> from the URL.</p>
 <p>See also <a href="qurl.html#removeQueryItem">removeQueryItem</a>().</p>
+<h3 class="fn"><a name="removeEncodedQueryItem"></a>void QUrl::removeEncodedQueryItem ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>key</i> )</h3>
+<p>Removes the first query string pair whose key is equal to <i>key</i> from the URL.</p>
+<p>Note: if the encoded <i>key</i> does not match the encoded version of the query, this function will not work. That is, if the encoded query of this URL is &quot;search=Qt%20Rules&quot;, calling this function with <i>key</i> = &quot;%73earch&quot; will do nothing.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#removeQueryItem">removeQueryItem</a>() and <a href="qurl.html#removeAllQueryItems">removeAllQueryItems</a>().</p>
 <h3 class="fn"><a name="removeQueryItem"></a>void QUrl::removeQueryItem ( const <a href="qstring.html">QString</a> &amp; <i>key</i> )</h3>
 <p>Removes the first query string pair whose key is equal to <i>key</i> from the URL.</p>
 <p>See also <a href="qurl.html#removeAllQueryItems">removeAllQueryItems</a>().</p>
@@ -297,11 +374,37 @@
 <p>The user info and host are separated by a '@', and the host and port are separated by a ':'. If the user info is empty, the '@' must be omitted; although a stray ':' is permitted if the port is empty.</p>
 <p>The following example shows a valid authority string:</p>
 <p align="center"><img src="images/qurl-authority.png" /></p><p>See also <a href="qurl.html#authority">authority</a>().</p>
+<h3 class="fn"><a name="setEncodedFragment"></a>void QUrl::setEncodedFragment ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>fragment</i> )</h3>
+<p>Sets the URL's fragment to the percent-encoded <i>fragment</i>. The fragment is the last part of the URL, represented by a '#' followed by a string of characters. It is typically used in HTTP for referring to a certain link or point on a page:</p>
+<p align="center"><img src="images/qurl-fragment.png" /></p><p>The fragment is sometimes also referred to as the URL &quot;reference&quot;.</p>
+<p>Passing an argument of QByteArray() (a null <a href="qbytearray.html">QByteArray</a>) will unset the fragment. Passing an argument of <a href="qbytearray.html">QByteArray</a>(&quot;&quot;) (an empty but not null <a href="qbytearray.html">QByteArray</a>) will set the fragment to an empty string (as if the original URL had a lone &quot;#&quot;).</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setFragment">setFragment</a>() and <a href="qurl.html#encodedFragment">encodedFragment</a>().</p>
+<h3 class="fn"><a name="setEncodedHost"></a>void QUrl::setEncodedHost ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>host</i> )</h3>
+<p>Sets the URL's host to the ACE- or percent-encoded <i>host</i>. The <i>host</i> is part of the user info element in the authority of the URL, as described in <a href="qurl.html#setAuthority">setAuthority</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setHost">setHost</a>(), <a href="qurl.html#encodedHost">encodedHost</a>(), <a href="qurl.html#setAuthority">setAuthority</a>(), and <a href="qurl.html#fromAce">fromAce</a>().</p>
+<h3 class="fn"><a name="setEncodedPassword"></a>void QUrl::setEncodedPassword ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>password</i> )</h3>
+<p>Sets the URL's password to the percent-encoded <i>password</i>. The <i>password</i> is part of the user info element in the authority of the URL, as described in <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
+<p>Note: this function does not verify that <i>password</i> is properly encoded. It is the caller's responsibility to ensure that the any delimiters (such as colons or slashes) are properly encoded.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setPassword">setPassword</a>(), <a href="qurl.html#encodedPassword">encodedPassword</a>(), and <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
+<h3 class="fn"><a name="setEncodedPath"></a>void QUrl::setEncodedPath ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>path</i> )</h3>
+<p>Sets the URL's path to the percent-encoded <i>path</i>. The path is the part of the URL that comes after the authority but before the query string.</p>
+<p align="center"><img src="images/qurl-ftppath.png" /></p><p>For non-hierarchical schemes, the path will be everything following the scheme declaration, as in the following example:</p>
+<p align="center"><img src="images/qurl-mailtopath.png" /></p><p>Note: this function does not verify that <i>path</i> is properly encoded. It is the caller's responsibility to ensure that the any delimiters (such as '?' and '#') are properly encoded.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setPath">setPath</a>(), <a href="qurl.html#encodedPath">encodedPath</a>(), and <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
 <h3 class="fn"><a name="setEncodedQuery"></a>void QUrl::setEncodedQuery ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>query</i> )</h3>
 <p>Sets the query string of the URL to <i>query</i>. The string is inserted as-is, and no further encoding is performed when calling <a href="qurl.html#toEncoded">toEncoded</a>().</p>
 <p>This function is useful if you need to pass a query string that does not fit into the key-value pattern, or that uses a different scheme for encoding special characters than what is suggested by <a href="qurl.html">QUrl</a>.</p>
 <p>Passing a value of QByteArray() to <i>query</i> (a null <a href="qbytearray.html">QByteArray</a>) unsets the query completely. However, passing a value of <a href="qbytearray.html">QByteArray</a>(&quot;&quot;) will set the query to an empty value, as if the original URL had a lone &quot;?&quot;.</p>
 <p>See also <a href="qurl.html#encodedQuery">encodedQuery</a>() and <a href="qurl.html#hasQuery">hasQuery</a>().</p>
+<h3 class="fn"><a name="setEncodedQueryItems"></a>void QUrl::setEncodedQueryItems ( const <a href="qlist.html">QList</a>&lt;<a href="qpair.html">QPair</a>&lt;<a href="qbytearray.html">QByteArray</a>, <a href="qbytearray.html">QByteArray</a>&gt; &gt; &amp; <i>query</i> )</h3>
+<p>Sets the query string of the URL to the encoded version of <i>query</i>. The contents of <i>query</i> are converted to a string internally, each pair delimited by the character returned by pairDelimiter(), and the key and value are delimited by valueDelimiter().</p>
+<p>Note: this function does not verify that the key-value pairs are properly encoded. It is the caller's responsibility to ensure that the query delimiters are properly encoded, if any.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setQueryDelimiters">setQueryDelimiters</a>(), <a href="qurl.html#encodedQueryItems">encodedQueryItems</a>(), and <a href="qurl.html#setQueryItems">setQueryItems</a>().</p>
 <h3 class="fn"><a name="setEncodedUrl"></a>void QUrl::setEncodedUrl ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>encodedUrl</i> )</h3>
 <p>Constructs a URL by parsing the contents of <i>encodedUrl</i>.</p>
 <p><i>encodedUrl</i> is assumed to be a URL string in percent encoded form, containing only ASCII characters.</p>
@@ -310,6 +413,11 @@
 <h3 class="fn"><a name="setEncodedUrl-2"></a>void QUrl::setEncodedUrl ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>encodedUrl</i>, <a href="qurl.html#ParsingMode-enum">ParsingMode</a> <i>parsingMode</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Constructs a URL by parsing the contents of <i>encodedUrl</i> using the given <i>parsingMode</i>.</p>
+<h3 class="fn"><a name="setEncodedUserName"></a>void QUrl::setEncodedUserName ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>userName</i> )</h3>
+<p>Sets the URL's user name to the percent-encoded <i>userName</i>. The <i>userName</i> is part of the user info element in the authority of the URL, as described in <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
+<p>Note: this function does not verify that <i>userName</i> is properly encoded. It is the caller's responsibility to ensure that the any delimiters (such as colons or slashes) are properly encoded.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qurl.html#setUserName">setUserName</a>(), <a href="qurl.html#encodedUserName">encodedUserName</a>(), and <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
 <h3 class="fn"><a name="setFragment"></a>void QUrl::setFragment ( const <a href="qstring.html">QString</a> &amp; <i>fragment</i> )</h3>
 <p>Sets the fragment of the URL to <i>fragment</i>. The fragment is the last part of the URL, represented by a '#' followed by a string of characters. It is typically used in HTTP for referring to a certain link or point on a page:</p>
 <p align="center"><img src="images/qurl-fragment.png" /></p><p>The fragment is sometimes also referred to as the URL &quot;reference&quot;.</p>
@@ -331,7 +439,7 @@
 <h3 class="fn"><a name="setPath"></a>void QUrl::setPath ( const <a href="qstring.html">QString</a> &amp; <i>path</i> )</h3>
 <p>Sets the path of the URL to <i>path</i>. The path is the part of the URL that comes after the authority but before the query string.</p>
 <p align="center"><img src="images/qurl-ftppath.png" /></p><p>For non-hierarchical schemes, the path will be everything following the scheme declaration, as in the following example:</p>
-<p align="center"><img src="images/qurl-mailtopath.png" /></p><p>See also <a href="qurl.html#path">path</a>().</p>
+<p align="center"><img src="images/qurl-mailtopath.png" /></p><p>See also <a href="qurl.html#pathx">path</a>().</p>
 <h3 class="fn"><a name="setPort"></a>void QUrl::setPort ( int <i>port</i> )</h3>
 <p>Sets the port of the URL to <i>port</i>. The port is part of the authority of the URL, as described in <a href="qurl.html#setAuthority">setAuthority</a>().</p>
 <p><i>port</i> must be between 0 and 65535 inclusive. Setting the port to -1 indicates that the port is unspecified.</p>
@@ -344,7 +452,7 @@
 <p>Calling this function does not change the delimiters of the current query string. It only affects <a href="qurl.html#queryItems">queryItems</a>(), <a href="qurl.html#setQueryItems">setQueryItems</a>() and addQueryItems().</p>
 <h3 class="fn"><a name="setQueryItems"></a>void QUrl::setQueryItems ( const <a href="qlist.html">QList</a>&lt;<a href="qpair.html">QPair</a>&lt;<a href="qstring.html">QString</a>, <a href="qstring.html">QString</a>&gt; &gt; &amp; <i>query</i> )</h3>
 <p>Sets the query string of the URL to an encoded version of <i>query</i>. The contents of <i>query</i> are converted to a string internally, each pair delimited by the character returned by pairDelimiter(), and the key and value are delimited by valueDelimiter().</p>
-<p>See also <a href="qurl.html#setQueryDelimiters">setQueryDelimiters</a>() and <a href="qurl.html#queryItems">queryItems</a>().</p>
+<p>See also <a href="qurl.html#setQueryDelimiters">setQueryDelimiters</a>(), <a href="qurl.html#queryItems">queryItems</a>(), and <a href="qurl.html#setEncodedQueryItems">setEncodedQueryItems</a>().</p>
 <h3 class="fn"><a name="setScheme"></a>void QUrl::setScheme ( const <a href="qstring.html">QString</a> &amp; <i>scheme</i> )</h3>
 <p>Sets the scheme of the URL to <i>scheme</i>. As a scheme can only contain ASCII characters, no conversion or encoding is done on the input.</p>
 <p>The scheme describes the type (or protocol) of the URL. It's represented by one or more ASCII characters at the start the URL, and is followed by a ':'. The following example shows a URL where the scheme is &quot;ftp&quot;:</p>
@@ -365,7 +473,7 @@
 <p align="center"><img src="images/qurl-authority3.png" /></p><p>See also <a href="qurl.html#userInfo">userInfo</a>(), <a href="qurl.html#setUserName">setUserName</a>(), <a href="qurl.html#setPassword">setPassword</a>(), and <a href="qurl.html#setAuthority">setAuthority</a>().</p>
 <h3 class="fn"><a name="setUserName"></a>void QUrl::setUserName ( const <a href="qstring.html">QString</a> &amp; <i>userName</i> )</h3>
 <p>Sets the URL's user name to <i>userName</i>. The <i>userName</i> is part of the user info element in the authority of the URL, as described in <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
-<p>See also <a href="qurl.html#userName">userName</a>() and <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
+<p>See also <a href="qurl.html#setEncodedUserName">setEncodedUserName</a>(), <a href="qurl.html#userName">userName</a>(), and <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
 <h3 class="fn"><a name="toAce"></a><a href="qbytearray.html">QByteArray</a> QUrl::toAce ( const <a href="qstring.html">QString</a> &amp; <i>domain</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
 <p>Returns the ASCII Compatible Encoding of the given domain name <i>domain</i>. The result of this function is considered equivalent to <i>domain</i>.</p>
 <p>The ASCII-Compatible Encoding (ACE) is defined by RFC 3490, RFC 3491 and RFC 3492. It is part of the Internationalizing Domain Names in Applications (IDNA) specification, which allows for domain names (like <tt>&quot;www.trolltech.com&quot;</tt>) to be written using international characters.</p>
@@ -390,7 +498,7 @@
 <p>See also <a href="qurl.html#setUserInfo">setUserInfo</a>().</p>
 <h3 class="fn"><a name="userName"></a><a href="qstring.html">QString</a> QUrl::userName () const</h3>
 <p>Returns the user name of the URL if it is defined; otherwise an empty string is returned.</p>
-<p>See also <a href="qurl.html#setUserName">setUserName</a>().</p>
+<p>See also <a href="qurl.html#setUserName">setUserName</a>() and <a href="qurl.html#encodedUserName">encodedUserName</a>().</p>
 <h3 class="fn"><a name="operator-not-eq"></a>bool QUrl::operator!= ( const QUrl &amp; <i>url</i> ) const</h3>
 <p>Returns true if this URL and the given <i>url</i> are not equal; otherwise returns false.</p>
 <h3 class="fn"><a name="operator-eq"></a>QUrl &amp; QUrl::operator= ( const QUrl &amp; <i>url</i> )</h3>
@@ -402,18 +510,18 @@
 <p>Returns true if this URL and the given <i>url</i> are equal; otherwise returns false.</p>
 <hr />
 <h2>Related Non-Members</h2>
-<h3 class="fn"><a name="operator-lt-lt-103"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QUrl &amp; <i>url</i> )</h3>
+<h3 class="fn"><a name="operator-lt-lt-26"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&lt;&lt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>out</i>, const QUrl &amp; <i>url</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Writes url <i>url</i> to the stream <i>out</i> and returns a reference to the stream.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream operators</a>.</p>
-<h3 class="fn"><a name="operator-gt-gt-64"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QUrl &amp; <i>url</i> )</h3>
+<h3 class="fn"><a name="operator-gt-gt-13"></a><a href="qdatastream.html">QDataStream</a> &amp; operator&gt;&gt; ( <a href="qdatastream.html">QDataStream</a> &amp; <i>in</i>, QUrl &amp; <i>url</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p>Reads a url into <i>url</i> from the stream <i>in</i> and returns a reference to the stream.</p>
 <p>See also <a href="datastreamformat.html">Format of the QDataStream operators</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

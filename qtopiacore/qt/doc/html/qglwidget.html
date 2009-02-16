@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/opengl/qgl.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/opengl/qgl.cpp -->
 <head>
-  <title>Qt 4.3: QGLWidget Class Reference</title>
+  <title>Qt 4.4: QGLWidget Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QGLWidget Class Reference<br /><span class="small-subtitle">[<a href="qtopengl.html">QtOpenGL</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QGLWidget Class Reference<br /><span class="small-subtitle">[<a href="qtopengl.html">QtOpenGL</a> module]</span>
 </h1>
 <p>The QGLWidget class is a widget for rendering OpenGL graphics. <a href="#details">More...</a></p>
 <pre> #include &lt;QGLWidget&gt;</pre><p>Inherits <a href="qwidget.html">QWidget</a>.</p>
@@ -36,6 +36,8 @@
 <li><div class="fn"/>void <b><a href="qglwidget.html#deleteTexture">deleteTexture</a></b> ( GLuint <i>id</i> )</li>
 <li><div class="fn"/>void <b><a href="qglwidget.html#doneCurrent">doneCurrent</a></b> ()</li>
 <li><div class="fn"/>bool <b><a href="qglwidget.html#doubleBuffer">doubleBuffer</a></b> () const</li>
+<li><div class="fn"/>void <b><a href="qglwidget.html#drawTexture">drawTexture</a></b> ( const QRectF &amp; <i>target</i>, GLuint <i>textureId</i>, GLenum <i>textureTarget</i> = GL_TEXTURE_2D )</li>
+<li><div class="fn"/>void <b><a href="qglwidget.html#drawTexture-2">drawTexture</a></b> ( const QPointF &amp; <i>point</i>, GLuint <i>textureId</i>, GLenum <i>textureTarget</i> = GL_TEXTURE_2D )</li>
 <li><div class="fn"/>QGLFormat <b><a href="qglwidget.html#format">format</a></b> () const</li>
 <li><div class="fn"/>QImage <b><a href="qglwidget.html#grabFrameBuffer">grabFrameBuffer</a></b> ( bool <i>withAlpha</i> = false )</li>
 <li><div class="fn"/>bool <b><a href="qglwidget.html#isSharing">isSharing</a></b> () const</li>
@@ -53,9 +55,9 @@
 <li><div class="fn"/>void <b><a href="qglwidget.html#swapBuffers">swapBuffers</a></b> ()</li>
 </ul>
 <ul>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -80,6 +82,7 @@
 <h3>Protected Functions</h3>
 <ul>
 <li><div class="fn"/>bool <b><a href="qglwidget.html#autoBufferSwap">autoBufferSwap</a></b> () const</li>
+<li><div class="fn"/>virtual bool <b><a href="qglwidget.html#event">event</a></b> ( QEvent * )</li>
 <li><div class="fn"/>virtual void <b><a href="qglwidget.html#glDraw">glDraw</a></b> ()</li>
 <li><div class="fn"/>virtual void <b><a href="qglwidget.html#glInit">glInit</a></b> ()</li>
 <li><div class="fn"/>virtual void <b><a href="qglwidget.html#initializeGL">initializeGL</a></b> ()</li>
@@ -99,7 +102,7 @@
 </ul>
 <h3>Additional Inherited Members</h3>
 <ul>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 <li><div class="fn"/>1 signal inherited from <a href="qwidget.html#signals">QWidget</a></li>
 <li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
@@ -164,6 +167,7 @@
 <p>Your widget's OpenGL rendering context is made current when <a href="qglwidget.html#paintGL">paintGL</a>(), <a href="qglwidget.html#resizeGL">resizeGL</a>(), or <a href="qglwidget.html#initializeGL">initializeGL</a>() is called. If you need to call the standard OpenGL API functions from other places (e.g&#x2e; in your widget's constructor or in your own paint functions), you must call <a href="qglwidget.html#makeCurrent">makeCurrent</a>() first.</p>
 <p>QGLWidget provides functions for requesting a new display <a href="qglformat.html">format</a> and you can also create widgets with customized rendering <a href="qglcontext.html">contexts</a>.</p>
 <p>You can also share OpenGL display lists between QGLWidgets (see the documentation of the QGLWidget constructors for details).</p>
+<p>Note that under Windows, the <a href="qglcontext.html">QGLContext</a> belonging to a QGLWidget has to be recreated when the QGLWidget is reparented. This is necessary due to limitations on the Windows platform. This will most likely cause problems for users that have subclassed and installed their own <a href="qglcontext.html">QGLContext</a> on a QGLWidget. It is possible to work around this issue by putting the QGLWidget inside a dummy widget and then reparenting the dummy widget, instead of the QGLWidget. This will side-step the issue altogether, and is what we recommend for users that need this kind of functionality.</p>
 <a name="overlays"></a>
 <h3>Overlays</h3>
 <p>The QGLWidget creates a GL overlay context in addition to the normal context if overlays are supported by the underlying system.</p>
@@ -242,7 +246,7 @@
 <p>Returns the context of this widget.</p>
 <p>It is possible that the context is not valid (see <a href="qglwidget.html#isValid">isValid</a>()), for example, if the underlying hardware does not support the format attributes that were requested.</p>
 <h3 class="fn"><a name="convertToGLFormat"></a><a href="qimage.html">QImage</a> QGLWidget::convertToGLFormat ( const <a href="qimage.html">QImage</a> &amp; <i>img</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
-<p>Converts the image <i>img</i> into the unnamed format expected by OpenGL functions such as glTexImage2D(). The returned image is not usable as a <a href="qimage.html">QImage</a>, but <a href="qimage.html#width">QImage::width</a>(), <a href="qimage.html#height">QImage::height</a>() and <a href="qimage.html#bits">QImage::bits</a>() may be used with OpenGL.</p>
+<p>Converts the image <i>img</i> into the unnamed format expected by OpenGL functions such as glTexImage2D(). The returned image is not usable as a <a href="qimage.html">QImage</a>, but <a href="qimage.html#width">QImage::width</a>(), <a href="qimage.html#height">QImage::height</a>() and <a href="qimage.html#bits">QImage::bits</a>() may be used with OpenGL. The GL format used is <tt>GL_RGBA</tt>.</p>
 <h3 class="fn"><a name="deleteTexture"></a>void QGLWidget::deleteTexture ( GLuint <i>id</i> )</h3>
 <p>Calls QGLContext::deleteTexture(<i>id</i>) on the currently set context.</p>
 <p>See also <a href="qglwidget.html#bindTexture">bindTexture</a>().</p>
@@ -251,6 +255,16 @@
 <h3 class="fn"><a name="doubleBuffer"></a>bool QGLWidget::doubleBuffer () const</h3>
 <p>Returns true if the contained GL rendering context has double buffering; otherwise returns false.</p>
 <p>See also <a href="qglformat.html#doubleBuffer">QGLFormat::doubleBuffer</a>().</p>
+<h3 class="fn"><a name="drawTexture"></a>void QGLWidget::drawTexture ( const <a href="qrectf.html">QRectF</a> &amp; <i>target</i>, GLuint <i>textureId</i>, GLenum <i>textureTarget</i> = GL_TEXTURE_2D )</h3>
+<p>Draws the given texture, <i>textureId</i> to the given target rectangle, <i>target</i>, in OpenGL model space. The <i>textureTarget</i> should be a 2D texture target.</p>
+<p>Equivalent to the corresponding <a href="qglcontext.html#drawTexture">QGLContext::drawTexture</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<h3 class="fn"><a name="drawTexture-2"></a>void QGLWidget::drawTexture ( const <a href="qpointf.html">QPointF</a> &amp; <i>point</i>, GLuint <i>textureId</i>, GLenum <i>textureTarget</i> = GL_TEXTURE_2D )</h3>
+<p>This is an overloaded member function, provided for convenience.</p>
+<p>Draws the given texture, <i>textureId</i>, at the given <i>point</i> in OpenGL model space. The <i>textureTarget</i> should be a 2D texture target.</p>
+<p>Equivalent to the corresponding <a href="qglcontext.html#drawTexture">QGLContext::drawTexture</a>().</p>
+<p>This function was introduced in Qt 4.4.</p>
+<h3 class="fn"><a name="event"></a>bool QGLWidget::event ( <a href="qevent.html">QEvent</a> * )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
 <h3 class="fn"><a name="format"></a><a href="qglformat.html">QGLFormat</a> QGLWidget::format () const</h3>
 <p>Returns the format of the contained GL rendering context.</p>
 <p>See also <a href="qglwidget-obsolete.html#setFormat">setFormat</a>().</p>
@@ -313,10 +327,10 @@
 <p>Renders the string <i>str</i> into the GL context of this widget.</p>
 <p><i>x</i> and <i>y</i> are specified in window coordinates, with the origin in the upper left-hand corner of the window. If <i>font</i> is not specified, the currently set application font will be used to render the string. To change the color of the rendered text you can use the glColor() call (or the <a href="qglwidget.html#qglColor">qglColor</a>() convenience function), just before the renderText() call.</p>
 <p>The <i>listBase</i> parameter is obsolete and will be removed in a future version of Qt.</p>
+<p><b>Note:</b> This function clears the stencil buffer.</p>
 <h3 class="fn"><a name="renderText-2"></a>void QGLWidget::renderText ( double <i>x</i>, double <i>y</i>, double <i>z</i>, const <a href="qstring.html">QString</a> &amp; <i>str</i>, const <a href="qfont.html">QFont</a> &amp; <i>font</i> = QFont(), int <i>listBase</i> = 2000 )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
 <p><i>x</i>, <i>y</i> and <i>z</i> are specified in scene or object coordinates relative to the currently set projection and model matrices. This can be useful if you want to annotate models with text labels and have the labels move with the model as it is rotated etc.</p>
-<p>Note that this function only works properly if <tt>GL_DEPTH_TEST</tt> is enabled, and you have a properly initialized depth buffer.</p>
 <h3 class="fn"><a name="resizeEvent"></a>void QGLWidget::resizeEvent ( <a href="qresizeevent.html">QResizeEvent</a> * <i>event</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
 <p>Handles resize events that are passed in the <i>event</i> parameter. Calls the virtual function <a href="qglwidget.html#resizeGL">resizeGL</a>().</p>
 <p>Reimplemented from <a href="qwidget.html#resizeEvent">QWidget</a>.</p>
@@ -347,8 +361,8 @@
 <p>The widget's rendering context will become the current context and <a href="qglwidget.html#initializeGL">initializeGL</a>() will be called if it hasn't already been called.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,6 +52,8 @@
 #ifdef Q_WS_MAC
 # include "private/qt_mac_p.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 using namespace Qt;
 
@@ -125,7 +121,9 @@ public:
         : QWidget (parent,name,f) {}
 };
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include "q3scrollview.moc"
+QT_END_INCLUDE_NAMESPACE
 
 class Q3ScrollViewData {
 public:
@@ -384,23 +382,10 @@ void Q3ScrollViewData::viewportResized(int w, int h)
     reliable size on X11 servers). In this usage, you just make one
     large child in the Q3ScrollView. The child should be a child of the
     viewport() of the scrollview and be added with addChild():
-    \code
-        Q3ScrollView* sv = new Q3ScrollView(...);
-        QWidget *widget = new QWidget(sv->viewport());
-        QVBoxLayout *layout = new QVBoxLayout(widget);
-        addChild(widget);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3scrollview.cpp 0
     You can go on to add arbitrary child widgets to the single child
     in the scrollview as you would with any widget:
-    \code
-        QLabel* child1 = new QLabel("CHILD", widget);
-        QLabel* child2 = new QLabel("CHILD", widget);
-        QLabel* child3 = new QLabel("CHILD", widget);
-        layout->addWidget(child1);
-        layout->addWidget(child2);
-        layout->addWidget(child3);
-        ...
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3scrollview.cpp 1
 
     Here the Q3ScrollView has four children: the viewport(), the
     verticalScrollBar(), the horizontalScrollBar() and a small
@@ -421,15 +406,7 @@ void Q3ScrollViewData::viewportResized(int w, int h)
     add some widgets by making them children of the viewport() and
     adding them with addChild() (this is the same as the process for
     the single large widget in the previous example):
-    \code
-        Q3ScrollView* sv = new Q3ScrollView(...);
-        QLabel* child1 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child1);
-        QLabel* child2 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child2);
-        QLabel* child3 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child3);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3scrollview.cpp 2
     Here, the Q3ScrollView has the same four children: the viewport(),
     the verticalScrollBar(), the horizontalScrollBar() and a small
     cornerWidget(). The viewport() has the three QLabel objects as
@@ -447,16 +424,7 @@ void Q3ScrollViewData::viewportResized(int w, int h)
     reimplement drawContents() to paint the contents. You then call
     enableClipper(true) and add widgets, again by making them children
     of the viewport(), and adding them with addChild():
-    \code
-        Q3ScrollView* sv = new Q3ScrollView(...);
-        sv->enableClipper(true);
-        QLabel* child1 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child1);
-        QLabel* child2 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child2);
-        QLabel* child3 = new QLabel("CHILD", sv->viewport());
-        sv->addChild(child3);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3scrollview.cpp 3
 
     Here, the Q3ScrollView has four children:  the clipper() (not the
     viewport() this time), the verticalScrollBar(), the
@@ -1318,7 +1286,7 @@ void Q3ScrollView::setCornerWidget(QWidget* corner)
     if (oldcorner != corner) {
         if (oldcorner) oldcorner->hide();
         d->corner = corner;
-        corner->setParent(this);
+        if (corner) corner->setParent(this);
         updateScrollBars();
         if (corner) corner->show();
     }
@@ -2312,7 +2280,7 @@ void Q3ScrollView::repaintContents(bool erase)
 
     \sa updateContents()
 */
-void Q3ScrollView::repaintContents(int x, int y, int w, int h, bool erase)
+void Q3ScrollView::repaintContents(int x, int y, int w, int h, bool /*erase*/)
 {
     if (!isVisible() || !updatesEnabled())
         return;
@@ -2345,7 +2313,7 @@ void Q3ScrollView::repaintContents(int x, int y, int w, int h, bool erase)
         y -= d->clipped_viewport->y();
     }
 
-    vp->repaint(x, y, w, h, erase);
+    vp->update(x, y, w, h);
 }
 
 
@@ -2375,25 +2343,7 @@ void Q3ScrollView::drawContentsOffset(QPainter* p, int offsetx, int offsety, int
     rectangle is in the scrollview's coordinates.
 
     For example:
-    \code
-    {
-        // Fill a 40000 by 50000 rectangle at (100000,150000)
-
-        // Calculate the coordinates...
-        int x1 = 100000, y1 = 150000;
-        int x2 = x1+40000-1, y2 = y1+50000-1;
-
-        // Clip the coordinates so X/Windows will not have problems...
-        if (x1 < clipx) x1=clipx;
-        if (y1 < clipy) y1=clipy;
-        if (x2 > clipx+clipw-1) x2=clipx+clipw-1;
-        if (y2 > clipy+cliph-1) y2=clipy+cliph-1;
-
-        // Paint using the small coordinates...
-        if (x2 >= x1 && y2 >= y1)
-            p->fillRect(x1, y1, x2-x1+1, y2-y1+1, red);
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_widgets_q3scrollview.cpp 4
 
     The clip rectangle and translation of the painter \a p is already
     set appropriately.
@@ -2843,5 +2793,7 @@ QSize Q3ScrollView::cachedSizeHint() const
 {
     return d->use_cached_size_hint ? d->cachedSizeHint : QSize();
 }
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCROLLVIEW

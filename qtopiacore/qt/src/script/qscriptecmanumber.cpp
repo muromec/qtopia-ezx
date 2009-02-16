@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,37 +47,29 @@
 
 #include <QtCore/QtDebug>
 #include <QtCore/qnumeric.h>
+#include <math.h>
+
+QT_BEGIN_NAMESPACE
 
 namespace QScript { namespace Ecma {
 
 Number::Number(QScriptEnginePrivate *eng):
-    Core(eng)
+    Core(eng, QLatin1String("Number"), QScriptClassInfo::NumberType)
 {
-    m_classInfo = eng->registerClass(QLatin1String("Number"));
-
-    publicPrototype.invalidate();
     newNumber(&publicPrototype, 0);
 
     eng->newConstructor(&ctor, this, publicPrototype);
 
-    QScriptValue::PropertyFlags flags = QScriptValue::SkipInEnumeration;
+    addPrototypeFunction(QLatin1String("toString"), method_toString, 0);
+    addPrototypeFunction(QLatin1String("toLocaleString"), method_toLocaleString, 0);
+    addPrototypeFunction(QLatin1String("valueOf"), method_valueOf, 0);
+    addPrototypeFunction(QLatin1String("toFixed"), method_toFixed, 0);
+    addPrototypeFunction(QLatin1String("toExponential"), method_toExponential, 0);
+    addPrototypeFunction(QLatin1String("toPrecision"), method_toPrecision, 0);
 
-    publicPrototype.setProperty(QLatin1String("toString"),
-                                eng->createFunction(method_toString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toLocaleString"),
-                                eng->createFunction(method_toLocaleString, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("valueOf"),
-                                eng->createFunction(method_valueOf, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toFixed"),
-                                eng->createFunction(method_toFixed, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toExponential"),
-                                eng->createFunction(method_toExponential, 0, m_classInfo), flags);
-    publicPrototype.setProperty(QLatin1String("toPrecision"),
-                                eng->createFunction(method_toPrecision, 0, m_classInfo), flags);
-
-    flags = QScriptValue::Undeletable
-            | QScriptValue::ReadOnly
-            | QScriptValue::SkipInEnumeration;
+    QScriptValue::PropertyFlags flags = QScriptValue::Undeletable
+                                        | QScriptValue::ReadOnly
+                                        | QScriptValue::SkipInEnumeration;
     ctor.setProperty(QLatin1String("NaN"),
                      QScriptValueImpl(eng, qSNaN()), flags);
     ctor.setProperty(QLatin1String("NEGATIVE_INFINITY"),
@@ -109,6 +95,9 @@ Number::~Number()
 
 void Number::execute(QScriptContextPrivate *context)
 {
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionEntry(context);
+#endif
     qsreal value;
     if (context->argumentCount() > 0)
         value = context->argument(0).toNumber();
@@ -125,6 +114,9 @@ void Number::execute(QScriptContextPrivate *context)
         obj.setPrototype(publicPrototype);
         context->setReturnValue(obj);
     }
+#ifndef Q_SCRIPT_NO_EVENT_NOTIFY
+    engine()->notifyFunctionExit(context);
+#endif
 }
 
 void Number::newNumber(QScriptValueImpl *result, qsreal value)
@@ -140,6 +132,27 @@ QScriptValueImpl Number::method_toString(QScriptContextPrivate *context, QScript
         return context->throwError(QScriptContext::TypeError,
                                    QLatin1String("Number.prototype.toString"));
 
+    QScriptValueImpl arg = context->argument(0);
+    if (!arg.isUndefined()) {
+        int radix = arg.toInt32();
+        if (radix < 2 || radix > 36)
+            return context->throwError(QString::fromLatin1("Number.prototype.toString: %0 is not a valid radix")
+                                       .arg(radix));
+        if (radix != 10) {
+            QString str;
+            qsreal num = self.internalValue().toInteger();
+            do {
+                char c = (char)::fmod(num, radix);
+                if (c < 10)
+                    c += '0';
+                else
+                    c = c - 10 + 'a';
+                str.prepend(QLatin1Char(c));
+                num = ::floor(num / radix);
+            } while (num != 0);
+            return QScriptValueImpl(eng, str);
+        }
+    }
     QString str = self.internalValue().toString();
     return (QScriptValueImpl(eng, str));
 }
@@ -218,5 +231,7 @@ QScriptValueImpl Number::method_toPrecision(QScriptContextPrivate *context, QScr
 }
 
 } } // namespace QScript::Ecma
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT

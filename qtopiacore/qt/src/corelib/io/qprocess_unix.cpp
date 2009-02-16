@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,6 +48,7 @@
     Returns a human readable representation of the first \a len
     characters in \a data.
 */
+QT_BEGIN_NAMESPACE
 static QByteArray qt_prettyDebug(const char *data, int len, int maxSize)
 {
     if (!data) return "(null)";
@@ -78,6 +73,7 @@ static QByteArray qt_prettyDebug(const char *data, int len, int maxSize)
 
     return out;
 }
+QT_END_NAMESPACE
 #endif
 
 #include "qplatformdefs.h"
@@ -104,6 +100,8 @@ static QByteArray qt_prettyDebug(const char *data, int len, int maxSize)
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
+QT_BEGIN_NAMESPACE
 
 #ifdef Q_OS_INTEGRITY
 static inline char *strdup(const char *data)
@@ -274,6 +272,16 @@ QProcessManager::~QProcessManager()
 
     qDeleteAll(children.values());
     children.clear();
+
+    struct sigaction oldAction;
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = qt_sa_old_sigchld_handler;
+    action.sa_flags = SA_NOCLDSTOP;
+    qt_native_sigaction(SIGCHLD, &action, &oldAction);
+    if (oldAction.sa_handler != qt_sa_sigchld_handler) {
+        qt_native_sigaction(SIGCHLD, &oldAction, 0);
+    }
 }
 
 void QProcessManager::run()
@@ -329,7 +337,7 @@ void QProcessManager::catchDeadChildren()
     }
 }
 
-static QBasicAtomic idCounter = Q_ATOMIC_INIT(1);
+static QBasicAtomicInt idCounter = Q_BASIC_ATOMIC_INITIALIZER(1);
 
 void QProcessManager::add(pid_t pid, QProcess *process)
 {
@@ -344,7 +352,7 @@ void QProcessManager::add(pid_t pid, QProcess *process)
     info->exitResult = 0;
     info->pid = pid;
 
-    int serial = idCounter.fetchAndAdd(1);
+    int serial = idCounter.fetchAndAddRelaxed(1);
     process->d_func()->serial = serial;
     children.insert(serial, info);
 }
@@ -553,6 +561,20 @@ static char **_q_dupEnvironment(const QStringList &environment, int *envc)
     return envp;
 }
 
+// under QNX RTOS we have to use vfork() when multithreading
+inline pid_t qt_fork()
+{
+#if defined(Q_OS_QNX)
+    return vfork();
+#else
+    return fork();
+#endif
+}
+
+#ifdef Q_OS_MAC
+Q_GLOBAL_STATIC(QMutex, cfbundleMutex);
+#endif
+
 void QProcessPrivate::startProcess()
 {
     Q_Q(QProcess);
@@ -588,8 +610,7 @@ void QProcessPrivate::startProcess()
         return;
 
     // Start the process (platform dependent)
-    processState = QProcess::Starting;
-    emit q->stateChanged(processState);
+    q->setProcessState(QProcess::Starting);
 
     // Create argument list with right number of elements, and set the final
     // one to 0.
@@ -605,8 +626,13 @@ void QProcessPrivate::startProcess()
         QCFType<CFURLRef> url = CFURLCreateWithFileSystemPath(0,
                                                           QCFString(fileInfo.absoluteFilePath()),
                                                           kCFURLPOSIXPathStyle, true);
-        QCFType<CFBundleRef> bundle = CFBundleCreate(0, url);
-        url = CFBundleCopyExecutableURL(bundle);
+        {
+            // CFBundle is not reentrant, since CFBundleCreate might return a reference
+            // to a cached bundle object. Protect the bundle calls with a mutex lock.
+            QMutexLocker lock(cfbundleMutex());
+            QCFType<CFBundleRef> bundle = CFBundleCreate(0, url);
+            url = CFBundleCopyExecutableURL(bundle);
+        }
         if (url) {
             QCFString str = CFURLCopyFileSystemPath(url, kCFURLPOSIXPathStyle);
             encodedProgramName += "/Contents/MacOS/" + static_cast<QString>(str).toUtf8();
@@ -653,7 +679,7 @@ void QProcessPrivate::startProcess()
                 pathc = pathEntries.size();
                 path = new char *[pathc + 1];
                 path[pathc] = 0;
-                
+
                 for (int k = 0; k < pathEntries.size(); ++k) {
                     QByteArray tmp = QFile::encodeName(pathEntries.at(k));
                     if (!tmp.endsWith('/')) tmp += '/';
@@ -666,7 +692,7 @@ void QProcessPrivate::startProcess()
 
     // Start the process manager, and fork off the child process.
     processManager()->lock();
-    pid_t childPid = fork();
+    pid_t childPid = qt_fork();
     if (childPid != 0) {
         // Clean up duplicated memory.
         free(dupProgramName);
@@ -683,8 +709,7 @@ void QProcessPrivate::startProcess()
     if (childPid < 0) {
         // Cleanup, report error and return
         processManager()->unlock();
-        processState = QProcess::NotRunning;
-        emit q->stateChanged(processState);
+        q->setProcessState(QProcess::NotRunning);
         processError = QProcess::FailedToStart;
         q->setErrorString(QLatin1String(QT_TRANSLATE_NOOP(QProcess, "Resource error (fork failure)")));
         emit q->error(processError);
@@ -803,7 +828,7 @@ bool QProcessPrivate::processStarted()
     int i = qt_native_read(childStartedPipe[0], &c, 1);
     if (startupSocketNotifier) {
         startupSocketNotifier->setEnabled(false);
-        delete startupSocketNotifier;
+        startupSocketNotifier->deleteLater();
         startupSocketNotifier = 0;
     }
     qt_native_close(childStartedPipe[0]);
@@ -862,8 +887,8 @@ qint64 QProcessPrivate::readFromStderr(char *data, qint64 maxlen)
 static void qt_ignore_sigpipe()
 {
     // Set to ignore SIGPIPE once only.
-    static QBasicAtomic atom = Q_ATOMIC_INIT(0);
-    if (atom.testAndSet(0, 1)) {
+    static QBasicAtomicInt atom = Q_BASIC_ATOMIC_INITIALIZER(0);
+    if (atom.testAndSetRelaxed(0, 1)) {
         struct sigaction noaction;
         memset(&noaction, 0, sizeof(noaction));
         noaction.sa_handler = SIG_IGN;
@@ -1232,7 +1257,7 @@ bool QProcessPrivate::startDetached(const QString &program, const QStringList &a
     int pidPipe[2];
     ::pipe(pidPipe);
 
-    pid_t childPid = fork();
+    pid_t childPid = qt_fork();
     if (childPid == 0) {
         struct sigaction noaction;
         memset(&noaction, 0, sizeof(noaction));
@@ -1244,7 +1269,7 @@ bool QProcessPrivate::startDetached(const QString &program, const QStringList &a
         qt_native_close(startedPipe[0]);
         qt_native_close(pidPipe[0]);
 
-        pid_t doubleForkPid = fork();
+        pid_t doubleForkPid = qt_fork();
         if (doubleForkPid == 0) {
             ::fcntl(startedPipe[1], F_SETFD, FD_CLOEXEC);
             qt_native_close(pidPipe[1]);
@@ -1339,6 +1364,8 @@ void QProcessPrivate::initializeProcessManager()
 {
     (void) processManager();
 }
+
+QT_END_NAMESPACE
 
 #include "qprocess_unix.moc"
 

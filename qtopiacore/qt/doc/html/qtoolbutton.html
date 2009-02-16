@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qtoolbutton.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qtoolbutton.cpp -->
 <head>
-  <title>Qt 4.3: QToolButton Class Reference</title>
+  <title>Qt 4.4: QToolButton Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QToolButton Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QToolButton Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QToolButton class provides a quick-access button to commands or options, usually used inside a <a href="qtoolbar.html">QToolBar</a>. <a href="#details">More...</a></p>
 <pre> #include &lt;QToolButton&gt;</pre><p>Inherits <a href="qabstractbutton.html">QAbstractButton</a>.</p>
@@ -35,7 +35,7 @@
 </ul>
 <ul>
 <li><div class="fn"/>11 properties inherited from <a href="qabstractbutton.html#properties">QAbstractButton</a></li>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -56,9 +56,9 @@
 </ul>
 <ul>
 <li><div class="fn"/>21 public functions inherited from <a href="qabstractbutton.html#public-functions">QAbstractButton</a></li>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -112,7 +112,7 @@
 <p>The button's look and dimension is adjustable with <a href="qtoolbutton.html#toolButtonStyle-prop">setToolButtonStyle</a>() and <a href="qabstractbutton.html#iconSize-prop">setIconSize</a>(). When used inside a <a href="qtoolbar.html">QToolBar</a> in a <a href="qmainwindow.html">QMainWindow</a>, the button automatically adjusts to <a href="qmainwindow.html">QMainWindow</a>'s settings (see <a href="qmainwindow.html#toolButtonStyle-prop">QMainWindow::setToolButtonStyle</a>() and <a href="qmainwindow.html#iconSize-prop">QMainWindow::setIconSize</a>()). Instead of an icon, a tool button can also display an arrow symbol, specified with <a href="qtoolbutton.html#arrowType-prop">arrowType</a>.</p>
 <p>A tool button can offer additional choices in a popup menu. The popup menu can be set using <a href="qtoolbutton.html#setMenu">setMenu</a>(). Use <a href="qtoolbutton.html#popupMode-prop">setPopupMode</a>() to configure the different modes available for tool buttons with a menu set. The default mode is DelayedPopupMode which is sometimes used with the &quot;Back&quot; button in a web browser. After pressing and holding the button down for a while, a menu pops up showing a list of possible pages to jump to. The default delay is 600 ms; you can adjust it with <a href="qtoolbutton-qt3.html#setPopupDelay">setPopupDelay</a>().</p>
 <p><table width="100%" align="center" cellpadding="2" cellspacing="1" border="0">
-<tr valign="top" class="odd"><td><img src="images/assistant-toolbar1.png" alt="Qt Assistant's toolbar with tool buttons" /></td></tr>
+<tr valign="top" class="odd"><td><img src="images/assistant-toolbar.png" alt="Qt Assistant's toolbar with tool buttons" /></td></tr>
 <tr valign="top" class="even"><td>Qt Assistant's toolbar contains tool buttons that are associated with actions used in other parts of the main window.</td></tr>
 </table></p>
 <p>See also <a href="qpushbutton.html">QPushButton</a>, <a href="qtoolbar.html">QToolBar</a>, <a href="qmainwindow.html">QMainWindow</a>, <a href="qaction.html">QAction</a>, and <a href="guibooks.html#fowler">GUI Design Handbook: Push Button</a>.</p>
@@ -131,6 +131,7 @@
 <h3 class="fn"><a name="arrowType-prop"></a>arrowType : <a href="qt.html#ArrowType-enum">Qt::ArrowType</a></h3>
 <p>This property holds whether the button displays an arrow instead of a normal icon.</p>
 <p>This displays an arrow as the icon for the <a href="qtoolbutton.html">QToolButton</a>.</p>
+<p>By default, this property is set to <a href="qt.html#ArrowType-enum">Qt::NoArrow</a>.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>Qt::ArrowType arrowType () const</b></li>
@@ -139,7 +140,7 @@
 <h3 class="fn"><a name="autoRaise-prop"></a>autoRaise : bool</h3>
 <p>This property holds whether auto-raising is enabled or not.</p>
 <p>The default is disabled (i.e&#x2e; false).</p>
-<p>This property is currently ignored on Mac OS X when using <a href="qmacstyle.html">QMacStyle</a>.</p>
+<p>This property is currently ignored on Mac OS X when using QMacStyle.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>bool autoRaise () const</b></li>
@@ -147,6 +148,7 @@
 </ul>
 <h3 class="fn"><a name="popupMode-prop"></a>popupMode : <a href="qtoolbutton.html#ToolButtonPopupMode-enum">ToolButtonPopupMode</a></h3>
 <p>This property describes the way that popup menus are used with tool buttons.</p>
+<p>By default, this property is set to <a href="qtoolbutton.html#ToolButtonPopupMode-enum">DelayedPopup</a>.</p>
 <p>Access functions:</p>
 <ul>
 <li><div class="fn"/><b>ToolButtonPopupMode popupMode () const</b></li>
@@ -195,8 +197,8 @@
 <p>The action may also be associated with other parts of the user interface, such as menu items and keyboard shortcuts. Sharing actions in this way helps make the user interface more consistent and is often less work to implement.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

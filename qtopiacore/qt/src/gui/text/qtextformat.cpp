@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -50,8 +44,12 @@
 #include <qmap.h>
 #include <qhash.h>
 
+QT_BEGIN_NAMESPACE
+
 /*!
     \class QTextLength
+    \reentrant
+
     \brief The QTextLength class encapsulates the different types of length
     used in a QTextDocument.
 
@@ -191,7 +189,8 @@ public:
     inline void insertProperty(qint32 key, const QVariant &value)
     {
         hashDirty = true;
-        fontDirty = true;
+        if (key >= QTextFormat::FirstFontProperty && key <= QTextFormat::LastFontProperty)
+            fontDirty = true;
         for (int i = 0; i < props.count(); ++i)
             if (props.at(i).key == key) {
                 props[i].value = value;
@@ -202,10 +201,11 @@ public:
 
     inline void clearProperty(qint32 key)
     {
-        hashDirty = true;
-        fontDirty = true;
         for (int i = 0; i < props.count(); ++i)
             if (props.at(i).key == key) {
+                hashDirty = true;
+                if (key >= QTextFormat::FirstFontProperty && key <= QTextFormat::LastFontProperty)
+                    fontDirty = true;
                 props.remove(i);
                 return;
             }
@@ -285,7 +285,7 @@ void QTextFormatPrivate::resolveFont(const QFont &defaultFont)
     fnt = fnt.resolve(defaultFont);
 
     if (hasProperty(QTextFormat::FontSizeAdjustment)) {
-        const qreal scaleFactors[7] = {0.7, 0.8, 1.0, 1.2, 1.5, 2, 2.4};
+        const qreal scaleFactors[7] = {qreal(0.7), qreal(0.8), qreal(1.0), qreal(1.2), qreal(1.5), qreal(2), qreal(2.4)};
 
         const int htmlFontSize = qBound(0, property(QTextFormat::FontSizeAdjustment).toInt() + 3 - 1, 6);
 
@@ -339,9 +339,20 @@ void QTextFormatPrivate::recalcFont() const
             case QTextFormat::FontStrikeOut:
                 f.setStrikeOut(props.at(i).value.toBool());
                 break;
-            case QTextFormat::FontFixedPitch:
-                f.setFixedPitch(props.at(i).value.toBool());
+            case QTextFormat::FontLetterSpacing:
+                f.setLetterSpacing(QFont::PercentageSpacing, props.at(i).value.toDouble());
                 break;
+            case QTextFormat::FontWordSpacing:
+                f.setWordSpacing(props.at(i).value.toDouble());
+                break;
+            case QTextFormat::FontCapitalization:
+                f.setCapitalization(static_cast<QFont::Capitalization> (props.at(i).value.toInt()));
+                break;
+            case QTextFormat::FontFixedPitch: {
+                const bool value = props.at(i).value.toBool();
+                if (f.fixedPitch() != value)
+                    f.setFixedPitch(value);
+                break; }
             default:
                 break;
             }
@@ -375,6 +386,8 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
 
 /*!
     \class QTextFormat
+    \reentrant
+
     \brief The QTextFormat class provides formatting information for a
     QTextDocument.
 
@@ -441,6 +454,7 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
     \value OutlinePen
     \value ForegroundBrush
     \value BackgroundBrush
+    \value BackgroundImageUrl
 
     Paragraph properties
 
@@ -450,6 +464,8 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
     \value BlockLeftMargin
     \value BlockRightMargin
     \value TextIndent
+    \value TabPositions     Specifies the tab positions.  The tab positions are structs of QTextOption::Tab which are stored in
+                                          a QList (internally, in a QList<QVariant>).
     \value BlockIndent
     \value BlockNonBreakableLines
     \value BlockTrailingHorizontalRulerWidth
@@ -458,16 +474,25 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
 
     \value FontFamily
     \value FontPointSize
-    \omitvalue FontSizeAdjustment
-    \value FontSizeIncrement
+    \value FontSizeAdjustment       Specifies the change in size given to the fontsize already set using
+                                    FontPointSize or FontPixelSize.
+    \omitvalue FontSizeIncrement
     \value FontWeight
     \value FontItalic
     \value FontUnderline \e{This property has been deprecated.} Use QTextFormat::TextUnderlineStyle instead.
-    \value FontOverline 
+    \value FontOverline
     \value FontStrikeOut
     \value FontFixedPitch
     \value FontPixelSize
+    \value FontCapitalization Specifies the capitalization type that is to be applied to the text.
+    \value FontLetterSpacing Changes the default spacing between individual letters in the font. The value is
+                                                specified in percentage, with 100 as the default value.
+    \value FontWordSpacing  Changes the default spacing between individual words. A positive value increases the word spacing
+                                                 by the corresponding pixels; a negative value decreases the spacing.
 
+    \omitvalue FirstFontProperty
+    \omitvalue LastFontProperty
+    
     \value TextUnderlineColor
     \value TextVerticalAlignment
     \value TextOutline
@@ -492,7 +517,7 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
     \value FrameBorderStyle
     \value FrameBottomMargin
     \value FrameHeight
-    \value FrameLeftMargin 
+    \value FrameLeftMargin
     \value FrameMargin
     \value FramePadding
     \value FrameRightMargin
@@ -508,6 +533,10 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
 
     \value TableCellRowSpan
     \value TableCellColumnSpan
+    \value TableCellLeftPadding
+    \value TableCellRightPadding
+    \value TableCellTopPadding
+    \value TableCellBottomPadding
 
     Image properties
 
@@ -517,7 +546,7 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
 
     Selection properties
 
-    \value FullWidthSelection
+    \value FullWidthSelection When set on the characterFormat of a selection, the whole width of the text will be shown selected
 
     Page break properties
 
@@ -532,6 +561,7 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
     \value NoObject
     \value ImageObject
     \value TableObject
+    \value TableCellObject
     \value UserObject The first object that can be used for application-specific purposes.
 */
 
@@ -596,6 +626,15 @@ Q_GUI_EXPORT QDataStream &operator>>(QDataStream &stream, QTextFormat &fmt)
     \fn bool QTextFormat::isImageFormat() const
 
     Returns true if this text format is an image format; otherwise
+    returns false.
+*/
+
+
+/*!
+    \fn bool QTextFormat::isTableCellFormat() const
+    \since 4.4
+
+    Returns true if this text format is a \c TableCellFormat; otherwise
     returns false.
 */
 
@@ -691,7 +730,7 @@ void QTextFormat::merge(const QTextFormat &other)
 /*!
     Returns the type of this format.
 
-    \sa ObjectTypes
+    \sa FormatType
 */
 int QTextFormat::type() const
 {
@@ -703,9 +742,7 @@ int QTextFormat::type() const
 */
 QTextBlockFormat QTextFormat::toBlockFormat() const
 {
-    QTextBlockFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextBlockFormat(*this);
 }
 
 /*!
@@ -713,9 +750,7 @@ QTextBlockFormat QTextFormat::toBlockFormat() const
 */
 QTextCharFormat QTextFormat::toCharFormat() const
 {
-    QTextCharFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextCharFormat(*this);
 }
 
 /*!
@@ -723,9 +758,7 @@ QTextCharFormat QTextFormat::toCharFormat() const
 */
 QTextListFormat QTextFormat::toListFormat() const
 {
-    QTextListFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextListFormat(*this);
 }
 
 /*!
@@ -733,9 +766,7 @@ QTextListFormat QTextFormat::toListFormat() const
 */
 QTextTableFormat QTextFormat::toTableFormat() const
 {
-    QTextTableFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextTableFormat(*this);
 }
 
 /*!
@@ -743,9 +774,7 @@ QTextTableFormat QTextFormat::toTableFormat() const
 */
 QTextFrameFormat QTextFormat::toFrameFormat() const
 {
-    QTextFrameFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextFrameFormat(*this);
 }
 
 /*!
@@ -753,9 +782,17 @@ QTextFrameFormat QTextFormat::toFrameFormat() const
 */
 QTextImageFormat QTextFormat::toImageFormat() const
 {
-    QTextImageFormat f;
-    f.QTextFormat::operator=(*this);
-    return f;
+    return QTextImageFormat(*this);
+}
+
+/*!
+    \since 4.4
+
+    Returns this format as a table cell format.
+*/
+QTextTableCellFormat QTextFormat::toTableCellFormat() const
+{
+    return QTextTableCellFormat(*this);
 }
 
 /*!
@@ -1084,6 +1121,8 @@ bool QTextFormat::operator==(const QTextFormat &rhs) const
 
 /*!
     \class QTextCharFormat
+    \reentrant
+
     \brief The QTextCharFormat class provides formatting information for
     characters in a QTextDocument.
 
@@ -1154,6 +1193,17 @@ bool QTextFormat::operator==(const QTextFormat &rhs) const
 */
 QTextCharFormat::QTextCharFormat() : QTextFormat(CharFormat) {}
 
+/*!
+    \internal
+    \fn QTextCharFormat::QTextCharFormat(const QTextFormat &other)
+
+    Creates a new character format with the same attributes as the \a given
+    text format.
+*/
+QTextCharFormat::QTextCharFormat(const QTextFormat &fmt)
+ : QTextFormat(fmt)
+{
+}
 
 /*!
     \fn bool QTextCharFormat::isValid() const
@@ -1523,7 +1573,6 @@ QStringList QTextCharFormat::anchorNames() const
     be 1); otherwise it returns 1.
 */
 
-
 /*!
     \fn void QTextCharFormat::setTableCellColumnSpan(int tableCellColumnSpan)
     \internal
@@ -1598,6 +1647,10 @@ void QTextCharFormat::setFont(const QFont &font)
     setFontOverline(font.overline());
     setFontStrikeOut(font.strikeOut());
     setFontFixedPitch(font.fixedPitch());
+    setFontCapitalization(font.capitalization());
+    setFontWordSpacing(font.wordSpacing());
+    if (font.letterSpacingType() == QFont::PercentageSpacing)
+        setFontLetterSpacing(font.letterSpacing());
 }
 
 /*!
@@ -1610,6 +1663,8 @@ QFont QTextCharFormat::font() const
 
 /*!
     \class QTextBlockFormat
+    \reentrant
+
     \brief The QTextBlockFormat class provides formatting information for
     blocks of text in a QTextDocument.
 
@@ -1648,6 +1703,59 @@ QFont QTextCharFormat::font() const
     Constructs a new QTextBlockFormat.
 */
 QTextBlockFormat::QTextBlockFormat() : QTextFormat(BlockFormat) {}
+
+/*!
+    \internal
+    \fn QTextBlockFormat::QTextBlockFormat(const QTextFormat &other)
+
+    Creates a new block format with the same attributes as the \a given
+    text format.
+*/
+QTextBlockFormat::QTextBlockFormat(const QTextFormat &fmt)
+ : QTextFormat(fmt)
+{
+}
+
+/*!
+    \since 4.4
+    Sets the tab positions for the text block to those specified by
+    \a tabs.
+
+    \sa tabPositions()
+*/
+void QTextBlockFormat::setTabPositions(const QList<QTextOption::Tab> &tabs)
+{
+    QList<QVariant> list;
+    QList<QTextOption::Tab>::ConstIterator iter = tabs.constBegin();
+    while (iter != tabs.constEnd()) {
+        QVariant v;
+        qVariantSetValue<QTextOption::Tab>(v, *iter);
+        list.append(v);
+        ++iter;
+    }
+    setProperty(TabPositions, list);
+}
+
+/*!
+    \since 4.4
+    Returns a list of tab positions defined for the text block.
+
+    \sa setTabPositions()
+*/
+QList<QTextOption::Tab> QTextBlockFormat::tabPositions() const
+{
+    QVariant variant = property(TabPositions);
+    if(variant.isNull())
+        return QList<QTextOption::Tab>();
+    QList<QTextOption::Tab> answer;
+    QList<QVariant> variantsList = qvariant_cast<QList<QVariant> >(variant);
+    QList<QVariant>::Iterator iter = variantsList.begin();
+    while(iter != variantsList.end()) {
+        answer.append( qVariantValue<QTextOption::Tab>(*iter));
+        ++iter;
+    }
+    return answer;
+}
 
 /*!
     \fn QTextBlockFormat::isValid() const
@@ -1789,9 +1897,11 @@ QTextBlockFormat::QTextBlockFormat() : QTextFormat(BlockFormat) {}
     \fn void QTextBlockFormat::setIndent(int indentation)
 
     Sets the paragraph's \a indentation. Margins are set independently of
-    indentation with setLeftMargin() and setTextIdent().
+    indentation with setLeftMargin() and setTextIndent().
+    The \a indentation is an integer that is multiplied with the document-wide
+    standard indent, resulting in the actual indent of the paragraph.
 
-    \sa indent()
+    \sa indent() QTextDocument::indentWidth()
 */
 
 
@@ -1844,6 +1954,8 @@ QTextBlockFormat::QTextBlockFormat() : QTextFormat(BlockFormat) {}
 
 /*!
     \class QTextListFormat
+    \reentrant
+
     \brief The QTextListFormat class provides formatting information for
     lists in a QTextDocument.
 
@@ -1891,6 +2003,18 @@ QTextListFormat::QTextListFormat()
 }
 
 /*!
+    \internal
+    \fn QTextListFormat::QTextListFormat(const QTextFormat &other)
+
+    Creates a new list format with the same attributes as the \a given
+    text format.
+*/
+QTextListFormat::QTextListFormat(const QTextFormat &fmt)
+ : QTextFormat(fmt)
+{
+}
+
+/*!
     \fn bool QTextListFormat::isValid() const
 
     Returns true if this list format is valid; otherwise
@@ -1934,6 +2058,8 @@ QTextListFormat::QTextListFormat()
 
 /*!
     \class QTextFrameFormat
+    \reentrant
+
     \brief The QTextFrameFormat class provides formatting information for
     frames in a QTextDocument.
 
@@ -1999,6 +2125,18 @@ QTextFrameFormat::QTextFrameFormat() : QTextFormat(FrameFormat)
 {
     setBorderStyle(BorderStyle_Outset);
     setBorderBrush(Qt::darkGray);
+}
+
+/*!
+    \internal
+    \fn QTextFrameFormat::QTextFrameFormat(const QTextFormat &other)
+
+    Creates a new frame format with the same attributes as the \a given
+    text format.
+*/
+QTextFrameFormat::QTextFrameFormat(const QTextFormat &fmt)
+ : QTextFormat(fmt)
+{
 }
 
 /*!
@@ -2240,6 +2378,8 @@ qreal QTextFrameFormat::rightMargin() const
 
 /*!
     \class QTextTableFormat
+    \reentrant
+
     \brief The QTextTableFormat class provides formatting information for
     tables in a QTextDocument.
 
@@ -2292,6 +2432,17 @@ QTextTableFormat::QTextTableFormat()
     setBorder(1);
 }
 
+/*!
+    \internal
+    \fn QTextTableFormat::QTextTableFormat(const QTextFormat &other)
+
+    Creates a new table format with the same attributes as the \a given
+    text format.
+*/
+QTextTableFormat::QTextTableFormat(const QTextFormat &fmt)
+ : QTextFrameFormat(fmt)
+{
+}
 
 /*!
     \fn bool QTextTableFormat::isValid() const
@@ -2433,6 +2584,8 @@ QTextTableFormat::QTextTableFormat()
 
 /*!
     \class QTextImageFormat
+    \reentrant
+
     \brief The QTextImageFormat class provides formatting information for
     images in a QTextDocument.
 
@@ -2443,6 +2596,12 @@ QTextTableFormat::QTextTableFormat()
     image format specifies a name with setName() that is used to
     locate the image. The size of the rectangle that the image will
     occupy is specified using setWidth() and setHeight().
+
+    Images can be supplied in any format for which Qt has an image
+    reader, so SVG drawings can be included alongside PNG, TIFF and
+    other bitmap formats.
+
+    \sa QImage, QImageReader
 */
 
 /*!
@@ -2452,6 +2611,17 @@ QTextTableFormat::QTextTableFormat()
 */
 QTextImageFormat::QTextImageFormat() : QTextCharFormat() { setObjectType(ImageObject); }
 
+/*!
+    \internal
+    \fn QTextImageFormat::QTextImageFormat(const QTextFormat &other)
+
+    Creates a new image format with the same attributes as the \a given
+    text format.
+*/
+QTextImageFormat::QTextImageFormat(const QTextFormat &fmt)
+ : QTextCharFormat(fmt)
+{
+}
 
 /*!
     \fn bool QTextImageFormat::isValid() const
@@ -2515,6 +2685,189 @@ QTextImageFormat::QTextImageFormat() : QTextCharFormat() { setObjectType(ImageOb
     \sa width() setHeight()
 */
 
+/*!
+    \fn void QTextCharFormat::setFontCapitalization(QFont::Capitalization capitalization)
+    \since 4.4
+
+    Sets the capitalization of the text that apppears in this font to \a capitalization.
+
+    A font's capitalization makes the text appear in the selected capitalization mode.
+
+    \sa fontCapitalization()
+*/
+
+/*!
+    \fn Capitalization QTextCharFormat::fontCapitalization() const
+    \since 4.4
+
+    Returns the current capitalization type of the font.
+*/
+
+/*!
+    \fn void QTextCharFormat::setFontLetterSpacing(qreal spacing)
+    \since 4.4
+
+    Sets the letter spacing of this format to the given \a spacing, in percent.
+    A value of 100 indicates default spacing; a value of 200 doubles the amount
+    of space a letter takes.
+
+    \sa fontLetterSpacing()
+*/
+
+/*!
+    \fn qreal QTextCharFormat::fontLetterSpacing() const
+    \since 4.4
+
+    Returns the current letter spacing percentage.
+*/
+
+/*!
+    \fn void QTextCharFormat::setFontWordSpacing(qreal spacing)
+    \since 4.4
+
+    Sets the word spacing of this format to the given \a spacing, in pixels.
+
+    \sa fontWordSpacing()
+*/
+
+/*!
+    \fn qreal QTextCharFormat::fontWordSpacing() const
+    \since 4.4
+
+    Returns the current word spacing value.
+*/
+
+/*!
+   \fn qreal QTextTableCellFormat::topPadding() const
+    \since 4.4
+
+   Gets the top padding of the table cell.
+
+   \sa setTopPadding(), leftPadding(), rightPadding(), bottomPadding()
+*/
+
+/*!
+   \fn qreal QTextTableCellFormat::bottomPadding() const
+    \since 4.4
+
+   Gets the bottom padding of the table cell.
+
+   \sa setBottomPadding(), leftPadding(), rightPadding(), topPadding()
+*/
+
+/*!
+   \fn qreal QTextTableCellFormat::leftPadding() const
+    \since 4.4
+
+   Gets the left padding of the table cell.
+
+   \sa setLeftPadding(), rightPadding(), topPadding(), bottomPadding()
+*/
+
+/*!
+   \fn qreal QTextTableCellFormat::rightPadding() const
+    \since 4.4
+
+   Gets the right padding of the table cell.
+
+   \sa setRightPadding(), leftPadding(), topPadding(), bottomPadding()
+*/
+
+/*!
+   \fn void QTextTableCellFormat::setTopPadding(qreal padding)
+    \since 4.4
+
+   Sets the top \a padding of the table cell.
+
+   \sa topPadding(), setLeftPadding(), setRightPadding(), setBottomPadding()
+*/
+
+/*!
+   \fn void QTextTableCellFormat::setBottomPadding(qreal padding)
+    \since 4.4
+
+   Sets the bottom \a padding of the table cell.
+
+   \sa bottomPadding(), setLeftPadding(), setRightPadding(), setTopPadding()
+*/
+
+/*!
+   \fn void QTextTableCellFormat::setLeftPadding(qreal padding)
+    \since 4.4
+
+   Sets the left \a padding of the table cell.
+
+   \sa leftPadding(), setRightPadding(), setTopPadding(), setBottomPadding()
+*/
+
+/*!
+   \fn void QTextTableCellFormat::setRightPadding(qreal padding)
+    \since 4.4
+
+   Sets the right \a padding of the table cell.
+
+   \sa rightPadding(), setLeftPadding(), setTopPadding(), setBottomPadding()
+*/
+
+/*!
+   \fn void QTextTableCellFormat::setPadding(qreal padding)
+    \since 4.4
+
+   Sets the left, right, top, and bottom \a padding of the table cell.
+
+   \sa setLeftPadding(), setRightPadding(), setTopPadding(), setBottomPadding()
+*/
+
+/*!
+    \fn bool QTextTableCellFormat::isValid() const
+    \since 4.4
+
+    Returns true if this table cell format is valid; otherwise returns false.
+*/
+
+/*!
+    \fn QTextTableCellFormat::QTextTableCellFormat()
+    \since 4.4
+
+    Constructs a new table cell format object.
+*/
+QTextTableCellFormat::QTextTableCellFormat()
+    : QTextCharFormat()
+{
+    setObjectType(TableCellObject);
+}
+
+/*!
+    \internal
+    \fn QTextTableCellFormat::QTextTableCellFormat(const QTextFormat &other)
+
+    Creates a new table cell format with the same attributes as the \a given
+    text format.
+*/
+QTextTableCellFormat::QTextTableCellFormat(const QTextFormat &fmt)
+    : QTextCharFormat(fmt)
+{
+}
+
+/*!
+    \class QTextTableCellFormat
+    \reentrant
+    \since 4.4
+
+    \brief The QTextTableCellFormat class provides formatting information for
+    table cells in a QTextDocument.
+
+    \ingroup text
+
+    The table cell format of a table cell in a document specifies the visual
+    properties of the table cell.
+
+    The padding properties of a table cell are controlled by setLeftPadding(),
+    setRightPadding(), setTopPadding(), and setBottomPadding(). All the paddings
+    can be set at once using setPadding().
+
+    \sa QTextFormat QTextBlockFormat QTextTableFormat QTextCharFormat
+*/
 
 // ------------------------------------------------------
 
@@ -2616,3 +2969,4 @@ void QTextFormatCollection::setDefaultFont(const QFont &f)
             formats[i].d->resolveFont(defaultFnt);
 }
 
+QT_END_NAMESPACE

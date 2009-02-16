@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -117,18 +111,21 @@
 #include <private/qpnghandler_p.h>
 #endif
 
-#ifndef QT_NO_LIBRARY
+QT_BEGIN_NAMESPACE
+
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-                          (QImageIOHandlerFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/imageformats")))
+                          (QImageIOHandlerFactoryInterface_iid, QLatin1String("/imageformats")))
 #endif
 
-static QImageIOHandler *createWriteHandler(QIODevice *device, const QByteArray &format)
+static QImageIOHandler *createWriteHandlerHelper(QIODevice *device,
+    const QByteArray &format)
 {
     QByteArray form = format.toLower();
     QByteArray suffix;
     QImageIOHandler *handler = 0;
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     // check if any plugins can write the image
     QFactoryLoader *l = loader();
     QStringList keys = l->keys();
@@ -141,7 +138,7 @@ static QImageIOHandler *createWriteHandler(QIODevice *device, const QByteArray &
         // this allows plugins to override our built-in handlers.
         if (QFile *file = qobject_cast<QFile *>(device)) {
             if (!(suffix = QFileInfo(file->fileName()).suffix().toLower().toLatin1()).isEmpty()) {
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
                 int index = keys.indexOf(QString::fromLatin1(suffix));
                 if (index != -1)
                     suffixPluginIndex = index;
@@ -152,7 +149,7 @@ static QImageIOHandler *createWriteHandler(QIODevice *device, const QByteArray &
 
     QByteArray testFormat = !form.isEmpty() ? form : suffix;
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (suffixPluginIndex != -1) {
         // when format is missing, check if we can find a plugin for the
         // suffix.
@@ -191,7 +188,7 @@ static QImageIOHandler *createWriteHandler(QIODevice *device, const QByteArray &
         }
     }
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (!testFormat.isEmpty()) {
         for (int i = 0; i < keys.size(); ++i) {
             QImageIOPlugin *plugin = qobject_cast<QImageIOPlugin *>(l->instance(keys.at(i)));
@@ -305,10 +302,7 @@ QImageWriter::~QImageWriter()
     Sets the format QImageWriter will use when writing images, to \a
     format. \a format is a case insensitive text string. Example:
 
-    \code
-        QImageWriter writer;
-        writer.setFormat("png"); // same as writer.setFormat("PNG");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagewriter.cpp 0
 
     You can call supportedImageFormats() for the full list of formats
     QImageWriter supports.
@@ -507,12 +501,7 @@ QString QImageWriter::description() const
     \a text. This is useful for storing copyright information
     or other information about the image. Example:
 
-    \code
-        QImage image("some/image.jpeg");
-        QImageWriter writer("images/outimage.png", "png");
-        writer.setText("Author", "John Smith");
-        writer.write(image);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagewriter.cpp 1
 
     If you want to store a single block of data
     (e.g., a comment), you can pass an empty key, or use
@@ -534,7 +523,7 @@ void QImageWriter::setText(const QString &key, const QString &text)
 }
 
 /*!
-    Returns true if QImageWriter can write the image (i.e., the image
+    Returns true if QImageWriter can write the image; i.e., the image
     format is supported and the assigned device is open for reading.
 
     \sa write(), setDevice(), setFormat()
@@ -549,7 +538,7 @@ bool QImageWriter::canWrite() const
                                            QLatin1String("Device not writable"));
         return false;
     }
-    if (!d->handler && (d->handler = ::createWriteHandler(d->device, d->format)) == 0) {
+    if (!d->handler && (d->handler = createWriteHandlerHelper(d->device, d->format)) == 0) {
         d->imageWriterError = QImageWriter::UnsupportedFormatError;
         d->errorString = QT_TRANSLATE_NOOP(QImageWriter,
                                            QLatin1String("Unsupported image format"));
@@ -619,11 +608,7 @@ QString QImageWriter::errorString() const
     example, the PNG format allows you to embed text into the image's metadata
     (see text()).
 
-    \code
-        QImageWriter writer(fileName);
-        if (writer.supportsOption(QImageIOHandler::Description))
-            writer.setText("Author", "John Smith");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagewriter.cpp 2
 
     Options can be tested after the writer has been associated with a format.
 
@@ -631,7 +616,7 @@ QString QImageWriter::errorString() const
 */
 bool QImageWriter::supportsOption(QImageIOHandler::ImageOption option) const
 {
-    if (!d->handler && (d->handler = ::createWriteHandler(d->device, d->format)) == 0) {
+    if (!d->handler && (d->handler = createWriteHandlerHelper(d->device, d->format)) == 0) {
         d->imageWriterError = QImageWriter::UnsupportedFormatError;
         d->errorString = QT_TRANSLATE_NOOP(QImageWriter,
                                            QLatin1String("Unsupported image format"));
@@ -658,6 +643,9 @@ bool QImageWriter::supportsOption(QImageIOHandler::ImageOption option) const
     \row    \o XPM    \o X11 Pixmap
     \endtable
 
+    Reading and writing SVG files is supported through Qt's
+    \l{QtSvg Module}{SVG Module}.
+
     \sa setFormat(), QImageReader::supportedImageFormats(), QImageIOPlugin
 */
 QList<QByteArray> QImageWriter::supportedImageFormats()
@@ -677,7 +665,7 @@ QList<QByteArray> QImageWriter::supportedImageFormats()
     formats << "png";
 #endif
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     QFactoryLoader *l = loader();
     QStringList keys = l->keys();
     for (int i = 0; i < keys.count(); ++i) {
@@ -695,3 +683,4 @@ QList<QByteArray> QImageWriter::supportedImageFormats()
     return sortedFormats;
 }
 
+QT_END_NAMESPACE

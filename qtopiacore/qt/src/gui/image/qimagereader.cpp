@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -139,9 +133,11 @@
 #include <private/qpnghandler_p.h>
 #endif
 
-#ifndef QT_NO_LIBRARY
+QT_BEGIN_NAMESPACE
+
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-                          (QImageIOHandlerFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/imageformats")))
+                          (QImageIOHandlerFactoryInterface_iid, QLatin1String("/imageformats")))
 #endif
 
 enum _qt_BuiltInFormatType {
@@ -189,12 +185,13 @@ static const _qt_BuiltInFormatStruct _qt_BuiltInFormats[] = {
     {_qt_NoFormat, ""}
 };
 
-static QImageIOHandler *createReadHandler(QIODevice *device, const QByteArray &format)
+static QImageIOHandler *createReadHandlerHelper(QIODevice *device,
+    const QByteArray &format)
 {
     QByteArray form = format.toLower();
     QImageIOHandler *handler = 0;
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     // check if we have plugins that support the image format
     QFactoryLoader *l = loader();
     QStringList keys = l->keys();
@@ -206,7 +203,7 @@ static QImageIOHandler *createReadHandler(QIODevice *device, const QByteArray &f
              << keys.size() << "plugins available: " << keys;
 #endif
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     int suffixPluginIndex = -1;
     if (device && format.isEmpty()) {
         // if there's no format, see if \a device is a file, and if so, find
@@ -232,7 +229,7 @@ static QImageIOHandler *createReadHandler(QIODevice *device, const QByteArray &f
 
     QByteArray testFormat = !form.isEmpty() ? form : suffix;
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (suffixPluginIndex != -1) {
         // check if the plugin that claims support for this format can load
         // from this device with this format.
@@ -305,7 +302,7 @@ static QImageIOHandler *createReadHandler(QIODevice *device, const QByteArray &f
 #endif
     }
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if (!handler) {
         // check if any of our plugins recognize the file from its contents.
         const qint64 pos = device ? device->pos() : 0;
@@ -510,7 +507,7 @@ bool QImageReaderPrivate::initHandler()
     }
 
     // assign a handler
-    if (!handler && (handler = ::createReadHandler(device, format)) == 0) {
+    if (!handler && (handler = createReadHandlerHelper(device, format)) == 0) {
         imageReaderError = QImageReader::UnsupportedFormatError;
         errorString = QLatin1String(QT_TRANSLATE_NOOP(QImageReader, "Unsupported image format"));
         return false;
@@ -584,10 +581,7 @@ QImageReader::~QImageReader()
     Sets the format QImageReader will use when reading images, to \a
     format. \a format is a case insensitive text string. Example:
 
-    \code
-        QImageReader reader;
-        reader.setFormat("png"); // same as reader.setFormat("PNG");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagereader.cpp 0
 
     You can call supportedImageFormats() for the full list of formats
     QImageReader supports.
@@ -605,10 +599,7 @@ void QImageReader::setFormat(const QByteArray &format)
     You can call this function after assigning a device to the
     reader to determine the format of the device. For example:
 
-    \code
-        QImageReader reader("image.png");
-        // reader.format() == "png"
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagereader.cpp 1
 
     If the reader cannot read any image from the device (e.g., there is no
     image there, or the image has already been read), or if the format is
@@ -955,13 +946,7 @@ QImage QImageReader::read()
     which always constructs a new image; especially when reading several
     images with the same format and size.
 
-    \code
-        QImage icon(64, 64, QImage::Format_RGB32);
-        QImageReader reader("icon_64x64.bmp");
-        if (reader.read(&icon)) {
-            // Display icon
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagereader.cpp 2
 
     For image formats that support animation, calling read() repeatedly will
     return the next frame. When all frames have been read, a null image will
@@ -1198,11 +1183,7 @@ QString QImageReader::errorString() const
     (see text()), and the BMP format allows you to determine the image's size
     without loading the whole image into memory (see size()).
 
-    \code
-        QImageReader reader(":/image.png");
-        if (reader.supportsOption(QImageIOHandler::Size))
-            qDebug() << "Size:" << reader.size();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_image_qimagereader.cpp 3
 
     \sa QImageWriter::supportsOption()
 */
@@ -1233,7 +1214,7 @@ QByteArray QImageReader::imageFormat(const QString &fileName)
 QByteArray QImageReader::imageFormat(QIODevice *device)
 {
     QByteArray format;
-    QImageIOHandler *handler = ::createReadHandler(device, format);
+    QImageIOHandler *handler = createReadHandlerHelper(device, format);
     if (handler) {
         if (handler->canRead())
             format = handler->format();
@@ -1263,6 +1244,9 @@ QByteArray QImageReader::imageFormat(QIODevice *device)
     \row    \o XPM    \o X11 Pixmap
     \endtable
 
+    Reading and writing SVG files is supported through Qt's
+    \l{QtSvg Module}{SVG Module}.
+
     To configure Qt with GIF support, pass \c -qt-gif to the \c
     configure script or check the appropriate option in the graphical
     installer.
@@ -1275,7 +1259,7 @@ QList<QByteArray> QImageReader::supportedImageFormats()
     for (int i = 0; i < _qt_NumFormats; ++i)
         formats << _qt_BuiltInFormats[i].extension;
 
-#ifndef QT_NO_LIBRARY
+#if !defined (QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     QFactoryLoader *l = loader();
     QStringList keys = l->keys();
 
@@ -1294,3 +1278,4 @@ QList<QByteArray> QImageReader::supportedImageFormats()
     return sortedFormats;
 }
 
+QT_END_NAMESPACE

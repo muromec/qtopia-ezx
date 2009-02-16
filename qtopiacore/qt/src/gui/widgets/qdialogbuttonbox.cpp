@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,9 +39,12 @@
 #include <QtGui/qpushbutton.h>
 #include <QtGui/qstyle.h>
 #include <QtGui/qlayout.h>
+#include <QtGui/qdialog.h>
 #include <QtGui/private/qwidget_p.h>
 
 #include "qdialogbuttonbox.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QDialogButtonBox
@@ -85,16 +82,12 @@
     the buttons (or button texts) yourself and add them to the button box,
     specifying their role.
 
-    \quotefromfile dialogs/extension/finddialog.cpp
-    \skipto findButton
-    \printuntil buttonBox->addButton(moreButton, QDialogButtonBox::ActionRole);
+    \snippet examples/dialogs/extension/finddialog.cpp 1
 
     Alternatively, QDialogButtonBox provides several standard buttons (e.g. OK, Cancel, Save)
     that you can use. They exist as flags so you can OR them together in the constructor.
 
-    \quotefromfile dialogs/tabdialog/tabdialog.cpp
-    \skipto buttonBox
-    \printuntil connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+    \snippet examples/dialogs/tabdialog/tabdialog.cpp 2
 
     You can mix and match normal buttons and standard buttons.
 
@@ -172,13 +165,13 @@ static QDialogButtonBox::ButtonRole roleFor(QDialogButtonBox::StandardButton but
     case QDialogButtonBox::Save:
     case QDialogButtonBox::Open:
     case QDialogButtonBox::SaveAll:
-    case QDialogButtonBox::Abort:
     case QDialogButtonBox::Retry:
+    case QDialogButtonBox::Ignore:
         return QDialogButtonBox::AcceptRole;
 
     case QDialogButtonBox::Cancel:
     case QDialogButtonBox::Close:
-    case QDialogButtonBox::Ignore:
+    case QDialogButtonBox::Abort:
         return QDialogButtonBox::RejectRole;
 
     case QDialogButtonBox::Discard:
@@ -360,7 +353,7 @@ void QDialogButtonBoxPrivate::layoutButtons()
     int tmpPolicy = layoutPolicy;
 
     static const int M = 5;
-    static int ModalRoles[M] = { AcceptRole, RejectRole, DestructiveRole, YesRole, NoRole };
+    static const int ModalRoles[M] = { AcceptRole, RejectRole, DestructiveRole, YesRole, NoRole };
     if (tmpPolicy == QDialogButtonBox::MacLayout) {
         bool hasModalButton = false;
         for (int i = 0; i < M; ++i) {
@@ -553,7 +546,7 @@ const char *QDialogButtonBoxPrivate::standardButtonText(QDialogButtonBox::Standa
     const char *buttonText = 0;
     switch (sbutton) {
     case QDialogButtonBox::Ok:
-        buttonText = QT_TRANSLATE_NOOP("QDialogButtonBox", "OK");
+        buttonText = QT_TRANSLATE_NOOP("QDialogButtonBox", "&OK");
         break;
     case QDialogButtonBox::Save:
         buttonText = QT_TRANSLATE_NOOP("QDialogButtonBox", "Save");
@@ -690,7 +683,7 @@ QDialogButtonBox::~QDialogButtonBox()
     \value DestructiveRole Clicking the button causes a destructive change
            (e.g. for Discarding Changes) and closes the dialog.
     \value ActionRole Clicking the button causes changes to the elements within
-           the dialog, without closing the dialog.
+           the dialog.
     \value HelpRole The button can be clicked to request help.
     \value YesRole The button is a "Yes"-like button.
     \value NoRole The button is a "No"-like button.
@@ -1096,14 +1089,18 @@ bool QDialogButtonBox::event(QEvent *event)
         QList<QAbstractButton *> acceptRoleList = d->buttonLists[AcceptRole];
         QPushButton *firstAcceptButton = acceptRoleList.isEmpty() ? 0 : qobject_cast<QPushButton *>(acceptRoleList.at(0));
         bool hasDefault = false;
+        QWidget *dialog = 0;
+        QWidget *p = this;
+        while (p && !p->isWindow()) {
+            p = p->parentWidget();
+            if ((dialog = qobject_cast<QDialog *>(p)))
+                break;
+        }
 
-        for (int i = d->buttonLayout->count() - 1; i >= 0; --i) {
-            QLayoutItem *item = d->buttonLayout->itemAt(i);
-            if (QPushButton *pb = qobject_cast<QPushButton *>(item->widget())) {
-                if (pb->isDefault() && pb != firstAcceptButton) {
-                    hasDefault = true;
-                    break;
-                }
+        foreach (QPushButton *pb, qFindChildren<QPushButton *>(dialog ? dialog : this)) {
+            if (pb->isDefault() && pb != firstAcceptButton) {
+                hasDefault = true;
+                break;
             }
         }
         if (!hasDefault && firstAcceptButton)
@@ -1114,5 +1111,7 @@ bool QDialogButtonBox::event(QEvent *event)
 
     return QWidget::event(event);
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qdialogbuttonbox.cpp"

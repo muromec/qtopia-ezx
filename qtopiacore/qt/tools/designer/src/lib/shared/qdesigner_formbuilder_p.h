@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,22 +57,26 @@
 #include <QtCore/QMap>
 #include <QtCore/QSet>
 
+QT_BEGIN_NAMESPACE
+
 class QDesignerFormEditorInterface;
 class QDesignerFormWindowInterface;
 
+class QPixmap;
+class QtResourceSet;
+
 namespace qdesigner_internal {
+
+class DesignerPixmapCache;
+class DesignerIconCache;
 
 // Form builder used for previewing forms
 class QDESIGNER_SHARED_EXPORT QDesignerFormBuilder: public QFormBuilder
 {
 public:
     enum Mode {
-        // Use container extension to populate containers. Disable scripts.
         DisableScripts,
-        // Use container extension to populate containers as well as scripts
-        UseScriptAndContainerExtension,
-        // Experimental: Use scripts to populate the container
-        UseScriptForContainerExtension
+        EnableScripts
     };
 
     QDesignerFormBuilder(QDesignerFormEditorInterface *core, Mode mode);
@@ -95,9 +93,17 @@ public:
     // Create a preview widget (for integrations) or return 0. The widget has to be embedded into a main window.
     // Experimental, depending on script support.
     static QWidget *createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName /* ="" */,
+                                  const QString &appStyleSheet  /* ="" */,
                                   ScriptErrors *scriptErrors, QString *errorMessage);
     // Convenience that pops up message boxes in case of failures.
     static QWidget *createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName = QString());
+    //  Create a preview widget (for integrations) or return 0. The widget has to be embedded into a main window.
+    static QWidget *createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName, const QString &appStyleSheet, QString *errorMessage);
+    // Convenience that pops up message boxes in case of failures.
+    static QWidget *createPreview(const QDesignerFormWindowInterface *fw, const QString &styleName, const QString &appStyleSheet);
+
+    // Create a preview image
+    static QPixmap createPreviewPixmap(const QDesignerFormWindowInterface *fw, const QString &styleName = QString(), const QString &appStyleSheet = QString());
 
 protected:
     using QFormBuilder::createDom;
@@ -107,6 +113,7 @@ protected:
     virtual DomWidget *createDom(QWidget *widget, DomWidget *ui_parentWidget, bool recursive = true);
     virtual QWidget *create(DomWidget *ui_widget, QWidget *parentWidget);
     virtual QLayout *create(DomLayout *ui_layout, QLayout *layout, QWidget *parentWidget);
+    virtual void createResources(DomResources *resources);
 
     virtual QWidget *createWidget(const QString &widgetName, QWidget *parentWidget, const QString &name);
     virtual bool addItem(DomWidget *ui_widget, QWidget *widget, QWidget *parentWidget);
@@ -119,15 +126,23 @@ protected:
 
     virtual void loadExtraInfo(DomWidget *ui_widget, QWidget *widget, QWidget *parentWidget);
 
+    QtResourceSet *internalResourceSet() const { return m_tempResourceSet; }
+
 private:
-    bool addItemContainerExtension(QWidget *widget, QWidget *parentWidget);
     QDesignerFormEditorInterface *m_core;
     const Mode m_mode;
-    
+
     typedef QSet<QWidget *> WidgetSet;
     WidgetSet m_customWidgetsWithScript;
+
+    DesignerPixmapCache *m_pixmapCache;
+    DesignerIconCache *m_iconCache;
+    bool m_ignoreCreateResources;
+    QtResourceSet *m_tempResourceSet;
 };
 
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE
 
 #endif // QDESIGNER_FORMBUILDER_H

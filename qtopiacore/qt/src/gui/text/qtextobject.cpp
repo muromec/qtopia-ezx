@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,12 +43,17 @@
 #include "qtextcursor.h"
 #include "qtextlist.h"
 #include "qabstracttextdocumentlayout.h"
+#include "qtextengine_p.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 // ### DOC: We ought to explain the CONCEPT of objectIndexes if
 // relevant to the public API
 /*!
     \class QTextObject
+    \reentrant
+
     \brief The QTextObject class is a base class for different kinds
     of objects that can group parts of a QTextDocument together.
 
@@ -162,7 +161,7 @@ int QTextObject::objectIndex() const
 */
 QTextDocument *QTextObject::document() const
 {
-    return qobject_cast<QTextDocument *>(parent());
+    return static_cast<QTextDocument *>(parent());
 }
 
 /*!
@@ -170,11 +169,13 @@ QTextDocument *QTextObject::document() const
 */
 QTextDocumentPrivate *QTextObject::docHandle() const
 {
-    return qobject_cast<const QTextDocument *>(parent())->docHandle();
+    return static_cast<const QTextDocument *>(parent())->docHandle();
 }
 
 /*!
     \class QTextBlockGroup
+    \reentrant
+
     \brief The QTextBlockGroup class provides a container for text blocks within
     a QTextDocument.
 
@@ -296,6 +297,8 @@ QTextFrameLayoutData::~QTextFrameLayoutData()
 
 /*!
     \class QTextFrame
+    \reentrant
+
     \brief The QTextFrame class represents a frame in a QTextDocument.
 
     \ingroup text
@@ -597,6 +600,8 @@ void QTextFramePrivate::remove_me()
 
 /*!
     \class QTextFrame::iterator
+    \reentrant
+
     \brief The iterator class provides an iterator for reading
     the contents of a QTextFrame.
 
@@ -733,17 +738,19 @@ QTextFrame::iterator &QTextFrame::iterator::operator++()
         if (cb == e)
             return *this;
 
-        int pos = map.position(cb);
-        // check if we entered a frame
-        QTextDocumentPrivate::FragmentIterator frag = priv->find(pos-1);
-        if (priv->buffer().at(frag->stringPosition) != QChar::ParagraphSeparator) {
-            QTextFrame *nf = qobject_cast<QTextFrame *>(priv->objectForFormat(frag->format));
-            if (nf) {
-                if (priv->buffer().at(frag->stringPosition) == QTextBeginningOfFrame && nf != f) {
-                    cf = nf;
-                    cb = 0;
-                } else {
-                    Q_ASSERT(priv->buffer().at(frag->stringPosition) != QTextEndOfFrame);
+        if (!f->d_func()->childFrames.isEmpty()) {
+            int pos = map.position(cb);
+            // check if we entered a frame
+            QTextDocumentPrivate::FragmentIterator frag = priv->find(pos-1);
+            if (priv->buffer().at(frag->stringPosition) != QChar::ParagraphSeparator) {
+                QTextFrame *nf = qobject_cast<QTextFrame *>(priv->objectForFormat(frag->format));
+                if (nf) {
+                    if (priv->buffer().at(frag->stringPosition) == QTextBeginningOfFrame && nf != f) {
+                        cf = nf;
+                        cb = 0;
+                    } else {
+                        Q_ASSERT(priv->buffer().at(frag->stringPosition) != QTextEndOfFrame);
+                    }
                 }
             }
         }
@@ -793,6 +800,8 @@ QTextFrame::iterator &QTextFrame::iterator::operator--()
 
 /*!
     \class QTextBlockUserData
+    \reentrant
+
     \brief The QTextBlockUserData class is used to associate custom data with blocks of text.
     \since 4.1
 
@@ -821,6 +830,8 @@ QTextBlockUserData::~QTextBlockUserData()
 
 /*!
     \class QTextBlock qtextblock.h
+    \reentrant
+
     \brief The QTextBlock class provides a container for text fragments in a
     QTextDocument.
 
@@ -914,6 +925,8 @@ QTextBlockUserData::~QTextBlockUserData()
 
 /*!
     \class QTextBlock::iterator
+    \reentrant
+
     \brief The QTextBlock::iterator class provides an iterator for reading
     the contents of a QTextBlock.
 
@@ -926,11 +939,8 @@ QTextBlockUserData::~QTextBlockUserData()
     An iterator can be constructed and used to access the fragments within
     a text block in the following way:
 
-    \quotefromfile snippets/textblock-fragments/xmlwriter.cpp
-    \skipto QTextBlock::iterator
-    \printuntil processFragment
-    \skipuntil }
-    \printline }
+    \snippet doc/src/snippets/textblock-fragments/xmlwriter.cpp 4
+    \snippet doc/src/snippets/textblock-fragments/xmlwriter.cpp 7
 
     \sa QTextFragment
 */
@@ -1008,6 +1018,9 @@ int QTextBlock::position() const
 /*!
     Returns the length of the block in characters.
 
+    \note The length returned includes all formatting characters,
+    for example, newline.
+
     \sa text() charFormat() blockFormat()
  */
 int QTextBlock::length() const
@@ -1039,6 +1052,8 @@ bool QTextBlock::contains(int position) const
     Note that the returned QTextLayout object can only be modified from the
     documentChanged implementation of a QAbstractTextDocumentLayout subclass.
     Any changes applied from the outside cause undefined behavior.
+
+    \sa clearLayout()
  */
 QTextLayout *QTextBlock::layout() const
 {
@@ -1049,6 +1064,23 @@ QTextLayout *QTextBlock::layout() const
     if (!b->layout)
         b->layout = new QTextLayout(*this);
     return b->layout;
+}
+
+/*!
+    \since 4.4
+    Clears the QTextLayout that is used to lay out and display the
+    block's contents.
+
+    \sa layout()
+ */
+void QTextBlock::clearLayout()
+{
+    if (!p || !n)
+        return;
+
+    const QTextBlockData *b = p->blockMap().fragment(n);
+    if (b->layout)
+        b->layout->clearLayout();
 }
 
 /*!
@@ -1202,6 +1234,8 @@ void QTextBlock::setUserData(QTextBlockUserData *data)
         return;
 
     const QTextBlockData *b = p->blockMap().fragment(n);
+    if (data != b->userData)
+        delete b->userData;
     b->userData = data;
 }
 
@@ -1232,6 +1266,86 @@ void QTextBlock::setUserState(int state)
 
     const QTextBlockData *b = p->blockMap().fragment(n);
     b->userState = state;
+}
+
+/*!
+    \since 4.4
+
+    Returns the blocks revision.
+
+    \sa setRevision(), QTextDocument::revision()
+*/
+int QTextBlock::revision() const
+{
+    if (!p || !n)
+        return -1;
+
+    const QTextBlockData *b = p->blockMap().fragment(n);
+    return b->revision;
+}
+
+/*!
+    \since 4.4
+
+    Sets a blocks revision to \a rev.
+
+    \sa revision(), QTextDocument::revision()
+*/
+void QTextBlock::setRevision(int rev)
+{
+    if (!p || !n)
+        return;
+
+    const QTextBlockData *b = p->blockMap().fragment(n);
+    b->revision = rev;
+}
+
+/*!
+    \since 4.4
+
+    Returns true if the block is visible; otherwise returns false.
+
+    \sa setVisible()
+*/
+bool QTextBlock::isVisible() const
+{
+    if (!p || !n)
+        return true;
+
+    const QTextBlockData *b = p->blockMap().fragment(n);
+    return !b->hidden;
+}
+
+/*!
+    \since 4.4
+
+    Sets the block's visibility to \a visible.
+
+    \sa isVisible()
+*/
+void QTextBlock::setVisible(bool visible)
+{
+    if (!p || !n)
+        return;
+
+    const QTextBlockData *b = p->blockMap().fragment(n);
+    b->hidden = !visible;
+}
+
+
+/*!
+\since 4.4
+
+    Returns the number of this block, or -1 if the block is invalid.
+
+    \sa QTextCursor::blockNumber()
+
+*/
+int QTextBlock::blockNumber() const
+{
+    if (!p || !n)
+        return -1;
+    return p->blockMap().index(n);
 }
 
 /*!
@@ -1361,6 +1475,8 @@ QTextBlock::iterator &QTextBlock::iterator::operator--()
 
 /*!
     \class QTextFragment
+    \reentrant
+
     \brief The QTextFragment class holds a piece of text in a
     QTextDocument with a single QTextCharFormat.
 
@@ -1536,3 +1652,5 @@ QString QTextFragment::text() const
     }
     return result;
 }
+
+QT_END_NAMESPACE

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,14 +52,16 @@
 
 QT_BEGIN_HEADER
 
+QT_BEGIN_NAMESPACE
+
 QT_MODULE(Core)
 
 struct Q_CORE_EXPORT QVectorData
 {
-    QBasicAtomic ref;
+    QBasicAtomicInt ref;
     int alloc;
     int size;
-#if defined(Q_OS_SOLARIS) && defined(Q_CC_GNU) && defined(__LP64__) && defined(QT_BOOTSTRAPPED)
+#if defined(QT_ARCH_SPARC) && defined(Q_CC_GNU) && defined(__LP64__) && defined(QT_BOOTSTRAPPED)
     // workaround for bug in gcc 3.4.2
     uint sharable;
     uint capacity;
@@ -82,10 +78,10 @@ struct Q_CORE_EXPORT QVectorData
 template <typename T>
 struct QVectorTypedData
 {
-    QBasicAtomic ref;
+    QBasicAtomicInt ref;
     int alloc;
     int size;
-#if defined(Q_OS_SOLARIS) && defined(Q_CC_GNU) && defined(__LP64__) && defined(QT_BOOTSTRAPPED)
+#if defined(QT_ARCH_SPARC) && defined(Q_CC_GNU) && defined(__LP64__) && defined(QT_BOOTSTRAPPED)
     // workaround for bug in gcc 3.4.2
     uint sharable;
     uint capacity;
@@ -295,6 +291,11 @@ private:
     QVectorData *malloc(int alloc);
     void realloc(int size, int alloc);
     void free(Data *d);
+    int sizeOfTypedData() {
+        // this is more or less the same as sizeof(Data), except that it doesn't
+        // count the padding at the end
+        return reinterpret_cast<const char *>(&(reinterpret_cast<const Data *>(this))->array[1]) - reinterpret_cast<const char *>(this);
+    }
 };
 
 template <typename T>
@@ -306,7 +307,7 @@ void QVector<T>::reserve(int asize)
 template <typename T>
 void QVector<T>::resize(int asize)
 { realloc(asize, (asize > d->alloc || (!d->capacity && asize < d->size && asize < (d->alloc >> 1))) ?
-          QVectorData::grow(sizeof(Data), asize, sizeof(T), QTypeInfo<T>::isStatic)
+          QVectorData::grow(sizeOfTypedData(), asize, sizeof(T), QTypeInfo<T>::isStatic)
           : d->alloc); }
 template <typename T>
 inline void QVector<T>::clear()
@@ -354,11 +355,10 @@ inline void QVector<T>::replace(int i, const T &t)
 template <typename T>
 QVector<T> &QVector<T>::operator=(const QVector<T> &v)
 {
-    typename QVector::Data *x = v.d;
-    x->ref.ref();
-    x = qAtomicSetPtr(&d, x);
-    if (!x->ref.deref())
-        free(x);
+    v.d->ref.ref();
+    if (!d->ref.deref())
+        free(d);
+    d = v.d;
     if (!d->sharable)
         detach_helper();
     return *this;
@@ -367,14 +367,14 @@ QVector<T> &QVector<T>::operator=(const QVector<T> &v)
 template <typename T>
 inline QVectorData *QVector<T>::malloc(int aalloc)
 {
-    return static_cast<QVectorData *>(qMalloc(sizeof(Data) + (aalloc - 1) * sizeof(T)));
+    return static_cast<QVectorData *>(qMalloc(sizeOfTypedData() + (aalloc - 1) * sizeof(T)));
 }
 
 template <typename T>
 QVector<T>::QVector(int asize)
 {
     p = malloc(asize);
-    d->ref.init(1);
+    d->ref = 1;
     d->alloc = d->size = asize;
     d->sharable = true;
     d->capacity = false;
@@ -392,7 +392,7 @@ template <typename T>
 QVector<T>::QVector(int asize, const T &t)
 {
     p = malloc(asize);
-    d->ref.init(1);
+    d->ref = 1;
     d->alloc = d->size = asize;
     d->sharable = true;
     d->capacity = false;
@@ -436,12 +436,11 @@ void QVector<T>::realloc(int asize, int aalloc)
     }
 
     if (aalloc != d->alloc || d->ref != 1) {
-
         // (re)allocate memory
         if (QTypeInfo<T>::isStatic) {
             x.p = malloc(aalloc);
         } else if (d->ref != 1) {
-            x.p = QVectorData::malloc(sizeof(Data), aalloc, sizeof(T), p);
+            x.p = QVectorData::malloc(sizeOfTypedData(), aalloc, sizeof(T), p);
         } else {
             if (QTypeInfo<T>::isComplex) {
                 // call the destructor on all objects that need to be
@@ -454,9 +453,9 @@ void QVector<T>::realloc(int asize, int aalloc)
                     i = d->array + asize;
                 }
             }
-            x.p = p = static_cast<QVectorData *>(qRealloc(p, sizeof(Data) + (aalloc - 1) * sizeof(T)));
+            x.p = p = static_cast<QVectorData *>(qRealloc(p, sizeOfTypedData() + (aalloc - 1) * sizeof(T)));
         }
-        x.d->ref.init(1);
+        x.d->ref = 1;
         x.d->sharable = true;
         x.d->capacity = d->capacity;
 
@@ -486,9 +485,9 @@ void QVector<T>::realloc(int asize, int aalloc)
     x.d->size = asize;
     x.d->alloc = aalloc;
     if (d != x.d) {
-        x.d = qAtomicSetPtr(&d, x.d);
-        if (!x.d->ref.deref())
-            free(x.d);
+        if (!d->ref.deref())
+            free(d);
+        d = x.d;
     }
 }
 
@@ -511,7 +510,7 @@ void QVector<T>::append(const T &t)
 {
     if (d->ref != 1 || d->size + 1 > d->alloc) {
         const T copy(t);
-        realloc(d->size, QVectorData::grow(sizeof(Data), d->size + 1, sizeof(T),
+        realloc(d->size, QVectorData::grow(sizeOfTypedData(), d->size + 1, sizeof(T),
                                            QTypeInfo<T>::isStatic));
         if (QTypeInfo<T>::isComplex)
             new (d->array + d->size) T(copy);
@@ -533,7 +532,7 @@ Q_TYPENAME QVector<T>::iterator QVector<T>::insert(iterator before, size_type n,
     if (n != 0) {
         const T copy(t);
         if (d->ref != 1 || d->size + n > d->alloc)
-            realloc(d->size, QVectorData::grow(sizeof(Data), d->size + n, sizeof(T),
+            realloc(d->size, QVectorData::grow(sizeOfTypedData(), d->size + n, sizeof(T),
                                                QTypeInfo<T>::isStatic));
         if (QTypeInfo<T>::isStatic) {
             T *b = d->array + d->size;
@@ -741,9 +740,13 @@ Q_DECLARE_MUTABLE_SEQUENTIAL_ITERATOR(Vector)
    ### Qt exports QPolygon and QPolygonF that inherit QVector<QPoint> and
    ### QVector<QPointF> respectively.
 */
+
 #ifdef Q_CC_MSVC
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <QtCore/QPointF>
 #include <QtCore/QPoint>
+QT_END_INCLUDE_NAMESPACE
+
 #if defined(QT_BUILD_CORE_LIB)
 #define Q_TEMPLATE_EXTERN
 #else
@@ -755,6 +758,8 @@ Q_TEMPLATE_EXTERN template class Q_CORE_EXPORT QVector<QPointF>;
 Q_TEMPLATE_EXTERN template class Q_CORE_EXPORT QVector<QPoint>;
 # pragma warning(pop)
 #endif
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

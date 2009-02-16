@@ -16,8 +16,9 @@ HEADERS += \
         image/qpicture_p.h \
         image/qpictureformatplugin.h \
         image/qpixmap.h \
-        image/qpixmap_p.h \
         image/qpixmapcache.h \
+        image/qpixmapdata_p.h \
+        image/qpixmapdatafactory_p.h \
         image/qiconengine.h \
         image/qiconengineplugin.h \
         image/qmovie.h
@@ -32,20 +33,34 @@ SOURCES += \
         image/qpaintengine_pic.cpp \
         image/qpicture.cpp \
         image/qpictureformatplugin.cpp \
+        image/qpixmap.cpp \
         image/qpixmapcache.cpp \
+        image/qpixmapdata.cpp \
+        image/qpixmapdatafactory.cpp \
         image/qiconengine.cpp \
         image/qiconengineplugin.cpp \
         image/qmovie.cpp
 
-!embedded:!win32:SOURCES += image/qpixmap.cpp
 win32 {
+    HEADERS += image/qpixmap_raster_p.h
     SOURCES += \
             image/qpixmap_win.cpp \
             image/qpixmap_raster.cpp
 }
-unix:x11:SOURCES += image/qpixmap_x11.cpp
-!embedded:!x11:mac:SOURCES += image/qpixmap_mac.cpp
-embedded:SOURCES += image/qpixmap_qws.cpp image/qpixmap_raster.cpp
+embedded {
+    HEADERS += image/qpixmap_raster_p.h
+    SOURCES += \
+	image/qpixmap_raster.cpp \
+	image/qpixmap_qws.cpp
+}
+x11 {
+    HEADERS += image/qpixmap_x11_p.h
+    SOURCES += image/qpixmap_x11.cpp 
+}
+mac {
+    HEADERS += image/qpixmap_mac_p.h
+    SOURCES += image/qpixmap_mac.cpp
+}
 
 # Built-in image format support
 HEADERS += \
@@ -69,6 +84,7 @@ SOURCES += \
         unix:LIBS  += -lpng
         win32:LIBS += libpng.lib
     } else {
+        !isEqual(QT_ARCH, i386):!isEqual(QT_ARCH, x86_64):DEFINES += PNG_NO_ASSEMBLER_CODE
         INCLUDEPATH  += ../3rdparty/libpng ../3rdparty/zlib
         SOURCES += ../3rdparty/libpng/png.c \
           ../3rdparty/libpng/pngerror.c \

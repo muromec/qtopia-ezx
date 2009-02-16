@@ -7,7 +7,7 @@ DEFINES  = QT_NODLL QT_NO_CODECS QT_NO_TEXTCODEC QT_NO_UNICODETABLES QT_LITE_COM
 
 
 win32 : LIBS += -lole32 -ladvapi32
-win32-msvc.net : QMAKE_CXXFLAGS += /EHsc
+win32-msvc.net | win32-msvc2* : QMAKE_CXXFLAGS += /EHsc
 win32-g++ : LIBS += -luuid
 
 win32-msvc* {
@@ -15,18 +15,14 @@ win32-msvc* {
     QMAKE_CFLAGS_DEBUG -= -MDd
     QMAKE_CXXFLAGS_RELEASE -= -MD
     QMAKE_CXXFLAGS_DEBUG -= -MDd
-
-    QMAKE_CFLAGS_RELEASE += -ML
-    QMAKE_CFLAGS_DEBUG += -MLd
-    QMAKE_CXXFLAGS_RELEASE += -ML
-    QMAKE_CXXFLAGS_DEBUG += -MLd
 }
 
 PRECOMPILED_HEADER = configure_pch.h
 
 INCPATH += $$QT_SOURCE_TREE/src/corelib/arch/generic \
-           $$QT_SOURCE_TREE/include \
-           $$QT_SOURCE_TREE/include/QtCore \
+           $$QT_SOURCE_TREE/src/corelib/global \
+           $$QT_BUILD_TREE/include \
+           $$QT_BUILD_TREE/include/QtCore \
 
 HEADERS  = configureapp.h environment.h \
            $$QT_SOURCE_TREE/src/corelib/tools/qbytearray.h \
@@ -99,7 +95,8 @@ SOURCES  = main.cpp configureapp.cpp environment.cpp \
            $$QT_SOURCE_TREE/src/corelib/tools/qsize.cpp \
            $$QT_SOURCE_TREE/src/corelib/tools/qpoint.cpp \
            $$QT_SOURCE_TREE/src/corelib/tools/qrect.cpp \
-           $$QT_SOURCE_TREE/src/corelib/kernel/qmetatype.cpp
+           $$QT_SOURCE_TREE/src/corelib/kernel/qmetatype.cpp \
+           $$QT_SOURCE_TREE/src/corelib/global/qmalloc.cpp
 
 win32:SOURCES += $$QT_SOURCE_TREE/src/corelib/io/qfsfileengine_win.cpp
 

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -69,6 +63,8 @@
 
 #include <stdlib.h>
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 using namespace Qt;
 
@@ -445,14 +441,7 @@ int Q3TableSelection::numCols() const
     the original item will be deleted.
 
     Example:
-    \code
-    for (int row = 0; row < table->numRows(); row++) {
-        for (int col = 0; col < table->numCols(); col++) {
-            table->setItem(row, col,
-                new Q3TableItem(table, Q3TableItem::WhenCurrent, QString::number(row * col)));
-        }
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 0
 
     You can move a table item from one cell to another, in the same or
     a different table, using Q3Table::takeItem() and Q3Table::setItem()
@@ -478,15 +467,7 @@ int Q3TableSelection::numCols() const
     QHBox with two child QLineEdit widgets may use one of them to
     accept the keyboard focus:
 
-    \code
-    QWidget* MyTableItem::createEditor() const
-    {
-        QHBox* hbox = new QHBox(table()->viewport());
-        hbox->setFocusProxy(new QLineEdit(hbox));
-        new QLineEdit(hbox);
-        return hbox;
-    }
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 1
 
     By default, table items may be replaced by new Q3TableItems
     during the lifetime of a Q3Table. Therefore, if you create your
@@ -742,11 +723,7 @@ void Q3TableItem::setText(const QString &str)
     Note that the painter is not clipped by default in order to get
     maximum efficiency. If you want clipping, use
 
-    \code
-    p->setClipRect(table()->cellRect(row, col), QPainter::ClipPainter);
-    //... your drawing code
-    p->setClipping(false);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 2
 
 */
 
@@ -812,7 +789,7 @@ a QLineEdit you will need to reimplement this function.
 
 void Q3TableItem::setContentFromEditor(QWidget *w)
 {
-    QLineEdit *le = ::qobject_cast<QLineEdit*>(w);
+    QLineEdit *le = qobject_cast<QLineEdit*>(w);
     if (le) {
         QString input = le->text();
         if (le->validator())
@@ -1269,7 +1246,7 @@ QWidget *Q3ComboTableItem::createEditor() const
 
 void Q3ComboTableItem::setContentFromEditor(QWidget *w)
 {
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb) {
         entries.clear();
         for (int i = 0; i < cb->count(); ++i)
@@ -1326,7 +1303,7 @@ void Q3ComboTableItem::paint(QPainter *p, const QColorGroup &cg,
 void Q3ComboTableItem::setCurrentItem(int i)
 {
     QWidget *w = table()->cellWidget(row(), col());
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb) {
         cb->setCurrentItem(i);
         current = cb->currentItem();
@@ -1365,7 +1342,7 @@ void Q3ComboTableItem::setCurrentItem(const QString &s)
 int Q3ComboTableItem::currentItem() const
 {
     QWidget *w = table()->cellWidget(row(), col());
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb)
         return cb->currentItem();
     return current;
@@ -1380,7 +1357,7 @@ int Q3ComboTableItem::currentItem() const
 QString Q3ComboTableItem::currentText() const
 {
     QWidget *w = table()->cellWidget(row(), col());
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb)
         return cb->currentText();
     return entries.value(current);
@@ -1393,7 +1370,7 @@ QString Q3ComboTableItem::currentText() const
 int Q3ComboTableItem::count() const
 {
     QWidget *w = table()->cellWidget(row(), col());
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb)
         return cb->count();
     return (int)entries.count();
@@ -1408,7 +1385,7 @@ int Q3ComboTableItem::count() const
 QString Q3ComboTableItem::text(int i) const
 {
     QWidget *w = table()->cellWidget(row(), col());
-    Q3ComboBox *cb = ::qobject_cast<Q3ComboBox*>(w);
+    Q3ComboBox *cb = qobject_cast<Q3ComboBox*>(w);
     if (cb)
         return cb->text(i);
     return entries.value(i);
@@ -1530,7 +1507,7 @@ void Q3CheckTableItem::setText(const QString &t)
 {
     Q3TableItem::setText(t);
     QWidget *w = table()->cellWidget(row(), col());
-    QCheckBox *cb = ::qobject_cast<QCheckBox*>(w);
+    QCheckBox *cb = qobject_cast<QCheckBox*>(w);
     if (cb)
         cb->setText(t);
 }
@@ -1554,7 +1531,7 @@ QWidget *Q3CheckTableItem::createEditor() const
 
 void Q3CheckTableItem::setContentFromEditor(QWidget *w)
 {
-    QCheckBox *cb = ::qobject_cast<QCheckBox*>(w);
+    QCheckBox *cb = qobject_cast<QCheckBox*>(w);
     if (cb)
         checked = cb->isChecked();
 }
@@ -1610,7 +1587,7 @@ void Q3CheckTableItem::setChecked(bool b)
     checked = b;
     table()->updateCell(row(), col());
     QWidget *w = table()->cellWidget(row(), col());
-    QCheckBox *cb = ::qobject_cast<QCheckBox*>(w);
+    QCheckBox *cb = qobject_cast<QCheckBox*>(w);
     if (cb)
         cb->setChecked(b);
 }
@@ -1629,7 +1606,7 @@ bool Q3CheckTableItem::isChecked() const
     // #### and end up in an infinite loop that way
     // table()->updateCell(row(), col());
     QWidget *w = table()->cellWidget(row(), col());
-    QCheckBox *cb = ::qobject_cast<QCheckBox*>(w);
+    QCheckBox *cb = qobject_cast<QCheckBox*>(w);
     if (cb)
         return cb->isChecked();
     return checked;
@@ -1685,11 +1662,7 @@ QSize Q3CheckTableItem::sizeHint() const
     are perfectly possible. Q3Table is economical with memory, using
     none for unused cells.
 
-    \code
-    Q3Table *table = new Q3Table(100, 250, this);
-    table->setPixmap(3, 2, pix);
-    table->setText(3, 2, "A pixmap");
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 3
 
     The first line constructs the table specifying its size in rows
     and columns. We then insert a pixmap and some text into the \e
@@ -2792,9 +2765,9 @@ void Q3Table::drawContents(QPainter *p, int cx, int cy, int cw, int ch)
             Q3TableItem *itm = item(r, c);
             if (itm &&
                  (itm->colSpan() > 1 || itm->rowSpan() > 1)) {
-                bool goon = r == itm->row() && c == itm->col() ||
-                        r == rowfirst && c == itm->col() ||
-                        r == itm->row() && c == colfirst;
+                bool goon = (r == itm->row() && c == itm->col())
+                            || (r == rowfirst && c == itm->col())
+                            || (r == itm->row() && c == colfirst);
                 if (!goon)
                     continue;
                 rowp = rowPos(itm->row());
@@ -2919,11 +2892,7 @@ void Q3Table::paintCell(QPainter* p, int row, int col,
     Note that the painter is not clipped by default in order to get
     maximum efficiency. If you want clipping, use code like this:
 
-    \code
-    p->setClipRect(cellRect(row, col), QPainter::CoordPainter);
-    //... your drawing code
-    p->setClipping(false);
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 4
 */
 
 void Q3Table::paintCell(QPainter *p, int row, int col,
@@ -3656,7 +3625,7 @@ void Q3Table::contentsMousePressEventEx(QMouseEvent* e)
     } else if ((e->state() & ControlButton) == ControlButton) {
         setCurrentCell(tmpRow, tmpCol, false, true);
         if (selMode != NoSelection) {
-            if (selMode == Single || selMode == SingleRow && !isSelected(tmpRow, tmpCol, false))
+            if (selMode == Single || (selMode == SingleRow && !isSelected(tmpRow, tmpCol, false)))
                 clearSelection();
             if (!(selMode == SingleRow && isSelected(tmpRow, tmpCol, false))) {
                 currentSel = new Q3TableSelection();
@@ -3677,7 +3646,7 @@ void Q3Table::contentsMousePressEventEx(QMouseEvent* e)
         Q3TableItem *itm = item(tmpRow, tmpCol);
         if (itm && itm->editType() == Q3TableItem::WhenCurrent) {
             QWidget *w = cellWidget(tmpRow, tmpCol);
-            if (::qobject_cast<Q3ComboBox*>(w) || ::qobject_cast<QAbstractButton*>(w)) {
+            if (qobject_cast<Q3ComboBox*>(w) || qobject_cast<QAbstractButton*>(w)) {
                 QMouseEvent ev(e->type(), w->mapFromGlobal(e->globalPos()),
                                 e->globalPos(), e->button(), e->state());
                 QApplication::sendPostedEvents(w, 0);
@@ -4004,7 +3973,7 @@ bool Q3Table::eventFilter(QObject *o, QEvent *e)
             }
 
             if ((edMode == Replacing ||
-                   itm && itm->editType() == Q3TableItem::WhenCurrent) &&
+                   (itm && itm->editType() == Q3TableItem::WhenCurrent)) &&
                  (ke->key() == Key_Up || ke->key() == Key_Prior ||
                    ke->key() == Key_Home || ke->key() == Key_Down ||
                    ke->key() == Key_Next || ke->key() == Key_End ||
@@ -4199,7 +4168,7 @@ void Q3Table::keyPressEvent(QKeyEvent* e)
                 QWidget *w = beginEdit(tmpRow, tmpCol,
                                         itm ? itm->isReplaceable() : true);
                 if (w) {
-                    setEditMode((!itm || itm && itm->isReplaceable()
+                    setEditMode((!itm || (itm && itm->isReplaceable())
                                    ? Replacing : Editing), tmpRow, tmpCol);
                     QApplication::sendEvent(w, e);
                     return;
@@ -4354,7 +4323,7 @@ void Q3Table::paintEvent(QPaintEvent *e)
     erase(topLeftCorner); // erase instead of widget on top
     Q3ScrollView::paintEvent(e);
 
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
     QPainter p(this);
     p.drawLine(topLeftCorner.bottomLeft(), topLeftCorner.bottomRight());
     p.drawLine(topLeftCorner.bottomRight(), topLeftCorner.topRight());
@@ -4698,7 +4667,7 @@ QRect Q3Table::cellGeometry(int row, int col) const
 {
     Q3TableItem *itm = item(row, col);
 
-    if (!itm || itm->rowSpan() == 1 && itm->colSpan() == 1)
+    if (!itm || (itm->rowSpan() == 1 && itm->colSpan() == 1))
         return QRect(columnPos(col), rowPos(row),
                       columnWidth(col), rowHeight(row));
 
@@ -5014,14 +4983,7 @@ void Q3Table::setColumnLabels(const QStringList &labels)
     If you are not using \l{Q3TableItem}s and you don't want to use a
     QLineEdit as the default editor, subclass Q3Table and reimplement
     this function with code like this:
-    \code
-    Q3TableItem *i = item(row, col);
-    if (initFromCell || (i && !i->isReplaceable()))
-        // If we had a Q3TableItem ask the base class to create the editor
-        return Q3Table::createEditor(row, col, initFromCell);
-    else
-        return ...(create your own editor)
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_itemviews_q3table.cpp 5
     Ownership of the editor widget is transferred to the caller.
 
     If you reimplement this function return 0 for read-only cells. You
@@ -5186,7 +5148,7 @@ void Q3Table::setCellContentFromEditor(int row, int col)
     if (i) {
         i->setContentFromEditor(editor);
     } else {
-        QLineEdit *le = ::qobject_cast<QLineEdit*>(editor);
+        QLineEdit *le = qobject_cast<QLineEdit*>(editor);
         if (le)
             setText(row, col, le->text());
     }
@@ -5469,10 +5431,10 @@ void Q3Table::activateNextCell()
         firstCol++;
     int nextRow = curRow;
     int nextCol = curCol;
-    while (d->hiddenRows.find(++nextRow));
+    while (d->hiddenRows.find(++nextRow)) {}
     if (nextRow >= numRows()) {
         nextRow = firstRow;
-        while (d->hiddenCols.find(++nextCol));
+        while (d->hiddenCols.find(++nextCol)) {}
         if (nextCol >= numCols())
             nextCol = firstCol;
     }
@@ -5528,7 +5490,7 @@ struct SortableTableItem
 extern "C" {
 #endif
 
-#ifdef Q_OS_TEMP
+#ifdef Q_OS_WINCE
 static int _cdecl cmpTableItems(const void *n1, const void *n2)
 #else
 static int cmpTableItems(const void *n1, const void *n2)
@@ -6054,6 +6016,7 @@ void Q3Table::clearCellWidget(int row, int col)
     QWidget *w = cellWidget(row, col);
     if (w) {
         w->removeEventFilter(this);
+        w->hide();
         w->deleteLater();
     }
     widgets.setAutoDelete(false);
@@ -6692,8 +6655,8 @@ void Q3TableHeader::paintEvent(QPaintEvent *e)
         }
         paintSection(&p, i, r);
         p.restore();
-        if (orientation() == Horizontal && r. right() >= e->rect().right() ||
-             orientation() == Vertical && r. bottom() >= e->rect().bottom())
+        if ((orientation() == Horizontal && r. right() >= e->rect().right())
+            || (orientation() == Vertical && r. bottom() >= e->rect().bottom()))
             return;
     }
     p.end();
@@ -6715,7 +6678,7 @@ void Q3TableHeader::paintSection(QPainter *p, int index, const QRect& fr)
         return;
 
    if (sectionState(index) != Selected ||
-         orientation() == Horizontal && isRowSelection(table->selectionMode())) {
+         (orientation() == Horizontal && isRowSelection(table->selectionMode()))) {
         Q3Header::paintSection(p, index, fr);
    } else {
        QStyleOptionHeader opt;
@@ -6807,10 +6770,9 @@ bool Q3TableHeader::doSelection(QMouseEvent *e)
 
     if (startPos == -1) {
          int secAt = sectionAt(p);
-        if ((e->state() & ControlButton) != ControlButton &&
-             (e->state() & ShiftButton) != ShiftButton ||
-             table->selectionMode() == Q3Table::Single ||
-             table->selectionMode() == Q3Table::SingleRow) {
+        if (((e->state() & ControlButton) != ControlButton && (e->state() & ShiftButton) != ShiftButton)
+            || table->selectionMode() == Q3Table::Single
+            || table->selectionMode() == Q3Table::SingleRow) {
             startPos = p;
             bool b = table->signalsBlocked();
             table->blockSignals(true);
@@ -6843,8 +6805,8 @@ bool Q3TableHeader::doSelection(QMouseEvent *e)
                 table->setCurrentCell(0, secAt);
             }
 
-            if (orientation() == Horizontal && table->isColumnSelected(secAt) ||
-                 orientation() == Vertical && table->isRowSelected(secAt)) {
+            if ((orientation() == Horizontal && table->isColumnSelected(secAt))
+                || (orientation() == Vertical && table->isRowSelected(secAt))) {
                 setSectionState(secAt, Selected);
             }
 
@@ -7361,5 +7323,7 @@ void Q3TableHeader::setLabels(const QStringList & labels)
         }
     }
 }
+
+QT_END_NAMESPACE
 
 #include "q3table.moc"

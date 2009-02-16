@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/corelib/io/qprocess.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/corelib/io/qprocess.cpp -->
 <head>
-  <title>Qt 4.3: QProcess Class Reference</title>
+  <title>Qt 4.4: QProcess Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QProcess Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QProcess Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
 </h1>
 <p>The QProcess class is used to start external programs and to communicate with them. <a href="#details">More...</a></p>
 <pre> #include &lt;QProcess&gt;</pre><p>Inherits <a href="qiodevice.html">QIODevice</a>.</p>
@@ -86,7 +86,7 @@
 <li><div class="fn"/>void <b><a href="qprocess.html#stateChanged">stateChanged</a></b> ( QProcess::ProcessState <i>newState</i> )</li>
 </ul>
 <ul>
-<li><div class="fn"/>3 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
+<li><div class="fn"/>4 signals inherited from <a href="qiodevice.html#signals">QIODevice</a></li>
 <li><div class="fn"/>1 signal inherited from <a href="qobject.html#signals">QObject</a></li>
 </ul>
 <a name="static-public-members"></a>
@@ -136,6 +136,7 @@
      myProcess-&gt;start(program, arguments);</pre>
 <p>QProcess then enters the <a href="qprocess.html#ProcessState-enum">Starting</a> state, and when the program has started, QProcess enters the <a href="qprocess.html#ProcessState-enum">Running</a> state and emits <a href="qprocess.html#started">started</a>().</p>
 <p>QProcess allows you to treat a process as a sequential I/O device. You can write to and read from the process just as you would access a network connection using <a href="qtcpsocket.html">QTcpSocket</a>. You can then write to the process's standard input by calling <a href="qiodevice.html#write">write</a>(), and read the standard output by calling <a href="qiodevice.html#read">read</a>(), <a href="qiodevice.html#readLine">readLine</a>(), and <a href="qiodevice.html#getChar">getChar</a>(). Because it inherits <a href="qiodevice.html">QIODevice</a>, QProcess can also be used as an input source for <a href="qxmlreader.html">QXmlReader</a>, or for generating data to be uploaded using <a href="qftp.html">QFtp</a>.</p>
+<p><b>Note:</b> On Windows CE, reading and writing to a process is not supported.</p>
 <p>When the process exits, QProcess reenters the <a href="qprocess.html#ProcessState-enum">NotRunning</a> state (the initial state), and emits <a href="qprocess.html#finished">finished</a>().</p>
 <p>The <a href="qprocess.html#finished">finished</a>() signal provides the exit code and exit status of the process as arguments, and you can also call <a href="qprocess.html#exitCode">exitCode</a>() to obtain the exit code of the last process that finished, and <a href="qprocess.html#exitStatus">exitStatus</a>() to obtain its exit status. If an error occurs at any point in time, QProcess will emit the <a href="qprocess.html#error">error</a>() signal. You can also call <a href="qprocess.html#error">error</a>() to find the type of error that occurred last, and <a href="qprocess.html#state">state</a>() to find the current process state.</p>
 <p>Processes have two predefined output channels: The standard output channel (<tt>stdout</tt>) supplies regular console output, and the standard error channel (<tt>stderr</tt>) usually supplies the errors that are printed by the process. These channels represent two separate streams of data. You can toggle between them by calling <a href="qprocess.html#setReadChannel">setReadChannel</a>(). QProcess emits <a href="qiodevice.html#readyRead">readyRead</a>() when data is available on the current read channel. It also emits <a href="qprocess.html#readyReadStandardOutput">readyReadStandardOutput</a>() when new standard output data is available, and when new standard error data is available, <a href="qprocess.html#readyReadStandardError">readyReadStandardError</a>() is emitted. Instead of calling <a href="qiodevice.html#read">read</a>(), <a href="qiodevice.html#readLine">readLine</a>(), or <a href="qiodevice.html#getChar">getChar</a>(), you can explicitly read all data from either of the two channels by calling <a href="qprocess.html#readAllStandardOutput">readAllStandardOutput</a>() or <a href="qprocess.html#readAllStandardError">readAllStandardError</a>().</p>
@@ -220,7 +221,7 @@
 <p>Destructs the <a href="qprocess.html">QProcess</a> object, i.e&#x2e;, killing the process.</p>
 <p>Note that this function will not return until the process is terminated.</p>
 <h3 class="fn"><a name="close"></a>void QProcess::close ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
-<p>Closes all communication with the process. After calling this function, <a href="qprocess.html">QProcess</a> will no longer emit <a href="qiodevice.html#readyRead">readyRead</a>(), and data can no longer be read or written.</p>
+<p>Closes all communication with the process and kills it. After calling this function, <a href="qprocess.html">QProcess</a> will no longer emit <a href="qiodevice.html#readyRead">readyRead</a>(), and data can no longer be read or written.</p>
 <p>Reimplemented from <a href="qiodevice.html#close">QIODevice</a>.</p>
 <h3 class="fn"><a name="closeReadChannel"></a>void QProcess::closeReadChannel ( <a href="qprocess.html#ProcessChannel-enum">ProcessChannel</a> <i>channel</i> )</h3>
 <p>Closes the read channel <i>channel</i>. After calling this function, <a href="qprocess.html">QProcess</a> will no longer receive data on the channel. Any data that has already been received is still available for reading.</p>
@@ -238,6 +239,7 @@
 <p>See also <a href="qprocess.html#closeReadChannel">closeReadChannel</a>().</p>
 <h3 class="fn"><a name="environment"></a><a href="qstringlist.html">QStringList</a> QProcess::environment () const</h3>
 <p>Returns the environment that <a href="qprocess.html">QProcess</a> will use when starting a process, or an empty <a href="qstringlist.html">QStringList</a> if no environment has been set using <a href="qprocess.html#setEnvironment">setEnvironment</a>(). If no environment has been set, the environment of the calling process will be used.</p>
+<p><b>Note:</b> The environment settings are ignored on Windows CE, as there is no concept of an environment.</p>
 <p>See also <a href="qprocess.html#setEnvironment">setEnvironment</a>() and <a href="qprocess.html#systemEnvironment">systemEnvironment</a>().</p>
 <h3 class="fn"><a name="error"></a><a href="qprocess.html#ProcessError-enum">QProcess::ProcessError</a> QProcess::error () const</h3>
 <p>Returns the type of error that occurred last.</p>
@@ -418,7 +420,7 @@
 <p>Returns the environment of the calling process as a list of key=value pairs. Example:</p>
 <pre> QStringList environment = QProcess::systemEnvironment();
 <span class="comment"> // environment = {&quot;PATH=/usr/bin:/usr/local/bin&quot;,</span>
-                   &quot;USER=greg&quot;, &quot;HOME=/home/greg&quot;}</pre>
+<span class="comment"> //                &quot;USER=greg&quot;, &quot;HOME=/home/greg&quot;}</span></pre>
 <p>This function was introduced in Qt 4.1.</p>
 <p>See also <a href="qprocess.html#environment">environment</a>() and <a href="qprocess.html#setEnvironment">setEnvironment</a>().</p>
 <h3 class="fn"><a name="terminate"></a>void QProcess::terminate ()&nbsp;&nbsp;<tt> [slot]</tt></h3>
@@ -442,7 +444,7 @@
 <p>If msecs is -1, this function will not time out.</p>
 <p>See also <a href="qprocess.html#started">started</a>(), <a href="qiodevice.html#waitForReadyRead">waitForReadyRead</a>(), <a href="qiodevice.html#waitForBytesWritten">waitForBytesWritten</a>(), and <a href="qprocess.html#waitForFinished">waitForFinished</a>().</p>
 <h3 class="fn"><a name="workingDirectory"></a><a href="qstring.html">QString</a> QProcess::workingDirectory () const</h3>
-<p>Returns the working directory that the <a href="qprocess.html">QProcess</a> will enter before the program has started.</p>
+<p>If <a href="qprocess.html">QProcess</a> has been assigned a working directory, this function returns the working directory that the <a href="qprocess.html">QProcess</a> will enter before the program has started. Otherwise, (i.e&#x2e;, no directory has been assigned,) an empty string is returned, and <a href="qprocess.html">QProcess</a> will use the application's current working directory instead.</p>
 <p>See also <a href="qprocess.html#setWorkingDirectory">setWorkingDirectory</a>().</p>
 <hr />
 <h2>Related Non-Members</h2>
@@ -451,8 +453,8 @@
 <p>See also <a href="qprocess.html#pid">QProcess::pid</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

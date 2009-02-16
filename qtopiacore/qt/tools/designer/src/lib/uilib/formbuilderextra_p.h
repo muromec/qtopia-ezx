@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -65,6 +59,8 @@
 #include <QtCore/QPointer>
 #include <QtCore/QString>
 
+QT_BEGIN_NAMESPACE
+
 class QObject;
 class QVariant;
 class QWidget;
@@ -77,10 +73,12 @@ namespace QFormInternal
 #endif
 
 class QAbstractFormBuilder;
+class QResourceBuilder;
 
 class QDESIGNER_UILIB_EXPORT QFormBuilderExtra
 {
     QFormBuilderExtra();
+    ~QFormBuilderExtra();
 public:
     void clear();
 
@@ -103,11 +101,20 @@ public:
     void setProcessingLayoutWidget(bool processing);
     bool processingLayoutWidget() const;
 
+    void setResourceBuilder(QResourceBuilder *builder);
+    QResourceBuilder *resourceBuilder() const;
+
     static QFormBuilderExtra *instance(const QAbstractFormBuilder *afb);
     static void removeInstance(const QAbstractFormBuilder *afb);
 
+    void storeCustomWidgetAddPageMethod(const QString &className, const QString &ct);
+    QString customWidgetAddPageMethod(const QString &className) const;
+
+    void storeCustomWidgetBaseClass(const QString &className, const QString &baseClassName);
+    QString customWidgetBaseClass(const QString &className) const;
+
 private:
-    const QString m_buddyPropertyName;
+    void clearResourceBuilder();
 
     typedef QHash<QLabel*, QString> BuddyHash;
     BuddyHash m_buddies;
@@ -119,15 +126,67 @@ private:
     CustomWidgetScriptHash m_customWidgetScriptHash;
 #endif
 
+    QHash<QString, QString> m_customWidgetAddPageMethodHash;
+    QHash<QString, QString> m_customWidgetBaseClassHash;
+
     bool m_layoutWidget;
+    QResourceBuilder *m_resourceBuilder;
 
     QPointer<QWidget> m_rootWidget;
 };
 
 void uiLibWarning(const QString &message);
 
+// Struct with static accessor that provides most strings used in the form builder.
+struct QDESIGNER_UILIB_EXPORT QFormBuilderStrings {
+    QFormBuilderStrings();
+
+    static const QFormBuilderStrings &instance();
+
+    const QString buddyProperty;
+    const QString cursorProperty;
+    const QString objectNameProperty;
+    const QString trueValue;
+    const QString falseValue;
+    const QString horizontalPostFix;
+    const QString separator;
+    const QString defaultTitle;
+    const QString titleAttribute;
+    const QString labelAttribute;
+    const QString toolTipAttribute;
+    const QString iconAttribute;
+    const QString pixmapAttribute;
+    const QString textAttribute;
+    const QString currentIndexProperty;
+    const QString toolBarAreaAttribute;
+    const QString toolBarBreakAttribute;
+    const QString dockWidgetAreaAttribute;
+    const QString marginProperty;
+    const QString spacingProperty;
+    const QString leftMarginProperty;
+    const QString topMarginProperty;
+    const QString rightMarginProperty;
+    const QString bottomMarginProperty;
+    const QString horizontalSpacingProperty;
+    const QString verticalSpacingProperty;
+    const QString sizeHintProperty;
+    const QString sizeTypeProperty;
+    const QString orientationProperty;
+    const QString styleSheetProperty;
+    const QString qtHorizontal;
+    const QString qtVertical;
+    const QString currentRowProperty;
+    const QString tabSpacingProperty;
+    const QString qWidgetClass;
+    const QString lineClass;
+    const QString geometryProperty;
+    const QString scriptWidgetVariable;
+    const QString scriptChildWidgetsVariable;
+};
 #ifdef QFORMINTERNAL_NAMESPACE
 }
 #endif
+
+QT_END_NAMESPACE
 
 #endif // ABSTRACTFORMBUILDERPRIVATE_H

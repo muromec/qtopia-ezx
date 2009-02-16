@@ -1,4 +1,4 @@
-# Qtopia Core
+# Qt for Embedded Linux
 
 embedded {
 	CONFIG -= opengl x11
@@ -15,6 +15,7 @@ embedded {
 		    embedded/qlock_p.h \
 		    embedded/qscreen_qws.h \
 		    embedded/qscreenmulti_qws_p.h \
+		    embedded/qscreenproxy_qws.h \
 		    embedded/qwindowsystem_qws.h \
 		    embedded/qwindowsystem_p.h \
 		    embedded/qwscommand_qws_p.h \
@@ -28,9 +29,11 @@ embedded {
 		    embedded/qwsprotocolitem_qws.h \
                     embedded/qtransportauth_qws.h \
                     embedded/qtransportauth_qws_p.h \
+                    embedded/qtransportauthdefs_qws.h \
 		    embedded/qwssocket_qws.h \
 		    embedded/qwslock_p.h \
 		    embedded/qwsutils_qws.h \
+                    embedded/qwssharedmemory_p.h \
 		    embedded/qwssignalhandler_p.h \
 		    embedded/qwsembedwidget.h
 
@@ -44,6 +47,7 @@ embedded {
 		    embedded/qlock.cpp \
 		    embedded/qscreen_qws.cpp \
 		    embedded/qscreenmulti_qws.cpp \
+		    embedded/qscreenproxy_qws.cpp \
 		    embedded/qwindowsystem_qws.cpp \
 		    embedded/qwscommand_qws.cpp \
 		    embedded/qwscursor_qws.cpp \
@@ -52,6 +56,7 @@ embedded {
 		    embedded/qwsproperty_qws.cpp \
                     embedded/qtransportauth_qws.cpp \
 		    embedded/qwslock.cpp \
+                    embedded/qwssharedmemory.cpp \
 		    embedded/qwssocket_qws.cpp \
 		    embedded/qwssignalhandler.cpp \
 		    embedded/qwsembedwidget.cpp
@@ -79,7 +84,7 @@ embedded {
     }
 
 #
-# Qtopia Core Drivers
+# Qt for Embedded Linux Drivers
 #
 	HEADERS += embedded/qscreendriverplugin_qws.h \
 		    embedded/qscreendriverfactory_qws.h \
@@ -102,7 +107,7 @@ embedded {
 #
 # Graphics drivers
 #
-        linux-* {
+        contains( gfx-drivers, linuxfb ) {
 	        HEADERS += embedded/qscreenlinuxfb_qws.h
 		SOURCES += embedded/qscreenlinuxfb_qws.cpp
 	}

@@ -52,12 +52,13 @@ SOURCES += \
 win32 {
         SOURCES += io/qsettings_win.cpp
         SOURCES += io/qprocess_win.cpp
-        wince-*:SOURCES += io/qfsfileengine_wce.cpp
-        else:SOURCES += io/qfsfileengine_win.cpp
+        SOURCES += io/qfsfileengine_win.cpp
 
         SOURCES += io/qfsfileengine_iterator_win.cpp
         SOURCES += io/qfilesystemwatcher_win.cpp
         HEADERS += io/qfilesystemwatcher_win_p.h
+        HEADERS += io/qwindowspipewriter_p.h
+        SOURCES += io/qwindowspipewriter.cpp
 } else:unix {
         SOURCES += io/qfsfileengine_unix.cpp
         SOURCES += io/qfsfileengine_iterator_unix.cpp
@@ -65,8 +66,13 @@ win32 {
         mac:SOURCES += io/qsettings_mac.cpp
 
         linux-*:{
-            SOURCES += io/qfilesystemwatcher_inotify.cpp
-            HEADERS += io/qfilesystemwatcher_inotify_p.h
+            SOURCES += \
+                    io/qfilesystemwatcher_inotify.cpp \
+                    io/qfilesystemwatcher_dnotify.cpp
+
+            HEADERS += \
+                    io/qfilesystemwatcher_inotify_p.h \
+                    io/qfilesystemwatcher_dnotify_p.h
         }
 
         freebsd-*|macx-*|darwin-*|openbsd-*:{

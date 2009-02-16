@@ -12,7 +12,7 @@ OBJS=project.o property.o main.o makefile.o unixmake2.o unixmake.o  \
      borland_bmake.o msvc_dsp.o msvc_vcproj.o msvc_nmake.o msvc_objectmodel.o
 
 #qt code
-QOBJS=qstring.o qtextstream.o qiodevice.o qglobal.o \
+QOBJS=qstring.o qtextstream.o qiodevice.o qmalloc.o qglobal.o \
       qbytearray.o qbytearraymatcher.o qdatastream.o qbuffer.o qlistdata.o qfile.o \
       qfsfileengine_unix.o qfsfileengine_iterator_unix.o qfsfileengine.o \
       qfsfileengine_iterator.o qregexp.o qvector.o qbitarray.o qdir.o qdiriterator.o quuid.o qhash.o \
@@ -28,8 +28,11 @@ QOBJS=qstring.o qtextstream.o qiodevice.o qglobal.o \
       qscriptengine_p.o qscriptextenumeration.o qscriptextvariant.o \
       qscriptcontext.o qscriptfunction.o \
       qscriptgrammar.o qscriptlexer.o qscriptclassdata.o \
-      qscriptparser.o qscriptprettypretty.o \
-      qscriptsyntaxchecker.o qscriptvalue.o qscriptvalueimpl.o qscriptvalueiterator.o \
+      qscriptparser.o qscriptprettypretty.o qscriptsyntaxchecker.o \
+      qscriptvalue.o qscriptvalueimpl.o qscriptvalueiterator.o \
+      qscriptvalueiteratorimpl.o \
+      qscriptclass.o qscriptclasspropertyiterator.o \
+      qscriptengineagent.o qscriptcontextinfo.o qscriptstring.o \
       $(QTOBJS)
 
 
@@ -43,6 +46,7 @@ DEPEND_SRC=project.cpp property.cpp meta.cpp main.cpp generators/makefile.cpp ge
 	   generators/win32/msvc_objectmodel.cpp generators/win32/msvc_nmake.cpp generators/win32/borland_bmake.cpp \
 	   $(SOURCE_PATH)/src/corelib/tools/qstring.cpp $(SOURCE_PATH)/src/corelib/io/qfile.cpp \
 	   $(SOURCE_PATH)/src/corelib/io/qtextstream.cpp $(SOURCE_PATH)/src/corelib/io/qiodevice.cpp \
+	   $(SOURCE_PATH)/src/corelib/global/qmalloc.cpp \
 	   $(SOURCE_PATH)/src/corelib/global/qglobal.cpp $(SOURCE_PATH)/src/corelib/tools/qregexp.cpp \
 	   $(SOURCE_PATH)/src/corelib/tools/qbytearray.cpp $(SOURCE_PATH)/src/corelib/tools/qbytearraymatcher.cpp \
 	   $(SOURCE_PATH)/src/corelib/io/qdatastream.cpp $(SOURCE_PATH)/src/corelib/io/qbuffer.cpp \
@@ -78,10 +82,14 @@ DEPEND_SRC=project.cpp property.cpp meta.cpp main.cpp generators/makefile.cpp ge
 	   $(SOURCE_PATH)/src/script/qscriptparser.cpp $(SOURCE_PATH)/src/script/qscriptprettypretty.cpp \
 	   $(SOURCE_PATH)/src/script/qscriptsyntaxchecker.cpp $(SOURCE_PATH)/src/script/qscriptvalueimpl.cpp \
 	   $(SOURCE_PATH)/src/script/qscriptvalue.cpp $(SOURCE_PATH)/src/script/qscriptvalueiterator.cpp \
+	   $(SOURCE_PATH)/src/script/qscriptvalueiteratorimpl.cpp \
+	   $(SOURCE_PATH)/src/script/qscriptclass.cpp $(SOURCE_PATH)/src/script/qscriptclasspropertyiterator.cpp \
+	   $(SOURCE_PATH)/src/script/qscriptengineagent.cpp $(SOURCE_PATH)/src/script/qscriptcontextinfo.cpp \
+	   $(SOURCE_PATH)/src/script/qscriptstring.cpp \
 	   $(QTSRCS)
 
 CPPFLAGS = -I. -Igenerators -Igenerators/unix -Igenerators/win32 -Igenerators/mac \
-	   -I$(SOURCE_PATH)/src/corelib/arch/generic -I$(BUILD_PATH)/include -I$(BUILD_PATH)/include/QtCore \
+	   -I$(BUILD_PATH)/include -I$(BUILD_PATH)/include/QtCore \
 	   -I$(SOURCE_PATH)/include -I$(SOURCE_PATH)/include/QtCore -I$(BUILD_PATH)/src/corelib/global \
 	   -I$(SOURCE_PATH)/src/script -DQT_NO_PCRE \
 	   -DQT_NO_TEXTCODEC -DQT_NO_UNICODETABLES -DQT_NO_COMPONENT -DQT_NO_STL -DQT_BUILD_QMAKE \
@@ -126,6 +134,9 @@ qsettings_mac.o: $(SOURCE_PATH)/src/corelib/io/qsettings_mac.cpp
 
 qiodevice.o: $(SOURCE_PATH)/src/corelib/io/qiodevice.cpp
 	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/io/qiodevice.cpp
+
+qmalloc.o: $(SOURCE_PATH)/src/corelib/global/qmalloc.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/global/qmalloc.cpp
 
 qglobal.o: $(SOURCE_PATH)/src/corelib/global/qglobal.cpp
 	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/global/qglobal.cpp
@@ -379,6 +390,23 @@ qscriptvalueimpl.o: $(SOURCE_PATH)/src/script/qscriptvalueimpl.cpp
 qscriptvalueiterator.o: $(SOURCE_PATH)/src/script/qscriptvalueiterator.cpp
 	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptvalueiterator.cpp
 
+qscriptvalueiteratorimpl.o: $(SOURCE_PATH)/src/script/qscriptvalueiteratorimpl.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptvalueiteratorimpl.cpp
+
+qscriptclass.o: $(SOURCE_PATH)/src/script/qscriptclass.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptclass.cpp
+
+qscriptclasspropertyiterator.o: $(SOURCE_PATH)/src/script/qscriptclasspropertyiterator.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptclasspropertyiterator.cpp
+
+qscriptengineagent.o: $(SOURCE_PATH)/src/script/qscriptengineagent.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptengineagent.cpp
+
+qscriptcontextinfo.o: $(SOURCE_PATH)/src/script/qscriptcontextinfo.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptcontextinfo.cpp
+
+qscriptstring.o: $(SOURCE_PATH)/src/script/qscriptstring.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/script/qscriptstring.cpp
 
 #default rules
 .cpp.o:

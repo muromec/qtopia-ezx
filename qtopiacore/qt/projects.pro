@@ -8,7 +8,7 @@ TEMPLATE = subdirs
 cross_compile: CONFIG += nostrip
 
 isEmpty(QT_BUILD_PARTS) { #defaults
-   QT_BUILD_PARTS = libs tools examples demos
+   QT_BUILD_PARTS = libs tools examples demos docs translations
 } else { #make sure the order makes sense
    contains(QT_BUILD_PARTS, tools) {
        QT_BUILD_PARTS -= tools
@@ -35,13 +35,16 @@ for(PROJECT, $$list($$lower($$unique(QT_BUILD_PARTS)))) {
        SUBDIRS += demos
     } else:isEqual(PROJECT, libs) {
        include(src/src.pro)
+    } else:isEqual(PROJECT, docs) {
+       contains(QT_BUILD_PARTS, tools):include(doc/doc.pri)
+    } else:isEqual(PROJECT, translations) {
+       contains(QT_BUILD_PARTS, tools):include(translations/translations.pri)
     } else:isEqual(PROJECT, qmake) {
 #      SUBDIRS += qmake
     } else {
        message(Unknown PROJECT: $$PROJECT)
     }
 }
-
 
 confclean.depends += clean
 confclean.commands =
@@ -102,11 +105,6 @@ CLEAN_DEPS += qmakeclean
 CONFIG -= qt
 
 ### installations ####
-
-#docs
-htmldocs.files = $$QT_BUILD_TREE/doc/html/*
-htmldocs.path = $$[QT_INSTALL_DOCS]/html
-INSTALLS += htmldocs
 
 #translations
 translations.path=$$[QT_INSTALL_TRANSLATIONS]

@@ -2,19 +2,19 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/tools/qdbus/src/qdbusargument.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/dbus/qdbusargument.cpp -->
 <head>
-  <title>Qt 4.3: QDBusArgument Class Reference</title>
+  <title>Qt 4.4: QDBusArgument Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QDBusArgument Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QDBusArgument Class Reference<br /><span class="small-subtitle">[<a href="qtdbus.html">QtDBus</a> module]</span>
 </h1>
-<p>The QDBusArgument class is used to marshall and demarshall D-BUS arguments. <a href="#details">More...</a></p>
+<p>The QDBusArgument class is used to marshall and demarshall D-Bus arguments. <a href="#details">More...</a></p>
 <pre> #include &lt;QDBusArgument&gt;</pre><p>This class was introduced in Qt 4.2.</p>
 <ul>
 <li><a href="qdbusargument-members.html">List of all members, including inherited members</a></li>
@@ -79,8 +79,8 @@
 <a name="details"></a>
 <hr />
 <h2>Detailed Description</h2>
-<p>The QDBusArgument class is used to marshall and demarshall D-BUS arguments.</p>
-<p>The class is used to send arguments over D-BUS to remote applications and to receive them back. D-BUS offers an extensible type system, based on a few primitive types and associations of them. See the <a href="qdbustypesystem.html">QtDBus type system</a> page for more information on the type system.</p>
+<p>The QDBusArgument class is used to marshall and demarshall D-Bus arguments.</p>
+<p>The class is used to send arguments over D-Bus to remote applications and to receive them back. D-Bus offers an extensible type system, based on a few primitive types and associations of them. See the <a href="qdbustypesystem.html">QtDBus type system</a> page for more information on the type system.</p>
 <p>QDBusArgument is the central class in the <a href="qtdbus.html">QtDBus</a> type system, providing functions to marshall and demarshall the primitive types. The compound types are then created by association of one or more of the primitive types in arrays, dictionaries or structures.</p>
 <p>The following example illustrates how a structure containing an integer and a string can be constructed using the <a href="qdbustypesystem.html">QtDBus type system</a>:</p>
 <pre> struct MyStructure
@@ -112,7 +112,7 @@
 <p>Once registered, a type can be used in outgoing method calls (placed with <a href="qdbusabstractinterface.html#call">QDBusAbstractInterface::call</a>()), signal emissions from registered objects or in incoming calls from remote applications.</p>
 <p>It is important to note that the <tt>operator&lt;&lt;</tt> and <tt>operator&gt;&gt;</tt> streaming functions must always produce the same number of entries in case of structures, both in reading and in writing (marshalling and demarshalling), otherwise calls and signals may start to silently fail.</p>
 <p>The following example illustrates this wrong usage in context of a class that may contain invalid data:</p>
-<pre><font color="#404040"> // Wrongly marshall the MyTime data into a D-BUS argument
+<pre><font color="#404040"> // Wrongly marshall the MyTime data into a D-Bus argument
  QDBusArgument &amp;operator&lt;&lt;(QDBusArgument &amp;argument, const MyTime &amp;mytime)
  {
      argument.beginStructure();
@@ -139,7 +139,7 @@
 <h3 class="fn"><a name="atEnd"></a>bool QDBusArgument::atEnd () const</h3>
 <p>Returns true if there are no more elements to be extracted from this <a href="qdbusargument.html">QDBusArgument</a>. This function is usually used in <a href="qdbusargument.html">QDBusArgument</a> objects returned from <a href="qdbusargument.html#beginMap">beginMap</a>() and <a href="qdbusargument.html#beginArray">beginArray</a>().</p>
 <h3 class="fn"><a name="beginArray"></a>void QDBusArgument::beginArray ( int <i>id</i> )</h3>
-<p>Opens a new D-BUS array suitable for appending elements of meta-type <i>id</i>.</p>
+<p>Opens a new D-Bus array suitable for appending elements of meta-type <i>id</i>.</p>
 <p>This function is used usually in <tt>operator&lt;&lt;</tt> streaming operators, as in the following example:</p>
 <pre><span class="comment"> // append an array of MyElement types</span>
  QDBusArgument &amp;operator&lt;&lt;(QDBusArgument &amp;argument, const MyArray &amp;myarray)
@@ -154,7 +154,7 @@
 <p>See also <a href="qdbusargument.html#endArray">endArray</a>(), <a href="qdbusargument.html#beginStructure">beginStructure</a>(), and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="beginArray-2"></a>void QDBusArgument::beginArray () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Recurses into the D-BUS array to allow extraction of the array elements.</p>
+<p>Recurses into the D-Bus array to allow extraction of the array elements.</p>
 <p>This function is used usually in <tt>operator&gt;&gt;</tt> streaming operators, as in the following example:</p>
 <pre><span class="comment"> // extract a MyArray array of MyElement elements</span>
  const QDBusArgument &amp;operator&gt;&gt;(const QDBusArgument &amp;argument, MyArray &amp;myarray)
@@ -174,7 +174,7 @@
 <p>If the type you want to demarshall is a <a href="qlist.html">QList</a>, <a href="qvector.html">QVector</a> or any of the Qt's <a href="containers.html">Generic Containers</a> that take one template parameter, you need not declare an <tt>operator&gt;&gt;</tt> function for it, since <a href="qtdbus.html">QtDBus</a> provides generic templates to do the job of demarshalling the data. The same applies for STL's sequence containers, such as <tt>std::list</tt>, <tt>std::vector</tt>, etc.</p>
 <p>See also <a href="qdbusargument.html#atEnd">atEnd</a>(), <a href="qdbusargument.html#beginStructure">beginStructure</a>(), and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="beginMap"></a>void QDBusArgument::beginMap ( int <i>kid</i>, int <i>vid</i> )</h3>
-<p>Opens a new D-BUS map suitable for appending elements. Maps are containers that associate one entry (the key) to another (the value), such as Qt's <a href="qmap.html">QMap</a> or <a href="qhash.html">QHash</a>. The ids of the map's key and value meta types must be passed in <i>kid</i> and <i>vid</i> respectively.</p>
+<p>Opens a new D-Bus map suitable for appending elements. Maps are containers that associate one entry (the key) to another (the value), such as Qt's <a href="qmap.html">QMap</a> or <a href="qhash.html">QHash</a>. The ids of the map's key and value meta types must be passed in <i>kid</i> and <i>vid</i> respectively.</p>
 <p>This function is used usually in <tt>operator&lt;&lt;</tt> streaming operators, as in the following example:</p>
 <pre><span class="comment"> // append a dictionary that associates ints to MyValue types</span>
  QDBusArgument &amp;operator&lt;&lt;(QDBusArgument &amp;argument, const MyDictionary &amp;mydict)
@@ -192,7 +192,7 @@
 <p>See also <a href="qdbusargument.html#endMap">endMap</a>(), <a href="qdbusargument.html#beginStructure">beginStructure</a>(), <a href="qdbusargument.html#beginArray">beginArray</a>(), and <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>().</p>
 <h3 class="fn"><a name="beginMap-2"></a>void QDBusArgument::beginMap () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Recurses into the D-BUS map to allow extraction of the map's elements.</p>
+<p>Recurses into the D-Bus map to allow extraction of the map's elements.</p>
 <p>This function is used usually in <tt>operator&gt;&gt;</tt> streaming operators, as in the following example:</p>
 <pre><span class="comment"> // extract a MyDictionary map that associates ints to MyValue elements</span>
  const QDBusArgument &amp;operator&gt;&gt;(const QDBusArgument &amp;argument, MyDictionary &amp;mydict)
@@ -215,16 +215,16 @@
 <p>If the type you want to demarshall is a <a href="qmap.html">QMap</a> or <a href="qhash.html">QHash</a>, you need not declare an <tt>operator&gt;&gt;</tt> function for it, since <a href="qtdbus.html">QtDBus</a> provides generic templates to do the job of demarshalling the data.</p>
 <p>See also <a href="qdbusargument.html#endMap">endMap</a>(), <a href="qdbusargument.html#beginStructure">beginStructure</a>(), <a href="qdbusargument.html#beginArray">beginArray</a>(), and <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>().</p>
 <h3 class="fn"><a name="beginMapEntry"></a>void QDBusArgument::beginMapEntry ()</h3>
-<p>Opens a D-BUS map entry suitable for appending the key and value entries. This function is only valid when a map has been opened with <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
+<p>Opens a D-Bus map entry suitable for appending the key and value entries. This function is only valid when a map has been opened with <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <p>See <a href="qdbusargument.html#beginMap">beginMap</a>() for an example of usage of this function.</p>
 <p>See also <a href="qdbusargument.html#endMapEntry">endMapEntry</a>() and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="beginMapEntry-2"></a>void QDBusArgument::beginMapEntry () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Recurses into the D-BUS map entry to allow extraction of the key and value pair.</p>
+<p>Recurses into the D-Bus map entry to allow extraction of the key and value pair.</p>
 <p>See <a href="qdbusargument.html#beginMap">beginMap</a>() for an example of how this function is usually used.</p>
 <p>See also <a href="qdbusargument.html#endMapEntry">endMapEntry</a>() and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="beginStructure"></a>void QDBusArgument::beginStructure ()</h3>
-<p>Opens a new D-BUS structure suitable for appending new arguments.</p>
+<p>Opens a new D-Bus structure suitable for appending new arguments.</p>
 <p>This function is used usually in <tt>operator&lt;&lt;</tt> streaming operators, as in the following example:</p>
 <pre> QDBusArgument &amp;operator&lt;&lt;(QDBusArgument &amp;argument, const MyStructure &amp;mystruct)
  {
@@ -250,7 +250,7 @@
 <p>See also <a href="qdbusargument.html#endStructure">endStructure</a>(), <a href="qdbusargument.html#beginArray">beginArray</a>(), and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="beginStructure-2"></a>void QDBusArgument::beginStructure () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Opens a D-BUS structure suitable for extracting elements.</p>
+<p>Opens a D-Bus structure suitable for extracting elements.</p>
 <p>This function is used usually in <tt>operator&gt;&gt;</tt> streaming operators, as in the following example:</p>
 <pre> const QDBusArgument &amp;operator&gt;&gt;(const QDBusArgument &amp;argument, MyStructure &amp;mystruct)
  {
@@ -261,121 +261,121 @@
  }</pre>
 <p>See also <a href="qdbusargument.html#endStructure">endStructure</a>(), <a href="qdbusargument.html#beginArray">beginArray</a>(), and <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="endArray"></a>void QDBusArgument::endArray ()</h3>
-<p>Closes a D-BUS array opened with <a href="qdbusargument.html#beginArray">beginArray</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginArray">beginArray</a>() is called.</p>
+<p>Closes a D-Bus array opened with <a href="qdbusargument.html#beginArray">beginArray</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginArray">beginArray</a>() is called.</p>
 <p>See also <a href="qdbusargument.html#beginArray">beginArray</a>(), <a href="qdbusargument.html#endStructure">endStructure</a>(), and <a href="qdbusargument.html#endMap">endMap</a>().</p>
 <h3 class="fn"><a name="endArray-2"></a>void QDBusArgument::endArray () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Closes the D-BUS array and allow extracting of the next element after the array.</p>
+<p>Closes the D-Bus array and allow extracting of the next element after the array.</p>
 <p>See also <a href="qdbusargument.html#beginArray">beginArray</a>().</p>
 <h3 class="fn"><a name="endMap"></a>void QDBusArgument::endMap ()</h3>
-<p>Closes a D-BUS map opened with <a href="qdbusargument.html#beginMap">beginMap</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginMap">beginMap</a>() is called.</p>
+<p>Closes a D-Bus map opened with <a href="qdbusargument.html#beginMap">beginMap</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginMap">beginMap</a>() is called.</p>
 <p>See also <a href="qdbusargument.html#beginMap">beginMap</a>(), <a href="qdbusargument.html#endStructure">endStructure</a>(), and <a href="qdbusargument.html#endArray">endArray</a>().</p>
 <h3 class="fn"><a name="endMap-2"></a>void QDBusArgument::endMap () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Closes the D-BUS map and allow extracting of the next element after the map.</p>
+<p>Closes the D-Bus map and allow extracting of the next element after the map.</p>
 <p>See also <a href="qdbusargument.html#beginMap">beginMap</a>().</p>
 <h3 class="fn"><a name="endMapEntry"></a>void QDBusArgument::endMapEntry ()</h3>
-<p>Closes a D-BUS map entry opened with <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>() is called.</p>
+<p>Closes a D-Bus map entry opened with <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>() is called.</p>
 <p>See also <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>().</p>
 <h3 class="fn"><a name="endMapEntry-2"></a>void QDBusArgument::endMapEntry () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Closes the D-BUS map entry and allow extracting of the next element on the map.</p>
+<p>Closes the D-Bus map entry and allow extracting of the next element on the map.</p>
 <p>See also <a href="qdbusargument.html#beginMapEntry">beginMapEntry</a>().</p>
 <h3 class="fn"><a name="endStructure"></a>void QDBusArgument::endStructure ()</h3>
-<p>Closes a D-BUS structure opened with <a href="qdbusargument.html#beginStructure">beginStructure</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginStructure">beginStructure</a>() is called.</p>
+<p>Closes a D-Bus structure opened with <a href="qdbusargument.html#beginStructure">beginStructure</a>(). This function must be called same number of times that <a href="qdbusargument.html#beginStructure">beginStructure</a>() is called.</p>
 <p>See also <a href="qdbusargument.html#beginStructure">beginStructure</a>(), <a href="qdbusargument.html#endArray">endArray</a>(), and <a href="qdbusargument.html#endMap">endMap</a>().</p>
 <h3 class="fn"><a name="endStructure-2"></a>void QDBusArgument::endStructure () const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Closes the D-BUS structure and allow extracting of the next element after the structure.</p>
+<p>Closes the D-Bus structure and allow extracting of the next element after the structure.</p>
 <p>See also <a href="qdbusargument.html#beginStructure">beginStructure</a>().</p>
 <h3 class="fn"><a name="operator-lt-lt"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( <a href="qtglobal.html#uchar-typedef">uchar</a> <i>arg</i> )</h3>
-<p>Appends the primitive value <i>arg</i> of type <tt>BYTE</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>BYTE</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-2"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( bool <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>BOOLEAN</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>BOOLEAN</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-3"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( short <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>INT16</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>INT16</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-4"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( <a href="qtglobal.html#ushort-typedef">ushort</a> <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>UINT16</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>UINT16</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-5"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( int <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>INT32</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>INT32</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-6"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( <a href="qtglobal.html#uint-typedef">uint</a> <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>UINT32</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>UINT32</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-7"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( <a href="qtglobal.html#qlonglong-typedef">qlonglong</a> <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>INT64</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>INT64</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-8"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( <a href="qtglobal.html#qulonglong-typedef">qulonglong</a> <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>UINT64</tt> to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>UINT64</tt> to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-9"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( double <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>DOUBLE</tt> (double-precision floating-point) to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>DOUBLE</tt> (double-precision floating-point) to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-10"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( const <a href="qstring.html">QString</a> &amp; <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>STRING</tt> (Unicode character string) to the D-BUS stream.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>STRING</tt> (Unicode character string) to the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-lt-lt-13"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( const <a href="qdbusvariant.html">QDBusVariant</a> &amp; <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the primitive value <i>arg</i> of type <tt>VARIANT</tt> to the D-BUS stream.</p>
-<p>A D-BUS variant type can contain any type, including other variants. It is similar to the Qt <a href="qvariant.html">QVariant</a> type.</p>
+<p>Appends the primitive value <i>arg</i> of type <tt>VARIANT</tt> to the D-Bus stream.</p>
+<p>A D-Bus variant type can contain any type, including other variants. It is similar to the Qt <a href="qvariant.html">QVariant</a> type.</p>
 <h3 class="fn"><a name="operator-lt-lt-14"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( const <a href="qstringlist.html">QStringList</a> &amp; <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the <a href="qstringlist.html">QStringList</a> given by <i>arg</i> as <tt>ARRAY of STRING</tt> to the D-BUS stream.</p>
+<p>Appends the <a href="qstringlist.html">QStringList</a> given by <i>arg</i> as <tt>ARRAY of STRING</tt> to the D-Bus stream.</p>
 <p><a href="qstringlist.html">QStringList</a> and <a href="qbytearray.html">QByteArray</a> are the only two non-primitive types that are supported directly by <a href="qdbusargument.html">QDBusArgument</a> because of their widespread usage in Qt applications.</p>
 <p>Other arrays are supported through compound types in <a href="qtdbus.html">QtDBus</a>.</p>
 <h3 class="fn"><a name="operator-lt-lt-15"></a>QDBusArgument &amp; QDBusArgument::operator&lt;&lt; ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>arg</i> )</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Appends the <a href="qbytearray.html">QByteArray</a> given by <i>arg</i> as <tt>ARRAY of BYTE</tt> to the D-BUS stream.</p>
+<p>Appends the <a href="qbytearray.html">QByteArray</a> given by <i>arg</i> as <tt>ARRAY of BYTE</tt> to the D-Bus stream.</p>
 <p><a href="qstringlist.html">QStringList</a> and <a href="qbytearray.html">QByteArray</a> are the only two non-primitive types that are supported directly by <a href="qdbusargument.html">QDBusArgument</a> because of their widespread usage in Qt applications.</p>
 <p>Other arrays are supported through compound types in <a href="qtdbus.html">QtDBus</a>.</p>
 <h3 class="fn"><a name="operator-eq"></a>QDBusArgument &amp; QDBusArgument::operator= ( const QDBusArgument &amp; <i>other</i> )</h3>
 <p>Copies the <i>other</i> <a href="qdbusargument.html">QDBusArgument</a> object into this one.</p>
 <p>Both objects will therefore contain the same state from this point forward. QDBusArguments are explicitly shared and, therefore, any modification to either copy will affect the other one too.</p>
 <h3 class="fn"><a name="operator-gt-gt"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qtglobal.html#uchar-typedef">uchar</a> &amp; <i>arg</i> ) const</h3>
-<p>Extracts one D-BUS primitive argument of type <tt>BYTE</tt> from the D-BUS stream and puts it into <i>arg</i>.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>BYTE</tt> from the D-Bus stream and puts it into <i>arg</i>.</p>
 <h3 class="fn"><a name="operator-gt-gt-2"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( bool &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>BOOLEAN</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>BOOLEAN</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-3"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qtglobal.html#ushort-typedef">ushort</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>UINT16</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>UINT16</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-4"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( short &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>INT16</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>INT16</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-5"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( int &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>INT32</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>INT32</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-6"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qtglobal.html#uint-typedef">uint</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>UINT32</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>UINT32</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-7"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qtglobal.html#qlonglong-typedef">qlonglong</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>INT64</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>INT64</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-8"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qtglobal.html#qulonglong-typedef">qulonglong</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>UINT64</tt> from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>UINT64</tt> from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-9"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( double &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>DOUBLE</tt> (double-precision floating pount) from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>DOUBLE</tt> (double-precision floating pount) from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-10"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qstring.html">QString</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>STRING</tt> (Unicode character string) from the D-BUS stream.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>STRING</tt> (Unicode character string) from the D-Bus stream.</p>
 <h3 class="fn"><a name="operator-gt-gt-13"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qdbusvariant.html">QDBusVariant</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts one D-BUS primitive argument of type <tt>VARIANT</tt> from the D-BUS stream.</p>
-<p>A D-BUS variant type can contain any type, including other variants. It is similar to the Qt <a href="qvariant.html">QVariant</a> type.</p>
+<p>Extracts one D-Bus primitive argument of type <tt>VARIANT</tt> from the D-Bus stream.</p>
+<p>A D-Bus variant type can contain any type, including other variants. It is similar to the Qt <a href="qvariant.html">QVariant</a> type.</p>
 <p>In case the variant contains a type not directly supported by <a href="qdbusargument.html">QDBusArgument</a>, the value of the returned <a href="qdbusvariant.html">QDBusVariant</a> will contain another <a href="qdbusargument.html">QDBusArgument</a>. It is your responsibility to further demarshall it into another type.</p>
 <h3 class="fn"><a name="operator-gt-gt-14"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qstringlist.html">QStringList</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts an array of strings from the D-BUS stream and return it as a <a href="qstringlist.html">QStringList</a>.</p>
+<p>Extracts an array of strings from the D-Bus stream and return it as a <a href="qstringlist.html">QStringList</a>.</p>
 <p><a href="qstringlist.html">QStringList</a> and <a href="qbytearray.html">QByteArray</a> are the only two non-primitive types that are supported directly by <a href="qdbusargument.html">QDBusArgument</a> because of their widespread usage in Qt applications.</p>
 <p>Other arrays are supported through compound types in <a href="qtdbus.html">QtDBus</a>.</p>
 <h3 class="fn"><a name="operator-gt-gt-15"></a>const QDBusArgument &amp; QDBusArgument::operator&gt;&gt; ( <a href="qbytearray.html">QByteArray</a> &amp; <i>arg</i> ) const</h3>
 <p>This is an overloaded member function, provided for convenience.</p>
-<p>Extracts an array of bytes from the D-BUS stream and return it as a <a href="qbytearray.html">QByteArray</a>.</p>
+<p>Extracts an array of bytes from the D-Bus stream and return it as a <a href="qbytearray.html">QByteArray</a>.</p>
 <p><a href="qstringlist.html">QStringList</a> and <a href="qbytearray.html">QByteArray</a> are the only two non-primitive types that are supported directly by <a href="qdbusargument.html">QDBusArgument</a> because of their widespread usage in Qt applications.</p>
 <p>Other arrays are supported through compound types in <a href="qtdbus.html">QtDBus</a>.</p>
 <hr />
@@ -398,8 +398,8 @@
 <p>This function was introduced in Qt 4.2.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

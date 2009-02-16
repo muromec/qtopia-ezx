@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,10 +56,21 @@
 #ifndef QT_NO_STYLE_WINDOWSVISTA
 #include "qwindowsvistastyle.h"
 #endif
+#ifndef QT_NO_STYLE_WINDOWSCE
+#include "qwindowscestyle.h"
+#endif
+#ifndef QT_NO_STYLE_WINDOWSMOBILE
+#include "qwindowsmobilestyle.h"
+#endif
+
+QT_BEGIN_NAMESPACE
 
 #if !defined(QT_NO_STYLE_MAC) && defined(Q_WS_MAC)
+QT_BEGIN_INCLUDE_NAMESPACE
 #  include <private/qt_mac_p.h>
 #  include "qmacstyle_mac.h"
+QT_END_INCLUDE_NAMESPACE
+
 QString qt_mac_get_style_name()
 {
     QString ret;
@@ -84,9 +89,9 @@ QString qt_mac_get_style_name()
 }
 #endif
 
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-    (QStyleFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/styles"), Qt::CaseInsensitive))
+    (QStyleFactoryInterface_iid, QLatin1String("/styles"), Qt::CaseInsensitive))
 #endif
 
 /*!
@@ -111,10 +116,13 @@ Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
 */
 
 /*!
-    Creates a QStyle object that matches the given \a key. This is either a
-    built-in style, or a style from a style plugin.
+    Creates and returns a QStyle object that matches the given \a key, or
+    returns 0 if no matching style is found.
 
-    Note that keys are case insensitive.
+    Both built-in styles and styles from style plugins are queried for a
+    matching style.
+
+    \note The keys used are case insensitive.
 
     \sa keys()
 */
@@ -125,6 +133,16 @@ QStyle *QStyleFactory::create(const QString& key)
 #ifndef QT_NO_STYLE_WINDOWS
     if (style == QLatin1String("windows"))
         ret = new QWindowsStyle;
+    else
+#endif
+#ifndef QT_NO_STYLE_WINDOWSCE
+    if (style == QLatin1String("windowsce"))
+        ret = new QWindowsCEStyle;
+    else
+#endif
+#ifndef QT_NO_STYLE_WINDOWSMOBILE
+    if (style == QLatin1String("windowsmobile"))
+        ret = new QWindowsMobileStyle;
     else
 #endif
 #ifndef QT_NO_STYLE_WINDOWSXP
@@ -167,7 +185,7 @@ QStyle *QStyleFactory::create(const QString& key)
     } else
 #endif
     { } // Keep these here - they make the #ifdefery above work
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     if(!ret) {
         if (QStyleFactoryInterface *factory = qobject_cast<QStyleFactoryInterface*>(loader()->instance(style)))
             ret = factory->create(style);
@@ -186,7 +204,7 @@ QStyle *QStyleFactory::create(const QString& key)
 */
 QStringList QStyleFactory::keys()
 {
-#ifndef QT_NO_LIBRARY
+#if !defined(QT_NO_LIBRARY) && !defined(QT_NO_SETTINGS)
     QStringList list = loader()->keys();
 #else
     QStringList list;
@@ -194,6 +212,14 @@ QStringList QStyleFactory::keys()
 #ifndef QT_NO_STYLE_WINDOWS
     if (!list.contains(QLatin1String("Windows")))
         list << QLatin1String("Windows");
+#endif
+#ifndef QT_NO_STYLE_WINDOWSCE
+    if (!list.contains(QLatin1String("WindowsCE")))
+        list << QLatin1String("WindowsCE");
+#endif
+#ifndef QT_NO_STYLE_WINDOWSMOBILE
+    if (!list.contains(QLatin1String("WindowsMobile")))
+        list << QLatin1String("WindowsMobile");
 #endif
 #ifndef QT_NO_STYLE_WINDOWSXP
     if (!list.contains(QLatin1String("WindowsXP")) &&
@@ -231,3 +257,5 @@ QStringList QStyleFactory::keys()
 #endif
     return list;
 }
+
+QT_END_NAMESPACE

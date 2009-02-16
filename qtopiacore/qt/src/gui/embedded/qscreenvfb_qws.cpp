@@ -1,47 +1,40 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #ifndef QT_NO_QWS_QVFB
+
+#define QTOPIA_QVFB_BRIGHTNESS
 
 #include <stdlib.h>
 #include <sys/types.h>
@@ -64,6 +57,8 @@
 #include <qkbddriverfactory_qws.h>
 #include <qdebug.h>
 
+QT_BEGIN_NAMESPACE
+
 class QVFbScreenPrivate
 {
 public:
@@ -72,6 +67,8 @@ public:
 
     bool success;
     unsigned char *shmrgn;
+    int brightness;
+    bool blank;
     QVFbHeader *hdr;
     QWSMouseHandler *mouse;
 #ifndef QT_NO_QWS_KEYBOARD
@@ -86,6 +83,8 @@ QVFbScreenPrivate::QVFbScreenPrivate()
 #ifndef QT_NO_QWS_KEYBOARD
     keyboard = 0;
 #endif
+    brightness = 255;
+    blank = false;
 }
 
 QVFbScreenPrivate::~QVFbScreenPrivate()
@@ -105,15 +104,15 @@ QVFbScreenPrivate::~QVFbScreenPrivate()
     \brief The QVFbScreen class implements a screen driver for the
     virtual framebuffer.
 
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
     Custom screen drivers can be added by subclassing the
     QScreenDriverPlugin class, using the QScreenDriverFactory class to
     dynamically load the driver into the application, but there should
     only be one screen object per application.
 
-    The Qtopia Core platform provides a \l {The Virtual
+    The Qt for Embedded Linux platform provides a \l{The Virtual
     Framebuffer}{virtual framebuffer} for development and debugging;
-    the virtual framebuffer allows Qtopia Core programs to be
+    the virtual framebuffer allows Qt for Embedded Linux applications to be
     developed on a desktop machine, without switching between consoles
     and X11.
 
@@ -164,10 +163,10 @@ QVFbScreenPrivate::~QVFbScreenPrivate()
     \fn QVFbScreen::QVFbScreen(int displayId)
 
     Constructs a QVNCScreen object. The \a displayId argument
-    identifies the Qtopia Core server to connect to.
+    identifies the Qt for Embedded Linux server to connect to.
 */
 QVFbScreen::QVFbScreen(int display_id)
-    : QScreen(display_id), d_ptr(new QVFbScreenPrivate)
+    : QScreen(display_id, VFbClass), d_ptr(new QVFbScreenPrivate)
 {
     d_ptr->shmrgn = 0;
     d_ptr->hdr = 0;
@@ -181,6 +180,8 @@ QVFbScreen::~QVFbScreen()
 {
     delete d_ptr;
 }
+
+static QVFbScreen *connected = 0;
 
 bool QVFbScreen::connect(const QString &displaySpec)
 {
@@ -218,8 +219,20 @@ bool QVFbScreen::connect(const QString &displaySpec)
     case 8:
         setPixelFormat(QImage::Format_Indexed8);
         break;
+    case 12:
+        setPixelFormat(QImage::Format_RGB444);
+        break;
+    case 15:
+        setPixelFormat(QImage::Format_RGB555);
+        break;
     case 16:
         setPixelFormat(QImage::Format_RGB16);
+        break;
+    case 18:
+        setPixelFormat(QImage::Format_RGB666);
+        break;
+    case 24:
+        setPixelFormat(QImage::Format_RGB888);
         break;
     case 32:
         setPixelFormat(QImage::Format_ARGB32_Premultiplied);
@@ -281,32 +294,14 @@ bool QVFbScreen::connect(const QString &displaySpec)
     screencols = d_ptr->hdr->numcols;
     memcpy(screenclut, d_ptr->hdr->clut, sizeof(QRgb) * screencols);
 
-    if (qApp->type() == QApplication::GuiServer) {
-        const QString mouseDev = QString(QLatin1String(QT_VFB_MOUSE_PIPE))
-                                 .arg(displayId);
-        d_ptr->mouse = QMouseDriverFactory::create(QLatin1String("QVFbMouse"),
-                                                   mouseDev);
-        qwsServer->setDefaultMouse("None");
-        if (d_ptr->mouse)
-            d_ptr->mouse->setScreen(this);
-
-        const QString keyboardDev = QString(QLatin1String(QT_VFB_KEYBOARD_PIPE))
-                                    .arg(displayId);
-#ifndef QT_NO_QWS_KEYBOARD
-        d_ptr->keyboard = QKbdDriverFactory::create(QLatin1String("QVFbKbd"),
-                                                    keyboardDev);
-        qwsServer->setDefaultKeyboard("None");
-#endif
-
-        if (d_ptr->hdr->dataoffset >= (int)sizeof(QVFbHeader))
-            d_ptr->hdr->serverVersion = QT_VERSION;
-    }
+    connected = this;
 
     return true;
 }
 
 void QVFbScreen::disconnect()
 {
+    connected = 0;
     if ((long)d_ptr->shmrgn != -1 && d_ptr->shmrgn) {
         if (qApp->type() == QApplication::GuiServer && d_ptr->hdr->dataoffset >= (int)sizeof(QVFbHeader)) {
             d_ptr->hdr->serverVersion = 0;
@@ -317,6 +312,25 @@ void QVFbScreen::disconnect()
 
 bool QVFbScreen::initDevice()
 {
+#ifndef QT_NO_QWS_MOUSE_QVFB
+    const QString mouseDev = QString(QLatin1String(QT_VFB_MOUSE_PIPE))
+                             .arg(displayId);
+    d_ptr->mouse = new QVFbMouseHandler(QLatin1String("QVFbMouse"), mouseDev);
+    qwsServer->setDefaultMouse("None");
+    if (d_ptr->mouse)
+        d_ptr->mouse->setScreen(this);
+#endif
+
+#if !defined(QT_NO_QWS_KBD_QVFB) && !defined(QT_NO_QWS_KEYBOARD)
+    const QString keyboardDev = QString(QLatin1String(QT_VFB_KEYBOARD_PIPE))
+                                .arg(displayId);
+    d_ptr->keyboard = new QVFbKeyboardHandler(keyboardDev);
+    qwsServer->setDefaultKeyboard("None");
+#endif
+
+    if (d_ptr->hdr->dataoffset >= (int)sizeof(QVFbHeader))
+        d_ptr->hdr->serverVersion = QT_VERSION;
+
     if(d==8) {
         screencols=256;
         if (grayscale) {
@@ -388,7 +402,29 @@ void QVFbScreen::setDirty(const QRect& rect)
     d_ptr->hdr->update = d_ptr->hdr->update.united(r);
 }
 
+void QVFbScreen::setBrightness(int b)
+{
+    if (connected) {
+        connected->d_ptr->brightness = b;
 
+        QVFbHeader *hdr = connected->d_ptr->hdr;
+        if (hdr->viewerVersion < 0x040400) // brightness not supported
+            return;
+
+        const int br = connected->d_ptr->blank ? 0 : b;
+        if (hdr->brightness != br) {
+            hdr->brightness = br;
+            connected->setDirty(connected->region().boundingRect());
+        }
+    }
+}
+
+void QVFbScreen::blank(bool on)
+{
+    d_ptr->blank = on;
+    setBrightness(connected->d_ptr->brightness);
+}
 
 #endif // QT_NO_QWS_QVFB
 
+QT_END_NAMESPACE

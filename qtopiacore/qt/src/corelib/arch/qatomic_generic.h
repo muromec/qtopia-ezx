@@ -1,118 +1,278 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
-#ifndef GENERIC_QATOMIC_H
-#define GENERIC_QATOMIC_H
-
-#include <QtCore/qglobal.h>
+#ifndef QATOMIC_GENERIC_H
+#define QATOMIC_GENERIC_H
 
 QT_BEGIN_HEADER
 
-inline int q_atomic_test_and_set_int(volatile int *ptr, int expected, int newval)
+QT_BEGIN_NAMESPACE
+
+#define Q_ATOMIC_INT_REFERENCE_COUNTING_IS_NOT_NATIVE
+
+inline bool QBasicAtomicInt::isReferenceCountingNative()
+{ return false; }
+inline bool QBasicAtomicInt::isReferenceCountingWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_INT_TEST_AND_SET_IS_NOT_NATIVE
+
+inline bool QBasicAtomicInt::isTestAndSetNative()
+{ return false; }
+inline bool QBasicAtomicInt::isTestAndSetWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_INT_FETCH_AND_STORE_IS_NOT_NATIVE
+
+inline bool QBasicAtomicInt::isFetchAndStoreNative()
+{ return false; }
+inline bool QBasicAtomicInt::isFetchAndStoreWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_INT_FETCH_AND_ADD_IS_NOT_NATIVE
+
+inline bool QBasicAtomicInt::isFetchAndAddNative()
+{ return false; }
+inline bool QBasicAtomicInt::isFetchAndAddWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_POINTER_TEST_AND_SET_IS_NOT_NATIVE
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isTestAndSetNative()
+{ return false; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isTestAndSetWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_POINTER_FETCH_AND_STORE_IS_NOT_NATIVE
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndStoreNative()
+{ return false; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndStoreWaitFree()
+{ return false; }
+
+#define Q_ATOMIC_POINTER_FETCH_AND_ADD_IS_NOT_NATIVE
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndAddNative()
+{ return false; }
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::isFetchAndAddWaitFree()
+{ return false; }
+
+Q_CORE_EXPORT bool QBasicAtomicInt_testAndSetOrdered(volatile int *, int, int);
+Q_CORE_EXPORT int QBasicAtomicInt_fetchAndStoreOrdered(volatile int *, int);
+Q_CORE_EXPORT int QBasicAtomicInt_fetchAndAddOrdered(volatile int *, int);
+
+Q_CORE_EXPORT bool QBasicAtomicPointer_testAndSetOrdered(void * volatile *, void *, void *);
+Q_CORE_EXPORT void *QBasicAtomicPointer_fetchAndStoreOrdered(void * volatile *, void *);
+Q_CORE_EXPORT void *QBasicAtomicPointer_fetchAndAddOrdered(void * volatile *, qptrdiff);
+
+// Reference counting
+
+inline bool QBasicAtomicInt::ref()
 {
-    if (*ptr == expected) {
-        *ptr = newval;
-        return 1;
-    }
-    return 0;
+    return QBasicAtomicInt_fetchAndAddOrdered(&_q_value, 1) != -1;
 }
 
-inline int q_atomic_test_and_set_acquire_int(volatile int *ptr, int expected, int newval)
+inline bool QBasicAtomicInt::deref()
 {
-    return q_atomic_test_and_set_int(ptr, expected, newval);
+    return QBasicAtomicInt_fetchAndAddOrdered(&_q_value, -1) != 1;
 }
 
-inline int q_atomic_test_and_set_release_int(volatile int *ptr, int expected, int newval)
+// Test and set for integers
+
+inline bool QBasicAtomicInt::testAndSetOrdered(int expectedValue, int newValue)
 {
-    return q_atomic_test_and_set_int(ptr, expected, newval);
+    return QBasicAtomicInt_testAndSetOrdered(&_q_value, expectedValue, newValue);
 }
 
-inline int q_atomic_test_and_set_ptr(volatile void *ptr, void *expected, void *newval)
+inline bool QBasicAtomicInt::testAndSetRelaxed(int expectedValue, int newValue)
 {
-    if (*reinterpret_cast<void * volatile *>(ptr) == expected) {
-        *reinterpret_cast<void * volatile *>(ptr) = newval;
-        return 1;
-    }
-    return 0;
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline int q_atomic_increment(volatile int *ptr)
-{ return ++(*ptr); }
-
-inline int q_atomic_decrement(volatile int *ptr)
-{ return --(*ptr); }
-
-inline int q_atomic_set_int(volatile int *ptr, int newval)
+inline bool QBasicAtomicInt::testAndSetAcquire(int expectedValue, int newValue)
 {
-    register int ret = *ptr;
-    *ptr = newval;
-    return ret;
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline void *q_atomic_set_ptr(volatile void *ptr, void *newval)
+inline bool QBasicAtomicInt::testAndSetRelease(int expectedValue, int newValue)
 {
-    register void *ret = *reinterpret_cast<void * volatile *>(ptr);
-    *reinterpret_cast<void * volatile *>(ptr) = newval;
-    return ret;
+    return testAndSetOrdered(expectedValue, newValue);
 }
 
-inline int q_atomic_fetch_and_add_int(volatile int *ptr, int value)
+// Fetch and store for integers
+
+inline int QBasicAtomicInt::fetchAndStoreOrdered(int newValue)
 {
-    int originalValue = *ptr;
-    *ptr += value;
-    return originalValue;
+    return QBasicAtomicInt_fetchAndStoreOrdered(&_q_value, newValue);
 }
 
-inline int q_atomic_fetch_and_add_acquire_int(volatile int *ptr, int value)
+inline int QBasicAtomicInt::fetchAndStoreRelaxed(int newValue)
 {
-    return q_atomic_fetch_and_add_int(ptr, value);
+    return fetchAndStoreOrdered(newValue);
 }
 
-inline int q_atomic_fetch_and_add_release_int(volatile int *ptr, int value)
+inline int QBasicAtomicInt::fetchAndStoreAcquire(int newValue)
 {
-    return q_atomic_fetch_and_add_int(ptr, value);
+    return fetchAndStoreOrdered(newValue);
 }
+
+inline int QBasicAtomicInt::fetchAndStoreRelease(int newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+// Fetch and add for integers
+
+inline int QBasicAtomicInt::fetchAndAddOrdered(int valueToAdd)
+{
+    return QBasicAtomicInt_fetchAndAddOrdered(&_q_value, valueToAdd);
+}
+
+inline int QBasicAtomicInt::fetchAndAddRelaxed(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+inline int QBasicAtomicInt::fetchAndAddAcquire(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+inline int QBasicAtomicInt::fetchAndAddRelease(int valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+// Test and set for pointers
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetOrdered(T *expectedValue, T *newValue)
+{
+    union { T * volatile * typed; void * volatile * voidp; } pointer;
+    pointer.typed = &_q_value;
+    return QBasicAtomicPointer_testAndSetOrdered(pointer.voidp, expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetRelaxed(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetAcquire(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE bool QBasicAtomicPointer<T>::testAndSetRelease(T *expectedValue, T *newValue)
+{
+    return testAndSetOrdered(expectedValue, newValue);
+}
+
+// Fetch and store for pointers
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreOrdered(T *newValue)
+{
+    union { T * volatile * typed; void * volatile * voidp; } pointer;
+    union { T *typed; void *voidp; } returnValue;
+    pointer.typed = &_q_value;
+    returnValue.voidp = QBasicAtomicPointer_fetchAndStoreOrdered(pointer.voidp, newValue);
+    return returnValue.typed;
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreRelaxed(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreAcquire(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndStoreRelease(T *newValue)
+{
+    return fetchAndStoreOrdered(newValue);
+}
+
+// Fetch and add for pointers
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddOrdered(qptrdiff valueToAdd)
+{
+    union { T * volatile *typed; void * volatile *voidp; } pointer;
+    union { T *typed; void *voidp; } returnValue;
+    pointer.typed = &_q_value;
+    returnValue.voidp = QBasicAtomicPointer_fetchAndAddOrdered(pointer.voidp, valueToAdd * sizeof(T));
+    return returnValue.typed;
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelaxed(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddAcquire(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+template <typename T>
+Q_INLINE_TEMPLATE T *QBasicAtomicPointer<T>::fetchAndAddRelease(qptrdiff valueToAdd)
+{
+    return fetchAndAddOrdered(valueToAdd);
+}
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 
-#endif // GENERIC_QATOMIC_H
+#endif // QATOMIC_GENERIC_H

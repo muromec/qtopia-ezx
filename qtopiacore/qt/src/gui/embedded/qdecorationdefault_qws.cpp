@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -47,6 +38,8 @@
 #include <qpaintengine.h>
 #include <qdrawutil.h>
 #include "qdecorationdefault_qws.h"
+
+QT_BEGIN_NAMESPACE
 
 #if !defined(QT_NO_QWS_DECORATION_DEFAULT) || defined(QT_PLUGIN)
 
@@ -206,6 +199,23 @@ static const char * const default_normalize_xpm[] = {
 
 #endif // QT_NO_IMAGEFORMAT_XPM
 
+/*!
+  \class QDecorationDefault
+  \since 4.4
+  \ingroup qws
+  \brief The QDecorationDefault class is a base class providing default window decorations.
+
+  See the documentation for class QDecoration for a detailed
+  description. This subclass of QDecoration provides standard
+  icons for the decoration regions.
+
+  Note that this class is non-portable and only available in
+  \l{Qt for Embedded Linux}.
+ */
+
+/*!
+  Default constructor.
+ */
 QDecorationDefault::QDecorationDefault()
     : QDecoration()
 {
@@ -217,6 +227,9 @@ QDecorationDefault::QDecorationDefault()
     normalize_width = 20;
 }
 
+/*!
+  The constructor deletes the static pixmaps.
+ */
 QDecorationDefault::~QDecorationDefault()
 {
     delete staticMenuPixmap;
@@ -233,6 +246,18 @@ QDecorationDefault::~QDecorationDefault()
     staticNormalizePixmap = 0;
 }
 
+/*!
+  \fn const char **QDecorationDefault::xpmForRegion(int region)
+
+  Returns a pointer to the X pixmap for the icon specified by
+  \a region. An X pixmap is an ASCII-text-based image. The value
+  of \a region must be one of a subset of the values of enum
+  DecorationRegion. The supported values are \e Help, \e Menu,
+  \e Close, \e Minimize, \e Maximize, and \e Normalize. Other
+  values of \a region cause zero to be returned.
+
+  \sa QDecoration::DecorationRegion
+ */
 const char **QDecorationDefault::xpmForRegion(int reg)
 {
 #ifdef QT_NO_IMAGEFORMAT_XPM
@@ -257,8 +282,27 @@ const char **QDecorationDefault::xpmForRegion(int reg)
     return 0;
 }
 
-QPixmap QDecorationDefault::pixmapFor(const QWidget *widget, int decorationRegion,
-                                      int &xoff, int &/*yoff*/)
+/*!
+    \fn QPixmap QDecorationDefault::pixmapFor(const QWidget *widget,
+    int decorationRegion, int &xoff, int &yoff)
+
+    Returns a pointer to the QPixmap for the widget specified by \a widget and
+    \a decorationRegion. The returned QPixmap is constructed from the default
+    X pixmap obtained from xpmForRegion().
+
+    \a xoff and \a yoff specify the offset for the pixmap.
+
+    The value of \a decorationRegion must be one of a subset of the values
+    of enum DecorationRegion. The supported values are \e Help,
+    \e Menu, \e Close, \e Minimize, \e Maximize, and \e Normalize.
+    Other values of \a decorationRegion return 0.
+
+    \sa QDecoration::DecorationRegion
+*/
+QPixmap QDecorationDefault::pixmapFor(const QWidget *widget,
+                                      int decorationRegion,
+                                      int &xoff,
+                                      int &/*yoff*/)
 {
 #ifdef QT_NO_IMAGEFORMAT_XPM
     Q_UNUSED(widget);
@@ -334,12 +378,27 @@ QPixmap QDecorationDefault::pixmapFor(const QWidget *widget, int decorationRegio
 #endif
 }
 
+/*!
+    \fn int QDecorationDefault::titleBarHeight(const QWidget *widget)
+
+    Returns the title bar height in pixels for the given \a widget. It is the
+    greater of 20, or the sum of the application font's line spacing value
+    plus a border width fudge factor.
+*/
 int QDecorationDefault::titleBarHeight(const QWidget *)
 {
     return qMax(20, QApplication::fontMetrics().lineSpacing() + BORDER_WIDTH);
 }
 
-QRegion QDecorationDefault::region(const QWidget *widget, const QRect &rect, int decorationRegion)
+/*!
+  Returns the region specified by \a decorationRegion for the
+  top-level \a widget. \a rect specifies the rectangle the decoration
+  wraps. The value of \a decorationRegion is a combination of the
+  bitmask values of enum DecorationRegion.
+ */
+QRegion QDecorationDefault::region(const QWidget *widget,
+                                   const QRect &rect,
+                                   int decorationRegion)
 {
     Qt::WindowFlags flags = widget->windowFlags();
     bool hasBorder = !widget->isMaximized();
@@ -563,7 +622,18 @@ QRegion QDecorationDefault::region(const QWidget *widget, const QRect &rect, int
     return region;
 }
 
-bool QDecorationDefault::paint(QPainter *painter, const QWidget *widget, int decorationRegion,
+/*!
+  Paints the border and title decoration for the top-level \a widget
+  using the \a painter provided and the decoration \a state. The value
+  of \a decorationRegion is a combination of the bitmask values of
+  enum DecorationRegion.
+
+  Note that Qt for Embedded Linux expects this function to return true if any of
+  the widget's decorations are repainted; otherwise it returns false.
+ */
+bool QDecorationDefault::paint(QPainter *painter,
+                               const QWidget *widget,
+                               int decorationRegion,
                                DecorationState state)
 {
     if (decorationRegion == None)
@@ -631,7 +701,7 @@ bool QDecorationDefault::paint(QPainter *painter, const QWidget *widget, int dec
         painter->setPen(titlePen);
         painter->drawText(titleRect.x() + 4, titleRect.y(),
                           titleRect.width() - 8, titleRect.height(),
-                          Qt::AlignVCenter, widget->windowTitle());
+                          Qt::AlignVCenter, windowTitleFor(widget));
         handled |= true;
     }
 
@@ -667,8 +737,26 @@ bool QDecorationDefault::paint(QPainter *painter, const QWidget *widget, int dec
     return handled;
 }
 
-void QDecorationDefault::paintButton(QPainter *painter, const QWidget *widget,
-                                     int buttonRegion, DecorationState state, const QPalette &pal)
+/*!
+    \fn void QDecorationDefault::paintButton(QPainter *painter, const
+    QWidget *widget, int buttonRegion, DecorationState state,
+    const QPalette &palette)
+
+    Paints a region of the top-level \a widget. The region is
+    painted in the specified decoration \a state using the
+    \a painter and \a palette provided. The region to be painted is specified
+    by \a buttonRegion, which is a combination of the bitmask values of
+    DecorationRegion. If the value of \a buttonRegion is one of \e Help,
+    \e Menu, \e Close, \e Minimize, \e Maximize, and \e Normalize, the
+    button pixmap for that region is painted.
+
+    \sa pixmapFor()
+ */
+void QDecorationDefault::paintButton(QPainter *painter,
+                                     const QWidget *widget,
+                                     int buttonRegion,
+                                     DecorationState state,
+                                     const QPalette &pal)
 {
     int xoff = 2;
     int yoff = 2;
@@ -693,5 +781,16 @@ void QDecorationDefault::paintButton(QPainter *painter, const QWidget *widget,
         painter->drawPixmap(brect.x() + xoff, brect.y() + yoff, pm);
 }
 
+extern QString qt_setWindowTitle_helperHelper(const QString&, const QWidget*);
+
+/*!
+  \internal
+ */
+QString QDecorationDefault::windowTitleFor(const QWidget *widget) const
+{
+    return qt_setWindowTitle_helperHelper(widget->windowTitle(), widget);
+}
 
 #endif // QT_NO_QWS_DECORATION_DEFAULT
+
+QT_END_NAMESPACE

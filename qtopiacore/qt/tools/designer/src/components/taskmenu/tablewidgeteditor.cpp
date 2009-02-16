@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,37 +40,51 @@ TRANSLATOR qdesigner_internal::TableWidgetEditor
 */
 
 #include "tablewidgeteditor.h"
-#include <findicondialog_p.h>
+#include <abstractformbuilder.h>
 #include <iconloader_p.h>
 #include <qdesigner_command_p.h>
+#include "formwindowbase_p.h"
+#include "qdesigner_utils_p.h"
 
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtDesigner/QDesignerFormEditorInterface>
 #include <QtDesigner/QDesignerIconCacheInterface>
 #include <QtCore/QDir>
 #include <QtCore/QQueue>
+#include <QtCore/QTextStream>
+
+QT_BEGIN_NAMESPACE
 
 using namespace qdesigner_internal;
 
 TableWidgetEditor::TableWidgetEditor(QDesignerFormWindowInterface *form, QWidget *parent)
     : QDialog(parent),
-      m_form(form),
+      m_form(qobject_cast<FormWindowBase *>(form)),
       m_updating(false)
 {
     ui.setupUi(this);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    QIcon resetIcon = createIconSet(QString::fromUtf8("editdelete.png"));
-    ui.deletePixmapItemButton->setIcon(resetIcon);
-    ui.deletePixmapColumnButton->setIcon(resetIcon);
-    ui.deletePixmapRowButton->setIcon(resetIcon);
-    ui.deletePixmapItemButton->setEnabled(false);
-    ui.deletePixmapColumnButton->setEnabled(false);
-    ui.deletePixmapRowButton->setEnabled(false);
+
+    ui.itemIconSelector->setFormEditor(form->core());
+    ui.itemIconSelector->setEnabled(false);
+    ui.itemIconSelector->setPixmapCache(m_form->pixmapCache());
+    ui.itemIconSelector->setIconCache(m_form->iconCache());
+
+    ui.columnIconSelector->setFormEditor(form->core());
+    ui.columnIconSelector->setEnabled(false);
+    ui.columnIconSelector->setPixmapCache(m_form->pixmapCache());
+    ui.columnIconSelector->setIconCache(m_form->iconCache());
+
+    ui.rowIconSelector->setFormEditor(form->core());
+    ui.rowIconSelector->setEnabled(false);
+    ui.rowIconSelector->setPixmapCache(m_form->pixmapCache());
+    ui.rowIconSelector->setIconCache(m_form->iconCache());
 
     QIcon upIcon = createIconSet(QString::fromUtf8("up.png"));
     QIcon downIcon = createIconSet(QString::fromUtf8("down.png"));
     QIcon minusIcon = createIconSet(QString::fromUtf8("minus.png"));
     QIcon plusIcon = createIconSet(QString::fromUtf8("plus.png"));
+
     ui.newColumnButton->setIcon(plusIcon);
     ui.deleteColumnButton->setIcon(minusIcon);
     ui.moveColumnUpButton->setIcon(upIcon);
@@ -87,6 +95,8 @@ TableWidgetEditor::TableWidgetEditor(QDesignerFormWindowInterface *form, QWidget
     ui.moveRowDownButton->setIcon(downIcon);
 
     ui.tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    connect(m_form->iconCache(), SIGNAL(reloaded()), this, SLOT(cacheReloaded()));
 }
 
 TableWidgetEditor::~TableWidgetEditor()
@@ -103,28 +113,30 @@ void TableWidgetEditor::fillContentsFromTableWidget(QTableWidget *tableWidget)
 
     const int colCount = ui.tableWidget->columnCount();
     for (int col = 0; col < colCount; col++) {
-        QTableWidgetItem *headerItem = ui.tableWidget->horizontalHeaderItem(col);
+        const QTableWidgetItem *headerItem = ui.tableWidget->horizontalHeaderItem(col);
         QListWidgetItem *item = new QListWidgetItem(ui.columnsListWidget);
         item->setFlags(item->flags() | Qt::ItemIsEditable);
         if (headerItem) {
             item->setText(headerItem->text());
             item->setIcon(headerItem->icon());
+            item->setData(QAbstractFormBuilder::resourceRole(), headerItem->data(QAbstractFormBuilder::resourceRole()));
         } else
-            item->setText(QString::fromLatin1("%1").arg(col+1));
+            item->setText(TableWidgetContents::defaultHeaderText(col));
     }
     if (colCount > 0)
         ui.columnsListWidget->setCurrentRow(0);
 
     const int rowCount = ui.tableWidget->rowCount();
     for (int row = 0; row < rowCount; row++) {
-        QTableWidgetItem *headerItem = ui.tableWidget->verticalHeaderItem(row);
+        const QTableWidgetItem *headerItem = ui.tableWidget->verticalHeaderItem(row);
         QListWidgetItem *item = new QListWidgetItem(ui.rowsListWidget);
         item->setFlags(item->flags() | Qt::ItemIsEditable);
         if (headerItem) {
             item->setText(headerItem->text());
             item->setIcon(headerItem->icon());
+            item->setData(QAbstractFormBuilder::resourceRole(), headerItem->data(QAbstractFormBuilder::resourceRole()));
         } else
-            item->setText(QString::fromLatin1("%1").arg(row+1));
+            item->setText(TableWidgetContents::defaultHeaderText(row));
     }
     if (rowCount > 0)
         ui.rowsListWidget->setCurrentRow(0);
@@ -138,9 +150,12 @@ void TableWidgetEditor::fillContentsFromTableWidget(QTableWidget *tableWidget)
 void TableWidgetEditor::fillTableWidgetFromContents(QTableWidget *tableWidget)
 {
     ChangeTableContentsCommand *cmd = new ChangeTableContentsCommand(m_form);
-    cmd->init(tableWidget, ui.tableWidget);
-    m_form->commandHistory()->push(cmd);
+    if (cmd->init(tableWidget, ui.tableWidget))
+        m_form->commandHistory()->push(cmd);
+    else
+        delete cmd;
 }
+
 
 void TableWidgetEditor::copyContents(QTableWidget *sourceWidget, QTableWidget *destWidget)
 {
@@ -156,6 +171,7 @@ void TableWidgetEditor::copyContents(QTableWidget *sourceWidget, QTableWidget *d
                 headerItem = new QTableWidgetItem;
             headerItem->setText(origHeaderItem->text());
             headerItem->setIcon(origHeaderItem->icon());
+            headerItem->setData(QAbstractFormBuilder::resourceRole(), origHeaderItem->data(QAbstractFormBuilder::resourceRole()));
             destWidget->setHorizontalHeaderItem(col, headerItem);
         } else {
             if (headerItem)
@@ -173,6 +189,7 @@ void TableWidgetEditor::copyContents(QTableWidget *sourceWidget, QTableWidget *d
                 headerItem = new QTableWidgetItem;
             headerItem->setText(origHeaderItem->text());
             headerItem->setIcon(origHeaderItem->icon());
+            headerItem->setData(QAbstractFormBuilder::resourceRole(), origHeaderItem->data(QAbstractFormBuilder::resourceRole()));
             destWidget->setVerticalHeaderItem(row, headerItem);
         } else {
             if (headerItem)
@@ -185,8 +202,9 @@ void TableWidgetEditor::copyContents(QTableWidget *sourceWidget, QTableWidget *d
             QTableWidgetItem *origItem = sourceWidget->item(row, col);
             QTableWidgetItem *newItem = destWidget->item(row, col);
             if (origItem) {
-                QString text = origItem->text();
-                QIcon icon = origItem->icon();
+                const QString text = origItem->text();
+                const QIcon icon = origItem->icon();
+                const QVariant data = origItem->data(QAbstractFormBuilder::resourceRole());
                 if (text.isEmpty() && icon.isNull()) {
                     if (newItem)
                         delete newItem;
@@ -195,6 +213,7 @@ void TableWidgetEditor::copyContents(QTableWidget *sourceWidget, QTableWidget *d
                         newItem = new QTableWidgetItem;
                     newItem->setText(text);
                     newItem->setIcon(icon);
+                    newItem->setData(QAbstractFormBuilder::resourceRole(), data);
                     destWidget->setItem(row, col, newItem);
                 }
             } else {
@@ -271,7 +290,7 @@ void TableWidgetEditor::updateEditor()
         QTableWidgetItem *headerItem = ui.tableWidget->horizontalHeaderItem(i);
         if (!headerItem) {
             headerItem = new QTableWidgetItem;
-            ui.tableWidget->setHorizontalHeaderItem(i,headerItem);
+            ui.tableWidget->setHorizontalHeaderItem(i, headerItem);
         }
         headerItem->setText(ui.columnsListWidget->item(i)->text());
     }
@@ -279,7 +298,7 @@ void TableWidgetEditor::updateEditor()
         QTableWidgetItem *headerItem = ui.tableWidget->verticalHeaderItem(i);
         if (!headerItem) {
             headerItem = new QTableWidgetItem;
-            ui.tableWidget->setVerticalHeaderItem ( i,headerItem);
+            ui.tableWidget->setVerticalHeaderItem(i, headerItem);
         }
         headerItem->setText(ui.rowsListWidget->item(i)->text());
     }
@@ -321,39 +340,31 @@ void TableWidgetEditor::updateEditor()
         itemsEnabled = true;
 
     ui.itemsBox->setEnabled(itemsEnabled);
-    ui.textLabel->setEnabled(currentItemEnabled);
-    ui.pixmapLabel->setEnabled(currentItemEnabled);
-    ui.deletePixmapItemButton->setEnabled(currentItemEnabled);
-    ui.previewPixmapItemButton->setEnabled(currentItemEnabled);
-    ui.itemTextLineEdit->setEnabled(currentItemEnabled);
+    ui.itemIconSelector->setEnabled(currentItemEnabled);
 
-    ui.renameColumnButton->setEnabled(currentColumnEnabled);
     ui.deleteColumnButton->setEnabled(currentColumnEnabled);
-    ui.pixmapColumnLabel->setEnabled(currentColumnEnabled);
-    ui.previewPixmapColumnButton->setEnabled(currentColumnEnabled);
+    ui.columnIconSelector->setEnabled(currentColumnEnabled);
     ui.moveColumnUpButton->setEnabled(moveColumnUpEnabled);
     ui.moveColumnDownButton->setEnabled(moveColumnDownEnabled);
 
-    ui.renameRowButton->setEnabled(currentRowEnabled);
     ui.deleteRowButton->setEnabled(currentRowEnabled);
-    ui.pixmapRowLabel->setEnabled(currentRowEnabled);
-    ui.previewPixmapRowButton->setEnabled(currentRowEnabled);
+    ui.rowIconSelector->setEnabled(currentRowEnabled);
     ui.moveRowUpButton->setEnabled(moveRowUpEnabled);
     ui.moveRowDownButton->setEnabled(moveRowDownEnabled);
 
     QString itemText;
-    QIcon itemIcon, columnIcon, rowIcon;
+    PropertySheetIconValue itemIcon, columnIcon, rowIcon;
 
     if (currentColumn) {
         const int col = ui.columnsListWidget->currentRow();
         if (ui.tableWidget->horizontalHeaderItem(col))
-            columnIcon = ui.tableWidget->horizontalHeaderItem(col)->icon();
+            columnIcon = qVariantValue<PropertySheetIconValue>(ui.tableWidget->horizontalHeaderItem(col)->data(QAbstractFormBuilder::resourceRole()));
     }
 
     if (currentRow) {
         const int row = ui.rowsListWidget->currentRow();
         if (ui.tableWidget->verticalHeaderItem(row))
-            rowIcon = ui.tableWidget->verticalHeaderItem(row)->icon();
+            rowIcon = qVariantValue<PropertySheetIconValue>(ui.tableWidget->verticalHeaderItem(row)->data(QAbstractFormBuilder::resourceRole()));
     }
 
     if (currentColumn && currentRow) {
@@ -361,42 +372,19 @@ void TableWidgetEditor::updateEditor()
                     ui.columnsListWidget->currentRow());
         if (current) {
             itemText = current->text();
-            itemIcon = current->icon();
+            itemIcon = qVariantValue<PropertySheetIconValue>(current->data(QAbstractFormBuilder::resourceRole()));
         }
     }
 
-    ui.itemTextLineEdit->setText(itemText);
-    ui.previewPixmapItemButton->setIcon(itemIcon);
-    ui.deletePixmapItemButton->setEnabled(!itemIcon.isNull());
-    ui.previewPixmapColumnButton->setIcon(columnIcon);
-    ui.deletePixmapColumnButton->setEnabled(!columnIcon.isNull());
-    ui.previewPixmapRowButton->setIcon(rowIcon);
-    ui.deletePixmapRowButton->setEnabled(!rowIcon.isNull());
+    ui.columnIconSelector->setIcon(columnIcon);
+    ui.rowIconSelector->setIcon(rowIcon);
+    ui.itemIconSelector->setIcon(itemIcon);
 
     QMetaObject::invokeMethod(ui.tableWidget, "updateGeometries");
     ui.tableWidget->viewport()->update();
 }
 
-void TableWidgetEditor::on_itemTextLineEdit_textEdited(const QString &text)
-{
-    if (m_updating)
-        return;
-    QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
-    QListWidgetItem *currentRow = ui.rowsListWidget->currentItem();
-    if (!currentColumn || !currentRow)
-        return;
-
-    const int row = ui.rowsListWidget->currentRow();
-    const int col = ui.columnsListWidget->currentRow();
-    QTableWidgetItem *curItem = ui.tableWidget->item(row, col);
-    if (!curItem)
-        curItem = new QTableWidgetItem;
-    curItem->setText(text);
-
-    ui.tableWidget->setItem(row, col, curItem);
-}
-
-void TableWidgetEditor::on_deletePixmapItemButton_clicked()
+void TableWidgetEditor::on_itemIconSelector_iconChanged(const PropertySheetIconValue &icon)
 {
     QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
     QListWidgetItem *currentRow = ui.rowsListWidget->currentItem();
@@ -409,49 +397,9 @@ void TableWidgetEditor::on_deletePixmapItemButton_clicked()
     if (!curItem)
         curItem = new QTableWidgetItem;
 
-    curItem->setIcon(QIcon());
+    curItem->setData(QAbstractFormBuilder::resourceRole(), qVariantFromValue(icon));
+    curItem->setIcon(m_form->iconCache()->icon(icon));
     ui.tableWidget->setItem(row, col, curItem);
-    ui.previewPixmapItemButton->setIcon(QIcon());
-    ui.deletePixmapItemButton->setEnabled(false);
-}
-
-void TableWidgetEditor::on_previewPixmapItemButton_clicked()
-{
-    QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
-    QListWidgetItem *currentRow = ui.rowsListWidget->currentItem();
-    if (!currentColumn || !currentRow)
-        return;
-
-    const int row = ui.rowsListWidget->currentRow();
-    const int col = ui.columnsListWidget->currentRow();
-    QTableWidgetItem *curItem = ui.tableWidget->item(row, col);
-
-    FindIconDialog dialog(m_form, this);
-    QString file_path;
-    QString qrc_path;
-
-    QIcon icon;
-    if (curItem)
-        icon = curItem->icon();
-    if (!icon.isNull()) {
-        file_path = m_form->core()->iconCache()->iconToFilePath(icon);
-        qrc_path = m_form->core()->iconCache()->iconToQrcPath(icon);
-    }
-
-    dialog.setPaths(qrc_path, file_path);
-    if (dialog.exec()) {
-        file_path = dialog.filePath();
-        qrc_path = dialog.qrcPath();
-        if (!file_path.isEmpty()) {
-            icon = m_form->core()->iconCache()->nameToIcon(file_path, qrc_path);
-            if (!curItem)
-                curItem = new QTableWidgetItem;
-            curItem->setIcon(icon);
-            ui.tableWidget->setItem(row, col, curItem);
-            ui.previewPixmapItemButton->setIcon(icon);
-            ui.deletePixmapItemButton->setEnabled(!icon.isNull());
-        }
-    }
 }
 
 void TableWidgetEditor::moveColumnsLeft(int fromColumn, int toColumn)
@@ -573,15 +521,6 @@ void TableWidgetEditor::on_newColumnButton_clicked()
     ui.columnsListWidget->editItem(item);
 }
 
-void TableWidgetEditor::on_renameColumnButton_clicked()
-{
-    QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
-    if (!currentColumn)
-        return;
-
-    ui.columnsListWidget->editItem(currentColumn);
-}
-
 void TableWidgetEditor::on_deleteColumnButton_clicked()
 {
     QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
@@ -663,57 +602,25 @@ void TableWidgetEditor::on_moveColumnDownButton_clicked()
     updateEditor();
 }
 
-void TableWidgetEditor::on_previewPixmapColumnButton_clicked()
-{
-    QListWidgetItem *currentColumn = ui.columnsListWidget->currentItem();
-    if (!currentColumn)
-        return;
-
-    const int currentRow = ui.columnsListWidget->currentRow();
-
-    FindIconDialog dialog(m_form, this);
-    QString file_path;
-    QString qrc_path;
-
-    QIcon icon = currentColumn->icon();
-    if (!icon.isNull()) {
-        file_path = m_form->core()->iconCache()->iconToFilePath(icon);
-        qrc_path = m_form->core()->iconCache()->iconToQrcPath(icon);
-    }
-
-    dialog.setPaths(qrc_path, file_path);
-    if (dialog.exec()) {
-        file_path = dialog.filePath();
-        qrc_path = dialog.qrcPath();
-        if (!file_path.isEmpty()) {
-            icon = m_form->core()->iconCache()->nameToIcon(file_path, qrc_path);
-            currentColumn->setIcon(icon);
-            QTableWidgetItem *headerItem = ui.tableWidget->horizontalHeaderItem(currentRow);
-            if (!headerItem) {
-                headerItem = new QTableWidgetItem;
-            }
-            headerItem->setIcon(icon);
-            ui.tableWidget->setHorizontalHeaderItem(currentRow, headerItem);
-            ui.previewPixmapColumnButton->setIcon(icon);
-            ui.deletePixmapColumnButton->setEnabled(!icon.isNull());
-        }
-    }
-
-}
-
-void TableWidgetEditor::on_deletePixmapColumnButton_clicked()
+void TableWidgetEditor::on_columnIconSelector_iconChanged(const PropertySheetIconValue &icon)
 {
     QListWidgetItem *curItem = ui.columnsListWidget->currentItem();
     if (!curItem)
         return;
 
-    curItem->setIcon(QIcon());
+    m_updating = true;
+    const QVariant data = qVariantFromValue(icon);
+    const QIcon itemIcon = m_form->iconCache()->icon(icon);
+    curItem->setData(QAbstractFormBuilder::resourceRole(), data);
+    curItem->setIcon(itemIcon);
     const int col = ui.columnsListWidget->currentRow();
     QTableWidgetItem *headerItem = ui.tableWidget->horizontalHeaderItem(col);
-    if (headerItem)
-        headerItem->setIcon(QIcon());
-    ui.previewPixmapColumnButton->setIcon(QIcon());
-    ui.deletePixmapColumnButton->setEnabled(false);
+    if (headerItem) {
+        headerItem->setData(QAbstractFormBuilder::resourceRole(), data);
+        headerItem->setIcon(itemIcon);
+    }
+    m_updating = false;
+    updateEditor();
 }
 
 void TableWidgetEditor::on_newRowButton_clicked()
@@ -754,15 +661,6 @@ void TableWidgetEditor::on_newRowButton_clicked()
     updateEditor();
 
     ui.rowsListWidget->editItem(item);
-}
-
-void TableWidgetEditor::on_renameRowButton_clicked()
-{
-    QListWidgetItem *currentRow = ui.rowsListWidget->currentItem();
-    if (!currentRow)
-        return;
-
-    ui.rowsListWidget->editItem(currentRow);
 }
 
 void TableWidgetEditor::on_deleteRowButton_clicked()
@@ -846,57 +744,32 @@ void TableWidgetEditor::on_moveRowDownButton_clicked()
     updateEditor();
 }
 
-void TableWidgetEditor::on_previewPixmapRowButton_clicked()
-{
-    QListWidgetItem *currentRow = ui.rowsListWidget->currentItem();
-    if (!currentRow)
-        return;
-
-    const int current = ui.rowsListWidget->currentRow();
-
-    FindIconDialog dialog(m_form, this);
-    QString file_path;
-    QString qrc_path;
-
-    QIcon icon = currentRow->icon();
-    if (!icon.isNull()) {
-        file_path = m_form->core()->iconCache()->iconToFilePath(icon);
-        qrc_path = m_form->core()->iconCache()->iconToQrcPath(icon);
-    }
-
-    dialog.setPaths(qrc_path, file_path);
-    if (dialog.exec()) {
-        file_path = dialog.filePath();
-        qrc_path = dialog.qrcPath();
-        if (!file_path.isEmpty()) {
-            icon = m_form->core()->iconCache()->nameToIcon(file_path, qrc_path);
-            currentRow->setIcon(icon);
-            QTableWidgetItem *headerItem = ui.tableWidget->verticalHeaderItem(current);
-            if (!headerItem)
-                headerItem = new QTableWidgetItem;
-            headerItem->setIcon(icon);
-            ui.tableWidget->setVerticalHeaderItem(current, headerItem);
-            ui.previewPixmapRowButton->setIcon(icon);
-            ui.deletePixmapRowButton->setEnabled(!icon.isNull());
-        }
-    }
-
-}
-
-void TableWidgetEditor::on_deletePixmapRowButton_clicked()
+void TableWidgetEditor::on_rowIconSelector_iconChanged(const PropertySheetIconValue &icon)
 {
     QListWidgetItem *curItem = ui.rowsListWidget->currentItem();
     if (!curItem)
         return;
 
-    curItem->setIcon(QIcon());
+    m_updating = true;
+    const QVariant data = qVariantFromValue(icon);
+    const QIcon itemIcon = m_form->iconCache()->icon(icon);
+    curItem->setData(QAbstractFormBuilder::resourceRole(), data);
+    curItem->setIcon(itemIcon);
     const int row = ui.rowsListWidget->currentRow();
     QTableWidgetItem *headerItem = ui.tableWidget->verticalHeaderItem(row);
-    if (headerItem)
-        headerItem->setIcon(QIcon());
-    ui.previewPixmapRowButton->setIcon(QIcon());
-    ui.deletePixmapRowButton->setEnabled(false);
+    if (headerItem) {
+        headerItem->setData(QAbstractFormBuilder::resourceRole(), data);
+        headerItem->setIcon(itemIcon);
+    }
+    m_updating = false;
+    updateEditor();
 }
 
+void TableWidgetEditor::cacheReloaded()
+{
+    reloadIconResources(m_form->iconCache(), ui.tableWidget);
+    reloadIconResources(m_form->iconCache(), ui.rowsListWidget);
+    reloadIconResources(m_form->iconCache(), ui.columnsListWidget);
+}
 
-
+QT_END_NAMESPACE

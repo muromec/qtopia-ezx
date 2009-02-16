@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,8 +43,111 @@
 #include "qpainterpath.h"
 #include "qvarlengtharray.h"
 #include <private/qpdf_p.h>
-#include <private/qmath_p.h>
+#include <qmath.h>
 #include <qendian.h>
+#include <private/qharfbuzz_p.h>
+
+QT_BEGIN_NAMESPACE
+
+// Harfbuzz helper functions
+
+static HB_Bool hb_stringToGlyphs(HB_Font font, const HB_UChar16 *string, hb_uint32 length, HB_Glyph *glyphs, hb_uint32 *numGlyphs, HB_Bool rightToLeft)
+{
+    QFontEngine *fe = (QFontEngine *)font->userData;
+
+    QVarLengthArray<QGlyphLayout> qglyphs(*numGlyphs);
+    memset(qglyphs.data(), 0, qglyphs.size() * sizeof(QGlyphLayout));
+
+    QTextEngine::ShaperFlags shaperFlags(QTextEngine::GlyphIndicesOnly);
+    if (rightToLeft)
+        shaperFlags |= QTextEngine::RightToLeft;
+
+    int nGlyphs = *numGlyphs;
+    bool result = fe->stringToCMap(reinterpret_cast<const QChar *>(string), length, qglyphs.data(), &nGlyphs, shaperFlags);
+    *numGlyphs = nGlyphs;
+    if (!result)
+        return false;
+
+    for (hb_uint32 i = 0; i < *numGlyphs; ++i)
+        glyphs[i] = qglyphs[i].glyph;
+
+    return true;
+}
+
+static void hb_getAdvances(HB_Font font, const HB_Glyph *glyphs, hb_uint32 numGlyphs, HB_Fixed *advances, int flags)
+{
+    QFontEngine *fe = (QFontEngine *)font->userData;
+
+    QVarLengthArray<QGlyphLayout> qglyphs(numGlyphs);
+    memset(qglyphs.data(), 0, qglyphs.size() * sizeof(QGlyphLayout));
+
+    for (hb_uint32 i = 0; i < numGlyphs; ++i)
+        qglyphs[i].glyph = glyphs[i];
+
+    fe->recalcAdvances(numGlyphs, qglyphs.data(), flags & HB_ShaperFlag_UseDesignMetrics ? QFlags<QTextEngine::ShaperFlag>(QTextEngine::DesignMetrics) : QFlags<QTextEngine::ShaperFlag>(0));
+
+    for (hb_uint32 i = 0; i < numGlyphs; ++i)
+        advances[i] = qglyphs[i].advance.x.value();
+}
+
+static HB_Bool hb_canRender(HB_Font font, const HB_UChar16 *string, hb_uint32 length)
+{
+    QFontEngine *fe = (QFontEngine *)font->userData;
+    return fe->canRender(reinterpret_cast<const QChar *>(string), length);
+}
+
+static void hb_getGlyphMetrics(HB_Font font, HB_Glyph glyph, HB_GlyphMetrics *metrics)
+{
+    QFontEngine *fe = (QFontEngine *)font->userData;
+    glyph_metrics_t m = fe->boundingBox(glyph);
+    metrics->x = m.x.value();
+    metrics->y = m.y.value();
+    metrics->width = m.width.value();
+    metrics->height = m.height.value();
+    metrics->xOffset = m.xoff.value();
+    metrics->yOffset = m.yoff.value();
+}
+
+static HB_Fixed hb_getFontMetric(HB_Font font, HB_FontMetric metric)
+{
+    if (metric == HB_FontAscent) {
+        QFontEngine *fe = (QFontEngine *)font->userData;
+        return fe->ascent().value();
+    }
+    return 0;
+}
+
+HB_Error QFontEngine::getPointInOutline(HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints)
+{
+    Q_UNUSED(glyph)
+    Q_UNUSED(flags)
+    Q_UNUSED(point)
+    Q_UNUSED(xpos)
+    Q_UNUSED(ypos)
+    Q_UNUSED(nPoints)
+    return HB_Err_Not_Covered;
+}
+
+static HB_Error hb_getPointInOutline(HB_Font font, HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints)
+{
+    QFontEngine *fe = (QFontEngine *)font->userData;
+    return fe->getPointInOutline(glyph, flags, point, xpos, ypos, nPoints);
+}
+
+static const HB_FontClass hb_fontClass = {
+    hb_stringToGlyphs, hb_getAdvances, hb_canRender, hb_getPointInOutline,
+    hb_getGlyphMetrics, hb_getFontMetric
+};
+
+static HB_Error hb_getSFntTable(void *font, HB_Tag tableTag, HB_Byte *buffer, HB_UInt *length)
+{
+    QFontEngine *fe = (QFontEngine *)font;
+    if (!fe->getSfntTableData(tableTag, buffer, length))
+        return HB_Err_Invalid_Argument;
+    return HB_Err_Ok;
+}
+
+// QFontEngine
 
 QFontEngine::QFontEngine()
     : QObject()
@@ -58,16 +155,17 @@ QFontEngine::QFontEngine()
     ref = 0;
     cache_count = 0;
     fsType = 0;
-#if defined(Q_WS_WIN)
-    script_cache = 0;
-    cmap = 0;
-#endif
     symbol = false;
+    memset(&hbFont, 0, sizeof(hbFont));
+    hbFont.klass = &hb_fontClass;
+    hbFont.userData = this;
+
+    hbFace = 0;
 }
 
-#ifndef Q_WS_WIN
 QFontEngine::~QFontEngine()
 {
+    qHBFreeFace(hbFace);
 }
 
 QFixed QFontEngine::lineThickness() const
@@ -87,7 +185,25 @@ QFixed QFontEngine::underlinePosition() const
 {
     return ((lineThickness() * 2) + 3) / 6;
 }
-#endif
+
+HB_Font QFontEngine::harfbuzzFont() const
+{
+    if (!hbFont.x_ppem) {
+        QFixed emSquare = emSquareSize();
+        hbFont.x_ppem = fontDef.pixelSize;
+        hbFont.y_ppem = fontDef.pixelSize * fontDef.stretch / 100;
+        hbFont.x_scale = (QFixed(hbFont.x_ppem * (1 << 16)) / emSquare).value();
+        hbFont.y_scale = (QFixed(hbFont.y_ppem * (1 << 16)) / emSquare).value();
+    }
+    return &hbFont;
+}
+
+HB_Face QFontEngine::harfbuzzFace() const
+{
+    if (!hbFace)
+        hbFace = qHBNewFace(const_cast<QFontEngine *>(this), hb_getSFntTable);
+    return hbFace;
+}
 
 QFixed QFontEngine::xHeight() const
 {
@@ -132,9 +248,9 @@ void QFontEngine::getGlyphPositions(const QGlyphLayout *glyphs, int nglyphs, con
         int i = nglyphs;
         int totalKashidas = 0;
         while(i--) {
-            xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].space_18d6);
+            xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].justification.space_18d6);
             ypos += glyphs[i].advance.y;
-            totalKashidas += glyphs[i].nKashidas;
+            totalKashidas += glyphs[i].justification.nKashidas;
         }
         positions.resize(nglyphs+totalKashidas);
         glyphs_out.resize(nglyphs+totalKashidas);
@@ -160,12 +276,12 @@ void QFontEngine::getGlyphPositions(const QGlyphLayout *glyphs, int nglyphs, con
             positions[current].y = gpos_y;
             glyphs_out[current] = glyphs[i].glyph;
             ++current;
-            if (glyphs[i].nKashidas) {
+            if (glyphs[i].justification.nKashidas) {
                 QChar ch(0x640); // Kashida character
                 QGlyphLayout g[8];
                 int nglyphs = 7;
                 stringToCMap(&ch, 1, g, &nglyphs, 0);
-                for (uint k = 0; k < glyphs[i].nKashidas; ++k) {
+                for (uint k = 0; k < glyphs[i].justification.nKashidas; ++k) {
                     xpos -= g[0].advance.x;
                     ypos -= g[0].advance.y;
 
@@ -183,7 +299,7 @@ void QFontEngine::getGlyphPositions(const QGlyphLayout *glyphs, int nglyphs, con
                     ++current;
                 }
             } else {
-                xpos -= QFixed::fromFixed(glyphs[i].space_18d6);
+                xpos -= QFixed::fromFixed(glyphs[i].justification.space_18d6);
             }
             ++i;
         }
@@ -197,7 +313,7 @@ void QFontEngine::getGlyphPositions(const QGlyphLayout *glyphs, int nglyphs, con
                     positions[current].x = xpos + glyphs[i].offset.x;
                     positions[current].y = ypos + glyphs[i].offset.y;
                     glyphs_out[current] = glyphs[i].glyph;
-                    xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].space_18d6);
+                    xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].justification.space_18d6);
                     ypos += glyphs[i].advance.y;
                     ++current;
                 }
@@ -216,7 +332,7 @@ void QFontEngine::getGlyphPositions(const QGlyphLayout *glyphs, int nglyphs, con
                     positions[current].x = QFixed::fromReal(gpos.x());
                     positions[current].y = QFixed::fromReal(gpos.y());
                     glyphs_out[current] = glyphs[i].glyph;
-                    xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].space_18d6);
+                    xpos += glyphs[i].advance.x + QFixed::fromFixed(glyphs[i].justification.space_18d6);
                     ypos += glyphs[i].advance.y;
                     ++current;
                 }
@@ -370,10 +486,12 @@ void QFontEngine::addBitmapFontToPath(qreal x, qreal y, const QGlyphLayout *glyp
     int h = metrics.height.toInt();
     if (w <= 0 || h <= 0)
         return;
-    QBitmap bm(w, h);
+
+    QImage bm(w, h, QImage::Format_Mono);
+
     QPainter p(&bm);
-    p.fillRect(0, 0, w, h, Qt::color0);
-    p.setPen(Qt::color1);
+    p.fillRect(0, 0, w, h, QBrush(bm.color(0)));
+    p.setPen(bm.color(1));
 
     QTextItemInt item;
     item.flags = flags;
@@ -388,13 +506,11 @@ void QFontEngine::addBitmapFontToPath(qreal x, qreal y, const QGlyphLayout *glyp
     item.fontEngine = this;
     item.f = 0;
 
-    p.drawTextItem(QPointF(-metrics.x.toReal(), item.ascent.toReal()), item);
+    p.drawTextItem(QPointF(0, item.ascent.toReal()), item);
     p.end();
 
-    QImage image = bm.toImage();
-    image = image.convertToFormat(QImage::Format_Mono);
-    const uchar *image_data = image.bits();
-    uint bpl = image.bytesPerLine();
+    const uchar *image_data = bm.bits();
+    uint bpl = bm.bytesPerLine();
     qt_addBitmapToPath(x, y - item.ascent.toReal(), image_data, bpl, w, h, path);
 }
 
@@ -500,6 +616,34 @@ void QFontEngine::getUnscaledGlyph(glyph_t glyph, QPainterPath *path, glyph_metr
     addGlyphsToPath(&glyph, &p, 1, path, QFlag(0));
 }
 
+QByteArray QFontEngine::getSfntTable(uint tag) const
+{
+    QByteArray table;
+    uint len = 0;
+    if (!getSfntTableData(tag, 0, &len))
+        return table;
+    if (!len)
+        return table;
+    table.resize(len);
+    if (!getSfntTableData(tag, reinterpret_cast<uchar *>(table.data()), &len))
+        return QByteArray();
+    return table;
+}
+
+bool QFontEngine::stringToCMap(const QChar *str, int len, HB_Glyph *glyphs, int *nglyphs, QTextEngine::ShaperFlags flags) const
+{
+    QVarLengthArray<QGlyphLayout> qglyphs(*nglyphs);
+    memset(qglyphs.data(), 0, qglyphs.size() * sizeof(QGlyphLayout));
+
+    if (!stringToCMap(str, len, qglyphs.data(), nglyphs, flags))
+        return false;
+
+    for (int i = 0; i < *nglyphs; ++i)
+        glyphs[i] = qglyphs[i].glyph;
+
+    return true;
+}
+
 #if defined(Q_WS_WIN) || defined(Q_WS_X11) || defined(Q_WS_QWS)
 static inline QFixed kerning(int left, int right, const QFontEngine::KernPair *pairs, int numPairs)
 {
@@ -509,7 +653,7 @@ static inline QFixed kerning(int left, int right, const QFontEngine::KernPair *p
     while (left <= right) {
         int middle = left + ( ( right - left ) >> 1 );
 
-	if(pairs[middle].left_right == left_right)
+        if(pairs[middle].left_right == left_right)
             return pairs[middle].adjust;
 
         if (pairs[middle].left_right < left_right)
@@ -651,7 +795,7 @@ const uchar *QFontEngine::getCMap(const uchar *table, uint tableSize, bool *isSy
             } else if (score < 3 && platformSpecificId == 1) {
                 tableToUse = n;
                 score = 3;
-	    }
+            }
             break;
         case 1: // Apple
             if (score < 2 && platformSpecificId == 0) { // Apple Roman
@@ -729,7 +873,7 @@ quint32 QFontEngine::getTrueTypeGlyphIndex(const uchar *cmap, uint unicode)
         const unsigned char *ends = cmap + 14;
         quint16 endIndex = 0;
         int i = 0;
-        for (; i < segCountX2/2 && (endIndex = qFromBigEndian<quint16>(ends + 2*i)) < unicode; i++);
+        for (; i < segCountX2/2 && (endIndex = qFromBigEndian<quint16>(ends + 2*i)) < unicode; i++) {}
 
         const unsigned char *idx = ends + segCountX2 + 2 + 2*i;
         quint16 startIndex = qFromBigEndian<quint16>(idx);
@@ -783,25 +927,10 @@ quint32 QFontEngine::getTrueTypeGlyphIndex(const uchar *cmap, uint unicode)
 // The box font engine
 // ------------------------------------------------------------------
 
-#ifdef Q_WS_WIN
-#include "qt_windows.h"
-#endif
-
 QFontEngineBox::QFontEngineBox(int size)
     : _size(size)
 {
     cache_cost = sizeof(QFontEngineBox);
-
-#ifdef Q_WS_WIN
-#ifndef Q_OS_TEMP
-    hfont = (HFONT)GetStockObject(ANSI_VAR_FONT);
-#endif
-    stockFont = true;
-    ttf = false;
-
-    cmap = 0;
-    script_cache = 0;
-#endif
 }
 
 QFontEngineBox::~QFontEngineBox()
@@ -825,6 +954,14 @@ bool QFontEngineBox::stringToCMap(const QChar *, int len, QGlyphLayout *glyphs, 
     return true;
 }
 
+void QFontEngineBox::recalcAdvances(int len, QGlyphLayout *glyphs, QTextEngine::ShaperFlags) const
+{
+    for (int i = 0; i < len; i++) {
+        glyphs[i].advance.x = _size;
+        glyphs[i].advance.y = 0;
+    }
+}
+
 void QFontEngineBox::addOutlineToPath(qreal x, qreal y, const QGlyphLayout *glyphs, int numGlyphs, QPainterPath *path, QTextItem::RenderFlags flags)
 {
     if (!numGlyphs)
@@ -833,12 +970,10 @@ void QFontEngineBox::addOutlineToPath(qreal x, qreal y, const QGlyphLayout *glyp
     QVarLengthArray<QFixedPoint> positions;
     QVarLengthArray<glyph_t> positioned_glyphs;
     QTransform matrix;
-    matrix.translate(x, y);
+    matrix.translate(x, y - _size);
     getGlyphPositions(glyphs, numGlyphs, matrix, flags, positioned_glyphs, positions);
-    addGlyphsToPath(positioned_glyphs.data(), positions.data(), positioned_glyphs.size(), path, flags);
 
-    int size = qRound(ascent());
-    QSize s(size - 3, size - 3);
+    QSize s(_size - 3, _size - 3);
     for (int k = 0; k < positions.size(); k++)
         path->addRect(QRectF(positions[k].toPointF(), s));
 }
@@ -858,13 +993,13 @@ void QFontEngineBox::draw(QPaintEngine *p, qreal x, qreal y, const QTextItemInt 
     if (!ti.num_glyphs)
         return;
 
-    int size = qRound(ascent());
-    QSize s(size - 3, size - 3);
+    // any fixes here should probably also be done in QPaintEnginePrivate::drawBoxTextItem
+    QSize s(_size - 3, _size - 3);
 
     QVarLengthArray<QFixedPoint> positions;
     QVarLengthArray<glyph_t> glyphs;
     QTransform matrix;
-    matrix.translate(x, y - size);
+    matrix.translate(x, y - _size);
     ti.fontEngine->getGlyphPositions(ti.glyphs, ti.num_glyphs, matrix, ti.flags, glyphs, positions);
     if (glyphs.size() == 0)
         return;
@@ -901,7 +1036,7 @@ QFixed QFontEngineBox::descent() const
 
 QFixed QFontEngineBox::leading() const
 {
-    QFixed l = _size * QFixed::fromReal(0.15);
+    QFixed l = _size * QFixed::fromReal(qreal(0.15));
     return l.ceil();
 }
 
@@ -997,6 +1132,50 @@ bool QFontEngineMulti::stringToCMap(const QChar *str, int len,
             }
             // ensure we use metrics from the 1st font when we use the fallback image.
             if (!glyphs[glyph_pos].glyph)
+                glyphs[glyph_pos] = tmp;
+        }
+        if (surrogate)
+            ++i;
+        ++glyph_pos;
+    }
+
+    *nglyphs = ng;
+    return true;
+}
+
+bool QFontEngineMulti::stringToCMap(const QChar *str, int len, HB_Glyph *glyphs, int *nglyphs,
+                                    QTextEngine::ShaperFlags flags) const
+{
+    int ng = *nglyphs;
+    if (!engine(0)->stringToCMap(str, len, glyphs, &ng, flags))
+        return false;
+
+    int glyph_pos = 0;
+    for (int i = 0; i < len; ++i) {
+        bool surrogate = (str[i].unicode() >= 0xd800 && str[i].unicode() < 0xdc00 && i < len-1
+                          && str[i+1].unicode() >= 0xdc00 && str[i+1].unicode() < 0xe000);
+        if (glyphs[glyph_pos] == 0) {
+            HB_Glyph tmp = glyphs[glyph_pos];
+            for (int x = 1; x < engines.size(); ++x) {
+                QFontEngine *engine = engines.at(x);
+                if (!engine) {
+                    const_cast<QFontEngineMulti *>(this)->loadEngine(x);
+                    engine = engines.at(x);
+                }
+                Q_ASSERT(engine != 0);
+                if (engine->type() == Box)
+                    continue;
+                int num = 2;
+                engine->stringToCMap(str + i, surrogate ? 2 : 1, glyphs + glyph_pos, &num, flags);
+                Q_ASSERT(num == 1); // surrogates only give 1 glyph
+                if (glyphs[glyph_pos]) {
+                    // set the high byte to indicate which engine the glyph came from
+                    glyphs[glyph_pos] |= (x << 24);
+                    break;
+                }
+            }
+            // ensure we use metrics from the 1st font when we use the fallback image.
+            if (!glyphs[glyph_pos])
                 glyphs[glyph_pos] = tmp;
         }
         if (surrogate)
@@ -1303,3 +1482,5 @@ QFontEngine *QFontEngineMulti::engine(int at) const
     Q_ASSERT(at < engines.size());
     return engines.at(at);
 }
+
+QT_END_NAMESPACE

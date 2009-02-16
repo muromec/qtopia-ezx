@@ -5,13 +5,10 @@
 ** This file contains third party code which is not governed by the Qt
 ** Commercial License Agreement. Please read the license headers below
 ** for more information.
-** 
+**
 ** Further information about Qt licensing is available at:
 ** http://www.trolltech.com/products/qt/licensing.html or by
-** contacting info@trolltech.com.
-**
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** contacting qt-info@nokia.com.
 **
 ****************************************************************************/
 
@@ -888,9 +885,9 @@ QT_FT_BEGIN_HEADER
   /*    only for those scanlines that do have `gray' pixels on them.       */
   /*                                                                       */
   typedef void
-  (*QT_FT_SpanFunc)(int       count,
+  (*QT_FT_SpanFunc)(int        count,
                     const QT_FT_Span*  spans,
-                    void*     user );
+                    void*     worker);
 
 #define QT_FT_Raster_Span_Func   QT_FT_SpanFunc
 

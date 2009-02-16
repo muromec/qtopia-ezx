@@ -5,11 +5,11 @@
 </phrase>
 <phrase>
     <source>access key</source>
-    <target>touche d&apos;accÃ¨s rapide</target>
+    <target>touche d&apos;accès rapide</target>
 </phrase>
 <phrase>
     <source>accessibility</source>
-    <target>accessibilitÃ©</target>
+    <target>accessibilité</target>
 </phrase>
 <phrase>
     <source>action handle</source>
@@ -25,7 +25,7 @@
 </phrase>
 <phrase>
     <source>active end</source>
-    <target>point de fin de sÃ©lecion</target>
+    <target>point de fin de sélecion</target>
 </phrase>
 <phrase>
     <source>active object</source>
@@ -33,7 +33,7 @@
 </phrase>
 <phrase>
     <source>active window</source>
-    <target>fenÃªtre activ</target>
+    <target>fenêtre activ</target>
 </phrase>
 <phrase>
     <source>adornment</source>
@@ -45,7 +45,7 @@
 </phrase>
 <phrase>
     <source>anchor point</source>
-    <target>point de dÃ©but de sÃ©lection</target>
+    <target>point de début de sélection</target>
 </phrase>
 <phrase>
     <source>Apply</source>
@@ -57,7 +57,7 @@
 </phrase>
 <phrase>
     <source>auto-repeat</source>
-    <target>rÃ©pÃ©tition automatique</target>
+    <target>répétition automatique</target>
 </phrase>
 <phrase>
     <source>automatic link</source>
@@ -65,15 +65,15 @@
 </phrase>
 <phrase>
     <source>automatic scrolling</source>
-    <target>dÃ©filement automatique</target>
+    <target>défilement automatique</target>
 </phrase>
 <phrase>
     <source>autoscroll</source>
-    <target>dÃ©filement automatique</target>
+    <target>défilement automatique</target>
 </phrase>
 <phrase>
     <source>Back</source>
-    <target>PrÃ©cÃ©dent</target>
+    <target>Précédent</target>
 </phrase>
 <phrase>
     <source>barrel button</source>
@@ -81,11 +81,11 @@
 </phrase>
 <phrase>
     <source>barrel-tap</source>
-    <target>toucher-maintenir enfoncÃ©</target>
+    <target>toucher-maintenir enfoncé</target>
 </phrase>
 <phrase>
     <source>boxed edit</source>
-    <target>Ã©dition contrÃ´lÃ©e</target>
+    <target>édition contrôlée</target>
     <definition>control</definition>
 </phrase>
 <phrase>
@@ -102,7 +102,7 @@
 </phrase>
 <phrase>
     <source>check box</source>
-    <target>case Ã  cocher</target>
+    <target>case à cocher</target>
 </phrase>
 <phrase>
     <source>check mark</source>
@@ -110,7 +110,7 @@
 </phrase>
 <phrase>
     <source>child window</source>
-    <target>fenÃªtre enfant</target>
+    <target>fenêtre enfant</target>
 </phrase>
 <phrase>
     <source>choose</source>
@@ -119,7 +119,7 @@
 <phrase>
     <source>click</source>
     <target>cliquer sur</target>
-    <definition>verb, Ã  l&apos;Ã©cran</definition>
+    <definition>verb, à l&apos;écran</definition>
 </phrase>
 <phrase>
     <source>click</source>
@@ -149,12 +149,12 @@
 </phrase>
 <phrase>
     <source>collapse</source>
-    <target>rÃ©duire</target>
+    <target>réduire</target>
     <definition>outline</definition>
 </phrase>
 <phrase>
     <source>column heading</source>
-    <target>en-tÃªte de colonne</target>
+    <target>en-tête de colonne</target>
     <definition>control</definition>
 </phrase>
 <phrase>
@@ -184,7 +184,7 @@
 </phrase>
 <phrase>
     <source>control</source>
-    <target>contrÃ´le</target>
+    <target>contrôle</target>
 </phrase>
 <phrase>
     <source>Copy</source>
@@ -208,11 +208,11 @@
 </phrase>
 <phrase>
     <source>default</source>
-    <target>par dÃ©faut</target>
+    <target>par défaut</target>
 </phrase>
 <phrase>
     <source>default button</source>
-    <target>bouton par dÃ©faut</target>
+    <target>bouton par défaut</target>
 </phrase>
 <phrase>
     <source>Delete</source>
@@ -228,15 +228,15 @@
 </phrase>
 <phrase>
     <source>dialog box</source>
-    <target>boÃ®te de dialogue</target>
+    <target>boîte de dialogue</target>
 </phrase>
 <phrase>
     <source>disability</source>
-    <target>incapacitÃ©</target>
+    <target>incapacité</target>
 </phrase>
 <phrase>
     <source>disjoint selection</source>
-    <target>sÃ©lection d&apos;objets disjoints</target>
+    <target>sélection d&apos;objets disjoints</target>
 </phrase>
 <phrase>
     <source>dock</source>
@@ -260,19 +260,19 @@
 </phrase>
 <phrase>
     <source>drag-and-drop</source>
-    <target>glisser-dÃ©placer</target>
+    <target>glisser-déplacer</target>
 </phrase>
 <phrase>
     <source>drop-down combo box</source>
-    <target>zone de liste dÃ©roulante modifiable</target>
+    <target>zone de liste déroulante modifiable</target>
 </phrase>
 <phrase>
     <source>drop-down list box</source>
-    <target>zone de liste dÃ©roulante fixe</target>
+    <target>zone de liste déroulante fixe</target>
 </phrase>
 <phrase>
     <source>drop-down menu</source>
-    <target>menu dÃ©roulant</target>
+    <target>menu déroulant</target>
 </phrase>
 <phrase>
     <source>Edit</source>
@@ -288,7 +288,7 @@
 </phrase>
 <phrase>
     <source>embedded object</source>
-    <target>objet incorporÃ©</target>
+    <target>objet incorporé</target>
 </phrase>
 <phrase>
     <source>Exit</source>
@@ -296,7 +296,7 @@
 </phrase>
 <phrase>
     <source>expand</source>
-    <target>dÃ©velopper</target>
+    <target>développer</target>
     <definition>an outline</definition>
 </phrase>
 <phrase>
@@ -305,11 +305,11 @@
 </phrase>
 <phrase>
     <source>extended selection</source>
-    <target>sÃ©lection Ã©tendue</target>
+    <target>sélection étendue</target>
 </phrase>
 <phrase>
     <source>extended selection list box</source>
-    <target>zone de liste Ã  sÃ©lection Ã©tendue</target>
+    <target>zone de liste à sélection étendue</target>
 </phrase>
 <phrase>
     <source>File</source>
@@ -383,7 +383,7 @@
 </phrase>
 <phrase>
     <source>hierarchical selection</source>
-    <target>sÃ©lection hiÃ©rarchique</target>
+    <target>sélection hiérarchique</target>
 </phrase>
 <phrase>
     <source>hold</source>
@@ -399,7 +399,7 @@
 </phrase>
 <phrase>
     <source>icon</source>
-    <target>icÃ´ne</target>
+    <target>icône</target>
 </phrase>
 <phrase>
     <source>inactive</source>
@@ -411,15 +411,15 @@
 </phrase>
 <phrase>
     <source>inactive window</source>
-    <target>fenÃªtre inactive</target>
+    <target>fenêtre inactive</target>
 </phrase>
 <phrase>
     <source>ink</source>
-    <target>dessin Ã  main levÃ©e</target>
+    <target>dessin à main levée</target>
 </phrase>
 <phrase>
     <source>ink edit</source>
-    <target>Ã©diteur de dissin Ã  main levÃ©e</target>
+    <target>éditeur de dissin à main levée</target>
 </phrase>
 <phrase>
     <source>input focus</source>
@@ -431,7 +431,7 @@
 </phrase>
 <phrase>
     <source>Insert Object</source>
-    <target>InsÃ©rer un objet</target>
+    <target>Insérer un objet</target>
 </phrase>
 <phrase>
     <source>insertion point</source>
@@ -447,7 +447,7 @@
 </phrase>
 <phrase>
     <source>label</source>
-    <target>Ã©tiquette</target>
+    <target>étiquette</target>
 </phrase>
 <phrase>
     <source>landscape</source>
@@ -482,12 +482,12 @@
 </phrase>
 <phrase>
     <source>list view</source>
-    <target>presentaciÃ³n de iconos </target>
+    <target>presentación de iconos </target>
     <definition>control</definition>
 </phrase>
 <phrase>
     <source>list view</source>
-    <target>Liste icÃ´nes</target>
+    <target>Liste icônes</target>
     <definition>control</definition>
 </phrase>
 <phrase>
@@ -520,7 +520,7 @@
 </phrase>
 <phrase>
     <source>menu item</source>
-    <target>Ã©lÃ©ment de menu</target>
+    <target>élément de menu</target>
 </phrase>
 <phrase>
     <source>menu title</source>
@@ -528,15 +528,15 @@
 </phrase>
 <phrase>
     <source>message box</source>
-    <target>boÃ®te de message</target>
+    <target>boîte de message</target>
 </phrase>
 <phrase>
     <source>Minimize</source>
-    <target>RÃ©duction</target>
+    <target>Réduction</target>
 </phrase>
 <phrase>
     <source>minimize button</source>
-    <target>rÃ©duire</target>
+    <target>réduire</target>
 </phrase>
 <phrase>
     <source>mixed-value</source>
@@ -564,11 +564,11 @@
 </phrase>
 <phrase>
     <source>Move</source>
-    <target>DÃ©placement</target>
+    <target>Déplacement</target>
 </phrase>
 <phrase>
     <source>Move Here</source>
-    <target>TransfÃ©rer ici</target>
+    <target>Transférer ici</target>
 </phrase>
 <phrase>
     <source>Multiple Document Interface</source>
@@ -576,7 +576,7 @@
 </phrase>
 <phrase>
     <source>multiple selection list box</source>
-    <target>zone de liste Ã  sÃ©lection multiple</target>
+    <target>zone de liste à sélection multiple</target>
 </phrase>
 <phrase>
     <source>My Computer</source>
@@ -585,7 +585,7 @@
 </phrase>
 <phrase>
     <source>Network Neighborhood</source>
-    <target>Voisinage rÃ©seau</target>
+    <target>Voisinage réseau</target>
     <definition>icon</definition>
 </phrase>
 <phrase>
@@ -610,19 +610,19 @@
 </phrase>
 <phrase>
     <source>OLE drag and drop</source>
-    <target>glisser-dÃ©placer OLE</target>
+    <target>glisser-déplacer OLE</target>
 </phrase>
 <phrase>
     <source>OLE embedded object</source>
-    <target>Objet OLE incorporÃ©</target>
+    <target>Objet OLE incorporé</target>
 </phrase>
 <phrase>
     <source>OLE linked object</source>
-    <target>Objet OLE liÃ©</target>
+    <target>Objet OLE lié</target>
 </phrase>
 <phrase>
     <source>OLE nondefault drag and drop</source>
-    <target>glisser-dÃ©placer OLE non standard</target>
+    <target>glisser-déplacer OLE non standard</target>
 </phrase>
 <phrase>
     <source>Open</source>
@@ -638,7 +638,7 @@
 </phrase>
 <phrase>
     <source>option-set</source>
-    <target>Ã©tat des caractÃ©ristiques</target>
+    <target>état des caractéristiques</target>
 </phrase>
 <phrase>
     <source>package</source>
@@ -658,7 +658,7 @@
 </phrase>
 <phrase>
     <source>parent window</source>
-    <target>fenÃªtre parent</target>
+    <target>fenêtre parent</target>
 </phrase>
 <phrase>
     <source>password</source>
@@ -678,7 +678,7 @@
 </phrase>
 <phrase>
     <source>Paste Special</source>
-    <target>Collage spÃ©cial</target>
+    <target>Collage spécial</target>
 </phrase>
 <phrase>
     <source>path</source>
@@ -694,7 +694,7 @@
 </phrase>
 <phrase>
     <source>Play</source>
-    <target>ExÃ©cuter</target>
+    <target>Exécuter</target>
 </phrase>
 <phrase>
     <source>Plug and Play</source>
@@ -720,7 +720,7 @@
 </phrase>
 <phrase>
     <source>pop-up window</source>
-    <target>fenÃªtre autonome</target>
+    <target>fenêtre autonome</target>
 </phrase>
 <phrase>
     <source>portrait</source>
@@ -729,7 +729,7 @@
 <phrase>
     <source>press</source>
     <target>appuyer</target>
-    <definition>and hold a mouse button/et maintenir enfoncÃ©</definition>
+    <definition>and hold a mouse button/et maintenir enfoncé</definition>
 </phrase>
 <phrase>
     <source>press</source>
@@ -742,7 +742,7 @@
 </phrase>
 <phrase>
     <source>primary window</source>
-    <target>fenÃªtre principale</target>
+    <target>fenêtre principale</target>
 </phrase>
 <phrase>
     <source>Print</source>
@@ -754,7 +754,7 @@
 </phrase>
 <phrase>
     <source>progress indicator</source>
-    <target>indicateur d&apos;Ã©tat</target>
+    <target>indicateur d&apos;état</target>
     <definition>control</definition>
 </phrase>
 <phrase>
@@ -763,27 +763,27 @@
 </phrase>
 <phrase>
     <source>Properties</source>
-    <target>PropriÃ©tÃ©s</target>
+    <target>Propriétés</target>
 </phrase>
 <phrase>
     <source>property inspector</source>
-    <target>inspecteur de propriÃ©tÃ©s</target>
+    <target>inspecteur de propriétés</target>
 </phrase>
 <phrase>
     <source>property page</source>
-    <target>page de propriÃ©tÃ©s</target>
+    <target>page de propriétés</target>
 </phrase>
 <phrase>
     <source>property sheet</source>
-    <target>feuille de propriÃ©tÃ©s</target>
+    <target>feuille de propriétés</target>
 </phrase>
 <phrase>
     <source>property sheet control</source>
-    <target>feuille de propriÃ©tÃ©s</target>
+    <target>feuille de propriétés</target>
 </phrase>
 <phrase>
     <source>Quick View</source>
-    <target>AperÃ§u</target>
+    <target>Aperçu</target>
 </phrase>
 <phrase>
     <source>read-only</source>
@@ -804,7 +804,7 @@
 </phrase>
 <phrase>
     <source>region selection</source>
-    <target>sÃ©lection par zone</target>
+    <target>sélection par zone</target>
 </phrase>
 <phrase>
     <source>registry</source>
@@ -812,7 +812,7 @@
 </phrase>
 <phrase>
     <source>Repeat</source>
-    <target>RÃ©pÃ©ter</target>
+    <target>Répéter</target>
 </phrase>
 <phrase>
     <source>Replace</source>
@@ -841,7 +841,7 @@
 </phrase>
 <phrase>
     <source>Run</source>
-    <target>ExÃ©cuter</target>
+    <target>Exécuter</target>
 </phrase>
 <phrase>
     <source>Save</source>
@@ -853,39 +853,39 @@
 </phrase>
 <phrase>
     <source>scroll</source>
-    <target>faire dÃ©filer</target>
+    <target>faire défiler</target>
 </phrase>
 <phrase>
     <source>scroll arrow</source>
-    <target>flÃ¨che de dÃ©filement</target>
+    <target>flèche de défilement</target>
 </phrase>
 <phrase>
     <source>scroll bar</source>
-    <target>barre de dÃ©filement</target>
+    <target>barre de défilement</target>
 </phrase>
 <phrase>
     <source>scroll box</source>
-    <target>curseur de dÃ©filement</target>
+    <target>curseur de défilement</target>
 </phrase>
 <phrase>
     <source>secondary window</source>
-    <target>fenÃªtre secondaire</target>
+    <target>fenêtre secondaire</target>
 </phrase>
 <phrase>
     <source>select</source>
-    <target>sÃ©lectionner</target>
+    <target>sélectionner</target>
 </phrase>
 <phrase>
     <source>Select All</source>
-    <target>Tout sÃ©lectionner</target>
+    <target>Tout sélectionner</target>
 </phrase>
 <phrase>
     <source>selection</source>
-    <target>sÃ©lection</target>
+    <target>sélection</target>
 </phrase>
 <phrase>
     <source>selection handle</source>
-    <target>handle de sÃ©lection</target>
+    <target>handle de sélection</target>
 </phrase>
 <phrase>
     <source>Send To</source>
@@ -893,11 +893,11 @@
 </phrase>
 <phrase>
     <source>separator</source>
-    <target>sÃ©parateur</target>
+    <target>séparateur</target>
 </phrase>
 <phrase>
     <source>Settings</source>
-    <target>ParamÃ¨tres</target>
+    <target>Paramètres</target>
 </phrase>
 <phrase>
     <source>Setup</source>
@@ -933,11 +933,11 @@
 </phrase>
 <phrase>
     <source>Shutdown</source>
-    <target>ArrÃªter l&apos;ordinateur</target>
+    <target>Arrêter l&apos;ordinateur</target>
 </phrase>
 <phrase>
     <source>single selection list box</source>
-    <target>zone de liste Ã  sÃ©lection unique</target>
+    <target>zone de liste à sélection unique</target>
 </phrase>
 <phrase>
     <source>Size</source>
@@ -945,11 +945,11 @@
 </phrase>
 <phrase>
     <source>size grip</source>
-    <target>poignÃ©e de redimensionnement</target>
+    <target>poignée de redimensionnement</target>
 </phrase>
 <phrase>
     <source>slider</source>
-    <target>dÃ©fileur</target>
+    <target>défileur</target>
 </phrase>
 <phrase>
     <source>spin box</source>
@@ -969,19 +969,19 @@
 </phrase>
 <phrase>
     <source>Start button</source>
-    <target>DÃ©marrer</target>
+    <target>Démarrer</target>
 </phrase>
 <phrase>
     <source>StartUp folder</source>
-    <target>dossier de dÃ©marrage</target>
+    <target>dossier de démarrage</target>
 </phrase>
 <phrase>
     <source>status bar</source>
-    <target>barre d&apos;Ã©tat</target>
+    <target>barre d&apos;état</target>
 </phrase>
 <phrase>
     <source>Stop</source>
-    <target>ArrÃªter</target>
+    <target>Arrêter</target>
 </phrase>
 <phrase>
     <source>tab control</source>
@@ -993,15 +993,15 @@
 </phrase>
 <phrase>
     <source>task bar</source>
-    <target>barre des tÃ¢ches</target>
+    <target>barre des tâches</target>
 </phrase>
 <phrase>
     <source>task-oriented Help</source>
-    <target>aide spÃ©cifique aux tÃ¢ches</target>
+    <target>aide spécifique aux tâches</target>
 </phrase>
 <phrase>
     <source>template</source>
-    <target>modÃ¨le</target>
+    <target>modèle</target>
 </phrase>
 <phrase>
     <source>text box</source>
@@ -1051,7 +1051,7 @@
 </phrase>
 <phrase>
     <source>Uninstall</source>
-    <target>DÃ©sinstaller</target>
+    <target>Désinstaller</target>
 </phrase>
 <phrase>
     <source>View</source>
@@ -1063,7 +1063,7 @@
 </phrase>
 <phrase>
     <source>well control</source>
-    <target>sÃ©lection graphique</target>
+    <target>sélection graphique</target>
 </phrase>
 <phrase>
     <source>What&apos;s This?</source>
@@ -1071,11 +1071,11 @@
 </phrase>
 <phrase>
     <source>Window</source>
-    <target>FenÃªtre</target>
+    <target>Fenêtre</target>
 </phrase>
 <phrase>
     <source>window</source>
-    <target>fenÃªtre</target>
+    <target>fenêtre</target>
 </phrase>
 <phrase>
     <source>Windows Explorer</source>
@@ -1090,4 +1090,15 @@
     <target>classeur</target>
 </phrase>
 <phrase>
-    <so
+    <source>workgroup</source>
+    <target>groupe de travail</target>
+</phrase>
+<phrase>
+    <source>workspace</source>
+    <target>espace de travail</target>
+</phrase>
+<phrase>
+    <source>Yes</source>
+    <target>Oui</target>
+</phrase>
+</QPH>

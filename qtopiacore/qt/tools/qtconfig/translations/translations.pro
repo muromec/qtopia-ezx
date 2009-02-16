@@ -9,5 +9,5 @@ FORMS        = ../mainwindowbase.ui ../paletteeditoradvancedbase.ui ../previewwi
 
 TRANSLATIONS=$$[QT_INSTALL_TRANSLATIONS]/qtconfig_pl.ts \
              $$[QT_INSTALL_TRANSLATIONS]/qtconfig_untranslated.ts \
-             $$[QT_INSTALL_TRANSLATIONS]/qtconfig_zh_CN.ts
-error("This is a dummy profile to be used for translations ONLY.")
+             $$[QT_INSTALL_TRANSLATIONS]/qtconfig_zh_CN.ts \
+             $$[QT_INSTALL_TRANSLATIONS]/qtconfig_zh_TW.ts

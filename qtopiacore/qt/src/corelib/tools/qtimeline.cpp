@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,19 +40,22 @@
 #include <private/qobject_p.h>
 #include <QtCore/qdatetime.h>
 #include <QtCore/qcoreevent.h>
-#include <math.h>
+#include <QtCore/qmath.h>
 
-static const qreal pi = 3.14159265359;
-static const qreal halfPi = pi / 2.0;
+QT_BEGIN_NAMESPACE
+
+static const qreal pi = qreal(3.14159265359);
+static const qreal halfPi = pi / qreal(2.0);
+
 
 static inline qreal qt_sinProgress(qreal value)
 {
-    return ::sin((value * pi) - halfPi) / 2.0 + 0.5;
+    return qSin((value * pi) - halfPi) / 2 + qreal(0.5);
 }
 
 static inline qreal qt_smoothBeginEndMixFactor(qreal value)
 {
-    return qMin(qMax((1.0 - value * 2.0 + 0.3), 0.0), 1.0);
+    return qMin(qMax(1 - value * 2 + qreal(0.3), qreal(0.0)), qreal(1.0));
 }
 
 class QTimeLinePrivate : public QObjectPrivate
@@ -196,21 +193,7 @@ void QTimeLinePrivate::setCurrentTime(int msecs)
 
     Example:
 
-    \code
-        ...
-        progressBar = new QProgressBar(this);
-        progressBar->setRange(0, 100);
-
-        // Construct a 1-second timeline with a frame range of 0 - 100
-        QTimeLine *timeLine = new QTimeLine(1000, this);
-        timeLine->setFrameRange(0, 100);
-        connect(timeLine, SIGNAL(frameChanged(int)), progressBar, SLOT(setValue(int)));
-
-        // Clicking the push button will start the progress bar animation
-        pushButton = new QPushButton(tr("Start animation"), this);
-        connect(pushButton, SIGNAL(clicked()), timeLine, SLOT(start()));
-        ...
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_tools_qtimeline.cpp 0
 
     You can also use QTimeLine with the
     \l{Graphics View}{Graphics View framework} for
@@ -289,10 +272,11 @@ void QTimeLinePrivate::setCurrentTime(int msecs)
 
     \value EaseInCurve The value starts growing slowly, then increases in speed.
     \value EaseOutCurve The value starts growing steadily, then ends slowly.
-    \value EaseInOutCurve The value starts growing slowly, the runs steadily, then grows slowly again.
+    \value EaseInOutCurve The value starts growing slowly, then runs steadily, then grows slowly again.
     \value LinearCurve The value grows linearly (e.g., if the duration is 1000 ms,
            the value at time 500 ms is 0.5).
     \value SineCurve The value grows sinusoidally.
+    \value CosineCurve The value grows cosinusoidally.
 
     \sa setCurveShape()
 */
@@ -368,6 +352,8 @@ QTimeLine::State QTimeLine::state() const
     \brief the number of times the timeline should loop before it's finished.
 
     A loop count of of 0 means that the timeline will loop forever.
+
+    By default, this property contains a value of 1.
 */
 int QTimeLine::loopCount() const
 {
@@ -388,6 +374,8 @@ void QTimeLine::setLoopCount(int count)
     This direction indicates whether the time moves from 0 towards the
     timeline duration, or from the value of the duration and towards 0 after
     start() has been called.
+
+    By default, this property is set to \l Forward.
 */
 QTimeLine::Direction QTimeLine::direction() const
 {
@@ -522,6 +510,8 @@ void QTimeLine::setUpdateInterval(int interval)
 
     If you have reimplemented valueForTime(), this value is ignored.
 
+    By default, this property is set to \l EaseInOutCurve.
+
     \sa valueForTime()
 */
 QTimeLine::CurveShape QTimeLine::curveShape() const
@@ -543,6 +533,8 @@ void QTimeLine::setCurveShape(CurveShape shape)
     a function of the duration and direction of the timeline. Otherwise, it is
     value that was current when stop() was called last, or the value set by
     setCurrentTime().
+
+    By default, this property contains a value of 0.
 */
 int QTimeLine::currentTime() const
 {
@@ -592,7 +584,7 @@ int QTimeLine::frameForTime(int msec) const
     Q_D(const QTimeLine);
     if (d->direction == Forward)
         return d->startFrame + int((d->endFrame - d->startFrame) * valueForTime(msec));
-    return d->startFrame + int(::ceil(double((d->endFrame - d->startFrame) * valueForTime(msec))));
+    return d->startFrame + qCeil((d->endFrame - d->startFrame) * valueForTime(msec));
 }
 
 /*!
@@ -625,18 +617,21 @@ qreal QTimeLine::valueForTime(int msec) const
         const qreal sinProgress = qt_sinProgress(value);
         const qreal linearProgress = value;
         const qreal mix = qt_smoothBeginEndMixFactor(value);
-        value = sinProgress * mix + linearProgress * (1.0 - mix);
+        value = sinProgress * mix + linearProgress * (1 - mix);
         break;
     }
     case EaseOutCurve: {
         const qreal sinProgress = qt_sinProgress(value);
         const qreal linearProgress = value;
-        const qreal mix = qt_smoothBeginEndMixFactor(1.0 - value);
-        value = sinProgress * mix + linearProgress * (1.0 - mix);
+        const qreal mix = qt_smoothBeginEndMixFactor(1 - value);
+        value = sinProgress * mix + linearProgress * (1 - mix);
         break;
     }
     case SineCurve:
-        value = (::sin(((msec * pi * 2) / d->duration) - pi/2.0) + 1.0) / 2.0;
+        value = (qSin(((msec * pi * 2) / d->duration) - pi/2) + 1) / 2;
+        break;
+    case CosineCurve:
+        value = (qCos(((msec * pi * 2) / d->duration) - pi/2) + 1) / 2;
         break;
     default:
         break;
@@ -646,10 +641,10 @@ qreal QTimeLine::valueForTime(int msec) const
 }
 
 /*!
-    Starts or restarts the timeline. QTimeLine will enter Running state, and
-    once it enters the event loop, it will update its current time, frame and
-    value at regular intervals. The default interval is 40 ms (i.e., 25 times
-    per second). You can change the update interval by calling
+    Starts the timeline. QTimeLine will enter Running state, and once it
+    enters the event loop, it will update its current time, frame and value at
+    regular intervals. The default interval is 40 ms (i.e., 25 times per
+    second). You can change the update interval by calling
     setUpdateInterval().
 
     If you want to resume a stopped timeline without restarting, you can call
@@ -770,3 +765,5 @@ void QTimeLine::timerEvent(QTimerEvent *event)
         d->setCurrentTime(d->startTime - d->timer.elapsed());
     }
 }
+
+QT_END_NAMESPACE

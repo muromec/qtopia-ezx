@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtOpenGL module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,28 @@
 #include "QtCore/qhash.h"
 #include "private/qwidget_p.h"
 
+#ifndef QT_OPENGL_ES_CL
+#define q_vertexType float
+#define q_vertexTypeEnum GL_FLOAT
+#define f2vt(f)     (f)
+#define vt2f(x)     (x)
+#else
+#define FLOAT2X(f)      ((int) ( (f) * (65536)))
+#define X2FLOAT(x)      ((float)(x) / 65536.0f)
+#define f2vt(f)     FLOAT2X(f)
+#define vt2f(x)     X2FLOAT(x)
+#define q_vertexType GLfixed
+#define q_vertexTypeEnum GL_FIXED
+#endif //QT_OPENGL_ES_CL
+
+#ifdef QT_OPENGL_ES
+QT_BEGIN_INCLUDE_NAMESPACE
+#include <GLES/egl.h>
+QT_END_INCLUDE_NAMESPACE
+#endif
+
+QT_BEGIN_NAMESPACE
+
 class QGLContext;
 class QGLOverlayWidget;
 class QPixmap;
@@ -71,7 +87,9 @@ class QPixmap;
 #   define old_qDebug qDebug
 #   undef qDebug
 # endif
+QT_BEGIN_INCLUDE_NAMESPACE
 # include <AGL/agl.h>
+QT_END_INCLUDE_NAMESPACE
 # ifdef old_qDebug
 #   undef qDebug
 #   define qDebug QT_QDEBUG_MACRO
@@ -81,12 +99,13 @@ class QMacWindowChangeEvent;
 #endif
 
 #ifdef Q_WS_QWS
-#include <GLES/egl.h>
 class QGLDirectPainter;
 class QWSGLWindowSurface;
 #endif
 
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <QtOpenGL/private/qglextensions_p.h>
+QT_END_INCLUDE_NAMESPACE
 
 class QGLFormatPrivate
 {
@@ -164,6 +183,7 @@ public:
     bool textureCacheLookup(const QString &key, GLuint *id, qint64 *qt_id);
     void init(QPaintDevice *dev, const QGLFormat &format);
     QImage convertToGLFormat(const QImage &image, bool force_premul, GLenum texture_format);
+    int maxTextureSize();
 
 #if defined(Q_WS_WIN)
     HGLRC rc;
@@ -185,7 +205,8 @@ public:
     bool update;
     AGLPixelFormat tryFormat(const QGLFormat &format);
 #endif
-#elif defined(Q_WS_QWS)
+#endif
+#if defined(QT_OPENGL_ES)
     EGLDisplay dpy;
     EGLContext cx;
     EGLConfig  config;
@@ -204,14 +225,15 @@ public:
     QGLContext *q_ptr;
 
     QGLExtensionFuncs extensionFuncs;
+    GLint max_texture_size;
 
 #ifdef Q_WS_WIN
-    static inline QGLExtensionFuncs& qt_get_extension_funcs(QGLContext *ctx) { return ctx->d_ptr->extensionFuncs; }
+    static inline QGLExtensionFuncs& qt_get_extension_funcs(const QGLContext *ctx) { return ctx->d_ptr->extensionFuncs; }
 #endif
 
 #if defined(Q_WS_X11) || defined(Q_WS_MAC) || defined(Q_WS_QWS)
     static QGLExtensionFuncs qt_extensionFuncs;
-    static inline QGLExtensionFuncs& qt_get_extension_funcs(QGLContext *) { return qt_extensionFuncs; }
+    static inline QGLExtensionFuncs& qt_get_extension_funcs(const QGLContext *) { return qt_extensionFuncs; }
 #endif
 
 };
@@ -229,36 +251,6 @@ public:
 Q_SIGNALS:
     void aboutToDestroyContext(const QGLContext *context);
 };
-
-class QGLProxy
-{
-public:
-    QGLSignalProxy *pointer;
-    bool destroyed;
-
-    inline ~QGLProxy()
-    {
-        delete pointer;
-        pointer = 0;
-        destroyed = true;
-    }
-
-    static QGLSignalProxy *signalProxy()
-    {
-#if defined Q_OS_HPUX && defined Q_CC_HPACC
-        static QGLProxy this_proxy; // <- workaround for aCC bug.
-#else
-        static QGLProxy this_proxy = { 0 , false };
-#endif
-        if (!this_proxy.pointer && !this_proxy.destroyed) {
-            QGLSignalProxy *x = new QGLSignalProxy;
-            if (!q_atomic_test_and_set_ptr(&this_proxy.pointer, 0, x))
-                delete x;
-        }
-        return this_proxy.pointer;
-    }
-};
-
 
 // GL extension definitions
 class QGLExtensions {
@@ -330,14 +322,31 @@ public:
         }
     }
 
+    void replaceShare(const QGLContext *oldContext, const QGLContext *newContext) {
+        QGLSharingHash::iterator it = reg.begin();
+        while (it != reg.end()) {
+            if (it.key() == oldContext)
+                reg.insert(newContext, it.value());
+            else if (it.value() == oldContext)
+                reg.insert(it.key(), newContext);
+            ++it;
+        }
+        removeShare(oldContext);
+    }
+
 private:
     QGLSharingHash reg;
 };
 
-extern QGLShareRegister* qgl_share_reg();
+extern Q_OPENGL_EXPORT QGLShareRegister* qgl_share_reg();
 
 #ifdef Q_WS_QWS
 class QOpenGLPaintEngine;
 extern QOpenGLPaintEngine* qt_qgl_paint_engine();
+
+extern EGLDisplay qt_qgl_egl_display();
 #endif
+
+QT_END_NAMESPACE
+
 #endif // QGL_P_H

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -54,16 +48,17 @@
 #include "qstringlist.h"
 
 #include "qthread.h"
+#include "qthreadstorage.h"
 
 #include <private/qunicodetables_p.h>
 #include "qfont_p.h"
 #include <private/qfontengine_p.h>
 #include <private/qpainter_p.h>
 #include <private/qtextengine_p.h>
+#include <limits.h>
 
 #ifdef Q_WS_X11
 #include "qx11info_x11.h"
-extern const QX11Info *qt_x11Info(const QPaintDevice *pd);
 #endif
 #ifdef Q_WS_QWS
 #include "qscreen_qws.h"
@@ -80,6 +75,15 @@ extern const QX11Info *qt_x11Info(const QPaintDevice *pd);
 #  define FC_DEBUG if (false) qDebug
 #endif
 
+QT_BEGIN_NAMESPACE
+
+#ifdef Q_WS_WIN
+extern HDC shared_dc();
+#endif
+
+#ifdef Q_WS_X11
+extern const QX11Info *qt_x11Info(const QPaintDevice *pd);
+#endif
 
 bool QFontDef::exactMatch(const QFontDef &other) const
 {
@@ -135,10 +139,6 @@ bool QFontDef::exactMatch(const QFontDef &other) const
        );
 }
 
-#ifdef Q_WS_WIN
-extern HDC shared_dc;
-#endif
-
 extern bool qt_is_gui_used;
 
 Q_GUI_EXPORT int qt_defaultDpiX()
@@ -150,7 +150,7 @@ Q_GUI_EXPORT int qt_defaultDpiX()
 #ifdef Q_WS_X11
     dpi = QX11Info::appDpiX();
 #elif defined(Q_WS_WIN)
-    dpi = GetDeviceCaps(shared_dc,LOGPIXELSX);
+    dpi = GetDeviceCaps(shared_dc(),LOGPIXELSX);
 #elif defined(Q_WS_MAC)
     extern float qt_mac_defaultDpi_x(); //qpaintdevice_mac.cpp
     dpi = qt_mac_defaultDpi_x();
@@ -161,7 +161,7 @@ Q_GUI_EXPORT int qt_defaultDpiX()
     const QList<QScreen*> subScreens = qt_screen->subScreens();
     if (!subScreens.isEmpty())
         screen = subScreens.at(0);
-    dpi = qRound(screen->width() / double(screen->physicalWidth() / 25.4));
+    dpi = qRound(screen->width() / (screen->physicalWidth() / qreal(25.4)));
 #endif // Q_WS_X11
 
     return dpi;
@@ -176,7 +176,7 @@ Q_GUI_EXPORT int qt_defaultDpiY()
 #ifdef Q_WS_X11
     dpi = QX11Info::appDpiY();
 #elif defined(Q_WS_WIN)
-    dpi = GetDeviceCaps(shared_dc,LOGPIXELSY);
+    dpi = GetDeviceCaps(shared_dc(),LOGPIXELSY);
 #elif defined(Q_WS_MAC)
     extern float qt_mac_defaultDpi_y(); //qpaintdevice_mac.cpp
     dpi = qt_mac_defaultDpi_y();
@@ -187,7 +187,7 @@ Q_GUI_EXPORT int qt_defaultDpiY()
     const QList<QScreen*> subScreens = qt_screen->subScreens();
     if (!subScreens.isEmpty())
         screen = subScreens.at(0);
-    dpi = qRound(screen->height() / double(screen->physicalHeight() / 25.4));
+    dpi = qRound(screen->height() / (screen->physicalHeight() / qreal(25.4)));
 #endif // Q_WS_X11
 
     return dpi;
@@ -200,7 +200,8 @@ Q_GUI_EXPORT int qt_defaultDpi()
 
 QFontPrivate::QFontPrivate()
     : engineData(0), dpi(qt_defaultDpi()), screen(0),
-      rawMode(false), underline(false), overline(false), strikeOut(false), kerning(true)
+      rawMode(false), underline(false), overline(false), strikeOut(false), kerning(true),
+      capital(0), letterSpacingIsAbsolute(false), scFont(0)
 {
     ref = 1;
 #ifdef Q_WS_X11
@@ -217,12 +218,17 @@ QFontPrivate::QFontPrivate()
 QFontPrivate::QFontPrivate(const QFontPrivate &other)
     : request(other.request), engineData(0), dpi(other.dpi), screen(other.screen),
       rawMode(other.rawMode), underline(other.underline), overline(other.overline),
-      strikeOut(other.strikeOut), kerning(other.kerning)
+      strikeOut(other.strikeOut), kerning(other.kerning),
+      capital(other.capital), letterSpacingIsAbsolute(other.letterSpacingIsAbsolute),
+      letterSpacing(other.letterSpacing), wordSpacing(other.wordSpacing),
+      scFont(other.scFont)
 {
     ref = 1;
 #ifdef Q_WS_WIN
     hdc = other.hdc;
 #endif
+    if (scFont && scFont != this)
+        scFont->ref.ref();
 }
 
 QFontPrivate::~QFontPrivate()
@@ -230,7 +236,71 @@ QFontPrivate::~QFontPrivate()
     if (engineData)
         engineData->ref.deref();
     engineData = 0;
+    if (scFont && scFont != this)
+        scFont->ref.deref();
+    scFont = 0;
 }
+
+#if !defined(Q_WS_MAC)
+QFontEngine *QFontPrivate::engineForScript(int script) const
+{
+    if (script >= QUnicodeTables::Inherited)
+        script = QUnicodeTables::Common;
+    if (engineData && engineData->fontCache != QFontCache::instance()) {
+        // throw out engineData that came from a different thread
+        engineData->ref.deref();
+        engineData = 0;
+    }
+    if (!engineData || !engineData->engines[script])
+        QFontDatabase::load(this, script);
+    return engineData->engines[script];
+}
+#else
+QFontEngine *QFontPrivate::engineForScript(int script) const
+{
+    if (script >= QUnicodeTables::Inherited)
+        script = QUnicodeTables::Common;
+    if (engineData && engineData->fontCache != QFontCache::instance()) {
+        // throw out engineData that came from a different thread
+        engineData->ref.deref();
+        engineData = 0;
+    }
+    if (!engineData || !engineData->engine)
+        QFontDatabase::load(this, script);
+    return engineData->engine;
+}
+#endif
+
+void QFontPrivate::alterCharForCapitalization(QChar &c) const {
+    switch (capital) {
+    case QFont::AllUppercase:
+    case QFont::SmallCaps:
+        c = c.toUpper();
+        break;
+    case QFont::AllLowercase:
+        c = c.toLower();
+        break;
+    case QFont::MixedCase:
+        break;
+    }
+}
+
+QFontPrivate *QFontPrivate::smallCapsFontPrivate() const
+{
+    if (scFont)
+        return scFont;
+    QFont font(const_cast<QFontPrivate *>(this));
+    qreal pointSize = font.pointSizeF();
+    if (pointSize > 0)
+        font.setPointSizeF(pointSize * .7);
+    else
+        font.setPixelSize((font.pixelSize() * 7 + 5) / 10);
+    scFont = font.d;
+    if (scFont != this)
+        scFont->ref.ref();
+    return scFont;
+}
+
 
 void QFontPrivate::resolve(uint mask, const QFontPrivate *other)
 {
@@ -238,54 +308,63 @@ void QFontPrivate::resolve(uint mask, const QFontPrivate *other)
 
     dpi = other->dpi;
 
-    if ((mask & Complete) == Complete) return;
+    if ((mask & QFont::AllPropertiesResolved) == QFont::AllPropertiesResolved) return;
 
     // assign the unset-bits with the set-bits of the other font def
-    if (! (mask & Family))
+    if (! (mask & QFont::FamilyResolved))
         request.family = other->request.family;
 
-    if (! (mask & Size)) {
+    if (! (mask & QFont::SizeResolved)) {
         request.pointSize = other->request.pointSize;
         request.pixelSize = other->request.pixelSize;
     }
 
-    if (! (mask & StyleHint))
+    if (! (mask & QFont::StyleHintResolved))
         request.styleHint = other->request.styleHint;
 
-    if (! (mask & StyleStrategy))
+    if (! (mask & QFont::StyleStrategyResolved))
         request.styleStrategy = other->request.styleStrategy;
 
-    if (! (mask & Weight))
+    if (! (mask & QFont::WeightResolved))
         request.weight = other->request.weight;
 
-    if (! (mask & Style))
+    if (! (mask & QFont::StyleResolved))
         request.style = other->request.style;
 
-    if (! (mask & FixedPitch))
+    if (! (mask & QFont::FixedPitchResolved))
         request.fixedPitch = other->request.fixedPitch;
 
-    if (! (mask & Stretch))
+    if (! (mask & QFont::StretchResolved))
         request.stretch = other->request.stretch;
 
-    if (! (mask & Underline))
+    if (! (mask & QFont::UnderlineResolved))
         underline = other->underline;
 
-    if (! (mask & Overline))
+    if (! (mask & QFont::OverlineResolved))
         overline = other->overline;
 
-    if (! (mask & StrikeOut))
+    if (! (mask & QFont::StrikeOutResolved))
         strikeOut = other->strikeOut;
 
-    if (! (mask & Kerning))
+    if (! (mask & QFont::KerningResolved))
         kerning = other->kerning;
+
+    if (! (mask & QFont::LetterSpacingResolved)) {
+        letterSpacing = other->letterSpacing;
+        letterSpacingIsAbsolute = other->letterSpacingIsAbsolute;
+    }
+    if (! (mask & QFont::WordSpacingResolved))
+        wordSpacing = other->wordSpacing;
+    if (! (mask & QFont::CapitalizationResolved))
+        capital = other->capital;
 }
 
 
 
 
 QFontEngineData::QFontEngineData()
+    : ref(1), fontCache(QFontCache::instance())
 {
-    ref = 1;
 #if !defined(Q_WS_MAC)
     memset(engines, 0, QUnicodeTables::ScriptCount * sizeof(QFontEngine *));
 #else
@@ -313,6 +392,8 @@ QFontEngineData::~QFontEngineData()
 
 /*!
     \class QFont
+    \reentrant
+
     \brief The QFont class specifies a font used for drawing text.
 
     \ingroup multimedia
@@ -330,7 +411,9 @@ QFontEngineData::~QFontEngineData()
     Use QFontMetrics to get measurements, e.g. the pixel length of a
     string using QFontMetrics::width().
 
-    Use QApplication::setFont() to set the application's default font.
+    Note that a QApplication instance must exist before a QFont can be
+    used. You can set the application's default font with
+    QApplication::setFont().
 
     If a chosen font does not include all the characters that
     need to be displayed, QFont will try to find the characters in the
@@ -340,10 +423,7 @@ QFontEngineData::~QFontEngineData()
 
     Create QFonts like this:
 
-    \code
-        QFont serifFont("Times", 10, QFont::Bold);
-        QFont sansFont("Helvetica [Cronyx]", 12);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qfont.cpp 0
 
     The attributes set in the constructor can also be set later, e.g.
     setFamily(), setPointSize(), setPointSizeFloat(), setWeight() and
@@ -384,7 +464,7 @@ QFontEngineData::~QFontEngineData()
     setPointSize() has a similar effect and provides device
     independence.
 
-    Under X11 you can set a font using its system
+    In X11 you can set a font using its system
     specific name with setRawName().
 
     Loading fonts can be expensive, especially on X11. QFont contains
@@ -407,6 +487,11 @@ QFontEngineData::~QFontEngineData()
     \endlist
 
     Note that the actual font matching algorithm varies from platform to platform.
+
+    In Windows a request for the "Courier" font is automatically changed to
+    "Courier New", an improved version of Courier that allows for smooth scaling.
+    The older "Courier" bitmap font can be selected by setting the PreferBitmap
+    style strategy (see setStyleStrategy()).
 
     Once a font is found, the remaining attributes are matched in order of
     priority:
@@ -435,15 +520,11 @@ QFontEngineData::~QFontEngineData()
 
     Examples:
 
-    \code
-        QFont f("Helvetica");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qfont.cpp 1
     If you had both an Adobe and a Cronyx Helvetica, you might get
     either.
 
-    \code
-        QFont f("Helvetica [Cronyx]");
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qfont.cpp 2
 
     You can specify the foundry you want in the family name. The font f
     in the above example will be set to "Helvetica
@@ -452,18 +533,11 @@ QFontEngineData::~QFontEngineData()
     To determine the attributes of the font actually used in the window
     system, use a QFontInfo object, e.g.
 
-    \code
-        QFontInfo info(f1);
-        QString family = info.family();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qfont.cpp 3
 
     To find out font metrics use a QFontMetrics object, e.g.
 
-    \code
-        QFontMetrics fm(f1);
-        int textWidthInPixels = fm.width("How many pixels wide is this text?");
-        int textHeightInPixels = fm.height();
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_text_qfont.cpp 4
 
     For more general information on fonts, see the
     \link http://nwalsh.com/comp.fonts/FAQ/ comp.fonts FAQ.\endlink
@@ -471,6 +545,31 @@ QFontEngineData::~QFontEngineData()
     \link http://czyborra.com/ Roman Czyborra's\endlink page.
 
     \sa QFontComboBox, QFontMetrics, QFontInfo, QFontDatabase, {Character Map Example}
+*/
+
+/*!
+    \internal
+    \enum QFont::ResolveProperties
+
+    This enum describes the properties of a QFont that can be set on a font
+    individually and then considered resolved.
+
+    \value FamilyResolved
+    \value SizeResolved
+    \value StyleHintResolved
+    \value StyleStrategyResolved
+    \value WeightResolved
+    \value StyleResolved
+    \value UnderlineResolved
+    \value OverlineResolved
+    \value StrikeOutResolved
+    \value FixedPitchResolved
+    \value StretchResolved
+    \value KerningResolved
+    \value CapitalizationResolved
+    \value LetterSpacingResolved
+    \value WordSpacingResolved
+    \value CompletelyResolved
 */
 
 /*!
@@ -489,13 +588,104 @@ QFontEngineData::~QFontEngineData()
     \sa Weight
 */
 
-#ifndef QT_NO_DEBUG
-static void qt_font_thread_test()
-{
-    if (QApplication::instance() && QThread::currentThread() != QApplication::instance()->thread())
-        qWarning("QFont: It is not safe to use text and fonts outside the GUI thread");
-}
-#endif
+/*!
+    \fn Qt::HANDLE QFont::handle() const
+
+    Returns the window system handle to the font, for low-level
+    access. Using this function is \e not portable.
+*/
+
+/*!
+    \fn FT_Face QFont::freetypeFace() const
+
+    Returns the handle to the primary FreeType face of the font. If font merging is not disabled a
+    QFont can contain several physical fonts.
+
+    Returns 0 if the font does not contain a FreeType face.
+
+    \note This function is only available on platforms that provide the FreeType library;
+    i.e., X11 and some Embedded Linux platforms.
+*/
+
+/*!
+    \fn QString QFont::rawName() const
+
+    Returns the name of the font within the underlying window system.
+
+    Only on X11 when Qt was built without FontConfig support the XLFD (X Logical Font Description)
+    is returned; otherwise an empty string.
+
+    Using the return value of this function is usually \e not \e
+    portable.
+
+    \sa setRawName()
+*/
+
+/*!
+    \fn void QFont::setRawName(const QString &name)
+
+    Sets a font by its system specific name. The function is
+    particularly useful under X, where system font settings (for
+    example X resources) are usually available in XLFD (X Logical Font
+    Description) form only. You can pass an XLFD as \a name to this
+    function.
+
+    A font set with setRawName() is still a full-featured QFont. It can
+    be queried (for example with italic()) or modified (for example with
+    setItalic()) and is therefore also suitable for rendering rich text.
+
+    If Qt's internal font database cannot resolve the raw name, the
+    font becomes a raw font with \a name as its family.
+
+    Note that the present implementation does not handle wildcards in
+    XLFDs well, and that font aliases (file \c fonts.alias in the font
+    directory on X11) are not supported.
+
+    \sa rawName(), setRawMode(), setFamily()
+*/
+
+/*!
+    \fn QString QFont::lastResortFamily() const
+
+    Returns the "last resort" font family name.
+
+    The current implementation tries a wide variety of common fonts,
+    returning the first one it finds. Is is possible that no family is
+    found in which case an empty string is returned.
+
+    \sa lastResortFont()
+*/
+
+/*!
+    \fn QString QFont::defaultFamily() const
+
+    Returns the family name that corresponds to the current style
+    hint.
+
+    \sa StyleHint styleHint() setStyleHint()
+*/
+
+/*!
+    \fn QString QFont::lastResortFont() const
+
+    Returns a "last resort" font name for the font matching algorithm.
+    This is used if the last resort family is not available. It will
+    always return a name, if necessary returning something like
+    "fixed" or "system".
+
+    The current implementation tries a wide variety of common fonts,
+    returning the first one it finds. The implementation may change
+    at any time, but this function will always return a string
+    containing something.
+
+    It is theoretically possible that there really isn't a
+    lastResortFont() in which case Qt will abort with an error
+    message. We have not been able to identify a case where this
+    happens. Please \link bughowto.html report it as a bug\endlink if
+    it does, preferably with a list of the fonts you have installed.
+
+    \sa lastResortFamily() rawName()
+*/
 
 /*!
   Constructs a font from \a font for use on the paint device \a pd.
@@ -529,12 +719,8 @@ QFont::QFont(const QFont &font, QPaintDevice *pd)
   \internal
 */
 QFont::QFont(QFontPrivate *data)
-    : resolve_mask(QFontPrivate::Complete)
+    : resolve_mask(QFont::AllPropertiesResolved)
 {
-#ifndef QT_NO_DEBUG
-    qt_font_thread_test();
-#endif
-
     d = data;
     d->ref.ref();
 }
@@ -548,6 +734,9 @@ void QFont::detach()
         if (d->engineData)
             d->engineData->ref.deref();
         d->engineData = 0;
+        if (d->scFont && d->scFont != d)
+            d->scFont->ref.deref();
+        d->scFont = 0;
         return;
     }
 
@@ -584,22 +773,18 @@ QFont::QFont()
 QFont::QFont(const QString &family, int pointSize, int weight, bool italic)
     :d(new QFontPrivate)
 {
-#ifndef QT_NO_DEBUG
-    qt_font_thread_test();
-#endif
-
-    resolve_mask = QFontPrivate::Family;
+    resolve_mask = QFont::FamilyResolved;
 
     if (pointSize <= 0) {
         pointSize = 12;
     } else {
-        resolve_mask |= QFontPrivate::Size;
+        resolve_mask |= QFont::SizeResolved;
     }
 
     if (weight < 0) {
         weight = Normal;
     } else {
-        resolve_mask |= QFontPrivate::Weight | QFontPrivate::Style;
+        resolve_mask |= QFont::WeightResolved | QFont::StyleResolved;
     }
 
     d->request.family = family;
@@ -671,7 +856,7 @@ void QFont::setFamily(const QString &family)
     d->request.addStyle.clear();
 #endif // Q_WS_X11
 
-    resolve_mask |= QFontPrivate::Family;
+    resolve_mask |= QFont::FamilyResolved;
 }
 
 /*!
@@ -700,7 +885,7 @@ void QFont::setPointSize(int pointSize)
     d->request.pointSize = qreal(pointSize);
     d->request.pixelSize = -1;
 
-    resolve_mask |= QFontPrivate::Size;
+    resolve_mask |= QFont::SizeResolved;
 }
 
 /*!
@@ -719,7 +904,7 @@ void QFont::setPointSizeF(qreal pointSize)
     d->request.pointSize = pointSize;
     d->request.pixelSize = -1;
 
-    resolve_mask |= QFontPrivate::Size;
+    resolve_mask |= QFont::SizeResolved;
 }
 
 /*!
@@ -754,7 +939,7 @@ void QFont::setPixelSize(int pixelSize)
     d->request.pixelSize = pixelSize;
     d->request.pointSize = -1;
 
-    resolve_mask |= QFontPrivate::Size;
+    resolve_mask |= QFont::SizeResolved;
 }
 
 /*!
@@ -819,7 +1004,7 @@ void QFont::setStyle(Style style)
     detach();
 
     d->request.style = style;
-    resolve_mask |= QFontPrivate::Style;
+    resolve_mask |= QFont::StyleResolved;
 }
 
 /*!
@@ -862,7 +1047,7 @@ void QFont::setWeight(int weight)
     detach();
 
     d->request.weight = weight;
-    resolve_mask |= QFontPrivate::Weight;
+    resolve_mask |= QFont::WeightResolved;
 }
 
 /*!
@@ -907,7 +1092,7 @@ void QFont::setUnderline(bool enable)
     detach();
 
     d->underline = enable;
-    resolve_mask |= QFontPrivate::Underline;
+    resolve_mask |= QFont::UnderlineResolved;
 }
 
 /*!
@@ -930,7 +1115,7 @@ void QFont::setOverline(bool enable)
     detach();
 
     d->overline = enable;
-    resolve_mask |= QFontPrivate::Overline;
+    resolve_mask |= QFont::OverlineResolved;
 }
 
 /*!
@@ -954,7 +1139,7 @@ void QFont::setStrikeOut(bool enable)
     detach();
 
     d->strikeOut = enable;
-    resolve_mask |= QFontPrivate::StrikeOut;
+    resolve_mask |= QFont::StrikeOutResolved;
 }
 
 /*!
@@ -979,7 +1164,7 @@ void QFont::setFixedPitch(bool enable)
 
     d->request.fixedPitch = enable;
     d->request.ignorePitch = false;
-    resolve_mask |= QFontPrivate::FixedPitch;
+    resolve_mask |= QFont::FixedPitchResolved;
 }
 
 /*!
@@ -1007,7 +1192,7 @@ void QFont::setKerning(bool enable)
 {
     detach();
     d->kerning = enable;
-    resolve_mask |= QFontPrivate::Kerning;
+    resolve_mask |= QFont::KerningResolved;
 }
 
 /*!
@@ -1110,15 +1295,15 @@ void QFont::setStyleHint(StyleHint hint, StyleStrategy strategy)
 {
     detach();
 
-    if ((resolve_mask & (QFontPrivate::StyleHint | QFontPrivate::StyleStrategy)) &&
+    if ((resolve_mask & (QFont::StyleHintResolved | QFont::StyleStrategyResolved)) &&
          (StyleHint) d->request.styleHint == hint &&
          (StyleStrategy) d->request.styleStrategy == strategy)
         return;
 
     d->request.styleHint = hint;
     d->request.styleStrategy = strategy;
-    resolve_mask |= QFontPrivate::StyleHint;
-    resolve_mask |= QFontPrivate::StyleStrategy;
+    resolve_mask |= QFont::StyleHintResolved;
+    resolve_mask |= QFont::StyleStrategyResolved;
 
 #if defined(Q_WS_X11)
     d->request.addStyle.clear();
@@ -1134,12 +1319,12 @@ void QFont::setStyleStrategy(StyleStrategy s)
 {
     detach();
 
-    if ((resolve_mask & QFontPrivate::StyleStrategy) &&
+    if ((resolve_mask & QFont::StyleStrategyResolved) &&
          s == (StyleStrategy)d->request.styleStrategy)
         return;
 
     d->request.styleStrategy = s;
-    resolve_mask |= QFontPrivate::StyleStrategy;
+    resolve_mask |= QFont::StyleStrategyResolved;
 }
 
 
@@ -1197,15 +1382,158 @@ void QFont::setStretch(int factor)
         return;
     }
 
-    detach();
-
-    if ((resolve_mask & QFontPrivate::Stretch) &&
+    if ((resolve_mask & QFont::StretchResolved) &&
          d->request.stretch == (uint)factor)
         return;
 
+    detach();
+
     d->request.stretch = (uint)factor;
-    resolve_mask |= QFontPrivate::Stretch;
+    resolve_mask |= QFont::StretchResolved;
 }
+
+/*!
+    \enum QFont::SpacingType
+    \since 4.4
+
+    \value PercentageSpacing  A value of 100 will keep the spacing unchanged; a value of 200 will enlarge the
+                                                   spacing after a character by the width of the character itself.
+    \value AbsoluteSpacing      A positive value increases the letter spacing by the corresponding pixels; a negative
+                                                   value decreases the spacing.
+*/
+
+/*!
+    \since 4.4
+    Returns the letter spacing for the font.
+
+    \sa setLetterSpacing(), letterSpacingType(), setWordSpacing()
+ */
+qreal QFont::letterSpacing() const
+{
+    return d->letterSpacing.toReal();
+}
+
+/*!
+    \since 4.4
+    Sets the letter spacing for the font to \a spacing and the type
+    of spacing to \a type.
+
+    Letter spacing changes the default spacing between individual
+    letters in the font.  The spacing between the letters can be
+    made smaller as well as larger.
+
+    \sa letterSpacing(), letterSpacingType(), setWordSpacing()
+*/
+void QFont::setLetterSpacing(SpacingType type, qreal spacing)
+{
+    const QFixed newSpacing = QFixed::fromReal(spacing);
+    const bool absoluteSpacing = type == AbsoluteSpacing;
+    if ((resolve_mask & QFont::LetterSpacingResolved) &&
+        d->letterSpacingIsAbsolute == absoluteSpacing &&
+        d->letterSpacing == newSpacing)
+        return;
+
+    detach();
+
+    d->letterSpacing = newSpacing;
+    d->letterSpacingIsAbsolute = absoluteSpacing;
+    resolve_mask |= QFont::LetterSpacingResolved;
+}
+
+/*!
+    \since 4.4
+    Returns the spacing type used for letter spacing.
+
+    \sa letterSpacing(), setLetterSpacing(), setWordSpacing()
+*/
+QFont::SpacingType QFont::letterSpacingType() const
+{
+    return d->letterSpacingIsAbsolute ? AbsoluteSpacing : PercentageSpacing;
+}
+
+/*!
+    \since 4.4
+    Returns the word spacing for the font.
+
+    \sa setWordSpacing(), setLetterSpacing()
+ */
+qreal QFont::wordSpacing() const
+{
+    return d->wordSpacing.toReal();
+}
+
+/*!
+    \since 4.4
+    Sets the word spacing for the font to \a spacing.
+
+    Word spacing changes the default spacing between individual
+    words. A positive value increases the word spacing
+    by a corresponding amount of pixels, while a negative value
+    decreases the inter-word spacing accordingly.
+
+    Word spacing will not apply to writing systems, where indiviaul
+    words are not separated by white space.
+
+    \sa wordSpacing(), setLetterSpacing()
+*/
+void QFont::setWordSpacing(qreal spacing)
+{
+    const QFixed newSpacing = QFixed::fromReal(spacing);
+    if ((resolve_mask & QFont::WordSpacingResolved) &&
+        d->wordSpacing == newSpacing)
+        return;
+
+    detach();
+
+    d->wordSpacing = newSpacing;
+    resolve_mask |= QFont::WordSpacingResolved;
+}
+
+/*!
+    \enum QFont::Capitalization
+    \since 4.4
+
+    Rendering option for text this font applies to.
+
+
+    \value MixedCase    This is the normal text rendering option where no capitalization change is applied.
+    \value AllUppercase This alters the text to be rendered in all uppercase type.
+    \value AllLowercase This alters the text to be rendered in all lowercase type.
+    \value SmallCaps    This alters the text to be rendered in small-caps type.
+    \value Capitalize   This alters the text to be rendered with the first character of each word as an uppercase character.
+*/
+
+/*!
+    \since 4.4
+    Sets the capitalization of the text in this font to \a caps.
+
+    A font's capitalization makes the text appear in the selected capitalization mode.
+
+    \sa capitalization()
+*/
+void QFont::setCapitalization(Capitalization caps)
+{
+    if ((resolve_mask & QFont::CapitalizationResolved) &&
+        capitalization() == caps)
+        return;
+
+    detach();
+
+    d->capital = caps;
+    resolve_mask |= QFont::CapitalizationResolved;
+}
+
+/*!
+    \since 4.4
+    Returns the current capitalization type of the font.
+
+    \sa setCapitalization()
+*/
+QFont::Capitalization QFont::capitalization() const
+{
+    return static_cast<QFont::Capitalization> (d->capital);
+}
+
 
 /*!
     If \a enable is true, turns raw mode on; otherwise turns raw mode
@@ -1619,6 +1947,14 @@ static quint8 get_font_bits(int version, const QFontPrivate *f)
     return bits;
 }
 
+static quint8 get_extended_font_bits(const QFontPrivate *f)
+{
+    Q_ASSERT(f != 0);
+    quint8 bits = 0;
+    if (f->request.ignorePitch)
+        bits |= 0x01;
+    return bits;
+}
 
 #ifndef QT_NO_DATASTREAM
 
@@ -1642,6 +1978,11 @@ static void set_font_bits(int version, quint8 bits, QFontPrivate *f)
         f->request.style         = QFont::StyleOblique;
 }
 
+static void set_extended_font_bits(quint8 bits, QFontPrivate *f)
+{
+    Q_ASSERT(f != 0);
+    f->request.ignorePitch   = (bits & 0x01) != 0;
+}
 #endif
 
 
@@ -1719,6 +2060,8 @@ bool QFont::fromString(const QString &descrip)
         setFixedPitch(l[8].toInt());
         setRawMode(l[9].toInt());
     }
+    if (count >= 9 && !d->request.fixedPitch) // assume 'false' fixedPitch equals default
+        d->request.ignorePitch = true;
 
     return true;
 }
@@ -1780,13 +2123,15 @@ QDataStream &operator<<(QDataStream &s, const QFont &font)
     }
 
     s << (quint8) font.d->request.styleHint;
-    if (s.version() >= 5)
+    if (s.version() >= QDataStream::Qt_3_1)
         s << (quint8) font.d->request.styleStrategy;
     s << (quint8) 0
       << (quint8) font.d->request.weight
       << get_font_bits(s.version(), font.d);
     if (s.version() >= QDataStream::Qt_4_3)
         s << (quint16)font.d->request.stretch;
+    if (s.version() >= QDataStream::Qt_4_4)
+        s << get_extended_font_bits(font.d);
     return s;
 }
 
@@ -1805,7 +2150,7 @@ QDataStream &operator>>(QDataStream &s, QFont &font)
         delete font.d;
 
     font.d = new QFontPrivate;
-    font.resolve_mask = QFontPrivate::Complete;
+    font.resolve_mask = QFont::AllPropertiesResolved;
 
     quint8 styleHint, styleStrategy = QFont::PreferDefault, charSet, weight, bits;
 
@@ -1834,7 +2179,7 @@ QDataStream &operator>>(QDataStream &s, QFont &font)
         font.d->request.pixelSize = pixelSize;
     }
     s >> styleHint;
-    if (s.version() >= 5)
+    if (s.version() >= QDataStream::Qt_3_1)
         s >> styleStrategy;
 
     s >> charSet;
@@ -1853,6 +2198,12 @@ QDataStream &operator>>(QDataStream &s, QFont &font)
         font.d->request.stretch = stretch;
     }
 
+    if (s.version() >= QDataStream::Qt_4_4) {
+        quint8 extendedBits;
+        s >> extendedBits;
+        set_extended_font_bits(extendedBits, font.d);
+    }
+
     return s;
 }
 
@@ -1865,6 +2216,7 @@ QDataStream &operator>>(QDataStream &s, QFont &font)
 
 /*!
     \class QFontInfo
+    \reentrant
 
     \brief The QFontInfo class provides general information about fonts.
 
@@ -2171,16 +2523,40 @@ static const int fast_timeout =  10000; // 10s
 static const int slow_timeout = 300000; //  5m
 #endif // QFONTCACHE_DEBUG
 
-QFontCache *QFontCache::instance = 0;
 const uint QFontCache::min_cost = 4*1024; // 4mb
 
+#ifdef QT_NO_THREAD
+Q_GLOBAL_STATIC(QFontCache, theFontCache)
+
+QFontCache *QFontCache::instance()
+{
+    return theFontCache();
+}
+
+void QFontCache::cleanup()
+{
+}
+#else
+Q_GLOBAL_STATIC(QThreadStorage<QFontCache *>, theFontCache)
+
+QFontCache *QFontCache::instance()
+{
+    QFontCache *&fontCache = theFontCache()->localData();
+    if (!fontCache)
+        fontCache = new QFontCache;
+    return fontCache;
+}
+
+void QFontCache::cleanup()
+{
+    theFontCache()->setLocalData(0);
+}
+#endif // QT_NO_THREAD
 
 QFontCache::QFontCache()
-    : QObject(qApp), total_cost(0), max_cost(min_cost),
+    : QObject(), total_cost(0), max_cost(min_cost),
       current_timestamp(0), fast(false), timer_id(-1)
 {
-    Q_ASSERT(instance == 0);
-    instance = this;
 }
 
 QFontCache::~QFontCache()
@@ -2215,7 +2591,6 @@ QFontCache::~QFontCache()
         }
         ++it;
     }
-    instance = 0;
 }
 
 void QFontCache::clear()
@@ -2601,3 +2976,13 @@ void QFontCache::timerEvent(QTimerEvent *)
         }
     } while (current_cost != total_cost && total_cost > max_cost);
 }
+
+
+#ifndef QT_NO_DEBUG_STREAM
+QDebug operator<<(QDebug stream, const QFont &font)
+{
+    return stream << "QFont(" << font.toString() << ')';
+}
+#endif
+
+QT_END_NAMESPACE

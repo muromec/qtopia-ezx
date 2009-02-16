@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,6 +57,8 @@
 #include "private/qtabbar_p.h"
 
 #ifndef QT_NO_TABBAR
+
+QT_BEGIN_NAMESPACE
 
 inline static bool verticalTabs(QTabBar::Shape shape)
 {
@@ -154,7 +150,7 @@ void QTabBar::initStyleOption(QStyleOptionTab *option, int tabIndex) const
     \class QTabBar
     \brief The QTabBar class provides a tab bar, e.g. for use in tabbed dialogs.
 
-    \ingroup advanced
+    \ingroup basicwidgets
     \mainclass
 
     QTabBar is straightforward to use; it draws the tabs using one of
@@ -258,7 +254,8 @@ void QTabBar::initStyleOption(QStyleOptionTab *option, int tabIndex) const
     \fn void QTabBar::currentChanged(int index)
 
     This signal is emitted when the tab bar's current tab changes. The
-    new current has the given \a index.
+    new current has the given \a index, or -1 if there isn't a new one
+    (for example, if there are no tab in the QTabBar)
 */
 
 int QTabBarPrivate::extraWidth() const
@@ -330,7 +327,8 @@ void QTabBarPrivate::layoutTabs()
     // We put an empty item at the front and back and set its expansive attribute
     // depending on tabAlignment.
     tabChain[tabChainIndex].init();
-    tabChain[tabChainIndex].expansive = tabAlignment != Qt::AlignLeft;
+    tabChain[tabChainIndex].expansive = (tabAlignment != Qt::AlignLeft)
+                                        && (tabAlignment != Qt::AlignJustify);
     tabChain[tabChainIndex].empty = true;
     ++tabChainIndex;
 
@@ -397,7 +395,8 @@ void QTabBarPrivate::layoutTabs()
     Q_ASSERT(tabChainIndex == tabChain.count() - 1); // add an assert just to make sure.
     // Mirror our front item.
     tabChain[tabChainIndex].init();
-    tabChain[tabChainIndex].expansive = tabAlignment != Qt::AlignRight;
+    tabChain[tabChainIndex].expansive = (tabAlignment != Qt::AlignRight)
+                                        && (tabAlignment != Qt::AlignJustify);
     tabChain[tabChainIndex].empty = true;
 
     // Do the calculation
@@ -418,15 +417,17 @@ void QTabBarPrivate::layoutTabs()
             Qt::LayoutDirection ld = q->layoutDirection();
             QRect arrows = QStyle::visualRect(ld, q->rect(),
                                               QRect(available - extra, 0, extra, size.height()));
+            int buttonOverlap = q->style()->pixelMetric(QStyle::PM_TabBar_ScrollButtonOverlap, 0, q);
+            
             if (ld == Qt::LeftToRight) {
                 leftB->setGeometry(arrows.left(), arrows.top(), extra/2, arrows.height());
-                rightB->setGeometry(arrows.right() - extra/2 + 1, arrows.top(),
+                rightB->setGeometry(arrows.right() - extra/2 + buttonOverlap, arrows.top(),
                                     extra/2, arrows.height());
                 leftB->setArrowType(Qt::LeftArrow);
                 rightB->setArrowType(Qt::RightArrow);
             } else {
                 rightB->setGeometry(arrows.left(), arrows.top(), extra/2, arrows.height());
-                leftB->setGeometry(arrows.right() - extra/2 + 1, arrows.top(),
+                leftB->setGeometry(arrows.right() - extra/2 + buttonOverlap, arrows.top(),
                                     extra/2, arrows.height());
                 rightB->setArrowType(Qt::LeftArrow);
                 leftB->setArrowType(Qt::RightArrow);
@@ -676,10 +677,11 @@ void QTabBar::removeTab(int index)
             // we emit that "current has changed", we need to reset this
             // around.
             d->currentIndex = -1;
-            if (index == d->tabList.size()) {
-                setCurrentIndex(d->validIndex(index - 1) ? index - 1 : 0);
+            if (d->tabList.size() > 0) {
+                int newIndex = (index == d->tabList.size()) ? index-1 : index;
+                setCurrentIndex(newIndex);
             } else {
-                setCurrentIndex(d->validIndex(index) ? index : 0);
+                emit currentChanged(-1);
             }
         } else if (index < d->currentIndex) {
             setCurrentIndex(d->currentIndex - 1);
@@ -931,6 +933,8 @@ int QTabBar::tabAt(const QPoint &position) const
 /*!
     \property QTabBar::currentIndex
     \brief the index of the tab bar's visible tab
+
+    The current index is -1 if there is no current tab.
 */
 
 int QTabBar::currentIndex() const
@@ -971,7 +975,7 @@ QSize QTabBar::iconSize() const
     Q_D(const QTabBar);
     if (d->iconSize.isValid())
         return d->iconSize;
-    int iconExtent = style()->pixelMetric(QStyle::PM_TabBarIconSize);
+    int iconExtent = style()->pixelMetric(QStyle::PM_TabBarIconSize, 0, this);
     return QSize(iconExtent, iconExtent);
 
 }
@@ -1127,7 +1131,7 @@ void QTabBar::showEvent(QShowEvent *)
 {
     Q_D(QTabBar);
     if (d->layoutDirty)
-        d->layoutTabs();
+        d->refresh();
     if (!d->validIndex(d->currentIndex))
         setCurrentIndex(0);
 
@@ -1205,7 +1209,10 @@ bool QTabBar::event(QEvent *e)
 void QTabBar::resizeEvent(QResizeEvent *)
 {
     Q_D(QTabBar);
+    if (d->layoutDirty)
+        updateGeometry();
     d->layoutTabs();
+
     d->makeVisible(d->currentIndex);
 }
 
@@ -1260,7 +1267,7 @@ void QTabBar::paintEvent(QPaintEvent *)
         }
         // If this tab is partially obscured, make a note of it so that we can pass the information
         // along when we draw the tear.
-        if ((!verticalTabs && (!rtl && tab.rect.left() < 0) || (rtl && tab.rect.right() > width()))
+        if (((!verticalTabs && (!rtl && tab.rect.left() < 0)) || (rtl && tab.rect.right() > width()))
             || (verticalTabs && tab.rect.top() < 0)) {
             cut = i;
             cutTab = tab;
@@ -1406,6 +1413,7 @@ void QTabBar::setElideMode(Qt::TextElideMode mode)
 {
     Q_D(QTabBar);
     d->elideMode = mode;
+    d->refresh();
 }
 
 /*!
@@ -1415,7 +1423,7 @@ void QTabBar::setElideMode(Qt::TextElideMode mode)
     \since 4.2
 
     When there are too many tabs in a tab bar for its size, the tab bar can either choose
-    to expand it's size or to add buttons that allow you to scroll through the tabs.
+    to expand its size or to add buttons that allow you to scroll through the tabs.
 
     By default the value is style dependant.
 
@@ -1447,6 +1455,8 @@ void QTabBar::setUsesScrollButtons(bool useButtons)
     Use currentChanged() instead.
 */
 
+
+QT_END_NAMESPACE
 
 #include "moc_qtabbar.cpp"
 

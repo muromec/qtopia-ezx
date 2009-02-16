@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,20 +43,27 @@
 #include <qdir.h>
 #if defined(Q_WS_WIN)
 #define _WIN32_IE 0x0500
-#include <private/qpixmap_p.h>
+#include <objbase.h>
+#include <private/qpixmapdata_p.h>
 #include <qpixmapcache.h>
 #elif defined(Q_WS_MAC)
 #include <private/qt_mac_p.h>
+#endif
+#ifdef Q_OS_WINCE
+#include <qfunctions_wince.h>
+#include <Commctrl.h>
 #endif
 
 #ifndef SHGFI_ADDOVERLAYS
 #define SHGFI_ADDOVERLAYS 0x000000020
 #endif
 
+QT_BEGIN_NAMESPACE
+
 /*!
   \class QFileIconProvider
 
-  \brief The QFileIconProvider class provides file icon for the QDirModel class.
+  \brief The QFileIconProvider class provides file icons for the QDirModel class.
 */
 
 /*!
@@ -236,6 +237,7 @@ QIcon QFileIconProviderPrivate::getWinIcon(const QFileInfo &fileInfo) const
     unsigned long val = 0;
 
     //Get the small icon
+#ifndef Q_OS_WINCE
     val = SHGetFileInfo((const WCHAR *)QDir::toNativeSeparators(fileInfo.filePath()).utf16(), 0, &info,
                         sizeof(SHFILEINFO), SHGFI_ICON|SHGFI_SMALLICON|SHGFI_SYSICONINDEX|SHGFI_ADDOVERLAYS);
     if (val) {
@@ -247,8 +249,28 @@ QIcon QFileIconProviderPrivate::getWinIcon(const QFileInfo &fileInfo) const
         }
         DestroyIcon(info.hIcon);
     }
+#else
+      val = SHGetFileInfo((const WCHAR *)QDir::toNativeSeparators(fileInfo.filePath()).utf16(), 0, &info,
+                        sizeof(SHFILEINFO), SHGFI_SMALLICON|SHGFI_SYSICONINDEX);
+      if (val) {
+          pixmap = convertHIconToPixmap(ImageList_GetIcon((HIMAGELIST) val, info.iIcon, ILD_NORMAL));
+          if (!pixmap.isNull()) {
+              retIcon.addPixmap(pixmap);
+              if (!key.isEmpty())
+                  QPixmapCache::insert(key, pixmap);
+          }
+          else {
+              qWarning("QFileIconProviderPrivate::getWinIcon() no small icon found");
+          }
+          DestroyIcon(info.hIcon);
+      }
+      else {
+          qWarning("QFileIconProviderPrivate::getWinIcon() SHGetFileInfo failed");
+      }
+#endif
 
     //Get the big icon
+#ifndef Q_OS_WINCE
     val = SHGetFileInfo((const WCHAR *)QDir::toNativeSeparators(fileInfo.filePath()).utf16(), 0, &info,
                         sizeof(SHFILEINFO), SHGFI_ICON|SHGFI_LARGEICON|SHGFI_SYSICONINDEX|SHGFI_ADDOVERLAYS);
     if (val) {
@@ -256,10 +278,29 @@ QIcon QFileIconProviderPrivate::getWinIcon(const QFileInfo &fileInfo) const
         if (!pixmap.isNull()) {
             retIcon.addPixmap(pixmap);
             if (!key.isEmpty())
-                QPixmapCache::insert(key + QLatin1Char('l'), pixmap);
+                QPixmapCache::insert(key, pixmap);
         }
         DestroyIcon(info.hIcon);
     }
+#else
+    val = SHGetFileInfo((const WCHAR *)QDir::toNativeSeparators(fileInfo.filePath()).utf16(), 0, &info,
+                        sizeof(SHFILEINFO), SHGFI_LARGEICON|SHGFI_SYSICONINDEX);
+    if (val) {
+        pixmap = convertHIconToPixmap(ImageList_GetIcon((HIMAGELIST) val, info.iIcon, ILD_NORMAL), true);
+        if (!pixmap.isNull()) {
+            retIcon.addPixmap(pixmap);
+            if (!key.isEmpty())
+                QPixmapCache::insert(key + QLatin1Char('l'), pixmap);
+        }
+        else {
+            qWarning("QFileIconProviderPrivate::getWinIcon() no large icon found");
+        }
+        DestroyIcon(info.hIcon);
+    }
+    else {
+        qWarning("QFileIconProviderPrivate::getWinIcon() SHGetFileInfo failed");
+    }
+#endif
     return retIcon;
 }
 
@@ -282,7 +323,7 @@ QIcon QFileIconProviderPrivate::getMacIcon(const QFileInfo &fi) const
     status = GetIconRefFromFileInfo(&macRef, macName.length, macName.unicode, kIconServicesCatalogInfoMask, &info, kIconServicesNormalUsageFlag, &iconRef, &iconLabel);
     if (status != noErr)
         return retIcon;
-    extern void qt_mac_constructQIconFromIconRef(const IconRef, const IconRef, QIcon*); // qmacstyle_mac.cpp
+    extern void qt_mac_constructQIconFromIconRef(const IconRef, const IconRef, QIcon*, QStyle::StandardPixmap = QStyle::SP_CustomBase); // qmacstyle_mac.cpp
     qt_mac_constructQIconFromIconRef(iconRef, 0, &retIcon);
     ReleaseIconRef(iconRef);
     return retIcon;
@@ -307,7 +348,7 @@ QIcon QFileIconProvider::icon(const QFileInfo &info) const
         return icon;
 #endif
     if (info.isRoot())
-#ifdef Q_WS_WIN
+#if defined (Q_WS_WIN) && !defined(Q_OS_WINCE)
     {
         uint type = DRIVE_UNKNOWN;
         QT_WA({ type = GetDriveTypeW((wchar_t *)info.absoluteFilePath().utf16()); },
@@ -332,12 +373,12 @@ QIcon QFileIconProvider::icon(const QFileInfo &info) const
 #else
     return d->getIcon(QStyle::SP_DriveHDIcon);
 #endif
-    if (info.isFile())
+    if (info.isFile()) {
         if (info.isSymLink())
             return d->getIcon(QStyle::SP_FileLinkIcon);
-        else {
+        else
             return d->getIcon(QStyle::SP_FileIcon);
-  }
+    }
   if (info.isDir()) {
     if (info.isSymLink()) {
       return d->getIcon(QStyle::SP_DirLinkIcon);
@@ -395,5 +436,6 @@ QString QFileIconProvider::type(const QFileInfo &info) const
     return QApplication::translate("QFileDialog", "Unknown");
 }
 
-#endif
+QT_END_NAMESPACE
 
+#endif

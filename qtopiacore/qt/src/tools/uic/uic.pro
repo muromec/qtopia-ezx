@@ -15,11 +15,17 @@ DESTDIR = ../../../bin
 DEFINES	       += QT_BOOTSTRAPPED QT_UIC QT_LITE_UNICODE QT_NO_DATASTREAM \
 	          QT_NO_THREAD QT_NO_QOBJECT QT_NO_UNICODETABLES QT_NO_LIBRARY \
 	          QT_NO_SYSTEMLOCALE QT_NO_GEOM_VARIANT
+DEFINES += QT_NO_USING_NAMESPACE
+DEFINES += QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII
+
 win32:DEFINES += QT_NODLL
+win32:LIBS += -luser32
+
+!contains(QT_CONFIG, qt3support):DEFINES += QT_NO_QT3_SUPPORT
 
 CONFIG -= qt
 INCLUDEPATH	 = ../../corelib/arch/generic $$QT_BUILD_TREE/include . \
-                   $$QT_BUILD_TREE/include/QtCore $$QT_BUILD_TREE/include/QtXml
+                   $$QT_BUILD_TREE/include/QtCore $$QT_BUILD_TREE/include/QtXml ../../xml
 DEPENDPATH	+= $$INCLUDEPATH ../../corelib/base ../../corelib/tools ../../corelib/io ../../corelib/codecs ../../xml
 
 include(uic.pri)
@@ -30,6 +36,7 @@ SOURCES += main.cpp
 
 # Qt tools needed to link rcc
 SOURCES	+= ../../corelib/global/qglobal.cpp \
+           ../../corelib/global/qmalloc.cpp \
            ../../corelib/global/qnumeric.cpp \
 	   ../../corelib/io/qbuffer.cpp \
 	   ../../corelib/io/qdir.cpp		\
@@ -64,16 +71,15 @@ SOURCES	+= ../../corelib/global/qglobal.cpp \
            ../../corelib/codecs/qtsciicodec.cpp \
            ../../corelib/codecs/qlatincodec.cpp \
            ../../corelib/codecs/qsimplecodec.cpp \
-           ../../xml/qdom.cpp \
-           ../../xml/qxmlutils_p.cpp \
-	   ../../xml/qxml.cpp
+           ../../corelib/xml/qxmlutils.cpp \
+           ../../xml/dom/qdom.cpp \
+	   ../../xml/sax/qxml.cpp
 
 unix:SOURCES += ../../corelib/io/qfsfileengine_unix.cpp ../../corelib/io/qfsfileengine_iterator_unix.cpp
 
 win32:SOURCES += ../../corelib/io/qfsfileengine_win.cpp ../../corelib/io/qfsfileengine_iterator_win.cpp
 
 macx: {
-   QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.3 #enables weak linking for 10.3 (exported)
    SOURCES += ../../corelib/kernel/qcore_mac.cpp
    LIBS += -framework CoreServices
 }

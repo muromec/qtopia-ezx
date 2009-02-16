@@ -61,7 +61,7 @@ dump (FILE *stream, int indent, const char *format, ...)
 }
 
 static void
-Dump_UShort_Array (FT_UShort *array, int count, const char *name, FILE *stream, int indent)
+Dump_UShort_Array (HB_UShort *array, int count, const char *name, FILE *stream, int indent)
 {
   int i;
 
@@ -74,7 +74,7 @@ Dump_UShort_Array (FT_UShort *array, int count, const char *name, FILE *stream, 
 }
 
 static void
-Print_Tag (FT_ULong tag, FILE *stream)
+Print_Tag (HB_UInt tag, FILE *stream)
 {
   fprintf (stream, "%c%c%c%c",
 	   (unsigned char)(tag >> 24),
@@ -87,7 +87,7 @@ DEF_DUMP (LangSys)
 {
   int i;
 
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (LangSys, LookupOrderOffset);
   DUMP_FUINT (LangSys, ReqFeatureIndex);
@@ -97,21 +97,21 @@ DEF_DUMP (LangSys)
     DUMP1("<FeatureIndex>%d</FeatureIndex>\n", LangSys->FeatureIndex[i]);
 }
 
-DEF_DUMP (Script)
+DEF_DUMP (ScriptTable)
 {
   int i;
 
-  RECURSE (DefaultLangSys, LangSys, &Script->DefaultLangSys);
+  RECURSE (DefaultLangSys, LangSys, &ScriptTable->DefaultLangSys);
 
-  DUMP_FUINT (Script, LangSysCount);
+  DUMP_FUINT (ScriptTable, LangSysCount);
 
-  for (i=0; i < Script->LangSysCount; i++)
+  for (i=0; i < ScriptTable->LangSysCount; i++)
     {
       do_indent (stream, indent);
       fprintf (stream, "<LangSysTag>");
-      Print_Tag (Script->LangSysRecord[i].LangSysTag, stream);
+      Print_Tag (ScriptTable->LangSysRecord[i].LangSysTag, stream);
       fprintf (stream, "</LangSysTag>\n");
-      RECURSE_NUM (LangSys, i, LangSys, &Script->LangSysRecord[i].LangSys);
+      RECURSE_NUM (LangSys, i, LangSys, &ScriptTable->LangSysRecord[i].LangSys);
     }
 }
 
@@ -127,7 +127,7 @@ DEF_DUMP (ScriptList)
       fprintf (stream, "<ScriptTag>");
       Print_Tag (ScriptList->ScriptRecord[i].ScriptTag, stream);
       fprintf (stream, "</ScriptTag>\n");
-      RECURSE_NUM (Script, i, Script, &ScriptList->ScriptRecord[i].Script);
+      RECURSE_NUM (Script, i, ScriptTable, &ScriptList->ScriptRecord[i].Script);
     }
 }
 
@@ -135,7 +135,7 @@ DEF_DUMP (Feature)
 {
   int i;
 
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (Feature, FeatureParams);
   DUMP_FUINT (Feature, LookupListCount);
@@ -146,7 +146,7 @@ DEF_DUMP (Feature)
 
 DEF_DUMP (MarkRecord)
 {
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (MarkRecord, Class);
   DUMP1("<Anchor>%d</Anchor>\n", MarkRecord->MarkAnchor.PosFormat );
@@ -180,7 +180,7 @@ DEF_DUMP (FeatureList)
 
 DEF_DUMP (Coverage)
 {
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (Coverage, CoverageFormat);
 
@@ -207,7 +207,7 @@ DEF_DUMP (Coverage)
 
 DEF_DUMP (ClassRangeRecord)
 {
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FGLYPH (ClassRangeRecord, Start);
   DUMP_FGLYPH (ClassRangeRecord, End);
@@ -216,7 +216,7 @@ DEF_DUMP (ClassRangeRecord)
 
 DEF_DUMP (ClassDefinition)
 {
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT( ClassDefinition, ClassFormat);
   DUMP_FUINT( ClassDefinition, loaded);
@@ -247,7 +247,7 @@ DEF_DUMP (ClassDefinition)
 
 DEF_DUMP (SubstLookupRecord)
 {
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (SubstLookupRecord, SequenceIndex);
   DUMP_FUINT (SubstLookupRecord, LookupListIndex);
@@ -302,7 +302,7 @@ DEF_DUMP (Ligature)
 {
   int i;
 
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FGLYPH (Ligature, LigGlyph);
   DUMP_FUINT (Ligature, ComponentCount);
@@ -338,8 +338,8 @@ Dump_GSUB_Lookup_Ligature (HB_SubTable *subtable, FILE *stream, int indent, HB_T
 
 DEF_DUMP (ContextSubstFormat1)
 {
-  FT_UNUSED(hb_type);
-  FT_UNUSED(ContextSubstFormat1);
+  HB_UNUSED(hb_type);
+  HB_UNUSED(ContextSubstFormat1);
 
 
   DUMP("<!-- Not implemented!!! -->\n");
@@ -354,8 +354,8 @@ DEF_DUMP (ContextSubstFormat2)
 
 DEF_DUMP (ContextSubstFormat3)
 {
-  FT_UNUSED(hb_type);
-  FT_UNUSED(ContextSubstFormat3);
+  HB_UNUSED(hb_type);
+  HB_UNUSED(ContextSubstFormat3);
 
   DUMP("<!-- Not implemented!!! -->\n");
 }
@@ -384,8 +384,8 @@ Dump_GSUB_Lookup_Context (HB_SubTable *subtable, FILE *stream, int indent, HB_Ty
 
 DEF_DUMP (ChainContextSubstFormat1)
 {
-  FT_UNUSED(hb_type);
-  FT_UNUSED(ChainContextSubstFormat1);
+  HB_UNUSED(hb_type);
+  HB_UNUSED(ChainContextSubstFormat1);
 
   DUMP("<!-- Not implemented!!! -->\n");
 }
@@ -456,7 +456,7 @@ Dump_Device (HB_Device *Device, FILE *stream, int indent, HB_Type hb_type)
   int n_per;
   unsigned int mask;
 
-  FT_UNUSED(hb_type);
+  HB_UNUSED(hb_type);
 
   DUMP_FUINT (Device, StartSize);
   DUMP_FUINT (Device, EndSize);
@@ -488,8 +488,8 @@ Dump_Device (HB_Device *Device, FILE *stream, int indent, HB_Type hb_type)
 
       for (i = Device->StartSize; i <= Device->EndSize ; i++)
 	{
-	  FT_UShort val = Device->DeltaValue[i / n_per];
-	  FT_Short signed_val = ((val << ((i % n_per) * bits)) & mask);
+	  HB_UShort val = Device->DeltaValue[i / n_per];
+	  HB_Short signed_val = ((val << ((i % n_per) * bits)) & mask);
 	  dump (stream, indent, "%d", signed_val >> (16 - bits));
 	  if (i != Device->EndSize)
 	    DUMP (", ");
@@ -499,7 +499,7 @@ Dump_Device (HB_Device *Device, FILE *stream, int indent, HB_Type hb_type)
 }
 
 static void
-Dump_ValueRecord (HB_ValueRecord *ValueRecord, FILE *stream, int indent, HB_Type hb_type, FT_UShort value_format)
+Dump_ValueRecord (HB_ValueRecord *ValueRecord, FILE *stream, int indent, HB_Type hb_type, HB_UShort value_format)
 {
   if (value_format & HB_GPOS_FORMAT_HAVE_X_PLACEMENT)
     DUMP_FINT (ValueRecord, XPlacement);
@@ -552,7 +552,7 @@ Dump_GPOS_Lookup_Single (HB_SubTable *subtable, FILE *stream, int indent, HB_Typ
 }
 
 static void
-Dump_PairValueRecord (HB_PairValueRecord *PairValueRecord, FILE *stream, int indent, HB_Type hb_type, FT_UShort ValueFormat1, FT_UShort ValueFormat2)
+Dump_PairValueRecord (HB_PairValueRecord *PairValueRecord, FILE *stream, int indent, HB_Type hb_type, HB_UShort ValueFormat1, HB_UShort ValueFormat2)
 {
   DUMP_FUINT (PairValueRecord, SecondGlyph);
   DUMP_VALUE_RECORD (&PairValueRecord->Value1, ValueFormat1);
@@ -560,7 +560,7 @@ Dump_PairValueRecord (HB_PairValueRecord *PairValueRecord, FILE *stream, int ind
 }
 
 static void
-Dump_PairSet (HB_PairSet *PairSet, FILE *stream, int indent, HB_Type hb_type, FT_UShort ValueFormat1, FT_UShort ValueFormat2)
+Dump_PairSet (HB_PairSet *PairSet, FILE *stream, int indent, HB_Type hb_type, HB_UShort ValueFormat1, HB_UShort ValueFormat2)
 {
   int i;
   DUMP_FUINT (PairSet, PairValueCount);

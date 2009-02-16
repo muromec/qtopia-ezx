@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -84,17 +78,16 @@
 
 #include <stdlib.h>
 #include <ctype.h>
-#ifndef Q_OS_TEMP
 #include <locale.h>
-#endif
 #if defined (_XOPEN_UNIX) && !defined(Q_OS_QNX6) && !defined(Q_OS_OSF)
 #include <langinfo.h>
 #endif
 
+QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_TEXTCODECPLUGIN
 Q_GLOBAL_STATIC_WITH_ARGS(QFactoryLoader, loader,
-    (QTextCodecFactoryInterface_iid, QCoreApplication::libraryPaths(), QLatin1String("/codecs")))
+    (QTextCodecFactoryInterface_iid, QLatin1String("/codecs")))
 #endif
 
 
@@ -198,7 +191,7 @@ QTextCodecCleanup::~QTextCodecCleanup()
 
 Q_GLOBAL_STATIC(QTextCodecCleanup, createQTextCodecCleanup)
 
-#ifdef Q_OS_WIN32
+#if defined(Q_OS_WIN32) || defined(Q_OS_WINCE)
 class QWindowsLocalCodec: public QTextCodec
 {
 public:
@@ -207,6 +200,7 @@ public:
 
     QString convertToUnicode(const char *, int, ConverterState *) const;
     QByteArray convertFromUnicode(const QChar *, int, ConverterState *) const;
+    QString convertToUnicodeCharByChar(const char *chars, int length, ConverterState *state) const;
 
     QByteArray name() const;
     int mibEnum() const;
@@ -221,10 +215,155 @@ QWindowsLocalCodec::~QWindowsLocalCodec()
 {
 }
 
-
-QString QWindowsLocalCodec::convertToUnicode(const char *chars, int len, ConverterState * /*state*/) const
+QString QWindowsLocalCodec::convertToUnicode(const char *chars, int length, ConverterState *state) const
 {
-    return qt_winMB2QString(chars, len);
+    const char *mb = chars;
+    int mblen = length;
+
+    if (!mb || !mblen)
+        return QString();
+
+    const int wclen_auto = 4096;
+    WCHAR wc_auto[wclen_auto];
+    int wclen = wclen_auto;
+    WCHAR *wc = wc_auto;
+    int len;
+    QString sp;
+    bool prepend = false;
+    char state_data = 0;
+    int remainingChars = 0;
+
+    //save the current state information
+    if (state) {
+        state_data = (char)state->state_data[0];
+        remainingChars = state->remainingChars;
+    }
+
+    //convert the pending charcter (if available)
+    if (state && remainingChars) {
+        char prev[3] = {0};
+        prev[0] = state_data;
+        prev[1] = mb[0];
+        remainingChars = 0;
+        len = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED,
+                                    prev, 2, wc, wclen);
+        if (len) {
+            prepend = true;
+            sp.append(QChar(wc[0]));
+            mb++;
+            mblen--;
+            wc[0] = 0;
+        }
+    }
+
+    while (!(len=MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED|MB_ERR_INVALID_CHARS,
+                mb, mblen, wc, wclen))) {
+        int r = GetLastError();
+        if (r == ERROR_INSUFFICIENT_BUFFER) {
+            if (wc != wc_auto) {
+                qWarning("MultiByteToWideChar: Size changed");
+                break;
+            } else {
+                wclen = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED,
+                                    mb, mblen, 0, 0);
+                wc = new WCHAR[wclen];
+                // and try again...
+            }
+        } else if (r == ERROR_NO_UNICODE_TRANSLATION) {
+            //find the last non NULL character
+            while (mblen > 1  && !(mb[mblen-1]))
+                mblen--;
+            //check whether,  we hit an invalid character in the middle
+            if ((mblen <= 1) || (remainingChars && state_data))
+                return convertToUnicodeCharByChar(chars, length, state);
+            //Remove the last character and try again...
+            state_data = mb[mblen-1];
+            remainingChars = 1;
+            mblen--;
+        } else {
+            // Fail.
+            qWarning("MultiByteToWideChar: Cannot convert multibyte text");
+            break;
+        }
+    }
+    if (len <= 0)
+        return QString();
+    if (wc[len-1] == 0) // len - 1: we don't want terminator
+        --len;
+
+    //save the new state information
+    if (state) {
+        state->state_data[0] = (char)state_data;
+        state->remainingChars = remainingChars;
+    }
+    QString s((QChar*)wc, len);
+    if (wc != wc_auto)
+        delete [] wc;
+    if (prepend) {
+        return sp+s;
+    }
+    return s;
+}
+
+QString QWindowsLocalCodec::convertToUnicodeCharByChar(const char *chars, int length, ConverterState *state) const
+{
+    if (!chars || !length)
+        return QString();
+
+    int copyLocation = 0;
+    int extra = 2;
+    if (state && state->remainingChars) {
+        copyLocation = state->remainingChars;
+        extra += copyLocation;
+    }
+    int newLength = length + extra;
+    char *mbcs = new char[newLength];
+    //ensure that we have a NULL terminated string
+    mbcs[newLength-1] = 0;
+    mbcs[newLength-2] = 0;
+    memcpy(&(mbcs[copyLocation]), chars, length);
+    if (copyLocation) {
+        //copy the last character from the state
+        mbcs[0] = (char)state->state_data[0];
+        state->remainingChars = 0;
+    }
+    const char *mb = mbcs;
+#ifndef Q_OS_WINCE
+    const char *next = 0;
+    QString s;
+    while((next = CharNextExA(CP_ACP, mb, 0)) != mb) {
+        WCHAR wc[2] ={0};
+        int charlength = next - mb;
+        int len = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED|MB_ERR_INVALID_CHARS, mb, charlength, wc, 2);
+        if (len>0) {
+            s.append(QChar(wc[0]));
+        } else {
+            int r = GetLastError();
+            //check if the character being dropped is the last character
+            if (r == ERROR_NO_UNICODE_TRANSLATION && mb == (mbcs+newLength -3) && state) {
+                state->remainingChars = 1;
+                state->state_data[0] = (char)*mb;
+            }
+        }
+        mb = next;
+    }
+#else
+    QString s;
+    int size = mbstowcs(NULL, mb, length);
+    if (size < 0) {
+        Q_ASSERT("Error in CE TextCodec");
+        return QString();
+    }
+    wchar_t* ws = new wchar_t[size + 2];
+    ws[size +1] = 0;
+    ws[size] = 0;
+    size = mbstowcs(ws, mb, length);
+    for (int i=0; i< size; i++)
+        s.append(QChar(ws[i]));
+    delete [] ws;
+#endif
+    delete mbcs;
+    return s;
 }
 
 QByteArray QWindowsLocalCodec::convertFromUnicode(const QChar *uc, int len, ConverterState *) const
@@ -325,7 +464,11 @@ static const char * const probably_koi8_rlocales[] = {
 static QTextCodec * ru_RU_hack(const char * i) {
     QTextCodec * ru_RU_codec = 0;
 
+#if !defined(Q_OS_WINCE)
     QByteArray origlocale(setlocale(LC_CTYPE, i));
+#else
+	QByteArray origlocale(i);
+#endif
     // unicode   koi8r   latin5   name
     // 0x044E    0xC0    0xEE     CYRILLIC SMALL LETTER YU
     // 0x042E    0xE0    0xCE     CYRILLIC CAPITAL LETTER YU
@@ -341,14 +484,16 @@ static QTextCodec * ru_RU_hack(const char * i) {
         qWarning("QTextCodec: Using KOI8-R, probe failed (%02x %02x %s)",
                   koi8r, latin5, i);
     }
+#if !defined(Q_OS_WINCE)
     setlocale(LC_CTYPE, origlocale);
+#endif
 
     return ru_RU_codec;
 }
 
 #endif
 
-#ifndef Q_OS_WIN32
+#if !defined(Q_OS_WIN32) && !defined(Q_OS_WINCE)
 static QTextCodec *checkForCodec(const char *name) {
     QTextCodec *c = QTextCodec::codecForName(name);
     if (!c) {
@@ -367,7 +512,7 @@ static QTextCodec *checkForCodec(const char *name) {
 */
 static void setupLocaleMapper()
 {
-#ifdef Q_OS_WIN32
+#if defined(Q_OS_WIN32) || defined(Q_OS_WINCE)
     localeMapper = QTextCodec::codecForName("System");
 #else
 
@@ -395,7 +540,11 @@ static void setupLocaleMapper()
         // First part is getting that locale name.  First try setlocale() which
         // definitely knows it, but since we cannot fully trust it, get ready
         // to fall back to environment variables.
+#if !defined(Q_OS_WINCE)
         char * ctype = qstrdup(setlocale(LC_CTYPE, 0));
+#else
+		char * ctype = qstrdup("");
+#endif
 
         // Get the first nonempty value from $LC_ALL, $LC_CTYPE, and $LANG
         // environment variables.
@@ -437,7 +586,7 @@ static void setupLocaleMapper()
             localeMapper = checkForCodec(lang);
 
         // 5. "@euro"
-        if (!localeMapper && ctype && strstr(ctype, "@euro") || lang && strstr(lang, "@euro"))
+        if ((!localeMapper && ctype && strstr(ctype, "@euro")) || (lang && strstr(lang, "@euro")))
             localeMapper = checkForCodec("ISO 8859-15");
 
         // 6. guess locale from ctype unless ctype is "C"
@@ -544,13 +693,16 @@ static void setup()
 #  endif // QT_NO_ICONV && !QT_BOOTSTRAPPED
 #endif // QT_NO_CODECS
 
-#ifdef Q_OS_WIN32
+#if defined(Q_OS_WIN32) || defined(Q_OS_WINCE)
     (void) new QWindowsLocalCodec;
 #endif // Q_OS_WIN32
 
     (void)new QUtf16Codec;
     (void)new QUtf16BECodec;
     (void)new QUtf16LECodec;
+    (void)new QUtf32Codec;
+    (void)new QUtf32BECodec;
+    (void)new QUtf32LECodec;
     (void)new QLatin15Codec;
     (void)new QLatin1Codec;
     (void)new QUtf8Codec;
@@ -614,6 +766,9 @@ static void setup()
     \o UTF-16
     \o UTF-16BE
     \o UTF-16LE
+    \o UTF-32
+    \o UTF-32BE
+    \o UTF-32LE
     \o Windows-1250 to 1258
     \o WINSAMI2
     \endlist
@@ -623,21 +778,13 @@ static void setup()
     KOI8-R encoding, and want to convert it to Unicode. The simple way
     to do it is like this:
 
-    \code
-        QByteArray encodedString = "...";
-        QTextCodec *codec = QTextCodec::codecForName("KOI8-R");
-        QString string = codec->toUnicode(encodedString);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_codecs_qtextcodec.cpp 0
 
     After this, \c string holds the text converted to Unicode.
     Converting a string from Unicode to the local encoding is just as
     easy:
 
-    \code
-        QString string = "...";
-        QTextCodec *codec = QTextCodec::codecForName("KOI8-R");
-        QByteArray encodedString = codec->fromUnicode(string);
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_codecs_qtextcodec.cpp 1
 
     To read or write files in various encodings, use QTextStream and
     its \l{QTextStream::setCodec()}{setCodec()} function. See the
@@ -654,16 +801,7 @@ static void setup()
     object for the codec and use this QTextDecoder for the whole
     decoding process, as shown below:
 
-    \code
-        QTextCodec *codec = QTextCodec::codecForName("Shift-JIS");
-        QTextDecoder *decoder = codec->makeDecoder();
-
-        QString string;
-        while (new_data_available()) {
-            QByteArray chunk = get_new_data();
-            string += decoder->toUnicode(chunk);
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_codecs_qtextcodec.cpp 2
 
     The QTextDecoder object maintains state between chunks and therefore
     works correctly even if a multi-byte character is split between
@@ -809,7 +947,7 @@ QTextCodec* QTextCodec::codecForMib(int mib)
 {
     setup();
 
-    // Qt 3 used 1000 (mib for UCS2) as it's identifier for the utf16 codec. Map
+    // Qt 3 used 1000 (mib for UCS2) as its identifier for the utf16 codec. Map
     // this correctly for compatibility.
     if (mib == 1000)
         mib = 1015;
@@ -886,7 +1024,10 @@ QList<int> QTextCodec::availableMibs()
 }
 
 /*!
-    Set the codec to \a c; this will be returned by codecForLocale().
+    Set the codec to \a c; this will be returned by
+    codecForLocale(). If \c is a null pointer, the codec is reset to
+    the default.
+
     This might be needed for some applications that want to use their
     own mechanism for setting the locale.
 
@@ -901,6 +1042,8 @@ void QTextCodec::setCodecForLocale(QTextCodec *c)
 	return;
 #endif
     localeMapper = c;
+    if (!localeMapper)
+        setupLocaleMapper();
 }
 
 /*!
@@ -1298,14 +1441,7 @@ QString QTextDecoder::toUnicode(const QByteArray &ba)
     might use eucKR for all the text in the program, in which case the
     main() function might look like this:
 
-    \code
-        int main(int argc, char *argv[])
-        {
-            QApplication app(argc, argv);
-            QTextCodec::setCodecForTr(QTextCodec::codecForName("eucKR"));
-            ...
-        }
-    \endcode
+    \snippet doc/src/snippets/code/src_corelib_codecs_qtextcodec.cpp 3
 
     Note that this is not the way to select the encoding that the \e
     user has chosen. For example, to convert an application containing
@@ -1346,23 +1482,26 @@ QString QTextDecoder::toUnicode(const QByteArray &ba)
 */
 
 /*!
-  \internal
+    \since 4.4
+
+    Tries to detect the encoding of the provided snippet of html in the given byte array, \a ba,
+    and returns a QTextCodec instance that is capable of decoding the html to unicode.
+    If the codec cannot be detected from the content provided, \a defaultCodec is returned.
 */
-QTextCodec *QTextCodec::codecForHtml(const QByteArray &ba)
+QTextCodec *QTextCodec::codecForHtml(const QByteArray &ba, QTextCodec *defaultCodec)
 {
     // determine charset
-    int mib = 4; // Latin-1
     int pos;
     QTextCodec *c = 0;
 
     if (ba.size() > 1 && (((uchar)ba[0] == 0xfe && (uchar)ba[1] == 0xff)
                           || ((uchar)ba[0] == 0xff && (uchar)ba[1] == 0xfe))) {
-        mib = 1015; // utf16
+        c = QTextCodec::codecForMib(1015); // utf16
     } else if (ba.size() > 2
              && (uchar)ba[0] == 0xef
              && (uchar)ba[1] == 0xbb
              && (uchar)ba[2] == 0xbf) {
-        mib = 106; // utf-8
+        c = QTextCodec::codecForMib(106); // utf-8
     } else {
         QByteArray header = ba.left(512).toLower();
         if ((pos = header.indexOf("http-equiv=")) != -1) {
@@ -1376,10 +1515,21 @@ QTextCodec *QTextCodec::codecForHtml(const QByteArray &ba)
         }
     }
     if (!c)
-        c = QTextCodec::codecForMib(mib);
+        c = defaultCodec;
 
     return c;
 }
+
+/*!
+  \overload
+
+  If the codec cannot be detected, this overload returns a Latin-1 QTextCodec.
+*/
+QTextCodec *QTextCodec::codecForHtml(const QByteArray &ba)
+{
+    return codecForHtml(ba, QTextCodec::codecForMib(/*Latin 1*/ 4));
+}
+
 
 /*! \internal
     \since 4.3
@@ -1418,5 +1568,7 @@ bool QTextDecoder::hasFailure() const
 
     Use name() instead.
 */
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_TEXTCODEC

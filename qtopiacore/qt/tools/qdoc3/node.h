@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -58,19 +52,49 @@
 #include "location.h"
 #include "text.h"
 
+QT_BEGIN_NAMESPACE
+
 class InnerNode;
 
 class Node
 {
 public:
-    enum Type { Namespace, Class, Fake, Enum, Typedef, Function, Property,
-                Variable, Target };
+    enum Type { 
+        Namespace, 
+        Class, 
+        Fake, 
+        Enum, 
+        Typedef, 
+        Function, 
+        Property,
+        Variable, 
+        Target };
     enum Access { Public, Protected, Private };
-    enum Status { Compat, Obsolete, Deprecated, Preliminary, Commendable, Main }; // don't reorder
-    enum ThreadSafeness { UnspecifiedSafeness, NonReentrant, Reentrant, ThreadSafe };
-    enum LinkType { StartLink, NextLink, PreviousLink,
-                    ContentsLink, IndexLink /*, GlossaryLink, CopyrightLink,
-                    ChapterLink, SectionLink, SubsectionLink, AppendixLink */ };
+    enum Status { 
+        Compat, 
+        Obsolete, 
+        Deprecated, 
+        Preliminary, 
+        Commendable, 
+        Main, 
+        Internal }; // don't reorder
+    
+    enum ThreadSafeness { UnspecifiedSafeness, 
+                          NonReentrant, 
+                          Reentrant, 
+                          ThreadSafe };
+    enum LinkType { 
+        StartLink, 
+        NextLink, 
+        PreviousLink,
+        ContentsLink, 
+        IndexLink /*, 
+        GlossaryLink, 
+        CopyrightLink,
+        ChapterLink, 
+        SectionLink, 
+        SubsectionLink, 
+        AppendixLink */ };
 
     virtual ~Node();
 
@@ -107,10 +131,12 @@ public:
 
     void clearRelated() { rel = 0; }
 
-protected:
+    QString fileBase() const;
+
+ protected:
     Node( Type type, InnerNode *parent, const QString& name );
 
-private:
+ private:
 #ifdef Q_WS_WIN
     Type typ;
     Access acc;
@@ -141,7 +167,7 @@ typedef QList<Node *> NodeList;
 
 class InnerNode : public Node
 {
-public:
+ public:
     ~InnerNode();
 
     Node *findNode( const QString& name );
@@ -169,13 +195,13 @@ public:
     NodeList overloads(const QString &funcName) const;
     const QStringList& includes() const { return inc; }
 
-protected:
+ protected:
     InnerNode( Type type, InnerNode *parent, const QString& name );
 
-private:
+ private:
     friend class Node;
 
-    static bool isSameSignature( const FunctionNode *f1, const FunctionNode *f2 );
+    static bool isSameSignature(const FunctionNode *f1, const FunctionNode *f2);
     void addChild(Node *child);
     void removeChild(Node *child);
     void removeRelated(Node *pseudoChild);
@@ -191,18 +217,18 @@ private:
 
 class LeafNode : public Node
 {
-public:
+ public:
     LeafNode();
 
     virtual bool isInnerNode() const;
 
-protected:
+ protected:
     LeafNode( Type type, InnerNode *parent, const QString& name );
 };
 
 class NamespaceNode : public InnerNode
 {
-public:
+ public:
     NamespaceNode( InnerNode *parent, const QString& name );
 };
 
@@ -223,10 +249,12 @@ struct RelatedClass
 
 class ClassNode : public InnerNode
 {
-public:
+ public:
     ClassNode( InnerNode *parent, const QString& name );
 
-    void addBaseClass(Access access, ClassNode *node, const QString &dataTypeWithTemplateArgs = "");
+    void addBaseClass(Access access, 
+                      ClassNode *node, 
+                      const QString &dataTypeWithTemplateArgs = "");
     void fixBaseClasses();
 
     const QList<RelatedClass> &baseClasses() const { return bas; }
@@ -238,7 +266,7 @@ public:
     QString serviceName() const { return sname; }
     void setServiceName(const QString& value) { sname = value; }
 
-private:
+ private:
     QList<RelatedClass> bas;
     QList<RelatedClass> der;
     bool hidden;
@@ -247,8 +275,15 @@ private:
 
 class FakeNode : public InnerNode
 {
-public:
-    enum SubType { Example, HeaderFile, File, Group, Module, Page, ExternalPage };
+ public:
+    enum SubType { 
+        Example, 
+        HeaderFile, 
+        File,
+        Group,
+        Module,
+        Page,
+        ExternalPage };
 
     FakeNode( InnerNode *parent, const QString& name, SubType subType );
 
@@ -262,7 +297,7 @@ public:
     QString subTitle() const;
     const NodeList &groupMembers() const { return gr; }
 
-private:
+ private:
     SubType sub;
     QString tle;
     QString stle;
@@ -271,7 +306,7 @@ private:
 
 class EnumItem
 {
-public:
+ public:
     EnumItem() { }
     EnumItem( const QString& name, const QString& value )
 	: nam( name ), val( value ) { }
@@ -282,7 +317,7 @@ public:
     const QString& value() const { return val; }
     const Text &text() const { return txt; }
 
-private:
+ private:
     QString nam;
     QString val;
     Text txt;
@@ -292,7 +327,7 @@ class TypedefNode;
 
 class EnumNode : public LeafNode
 {
-public:
+ public:
     EnumNode( InnerNode *parent, const QString& name );
 
     void addItem( const EnumItem& item );
@@ -304,7 +339,7 @@ public:
     const TypedefNode *flagsType() const { return ft; }
     QString itemValue(const QString &name) const;
 
-private:
+ private:
     QList<EnumItem> itms;
     QSet<QString> names;
     const TypedefNode *ft;
@@ -312,12 +347,12 @@ private:
 
 class TypedefNode : public LeafNode
 {
-public:
+ public:
     TypedefNode( InnerNode *parent, const QString& name );
 
     const EnumNode *associatedEnum() const { return ae; }
 
-private:
+ private:
     void setAssociatedEnum(const EnumNode *enume);
 
     friend class EnumNode;
@@ -334,7 +369,7 @@ inline void EnumNode::setFlagsType(TypedefNode *typedeff)
 
 class Parameter
 {
-public:
+ public:
     Parameter() {}
     Parameter( const QString& leftType, const QString& rightType = "",
 	       const QString& name = "", const QString& defaultValue = "" );
@@ -350,7 +385,7 @@ public:
     const QString& name() const { return nam; }
     const QString& defaultValue() const { return def; }
 
-private:
+ private:
     QString lef;
     QString rig;
     QString nam;
@@ -361,8 +396,16 @@ class PropertyNode;
 
 class FunctionNode : public LeafNode
 {
-public:
-    enum Metaness { Plain, Signal, Slot, Ctor, Dtor, MacroWithParams, MacroWithoutParams, Native };
+ public:
+    enum Metaness { 
+        Plain, 
+        Signal, 
+        Slot,
+        Ctor,
+        Dtor, 
+        MacroWithParams,
+        MacroWithoutParams, 
+        Native };
     enum Virtualness { NonVirtual, ImpureVirtual, PureVirtual };
 
     FunctionNode(InnerNode *parent, const QString &name);
@@ -380,7 +423,9 @@ public:
 
     const QString& returnType() const { return rt; }
     Metaness metaness() const { return met; }
-    bool isMacro() const { return met == MacroWithParams || met == MacroWithoutParams; }
+    bool isMacro() const { 
+        return met == MacroWithParams || met == MacroWithoutParams; 
+    }
     Virtualness virtualness() const { return vir; }
     bool isConst() const { return con; }
     bool isStatic() const { return sta; }
@@ -393,7 +438,7 @@ public:
     const QList<FunctionNode *> &reimplementedBy() const { return rb; }
     const PropertyNode *associatedProperty() const { return ap; }
 
-private:
+ private:
     void setAssociatedProperty(PropertyNode *property);
 
     friend class InnerNode;
@@ -418,7 +463,7 @@ private:
 
 class PropertyNode : public LeafNode
 {
-public:
+ public:
     enum FunctionRole { Getter, Setter, Resetter };
     enum { NumFunctionRoles = Resetter + 1 };
 
@@ -441,7 +486,7 @@ public:
     bool isDesignable() const { return fromTrool( des, designableDefault() ); }
     const PropertyNode *overriddenFrom() const { return overrides; }
 
-private:
+ private:
     enum Trool { Trool_True, Trool_False, Trool_Default };
 
     static Trool toTrool( bool boolean );
@@ -478,7 +523,7 @@ inline NodeList PropertyNode::functions() const
 
 class VariableNode : public LeafNode
 {
-public:
+ public:
     VariableNode(InnerNode *parent, const QString &name);
 
     void setLeftType(const QString &leftType) { lt = leftType; }
@@ -490,7 +535,7 @@ public:
     QString dataType() const { return lt + rt; }
     bool isStatic() const { return sta; }
 
-private:
+ private:
     QString lt;
     QString rt;
     bool sta;
@@ -503,10 +548,12 @@ inline VariableNode::VariableNode(InnerNode *parent, const QString &name)
 
 class TargetNode : public LeafNode
 {
-public:
+ public:
     TargetNode(InnerNode *parent, const QString& name);
 
     virtual bool isInnerNode() const;
 };
+
+QT_END_NAMESPACE
 
 #endif

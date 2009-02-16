@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -46,16 +40,23 @@
 #include "spacer_widget_p.h"
 #include "abstractlanguage.h"
 #include "pluginmanager_p.h"
+#include "qdesigner_widgetbox_p.h"
 #include "qdesigner_utils_p.h"
+#include <ui4_p.h>
 
 #include <QtDesigner/customwidget.h>
 #include <QtDesigner/propertysheet.h>
 #include <QtDesigner/QExtensionManager>
 #include <QtDesigner/QDesignerFormEditorInterface>
 
-#include <qalgorithms.h>
+#include <QtXml/QDomDocument>
+#include <QtCore/QtAlgorithms>
 #include <QtCore/qdebug.h>
 #include <QtCore/QMetaProperty>
+#include <QtCore/QTextStream>
+#include <QtCore/QRegExp>
+
+QT_BEGIN_NAMESPACE
 
 namespace {
     enum { debugWidgetDataBase = 0 };
@@ -205,6 +206,36 @@ QList<QVariant> WidgetDataBaseItem::defaultPropertyValues() const
     return m_defaultPropertyValues;
 }
 
+QStringList WidgetDataBaseItem::fakeSlots() const
+{
+    return m_fakeSlots;
+}
+
+void WidgetDataBaseItem::setFakeSlots(const QStringList &fs)
+{
+    m_fakeSlots = fs;
+}
+
+QStringList WidgetDataBaseItem::fakeSignals() const
+{
+     return m_fakeSignals;
+}
+
+void WidgetDataBaseItem::setFakeSignals(const QStringList &fs)
+{
+    m_fakeSignals = fs;
+}
+
+QString WidgetDataBaseItem::addPageMethod() const
+{
+    return m_addPageMethod;
+}
+
+void WidgetDataBaseItem::setAddPageMethod(const QString &m)
+{
+    m_addPageMethod = m;
+}
+
 WidgetDataBaseItem *WidgetDataBaseItem::clone(const QDesignerWidgetDataBaseItemInterface *item)
 {
     WidgetDataBaseItem *rc = new WidgetDataBaseItem(item->name(), item->group());
@@ -220,7 +251,7 @@ WidgetDataBaseItem *WidgetDataBaseItem::clone(const QDesignerWidgetDataBaseItemI
     rc->setPromoted(item->isPromoted());
     rc->setExtends(item->extends());
     rc->setDefaultPropertyValues(item->defaultPropertyValues());
-
+    // container page method, fake slots and signals ignored here.y
     return rc;
 }
 
@@ -259,25 +290,30 @@ WidgetDataBase::WidgetDataBase(QDesignerFormEditorInterface *core, QObject *pare
     // ### check the casts
 
 #if 0 // ### enable me after 4.1
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QToolBar"))))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QToolBar")))->setContainer(true);
 #endif
 
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QTabWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QGroupBox"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QStackedWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QToolBox"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QFrame"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QLayoutWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDesignerWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDesignerDialog"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QSplitter"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QMainWindow"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDockWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDesignerDockWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDesignerQ3WidgetStack"))))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QTabWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QGroupBox")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QScrollArea")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QStackedWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QToolBox")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QFrame")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QLayoutWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDesignerWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDesignerDialog")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QSplitter")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QMainWindow")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDockWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDesignerDockWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDesignerQ3WidgetStack")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QMdiArea")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QWorkspace")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QWizard")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QWizardPage")))->setContainer(true);
 
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QWidget"))))->setContainer(true);
-    static_cast<WidgetDataBaseItem *>(item(indexOfClassName(QLatin1String("QDialog"))))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QWidget")))->setContainer(true);
+    item(indexOfClassName(QLatin1String("QDialog")))->setContainer(true);
 }
 
 WidgetDataBase::~WidgetDataBase()
@@ -384,6 +420,39 @@ void WidgetDataBase::loadPlugins()
         qDebug() << "WidgetDataBase::loadPlugins(): " << addedPlugins << " added, " << replacedPlugins << " replaced, " << removedPlugins << "deleted.";
 }
 
+// Starting from 4.4, it possible to specify a complete <ui> tag containing
+// some custom info.
+static bool readCustomDomXML(const QString &xml, WidgetDataBaseItem *item)
+{
+    if (xml.indexOf(QLatin1String("<customwidget")) == -1) // pre 4.4 or incomplete tag
+        return false;
+    QString errorMessage;
+    int line, col;
+    QDomDocument doc;
+    if (!doc.setContent(xml, &errorMessage, &line, &col)) {
+        const QString msg = QObject::tr("The xml code specified for the custom widget %1 could not be parsed. An error occurred at line %2: %3").arg(item->name()).arg(line).arg(errorMessage);
+        qdesigner_internal::designerWarning(msg);
+        return false;
+    }
+    QDomElement rootElement = doc.firstChildElement();
+    if (rootElement.nodeName() != QLatin1String("ui"))
+        return false;
+    // Parse out the <customwidget> element
+    const QDomElement customWidgetsElement = rootElement.firstChildElement(QLatin1String("customwidgets"));
+    if (customWidgetsElement.isNull())
+        return false;
+    const QDomElement customWidgetElement = customWidgetsElement.firstChildElement(QLatin1String("customwidget"));
+    if (customWidgetElement.isNull())
+        return false;
+    DomCustomWidget customWidget;
+    customWidget.read(customWidgetElement);
+    if (customWidget.hasElementExtends())
+        item->setExtends(customWidget.elementExtends());
+    if (customWidget.hasElementAddPageMethod())
+        item->setAddPageMethod(customWidget.elementAddPageMethod());
+    return true;
+}
+
 WidgetDataBaseItem *WidgetDataBase::createCustomWidgetItem(const QDesignerCustomWidgetInterface *c, const QString &plugin)
 {
     WidgetDataBaseItem *item = new WidgetDataBaseItem(c->name(), c->group());
@@ -394,6 +463,8 @@ WidgetDataBaseItem *WidgetDataBase::createCustomWidgetItem(const QDesignerCustom
     item->setToolTip(c->toolTip());
     item->setWhatsThis(c->whatsThis());
     item->setPluginPath(plugin);
+    // Check for an 'ui' tag that might contain extends and addPageMethod
+    readCustomDomXML(c->domXml(), item);
     return item;
 }
 
@@ -405,11 +476,12 @@ void WidgetDataBase::remove(int index)
 
 QList<QVariant> WidgetDataBase::defaultPropertyValues(const QString &name)
 {
-    const WidgetFactory factory(m_core);
+    WidgetFactory *factory = qobject_cast<WidgetFactory *>(m_core->widgetFactory());
+    Q_ASSERT(factory);
     // Create non-widgets, widgets in order
-    QObject* object = factory.createObject(name, 0);
+    QObject* object = factory->createObject(name, 0);
     if (!object)
-        object = factory.createWidget(name, 0);
+        object = factory->createWidget(name, 0);
     if (!object) {
         qDebug() << "** WARNING Factory failed to create " << name;
         return QList<QVariant>();
@@ -417,7 +489,8 @@ QList<QVariant> WidgetDataBase::defaultPropertyValues(const QString &name)
     // Get properties from sheet.
     QList<QVariant> result;
     if (const QDesignerPropertySheetExtension *sheet = qt_extension<QDesignerPropertySheetExtension*>(m_core->extensionManager(), object)) {
-        for (int i = 0; i < sheet->count(); ++i) {
+        const int propertyCount = sheet->count();
+        for (int i = 0; i < propertyCount; ++i) {
             result.append(sheet->property(i));
         }
     }
@@ -427,7 +500,8 @@ QList<QVariant> WidgetDataBase::defaultPropertyValues(const QString &name)
 
 void WidgetDataBase::grabDefaultPropertyValues()
 {
-    for (int i = 0; i < count(); ++i) {
+    const int itemCount = count();
+    for (int i = 0; i < itemCount; ++i) {
         QDesignerWidgetDataBaseItemInterface *dbItem = item(i);
         const QList<QVariant> default_prop_values = defaultPropertyValues(dbItem->name());
         dbItem->setDefaultPropertyValues(default_prop_values);
@@ -435,6 +509,169 @@ void WidgetDataBase::grabDefaultPropertyValues()
     }
 }
 
+// --------------------- Functions relevant generation of new forms based on widgets (apart from the standard templates)
+
+enum { NewFormWidth = 400, NewFormHeight = 300 };
+
+// Check if class is suitable to generate a form from
+static inline bool isExistingTemplate(const QString &className)
+{
+    return className == QLatin1String("QWidget") || className == QLatin1String("QDialog") || className == QLatin1String("QMainWindow");
+}
+
+// Check if class is suitable to generate a form from
+static inline bool suitableForNewForm(const QString &className)
+{
+    if (className.isEmpty()) // Missing custom widget information
+        return false;
+    if (className == QLatin1String("QWorkspace"))
+         return false;
+    if (className == QLatin1String("QWizard")) // TODO: Remove
+         return false;
+    if (className == QLatin1String("QSplitter") || className == QLatin1String("QWizardPage"))
+         return false;
+    if (className.startsWith(QLatin1String("QDesigner")) || className.startsWith(QLatin1String("Q3")) ||  className.startsWith(QLatin1String("QLayout")))
+        return false;
+    return true;
+}
+
+// Return a list of widget classes from which new forms can be generated.
+// Suitable for 'New form' wizards in integrations.
+QStringList WidgetDataBase::formWidgetClasses(const QDesignerFormEditorInterface *core)
+{
+    static QStringList rc;
+    if (rc.empty()) {
+        const QDesignerWidgetDataBaseInterface *wdb = core->widgetDataBase();
+        const int widgetCount = wdb->count();
+        for (int i = 0; i < widgetCount; i++) {
+            const QDesignerWidgetDataBaseItemInterface *item = wdb->item(i);
+            if (item->isContainer() && !item->isCustom() && !item->isPromoted()) {
+                const QString name = item->name(); // Standard Widgets: no existing templates
+                if (!isExistingTemplate(name) && suitableForNewForm(name))
+                    rc += name;
+            }
+        }
+    }
+    return rc;
+}
+
+// Return a list of custom widget classes from which new forms can be generated.
+// Suitable for 'New form' wizards in integrations.
+QStringList WidgetDataBase::customFormWidgetClasses(const QDesignerFormEditorInterface *core)
+{
+    QStringList rc;
+    const QDesignerWidgetDataBaseInterface *wdb = core->widgetDataBase();
+    const int widgetCount = wdb->count();
+    for (int i = 0; i < widgetCount; i++) { // Custom widgets: check name and base class.
+        const QDesignerWidgetDataBaseItemInterface *item = wdb->item(i);
+        if (item->isContainer() && item->isCustom() && !item->isPromoted()) {
+            if (suitableForNewForm(item->name()) && suitableForNewForm(item->extends()))
+                rc += item->name();
+        }
+    }
+    return rc;
+}
+
+// Get XML for a new form from the widget box. Change objectName/geometry
+// properties to be suitable for new forms
+static QString xmlFromWidgetBox(const QDesignerFormEditorInterface *core, const QString &className, const QString &objectName)
+{
+    typedef QList<DomProperty*> PropertyList;
+
+    QDesignerWidgetBoxInterface::Widget widget;
+    if (!QDesignerWidgetBox::findWidget(core->widgetBox(), className, &widget))
+        return QString();
+    DomUI *domUI = QDesignerWidgetBox::xmlToUi(className, widget.domXml(), false);
+    if (!domUI)
+        return QString();
+    DomWidget *domWidget = domUI->elementWidget();
+    if (!domWidget)
+        return QString();
+    // Properties: Remove the "objectName" property in favour of the name attribute and check geometry.
+    domWidget->setAttributeName(objectName);
+    const QString geometryProperty = QLatin1String("geometry");
+    const QString objectNameProperty  = QLatin1String("objectName");
+    PropertyList properties = domWidget->elementProperty();
+    for (PropertyList::iterator it = properties.begin(); it != properties.end(); ) {
+        DomProperty *property = *it;
+        if (property->attributeName() == objectNameProperty) { // remove  "objectName"
+            it = properties.erase(it);
+            delete property;
+        } else {
+            if (property->attributeName() == geometryProperty) { // Make sure form is at least 400, 300
+                if (DomRect *geom = property->elementRect()) {
+                    if (geom->elementWidth() < NewFormWidth)
+                        geom->setElementWidth(NewFormWidth);
+                    if (geom->elementHeight() < NewFormHeight)
+                        geom->setElementHeight(NewFormHeight);
+                }
+            }
+            ++it;
+        }
+    }
+    // Add a window title property
+    DomString *windowTitleString = new DomString;
+    windowTitleString->setText(objectName);
+    DomProperty *windowTitleProperty = new DomProperty;
+    windowTitleProperty->setAttributeName(QLatin1String("windowTitle"));
+    windowTitleProperty->setElementString(windowTitleString);
+    properties.push_back(windowTitleProperty);
+    // ------
+    domWidget->setElementProperty(properties);
+    // Embed in in DomUI and get string. Omit the version number.
+    domUI->setElementClass(objectName);
+    QDomDocument doc;
+    doc.appendChild(domUI->write(doc));
+    const QString rc =  doc.toString();
+    delete domUI;
+    return rc;
+}
+
+// Generate default standard ui new form xml based on the class passed on as similarClassName.
+static QString generateNewFormXML(const QString &className, const QString &similarClassName, const QString &name)
+{
+    QString rc; {
+        QTextStream str(&rc);
+        str << QLatin1String("<ui version=\"4.0\" >\n<class>") << name << QLatin1String("</class>\n")
+            <<  QLatin1String("<widget class=\"") << className << QLatin1String("\" name=\"") << name << QLatin1String("\" >\n")
+            <<  QLatin1String("<property name=\"geometry\" >\n<rect><x>0</x><y>0</y><width>")
+            << NewFormWidth << QLatin1String("</width><height>") << NewFormHeight << QLatin1String("</height></rect>\n</property>\n");
+        str << QLatin1String("<property name=\"windowTitle\" >\n<string>") << name << QLatin1String("</string>\n</property>\n");
+
+        if (similarClassName == QLatin1String("QMainWindow")) {
+            str << QLatin1String("<widget class=\"QWidget\" name=\"centralwidget\" />\n");
+        } else {
+            if (similarClassName == QLatin1String("QWizard"))
+                str << QLatin1String("<widget class=\"QWizardPage\" name=\"wizardPage\" />\n");
+        }
+        str << QLatin1String("</widget>\n</ui>\n");
+    }
+    return rc;
+}
+
+// Generate a form template using a class name obtained from formWidgetClasses(), customFormWidgetClasses().
+QString WidgetDataBase::formTemplate(const QDesignerFormEditorInterface *core, const QString &className, const QString &objectName)
+{
+    // How to find suitable XML for a class:
+    // 1) Look in widget box (as all the required centralwidgets, tab widget pages, etc. should be there).
+    const QString widgetBoxXml = xmlFromWidgetBox(core, className, objectName);
+    if (!widgetBoxXml.isEmpty())
+        return widgetBoxXml;
+    // 2) If that fails, only custom main windows, custom dialogs and unsupported Qt Widgets should
+    //    be left over. Generate something that is similar to the default templates. Find a similar class.
+    const QDesignerWidgetDataBaseInterface *wdb = core->widgetDataBase();
+    QString similarClass = QLatin1String("QWidget");
+    const int index = wdb->indexOfClassName(className);
+    if (index != -1) {
+        const QDesignerWidgetDataBaseItemInterface *item = wdb->item(index);
+        similarClass = item->isCustom() ? item->extends() : item->name();
+    }
+    // Generate standard ui based on the class passed on as baseClassName.
+    const QString rc = generateNewFormXML(className, similarClass, objectName);
+    return rc;
+}
+
+// ---- free functions
 QDESIGNER_SHARED_EXPORT IncludeSpecification  includeSpecification(QString includeFile)
 {
     const bool global = !includeFile.isEmpty() &&
@@ -528,7 +765,8 @@ QDESIGNER_SHARED_EXPORT WidgetDataBaseItemList
 {
     WidgetDataBaseItemList rc;
     // find existing promoted widgets deriving from base.
-    for (int i = 0; i < db->count(); ++i) {
+    const int count = db->count();
+    for (int i = 0; i < count; ++i) {
         QDesignerWidgetDataBaseItemInterface *item = db->item(i);
         if (item->isPromoted() && item->extends() == baseClassName) {
             rc.push_back(item);
@@ -537,3 +775,5 @@ QDESIGNER_SHARED_EXPORT WidgetDataBaseItemList
     return rc;
 }
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE

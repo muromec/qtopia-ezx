@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -63,8 +57,11 @@
 #include "QtCore/qreadwritelock.h"
 #include "QtCore/qvariant.h"
 
+QT_BEGIN_NAMESPACE
+
 class QVariant;
 class QThreadData;
+class QObjectConnectionListVector;
 
 /* mirrored in QtTestLib, DON'T CHANGE without prior warning */
 struct QSignalSpyCallbackSet
@@ -89,11 +86,6 @@ class Q_CORE_EXPORT QObjectPrivate : public QObjectData
     Q_DECLARE_PUBLIC(QObject)
 
 public:
-    // use this lock when implementing thread-safe QObject things (e.g. postEvent())
-    static QReadWriteLock *readWriteLock();
-    // note: must lockForRead() before calling isValidObject()
-    static bool isValidObject(QObject *object);
-
     QObjectPrivate(int version = QObjectPrivateVersion);
     virtual ~QObjectPrivate();
 
@@ -112,13 +104,17 @@ public:
     void setThreadData_helper(QThreadData *currentData, QThreadData *targetData);
     void _q_reregisterTimers(void *pointer);
 
-    // object currently activating the object
-    union {
-        QObject *currentSender;
-        QObject *currentChildBeingDeleted;
+    struct Sender
+    {
+        QObject *sender;
+        int signal;
+        int ref;
     };
-    int currentSenderSignalIdStart;
-    int currentSenderSignalIdEnd;
+
+    // object currently activating the object
+    Sender *currentSender;
+
+    QObject *currentChildBeingDeleted;
 
     bool isSender(const QObject *receiver, const char *signal) const;
     QObjectList receiverList(const char *signal) const;
@@ -144,22 +140,55 @@ public:
     mutable quint32 connectedSignals;
 
     QString objectName;
+
+    // Note: you must hold the signalSlotLock() before accessing the lists below or calling the functions
+    struct Connection
+    {
+        QObject *receiver;
+        int method;
+        uint connectionType : 3; // 0 == auto, 1 == direct, 2 == queued, 4 == blocking
+        QBasicAtomicPointer<int> argumentTypes;
+    };
+    typedef QList<Connection> ConnectionList;
+
+    QObjectConnectionListVector *connectionLists;
+    void addConnection(int signal, Connection *c);
+    void removeReceiver(int signal, QObject *receiver);
+
+    QList<Sender> senders;
+    void refSender(QObject *sender, int signal);
+    void derefSender(QObject *sender, int signal);
+    void removeSender(QObject *sender, int signal);
+
+    static Sender *setCurrentSender(QObject *receiver,
+                                    Sender *sender);
+    static void resetCurrentSender(QObject *receiver,
+                                   Sender *currentSender,
+                                   Sender *previousSender);
+    static int *setDeleteWatch(QObjectPrivate *d, int *newWatch);
+    static void resetDeleteWatch(QObjectPrivate *d, int *oldWatch, int deleteWatch);
+
+    int *deleteWatch;
+
+    static QObjectPrivate *get(QObject *o) {
+        return o->d_func();
+    }
 };
+
+Q_DECLARE_TYPEINFO(QObjectPrivate::Connection, Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(QObjectPrivate::Sender, Q_MOVABLE_TYPE);
 
 class QSemaphore;
 class Q_CORE_EXPORT QMetaCallEvent : public QEvent
 {
 public:
-    QMetaCallEvent(int id, const QObject *sender = 0,
-                   int nargs = 0, int *types = 0, void **args = 0, QSemaphore *semaphore = 0);
-    QMetaCallEvent(int id, const QObject *sender, int idFrom, int idTo,
+    QMetaCallEvent(int id, const QObject *sender, int signalId,
                    int nargs = 0, int *types = 0, void **args = 0, QSemaphore *semaphore = 0);
     ~QMetaCallEvent();
 
     inline int id() const { return id_; }
     inline const QObject *sender() const { return sender_; }
-    inline int signalIdStart() const { return idFrom_; }
-    inline int signalIdEnd() const { return idTo_; }
+    inline int signalId() const { return signalId_; }
     inline void **args() const { return args_; }
 
     virtual int placeMetaCall(QObject *object);
@@ -167,8 +196,7 @@ public:
 private:
     int id_;
     const QObject *sender_;
-    int idFrom_;
-    int idTo_;
+    int signalId_;
     int nargs_;
     int *types_;
     void **args_;
@@ -184,5 +212,9 @@ private:
     bool &block;
     bool reset;
 };
+
+void Q_CORE_EXPORT qDeleteInEventHandler(QObject *o);
+
+QT_END_NAMESPACE
 
 #endif // QOBJECT_P_H

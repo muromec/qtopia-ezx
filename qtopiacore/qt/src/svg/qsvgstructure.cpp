@@ -1,53 +1,52 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtSVG module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qsvgstructure_p.h"
+
+#ifndef QT_NO_SVG
+
 #include "qsvgnode_p.h"
 #include "qsvgstyle_p.h"
 
 #include "qpainter.h"
 #include "qlocale.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 QSvgG::QSvgG(QSvgNode *parent)
     : QSvgStructureNode(parent)
@@ -154,8 +153,158 @@ QSvgStyleProperty * QSvgStructureNode::scopeStyle(const QString &id) const
     return 0;
 }
 
-QHash<QString, bool> QSvgSwitch::m_features;
-QHash<QString, bool> QSvgSwitch::m_extensions;
+
+/*
+  Below is a lookup function based on the gperf output using the following set:
+
+  http://www.w3.org/Graphics/SVG/feature/1.2/#SVG
+  http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static
+  http://www.w3.org/Graphics/SVG/feature/1.2/#CoreAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Structure
+  http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessing
+  http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessingAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Image
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Prefetch
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Shape
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Text
+  http://www.w3.org/Graphics/SVG/feature/1.2/#PaintAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#OpacityAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#GraphicsAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Gradient
+  http://www.w3.org/Graphics/SVG/feature/1.2/#SolidColor
+  http://www.w3.org/Graphics/SVG/feature/1.2/#XlinkAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#ExternalResourcesRequiredAttribute
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Font
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Hyperlinking
+  http://www.w3.org/Graphics/SVG/feature/1.2/#Extensibility
+*/
+
+// ----- begin of generated code -----
+
+/* C code produced by gperf version 3.0.2 */
+/* Command-line: gperf -c -L c svg  */
+/* Computed positions: -k'45-46' */
+
+#if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
+      && ('%' == 37) && ('&' == 38) && ('\'' == 39) && ('(' == 40) \
+      && (')' == 41) && ('*' == 42) && ('+' == 43) && (',' == 44) \
+      && ('-' == 45) && ('.' == 46) && ('/' == 47) && ('0' == 48) \
+      && ('1' == 49) && ('2' == 50) && ('3' == 51) && ('4' == 52) \
+      && ('5' == 53) && ('6' == 54) && ('7' == 55) && ('8' == 56) \
+      && ('9' == 57) && (':' == 58) && (';' == 59) && ('<' == 60) \
+      && ('=' == 61) && ('>' == 62) && ('?' == 63) && ('A' == 65) \
+      && ('B' == 66) && ('C' == 67) && ('D' == 68) && ('E' == 69) \
+      && ('F' == 70) && ('G' == 71) && ('H' == 72) && ('I' == 73) \
+      && ('J' == 74) && ('K' == 75) && ('L' == 76) && ('M' == 77) \
+      && ('N' == 78) && ('O' == 79) && ('P' == 80) && ('Q' == 81) \
+      && ('R' == 82) && ('S' == 83) && ('T' == 84) && ('U' == 85) \
+      && ('V' == 86) && ('W' == 87) && ('X' == 88) && ('Y' == 89) \
+      && ('Z' == 90) && ('[' == 91) && ('\\' == 92) && (']' == 93) \
+      && ('^' == 94) && ('_' == 95) && ('a' == 97) && ('b' == 98) \
+      && ('c' == 99) && ('d' == 100) && ('e' == 101) && ('f' == 102) \
+      && ('g' == 103) && ('h' == 104) && ('i' == 105) && ('j' == 106) \
+      && ('k' == 107) && ('l' == 108) && ('m' == 109) && ('n' == 110) \
+      && ('o' == 111) && ('p' == 112) && ('q' == 113) && ('r' == 114) \
+      && ('s' == 115) && ('t' == 116) && ('u' == 117) && ('v' == 118) \
+      && ('w' == 119) && ('x' == 120) && ('y' == 121) && ('z' == 122) \
+      && ('{' == 123) && ('|' == 124) && ('}' == 125) && ('~' == 126))
+/* The character set is not based on ISO-646.  */
+#error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gnu-gperf@gnu.org>."
+#endif
+
+enum {
+    TOTAL_KEYWORDS = 20,
+    MIN_WORD_LENGTH = 47,
+    MAX_WORD_LENGTH = 78,
+    MIN_HASH_VALUE = 48,
+    MAX_HASH_VALUE = 88
+};
+/* maximum key range = 41, duplicates = 0 */
+
+inline static bool isSupportedSvgFeature(const QString &str)
+{
+    static const unsigned char asso_values[] = {
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89,  0, 89,  5,
+        15,  5,  0, 10, 89, 89, 89, 89, 89,  0,
+        15, 89, 89,  0,  0, 89,  5, 89,  0, 89,
+        89, 89, 89, 89, 89, 89, 89,  0, 89, 89,
+        89,  0, 89, 89,  0, 89, 89, 89,  0,  5,
+        89,  0,  0, 89,  5, 89,  0, 89, 89, 89,
+        5,  0, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+        89, 89, 89, 89, 89, 89
+    };
+
+    static const char * wordlist[] = {
+        "", "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "", "",
+        "", "", "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Text",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Shape",
+        "", "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#SVG",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Structure",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#SolidColor",
+        "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Hyperlinking",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#CoreAttribute",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#XlinkAttribute",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#OpacityAttribute",
+        "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Gradient",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Font",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Image",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessing",
+        "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Extensibility",
+        "", "", "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#GraphicsAttribute",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#Prefetch",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#PaintAttribute",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessingAttribute",
+        "", "", "", "", "", "", "", "", "",
+        "", "", "", "",
+        "http://www.w3.org/Graphics/SVG/feature/1.2/#ExternalResourcesRequiredAttribute"
+    };
+
+    if (str.length() <= MAX_WORD_LENGTH && str.length() >= MIN_WORD_LENGTH) {
+        const int key = str.length()
+                        + asso_values[str.at(45).unicode()]
+                        + asso_values[str.at(44).unicode()];
+        if (key <= MAX_HASH_VALUE && key >= 0)
+            return str == QLatin1String(wordlist[key]);
+    }
+    return false;
+}
+
+// ----- end of generated code -----
+
+static inline bool isSupportedSvgExtension(const QString &)
+{
+    return false;
+}
+
 
 QSvgSwitch::QSvgSwitch(QSvgNode *parent)
     : QSvgStructureNode(parent)
@@ -182,7 +331,7 @@ void QSvgSwitch::draw(QPainter *p)
                 if (!features.isEmpty()) {
                     QStringList::const_iterator sitr = features.constBegin();
                     for (; sitr != features.constEnd(); ++sitr) {
-                        if (!m_features.contains(*sitr)) {
+                        if (!isSupportedSvgFeature(*sitr)) {
                             okToRender = false;
                             break;
                         }
@@ -192,7 +341,7 @@ void QSvgSwitch::draw(QPainter *p)
                 if (okToRender && !extensions.isEmpty()) {
                     QStringList::const_iterator sitr = extensions.constBegin();
                     for (; sitr != extensions.constEnd(); ++sitr) {
-                        if (!m_extensions.contains(*sitr)) {
+                        if (!isSupportedSvgExtension(*sitr)) {
                             okToRender = false;
                             break;
                         }
@@ -236,29 +385,6 @@ QSvgNode::Type QSvgSwitch::type() const
 
 void QSvgSwitch::init()
 {
-    if (m_features.isEmpty()) {
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#SVG"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#SVG-static"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#CoreAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Structure"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessing"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#ConditionalProcessingAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Image"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Prefetch"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Shape"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Text"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#PaintAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#OpacityAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#GraphicsAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Gradient"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#SolidColor"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#XlinkAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#ExternalResourcesRequiredAttribute"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Font"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Hyperlinking"), true);
-        m_features.insert(QLatin1String("http://www.w3.org/Graphics/SVG/feature/1.2/#Extensibility"), true);
-    }
-
     QLocale locale;
     m_systemLanguage = locale.name().replace(QLatin1Char('_'), QLatin1Char('-'));
     int idx = m_systemLanguage.indexOf(QLatin1Char('-'));
@@ -266,7 +392,7 @@ void QSvgSwitch::init()
 }
 
 QRectF QSvgStructureNode::bounds() const
-{   
+{
     if (m_bounds.isEmpty()) {
         foreach(QSvgNode *node, m_renderers) {
             m_bounds |= node->bounds();
@@ -283,12 +409,12 @@ QRectF QSvgStructureNode::transformedBounds(const QMatrix &mat) const
     if (trans) {
         m = trans->qmatrix() * m;
     }
-    
+
     QRectF bounds;
     foreach(QSvgNode *node, m_renderers) {
         bounds |= node->transformedBounds(m);
     }
-    
+
     return bounds;
 }
 
@@ -304,3 +430,7 @@ QSvgNode * QSvgStructureNode::previousSiblingNode(QSvgNode *n) const
     }
     return prev;
 }
+
+QT_END_NAMESPACE
+
+#endif // QT_NO_SVG

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -56,45 +50,41 @@
 #define QDESIGNER_TABWIDGET_H
 
 #include "shared_global_p.h"
+#include "qdesigner_propertysheet_p.h"
+#include "qdesigner_utils_p.h"
 
-#include <QtGui/QTabWidget>
+#include <QtCore/QPointer>
+#include <QtGui/QIcon>
+
+QT_BEGIN_NAMESPACE
 
 class QDesignerFormWindowInterface;
+class QTabWidget;
+class QTabBar;
+class QMenu;
+class QAction;
 
 namespace qdesigner_internal {
     class PromotionTaskMenu;
 }
 
-class QMenu;
-
-class QDESIGNER_SHARED_EXPORT QDesignerTabWidget : public QTabWidget
+class QDESIGNER_SHARED_EXPORT QTabWidgetEventFilter : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString currentTabName READ currentTabName WRITE setCurrentTabName STORED false DESIGNABLE true)
-    Q_PROPERTY(QString currentTabText READ currentTabText WRITE setCurrentTabText STORED false DESIGNABLE true)
-    Q_PROPERTY(QString currentTabToolTip READ currentTabToolTip WRITE setCurrentTabToolTip STORED false DESIGNABLE true)
-    Q_PROPERTY(QIcon currentTabIcon READ currentTabIcon WRITE setCurrentTabIcon STORED false DESIGNABLE true)
-
 public:
-    QDesignerTabWidget(QWidget *parent = 0);
-    ~QDesignerTabWidget();
+    explicit QTabWidgetEventFilter(QTabWidget *parent);
+    ~QTabWidgetEventFilter();
 
-    QString currentTabName() const;
-    void setCurrentTabName(const QString &tabName);
-
-    QString currentTabText() const;
-    void setCurrentTabText(const QString &tabText);
-
-    QString currentTabToolTip() const;
-    void setCurrentTabToolTip(const QString &tabToolTip);
-
-    QIcon currentTabIcon() const;
-    void setCurrentTabIcon(const QIcon &tabIcon);
+    // Install helper on QTabWidget
+    static void install(QTabWidget *tabWidget);
+    static QTabWidgetEventFilter *eventFilterOf(const QTabWidget *tabWidget);
+    // Convenience to add a menu on a tackedWidget
+    static QMenu *addTabWidgetContextMenuActions(const QTabWidget *tabWidget, QMenu *popup);
 
     // Add context menu and return page submenu or 0.
     QMenu *addContextMenuActions(QMenu *popup);
 
-    bool eventFilter(QObject *o, QEvent *e);
+    virtual bool eventFilter(QObject *o, QEvent *e);
 
     QDesignerFormWindowInterface *formWindow() const;
 
@@ -102,18 +92,13 @@ private slots:
     void removeCurrentPage();
     void addPage();
     void addPageAfter();
-    void slotCurrentChanged(int index);
-
-protected:
-    bool canMove(QMouseEvent *e) const;
-    virtual void tabInserted(int index);
-    virtual void tabRemoved(int index);
-
-private:
 
 private:
     int pageFromPosition(const QPoint &pos, QRect &rect) const;
+    QTabBar *tabBar() const;
 
+    QTabWidget *m_tabWidget;
+    mutable QPointer<QTabBar> m_cachedTabBar;
     QPoint m_pressPoint;
     QWidget *m_dropIndicator;
     int m_dragIndex;
@@ -126,5 +111,32 @@ private:
     QAction *m_actionInsertPageAfter;
     qdesigner_internal::PromotionTaskMenu* m_pagePromotionTaskMenu;
 };
+
+// PropertySheet to handle the page properties
+class QDESIGNER_SHARED_EXPORT QTabWidgetPropertySheet : public QDesignerPropertySheet {
+public:
+    explicit QTabWidgetPropertySheet(QTabWidget *object, QObject *parent = 0);
+
+    virtual void setProperty(int index, const QVariant &value);
+    virtual QVariant property(int index) const;
+    virtual bool reset(int index);
+    virtual bool isEnabled(int index) const;
+
+    // Check whether the property is to be saved. Returns false for the page
+    // properties (as the property sheet has no concept of 'stored')
+    static bool checkProperty(const QString &propertyName);
+
+private:
+    enum TabWidgetProperty { PropertyCurrentTabText, PropertyCurrentTabName, PropertyCurrentTabIcon,
+                             PropertyCurrentTabToolTip, PropertyTabWidgetNone };
+
+    static TabWidgetProperty tabWidgetPropertyFromName(const QString &name);
+    QTabWidget *m_tabWidget;
+    QMap<int, qdesigner_internal::PropertySheetIconValue> m_pageToIcon;
+};
+
+typedef QDesignerPropertySheetFactory<QTabWidget, QTabWidgetPropertySheet> QTabWidgetPropertySheetFactory;
+
+QT_END_NAMESPACE
 
 #endif // QDESIGNER_TABWIDGET_H

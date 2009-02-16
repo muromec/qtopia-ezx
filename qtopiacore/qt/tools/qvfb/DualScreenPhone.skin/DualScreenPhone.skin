@@ -4,6 +4,7 @@ Down=DualScreen-pressed.png
 Screen=128 155 176 208
 BackScreen=18 44 98 119
 Areas=21
+HasMouseHover=false
 
 "Context1"	0x1100000 144 368 189 368 168 396 176 427 150 398
 "Back"	0x1000061 245 365 291 366 283 398 258 424 265 394

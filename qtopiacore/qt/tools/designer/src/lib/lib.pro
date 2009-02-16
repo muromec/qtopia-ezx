@@ -5,17 +5,17 @@ contains(QT_CONFIG, reduce_exports):CONFIG += hide_symbols
 CONFIG += qt
 win32|mac: CONFIG += debug_and_release
 DESTDIR = ../../../../lib
-DLLDESTDIR = ../../../../bin
+!wince*:DLLDESTDIR = ../../../../bin
 
 isEmpty(QT_MAJOR_VERSION) {
    VERSION=4.3.0
 } else {
    VERSION=$${QT_MAJOR_VERSION}.$${QT_MINOR_VERSION}.$${QT_PATCH_VERSION}
 }
-QMAKE_TARGET_COMPANY = Trolltech ASA
+
+include(../../../../src/qt_targets.pri)
 QMAKE_TARGET_PRODUCT = Designer
 QMAKE_TARGET_DESCRIPTION = Graphical user interface designer.
-QMAKE_TARGET_COPYRIGHT = Copyright (C) 2003-2006 Trolltech ASA
 
 !contains(CONFIG, static) {
     CONFIG += dll

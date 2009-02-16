@@ -3,6 +3,9 @@
 */
 
 #include <qglobal.h>
+#if defined(Q_OS_WINCE)
+# include <qfunctions_wince.h>
+#endif
 
 /* Support CCITT Group 3 & 4 algorithms */
 #define CCITT_SUPPORT 1
@@ -29,7 +32,9 @@
 /* #undef HAVE_DLFCN_H */
 
 /* Define to 1 if you have the <fcntl.h> header file. */
+#if !defined(Q_OS_WINCE)
 #define HAVE_FCNTL_H 1
+#endif
 
 /* Define to 1 if you have the `floor' function. */
 /* #undef HAVE_FLOOR */
@@ -99,7 +104,9 @@
 /* #undef HAVE_PTHREAD */
 
 /* Define to 1 if you have the <search.h> header file. */
+#if !defined(Q_OS_WINCE)
 #define HAVE_SEARCH_H 1
+#endif
 
 /* Define to 1 if you have the `sqrt' function. */
 /* #undef HAVE_SQRT */

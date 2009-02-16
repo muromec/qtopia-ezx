@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,24 +43,52 @@
 
 #include <qdesigner_formbuilder_p.h>
 #include <sheet_delegate_p.h>
+#include <widgetdatabase_p.h>
 
 #include <QtDesigner/QDesignerFormEditorInterface>
 #include <QtDesigner/QDesignerFormWindowInterface>
 #include <QtDesigner/QExtensionManager>
 #include <QtDesigner/QDesignerLanguageExtension>
+#include <QtDesigner/QDesignerWidgetDataBaseInterface>
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
-#include <QtCore/qdebug.h>
+#include <QtCore/QDebug>
+#include <QtCore/QByteArray>
+#include <QtCore/QBuffer>
+#include <QtCore/QDir>
+#include <QtCore/QTemporaryFile>
+
 #include <QtGui/QHeaderView>
 #include <QtGui/QPainter>
 #include <QtGui/QPushButton>
 #include <QtGui/QMenu>
 #include <QtGui/QMessageBox>
 
-enum NewForm_CustomRole {   TemplateNameRole = Qt::UserRole + 100 };
+QT_BEGIN_NAMESPACE
 
+enum NewForm_CustomRole {
+    // File name (templates from resources, paths)
+    TemplateNameRole = Qt::UserRole + 100,
+    // Class name (widgets from Widget data base)
+    ClassNameRole = Qt::UserRole + 101
+};
+
+static const char *newFormObjectNameC = "Form";
+
+// Create a form name for an arbitrary class. If it is Qt, qtify it,
+//  else return "Form".
+static QString formName(const QString &className)
+{
+    if (!className.startsWith(QLatin1Char('Q')))
+        return QLatin1String(newFormObjectNameC);
+    QString rc = className;
+    rc.remove(0, 1);
+    return rc;
+}
+
+// --------- NewForm
 NewForm::NewForm(QDesignerWorkbench *workbench, QWidget *parentWidget, const QString &fileName)
     : QDialog(parentWidget,
 #ifdef Q_WS_MAC
@@ -76,14 +98,18 @@ NewForm::NewForm(QDesignerWorkbench *workbench, QWidget *parentWidget, const QSt
       m_workbench(workbench),
       m_createButton(new QPushButton(QApplication::translate("NewForm", "C&reate", 0, QApplication::UnicodeUTF8))),
       m_recentButton(new QPushButton(QApplication::translate("NewForm", "Recent", 0,  QApplication::UnicodeUTF8))),
-      m_fileName(fileName)
+      m_fileName(fileName),
+      m_currentItem(0),
+      m_acceptedItem(0)
 {
+    QDesignerFormEditorInterface *core = workbench->core();
     ui.setupUi(this);
     ui.treeWidget->setItemDelegate(new qdesigner_internal::SheetDelegate(ui.treeWidget, this));
     ui.treeWidget->header()->hide();
     ui.treeWidget->header()->setStretchLastSection(true);
     ui.lblPreview->setBackgroundRole(QPalette::Base);
-    ui.chkShowOnStartup->setChecked(QDesignerSettings().showNewFormOnStartup());
+    QDesignerSettings settings;
+    ui.chkShowOnStartup->setChecked(settings.showNewFormOnStartup());
     ui.buttonBox->clear();
     ui.buttonBox->addButton(QApplication::translate("NewForm", "&Close", 0,
                                         QApplication::UnicodeUTF8), QDialogButtonBox::RejectRole);
@@ -105,22 +131,50 @@ NewForm::NewForm(QDesignerWorkbench *workbench, QWidget *parentWidget, const QSt
     QString uiExtension = QLatin1String("ui");
     QString templatePath = QLatin1String(":/trolltech/designer/templates/forms");
 
-    QDesignerLanguageExtension *lang = qt_extension<QDesignerLanguageExtension *>(workbench->core()->extensionManager(), workbench->core());
+    QDesignerLanguageExtension *lang = qt_extension<QDesignerLanguageExtension *>(core->extensionManager(), core);
     if (lang) {
         templatePath = QLatin1String(":/templates/forms");
         uiExtension = lang->uiExtension();
     }
 
-    loadFrom(templatePath, true, uiExtension);
+    // Resource templates
+    const QString formTemplate = settings.formTemplate();
+    QTreeWidgetItem *selectedItem = 0;
+    loadFrom(templatePath, true, uiExtension, formTemplate, selectedItem);
+    // Additional template paths
+    const QStringList formTemplatePaths = settings.formTemplatePaths();
+    const QStringList::const_iterator ftcend = formTemplatePaths.constEnd();
+    for (QStringList::const_iterator it = formTemplatePaths.constBegin(); it != ftcend; ++it)
+        loadFrom(*it, false, uiExtension, formTemplate, selectedItem);
 
-    QDesignerSettings settings;
-    foreach(QString path, settings.formTemplatePaths())
-        loadFrom(path, false, uiExtension);
+    // Widgets/custom widgets
+    if (!lang) {
+        loadFrom(tr("Widgets"), qdesigner_internal::WidgetDataBase::formWidgetClasses(core), formTemplate, selectedItem);
+        loadFrom(tr("Custom Widgets"), qdesigner_internal::WidgetDataBase::customFormWidgetClasses(core), formTemplate, selectedItem);
+    }
+
+    // Still no selection - default to first item
+    if (selectedItem == 0 && ui.treeWidget->topLevelItemCount() != 0) {
+        QTreeWidgetItem *firstTopLevel = ui.treeWidget->topLevelItem(0);
+        if (firstTopLevel->childCount() > 0)
+            selectedItem = firstTopLevel->child(0);
+    }
+
+    // Open parent, select and make visible
+    if (selectedItem) {
+        ui.treeWidget->setCurrentItem(selectedItem);
+        ui.treeWidget->setItemSelected(selectedItem, true);
+        ui.treeWidget->scrollToItem(selectedItem->parent());
+    }
 }
 
 NewForm::~NewForm()
 {
-    QDesignerSettings().setShowNewFormOnStartup(ui.chkShowOnStartup->isChecked());
+    QDesignerSettings settings;
+    settings.setShowNewFormOnStartup(ui.chkShowOnStartup->isChecked());
+    // Do not change previously stored item if dialog was rejected
+    if (m_acceptedItem)
+        settings.setFormTemplate(m_acceptedItem->text(0));
 }
 
 void NewForm::recentFileChosen()
@@ -135,25 +189,29 @@ void NewForm::recentFileChosen()
 
 void NewForm::on_treeWidget_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *)
 {
-    if (current && current->parent()) {
-        const QPixmap pixmap = formPreviewPixmap(current->data(0, TemplateNameRole).toString());
-        if (pixmap.isNull()) {
-            m_createButton->setEnabled(false);
-            ui.lblPreview->setText(tr("Error loading form"));
-        } else {
-            m_createButton->setEnabled(true);
-            m_createButton->setDefault(true);
-            ui.lblPreview->setPixmap(pixmap);
-        }
-    } else {
+    if (!current)
+        return;
+
+    if (!current->parent()) { // Top level item: Ensure expanded when browsing down
+        return;
+    }
+
+    m_currentItem = current;
+
+    const QPixmap pixmap = formPreviewPixmap(m_currentItem);
+    if (pixmap.isNull()) {
         m_createButton->setEnabled(false);
-        ui.lblPreview->setText(tr("Choose a template for a preview"));
+        ui.lblPreview->setText(tr("Error loading form"));
+    } else {
+        m_createButton->setEnabled(true);
+        m_createButton->setDefault(true);
+        ui.lblPreview->setPixmap(pixmap);
     }
 }
 
 void NewForm::on_treeWidget_itemActivated(QTreeWidgetItem *item)
 {
-    if (item->data(0, TemplateNameRole).isValid())
+    if (item->data(0, TemplateNameRole).isValid() || item->data(0, ClassNameRole).isValid())
         m_createButton->animateClick(0);
 }
 
@@ -171,9 +229,14 @@ void NewForm::on_buttonBox_clicked(QAbstractButton *btn)
         }
         break;
     case QDialogButtonBox::AcceptRole:
-        if (const QTreeWidgetItem *item = ui.treeWidget->currentItem()) {
-            if (openTemplate(item->data(0, TemplateNameRole).toString()))
+        if (m_currentItem) {
+            QString errorMessage;
+            if (openTemplate(m_currentItem, &errorMessage)) {
                 accept();
+                m_acceptedItem = m_currentItem;
+            }  else {
+                QMessageBox::warning(this, tr("Read error"), errorMessage);
+            }
         }
         break;
     default:
@@ -186,27 +249,63 @@ QDesignerWorkbench *NewForm::workbench() const
     return m_workbench;
 }
 
-QPixmap NewForm::formPreviewPixmap(const QString &fileName)
+QPixmap  NewForm::formPreviewPixmap(const QTreeWidgetItem *item)
+{
+    // Cache pixmaps per item
+    ItemPixmapMap::iterator it = m_itemPixmapMap.find(item);
+    if (it == m_itemPixmapMap.end()) {
+        // file or string?
+        const QVariant fileName = item->data(0, TemplateNameRole);
+        QPixmap rc;
+        if (fileName.type() == QVariant::String) {
+            rc = formPreviewPixmap(fileName.toString());
+        } else {
+            const QVariant classNameV = item->data(0, ClassNameRole);
+            Q_ASSERT(classNameV.type() == QVariant::String);
+            const QString className = classNameV.toString();
+            QByteArray data =  qdesigner_internal::WidgetDataBase::formTemplate(m_workbench->core(), className, formName(className)).toUtf8();
+            QBuffer buffer(&data);
+            rc = formPreviewPixmap(buffer);
+        }
+        if (rc.isNull()) // Retry invalid ones
+            return rc;
+        it = m_itemPixmapMap.insert(item, rc);
+    }
+    return it.value();
+}
+
+QPixmap NewForm::formPreviewPixmap(const QString &fileName) const
 {
     QFile f(fileName);
-    if (!f.open(QFile::ReadOnly))
-        return QPixmap();
+    if (f.open(QFile::ReadOnly)) {
+        QFileInfo fi(fileName);
+        const QPixmap rc = formPreviewPixmap(f, fi.absolutePath());
+        f.close();
+        return rc;
+    }
+    qWarning() << "The file " << fileName << " could not be opened: " << f.errorString();
+    return QPixmap();
+}
 
-    qdesigner_internal::QDesignerFormBuilder formBuilder(workbench()->core(), qdesigner_internal::QDesignerFormBuilder::DisableScripts);
+QPixmap NewForm::formPreviewPixmap(QIODevice &file, const QString &workingDir) const
+{
+    qdesigner_internal::QDesignerFormBuilder formBuilder(m_workbench->core(), qdesigner_internal::QDesignerFormBuilder::DisableScripts);
+    if (!workingDir.isEmpty())
+        formBuilder.setWorkingDirectory(workingDir);
 
-    QWidget *widget = formBuilder.load(&f, 0);
-    f.close();
+    QWidget *widget = formBuilder.load(&file, 0);
     if (!widget)
         return QPixmap();
 
     const int margin = 7;
     const int shadow = 7;
     const int previewSize = 256;
+    const QPixmap pixmap = QPixmap::grabWidget(widget);
+    widget->deleteLater();
 
-    const QImage image = QPixmap::grabWidget(widget).toImage().scaled(previewSize - margin * 2, previewSize - margin * 2,
+    const QImage image = pixmap.toImage().scaled(previewSize - margin * 2, previewSize - margin * 2,
                                                                       Qt::KeepAspectRatio,
                                                                       Qt::SmoothTransformation);
-    widget->deleteLater();
 
     QImage dest(previewSize, previewSize, QImage::Format_ARGB32_Premultiplied);
     dest.fill(0);
@@ -271,7 +370,8 @@ QPixmap NewForm::formPreviewPixmap(const QString &fileName)
     return QPixmap::fromImage(dest);
 }
 
-void NewForm::loadFrom(const QString &path, bool resourceFile, const QString &uiExtension)
+void NewForm::loadFrom(const QString &path, bool resourceFile, const QString &uiExtension,
+                       const QString &selectedItem, QTreeWidgetItem *&selectedItemFound)
 {
     const QDir dir(path);
 
@@ -288,6 +388,7 @@ void NewForm::loadFrom(const QString &path, bool resourceFile, const QString &ui
     const QChar separator = resourceFile ? QChar(QLatin1Char('/'))
                                          : QDir::separator();
     QTreeWidgetItem *root = new QTreeWidgetItem(ui.treeWidget);
+    root->setFlags(root->flags() & ~Qt::ItemIsSelectable);
     // Try to get something that is easy to read.
     QString visiblePath = path;
     int index = visiblePath.lastIndexOf(separator);
@@ -310,17 +411,33 @@ void NewForm::loadFrom(const QString &path, bool resourceFile, const QString &ui
             continue;
 
         QTreeWidgetItem *item = new QTreeWidgetItem(root);
-        item->setText(0, fi.baseName().replace(underscore, blank));
+        const QString text = fi.baseName().replace(underscore, blank);
+        if (selectedItemFound == 0 && text == selectedItem)
+            selectedItemFound = item;
+        item->setText(0, text);
         item->setData(0, TemplateNameRole, fi.absoluteFilePath());
-
-        QTreeWidgetItem *i = ui.treeWidget->currentItem();
-        if (i == 0) {
-            ui.treeWidget->setCurrentItem(item);
-            ui.treeWidget->setItemSelected(item, true);
-        }
     }
-    ui.treeWidget->setItemExpanded(root, true);
 }
+
+void NewForm::loadFrom(const QString &title, const QStringList &nameList,
+                       const QString &selectedItem, QTreeWidgetItem *&selectedItemFound)
+{
+    if (nameList.empty())
+        return;
+    QTreeWidgetItem *root = new QTreeWidgetItem(ui.treeWidget);
+    root->setFlags(root->flags() & ~Qt::ItemIsSelectable);
+    root->setText(0, title);
+    const QStringList::const_iterator cend = nameList.constEnd();
+    for (QStringList::const_iterator it = nameList.constBegin(); it != cend; ++it) {
+        const QString text = *it;
+        QTreeWidgetItem *item = new QTreeWidgetItem(root);
+        item->setText(0, text);
+        if (selectedItemFound == 0 && text == selectedItem)
+            selectedItemFound = item;
+        item->setData(0, ClassNameRole, *it);
+    }
+}
+
 
 void NewForm::on_treeWidget_itemPressed(QTreeWidgetItem *item)
 {
@@ -328,14 +445,35 @@ void NewForm::on_treeWidget_itemPressed(QTreeWidgetItem *item)
         ui.treeWidget->setItemExpanded(item, !ui.treeWidget->isItemExpanded(item));
 }
 
-bool NewForm::openTemplate(const QString &templateFileName)
+bool NewForm::openTemplate(const QTreeWidgetItem *item, QString *errorMessage)
 {
-    QString errorMessage;
-    if (!workbench()->openTemplate(templateFileName,
-                                   m_fileName,
-                                   &errorMessage)) {
-        QMessageBox::warning(this, tr("Read error"), errorMessage);
+    // file or string?
+    const QVariant templateFileName = item->data(0, TemplateNameRole);
+    if (templateFileName.type() == QVariant::String)
+        return workbench()->openTemplate(templateFileName.toString(), m_fileName, errorMessage);
+    // Content, Write to temporary file
+    const QString className = item->data(0, ClassNameRole).toString();
+    const QString contents = qdesigner_internal::WidgetDataBase::formTemplate(m_workbench->core(), className, formName(className));
+    QString tempPattern = QDir::tempPath();
+    if (!tempPattern.endsWith(QDir::separator())) // platform-dependant
+        tempPattern += QDir::separator();
+    tempPattern += QLatin1String("XXXXXX.ui");
+    QTemporaryFile tempFormFile(tempPattern);
+
+    tempFormFile.setAutoRemove(true);
+    if (!tempFormFile.open()) {
+        *errorMessage = tr("A temporary form file could not be created in %1.").arg(QDir::tempPath());
         return false;
     }
-    return true;
+    const QString tempFormFileName = tempFormFile.fileName();
+    tempFormFile.write(contents.toUtf8());
+    if (!tempFormFile.flush())  {
+        *errorMessage = tr("The temporary form file %1 could not be written.").arg(tempFormFileName);
+        return false;
+    }
+    tempFormFile.close();
+    return workbench()->openTemplate(tempFormFileName, m_fileName, errorMessage);
+
 }
+
+QT_END_NAMESPACE

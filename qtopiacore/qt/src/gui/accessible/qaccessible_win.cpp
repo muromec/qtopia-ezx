@@ -1,49 +1,45 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
-
 #include "qaccessible.h"
-
 #ifndef QT_NO_ACCESSIBILITY
+
+#ifdef Q_OS_WINCE
+#include "qguifunctions_wince.h"
+#endif
 
 #include "qapplication.h"
 #include "qlibrary.h"
@@ -55,6 +51,9 @@
 #if WINVER >= 0x0600
 #include <winuser.h>
 #else
+#  if defined(Q_OS_WINCE)
+#    include <bldver.h>
+#  endif
 #include <winable.h>
 #endif
 
@@ -63,9 +62,13 @@
 #include <comdef.h>
 #endif
 
+QT_BEGIN_NAMESPACE
+
 //#define DEBUG_SHOW_ATCLIENT_COMMANDS
 #ifdef DEBUG_SHOW_ATCLIENT_COMMANDS
+QT_BEGIN_INCLUDE_NAMESPACE
 #include <qdebug.h>
+QT_END_INCLUDE_NAMESPACE
 
 void showDebug(const char* funcName, const QAccessibleInterface *iface)
 {
@@ -104,7 +107,7 @@ void QAccessible::updateAccessibility(QObject *o, int who, Event reason)
     case Alert:
         {
 #ifndef QT_NO_MESSAGEBOX
-            QMessageBox *mb = ::qobject_cast<QMessageBox*>(o);
+            QMessageBox *mb = qobject_cast<QMessageBox*>(o);
             if (mb) {
                 switch (mb->icon()) {
                 case QMessageBox::Warning:
@@ -132,18 +135,31 @@ void QAccessible::updateAccessibility(QObject *o, int who, Event reason)
     }
 
     if (soundName.size()) {
+#ifndef QT_NO_SETTINGS
         QSettings settings(QLatin1String("HKEY_CURRENT_USER\\AppEvents\\Schemes\\Apps\\.Default\\") +
                                          QString::fromLatin1(soundName.constData()), QSettings::NativeFormat);
         QString file = settings.value(QLatin1String(".Current/.")).toString();
-        if (!file.isEmpty())
-            PlaySoundA(soundName.constData(), 0, SND_ALIAS | SND_ASYNC | SND_NODEFAULT | SND_NOWAIT );
-    }
+#else
+		QString file;
+#endif
+		if (!file.isEmpty()) {
+	        QT_WA({
+				PlaySoundW(reinterpret_cast<const wchar_t *> (QString::fromLatin1(soundName).utf16()), 0, SND_ALIAS | SND_ASYNC | SND_NODEFAULT | SND_NOWAIT );
+			} , {
+				PlaySoundA(soundName.constData(), 0, SND_ALIAS | SND_ASYNC | SND_NODEFAULT | SND_NOWAIT );
+			});
+		}
+	}
 
     if (!isActive())
         return;
 
     typedef void (WINAPI *PtrNotifyWinEvent)(DWORD, HWND, LONG, LONG);
 
+#if defined(Q_OS_WINCE) // ### TODO: check for NotifyWinEvent in CE 6.0
+    // There is no user32.lib nor NotifyWinEvent for CE
+    return;
+#else
     static PtrNotifyWinEvent ptrNotifyWinEvent = 0;
     static bool resolvedNWE = false;
     if (!resolvedNWE) {
@@ -190,6 +206,7 @@ void QAccessible::updateAccessibility(QObject *o, int who, Event reason)
     if (reason != MenuCommand) { // MenuCommand is faked
         ptrNotifyWinEvent(reason, w->winId(), OBJID_CLIENT, who);
     }
+#endif // Q_OS_WINCE
 }
 
 void QAccessible::setRootObject(QObject *o)
@@ -1154,4 +1171,6 @@ HRESULT STDMETHODCALLTYPE QWindowsAccessible::ContextSensitiveHelp(BOOL)
     return S_OK;
 }
 
-#endif
+QT_END_NAMESPACE
+
+#endif // QT_NO_ACCESSIBILITY

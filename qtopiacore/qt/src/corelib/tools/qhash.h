@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,6 +45,8 @@
 #include <QtCore/qpair.h>
 
 QT_BEGIN_HEADER
+
+QT_BEGIN_NAMESPACE
 
 #undef QT_QHASH_DEBUG
 QT_MODULE(Core)
@@ -122,7 +118,7 @@ struct Q_CORE_EXPORT QHashData
 
     Node *fakeNext;
     Node **buckets;
-    QBasicAtomic ref;
+    QBasicAtomicInt ref;
     int size;
     int nodeSize;
     short userNumBits;
@@ -134,6 +130,7 @@ struct Q_CORE_EXPORT QHashData
     void freeNode(void *node);
     QHashData *detach_helper(void (*node_duplicate)(Node *, void *), int nodeSize);
     void mightGrow();
+    bool willGrow();
     void hasShrunk();
     void rehash(int hint);
     void destroyAndFree();
@@ -148,10 +145,20 @@ struct Q_CORE_EXPORT QHashData
     static QHashData shared_null;
 };
 
-inline void QHashData::mightGrow()
-{
+inline void QHashData::mightGrow() // ### Qt 5: eliminate
+{ 
     if (size >= numBuckets)
         rehash(numBits + 1);
+}  
+
+inline bool QHashData::willGrow()
+{
+    if (size >= numBuckets) {
+        rehash(numBits + 1);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 inline void QHashData::hasShrunk()
@@ -555,20 +562,19 @@ Q_OUTOFLINE_TEMPLATE void QHash<Key, T>::detach_helper()
 {
     QHashData *x = d->detach_helper(duplicateNode,
         QTypeInfo<T>::isDummy ? sizeof(DummyNode) : sizeof(Node));
-    x = qAtomicSetPtr(&d, x);
-    if (!x->ref.deref())
-        freeData(x);
+    if (!d->ref.deref())
+        freeData(d);
+    d = x;
 }
 
 template <class Key, class T>
 Q_INLINE_TEMPLATE QHash<Key, T> &QHash<Key, T>::operator=(const QHash<Key, T> &other)
 {
     if (d != other.d) {
-        QHashData *x = other.d;
-        x->ref.ref();
-        x = qAtomicSetPtr(&d, x);
-        if (!x->ref.deref())
-            freeData(x);
+        other.d->ref.ref();
+        if (!d->ref.deref())
+            freeData(d);
+        d = other.d;
         if (!d->sharable)
             detach_helper();
     }
@@ -708,12 +714,14 @@ template <class Key, class T>
 Q_INLINE_TEMPLATE T &QHash<Key, T>::operator[](const Key &akey)
 {
     detach();
-    d->mightGrow();
 
     uint h;
     Node **node = findNode(akey, &h);
-    if (*node == e)
+    if (*node == e) {
+        if (d->willGrow())
+            node = findNode(akey, &h);
         return createNode(h, akey, T(), node)->value;
+    }
     return (*node)->value;
 }
 
@@ -722,12 +730,14 @@ Q_INLINE_TEMPLATE typename QHash<Key, T>::iterator QHash<Key, T>::insert(const K
                                                                          const T &avalue)
 {
     detach();
-    d->mightGrow();
 
     uint h;
     Node **node = findNode(akey, &h);
-    if (*node == e)
+    if (*node == e) {
+        if (d->willGrow())
+            node = findNode(akey, &h);
         return iterator(createNode(h, akey, avalue, node));
+    }
 
     if (!QTypeInfo<T>::isDummy)
         (*node)->value = avalue;
@@ -739,7 +749,7 @@ Q_INLINE_TEMPLATE typename QHash<Key, T>::iterator QHash<Key, T>::insertMulti(co
                                                                               const T &avalue)
 {
     detach();
-    d->mightGrow();
+    d->willGrow();
 
     uint h;
     Node **nextNode = findNode(akey, &h);
@@ -995,6 +1005,8 @@ Q_INLINE_TEMPLATE int QMultiHash<Key, T>::count(const Key &key, const T &value) 
 
 Q_DECLARE_ASSOCIATIVE_ITERATOR(Hash)
 Q_DECLARE_MUTABLE_ASSOCIATIVE_ITERATOR(Hash)
+
+QT_END_NAMESPACE
 
 QT_END_HEADER
 

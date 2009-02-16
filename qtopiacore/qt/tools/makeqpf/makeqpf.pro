@@ -5,7 +5,7 @@
 TEMPLATE = app
 TARGET = 
 DEPENDPATH += .
-INCLUDEPATH += .
+INCLUDEPATH += . ../../src/3rdparty/harfbuzz/src
 CONFIG += console
 DESTDIR = ../../bin
 

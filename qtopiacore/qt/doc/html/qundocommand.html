@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/util/qundostack.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/util/qundostack.cpp -->
 <head>
-  <title>Qt 4.3: QUndoCommand Class Reference</title>
+  <title>Qt 4.4: QUndoCommand Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QUndoCommand Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QUndoCommand Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QUndoCommand class is the base class of all commands stored on a <a href="qundostack.html">QUndoStack</a>. <a href="#details">More...</a></p>
 <pre> #include &lt;QUndoCommand&gt;</pre><p>This class was introduced in Qt 4.2.</p>
@@ -25,6 +25,8 @@
 <li><div class="fn"/><b><a href="qundocommand.html#QUndoCommand">QUndoCommand</a></b> ( QUndoCommand * <i>parent</i> = 0 )</li>
 <li><div class="fn"/><b><a href="qundocommand.html#QUndoCommand-2">QUndoCommand</a></b> ( const QString &amp; <i>text</i>, QUndoCommand * <i>parent</i> = 0 )</li>
 <li><div class="fn"/>virtual <b><a href="qundocommand.html#dtor.QUndoCommand">~QUndoCommand</a></b> ()</li>
+<li><div class="fn"/>const QUndoCommand * <b><a href="qundocommand.html#child">child</a></b> ( int <i>index</i> ) const</li>
+<li><div class="fn"/>int <b><a href="qundocommand.html#childCount">childCount</a></b> () const</li>
 <li><div class="fn"/>virtual int <b><a href="qundocommand.html#id">id</a></b> () const</li>
 <li><div class="fn"/>virtual bool <b><a href="qundocommand.html#mergeWith">mergeWith</a></b> ( const QUndoCommand * <i>command</i> )</li>
 <li><div class="fn"/>virtual void <b><a href="qundocommand.html#redo">redo</a></b> ()</li>
@@ -88,6 +90,14 @@
 <h3 class="fn"><a name="dtor.QUndoCommand"></a>QUndoCommand::~QUndoCommand ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Destroys the <a href="qundocommand.html">QUndoCommand</a> object and all child commands.</p>
 <p>See also <a href="qundocommand.html#QUndoCommand">QUndoCommand</a>().</p>
+<h3 class="fn"><a name="child"></a>const QUndoCommand * QUndoCommand::child ( int <i>index</i> ) const</h3>
+<p>Returns the child command at <i>index</i>.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qundocommand.html#childCount">childCount</a>() and <a href="qundostack.html#command">QUndoStack::command</a>().</p>
+<h3 class="fn"><a name="childCount"></a>int QUndoCommand::childCount () const</h3>
+<p>Returns the number of child commands in this command.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qundocommand.html#child">child</a>().</p>
 <h3 class="fn"><a name="id"></a>int QUndoCommand::id () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns the ID of this command.</p>
 <p>A command ID is used in command compression. It must be an integer unique to this command's class, or -1 if the command doesn't support compression.</p>
@@ -125,8 +135,8 @@
 <p>See also <a href="qundocommand.html#redo">redo</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

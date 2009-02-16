@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtScript module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -73,43 +67,32 @@
 #include <QtCore/QVarLengthArray>
 #include <QtCore/QVector>
 
+QT_BEGIN_NAMESPACE
+
 namespace QScript {
+
+class QObjectConnectionManager;
 
 class ExtQObject: public Ecma::Core
 {
 public:
-    ExtQObject(QScriptEnginePrivate *engine, QScriptClassInfo *classInfo);
+    ExtQObject(QScriptEnginePrivate *engine);
     virtual ~ExtQObject();
-
-    inline QScriptClassInfo *classInfo() const { return m_classInfo; }
 
     virtual void execute(QScriptContextPrivate *context);
 
     class Instance: public QScriptFunction {
     public:
         Instance() { }
-        virtual ~Instance()
-        {
-            switch (ownership) {
-            case QScriptEngine::QtOwnership:
-                break;
-            case QScriptEngine::ScriptOwnership:
-                delete value;
-                break;
-            case QScriptEngine::AutoOwnership:
-                if (value && !value->parent())
-                    delete value;
-                break;
-            }
-        }
+        virtual void finalize(QScriptEngine *engine);
+        virtual ~Instance() {}
 
-        static Instance *get(const QScriptValueImpl &object, QScriptClassInfo *klass);
+        static Instance *get(const QScriptValueImpl &object, QScriptClassInfo *klass = 0);
 
         virtual void execute(QScriptContextPrivate *context);
 
     public:
         QPointer<QObject> value;
-        bool isConnection;
         QScriptEngine::ValueOwnership ownership;
         QScriptEngine::QObjectWrapOptions options;
     };
@@ -119,70 +102,56 @@ public:
 
     void newQObject(QScriptValueImpl *result, QObject *value,
                     QScriptEngine::ValueOwnership ownership = QScriptEngine::QtOwnership,
-                    const QScriptEngine::QObjectWrapOptions &options = 0,
-                    bool isConnection = false);
+                    const QScriptEngine::QObjectWrapOptions &options = 0);
 
 protected:
     static QScriptValueImpl method_findChild(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo);
     static QScriptValueImpl method_findChildren(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo);
     static QScriptValueImpl method_toString(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo);
-
-    QScriptClassInfo *m_classInfo;
-};
-
-class ConnectionQObject: public QObject
-{
-public:
-    ConnectionQObject(const QMetaMethod &m, const QScriptValueImpl &sender,
-                      const QScriptValueImpl &receiver, const QScriptValueImpl &slot);
-    ~ConnectionQObject();
-
-    static const QMetaObject staticMetaObject;
-    virtual const QMetaObject *metaObject() const;
-    virtual void *qt_metacast(const char *);
-    virtual int qt_metacall(QMetaObject::Call, int, void **argv);
-
-    void execute(void **argv);
-
-    void mark(int generation);
-    bool hasTarget(const QScriptValueImpl &, const QScriptValueImpl &) const;
-
-private:
-    QMetaMethod m_method;
-    QScriptValue m_self;
-    QScriptValueImpl m_sender;
-    QScriptValueImpl m_receiver;
-    QScriptValueImpl m_slot;
 };
 
 class QtFunction: public QScriptFunction
 {
 public:
-    QtFunction(QObject *object, int initialIndex, bool maybeOverloaded)
+    QtFunction(const QScriptValueImpl &object, int initialIndex, bool maybeOverloaded)
         : m_object(object), m_initialIndex(initialIndex),
           m_maybeOverloaded(maybeOverloaded)
         { }
 
-    virtual ~QtFunction();
+    virtual ~QtFunction() { }
 
     virtual void execute(QScriptContextPrivate *context);
 
     virtual Type type() const { return QScriptFunction::Qt; }
 
-    inline QObject *object() const { return m_object; }
-    inline const QMetaObject *metaObject() const { return m_object->metaObject(); }
+    virtual QString functionName() const;
+
+    virtual void mark(QScriptEnginePrivate *engine, int generation);
+
+    inline QScriptValueImpl object() const { return m_object; }
+
+    inline QObject *qobject() const {
+        if (!m_object.isQObject())
+            return 0;
+        return m_object.toQObject();
+    }
+
+    inline const QMetaObject *metaObject() const {
+        if (!m_object.isQObject())
+            return 0;
+        QObject *qobj = m_object.toQObject();
+        if (!qobj)
+            return 0;
+        return qobj->metaObject();
+    }
+
+    int mostGeneralMethod(QMetaMethod *out = 0) const;
+
     inline int initialIndex() const { return m_initialIndex; }
     inline bool maybeOverloaded() const { return m_maybeOverloaded; }
-    bool createConnection(const QScriptValueImpl &self,
-                          const QScriptValueImpl &receiver,
-                          const QScriptValueImpl &slot);
-    bool destroyConnection(const QScriptValueImpl &self,
-                           const QScriptValueImpl &receiver,
-                           const QScriptValueImpl &slot);
 
 private:
-    QPointer<QObject> m_object;
-    QList<QPointer<QObject> > m_connections;
+    QScriptValueImpl m_object;
     int m_initialIndex;
     bool m_maybeOverloaded;
 };
@@ -190,10 +159,8 @@ private:
 class ExtQMetaObject: public Ecma::Core
 {
 public:
-    ExtQMetaObject(QScriptEnginePrivate *engine, QScriptClassInfo *classInfo);
+    ExtQMetaObject(QScriptEnginePrivate *engine);
     virtual ~ExtQMetaObject();
-
-    inline QScriptClassInfo *classInfo() const { return m_classInfo; }
 
     virtual void execute(QScriptContextPrivate *context);
 
@@ -219,11 +186,51 @@ public:
 
 protected:
     static QScriptValueImpl method_className(QScriptContextPrivate *context, QScriptEnginePrivate *eng, QScriptClassInfo *classInfo);
-
-    QScriptClassInfo *m_classInfo;
 };
 
 } // namespace QScript
+
+struct QScriptQObjectWrapperInfo
+{
+    QScriptQObjectWrapperInfo(const QScriptValueImpl &obj,
+                              QScriptEngine::ValueOwnership own,
+                              const QScriptEngine::QObjectWrapOptions &opt)
+        : object(obj), ownership(own), options(opt) {}
+
+    QScriptValueImpl object;
+    QScriptEngine::ValueOwnership ownership;
+    QScriptEngine::QObjectWrapOptions options;
+};
+
+class QScriptQObjectData // : public QObjectUserData
+{
+public:
+    QScriptQObjectData();
+    ~QScriptQObjectData();
+
+    bool addSignalHandler(QObject *sender,
+                          int signalIndex,
+                          const QScriptValueImpl &receiver,
+                          const QScriptValueImpl &slot,
+                          const QScriptValueImpl &senderWrapper = QScriptValueImpl());
+    bool removeSignalHandler(QObject *sender,
+                             int signalIndex,
+                             const QScriptValueImpl &receiver,
+                             const QScriptValueImpl &slot);
+
+    bool findWrapper(QScriptEngine::ValueOwnership ownership,
+                     const QScriptEngine::QObjectWrapOptions &options,
+                     QScriptValueImpl *out);
+    void registerWrapper(const QScriptValueImpl &wrapper,
+                         QScriptEngine::ValueOwnership ownership,
+                         const QScriptEngine::QObjectWrapOptions &options);
+
+    void mark(int generation);
+
+private:
+    QScript::QObjectConnectionManager *m_connectionManager;
+    QList<QScriptQObjectWrapperInfo> wrappers;
+};
 
 class QScriptMetaType
 {
@@ -242,8 +249,7 @@ public:
     inline Kind kind() const
     { return m_kind; }
 
-    inline int typeId() const
-    { return isMetaEnum() ? 2/*int*/ : m_typeId; }
+    int typeId() const;
 
     inline bool isValid() const
     { return (m_kind != Invalid); }
@@ -319,6 +325,9 @@ public:
 
     inline bool fullyResolved() const
     { return m_firstUnresolvedIndex == -1; }
+
+    inline bool hasUnresolvedReturnType() const
+    { return (m_firstUnresolvedIndex == 0); }
 
     inline int firstUnresolvedIndex() const
     { return m_firstUnresolvedIndex; }
@@ -400,13 +409,26 @@ public:
         return m_propertyAccessors.values();
     }
 
+    inline int methodLowerBound(int index) const
+    {
+        return m_methodBounds.value(index, 0);
+    }
+
+    inline void setMethodLowerBound(int index, int bound)
+    {
+        m_methodBounds.insert(index, bound);
+    }
+
 private:
     QHash<int, QScriptValueImpl> m_propertyAccessors;
     QHash<int, QScriptMetaMethod> m_methods;
+    QHash<int, int> m_methodBounds;
     QHash<QScriptNameIdImpl*, QScript::Member> m_members;
 };
 
 #endif // QT_NO_QOBJECT
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_SCRIPT
 #endif // QSCRIPTEXTQOBJECT_P_H

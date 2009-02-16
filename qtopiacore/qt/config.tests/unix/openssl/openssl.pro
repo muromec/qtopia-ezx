@@ -1,3 +1,4 @@
 SOURCES = openssl.cpp
-CONFIG -= x11 qt app_bundle
+CONFIG -= x11 qt
+mac:CONFIG -= app_bundle
 include(openssl.pri)

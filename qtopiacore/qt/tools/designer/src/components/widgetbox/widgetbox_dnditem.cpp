@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -45,7 +39,11 @@
 #include "ui4_p.h"
 #include <spacer_widget_p.h>
 #include <qdesigner_formbuilder_p.h>
+#include <qtresourcemodel_p.h>
 #include <formscriptrunner_p.h>
+#include <QtDesigner/QDesignerFormEditorInterface>
+
+QT_BEGIN_NAMESPACE
 
 namespace qdesigner_internal {
 /*******************************************************************************
@@ -60,9 +58,9 @@ public:
     virtual QWidget *createWidget(DomWidget *ui_widget, QWidget *parentWidget)
     { return QDesignerFormBuilder::createWidget(ui_widget, parentWidget); }
 
+    QWidget *createWidgetWithResources(const DomUI *dom_ui, DomWidget *dom_widget, DomResources *dom_resources, QWidget *result);
+
 protected:
-    using QDesignerFormBuilder::create;
-    using QDesignerFormBuilder::createWidget;
 
     virtual QWidget *create(DomWidget *ui_widget, QWidget *parents);
     virtual QWidget *createWidget(const QString &widgetName, QWidget *parentWidget, const QString &name);
@@ -92,6 +90,19 @@ QWidget *WidgetBoxResource::create(DomWidget *ui_widget, QWidget *parent)
     result->setObjectName(ui_widget->attributeName());
 
     return result;
+}
+
+QWidget *WidgetBoxResource::createWidgetWithResources(const DomUI *dom_ui, DomWidget *dom_widget, DomResources *dom_resources, QWidget *result)
+{
+    initialize(dom_ui);
+    QtResourceSet *resourceSet = core()->resourceModel()->currentResourceSet();
+    createResources(dom_resources);
+    core()->resourceModel()->setCurrentResourceSet(internalResourceSet());
+
+    QWidget *widget = createWidget(dom_widget, result);
+    core()->resourceModel()->setCurrentResourceSet(resourceSet);
+    core()->resourceModel()->removeResourceSet(internalResourceSet());
+    return widget;
 }
 
 /*******************************************************************************
@@ -139,12 +150,12 @@ static QSize domWidgetSize(DomWidget *dw)
     return QSize();
 }
 
-static QWidget *decorationFromDomWidget(DomWidget *dom_widget, QDesignerFormEditorInterface *core)
+static QWidget *decorationFromDomWidget(const DomUI *dom_ui, DomWidget *dom_widget, DomResources *dom_resources, QDesignerFormEditorInterface *core)
 {
     QWidget *result = new QWidget(0, Qt::ToolTip);
 
     WidgetBoxResource builder(core);
-    QWidget *w = builder.createWidget(dom_widget, result);
+    QWidget *w = builder.createWidgetWithResources(dom_ui, dom_widget, dom_resources, result);
     QSize size = domWidgetSize(dom_widget);
     const QSize minimumSize = w->minimumSizeHint();
     if (!size.isValid())
@@ -154,27 +165,24 @@ static QWidget *decorationFromDomWidget(DomWidget *dom_widget, QDesignerFormEdit
     if (size.height() < minimumSize.height())
         size.setHeight(minimumSize.height());
     // A QWidget might have size -1,-1 if no geometry property is specified in the widget box.
-    const QSize decoSize = size.expandedTo(QSize(16, 16));
-    w->setGeometry(QRect(QPoint(0, 0), decoSize));
-    result->resize(decoSize);
+    if (size.isEmpty())
+        size = size.expandedTo(QSize(16, 16));
+    w->setGeometry(QRect(QPoint(0, 0), size));
+    result->resize(size);
     return result;
 }
 
 WidgetBoxDnDItem::WidgetBoxDnDItem(QDesignerFormEditorInterface *core,
-                                    DomWidget *dom_widget,
-                                    const QPoint &global_mouse_pos)
-    : QDesignerDnDItem(CopyDrop)
+                                   DomUI *dom_ui,
+                                   const QPoint &global_mouse_pos) :
+    QDesignerDnDItem(CopyDrop)
 {
-    DomWidget *root_dom_widget = new DomWidget;
-    QList<DomWidget*> child_list;
-    child_list.append(dom_widget);
-    root_dom_widget->setElementWidget(child_list);
-    DomUI *dom_ui = new DomUI();
-    dom_ui->setElementWidget(root_dom_widget);
-
-    QWidget *decoration = decorationFromDomWidget(dom_widget, core);
+    DomWidget *child = dom_ui->elementWidget()->elementWidget().front();
+    QWidget *decoration = decorationFromDomWidget(dom_ui, child, dom_ui->elementResources(), core);
     decoration->move(global_mouse_pos - QPoint(5, 5));
 
     init(dom_ui, 0, decoration, global_mouse_pos);
 }
 }
+
+QT_END_NAMESPACE

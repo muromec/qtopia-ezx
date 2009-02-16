@@ -1,49 +1,48 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
 #include "qcoreevent.h"
 #include "qcoreapplication.h"
 #include "qcoreapplication_p.h"
+
+#include "qmutex.h"
+#include "qset.h"
+
+QT_BEGIN_NAMESPACE
 
 /*!
     \class QEvent
@@ -113,6 +112,7 @@
     \value Close                            Widget was closed (QCloseEvent).
     \value ContentsRectChange               The margins of the widget's content rect changed.
     \value ContextMenu                      Context popup menu (QContextMenuEvent).
+    \value CursorChange                     The widget's cursor has changed.
     \value DeferredDelete                   The object will be deleted after it has cleaned up.
     \value DragEnter                        The cursor enters a widget during a drag and drop operation (QDragEnterEvent).
     \value DragLeave                        The cursor leaves a widget during a drag and drop operation (QDragLeaveEvent).
@@ -126,6 +126,8 @@
     \value FocusIn                          Widget gains keyboard focus (QFocusEvent).
     \value FocusOut                         Widget loses keyboard focus (QFocusEvent).
     \value FontChange                       Widget's font has changed.
+    \value GrabKeyboard                     Item gains keyboard grab (QGraphicsItem only).
+    \value GrabMouse                        Item gains mouse grab (QGraphicsItem only).
     \value GraphicsSceneContextMenu         Context popup menu over a graphics scene (QGraphicsSceneContextMenuEvent).
     \value GraphicsSceneDragEnter           The cursor enters a graphics scene during a drag and drop operation.
     \value GraphicsSceneDragLeave           The cursor leaves a graphics scene during a drag and drop operation.
@@ -139,6 +141,8 @@
     \value GraphicsSceneMouseMove           Move mouse in a graphics scene (QGraphicsSceneMouseEvent).
     \value GraphicsSceneMousePress          Mouse press in a graphics scene (QGraphicsSceneMouseEvent).
     \value GraphicsSceneMouseRelease        Mouse release in a graphics scene (QGraphicsSceneMouseEvent).
+    \value GraphicsSceneMove          Widget was moved (QGraphicsSceneMoveEvent).
+    \value GraphicsSceneResize          Widget was resized (QGraphicsSceneResizeEvent).
     \value GraphicsSceneWheel               Mouse wheel rolled in a graphics scene (QGraphicsSceneWheelEvent).
     \value Hide                             Widget was hidden (QHideEvent).
     \value HideToParent                     A child widget has been hidden.
@@ -189,11 +193,15 @@
     \value TabletMove                       Wacom tablet move (QTabletEvent).
     \value TabletPress                      Wacom tablet press (QTabletEvent).
     \value TabletRelease                    Wacom tablet release (QTabletEvent).
+    \value OkRequest                        Ok button in decoration pressed. Supported only for Windows CE.
     \value TabletEnterProximity             Wacom tablet enter proximity event (QTabletEvent), sent to QApplication.
     \value TabletLeaveProximity             Wacom tablet leave proximity event (QTabletEvent), sent to QApplication.
     \value Timer                            Regular timer events (QTimerEvent).
     \value ToolBarChange                    The toolbar button is toggled on Mac OS X.
     \value ToolTip                          A tooltip was requested (QHelpEvent).
+    \value ToolTipChange                    The widget's tooltip has changed.
+    \value UngrabKeyboard                   Item loses keyboard grab (QGraphicsItem only).
+    \value UngrabMouse                      Item loses mouse grab (QGraphicsItem only).
     \value UpdateLater                      The widget should be queued to be repainted at a later time.
     \value UpdateRequest                    The widget should be repainted.
     \value WhatsThis                        The widget should reveal "What's This?" help (QHelpEvent).
@@ -216,6 +224,12 @@
     \value User                             User-defined event.
     \value MaxUser                          Last user event ID.
 
+    For convenience, you can use the registerEventType() function to
+    register and reserve a custom event type for your
+    application. Doing so will allow you to avoid accidentally
+    re-using a custom event type already in use elsewhere in your
+    application.
+
     \omitvalue Accel
     \omitvalue AccelAvailable
     \omitvalue AccelOverride
@@ -232,7 +246,6 @@
     \omitvalue HelpRequest
     \omitvalue IconChange
     \omitvalue LayoutHint
-    \omitvalue OkRequest
     \omitvalue Quit
     \omitvalue Reparent
     \omitvalue ShowWindowRequest
@@ -243,6 +256,8 @@
     \omitvalue ApplicationActivated
     \omitvalue ApplicationDeactivated
     \omitvalue MacGLWindowChange
+    \omitvalue NetworkReplyUpdated
+    \omitvalue FutureCallOut
 */
 
 /*!
@@ -282,7 +297,7 @@ QEvent::~QEvent()
     \fn void QEvent::accept()
 
     Sets the accept flag of the event object, the equivalent of
-    callign setAccepted(true).
+    calling setAccepted(true).
 
     Setting the accept parameter indicates that the event receiver
     wants the event. Unwanted events might be propagated to the parent
@@ -321,6 +336,49 @@ QEvent::~QEvent()
     The return value of this function is not defined for paint events.
 */
 
+class QEventUserEventRegistration
+{
+public:
+    QMutex mutex;
+    QSet<int> set;
+};
+Q_GLOBAL_STATIC(QEventUserEventRegistration, userEventRegistrationHelper)
+
+/*!
+    \since 4.4
+    \threadsafe
+
+    Registers and returns a custom event type. The \a hint provided
+    will be used if it is available, otherwise it will return a value
+    between QEvent::User and QEvent::MaxUser that has not yet been
+    registered. The \a hint is ignored if its value is not between
+    QEvent::User and QEvent::MaxUser.
+*/
+int QEvent::registerEventType(int hint)
+{
+    QEventUserEventRegistration *userEventRegistration
+        = userEventRegistrationHelper();
+    if (!userEventRegistration)
+        return -1;
+
+    QMutexLocker locker(&userEventRegistration->mutex);
+
+    // if the type hint hasn't been registered yet, take it
+    if (hint >= QEvent::User && hint <= QEvent::MaxUser && !userEventRegistration->set.contains(hint)) {
+        userEventRegistration->set.insert(hint);
+        return hint;
+    }
+
+    // find a free event type, starting at MaxUser and decreasing
+    int id = QEvent::MaxUser;
+    while (userEventRegistration->set.contains(id) && id >= QEvent::User)
+        --id;
+    if (id >= QEvent::User) {
+        userEventRegistration->set.insert(id);
+        return id;
+    }
+    return -1;
+}
 
 /*!
     \class QTimerEvent qcoreevent.h
@@ -532,3 +590,5 @@ QDynamicPropertyChangeEvent::~QDynamicPropertyChangeEvent()
 
     \sa QObject::setProperty(), QObject::dynamicPropertyNames()
 */
+
+QT_END_NAMESPACE

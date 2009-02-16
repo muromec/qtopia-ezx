@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +47,8 @@
 #include "qpointer.h"
 #include "qtimer.h"
 #include "qdebug.h"
+
+QT_BEGIN_NAMESPACE
 
 /*
   Internal class to get access to protected QWidget-members
@@ -103,6 +99,7 @@ private:
     bool showWidget;
     QTimer anim;
     QTime checkTime;
+    double windowOpacity;
 };
 
 static QAlphaWidget* q_blend = 0;
@@ -116,9 +113,9 @@ QAlphaWidget::QAlphaWidget(QWidget* w, Qt::WindowFlags f)
 #ifndef Q_WS_WIN
     setEnabled(false);
 #endif
-
     setAttribute(Qt::WA_NoSystemBackground, true);
     widget = (QAccessWidget*)w;
+    windowOpacity = w->windowOpacity();
     alpha = 0;
 }
 
@@ -149,32 +146,42 @@ void QAlphaWidget::run(int time)
     checkTime.start();
 
     showWidget = true;
-
-    //This is roughly equivalent to calling setVisible(true) without actually showing the widget
-    widget->setAttribute(Qt::WA_WState_ExplicitShowHide, true);
-    widget->setAttribute(Qt::WA_WState_Hidden, false);
-
-    qApp->installEventFilter(this);
-
-    move(widget->geometry().x(),widget->geometry().y());
-    resize(widget->size().width(), widget->size().height());
-
-    front = QPixmap::grabWidget(widget).toImage();
-    back = QPixmap::grabWindow(QApplication::desktop()->winId(),
-                                widget->geometry().x(), widget->geometry().y(),
-                                widget->geometry().width(), widget->geometry().height()).toImage();
-
-    if (!back.isNull() && checkTime.elapsed() < duration / 2) {
-        mixed = back.copy();
-        pm = QPixmap::fromImage(mixed);
-        show();
-        setEnabled(false);
-
+#if defined(Q_OS_WIN)
+    if (QSysInfo::WindowsVersion >= QSysInfo::WV_2000 && QSysInfo::WindowsVersion < QSysInfo::WV_NT_based) {
+        qApp->installEventFilter(this);
+        widget->setWindowOpacity(0.0);
+        widget->show();
         connect(&anim, SIGNAL(timeout()), this, SLOT(render()));
         anim.start(1);
-    } else {
-        duration = 0;
-        render();
+    } else
+#endif
+    {
+        //This is roughly equivalent to calling setVisible(true) without actually showing the widget
+        widget->setAttribute(Qt::WA_WState_ExplicitShowHide, true);
+        widget->setAttribute(Qt::WA_WState_Hidden, false);
+
+        qApp->installEventFilter(this);
+
+        move(widget->geometry().x(),widget->geometry().y());
+        resize(widget->size().width(), widget->size().height());
+
+        front = QPixmap::grabWidget(widget).toImage();
+        back = QPixmap::grabWindow(QApplication::desktop()->winId(),
+                                    widget->geometry().x(), widget->geometry().y(),
+                                    widget->geometry().width(), widget->geometry().height()).toImage();
+
+        if (!back.isNull() && checkTime.elapsed() < duration / 2) {
+            mixed = back.copy();
+            pm = QPixmap::fromImage(mixed);
+            show();
+            setEnabled(false);
+
+            connect(&anim, SIGNAL(timeout()), this, SLOT(render()));
+            anim.start(1);
+        } else {
+           duration = 0;
+           render();
+        }
     }
 }
 
@@ -248,6 +255,20 @@ void QAlphaWidget::render()
         alpha = tempel / double(duration);
     else
         alpha = 1;
+
+#if defined(Q_OS_WIN)
+    if (QSysInfo::WindowsVersion >= QSysInfo::WV_2000 && QSysInfo::WindowsVersion < QSysInfo::WV_NT_based) {
+        if (alpha >= windowOpacity || !showWidget) {
+            anim.stop();
+            qApp->removeEventFilter(this);
+            widget->setWindowOpacity(windowOpacity);
+            q_blend = 0;
+            deleteLater();
+        } else {
+            widget->setWindowOpacity(alpha);
+        }
+    } else
+#endif
     if (alpha >= 1 || !showWidget) {
         anim.stop();
         qApp->removeEventFilter(this);
@@ -539,12 +560,6 @@ void QRollEffect::scroll()
     }
 }
 
-/*
-  Delete this after timeout
-*/
-
-#include "qeffects.moc"
-
 /*!
     Scroll widget \a w in \a time ms. \a orient may be 1 (vertical), 2
     (horizontal) or 3 (diagonal).
@@ -591,4 +606,13 @@ void qFadeEffect(QWidget* w, int time)
 
     q_blend->run(time);
 }
+
+QT_END_NAMESPACE
+
+/*
+  Delete this after timeout
+*/
+
+#include "qeffects.moc"
+
 #endif //QT_NO_EFFECTS

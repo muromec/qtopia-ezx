@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -48,6 +42,7 @@
 #include <qapplication.h>
 #include <qbrush.h>
 #include <qlineedit.h>
+#include <qtextedit.h>
 #include <qpainter.h>
 #include <qpalette.h>
 #include <qpoint.h>
@@ -68,8 +63,15 @@
 #include <private/qtextengine_p.h>
 #include <qdebug.h>
 #include <qlocale.h>
+#include <qdialog.h>
 
 #include <limits.h>
+
+#ifndef DBL_DIG
+#  define DBL_DIG 10
+#endif
+
+QT_BEGIN_NAMESPACE
 
 class QItemDelegatePrivate : public QObjectPrivate
 {
@@ -100,7 +102,7 @@ public:
             return text;
         }
 
-    static QString valueToText(const QVariant &value, const QStyleOptionViewItemV3 &option);
+    static QString valueToText(const QVariant &value, const QStyleOptionViewItemV4 &option);
 
     void _q_commitDataAndCloseEditor(QWidget *editor);
 
@@ -282,8 +284,9 @@ QSizeF QItemDelegatePrivate::doTextLayout(int lineWidth) const
     setModelData(), and updateEditorGeometry(). This process is
     described in the \l{Spin Box Delegate example}.
 
-    \sa {Delegate Classes}, QAbstractItemDelegate, {Spin Box Delegate Example},
-        {Settings Editor Example}, {Icons Example}
+    \sa {Delegate Classes}, QStyledItemDelegate, QAbstractItemDelegate, 
+        {Spin Box Delegate Example}, {Settings Editor Example}, 
+        {Icons Example}
 */
 
 /*!
@@ -311,7 +314,7 @@ QItemDelegate::~QItemDelegate()
 
   This property will set the paint clip to the size of the item.
   The default value is on. It is useful for cases such
-  as when images are larger then the size of the item.
+  as when images are larger than the size of the item.
 */
 
 bool QItemDelegate::hasClipping() const
@@ -326,12 +329,12 @@ void QItemDelegate::setClipping(bool clip)
     d->clipPainting = clip;
 }
 
-QString QItemDelegatePrivate::valueToText(const QVariant &value, const QStyleOptionViewItemV3 &option)
+QString QItemDelegatePrivate::valueToText(const QVariant &value, const QStyleOptionViewItemV4 &option)
 {
     QString text;
     switch (value.type()) {
         case QVariant::Double:
-            text = option.locale.toString(value.toDouble());
+            text = option.locale.toString(value.toDouble(), 'g', DBL_DIG);
             break;
         case QVariant::Int:
         case QVariant::LongLong:
@@ -371,9 +374,7 @@ QString QItemDelegatePrivate::valueToText(const QVariant &value, const QStyleOpt
     For example, a selected item may need to be displayed differently to
     unselected items, as shown in the following code:
 
-    \quotefromfile itemviews/pixelator/pixeldelegate.cpp
-    \skipto QStyle::State_Selected
-    \printuntil else
+    \snippet examples/itemviews/pixelator/pixeldelegate.cpp 2
     \dots
 
     After painting, you should ensure that the painter is returned to its
@@ -390,7 +391,7 @@ void QItemDelegate::paint(QPainter *painter,
     Q_D(const QItemDelegate);
     Q_ASSERT(index.isValid());
 
-    QStyleOptionViewItemV3 opt = setOptions(index, option);
+    QStyleOptionViewItemV4 opt = setOptions(index, option);
 
     const QStyleOptionViewItemV2 *v2 = qstyleoption_cast<const QStyleOptionViewItemV2 *>(&option);
     opt.features = v2 ? v2->features
@@ -433,7 +434,7 @@ void QItemDelegate::paint(QPainter *painter,
     QString text;
     QRect displayRect;
     value = index.data(Qt::DisplayRole);
-    if (value.isValid()) {
+    if (value.isValid() && !value.isNull()) {
         text = QItemDelegatePrivate::valueToText(value, opt);
         displayRect = textRectangle(painter, d->textLayoutBounds(opt), opt.font, text);
     }
@@ -510,10 +511,11 @@ QWidget *QItemDelegate::createEditor(QWidget *parent,
 }
 
 /*!
-    Sets the data to be displayed and edited by the \a editor for the
-    item specified by \a index.
+    Sets the data to be displayed and edited by the \a editor from the
+    data model item specified by the model \a index.
 
-    The default implementation uses the editor's user property to set values.
+    The default implementation stores the data in the \a editor
+    widget's \l {Qt's Property System} {user property}.
 
     \sa QMetaProperty::isUser()
 */
@@ -540,18 +542,27 @@ void QItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) con
             n = "date";
     }
 
-    if (n.isEmpty())
+    // ### Qt 5: give QComboBox a USER property
+    if (n.isEmpty() && editor->inherits("QComboBox"))
         n = d->editorFactory()->valuePropertyName(static_cast<QVariant::Type>(v.userType()));
-    if (!n.isEmpty())
+    if (!n.isEmpty()) {
+        if (!v.isValid())
+            v = QVariant(editor->property(n).userType(), (const void *)0);
         editor->setProperty(n, v);
+    }
 #endif
 }
 
 /*!
-    Sets the data for the specified \a model and item \a index from that
-    supplied by the \a editor.
+    Gets data drom the \a editor widget and stores it in the specified
+    \a model at the item \a index.
 
-    The default implementation uses the editor's user property to get values.
+    The default implementation gets the value to be stored in the data
+    model from the \a editor widget's \l {Qt's Property System} {user
+    property}.
+
+    Note that the \a model parameter is redundant because the \a index
+    knows about its model.
 
     \sa QMetaProperty::isUser()
 */
@@ -635,9 +646,6 @@ void QItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem &o
 {
     Q_D(const QItemDelegate);
 
-    if (text.isEmpty())
-        return;
-
     QPen pen = painter->pen();
     QPalette::ColorGroup cg = option.state & QStyle::State_Enabled
                               ? QPalette::Normal : QPalette::Disabled;
@@ -650,6 +658,9 @@ void QItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem &o
         painter->setPen(option.palette.color(cg, QPalette::Text));
     }
 
+    if (text.isEmpty())
+        return;
+    
     if (option.state & QStyle::State_Editing) {
         painter->save();
         painter->setPen(option.palette.color(cg, QPalette::Text));
@@ -657,7 +668,7 @@ void QItemDelegate::drawDisplay(QPainter *painter, const QStyleOptionViewItem &o
         painter->restore();
     }
 
-    const QStyleOptionViewItemV3 opt = option;
+    const QStyleOptionViewItemV4 opt = option;
 
     const QWidget *widget = d->widget(option);
     QStyle *style = widget ? widget->style() : QApplication::style();
@@ -1018,7 +1029,7 @@ QPixmap *QItemDelegate::selected(const QPixmap &pixmap, const QPalette &palette,
 
         QColor color = palette.color(enabled ? QPalette::Normal : QPalette::Disabled,
                                      QPalette::Highlight);
-        color.setAlphaF(0.3);
+        color.setAlphaF((qreal)0.3);
 
         QPainter painter(&img);
         painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
@@ -1047,7 +1058,7 @@ QRect QItemDelegate::rect(const QStyleOptionViewItem &option,
     QVariant value = index.data(role);
     if (role == Qt::CheckStateRole)
         return check(option, option.rect, value);
-    if (value.isValid()) {
+    if (value.isValid() && !value.isNull()) {
         switch (value.type()) {
         case QVariant::Invalid:
             break;
@@ -1077,9 +1088,9 @@ QRect QItemDelegate::rect(const QStyleOptionViewItem &option,
 /*!
   \internal
 
-  Note that on Mac, if /usr/include/AssertMacros.h is included prior to QItemDelegate,
-  and the application is building in debug mode, the check(assertion) will conflict
-  with QItemDelegate::check.
+  Note that on Mac, if /usr/include/AssertMacros.h is included prior
+  to QItemDelegate, and the application is building in debug mode, the
+  check(assertion) will conflict with QItemDelegate::check.
 
   To avoid this problem, add
 
@@ -1151,7 +1162,7 @@ QRect QItemDelegate::textRectangle(QPainter * /*painter*/, const QRect &rect,
 
 bool QItemDelegate::eventFilter(QObject *object, QEvent *event)
 {
-    QWidget *editor = ::qobject_cast<QWidget*>(object);
+    QWidget *editor = qobject_cast<QWidget*>(object);
     if (!editor)
         return false;
     if (event->type() == QEvent::KeyPress) {
@@ -1166,9 +1177,18 @@ bool QItemDelegate::eventFilter(QObject *object, QEvent *event)
             return true;
         case Qt::Key_Enter:
         case Qt::Key_Return:
+#ifndef QT_NO_TEXTEDIT
+            if (qobject_cast<QTextEdit*>(editor))
+                return false; // don't filter enter key events for QTextEdit
             // We want the editor to be able to process the key press
             // before committing the data (e.g. so it can do
             // validation/fixup of the input).
+#endif // QT_NO_TEXTEDIT
+#ifndef QT_NO_LINEEDIT
+            if (QLineEdit *e = qobject_cast<QLineEdit*>(editor))
+                if (!e->hasAcceptableInput())
+                    return false;
+#endif // QT_NO_LINEEDIT
             QMetaObject::invokeMethod(this, "_q_commitDataAndCloseEditor",
                                       Qt::QueuedConnection, Q_ARG(QWidget*, editor));
             return false;
@@ -1198,10 +1218,17 @@ bool QItemDelegate::eventFilter(QObject *object, QEvent *event)
 #endif
             // Opening a modal dialog will start a new eventloop
             // that will process the deleteLater event.
-            if (QApplication::activeModalWidget() && !QApplication::activeModalWidget()->isAncestorOf(editor))
+            if (QApplication::activeModalWidget()
+                && !QApplication::activeModalWidget()->isAncestorOf(editor)
+                && qobject_cast<QDialog*>(QApplication::activeModalWidget()))
                 return false;
             emit commitData(editor);
             emit closeEditor(editor, NoHint);
+        }
+    } else if (event->type() == QEvent::ShortcutOverride) {
+        if (static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
+            event->accept();
+            return true;
         }
     }
     return false;
@@ -1236,7 +1263,8 @@ bool QItemDelegate::editorEvent(QEvent *event,
         QRect checkRect = check(option, option.rect, Qt::Checked);
         QRect emptyRect;
         doLayout(option, &checkRect, &emptyRect, &emptyRect, false);
-        if (!checkRect.contains(static_cast<QMouseEvent*>(event)->pos()))
+        QMouseEvent *me = static_cast<QMouseEvent*>(event);
+        if (me->button() != Qt::LeftButton || !checkRect.contains(me->pos()))
             return false;
 
         // eat the double click events inside the check rect
@@ -1284,6 +1312,8 @@ QStyleOptionViewItem QItemDelegate::setOptions(const QModelIndex &index,
 
     return opt;
 }
+
+QT_END_NAMESPACE
 
 #include "moc_qitemdelegate.cpp"
 

@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -62,6 +56,8 @@
 #ifndef QT_NO_TEXTCODEC
 #include "qtextcodec.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 //#define Q3FTPPI_DEBUG
 //#define Q3FTPDTP_DEBUG
@@ -1051,7 +1047,7 @@ static void cleanup_d_ptr()
     delete d_ptr;
     d_ptr = 0;
 }
-static Q3FtpPrivate* d( const Q3Ftp* foo )
+static Q3FtpPrivate* dHelper( const Q3Ftp* foo )
 {
     if ( !d_ptr ) {
 	d_ptr = new Q3PtrDict<Q3FtpPrivate>;
@@ -1097,10 +1093,7 @@ static void delete_d( const Q3Ftp* foo )
     do not use it directly, but rather through a QUrlOperator, for
     example:
 
-    \code
-    QUrlOperator op( "ftp://ftp.trolltech.com" );
-    op.listChildren(); // Asks the server to provide a directory listing
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3ftp.cpp 0
 
     This code will only work if the Q3Ftp class is registered; to
     register the class, you must call q3InitNetworkProtocols() before
@@ -1132,11 +1125,7 @@ static void delete_d( const Q3Ftp* foo )
     e.g. if you want to connect and login to a FTP server. This is
     simply achieved:
 
-    \code
-    Q3Ftp *ftp = new Q3Ftp( this ); // this is an optional QObject parent
-    ftp->connectToHost( "ftp.trolltech.com" );
-    ftp->login();
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3ftp.cpp 1
 
     In this case two FTP commands have been scheduled. When the last
     scheduled command has finished, a done() signal is emitted with
@@ -1154,46 +1143,12 @@ static void delete_d( const Q3Ftp* foo )
     Example: If you want to download the INSTALL file from Trolltech's
     FTP server, you would write this:
 
-    \code
-    ftp->connectToHost( "ftp.trolltech.com" );  // id == 1
-    ftp->login();                               // id == 2
-    ftp->cd( "qt" );                            // id == 3
-    ftp->get( "INSTALL" );                      // id == 4
-    ftp->close();                               // id == 5
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3ftp.cpp 2
 
     For this example the following sequence of signals is emitted
     (with small variations, depending on network traffic, etc.):
 
-    \code
-    start( 1 )
-    stateChanged( HostLookup )
-    stateChanged( Connecting )
-    stateChanged( Connected )
-    finished( 1, false )
-
-    start( 2 )
-    stateChanged( LoggedIn )
-    finished( 2, false )
-
-    start( 3 )
-    finished( 3, false )
-
-    start( 4 )
-    dataTransferProgress( 0, 3798 )
-    dataTransferProgress( 2896, 3798 )
-    readyRead()
-    dataTransferProgress( 3798, 3798 )
-    readyRead()
-    finished( 4, false )
-
-    start( 5 )
-    stateChanged( Closing )
-    stateChanged( Unconnected )
-    finished( 5, false )
-
-    done( false )
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3ftp.cpp 3
 
     The dataTransferProgress() signal in the above example is useful
     if you want to show a \link QProgressBar progress bar \endlink to
@@ -1206,18 +1161,7 @@ static void delete_d( const Q3Ftp* foo )
     If the login fails for the above example, the signals would look
     like this:
 
-    \code
-    start( 1 )
-    stateChanged( HostLookup )
-    stateChanged( Connecting )
-    stateChanged( Connected )
-    finished( 1, false )
-
-    start( 2 )
-    finished( 2, true )
-
-    done( true )
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_network_q3ftp.cpp 4
 
     You can then get details about the error with the error() and
     errorString() functions.
@@ -1258,7 +1202,7 @@ Q3Ftp::Q3Ftp( QObject *parent, const char *name ) : Q3NetworkProtocol()
 
 void Q3Ftp::init()
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     d->errorString = QFtp::tr( "Unknown error" );
 
     connect( &d->pi, SIGNAL(connectState(int)),
@@ -1773,7 +1717,7 @@ int Q3Ftp::rawCommand( const QString &command )
 */
 Q_ULONG Q3Ftp::bytesAvailable() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->pi.dtp.bytesAvailable();
 }
 
@@ -1785,7 +1729,7 @@ Q_ULONG Q3Ftp::bytesAvailable() const
 */
 Q_LONG Q3Ftp::readBlock( char *data, Q_ULONG maxlen )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->pi.dtp.readBlock( data, maxlen );
 }
 
@@ -1797,7 +1741,7 @@ Q_LONG Q3Ftp::readBlock( char *data, Q_ULONG maxlen )
 */
 QByteArray Q3Ftp::readAll()
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->pi.dtp.readAll();
 }
 
@@ -1832,7 +1776,7 @@ QByteArray Q3Ftp::readAll()
 */
 void Q3Ftp::abort()
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     if ( d->pending.isEmpty() )
 	return;
 
@@ -1848,7 +1792,7 @@ void Q3Ftp::abort()
 */
 int Q3Ftp::currentId() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = d->pending.getFirst();
     if ( c == 0 )
 	return 0;
@@ -1863,7 +1807,7 @@ int Q3Ftp::currentId() const
 */
 Q3Ftp::Command Q3Ftp::currentCommand() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = d->pending.getFirst();
     if ( c == 0 )
 	return None;
@@ -1882,7 +1826,7 @@ Q3Ftp::Command Q3Ftp::currentCommand() const
 */
 QIODevice* Q3Ftp::currentDevice() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = d->pending.getFirst();
     if ( !c )
 	return 0;
@@ -1902,7 +1846,7 @@ QIODevice* Q3Ftp::currentDevice() const
 */
 bool Q3Ftp::hasPendingCommands() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->pending.count() > 1;
 }
 
@@ -1915,7 +1859,7 @@ bool Q3Ftp::hasPendingCommands() const
 */
 void Q3Ftp::clearPendingCommands()
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = 0;
     if ( d->pending.count() > 0 )
 	c = d->pending.take( 0 );
@@ -1932,7 +1876,7 @@ void Q3Ftp::clearPendingCommands()
 */
 Q3Ftp::State Q3Ftp::state() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->state;
 }
 
@@ -1945,7 +1889,7 @@ Q3Ftp::State Q3Ftp::state() const
 */
 Q3Ftp::Error Q3Ftp::error() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->error;
 }
 
@@ -1962,13 +1906,13 @@ Q3Ftp::Error Q3Ftp::error() const
 */
 QString Q3Ftp::errorString() const
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     return d->errorString;
 }
 
 int Q3Ftp::addCommand( Q3FtpCommand *cmd )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     d->pending.append( cmd );
 
     if ( d->pending.count() == 1 )
@@ -1980,7 +1924,7 @@ int Q3Ftp::addCommand( Q3FtpCommand *cmd )
 
 void Q3Ftp::startNextCommand()
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
 
     Q3FtpCommand *c = d->pending.getFirst();
     if ( c == 0 )
@@ -2023,7 +1967,7 @@ void Q3Ftp::startNextCommand()
 
 void Q3Ftp::piFinished( const QString& )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = d->pending.getFirst();
     if ( c == 0 )
 	return;
@@ -2050,7 +1994,7 @@ void Q3Ftp::piFinished( const QString& )
 
 void Q3Ftp::piError( int errorCode, const QString &text )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     Q3FtpCommand *c = d->pending.getFirst();
 
     // non-fatal errors
@@ -2108,7 +2052,7 @@ void Q3Ftp::piError( int errorCode, const QString &text )
 
 void Q3Ftp::piConnectState( int state )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     d->state = (State)state;
     emit stateChanged( d->state );
     if ( d->close_waitForStateChange ) {
@@ -2120,7 +2064,7 @@ void Q3Ftp::piConnectState( int state )
 void Q3Ftp::piFtpReply( int code, const QString &text )
 {
     if ( currentCommand() == RawCommand ) {
-	Q3FtpPrivate *d = ::d( this );
+	Q3FtpPrivate *d = dHelper( this );
 	d->pi.rawCommand = true;
 	emit rawCommandReply( code, text );
     }
@@ -2205,7 +2149,7 @@ void Q3Ftp::operationPut( Q3NetworkOperation *op )
 */
 bool Q3Ftp::checkConnection( Q3NetworkOperation *op )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
     if ( state() == Unconnected && !d->npWaitForLoginDone ) {
 	connect( this, SIGNAL(listInfo(QUrlInfo)),
 		this, SLOT(npListInfo(QUrlInfo)) );
@@ -2272,7 +2216,7 @@ void Q3Ftp::npListInfo( const QUrlInfo & i )
 
 void Q3Ftp::npDone( bool err )
 {
-    Q3FtpPrivate *d = ::d( this );
+    Q3FtpPrivate *d = dHelper( this );
 
     bool emitFinishedSignal = false;
     Q3NetworkOperation *op = operationInProgress();
@@ -2422,6 +2366,8 @@ void Q3Ftp::dataBytesWritten( int )
 void Q3Ftp::error( int )
 {
 }
+
+QT_END_NAMESPACE
 
 #include "q3ftp.moc"
 

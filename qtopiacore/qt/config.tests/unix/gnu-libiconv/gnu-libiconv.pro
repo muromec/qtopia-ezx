@@ -1,3 +1,4 @@
 SOURCES = gnu-libiconv.cpp
-CONFIG -= qt dylib app_bundle
+CONFIG -= qt dylib
+mac:CONFIG -= app_bundle
 LIBS += -liconv

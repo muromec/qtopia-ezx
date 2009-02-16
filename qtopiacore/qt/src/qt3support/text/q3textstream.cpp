@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt3Support module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,13 +47,15 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-#ifndef Q_OS_TEMP
+#ifndef Q_OS_WINCE
 #include <locale.h>
 #endif
 
 #if defined(Q_OS_WIN32)
 #include "qt_windows.h"
 #endif
+
+QT_BEGIN_NAMESPACE
 
 #ifndef QT_NO_TEXTCODEC
 static void resetCodecConverterState(QTextCodec::ConverterState *state) {
@@ -217,8 +213,8 @@ void Q3TextStream::init()
     owndev = FALSE;
     mapper = 0;
 #ifndef QT_NO_TEXTCODEC
-    ::resetCodecConverterState(&mapperReadState);
-    ::resetCodecConverterState(&mapperWriteState);
+    resetCodecConverterState(&mapperReadState);
+    resetCodecConverterState(&mapperWriteState);
 #endif
     d = new Q3TextStreamPrivate;
     doUnicodeHeader = TRUE; // autodetect
@@ -385,20 +381,12 @@ qint64 QStringBuffer::writeData( const char *p, qint64 len )
     this setting is ignored for text streams that operate on QString.
 
     Example:
-    \code
-    QString str;
-    Q3TextStream ts( &str, IO_WriteOnly );
-    ts << "pi = " << 3.14; // str == "pi = 3.14"
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textstream.cpp 0
 
     Writing data to the text stream will modify the contents of the
     string. The string will be expanded when data is written beyond
     the end of the string. Note that the string will not be truncated:
-    \code
-    QString str = "pi = 3.14";
-    Q3TextStream ts( &str, IO_WriteOnly );
-    ts <<  "2+2 = " << 2+2; // str == "2+2 = 414"
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textstream.cpp 1
 
     Note that because QString is Unicode, you should not use
     readRawBytes() or writeRawBytes() on such a stream.
@@ -440,25 +428,14 @@ Q3TextStream::Q3TextStream( QString& str, int filemode )
     to the device's open() function; see \l{QIODevice::mode()}.
 
     Example:
-    \code
-    QByteArray array;
-    Q3TextStream ts( array, IO_WriteOnly );
-    ts << "pi = " << 3.14 << '\0'; // array == "pi = 3.14"
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textstream.cpp 2
 
     Writing data to the text stream will modify the contents of the
     array. The array will be expanded when data is written beyond the
     end of the string.
 
     Same example, using a QBuffer:
-    \code
-    QByteArray array;
-    QBuffer buf( array );
-    buf.open( IO_WriteOnly );
-    Q3TextStream ts( &buf );
-    ts << "pi = " << 3.14 << '\0'; // array == "pi = 3.14"
-    buf.close();
-    \endcode
+    \snippet doc/src/snippets/code/src_qt3support_text_q3textstream.cpp 3
 */
 
 Q3TextStream::Q3TextStream( QByteArray &a, int mode )
@@ -2329,8 +2306,8 @@ Q3TextStream &reset( Q3TextStream &s )
 
 void Q3TextStream::setEncoding( Encoding e )
 {
-    ::resetCodecConverterState(&mapperReadState);
-    ::resetCodecConverterState(&mapperWriteState);
+    resetCodecConverterState(&mapperReadState);
+    resetCodecConverterState(&mapperWriteState);
 
     if ( d->sourceType == Q3TextStreamPrivate::String )
 	return;
@@ -2449,5 +2426,7 @@ QTextCodec *Q3TextStream::codec()
 }
 
 #endif
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_TEXTSTREAM

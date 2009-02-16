@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -51,9 +45,12 @@
 
 #include "qfile.h"
 #include "qabstractfileengine.h"
-#include "qopentype_p.h"
+#include "qthreadstorage.h"
+#include <qmath.h>
 #include <private/qpdf_p.h>
-#include <private/qmath_p.h>
+#include <private/qharfbuzz_p.h>
+
+#include <private/qpdf_p.h>
 
 #include "qfontengine_ft_p.h"
 #include <ft2build.h>
@@ -62,6 +59,8 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_TYPE1_TABLES_H
 #include FT_GLYPH_H
+
+QT_BEGIN_NAMESPACE
 
 /*
  * Freetype 2.1.7 and earlier used width/height
@@ -81,16 +80,63 @@
 #define TRUNC(x)    ((x) >> 6)
 #define ROUND(x)    (((x)+32) & -64)
 
+static HB_Error hb_getSFntTable(void *font, HB_Tag tableTag, HB_Byte *buffer, HB_UInt *length)
+{
+#if (FREETYPE_MAJOR*10000 + FREETYPE_MINOR*100 + FREETYPE_PATCH) > 20103
+    FT_Face face = (FT_Face)font;
+    FT_ULong ftlen = *length;
+    FT_Error error = 0;
+
+    if ( !FT_IS_SFNT(face) )
+        return HB_Err_Invalid_Argument;
+
+    error = FT_Load_Sfnt_Table(face, tableTag, 0, buffer, &ftlen);
+    *length = ftlen;
+    return (HB_Error)error;
+#else
+    return HB_Err_Invalid_Argument;
+#endif
+}
+
 // -------------------------- Freetype support ------------------------------
 
-static FT_Library library = 0;
+class QtFreetypeData
+{
+public:
+    QtFreetypeData()
+        : library(0)
+    { }
+
+    FT_Library library;
+    QHash<QFontEngine::FaceId, QFreetypeFace *> faces;
+};
+
+#ifdef QT_NO_THREAD
+Q_GLOBAL_STATIC(QtFreetypeData, theFreetypeData)
+
+QtFreetypeData *qt_getFreetypeData()
+{
+    return theFreetypeData();
+}
+#else
+Q_GLOBAL_STATIC(QThreadStorage<QtFreetypeData *>, theFreetypeData)
+
+QtFreetypeData *qt_getFreetypeData()
+{
+    QtFreetypeData *&freetypeData = theFreetypeData()->localData();
+    if (!freetypeData)
+        freetypeData = new QtFreetypeData;
+    return freetypeData;
+}
+#endif
+
 FT_Library qt_getFreetype()
 {
-    if (!library)
-        FT_Init_FreeType(&library);
-    return library;
+    QtFreetypeData *freetypeData = qt_getFreetypeData();
+    if (!freetypeData->library)
+        FT_Init_FreeType(&freetypeData->library);
+    return freetypeData->library;
 }
-static QHash<QFontEngine::FaceId, QFreetypeFace *> *freetypeFaces = 0;
 
 int QFreetypeFace::fsType() const
 {
@@ -101,17 +147,39 @@ int QFreetypeFace::fsType() const
     return fsType;
 }
 
+HB_Error QFreetypeFace::getPointInOutline(HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints)
+{
+    int load_flags = (flags & HB_ShaperFlag_UseDesignMetrics) ? FT_LOAD_NO_HINTING : FT_LOAD_DEFAULT;
+
+    if (HB_Error error = (HB_Error)FT_Load_Glyph(face, glyph, load_flags))
+        return error;
+
+    if (face->glyph->format != FT_GLYPH_FORMAT_OUTLINE)
+        return HB_Err_Invalid_GPOS_SubTable;
+
+    *nPoints = face->glyph->outline.n_points;
+    if (!(*nPoints))
+        return HB_Err_Ok;
+
+    if (point > *nPoints)
+        return HB_Err_Invalid_GPOS_SubTable;
+
+    *xpos = face->glyph->outline.points[point].x;
+    *ypos = face->glyph->outline.points[point].y;
+
+    return HB_Err_Ok;
+}
+
 QFreetypeFace *QFreetypeFace::getFace(const QFontEngine::FaceId &face_id)
 {
     if (face_id.filename.isEmpty())
         return 0;
 
-    if (!library)
-        FT_Init_FreeType(&library);
-    if (!freetypeFaces)
-        freetypeFaces = new QHash<QFontEngine::FaceId, QFreetypeFace *>();
+    QtFreetypeData *freetypeData = qt_getFreetypeData();
+    if (!freetypeData->library)
+        FT_Init_FreeType(&freetypeData->library);
 
-    QFreetypeFace *freetype = freetypeFaces->value(face_id, 0);
+    QFreetypeFace *freetype = freetypeData->faces.value(face_id, 0);
     if (!freetype) {
         freetype = new QFreetypeFace;
         FT_Face face;
@@ -133,15 +201,17 @@ QFreetypeFace *QFreetypeFace::getFace(const QFontEngine::FaceId &face_id)
             freetype->fontData = file.readAll();
         }
         if (!freetype->fontData.isEmpty()) {
-            if (FT_New_Memory_Face(library, (const FT_Byte *)freetype->fontData.constData(), freetype->fontData.size(), face_id.index, &face)) {
+            if (FT_New_Memory_Face(freetypeData->library, (const FT_Byte *)freetype->fontData.constData(), freetype->fontData.size(), face_id.index, &face)) {
                 delete freetype;
                 return 0;
             }
-        } else if (FT_New_Face(library, face_id.filename, face_id.index, &face)) {
+        } else if (FT_New_Face(freetypeData->library, face_id.filename, face_id.index, &face)) {
             delete freetype;
             return 0;
         }
         freetype->face = face;
+
+        freetype->hbFace = qHBNewFace(face, hb_getSFntTable);
         freetype->ref = 0;
         freetype->xsize = 0;
         freetype->ysize = 0;
@@ -197,7 +267,7 @@ QFreetypeFace *QFreetypeFace::getFace(const QFontEngine::FaceId &face_id)
 #endif
 
         FT_Set_Charmap(freetype->face, freetype->unicode_map);
-        freetypeFaces->insert(face_id, freetype);
+        freetypeData->faces.insert(face_id, freetype);
     }
     freetype->ref.ref();
     return freetype;
@@ -205,20 +275,20 @@ QFreetypeFace *QFreetypeFace::getFace(const QFontEngine::FaceId &face_id)
 
 void QFreetypeFace::release(const QFontEngine::FaceId &face_id)
 {
+    QtFreetypeData *freetypeData = qt_getFreetypeData();
     if (!ref.deref()) {
+        qHBFreeFace(hbFace);
         FT_Done_Face(face);
 #ifndef QT_NO_FONTCONFIG
         if (charset)
             FcCharSetDestroy(charset);
 #endif
-        freetypeFaces->take(face_id);
+        freetypeData->faces.take(face_id);
         delete this;
     }
-    if (!freetypeFaces->size()) {
-        delete freetypeFaces;
-        freetypeFaces = 0;
-        FT_Done_FreeType(library);
-        library = 0;
+    if (freetypeData->faces.isEmpty()) {
+        FT_Done_FreeType(freetypeData->library);
+        freetypeData->library = 0;
     }
 }
 
@@ -293,20 +363,17 @@ QFontEngine::Properties QFreetypeFace::properties() const
     return p;
 }
 
-QByteArray QFreetypeFace::getSfntTable(uint tag) const
+bool QFreetypeFace::getSfntTable(uint tag, uchar *buffer, uint *length) const
 {
-    QByteArray table;
+    bool result = false;
 #if (FREETYPE_MAJOR*10000 + FREETYPE_MINOR*100 + FREETYPE_PATCH) > 20103
     if (FT_IS_SFNT(face)) {
-        FT_ULong length = 0;
-        FT_Load_Sfnt_Table(face, tag, 0, 0, &length);
-        if (length != 0) {
-            table.resize(length);
-            FT_Load_Sfnt_Table(face, tag, 0, (FT_Byte *)table.data(), &length);
-        }
+        FT_ULong len = *length;
+        result = FT_Load_Sfnt_Table(face, tag, 0, buffer, &len) == FT_Err_Ok;
+        *length = len;
     }
 #endif
-    return table;
+    return result;
 }
 
 /* Some fonts (such as MingLiu rely on hinting to scale different
@@ -438,7 +505,6 @@ static const uint subpixel_filter[3][3] = {
 
 QFontEngineFT::QFontEngineFT(const QFontDef &fd)
 {
-    _openType = 0;
     fontDef = fd;
     matrix.xx = 0x10000;
     matrix.yy = 0x10000;
@@ -456,12 +522,9 @@ QFontEngineFT::QFontEngineFT(const QFontDef &fd)
 
 QFontEngineFT::~QFontEngineFT()
 {
-#ifndef QT_NO_OPENTYPE
-    delete _openType;
-    _openType = 0;
-#endif
     if (freetype)
         freetype->release(face_id);
+    hbFace = 0; // we share the face in QFreeTypeFace, don't let ~QFontEngine delete it
 }
 
 void QFontEngineFT::freeGlyphSets()
@@ -482,12 +545,15 @@ bool QFontEngineFT::init(FaceId faceId, bool antialias, GlyphFormat defaultForma
         ysize = 0;
         return false;
     }
+
     symbol = freetype->symbol_map != 0;
     PS_FontInfoRec psrec;
     // don't assume that type1 fonts are symbol fonts by default
     if (FT_Get_PS_Font_Info(freetype->face, &psrec) == FT_Err_Ok) {
         symbol = bool(fontDef.family.contains(QLatin1String("symbol"), Qt::CaseInsensitive));
     }
+    // #####
+    freetype->hbFace->isSymbolFont = symbol;
 
     lbearing = rbearing = SHRT_MIN;
     freetype->computeSize(fontDef, &xsize, &ysize, &outline_drawing);
@@ -502,6 +568,7 @@ bool QFontEngineFT::init(FaceId faceId, bool antialias, GlyphFormat defaultForma
         if (fake_oblique)
             matrix.xy = 0x10000*3/10;
         FT_Set_Transform(face, &matrix, 0);
+        freetype->matrix = matrix;
         if (fake_oblique)
             transform = true;
     } else {
@@ -518,6 +585,13 @@ bool QFontEngineFT::init(FaceId faceId, bool antialias, GlyphFormat defaultForma
         line_thickness = 1;
 
     metrics = face->size->metrics;
+
+    hbFont.x_ppem  = face->size->metrics.x_ppem;
+    hbFont.y_ppem  = face->size->metrics.y_ppem;
+    hbFont.x_scale = face->size->metrics.x_scale;
+    hbFont.y_scale = face->size->metrics.y_scale;
+
+    hbFace = freetype->hbFace;
 
     unlockFace();
 
@@ -577,11 +651,11 @@ QFontEngineFT::Glyph *QFontEngineFT::loadGlyph(QGlyphSet *set, uint glyph, Glyph
         load_flags |= FT_LOAD_NO_BITMAP;
 #endif
 
-    bool transform = this->transform
-                     || set->transformationMatrix.xx != 0x10000
-                     || set->transformationMatrix.yy != 0x10000
-                     || set->transformationMatrix.xy != 0
-                     || set->transformationMatrix.yx != 0;
+    FT_Matrix matrix = freetype->matrix;
+    bool transform = matrix.xx != 0x10000
+                     || matrix.yy != 0x10000
+                     || matrix.xy != 0
+                     || matrix.yx != 0;
 
     if (transform)
         load_flags |= FT_LOAD_NO_BITMAP;
@@ -600,12 +674,10 @@ QFontEngineFT::Glyph *QFontEngineFT::loadGlyph(QGlyphSet *set, uint glyph, Glyph
     if (err != FT_Err_Ok)
         qWarning("load glyph failed err=%x face=%p, glyph=%d", err, face, glyph);
 
-    if (outline_drawing)
+    if (outline_drawing) 
         return 0;
 
     FT_GlyphSlot slot = face->glyph;
-
-    FT_Matrix matrix = freetype->matrix;
 
     int left  = slot->metrics.horiBearingX;
     int right = slot->metrics.horiBearingX + slot->metrics.width;
@@ -687,7 +759,7 @@ QFontEngineFT::Glyph *QFontEngineFT::loadGlyph(QGlyphSet *set, uint glyph, Glyph
 
         FT_Outline_Transform(&slot->outline, &matrix);
         FT_Outline_Translate (&slot->outline, (hsubpixel ? -3*left +(4<<6) : -left), -bottom*vfactor);
-        FT_Outline_Get_Bitmap(library, &slot->outline, &bitmap);
+        FT_Outline_Get_Bitmap(qt_getFreetype(), &slot->outline, &bitmap);
         if (hsubpixel) {
             Q_ASSERT (bitmap.pixel_mode == FT_PIXEL_MODE_GRAY);
             Q_ASSERT(antialias);
@@ -903,9 +975,17 @@ QFontEngine::Properties QFontEngineFT::properties() const
     return freetype->properties();
 }
 
-QByteArray QFontEngineFT::getSfntTable(uint tag) const
+QFixed QFontEngineFT::emSquareSize() const
 {
-    return freetype->getSfntTable(tag);
+    if (FT_IS_SCALABLE(freetype->face))
+        return freetype->face->units_per_EM;
+    else
+        return freetype->face->size->metrics.y_ppem;
+}
+
+bool QFontEngineFT::getSfntTableData(uint tag, uchar *buffer, uint *length) const
+{
+    return freetype->getSfntTable(tag, buffer, length);
 }
 
 int QFontEngineFT::synthesized() const
@@ -936,16 +1016,24 @@ QFixed QFontEngineFT::leading() const
 QFixed QFontEngineFT::xHeight() const
 {
     TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(freetype->face, ft_sfnt_os2);
-    if (os2 && os2->sxHeight)
-        return QFixed(os2->sxHeight*freetype->face->size->metrics.y_ppem)/freetype->face->units_per_EM;
+    if (os2 && os2->sxHeight) {
+        lockFace();
+        QFixed answer = QFixed(os2->sxHeight*freetype->face->size->metrics.y_ppem)/freetype->face->units_per_EM;
+        unlockFace();
+        return answer;
+    }
     return QFontEngine::xHeight();
 }
 
 QFixed QFontEngineFT::averageCharWidth() const
 {
     TT_OS2 *os2 = (TT_OS2 *)FT_Get_Sfnt_Table(freetype->face, ft_sfnt_os2);
-    if (os2 && os2->xAvgCharWidth)
-        return QFixed(os2->xAvgCharWidth*freetype->face->size->metrics.y_ppem)/freetype->face->units_per_EM;
+    if (os2 && os2->xAvgCharWidth) {
+        lockFace();
+        QFixed answer = QFixed(os2->xAvgCharWidth*freetype->face->size->metrics.y_ppem)/freetype->face->units_per_EM;
+        unlockFace();
+        return answer;
+    }
     return QFontEngine::averageCharWidth();
 }
 
@@ -1018,32 +1106,16 @@ void QFontEngineFT::doKerning(int num_glyphs, QGlyphLayout *g, QTextEngine::Shap
 {
     if (!kerning_pairs_loaded) {
         kerning_pairs_loaded = true;
+        lockFace();
         if (freetype->face->size->metrics.x_ppem != 0) {
-            lockFace();
             QFixed scalingFactor(freetype->face->units_per_EM/freetype->face->size->metrics.x_ppem);
             unlockFace();
             const_cast<QFontEngineFT *>(this)->loadKerningPairs(scalingFactor);
+        } else {
+            unlockFace();
         }
     }
     QFontEngine::doKerning(num_glyphs, g, flags);
-}
-
-QOpenType *QFontEngineFT::openType() const
-{
-#ifndef QT_NO_OPENTYPE
-    if (_openType)
-         return _openType;
-
-    FT_Face face = lockFace();
-    if (!face || !FT_IS_SFNT(face)) {
-        unlockFace();
-        return 0;
-    }
-
-    _openType = new QOpenType(const_cast<QFontEngineFT *>(this), face);
-    unlockFace();
-#endif
-    return _openType;
 }
 
 QFontEngineFT::QGlyphSet *QFontEngineFT::loadTransformedGlyphSet(glyph_t *glyphs, int num_glyphs, const QTransform &matrix,
@@ -1098,30 +1170,26 @@ QFontEngineFT::QGlyphSet *QFontEngineFT::loadTransformedGlyphSet(glyph_t *glyphs
     }
 
     FT_Face face = 0;
-    bool lockedFace = false;
 
     for (int i = 0; i < num_glyphs; ++i) {
-        if (!gs->glyph_data.contains(glyphs[i])) {
-            if (!lockedFace) {
+        if (!gs->glyph_data.contains(glyphs[i])
+            || gs->glyph_data.value(glyphs[i])->format != format) {
+            if (!face) {
                 face = lockFace();
                 m = this->matrix;
                 FT_Matrix_Multiply(&gs->transformationMatrix, &m);
                 FT_Set_Transform(face, &m, 0);
                 freetype->matrix = m;
-                lockedFace = true;
             }
             if (!loadGlyph(gs, glyphs[i], format)) {
-                FT_Set_Transform(face, &freetype->matrix, 0);
                 unlockFace();
                 return 0;
             }
         }
     }
 
-    if (lockedFace) {
-        FT_Set_Transform(face, &freetype->matrix, 0);
+    if (face)
         unlockFace();
-    }
 
     return gs;
 }
@@ -1197,10 +1265,25 @@ bool QFontEngineFT::canRender(const QChar *string, int len)
 
 void QFontEngineFT::addOutlineToPath(qreal x, qreal y, const QGlyphLayout *glyphs, int numGlyphs, QPainterPath *path, QTextItem::RenderFlags flags)
 {
+    if (!numGlyphs)
+        return;
+
     if (FT_IS_SCALABLE(freetype->face)) {
         QFontEngine::addOutlineToPath(x, y, glyphs, numGlyphs, path, flags);
     } else {
-        addBitmapFontToPath(x, y, glyphs, numGlyphs, path, flags);
+        QVarLengthArray<QFixedPoint> positions;
+        QVarLengthArray<glyph_t> positioned_glyphs;
+        QTransform matrix;
+        matrix.translate(x, y);
+        getGlyphPositions(glyphs, numGlyphs, matrix, flags, positioned_glyphs, positions);
+
+        FT_Face face = lockFace(Unscaled);
+        for (int gl = 0; gl < numGlyphs; gl++) {
+            FT_UInt glyph = positioned_glyphs[gl];
+            FT_Load_Glyph(face, glyph, FT_LOAD_TARGET_MONO);
+            freetype->addBitmapToPath(face->glyph, positions[gl], path);
+        }
+        unlockFace();
     }
 }
 
@@ -1220,6 +1303,78 @@ void QFontEngineFT::addGlyphsToPath(glyph_t *glyphs, QFixedPoint *positions, int
         QFreetypeFace::addGlyphToPath(face, g, positions[gl], path, xsize, ysize);
     }
     unlockFace();
+}
+
+bool QFontEngineFT::stringToCMap(const QChar *str, int len, HB_Glyph *glyphs, int *nglyphs,
+                                 QTextEngine::ShaperFlags flags) const
+{
+    if (*nglyphs < len) {
+        *nglyphs = len;
+        return false;
+    }
+
+    bool mirrored = flags & QTextEngine::RightToLeft;
+    int glyph_pos = 0;
+    if (freetype->symbol_map) {
+        FT_Face face = freetype->face;
+        for ( int i = 0; i < len; ++i ) {
+            unsigned int uc = getChar(str, i, len);
+            if (mirrored)
+                uc = QChar::mirroredChar(uc);
+            glyphs[glyph_pos] = uc < QFreetypeFace::cmapCacheSize ? freetype->cmapCache[uc] : 0;
+            if ( !glyphs[glyph_pos] ) {
+                glyph_t glyph;
+#if !defined(QT_NO_FONTCONFIG)
+                if (FcCharSetHasChar(freetype->charset, uc)) {
+#else
+                if (false) {
+#endif
+                redo0:
+                    glyph = FT_Get_Char_Index(face, uc);
+                    if (!glyph && (uc == 0xa0 || uc == 0x9)) {
+                        uc = 0x20;
+                        goto redo0;
+                    }
+                } else {
+                    FT_Set_Charmap(face, freetype->symbol_map);
+                    glyph = FT_Get_Char_Index(face, uc);
+                    FT_Set_Charmap(face, freetype->unicode_map);
+                }
+                glyphs[glyph_pos] = glyph;
+                if (uc < QFreetypeFace::cmapCacheSize)
+                    freetype->cmapCache[uc] = glyph;
+            }
+            ++glyph_pos;
+        }
+    } else {
+        FT_Face face = freetype->face;
+        for (int i = 0; i < len; ++i) {
+            unsigned int uc = getChar(str, i, len);
+            if (mirrored)
+                uc = QChar::mirroredChar(uc);
+            glyphs[glyph_pos] = uc < QFreetypeFace::cmapCacheSize ? freetype->cmapCache[uc] : 0;
+            if (!glyphs[glyph_pos]
+#if !defined(QT_NO_FONTCONFIG)
+                && FcCharSetHasChar(freetype->charset, uc)
+#endif
+                ) {
+            redo:
+                glyph_t glyph = FT_Get_Char_Index(face, uc);
+                if (!glyph && (uc == 0xa0 || uc == 0x9)) {
+                    uc = 0x20;
+                    goto redo;
+                }
+                glyphs[glyph_pos] = glyph;
+                if (uc < QFreetypeFace::cmapCacheSize)
+                    freetype->cmapCache[uc] = glyph;
+            }
+            ++glyph_pos;
+        }
+    }
+
+    *nglyphs = glyph_pos;
+
+    return true;
 }
 
 bool QFontEngineFT::stringToCMap(const QChar *str, int len, QGlyphLayout *glyphs, int *nglyphs,
@@ -1526,5 +1681,15 @@ void QFontEngineFT::freeServerGlyphSet(unsigned long id)
 {
     Q_UNUSED(id);
 }
+
+HB_Error QFontEngineFT::getPointInOutline(HB_Glyph glyph, int flags, hb_uint32 point, HB_Fixed *xpos, HB_Fixed *ypos, hb_uint32 *nPoints)
+{
+    lockFace();
+    HB_Error result = freetype->getPointInOutline(glyph, flags, point, xpos, ypos, nPoints);
+    unlockFace();
+    return result;
+}
+
+QT_END_NAMESPACE
 
 #endif // QT_NO_FREETYPE

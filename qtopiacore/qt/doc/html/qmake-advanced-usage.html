@@ -2,9 +2,9 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/doc/src/qmake-manual.qdoc -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/doc/src/qmake-manual.qdoc -->
 <head>
-  <title>Qt 4.3: qmake Advanced Usage</title>
+  <title>Qt 4.4: qmake Advanced Usage</title>
   <link rel="prev" href="qmake-platform-notes.html" />
   <link rel="contents" href="qmake-manual.html" />
   <link rel="next" href="qmake-precompiledheaders.html" />
@@ -13,9 +13,9 @@
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><p>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
 [Previous: <a href="qmake-platform-notes.html">qmake Platform Notes</a>]
 [<a href="qmake-manual.html">Contents</a>]
 [Next: <a href="qmake-precompiledheaders.html">Using Precompiled Headers</a>]
@@ -161,7 +161,11 @@
  HEADERS += $$OTHER_HEADERS
  HEADERS = $$unique(HEADERS)</pre>
 <p>This type of function should be used on the right-hand side of assignments (i.e, as an operand).</p>
-<p>It is possible to define your own functions for processing the contents of variables. The following example function takes a variable name as its only argument, extracts a list of values from the variable with the <a href="qmake-function-reference.html">eval()</a> built-in function, and compiles a list of files:</p>
+<p>It is possible to define your own functions for processing the contents of variables. These functions can be defined in the following way:</p>
+<pre> defineReplace(functionName){
+     #function code
+ }</pre>
+<p>The following example function takes a variable name as its only argument, extracts a list of values from the variable with the <a href="qmake-function-reference.html">eval()</a> built-in function, and compiles a list of files:</p>
 <pre> defineReplace(headersAndSources) {
      variable = $$1
      names = $$eval($$variable)
@@ -234,8 +238,8 @@
 </p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

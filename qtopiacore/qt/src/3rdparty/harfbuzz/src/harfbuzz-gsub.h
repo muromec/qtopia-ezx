@@ -16,11 +16,7 @@
 #include "harfbuzz-gdef.h"
 #include "harfbuzz-buffer.h"
 
-FT_BEGIN_HEADER
-
-#define HB_Err_Invalid_GSUB_SubTable_Format  0x1010
-#define HB_Err_Invalid_GSUB_SubTable         0x1011
-
+HB_BEGIN_HEADER
 
 /* Lookup types for glyph substitution */
 
@@ -41,20 +37,18 @@ FT_BEGIN_HEADER
    HB_GSUB_Register_Alternate_Function().  The function must return an
    index into the `alternates' array.                                   */
 
-typedef FT_UShort  (*HB_AltFunction)(FT_ULong    pos,
-				      FT_UShort   glyphID,
-				      FT_UShort   num_alternates,
-				      FT_UShort*  alternates,
+typedef HB_UShort  (*HB_AltFunction)(HB_UInt    pos,
+				      HB_UShort   glyphID,
+				      HB_UShort   num_alternates,
+				      HB_UShort*  alternates,
 				      void*       data );
 
 
 struct  HB_GSUBHeader_
 {
-  FT_Memory        memory;
-  
-  FT_ULong         offset;
+  HB_UInt         offset;
 
-  FT_Fixed         Version;
+  HB_16Dot16         Version;
 
   HB_ScriptList   ScriptList;
   HB_FeatureList  FeatureList;
@@ -73,60 +67,61 @@ typedef struct HB_GSUBHeader_   HB_GSUBHeader;
 typedef HB_GSUBHeader*  HB_GSUB;
 
 
-FT_Error  HB_Load_GSUB_Table( FT_Face          face,
+HB_Error  HB_Load_GSUB_Table( HB_Stream       stream,
 			      HB_GSUBHeader** gsub,
-			      HB_GDEFHeader*  gdef );
+			      HB_GDEFHeader*  gdef,
+                              HB_Stream       gdefStream );
 
 
-FT_Error  HB_Done_GSUB_Table( HB_GSUBHeader*  gsub );
+HB_Error  HB_Done_GSUB_Table( HB_GSUBHeader*  gsub );
 
 
-FT_Error  HB_GSUB_Select_Script( HB_GSUBHeader*  gsub,
-				 FT_ULong         script_tag,
-				 FT_UShort*       script_index );
+HB_Error  HB_GSUB_Select_Script( HB_GSUBHeader*  gsub,
+				 HB_UInt         script_tag,
+				 HB_UShort*       script_index );
 
-FT_Error  HB_GSUB_Select_Language( HB_GSUBHeader*  gsub,
-				   FT_ULong         language_tag,
-				   FT_UShort        script_index,
-				   FT_UShort*       language_index,
-				   FT_UShort*       req_feature_index );
+HB_Error  HB_GSUB_Select_Language( HB_GSUBHeader*  gsub,
+				   HB_UInt         language_tag,
+				   HB_UShort        script_index,
+				   HB_UShort*       language_index,
+				   HB_UShort*       req_feature_index );
 
-FT_Error  HB_GSUB_Select_Feature( HB_GSUBHeader*  gsub,
-				  FT_ULong         feature_tag,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_UShort*       feature_index );
-
-
-FT_Error  HB_GSUB_Query_Scripts( HB_GSUBHeader*  gsub,
-				 FT_ULong**       script_tag_list );
-
-FT_Error  HB_GSUB_Query_Languages( HB_GSUBHeader*  gsub,
-				   FT_UShort        script_index,
-				   FT_ULong**       language_tag_list );
-
-FT_Error  HB_GSUB_Query_Features( HB_GSUBHeader*  gsub,
-				  FT_UShort        script_index,
-				  FT_UShort        language_index,
-				  FT_ULong**       feature_tag_list );
+HB_Error  HB_GSUB_Select_Feature( HB_GSUBHeader*  gsub,
+				  HB_UInt         feature_tag,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UShort*       feature_index );
 
 
-FT_Error  HB_GSUB_Add_Feature( HB_GSUBHeader*  gsub,
-			       FT_UShort        feature_index,
-			       FT_UInt          property );
+HB_Error  HB_GSUB_Query_Scripts( HB_GSUBHeader*  gsub,
+				 HB_UInt**       script_tag_list );
 
-FT_Error  HB_GSUB_Clear_Features( HB_GSUBHeader*  gsub );
+HB_Error  HB_GSUB_Query_Languages( HB_GSUBHeader*  gsub,
+				   HB_UShort        script_index,
+				   HB_UInt**       language_tag_list );
+
+HB_Error  HB_GSUB_Query_Features( HB_GSUBHeader*  gsub,
+				  HB_UShort        script_index,
+				  HB_UShort        language_index,
+				  HB_UInt**       feature_tag_list );
 
 
-FT_Error  HB_GSUB_Register_Alternate_Function( HB_GSUBHeader*  gsub,
+HB_Error  HB_GSUB_Add_Feature( HB_GSUBHeader*  gsub,
+			       HB_UShort        feature_index,
+			       HB_UInt          property );
+
+HB_Error  HB_GSUB_Clear_Features( HB_GSUBHeader*  gsub );
+
+
+HB_Error  HB_GSUB_Register_Alternate_Function( HB_GSUBHeader*  gsub,
 					       HB_AltFunction  altfunc,
 					       void*            data );
 
 
-FT_Error  HB_GSUB_Apply_String( HB_GSUBHeader*   gsub,
+HB_Error  HB_GSUB_Apply_String( HB_GSUBHeader*   gsub,
 				HB_Buffer        buffer );
 
 
-FT_END_HEADER
+HB_END_HEADER
 
 #endif /* HARFBUZZ_GSUB_H */

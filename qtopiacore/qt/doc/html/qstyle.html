@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/styles/qstyle.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/styles/qstyle.cpp -->
 <head>
-  <title>Qt 4.3: QStyle Class Reference</title>
+  <title>Qt 4.4: QStyle Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QStyle Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QStyle Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QStyle class is an abstract base class that encapsulates the look and feel of a GUI. <a href="#details">More...</a></p>
 <pre> #include &lt;QStyle&gt;</pre><p>Inherits <a href="qobject.html">QObject</a>.</p>
@@ -28,14 +28,14 @@
 <li><div class="fn"/>enum <b><a href="qstyle.html#ContentsType-enum">ContentsType</a></b> { CT_CheckBox, CT_ComboBox, CT_Q3DockWindow, CT_HeaderSection, ..., CT_MdiControls }</li>
 <li><div class="fn"/>enum <b><a href="qstyle.html#ControlElement-enum">ControlElement</a></b> { CE_PushButton, CE_PushButtonBevel, CE_PushButtonLabel, CE_DockWidgetTitle, ..., CE_HeaderEmptyArea }</li>
 <li><div class="fn"/>enum <b><a href="qstyle.html#PixelMetric-enum">PixelMetric</a></b> { PM_ButtonMargin, PM_DockWidgetTitleBarButtonMargin, PM_ButtonDefaultIndicator, PM_MenuButtonIndicator, ..., PM_DefaultLayoutSpacing }</li>
-<li><div class="fn"/>enum <b><a href="qstyle.html#PrimitiveElement-enum">PrimitiveElement</a></b> { PE_PanelButtonCommand, PE_FrameDefaultButton, PE_PanelButtonBevel, PE_PanelButtonTool, ..., PE_CustomBase }</li>
+<li><div class="fn"/>enum <b><a href="qstyle.html#PrimitiveElement-enum">PrimitiveElement</a></b> { PE_FrameStatusBar, PE_PanelButtonCommand, PE_FrameDefaultButton, PE_PanelButtonBevel, ..., PE_PanelStatusBar }</li>
 <li><div class="fn"/>enum <b><a href="qstyle.html#StandardPixmap-enum">StandardPixmap</a></b> { SP_TitleBarMinButton, SP_TitleBarMenuButton, SP_TitleBarMaxButton, SP_TitleBarCloseButton, ..., SP_CustomBase }</li>
 <li><div class="fn"/>flags <b><a href="qstyle.html#StateFlag-enum">State</a></b></li>
-<li><div class="fn"/>enum <b><a href="qstyle.html#StateFlag-enum">StateFlag</a></b> { State_None, State_Active, State_AutoRaise, State_Bottom, ..., State_Window }</li>
-<li><div class="fn"/>enum <b><a href="qstyle.html#StyleHint-enum">StyleHint</a></b> { SH_EtchDisabledText, SH_DitherDisabledText, SH_GUIStyle, SH_ScrollBar_ContextMenu, ..., SH_TextControl_FocusIndicatorTextCharFormat }</li>
+<li><div class="fn"/>enum <b><a href="qstyle.html#StateFlag-enum">StateFlag</a></b> { State_None, State_Active, State_AutoRaise, State_Children, ..., State_Small }</li>
+<li><div class="fn"/>enum <b><a href="qstyle.html#StyleHint-enum">StyleHint</a></b> { SH_EtchDisabledText, SH_DitherDisabledText, SH_GUIStyle, SH_ScrollBar_ContextMenu, ..., SH_Menu_Mask }</li>
 <li><div class="fn"/>enum <b><a href="qstyle.html#SubControl-enum">SubControl</a></b> { SC_None, SC_ScrollBarAddLine, SC_ScrollBarSubLine, SC_ScrollBarAddPage, ..., SC_All }</li>
 <li><div class="fn"/>flags <b><a href="qstyle.html#SubControl-enum">SubControls</a></b></li>
-<li><div class="fn"/>enum <b><a href="qstyle.html#SubElement-enum">SubElement</a></b> { SE_PushButtonContents, SE_PushButtonFocusRect, SE_PushButtonLayoutItem, SE_CheckBoxIndicator, ..., SE_ComboBoxLayoutItem }</li>
+<li><div class="fn"/>enum <b><a href="qstyle.html#SubElement-enum">SubElement</a></b> { SE_PushButtonContents, SE_PushButtonFocusRect, SE_PushButtonLayoutItem, SE_CheckBoxIndicator, ..., SE_ItemViewItemFocusRect }</li>
 </ul>
 <a name="public-functions"></a>
 <h3>Public Functions</h3>
@@ -99,14 +99,15 @@
 <hr />
 <h2>Detailed Description</h2>
 <p>The QStyle class is an abstract base class that encapsulates the look and feel of a GUI.</p>
-<p>Qt contains a set of QStyle subclasses that emulate the styles of the different platforms supported by Qt (<a href="qwindowsstyle.html">QWindowsStyle</a>, <a href="qmacstyle.html">QMacStyle</a>, <a href="qmotifstyle.html">QMotifStyle</a>, etc.)&#x2e; By default, these styles are built into the <a href="qtgui.html">QtGui</a> library. Styles can also be made available as plugins.</p>
-<p>Qt's built-in widgets use QStyle to perform nearly all of their drawing, ensuring that they look exactly like the equivalent native widgets. The diagram below shows a <a href="qcombobox.html">QComboBox</a> in six different styles.</p>
-<p align="center"><img src="images/qstyle-comboboxes.png" alt="Six combo boxes" /></p><p>Topics:</p>
+<p>Qt contains a set of QStyle subclasses that emulate the styles of the different platforms supported by Qt (<a href="qwindowsstyle.html">QWindowsStyle</a>, QMacStyle, <a href="qmotifstyle.html">QMotifStyle</a>, etc.)&#x2e; By default, these styles are built into the <a href="qtgui.html">QtGui</a> library. Styles can also be made available as plugins.</p>
+<p>Qt's built-in widgets use QStyle to perform nearly all of their drawing, ensuring that they look exactly like the equivalent native widgets. The diagram below shows a <a href="qcombobox.html">QComboBox</a> in eight different styles.</p>
+<p align="center"><img src="images/qstyle-comboboxes.png" alt="Eight combo boxes" /></p><p>Topics:</p>
 <ul><li><a href="#setting-a-style">Setting a Style</a></li>
 <li><a href="#developing-style-aware-custom-widgets">Developing Style-Aware Custom Widgets</a></li>
 <li><a href="#creating-a-custom-style">Creating a Custom Style</a></li>
 <li><a href="#using-a-custom-style">Using a Custom Style</a></li>
 <li><a href="#right-to-left-desktops">Right-to-Left Desktops</a></li>
+<li><a href="#styles-in-item-views">Styles in Item Views</a></li>
 </ul>
 <a name="setting-a-style"></a>
 <h3>Setting a Style</h3>
@@ -148,7 +149,7 @@
      style()-&gt;drawPrimitive(QStyle::PE_FrameFocusRect, &amp;option, &amp;painter, this);</pre>
 <a name="creating-a-custom-style"></a>
 <h3>Creating a Custom Style</h3>
-<p>If you want to design a custom look and feel for your application, the first step is to pick one of the base styles provided with Qt to build your custom style from. The choice will depend on which existing style resembles your style the most.</p>
+<p>If you want to design a custom look and feel for your application, the first step is to pick one of the styles provided with Qt to build your custom style from. The choice will depend on which existing style resembles your style the most. The most general class that you can use as base is <a href="qcommonstyle.html">QCommonStyle</a> (and not QStyle). This is because Qt requires its styles to be <a href="qcommonstyle.html">QCommonStyle</a>s.</p>
 <p>Depending on which parts of the base style you want to change, you must reimplement the functions that are used to draw those parts of the interface. To illustrate this, we will modify the look of the spin box arrows drawn by <a href="qwindowsstyle.html">QWindowsStyle</a>. The arrows are <i>primitive elements</i> that are drawn by the <a href="qstyle.html#drawPrimitive">drawPrimitive</a>() function, so we need to reimplement that function. We need the following class declaration:</p>
 <pre> class CustomStyle : public QWindowsStyle
  {
@@ -204,6 +205,7 @@
      }</pre>
 <p>When implementing a custom style, you cannot assume that the widget is a <a href="qspinbox.html">QSpinBox</a> just because the enum value is called <a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinUp</a> or <a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinDown</a>.</p>
 <p>The documentation for the <a href="widgets-styles.html">Styles</a> example covers this topic in more detail.</p>
+<p><b>Warning:</b> Qt style sheets are currently not supported for custom QStyle subclasses. We plan to address this in some future release.</p>
 <a name="using-a-custom-style"></a>
 <h3>Using a Custom Style</h3>
 <p>There are several ways of using a custom style in a Qt application. The simplest way is call the <a href="qapplication.html#setStyle">QApplication::setStyle</a>() static function before creating the <a href="qapplication.html">QApplication</a> object:</p>
@@ -236,7 +238,32 @@
 <li><a href="qstyle.html#visualRect">visualRect</a>(), <a href="qstyle.html#visualPos">visualPos</a>(), and <a href="qstyle.html#visualAlignment">visualAlignment</a>() are helpful functions that will translate from logical to screen representations.</li>
 <li><a href="qstyle.html#alignedRect">alignedRect</a>() will return a logical rect aligned for the current direction</li>
 </ul>
-<p>See also <a href="qstyleoption.html">QStyleOption</a>, <a href="qstylepainter.html">QStylePainter</a>, <a href="widgets-styles.html">Styles Example</a>, and <a href="style-reference.html">Implementing Styles and Style Aware Widgets</a>.</p>
+<a name="styles-in-item-views"></a>
+<h3>Styles in Item Views</h3>
+<p>The painting of items in views is performed by a delegate. Qt's default delegate, <a href="qstyleditemdelegate.html">QStyledItemDelegate</a>, is also used for for calculating bounding rectangles of items, and their sub-elements for the various kind of item <a href="qt.html#ItemDataRole-enum">data roles</a> <a href="qstyleditemdelegate.html">QStyledItemDelegate</a> supports. See the <a href="qstyleditemdelegate.html">QStyledItemDelegate</a> class description to find out which datatypes and roles are supported. You can read more about item data roles in <a href="model-view-programming.html">Model/View Programming</a>.</p>
+<p>When <a href="qstyleditemdelegate.html">QStyledItemDelegate</a> paints its items, it draws <a href="qstyle.html#ControlElement-enum">CE_ItemViewItem</a>, and calculates their size with <a href="qstyle.html#ContentsType-enum">CT_ItemViewItem</a>. Note also that it uses <a href="qstyle.html#SubElement-enum">SE_ItemViewItemText</a> to set the size of editors. When implementing a style to customize drawing of item views, you need to check the implementation of <a href="qcommonstyle.html">QCommonStyle</a> (and any other subclasses from which your style inherits). This way, you find out which and how other style elements are painted, and you can then reimplement the painting of elements that should be drawn differently.</p>
+<p>We include a small example where we customize the drawing of item backgrounds.</p>
+<pre>     switch (element) {
+         case (PE_PanelItemViewItem): {
+             painter-&gt;save();
+
+             QPoint topLeft = option-&gt;rect.topLeft();
+             QPoint bottomRight = option-&gt;rect.topRight();
+             QLinearGradient backgroundGradient(topLeft, bottomRight);
+             backgroundGradient.setColorAt(0.0, QColor(Qt::yellow).lighter(190));
+             backgroundGradient.setColorAt(1.0, Qt::white);
+             painter-&gt;fillRect(option-&gt;rect, QBrush(backgroundGradient));
+
+             painter-&gt;restore();
+         break;
+         }
+         default:
+             QWindowsStyle::drawPrimitive(element, option, painter, widget);
+     }</pre>
+<p>The primitive element <a href="qstyle.html#PrimitiveElement-enum">PE_PanelItemViewItem</a> is responsible for painting the background of items, and is called from <a href="qcommonstyle.html">QCommonStyle</a>'s implementation of <a href="qstyle.html#ControlElement-enum">CE_ItemViewItem</a>.</p>
+<p>To add support for drawing of new datatypes and item data roles, it is necessary to create a custom delegate. But if you only need to support the datatypes implemented by the default delegate, a custom style does not need an accompanying delegate. The <a href="qstyleditemdelegate.html">QStyledItemDelegate</a> class description gives more information on custom delegates.</p>
+<p>The drawing of item view headers is also done by the style, giving control over size of header items and row and column sizes.</p>
+<p>See also <a href="qstyleoption.html">QStyleOption</a>, <a href="qstylepainter.html">QStylePainter</a>, <a href="widgets-styles.html">Styles Example</a>, <a href="style-reference.html">Implementing Styles and Style Aware Widgets</a>, and <a href="qstyleditemdelegate.html">QStyledItemDelegate</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
 <h3 class="fn"><a name="ComplexControl-enum"></a>enum QStyle::ComplexControl</h3>
@@ -249,7 +276,7 @@
 <tr><td valign="top"><tt>QStyle::CC_Slider</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">A slider, like <a href="qslider.html">QSlider</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CC_ToolButton</tt></td><td align="center" valign="top"><tt>4</tt></td><td valign="top">A tool button, like <a href="qtoolbutton.html">QToolButton</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CC_TitleBar</tt></td><td align="center" valign="top"><tt>5</tt></td><td valign="top">A Title bar, like those used in <a href="qworkspace.html">QWorkspace</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::CC_Q3ListView</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">Used for drawing the Q3ListView class.</td></tr>
+<tr><td valign="top"><tt>QStyle::CC_Q3ListView</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">Used for drawing the <a href="q3listview.html">Q3ListView</a> class.</td></tr>
 <tr><td valign="top"><tt>QStyle::CC_GroupBox</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">A group box, like <a href="qgroupbox.html">QGroupBox</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CC_Dial</tt></td><td align="center" valign="top"><tt>7</tt></td><td valign="top">A dial, like <a href="qdial.html">QDial</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CC_MdiControls</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">The minimize, close, and normal button in the menu bar for a maximized MDI subwindow.</td></tr>
@@ -262,11 +289,11 @@
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
 <tr><td valign="top"><tt>QStyle::CT_CheckBox</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">A check box, like <a href="qcheckbox.html">QCheckBox</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_ComboBox</tt></td><td align="center" valign="top"><tt>4</tt></td><td valign="top">A combo box, like <a href="qcombobox.html">QComboBox</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::CT_Q3DockWindow</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">A Q3DockWindow.</td></tr>
+<tr><td valign="top"><tt>QStyle::CT_Q3DockWindow</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">A <a href="q3dockwindow.html">Q3DockWindow</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_HeaderSection</tt></td><td align="center" valign="top"><tt>21</tt></td><td valign="top">A header section, like <a href="porting4.html#qheader">QHeader</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_LineEdit</tt></td><td align="center" valign="top"><tt>16</tt></td><td valign="top">A line edit, like <a href="qlineedit.html">QLineEdit</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_Menu</tt></td><td align="center" valign="top"><tt>11</tt></td><td valign="top">A menu, like <a href="qmenu.html">QMenu</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::CT_Q3Header</tt></td><td align="center" valign="top"><tt>15</tt></td><td valign="top">A Qt 3 header section, like Q3Header.</td></tr>
+<tr><td valign="top"><tt>QStyle::CT_Q3Header</tt></td><td align="center" valign="top"><tt>15</tt></td><td valign="top">A Qt 3 header section, like <a href="q3header.html">Q3Header</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_MenuBar</tt></td><td align="center" valign="top"><tt>10</tt></td><td valign="top">A menu bar, like <a href="qmenubar.html">QMenuBar</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_MenuBarItem</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">A menu bar item, like the buttons in a <a href="qmenubar.html">QMenuBar</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_MenuItem</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">A menu item, like <a href="qmenuitem.html">QMenuItem</a>.</td></tr>
@@ -282,6 +309,7 @@
 <tr><td valign="top"><tt>QStyle::CT_TabWidget</tt></td><td align="center" valign="top"><tt>19</tt></td><td valign="top">A tab widget, like <a href="qtabwidget.html">QTabWidget</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_ToolButton</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">A tool button, like <a href="qtoolbutton.html">QToolButton</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_GroupBox</tt></td><td align="center" valign="top"><tt>22</tt></td><td valign="top">A group box, like <a href="qgroupbox.html">QGroupBox</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::CT_ItemViewItem</tt></td><td align="center" valign="top"><tt>24</tt></td><td valign="top">An item inside an item view.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_CustomBase</tt></td><td align="center" valign="top"><tt>0xf0000000</tt></td><td valign="top">Base value for custom contents types. Custom values must be greater than this value.</td></tr>
 <tr><td valign="top"><tt>QStyle::CT_MdiControls</tt></td><td align="center" valign="top"><tt>23</tt></td><td valign="top">The minimize, normal, and close button in the menu bar for a maximized MDI subwindow.</td></tr>
 </table></p>
@@ -330,6 +358,7 @@
 <tr><td valign="top"><tt>QStyle::CE_ScrollBarLast</tt></td><td align="center" valign="top"><tt>38</tt></td><td valign="top">Scroll bar last line indicator (i.e&#x2e;, end).</td></tr>
 <tr><td valign="top"><tt>QStyle::CE_RubberBand</tt></td><td align="center" valign="top"><tt>30</tt></td><td valign="top">Rubber band used in for example an icon view.</td></tr>
 <tr><td valign="top"><tt>QStyle::CE_FocusFrame</tt></td><td align="center" valign="top"><tt>39</tt></td><td valign="top">Focus frame that is style controlled.</td></tr>
+<tr><td valign="top"><tt>QStyle::CE_ItemViewItem</tt></td><td align="center" valign="top"><tt>46</tt></td><td valign="top">An item inside an item view.</td></tr>
 <tr><td valign="top"><tt>QStyle::CE_CustomBase</tt></td><td align="center" valign="top"><tt>0xf0000000</tt></td><td valign="top">Base value for custom control elements; custom values must be greater than this value.</td></tr>
 <tr><td valign="top"><tt>QStyle::CE_ComboBoxLabel</tt></td><td align="center" valign="top"><tt>40</tt></td><td valign="top">The label of a non-editable <a href="qcombobox.html">QComboBox</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::CE_ToolBar</tt></td><td align="center" valign="top"><tt>41</tt></td><td valign="top">A toolbar like <a href="qtoolbar.html">QToolBar</a>.</td></tr>
@@ -404,8 +433,8 @@
 <tr><td valign="top"><tt>QStyle::PM_MenuScrollerHeight</tt></td><td align="center" valign="top"><tt>27</tt></td><td valign="top">Height of the scroller area in a <a href="qmenu.html">QMenu</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_MenuTearoffHeight</tt></td><td align="center" valign="top"><tt>31</tt></td><td valign="top">Height of a tear off area in a <a href="qmenu.html">QMenu</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_MenuDesktopFrameWidth</tt></td><td align="center" valign="top"><tt>32</tt></td><td valign="top">The frame width for the menu on the desktop.</td></tr>
-<tr><td valign="top"><tt>QStyle::PM_CheckListButtonSize</tt></td><td align="center" valign="top"><tt>41</tt></td><td valign="top">Area (width/height) of the checkbox/radio button in a Q3CheckListItem.</td></tr>
-<tr><td valign="top"><tt>QStyle::PM_CheckListControllerSize</tt></td><td align="center" valign="top"><tt>42</tt></td><td valign="top">Area (width/height) of the controller in a Q3CheckListItem.</td></tr>
+<tr><td valign="top"><tt>QStyle::PM_CheckListButtonSize</tt></td><td align="center" valign="top"><tt>41</tt></td><td valign="top">Area (width/height) of the checkbox/radio button in a <a href="q3checklistitem.html">Q3CheckListItem</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PM_CheckListControllerSize</tt></td><td align="center" valign="top"><tt>42</tt></td><td valign="top">Area (width/height) of the controller in a <a href="q3checklistitem.html">Q3CheckListItem</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_DialogButtonsSeparator</tt></td><td align="center" valign="top"><tt>43</tt></td><td valign="top">Distance between buttons in a dialog buttons widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_DialogButtonsButtonWidth</tt></td><td align="center" valign="top"><tt>44</tt></td><td valign="top">Minimum width of a button in a dialog buttons widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_DialogButtonsButtonHeight</tt></td><td align="center" valign="top"><tt>45</tt></td><td valign="top">Minimum height of a button in a dialog buttons widget.</td></tr>
@@ -427,6 +456,8 @@
 <tr><td valign="top"><tt>QStyle::PM_SizeGripSize</tt></td><td align="center" valign="top">?</td><td valign="top">The size of a size grip.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_MessageBoxIconSize</tt></td><td align="center" valign="top">?</td><td valign="top">The size of the standard icons in a message box</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_ButtonIconSize</tt></td><td align="center" valign="top">?</td><td valign="top">The default size of button icons</td></tr>
+<tr><td valign="top"><tt>QStyle::PM_TextCursorWidth</tt></td><td align="center" valign="top">?</td><td valign="top">The width of the cursor in a line edit or text edit</td></tr>
+<tr><td valign="top"><tt>QStyle::PM_TabBar_ScrollButtonOverlap</tt></td><td align="center" valign="top">?</td><td valign="top">The distance between the left and right buttons in a tab bar.</td></tr>
 <tr><td valign="top"><tt>QStyle::PM_CustomBase</tt></td><td align="center" valign="top"><tt>0xf0000000</tt></td><td valign="top">Base value for custom pixel metrics. Custom values must be greater than this value.</td></tr>
 </table></p>
 <p>The following values are obsolete:</p>
@@ -441,55 +472,60 @@
 <p>This enum describes that various primitive elements. A primitive element is a common GUI element, such as a checkbox indicator or button bevel.</p>
 <p><table border="1" cellpadding="2" cellspacing="1" width="100%">
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelButtonCommand</tt></td><td align="center" valign="top"><tt>18</tt></td><td valign="top">Button used to initiate an action, for example, a <a href="qpushbutton.html">QPushButton</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameStatusBar</tt></td><td align="center" valign="top"><tt>12</tt></td><td valign="top">Frame</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelButtonCommand</tt></td><td align="center" valign="top">?</td><td valign="top">Button used to initiate an action, for example, a <a href="qpushbutton.html">QPushButton</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameDefaultButton</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">This frame around a default button, e.g&#x2e; in a dialog.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelButtonBevel</tt></td><td align="center" valign="top"><tt>19</tt></td><td valign="top">Generic panel with a button bevel.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelButtonTool</tt></td><td align="center" valign="top"><tt>20</tt></td><td valign="top">Panel for a Tool button, used with <a href="qtoolbutton.html">QToolButton</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelLineEdit</tt></td><td align="center" valign="top"><tt>23</tt></td><td valign="top">Panel for a <a href="qlineedit.html">QLineEdit</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorButtonDropDown</tt></td><td align="center" valign="top"><tt>29</tt></td><td valign="top">Indicator for a drop down button, for example, a tool button that displays a menu.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelButtonBevel</tt></td><td align="center" valign="top">?</td><td valign="top">Generic panel with a button bevel.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelButtonTool</tt></td><td align="center" valign="top">?</td><td valign="top">Panel for a Tool button, used with <a href="qtoolbutton.html">QToolButton</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelLineEdit</tt></td><td align="center" valign="top">?</td><td valign="top">Panel for a <a href="qlineedit.html">QLineEdit</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorButtonDropDown</tt></td><td align="center" valign="top">?</td><td valign="top">Indicator for a drop down button, for example, a tool button that displays a menu.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameFocusRect</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">Generic focus indicator.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowUp</tt></td><td align="center" valign="top"><tt>27</tt></td><td valign="top">Generic Up arrow.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowDown</tt></td><td align="center" valign="top"><tt>24</tt></td><td valign="top">Generic Down arrow.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowRight</tt></td><td align="center" valign="top"><tt>26</tt></td><td valign="top">Generic Right arrow.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowLeft</tt></td><td align="center" valign="top"><tt>25</tt></td><td valign="top">Generic Left arrow.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinUp</tt></td><td align="center" valign="top"><tt>40</tt></td><td valign="top">Up symbol for a spin widget, for example a <a href="qspinbox.html">QSpinBox</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinDown</tt></td><td align="center" valign="top"><tt>37</tt></td><td valign="top">Down symbol for a spin widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinPlus</tt></td><td align="center" valign="top"><tt>39</tt></td><td valign="top">Increase symbol for a spin widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinMinus</tt></td><td align="center" valign="top"><tt>38</tt></td><td valign="top">Decrease symbol for a spin widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorViewItemCheck</tt></td><td align="center" valign="top"><tt>30</tt></td><td valign="top">On/off indicator for a view item.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorCheckBox</tt></td><td align="center" valign="top"><tt>31</tt></td><td valign="top">On/off indicator, for example, a <a href="qcheckbox.html">QCheckBox</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorRadioButton</tt></td><td align="center" valign="top"><tt>36</tt></td><td valign="top">Exclusive on/off indicator, for example, a <a href="qradiobutton.html">QRadioButton</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowUp</tt></td><td align="center" valign="top">?</td><td valign="top">Generic Up arrow.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowDown</tt></td><td align="center" valign="top">?</td><td valign="top">Generic Down arrow.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowRight</tt></td><td align="center" valign="top">?</td><td valign="top">Generic Right arrow.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorArrowLeft</tt></td><td align="center" valign="top">?</td><td valign="top">Generic Left arrow.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinUp</tt></td><td align="center" valign="top">?</td><td valign="top">Up symbol for a spin widget, for example a <a href="qspinbox.html">QSpinBox</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinDown</tt></td><td align="center" valign="top">?</td><td valign="top">Down symbol for a spin widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinPlus</tt></td><td align="center" valign="top">?</td><td valign="top">Increase symbol for a spin widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorSpinMinus</tt></td><td align="center" valign="top">?</td><td valign="top">Decrease symbol for a spin widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorItemViewItemCheck</tt></td><td align="center" valign="top"><tt>PE_IndicatorViewItemCheck</tt></td><td valign="top">On/off indicator for a view item.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorCheckBox</tt></td><td align="center" valign="top">?</td><td valign="top">On/off indicator, for example, a <a href="qcheckbox.html">QCheckBox</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorRadioButton</tt></td><td align="center" valign="top">?</td><td valign="top">Exclusive on/off indicator, for example, a <a href="qradiobutton.html">QRadioButton</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Q3DockWindowSeparator</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">Item separator for Qt 3 compatible dock window and toolbar contents.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorDockWidgetResizeHandle</tt></td><td align="center" valign="top"><tt>32</tt></td><td valign="top">Resize handle for dock windows.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorDockWidgetResizeHandle</tt></td><td align="center" valign="top">?</td><td valign="top">Resize handle for dock windows.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Frame</tt></td><td align="center" valign="top"><tt>5</tt></td><td valign="top">Generic frame; see also <a href="qframe.html">QFrame</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameMenu</tt></td><td align="center" valign="top"><tt>11</tt></td><td valign="top">Frame for popup windows/menus; see also <a href="qmenu.html">QMenu</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelMenuBar</tt></td><td align="center" valign="top"><tt>21</tt></td><td valign="top">Panel for menu bars.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelScrollAreaCorner</tt></td><td align="center" valign="top"><tt>45</tt></td><td valign="top">Panel at the bottom-right (or bottom-left) corner of a scroll area.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelMenuBar</tt></td><td align="center" valign="top">?</td><td valign="top">Panel for menu bars.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelScrollAreaCorner</tt></td><td align="center" valign="top">?</td><td valign="top">Panel at the bottom-right (or bottom-left) corner of a scroll area.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameDockWidget</tt></td><td align="center" valign="top"><tt>7</tt></td><td valign="top">Panel frame for dock windows and toolbars.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameTabWidget</tt></td><td align="center" valign="top"><tt>13</tt></td><td valign="top">Frame for tab widgets.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameTabWidget</tt></td><td align="center" valign="top">?</td><td valign="top">Frame for tab widgets.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameLineEdit</tt></td><td align="center" valign="top"><tt>10</tt></td><td valign="top">Panel frame for line edits.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_FrameGroupBox</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">Panel frame around group boxes.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameButtonBevel</tt></td><td align="center" valign="top"><tt>15</tt></td><td valign="top">Panel frame for a button bevel.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameButtonTool</tt></td><td align="center" valign="top"><tt>16</tt></td><td valign="top">Panel frame for a tool button.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorHeaderArrow</tt></td><td align="center" valign="top"><tt>33</tt></td><td valign="top">Arrow used to indicate sorting on a list or table header.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameStatusBar</tt></td><td align="center" valign="top"><tt>12</tt></td><td valign="top">Frame for a section of a status bar; see also <a href="qstatusbar.html">QStatusBar</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameWindow</tt></td><td align="center" valign="top"><tt>14</tt></td><td valign="top">Frame around a MDI window or a docking window.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameButtonBevel</tt></td><td align="center" valign="top">?</td><td valign="top">Panel frame for a button bevel.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameButtonTool</tt></td><td align="center" valign="top">?</td><td valign="top">Panel frame for a tool button.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorHeaderArrow</tt></td><td align="center" valign="top">?</td><td valign="top">Arrow used to indicate sorting on a list or table header.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameStatusBarItem</tt></td><td align="center" valign="top"><tt>PE_FrameStatusBar</tt></td><td valign="top">Frame for an item of a status bar; see also <a href="qstatusbar.html">QStatusBar</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameWindow</tt></td><td align="center" valign="top">?</td><td valign="top">Frame around a MDI window or a docking window.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Q3Separator</tt></td><td align="center" valign="top"><tt>4</tt></td><td valign="top">Qt 3 compatible generic separator.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorMenuCheckMark</tt></td><td align="center" valign="top"><tt>34</tt></td><td valign="top">Check mark used in a menu.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorProgressChunk</tt></td><td align="center" valign="top"><tt>35</tt></td><td valign="top">Section of a progress bar indicator; see also <a href="qprogressbar.html">QProgressBar</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorMenuCheckMark</tt></td><td align="center" valign="top">?</td><td valign="top">Check mark used in a menu.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorProgressChunk</tt></td><td align="center" valign="top">?</td><td valign="top">Section of a progress bar indicator; see also <a href="qprogressbar.html">QProgressBar</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Q3CheckListController</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">Qt 3 compatible controller part of a list view item.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Q3CheckListIndicator</tt></td><td align="center" valign="top"><tt>2</tt></td><td valign="top">Qt 3 compatible checkbox part of a list view item.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_Q3CheckListExclusiveIndicator</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">Qt 3 compatible radio button part of a list view item.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorBranch</tt></td><td align="center" valign="top"><tt>28</tt></td><td valign="top">Lines used to represent the branch of a tree in a tree view.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorToolBarHandle</tt></td><td align="center" valign="top"><tt>41</tt></td><td valign="top">The handle of a toolbar.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorToolBarSeparator</tt></td><td align="center" valign="top"><tt>42</tt></td><td valign="top">The separator in a toolbar.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelToolBar</tt></td><td align="center" valign="top"><tt>22</tt></td><td valign="top">The panel for a toolbar.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_PanelTipLabel</tt></td><td align="center" valign="top"><tt>43</tt></td><td valign="top">The panel for a tip label.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_FrameTabBarBase</tt></td><td align="center" valign="top"><tt>17</tt></td><td valign="top">The frame that is drawn for a tab bar, ususally drawn for a tab bar that isn't part of a tab widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorTabTear</tt></td><td align="center" valign="top"><tt>44</tt></td><td valign="top">An indicator that a tab is partially scrolled out of the visible tab bar when there are many tabs.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_IndicatorColumnViewArrow</tt></td><td align="center" valign="top"><tt>47</tt></td><td valign="top">An arrow in a <a href="qcolumnview.html">QColumnView</a>.</td></tr>
-<tr><td valign="top"><tt>QStyle::PE_Widget</tt></td><td align="center" valign="top"><tt>46</tt></td><td valign="top">A plain <a href="qwidget.html">QWidget</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorBranch</tt></td><td align="center" valign="top">?</td><td valign="top">Lines used to represent the branch of a tree in a tree view.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorToolBarHandle</tt></td><td align="center" valign="top">?</td><td valign="top">The handle of a toolbar.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorToolBarSeparator</tt></td><td align="center" valign="top">?</td><td valign="top">The separator in a toolbar.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelToolBar</tt></td><td align="center" valign="top">?</td><td valign="top">The panel for a toolbar.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelTipLabel</tt></td><td align="center" valign="top">?</td><td valign="top">The panel for a tip label.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_FrameTabBarBase</tt></td><td align="center" valign="top">?</td><td valign="top">The frame that is drawn for a tab bar, usually drawn for a tab bar that isn't part of a tab widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorTabTear</tt></td><td align="center" valign="top">?</td><td valign="top">An indicator that a tab is partially scrolled out of the visible tab bar when there are many tabs.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorColumnViewArrow</tt></td><td align="center" valign="top">?</td><td valign="top">An arrow in a <a href="qcolumnview.html">QColumnView</a>.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_Widget</tt></td><td align="center" valign="top">?</td><td valign="top">A plain <a href="qwidget.html">QWidget</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::PE_CustomBase</tt></td><td align="center" valign="top"><tt>0xf000000</tt></td><td valign="top">Base value for custom primitive elements. All values above this are reserved for custom use. Custom values must be greater than this value.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_IndicatorItemViewItemDrop</tt></td><td align="center" valign="top">?</td><td valign="top">An indicator that is drawn to show where an item in an item view is about to be dropped during a drag-and-drop operation in an item view.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelItemViewItem</tt></td><td align="center" valign="top">?</td><td valign="top">The background for an item in an item view.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelItemViewRow</tt></td><td align="center" valign="top">?</td><td valign="top">The background of a row in an item view.</td></tr>
+<tr><td valign="top"><tt>QStyle::PE_PanelStatusBar</tt></td><td align="center" valign="top">?</td><td valign="top">The panel for a status bar.</td></tr>
 </table></p>
 <p>See also <a href="qstyle.html#drawPrimitive">drawPrimitive</a>().</p>
 <h3 class="fn"><a name="StandardPixmap-enum"></a>enum QStyle::StandardPixmap</h3>
@@ -554,43 +590,50 @@
 <tr><td valign="top"><tt>QStyle::SP_ArrowForward</tt></td><td align="center" valign="top"><tt>54</tt></td><td valign="top">Equivalent to SP_ArrowRight when the current layout direction is <a href="qt.html#LayoutDirection-enum">Qt::LeftToRight</a>, otherwise SP_ArrowLeft.</td></tr>
 <tr><td valign="top"><tt>QStyle::SP_CommandLink</tt></td><td align="center" valign="top"><tt>56</tt></td><td valign="top">Icon used to indicate a Vista style command link glyph.</td></tr>
 <tr><td valign="top"><tt>QStyle::SP_VistaShield</tt></td><td align="center" valign="top"><tt>57</tt></td><td valign="top">Icon used to indicate UAC prompts on Windows Vista. This will return a null pixmap or icon on all other platforms.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_BrowserReload</tt></td><td align="center" valign="top"><tt>58</tt></td><td valign="top">Icon indicating that the current page should be reloaded.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_BrowserStop</tt></td><td align="center" valign="top"><tt>59</tt></td><td valign="top">Icon indicating that the page loading should stop.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaPlay</tt></td><td align="center" valign="top"><tt>60</tt></td><td valign="top">Icon indicating that media should begin playback.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaStop</tt></td><td align="center" valign="top"><tt>61</tt></td><td valign="top">Icon indicating that media should stop playback.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaPause</tt></td><td align="center" valign="top"><tt>62</tt></td><td valign="top">Icon indicating that media should pause playback.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaSkipForward</tt></td><td align="center" valign="top"><tt>63</tt></td><td valign="top">Icon indicating that media should skip forward.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaSkipBackward</tt></td><td align="center" valign="top"><tt>64</tt></td><td valign="top">Icon indicating that media should skip backward.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaSeekForward</tt></td><td align="center" valign="top"><tt>65</tt></td><td valign="top">Icon indicating that media should seek forward.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaSeekBackward</tt></td><td align="center" valign="top"><tt>66</tt></td><td valign="top">Icon indicating that media should seek backward.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaVolume</tt></td><td align="center" valign="top"><tt>67</tt></td><td valign="top">Icon indicating a volume control.</td></tr>
+<tr><td valign="top"><tt>QStyle::SP_MediaVolumeMuted</tt></td><td align="center" valign="top"><tt>68</tt></td><td valign="top">Icon indicating a muted volume control.</td></tr>
 <tr><td valign="top"><tt>QStyle::SP_CustomBase</tt></td><td align="center" valign="top"><tt>0xf0000000</tt></td><td valign="top">Base value for custom standard pixmaps; custom values must be greater than this value.</td></tr>
 </table></p>
 <p>See also <a href="qstyle-obsolete.html#standardPixmap">standardPixmap</a>() and <a href="qstyle.html#standardIcon">standardIcon</a>().</p>
 <h3 class="flags"><a name="StateFlag-enum"></a>enum QStyle::StateFlag<br />flags QStyle::State</h3>
 <p>This enum describes flags that are used when drawing primitive elements.</p>
 <p>Note that not all primitives use all of these flags, and that the flags may mean different things to different items.</p>
-<p><table border="1" cellpadding="2" cellspacing="1" width="40%">
-<tr><th width="60%">Constant</th><th width="40%">Value</th></tr>
-<tr><td valign="top"><tt>QStyle::State_None</tt></td><td align="center" valign="top"><tt>0x00000000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Active</tt></td><td align="center" valign="top"><tt>0x00010000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_AutoRaise</tt></td><td align="center" valign="top"><tt>0x00001000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Bottom</tt></td><td align="center" valign="top"><tt>0x00000400</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Children</tt></td><td align="center" valign="top"><tt>0x00080000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_DownArrow</tt></td><td align="center" valign="top"><tt>0x00000040</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Editing</tt></td><td align="center" valign="top"><tt>0x00400000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Enabled</tt></td><td align="center" valign="top"><tt>0x00000001</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_FocusAtBorder</tt></td><td align="center" valign="top"><tt>0x00000800</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_HasEditFocus</tt></td><td align="center" valign="top"><tt>0x01000000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_HasFocus</tt></td><td align="center" valign="top"><tt>0x00000100</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Horizontal</tt></td><td align="center" valign="top"><tt>0x00000080</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Item</tt></td><td align="center" valign="top"><tt>0x00100000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_KeyboardFocusChange</tt></td><td align="center" valign="top"><tt>0x00800000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Mini</tt></td><td align="center" valign="top"><tt>0x08000000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_MouseOver</tt></td><td align="center" valign="top"><tt>0x00002000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_NoChange</tt></td><td align="center" valign="top"><tt>0x00000010</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Off</tt></td><td align="center" valign="top"><tt>0x00000008</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_On</tt></td><td align="center" valign="top"><tt>0x00000020</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Open</tt></td><td align="center" valign="top"><tt>0x00040000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Raised</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_ReadOnly</tt></td><td align="center" valign="top"><tt>0x02000000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Selected</tt></td><td align="center" valign="top"><tt>0x00008000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Sibling</tt></td><td align="center" valign="top"><tt>0x00200000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Small</tt></td><td align="center" valign="top"><tt>0x04000000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Sunken</tt></td><td align="center" valign="top"><tt>0x00000004</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Top</tt></td><td align="center" valign="top"><tt>0x00000200</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_UpArrow</tt></td><td align="center" valign="top"><tt>0x00004000</tt></td></tr>
-<tr><td valign="top"><tt>QStyle::State_Window</tt></td><td align="center" valign="top"><tt>0x00020000</tt></td></tr>
+<p><table border="1" cellpadding="2" cellspacing="1" width="100%">
+<tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
+<tr><td valign="top"><tt>QStyle::State_None</tt></td><td align="center" valign="top"><tt>0x00000000</tt></td><td valign="top">Indicates that the widget does not have a state.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Active</tt></td><td align="center" valign="top"><tt>0x00010000</tt></td><td valign="top">Indicates that the widget is active.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_AutoRaise</tt></td><td align="center" valign="top"><tt>0x00001000</tt></td><td valign="top">Used to indicate if auto-raise appearance should be usd on a tool button.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Children</tt></td><td align="center" valign="top"><tt>0x00080000</tt></td><td valign="top">Used to indicate if an item view branch has children.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_DownArrow</tt></td><td align="center" valign="top"><tt>0x00000040</tt></td><td valign="top">Used to indicate if a down arrow should be visible on the widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Editing</tt></td><td align="center" valign="top"><tt>0x00400000</tt></td><td valign="top">Used to indicate if an editor is opened on the widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Enabled</tt></td><td align="center" valign="top"><tt>0x00000001</tt></td><td valign="top">Used to indicate if the widget is enabled.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_HasEditFocus</tt></td><td align="center" valign="top"><tt>0x01000000</tt></td><td valign="top">Used to indicate if the widget currently has edit focus.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_HasFocus</tt></td><td align="center" valign="top"><tt>0x00000100</tt></td><td valign="top">Used to indicate if the widget has focus.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Horizontal</tt></td><td align="center" valign="top"><tt>0x00000080</tt></td><td valign="top">Used to indicate if the widget is laid out horizontally, for example. a tool bar.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_KeyboardFocusChange</tt></td><td align="center" valign="top"><tt>0x00800000</tt></td><td valign="top">Used to indicate if the focus was changed with the keyboard, e.g&#x2e;, tab, backtab or shortcut.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_MouseOver</tt></td><td align="center" valign="top"><tt>0x00002000</tt></td><td valign="top">Used to indicate if the widget is under the mouse.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_NoChange</tt></td><td align="center" valign="top"><tt>0x00000010</tt></td><td valign="top">Used to indicate a tri-state checkbox.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Off</tt></td><td align="center" valign="top"><tt>0x00000008</tt></td><td valign="top">Used to indicate if the widget is not checked.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_On</tt></td><td align="center" valign="top"><tt>0x00000020</tt></td><td valign="top">Used to indicate if the widget is checked.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Raised</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td><td valign="top">Used to indicate if a button is raised.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_ReadOnly</tt></td><td align="center" valign="top"><tt>0x02000000</tt></td><td valign="top">Used to indicate if a widget is read-only.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Selected</tt></td><td align="center" valign="top"><tt>0x00008000</tt></td><td valign="top">Used to indicate if a widget is selected.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Item</tt></td><td align="center" valign="top"><tt>0x00100000</tt></td><td valign="top">Used by item views to indicate if a horizontal branch should be drawn.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Open</tt></td><td align="center" valign="top"><tt>0x00040000</tt></td><td valign="top">Used by item views to indicate if the tree branch is open.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Sibling</tt></td><td align="center" valign="top"><tt>0x00200000</tt></td><td valign="top">Used by item views to indicate if a vertical line needs to be drawn (for siblings).</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Sunken</tt></td><td align="center" valign="top"><tt>0x00000004</tt></td><td valign="top">Used to indicate if the widget is sunken or pressed.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_UpArrow</tt></td><td align="center" valign="top"><tt>0x00004000</tt></td><td valign="top">Used to indicate if an up arrow should be visible on the widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Mini</tt></td><td align="center" valign="top"><tt>0x08000000</tt></td><td valign="top">Used to indicate a mini style Mac widget or button.</td></tr>
+<tr><td valign="top"><tt>QStyle::State_Small</tt></td><td align="center" valign="top"><tt>0x04000000</tt></td><td valign="top">Used to indicate a small style Mac widget or button.</td></tr>
 </table></p>
 <p>The State type is a typedef for <a href="qflags.html">QFlags</a>&lt;StateFlag&gt;. It stores an OR combination of StateFlag values.</p>
 <p>See also <a href="qstyle.html#drawPrimitive">drawPrimitive</a>().</p>
@@ -651,6 +694,7 @@
 <tr><td valign="top"><tt>QStyle::SH_SpinBox_AnimateButton</tt></td><td align="center" valign="top">?</td><td valign="top">Animate a click when up or down is pressed in a spin box.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_SpinBox_KeyPressAutoRepeatRate</tt></td><td align="center" valign="top">?</td><td valign="top">Auto-repeat interval for spinbox key presses.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_SpinBox_ClickAutoRepeatRate</tt></td><td align="center" valign="top">?</td><td valign="top">Auto-repeat interval for spinbox mouse clicks.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_SpinBox_ClickAutoRepeatThreshold</tt></td><td align="center" valign="top">?</td><td valign="top">Auto-repeat threshold for spinbox mouse clicks.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_ToolTipLabel_Opacity</tt></td><td align="center" valign="top">?</td><td valign="top">An integer indicating the opacity for the tip label, 0 is completely transparent, 255 is completely opaque.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_DrawMenuBarSeparator</tt></td><td align="center" valign="top">?</td><td valign="top">Indicates whether or not the menu bar draws separators.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_TitleBar_ModifyNotification</tt></td><td align="center" valign="top">?</td><td valign="top">Indicates if the title bar should show a '*' for windows that are modified.</td></tr>
@@ -677,6 +721,10 @@
 <tr><td valign="top"><tt>QStyle::SH_TabBar_ElideMode</tt></td><td align="center" valign="top">?</td><td valign="top">The default eliding style for a tab bar.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_DialogButtonLayout</tt></td><td align="center" valign="top">?</td><td valign="top">Controls how buttons are laid out in a <a href="qdialogbuttonbox.html">QDialogButtonBox</a>, returns a <a href="qdialogbuttonbox.html#ButtonLayout-enum">QDialogButtonBox::ButtonLayout</a> enum.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_WizardStyle</tt></td><td align="center" valign="top">?</td><td valign="top">Controls the look and feel of a <a href="qwizard.html">QWizard</a>. Returns a <a href="qwizard.html#WizardStyle-enum">QWizard::WizardStyle</a> enum.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_FormLayoutWrapPolicy</tt></td><td align="center" valign="top">?</td><td valign="top">Provides a default for how rows are wrapped in a <a href="qformlayout.html">QFormLayout</a>. Returns a <a href="qformlayout.html#RowWrapPolicy-enum">QFormLayout::RowWrapPolicy</a> enum.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_FormLayoutFieldGrowthPolicy</tt></td><td align="center" valign="top">?</td><td valign="top">Provides a default for how fields can grow in a <a href="qformlayout.html">QFormLayout</a>. Returns a <a href="qformlayout.html#FieldGrowthPolicy-enum">QFormLayout::FieldGrowthPolicy</a> enum.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_FormLayoutFormAlignment</tt></td><td align="center" valign="top">?</td><td valign="top">Provides a default for how a <a href="qformlayout.html">QFormLayout</a> aligns its contents within the available space. Returns a <a href="qt.html#AlignmentFlag-enum">Qt::Alignment</a> enum.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_FormLayoutLabelAlignment</tt></td><td align="center" valign="top">?</td><td valign="top">Provides a default for how a <a href="qformlayout.html">QFormLayout</a> aligns labels within the available space. Returns a <a href="qt.html#AlignmentFlag-enum">Qt::Alignment</a> enum.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_ItemView_ArrowKeysNavigateIntoChildren</tt></td><td align="center" valign="top">?</td><td valign="top">Controls whether the tree view will select the first child when it is exapanded and the right arrow key is pressed.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_ComboBox_PopupFrameStyle</tt></td><td align="center" valign="top">?</td><td valign="top">The frame style used when drawing a combobox popup menu.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_DialogButtonBox_ButtonsHaveIcons</tt></td><td align="center" valign="top">?</td><td valign="top">Indicates whether or not StandardButtons in <a href="qdialogbuttonbox.html">QDialogButtonBox</a> should have icons or not.</td></tr>
@@ -684,8 +732,13 @@
 <tr><td valign="top"><tt>QStyle::SH_ToolTip_Mask</tt></td><td align="center" valign="top">?</td><td valign="top">The mask of a tool tip.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_FocusFrame_AboveWidget</tt></td><td align="center" valign="top">?</td><td valign="top">The FocusFrame is stacked above the widget that it is &quot;focusing on&quot;.</td></tr>
 <tr><td valign="top"><tt>QStyle::SH_TextControl_FocusIndicatorTextCharFormat</tt></td><td align="center" valign="top">?</td><td valign="top">Specifies the text format used to highlight focused anchors in rich text documents displayed for example in <a href="qtextbrowser.html">QTextBrowser</a>. The format has to be a <a href="qtextcharformat.html">QTextCharFormat</a> returned in the variant of the <a href="qstylehintreturnvariant.html">QStyleHintReturnVariant</a> return value. The <a href="qtextformat.html#Property-enum">QTextFormat::OutlinePen</a> property is used for the outline and <a href="qtextformat.html#Property-enum">QTextFormat::BackgroundBrush</a> for the background of the highlighted area.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_Menu_FlashTriggeredItem</tt></td><td align="center" valign="top">?</td><td valign="top">Flash triggered item.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_Menu_FadeOutOnHide</tt></td><td align="center" valign="top">?</td><td valign="top">Fade out the menu instead of hiding it immediately.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_TabWidget_DefaultTabPosition</tt></td><td align="center" valign="top">?</td><td valign="top">Default position of the tab bar in a tab widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_ToolBar_Movable</tt></td><td align="center" valign="top">?</td><td valign="top">Determines if the tool bar is movable by default.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_ItemView_PaintAlternatingRowColorsForEmptyArea</tt></td><td align="center" valign="top">?</td><td valign="top">Whether <a href="qtreeview.html">QTreeView</a> paints alternating row colors for the area that does not have any items.</td></tr>
+<tr><td valign="top"><tt>QStyle::SH_Menu_Mask</tt></td><td align="center" valign="top">?</td><td valign="top">The mask for a popup menu.</td></tr>
 </table></p>
-<p>Used to fill any area not covered by the items.</p>
 <p>See also <a href="qstyle.html#styleHint">styleHint</a>().</p>
 <h3 class="flags"><a name="SubControl-enum"></a>enum QStyle::SubControl<br />flags QStyle::SubControls</h3>
 <p>This enum describes the available sub controls. A subcontrol is a control element within a complex control (<a href="qstyle.html#ComplexControl-enum">ComplexControl</a>).</p>
@@ -712,7 +765,7 @@
 <tr><td valign="top"><tt>QStyle::SC_SliderHandle</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td><td valign="top">Slider handle.</td></tr>
 <tr><td valign="top"><tt>QStyle::SC_SliderTickmarks</tt></td><td align="center" valign="top"><tt>0x00000004</tt></td><td valign="top">Slider tickmarks.</td></tr>
 <tr><td valign="top"><tt>QStyle::SC_ToolButton</tt></td><td align="center" valign="top"><tt>0x00000001</tt></td><td valign="top">Tool button (see also <a href="qtoolbutton.html">QToolButton</a>).</td></tr>
-<tr><td valign="top"><tt>QStyle::SC_ToolButtonMenu</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td><td valign="top">Sub-control for opening a popup menu in a tool button; see also Q3PopupMenu.</td></tr>
+<tr><td valign="top"><tt>QStyle::SC_ToolButtonMenu</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td><td valign="top">Sub-control for opening a popup menu in a tool button; see also <a href="q3popupmenu.html">Q3PopupMenu</a>.</td></tr>
 <tr><td valign="top"><tt>QStyle::SC_TitleBarSysMenu</tt></td><td align="center" valign="top"><tt>0x00000001</tt></td><td valign="top">System menu button (i.e&#x2e;, restore, close, etc.)&#x2e;</td></tr>
 <tr><td valign="top"><tt>QStyle::SC_TitleBarMinButton</tt></td><td align="center" valign="top"><tt>0x00000002</tt></td><td valign="top">Minimize button.</td></tr>
 <tr><td valign="top"><tt>QStyle::SC_TitleBarMaxButton</tt></td><td align="center" valign="top"><tt>0x00000004</tt></td><td valign="top">Maximize button.</td></tr>
@@ -744,52 +797,55 @@
 <tr><th width="25%">Constant</th><th width="15%">Value</th><th width="60%">Description</th></tr>
 <tr><td valign="top"><tt>QStyle::SE_PushButtonContents</tt></td><td align="center" valign="top"><tt>0</tt></td><td valign="top">Area containing the label (icon with text or pixmap).</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_PushButtonFocusRect</tt></td><td align="center" valign="top"><tt>1</tt></td><td valign="top">Area for the focus rect (usually larger than the contents rect).</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_PushButtonLayoutItem</tt></td><td align="center" valign="top"><tt>48</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_PushButtonLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_CheckBoxIndicator</tt></td><td align="center" valign="top"><tt>2</tt></td><td valign="top">Area for the state indicator (e.g&#x2e;, check mark).</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_CheckBoxContents</tt></td><td align="center" valign="top"><tt>3</tt></td><td valign="top">Area for the label (text or pixmap).</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_CheckBoxFocusRect</tt></td><td align="center" valign="top"><tt>4</tt></td><td valign="top">Area for the focus indicator.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_CheckBoxClickRect</tt></td><td align="center" valign="top"><tt>5</tt></td><td valign="top">Clickable area, defaults to SE_CheckBoxFocusRect.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_CheckBoxLayoutItem</tt></td><td align="center" valign="top"><tt>42</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DateTimeEditLayoutItem</tt></td><td align="center" valign="top"><tt>44</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_CheckBoxLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DateTimeEditLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_RadioButtonIndicator</tt></td><td align="center" valign="top"><tt>6</tt></td><td valign="top">Area for the state indicator.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_RadioButtonContents</tt></td><td align="center" valign="top"><tt>7</tt></td><td valign="top">Area for the label.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_RadioButtonFocusRect</tt></td><td align="center" valign="top"><tt>8</tt></td><td valign="top">Area for the focus indicator.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_RadioButtonClickRect</tt></td><td align="center" valign="top"><tt>9</tt></td><td valign="top">Clickable area, defaults to SE_RadioButtonFocusRect.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_RadioButtonLayoutItem</tt></td><td align="center" valign="top"><tt>49</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_RadioButtonLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_ComboBoxFocusRect</tt></td><td align="center" valign="top"><tt>10</tt></td><td valign="top">Area for the focus indicator.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_SliderFocusRect</tt></td><td align="center" valign="top"><tt>11</tt></td><td valign="top">Area for the focus indicator.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_SliderLayoutItem</tt></td><td align="center" valign="top"><tt>50</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_SpinBoxLayoutItem</tt></td><td align="center" valign="top"><tt>51</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_SliderLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_SpinBoxLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_Q3DockWindowHandleRect</tt></td><td align="center" valign="top"><tt>12</tt></td><td valign="top">Area for the tear-off handle.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_ProgressBarGroove</tt></td><td align="center" valign="top"><tt>13</tt></td><td valign="top">Area for the groove.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_ProgressBarContents</tt></td><td align="center" valign="top"><tt>14</tt></td><td valign="top">Area for the progress indicator.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_ProgressBarLabel</tt></td><td align="center" valign="top"><tt>15</tt></td><td valign="top">Area for the text label.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_ProgressBarLayoutItem</tt></td><td align="center" valign="top"><tt>47</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_FrameContents</tt></td><td align="center" valign="top"><tt>37</tt></td><td valign="top">Area for a frame's contents.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_FrameLayoutItem</tt></td><td align="center" valign="top"><tt>53</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ProgressBarLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_FrameContents</tt></td><td align="center" valign="top">?</td><td valign="top">Area for a frame's contents.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_FrameLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_HeaderArrow</tt></td><td align="center" valign="top"><tt>27</tt></td><td valign="top">Area for the sort indicator for a header.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_HeaderLabel</tt></td><td align="center" valign="top"><tt>26</tt></td><td valign="top">Area for the label in a header.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_LabelLayoutItem</tt></td><td align="center" valign="top"><tt>46</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_LineEditContents</tt></td><td align="center" valign="top"><tt>36</tt></td><td valign="top">Area for a line edit's contents.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_LabelLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_LineEditContents</tt></td><td align="center" valign="top">?</td><td valign="top">Area for a line edit's contents.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_TabWidgetLeftCorner</tt></td><td align="center" valign="top"><tt>31</tt></td><td valign="top">Area for the left corner widget in a tab widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_TabWidgetRightCorner</tt></td><td align="center" valign="top"><tt>32</tt></td><td valign="top">Area for the right corner widget in a tab widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_TabWidgetTabBar</tt></td><td align="center" valign="top"><tt>28</tt></td><td valign="top">Area for the tab bar widget in a tab widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_TabWidgetTabContents</tt></td><td align="center" valign="top"><tt>30</tt></td><td valign="top">Area for the contents of the tab widget.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_TabWidgetTabPane</tt></td><td align="center" valign="top"><tt>29</tt></td><td valign="top">Area for the pane of a tab widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_TabWidgetLayoutItem</tt></td><td align="center" valign="top"><tt>55</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_TabWidgetLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_ToolBoxTabContents</tt></td><td align="center" valign="top"><tt>25</tt></td><td valign="top">Area for a toolbox tab's icon and label.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_ToolButtonLayoutItem</tt></td><td align="center" valign="top"><tt>52</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_ViewItemCheckIndicator</tt></td><td align="center" valign="top"><tt>33</tt></td><td valign="top">Area for a view item's check mark.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_TabBarTearIndicator</tt></td><td align="center" valign="top"><tt>34</tt></td><td valign="top">Area for the tear indicator on a tab bar with scroll arrows.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_TreeViewDisclosureItem</tt></td><td align="center" valign="top"><tt>35</tt></td><td valign="top">Area for the actual disclosure item in a tree branch.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DialogButtonBoxLayoutItem</tt></td><td align="center" valign="top"><tt>45</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_GroupBoxLayoutItem</tt></td><td align="center" valign="top"><tt>54</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ToolButtonLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ItemViewItemCheckIndicator</tt></td><td align="center" valign="top"><tt>SE_ViewItemCheckIndicator</tt></td><td valign="top">Area for a view item's check mark.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_TabBarTearIndicator</tt></td><td align="center" valign="top">?</td><td valign="top">Area for the tear indicator on a tab bar with scroll arrows.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_TreeViewDisclosureItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area for the actual disclosure item in a tree branch.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DialogButtonBoxLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_GroupBoxLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
 <tr><td valign="top"><tt>QStyle::SE_CustomBase</tt></td><td align="center" valign="top"><tt>0xf0000000</tt></td><td valign="top">Base value for custom sub-elements. Custom values must be greater than this value.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DockWidgetFloatButton</tt></td><td align="center" valign="top"><tt>39</tt></td><td valign="top">The float button of a dock widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DockWidgetTitleBarText</tt></td><td align="center" valign="top"><tt>40</tt></td><td valign="top">The text bounds of the dock widgets title.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DockWidgetCloseButton</tt></td><td align="center" valign="top"><tt>38</tt></td><td valign="top">The close button of a dock widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_DockWidgetIcon</tt></td><td align="center" valign="top"><tt>41</tt></td><td valign="top">The icon of a dock widget.</td></tr>
-<tr><td valign="top"><tt>QStyle::SE_ComboBoxLayoutItem</tt></td><td align="center" valign="top"><tt>43</tt></td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DockWidgetFloatButton</tt></td><td align="center" valign="top">?</td><td valign="top">The float button of a dock widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DockWidgetTitleBarText</tt></td><td align="center" valign="top">?</td><td valign="top">The text bounds of the dock widgets title.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DockWidgetCloseButton</tt></td><td align="center" valign="top">?</td><td valign="top">The close button of a dock widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_DockWidgetIcon</tt></td><td align="center" valign="top">?</td><td valign="top">The icon of a dock widget.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ComboBoxLayoutItem</tt></td><td align="center" valign="top">?</td><td valign="top">Area that counts for the parent layout.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ItemViewItemDecoration</tt></td><td align="center" valign="top">?</td><td valign="top">Area for a view item's decoration (icon).</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ItemViewItemText</tt></td><td align="center" valign="top">?</td><td valign="top">Area for a view item's text.</td></tr>
+<tr><td valign="top"><tt>QStyle::SE_ItemViewItemFocusRect</tt></td><td align="center" valign="top">?</td><td valign="top">Area for a view item's focus rect.</td></tr>
 </table></p>
 <p>See also <a href="qstyle.html#subElementRect">subElementRect</a>().</p>
 <hr />
@@ -901,10 +957,15 @@
 <tr valign="top" class="even"><td><a href="qstyle.html#StateFlag-enum">State_Open</a></td><td>Indicates that the tree branch is expanded.</td></tr>
 <tr valign="top" class="odd"><td><a href="qstyle.html#StateFlag-enum">State_Sibling</a></td><td>Indicates that a vertical line (to show a sibling item), should be drawn.</td></tr>
 <tr valign="top" class="even"><td><a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorHeaderArrow</a></td><td><a href="qstyleoptionheader.html">QStyleOptionHeader</a></td><td><a href="qstyle.html#StateFlag-enum">State_UpArrow</a></td><td>Indicates that the arrow should be drawn up; otherwise it should be down.</td></tr>
-<tr valign="top" class="odd"><td><a href="qstyle.html#PrimitiveElement-enum">PE_FrameGroupBox</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_Frame</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameLineEdit</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameMenu</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameDockWidget</a></td><td><a href="qstyleoptionframe.html">QStyleOptionFrame</a></td><td><a href="qstyle.html#StateFlag-enum">State_Sunken</a></td><td>Indicates that the Frame should be sunken.</td></tr>
+<tr valign="top" class="odd"><td><a href="qstyle.html#PrimitiveElement-enum">PE_FrameGroupBox</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_Frame</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameLineEdit</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameMenu</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameDockWidget</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_FrameWindow</a></td><td><a href="qstyleoptionframe.html">QStyleOptionFrame</a></td><td><a href="qstyle.html#StateFlag-enum">State_Sunken</a></td><td>Indicates that the Frame should be sunken.</td></tr>
 <tr valign="top" class="even"><td><a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorToolBarHandle</a></td><td><a href="qstyleoption.html">QStyleOption</a></td><td><a href="qstyle.html#StateFlag-enum">State_Horizontal</a></td><td>Indicates that the window handle is horizontal instead of vertical.</td></tr>
 <tr valign="top" class="odd"><td><a href="qstyle.html#PrimitiveElement-enum">PE_Q3DockWindowSeparator</a></td><td><a href="qstyleoption.html">QStyleOption</a></td><td><a href="qstyle.html#StateFlag-enum">State_Horizontal</a></td><td>Indicates that the separator is horizontal instead of vertical.</td></tr>
 <tr valign="top" class="even"><td><a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinPlus</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinMinus</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinUp</a>, <a href="qstyle.html#PrimitiveElement-enum">PE_IndicatorSpinDown</a>,</td><td><a href="qstyleoptionspinbox.html">QStyleOptionSpinBox</a></td><td><a href="qstyle.html#StateFlag-enum">State_Sunken</a></td><td>Indicates that the button is pressed.</td></tr>
+<tr valign="top" class="odd"><td rowspan="5"><a href="qstyle.html#PrimitiveElement-enum">PE_PanelButtonCommand</a></td><td rowspan="5"><a href="qstyleoptionbutton.html">QStyleOptionButton</a></td><td><a href="qstyle.html#StateFlag-enum">State_Enabled</a></td><td>Set if the button is enabled.</td></tr>
+<tr valign="top" class="even"><td><a href="qstyle.html#StateFlag-enum">State_HasFocus</a></td><td>Set if the button has input focus.</td></tr>
+<tr valign="top" class="odd"><td><a href="qstyle.html#StateFlag-enum">State_Raised</a></td><td>Set if the button is not down, not on and not flat.</td></tr>
+<tr valign="top" class="even"><td><a href="qstyle.html#StateFlag-enum">State_On</a></td><td>Set if the button is a toggle button and is toggled on.</td></tr>
+<tr valign="top" class="odd"><td><a href="qstyle.html#StateFlag-enum">State_Sunken</a></td><td>Set if the button is down (i.e&#x2e;, the mouse button or the space bar is pressed on the button).</td></tr>
 </table></p>
 <p>See also <a href="qstyle.html#drawComplexControl">drawComplexControl</a>() and <a href="qstyle.html#drawControl">drawControl</a>().</p>
 <h3 class="fn"><a name="generatedIconPixmap"></a><a href="qpixmap.html">QPixmap</a> QStyle::generatedIconPixmap ( <a href="qicon.html#Mode-enum">QIcon::Mode</a> <i>iconMode</i>, const <a href="qpixmap.html">QPixmap</a> &amp; <i>pixmap</i>, const <a href="qstyleoption.html">QStyleOption</a> * <i>option</i> ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
@@ -1006,7 +1067,7 @@
 <p>See also <a href="qstyle.html#standardIcon">standardIcon</a>().</p>
 <h3 class="fn"><a name="standardPalette"></a><a href="qpalette.html">QPalette</a> QStyle::standardPalette () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
 <p>Returns the style's standard palette.</p>
-<p>Note that on systems that support system colors, the style's standard palette is not used.</p>
+<p>Note that on systems that support system colors, the style's standard palette is not used. In particular, the Windows XP, Vista, and Mac styles do not use the standard palette, but make use of native theme engines. With these styles, you should not set the palette with QApplication::setStandardPalette().</p>
 <h3 class="fn"><a name="styleHint"></a>int QStyle::styleHint ( <a href="qstyle.html#StyleHint-enum">StyleHint</a> <i>hint</i>, const <a href="qstyleoption.html">QStyleOption</a> * <i>option</i> = 0, const <a href="qwidget.html">QWidget</a> * <i>widget</i> = 0, <a href="qstylehintreturn.html">QStyleHintReturn</a> * <i>returnData</i> = 0 ) const&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
 <p>Returns an integer representing the specified style <i>hint</i> for the given <i>widget</i> described by the provided style <i>option</i>.</p>
 <p>Note that currently, the <i>returnData</i> and <i>widget</i> parameters are not used; they are provided for future enhancement. In addition, the <i>option</i> parameter is used only in case of the <a href="qstyle.html#StyleHint-enum">SH_ComboBox_Popup</a>, <a href="qstyle.html#StyleHint-enum">SH_ComboBox_LayoutDirection</a>, and <a href="qstyle.html#StyleHint-enum">SH_GroupBox_TextLabelColor</a> style hints.</p>
@@ -1054,8 +1115,8 @@
 <p>See also <a href="qwidget.html#layoutDirection-prop">QWidget::layoutDirection</a>.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

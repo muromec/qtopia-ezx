@@ -50,9 +50,6 @@ extern "C" {
 # define Q_ZEXPORT ZEXPORT
 # endif
 #endif
-#ifdef Q_OS_TEMP
-#include <qfunctions_wce.h>
-#endif
 
 /*
      The 'zlib' compression library provides in-memory compression and

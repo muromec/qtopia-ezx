@@ -2,17 +2,17 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/widgets/qworkspace.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/widgets/qworkspace.cpp -->
 <head>
-  <title>Qt 4.3: QWorkspace Class Reference</title>
+  <title>Qt 4.4: QWorkspace Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QWorkspace Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QWorkspace Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QWorkspace widget provides a workspace window that can be used in an MDI application. <a href="#details">More...</a></p>
 <pre> #include &lt;QWorkspace&gt;</pre><p><b>This class is obsolete.</b> It is provided to keep old source code working. We strongly advise against using it in new code.</p>
@@ -33,7 +33,7 @@
 <li><div class="fn"/><b><a href="qworkspace.html#scrollBarsEnabled-prop">scrollBarsEnabled</a></b> : bool</li>
 </ul>
 <ul>
-<li><div class="fn"/>56 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
+<li><div class="fn"/>57 properties inherited from <a href="qwidget.html#properties">QWidget</a></li>
 <li><div class="fn"/>1 property inherited from <a href="qobject.html#properties">QObject</a></li>
 </ul>
 <a name="public-functions"></a>
@@ -50,9 +50,9 @@
 <li><div class="fn"/>QWidgetList <b><a href="qworkspace.html#windowList">windowList</a></b> ( WindowOrder <i>order</i> = CreationOrder ) const</li>
 </ul>
 <ul>
-<li><div class="fn"/>201 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
+<li><div class="fn"/>206 public functions inherited from <a href="qwidget.html#public-functions">QWidget</a></li>
 <li><div class="fn"/>29 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
-<li><div class="fn"/>12 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
+<li><div class="fn"/>14 public functions inherited from <a href="qpaintdevice.html#public-functions">QPaintDevice</a></li>
 </ul>
 <a name="public-slots"></a>
 <h3>Public Slots</h3>
@@ -104,9 +104,12 @@
 <p>Child windows (MDI windows) are standard Qt widgets that are inserted into the workspace with <a href="qworkspace.html#addWindow">addWindow</a>(). As with top-level widgets, you can call functions such as <a href="qwidget.html#show">show</a>(), <a href="qwidget.html#hide">hide</a>(), <a href="qwidget.html#showMaximized">showMaximized</a>(), and <a href="qwidget.html#windowTitle-prop">setWindowTitle</a>() on a child window to change its appearance within the workspace. You can also provide widget flags to determine the layout of the decoration or the behavior of the widget itself.</p>
 <p>To change or retrieve the geometry of a child window, you must operate on its <a href="qwidget.html#parentWidget">parentWidget</a>(). The <a href="qwidget.html#parentWidget">parentWidget</a>() provides access to the decorated frame that contains the child window widget. When a child window is maximised, its decorated frame is hidden. If the top-level widget contains a menu bar, it will display the maximised window's operations menu to the left of the menu entries, and the window's controls to the right.</p>
 <p>A child window becomes active when it gets the keyboard focus, or when <a href="qwidget.html#setFocus">setFocus</a>() is called. The user can activate a window by moving focus in the usual ways, for example by clicking a window or by pressing Tab. The workspace emits a signal <a href="qworkspace.html#windowActivated">windowActivated</a>() when the active window changes, and the function <a href="qworkspace.html#activeWindow">activeWindow</a>() returns a pointer to the active child window, or 0 if no window is active.</p>
-<p>The convenience function <a href="qworkspace.html#windowList">windowList</a>() returns a list of all child windows. This information could be used in a popup menu containing a list of windows, for example. This feature is also available as part of the <a href="http://www.trolltech.com/products/qt/addon/solutions/catalog/4/Widgets/qtwindowlistmenu/">Window Menu</a> Solution.</p>
+<p>The convenience function <a href="qworkspace.html#windowList">windowList</a>() returns a list of all child windows. This information could be used in a popup menu containing a list of windows, for example. This feature is also available as part of the <a href="http://trolltech.com/products/qt/addons/catalog/4/Widgets/qtwindowlistmenu/">Window Menu</a> Solution.</p>
 <p>QWorkspace provides two built-in layout strategies for child windows: <a href="qworkspace.html#cascade">cascade</a>() and <a href="qworkspace.html#tile">tile</a>(). Both are slots so you can easily connect menu entries to them.</p>
-<p align="center"><img src="images/qworkspace-arrange.png" /></p><p>If you want your users to be able to work with child windows larger than the visible workspace area, set the <a href="qworkspace.html#scrollBarsEnabled-prop">scrollBarsEnabled</a> property to true.</p>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<tr valign="top" class="odd"><td><img src="images/mdi-cascade.png" /></td><td><img src="images/mdi-tile.png" /></td></tr>
+</table></p>
+<p>If you want your users to be able to work with child windows larger than the visible workspace area, set the <a href="qworkspace.html#scrollBarsEnabled-prop">scrollBarsEnabled</a> property to true.</p>
 <p>See also <a href="qdockwidget.html">QDockWidget</a> and <a href="mainwindows-mdi.html">MDI Example</a>.</p>
 <hr />
 <h2>Member Type Documentation</h2>
@@ -180,8 +183,8 @@
 <p>Returns a list of all visible or minimized child windows. If <i>order</i> is <a href="qworkspace.html#WindowOrder-enum">CreationOrder</a> (the default), the windows are listed in the order in which they were inserted into the workspace. If <i>order</i> is <a href="qworkspace.html#WindowOrder-enum">StackingOrder</a>, the windows are listed in their stacking order, with the topmost window as the last item in the list.</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

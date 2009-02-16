@@ -2,21 +2,21 @@
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<!-- /home/test1/tmp/qtopia/qt//qtopia-core-opensource-src-4.3.6/src/gui/kernel/qboxlayout.cpp -->
+<!-- /home/qt/mkdist-qt-4.4.3-1222864207/qt-embedded-linux-opensource-src-4.4.3/src/gui/kernel/qboxlayout.cpp -->
 <head>
-  <title>Qt 4.3: QBoxLayout Class Reference</title>
+  <title>Qt 4.4: QBoxLayout Class Reference</title>
   <link href="classic.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <table border="0" cellpadding="0" cellspacing="0" width="100%">
 <tr>
-<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" width="32" height="32" border="0" /></a></td>
-<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
-<td align="right" valign="top" width="230"><a href="http://www.trolltech.com"><img src="images/trolltech-logo.png" align="right" width="203" height="32" border="0" /></a></td></tr></table><h1 class="title">QBoxLayout Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
+<td align="left" valign="top" width="32"><a href="http://www.trolltech.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QBoxLayout Class Reference<br /><span class="small-subtitle">[<a href="qtgui.html">QtGui</a> module]</span>
 </h1>
 <p>The QBoxLayout class lines up child widgets horizontally or vertically. <a href="#details">More...</a></p>
 <pre> #include &lt;QBoxLayout&gt;</pre><p>Inherits <a href="qlayout.html">QLayout</a>.</p>
-<p>Inherited by <a href="qhboxlayout.html">QHBoxLayout</a> and <a href="qvboxlayout.html">QVBoxLayout</a>.</p>
+<p>Inherited by <a href="q3hboxlayout.html" class="compat">Q3HBoxLayout</a>, <a href="q3vboxlayout.html" class="compat">Q3VBoxLayout</a>, <a href="qhboxlayout.html">QHBoxLayout</a>, and <a href="qvboxlayout.html">QVBoxLayout</a>.</p>
 <ul>
 <li><a href="qboxlayout-members.html">List of all members, including inherited members</a></li>
 <li><a href="qboxlayout-qt3.html">Qt 3 support members</a></li>
@@ -32,12 +32,14 @@
 <li><div class="fn"/><b><a href="qboxlayout.html#QBoxLayout">QBoxLayout</a></b> ( Direction <i>dir</i>, QWidget * <i>parent</i> = 0 )</li>
 <li><div class="fn"/><b><a href="qboxlayout.html#dtor.QBoxLayout">~QBoxLayout</a></b> ()</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#addLayout">addLayout</a></b> ( QLayout * <i>layout</i>, int <i>stretch</i> = 0 )</li>
+<li><div class="fn"/>void <b><a href="qboxlayout.html#addSpacerItem">addSpacerItem</a></b> ( QSpacerItem * <i>spacerItem</i> )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#addSpacing">addSpacing</a></b> ( int <i>size</i> )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#addStretch">addStretch</a></b> ( int <i>stretch</i> = 0 )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#addStrut">addStrut</a></b> ( int <i>size</i> )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#addWidget">addWidget</a></b> ( QWidget * <i>widget</i>, int <i>stretch</i> = 0, Qt::Alignment <i>alignment</i> = 0 )</li>
 <li><div class="fn"/>Direction <b><a href="qboxlayout.html#direction">direction</a></b> () const</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#insertLayout">insertLayout</a></b> ( int <i>index</i>, QLayout * <i>layout</i>, int <i>stretch</i> = 0 )</li>
+<li><div class="fn"/>void <b><a href="qboxlayout.html#insertSpacerItem">insertSpacerItem</a></b> ( int <i>index</i>, QSpacerItem * <i>spacerItem</i> )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#insertSpacing">insertSpacing</a></b> ( int <i>index</i>, int <i>size</i> )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#insertStretch">insertStretch</a></b> ( int <i>index</i>, int <i>stretch</i> = 0 )</li>
 <li><div class="fn"/>void <b><a href="qboxlayout.html#insertWidget">insertWidget</a></b> ( int <i>index</i>, QWidget * <i>widget</i>, int <i>stretch</i> = 0, Qt::Alignment <i>alignment</i> = 0 )</li>
@@ -90,7 +92,7 @@
 <p>Use <a href="qboxlayout.html#insertWidget">insertWidget</a>(), <a href="qboxlayout.html#insertSpacing">insertSpacing</a>(), <a href="qboxlayout.html#insertStretch">insertStretch</a>() or <a href="qboxlayout.html#insertLayout">insertLayout</a>() to insert a box at a specified position in the layout.</p>
 <p>QBoxLayout also includes two margin widths:</p>
 <ul>
-<li><a href="qlayout-obsolete.html#margin-prop">setMargin</a>() sets the width of the outer border. This is the width of the reserved space along each of the QBoxLayout's four sides.</li>
+<li><a href="qlayout.html#setContentsMargins">setContentsMargins</a>() sets the width of the outer border on each side of the widget. This is the width of the reserved space along each of the QBoxLayout's four sides.</li>
 <li><a href="qboxlayout.html#setSpacing">setSpacing</a>() sets the width between neighboring boxes. (You can use <a href="qboxlayout.html#addSpacing">addSpacing</a>() to get more space at a particular spot.)</li>
 </ul>
 <p>The margin default is provided by the style. The default margin most Qt styles specify is 9 for child widgets and 11 for windows. The spacing defaults to the same as the margin width for a top-level layout, or to the same as the parent layout.</p>
@@ -119,6 +121,10 @@
 <h3 class="fn"><a name="addLayout"></a>void QBoxLayout::addLayout ( <a href="qlayout.html">QLayout</a> * <i>layout</i>, int <i>stretch</i> = 0 )</h3>
 <p>Adds <i>layout</i> to the end of the box, with serial stretch factor <i>stretch</i>.</p>
 <p>See also <a href="qboxlayout.html#insertLayout">insertLayout</a>(), <a href="qlayout.html#addItem">addItem</a>(), and <a href="qboxlayout.html#addWidget">addWidget</a>().</p>
+<h3 class="fn"><a name="addSpacerItem"></a>void QBoxLayout::addSpacerItem ( <a href="qspaceritem.html">QSpacerItem</a> * <i>spacerItem</i> )</h3>
+<p>Adds <i>spacerItem</i> to the end of this box layout.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qboxlayout.html#addSpacing">addSpacing</a>() and <a href="qboxlayout.html#addStretch">addStretch</a>().</p>
 <h3 class="fn"><a name="addSpacing"></a>void QBoxLayout::addSpacing ( int <i>size</i> )</h3>
 <p>Adds a non-stretchable space (a <a href="qspaceritem.html">QSpacerItem</a>) with size <i>size</i> to the end of this box layout. <a href="qboxlayout.html">QBoxLayout</a> provides default margin and spacing. This function adds additional space.</p>
 <p>See also <a href="qboxlayout.html#insertSpacing">insertSpacing</a>(), <a href="qlayout.html#addItem">addItem</a>(), and <a href="qspaceritem.html">QSpacerItem</a>.</p>
@@ -144,6 +150,10 @@
 <p>Inserts <i>layout</i> at position <i>index</i>, with stretch factor <i>stretch</i>. If <i>index</i> is negative, the layout is added at the end.</p>
 <p><i>layout</i> becomes a child of the box layout.</p>
 <p>See also <a href="qboxlayout.html#addLayout">addLayout</a>() and <a href="qboxlayout.html#insertItem">insertItem</a>().</p>
+<h3 class="fn"><a name="insertSpacerItem"></a>void QBoxLayout::insertSpacerItem ( int <i>index</i>, <a href="qspaceritem.html">QSpacerItem</a> * <i>spacerItem</i> )</h3>
+<p>Inserts <i>spacerItem</i> at position <i>index</i>, with zero minimum size and stretch factor. If <i>index</i> is negative the space is added at the end.</p>
+<p>This function was introduced in Qt 4.4.</p>
+<p>See also <a href="qboxlayout.html#addSpacerItem">addSpacerItem</a>(), <a href="qboxlayout.html#insertStretch">insertStretch</a>(), and <a href="qboxlayout.html#insertSpacing">insertSpacing</a>().</p>
 <h3 class="fn"><a name="insertSpacing"></a>void QBoxLayout::insertSpacing ( int <i>index</i>, int <i>size</i> )</h3>
 <p>Inserts a non-stretchable space (a <a href="qspaceritem.html">QSpacerItem</a>) at position <i>index</i>, with size <i>size</i>. If <i>index</i> is negative the space is added at the end.</p>
 <p>The box layout has default margin and spacing. This function adds additional space.</p>
@@ -177,8 +187,8 @@
 <p>See also <a href="qlayout.html#spacing-prop">QLayout::spacing</a>() and <a href="qboxlayout.html#setSpacing">setSpacing</a>().</p>
 <p /><address><hr /><div align="center">
 <table width="100%" cellspacing="0" border="0"><tr class="address">
-<td width="30%">Copyright &copy; 2008 <a href="trolltech.html">Trolltech</a></td>
+<td width="30%" align="left">Copyright &copy; 2008 Nokia</td>
 <td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
-<td width="30%" align="right"><div align="right">Qt 4.3.6</div></td>
+<td width="30%" align="right"><div align="right">Qt 4.4.3</div></td>
 </tr></table></div></address></body>
 </html>

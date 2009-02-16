@@ -1,43 +1,34 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,6 +44,8 @@
 #include <private/qwindowsurface_qws_p.h>
 #include <private/qwsdisplay_qws_p.h>
 
+QT_BEGIN_NAMESPACE
+
 #ifdef Q_WS_QWS
 #ifndef QT_NO_DIRECTPAINTER
 
@@ -62,11 +55,9 @@
     \ingroup qws
 
     \brief The QDirectPainter class provides direct access to the
-    underlying hardware in Qtopia Core.
+    underlying hardware in Qt for Embedded Linux.
 
-    \preliminary
-
-    Note that this class is only available in \l {Qtopia Core}.
+    Note that this class is only available in \l{Qt for Embedded Linux}.
 
     QDirectPainter allows a client application to reserve a region of
     the framebuffer and render directly onto the screen. There are two
@@ -133,7 +124,7 @@
     the screenDepth(), screenWidth() and screenHeight() function
     return the screen metrics.
 
-    \sa QScreen, QWSEmbedWidget, {Qtopia Core Architecture}
+    \sa QScreen, QWSEmbedWidget, {Qt for Embedded Linux Architecture}
 */
 
 /*!
@@ -226,7 +217,7 @@ void qt_directpainter_region(QDirectPainter *dp, const QRegion &alloc, int type)
         r = screen->mapToDevice(r, screenSize);
     }
     if (type == QWSRegionEvent::Allocation) {
-        d->surface->setClipRegion(r);
+        d->surface->setClipRegion(alloc);
         d->seenRegion = true;
         if (dp != QDirectPainterPrivate::staticPainter) {
             if (!d->surface->flushingRegionEvents) // recursion guard
@@ -238,8 +229,15 @@ void qt_directpainter_region(QDirectPainter *dp, const QRegion &alloc, int type)
 #ifndef QT_NO_QWSEMBEDWIDGET
 void qt_directpainter_embedevent(QDirectPainter *dp, const QWSEmbedEvent *event)
 {
-    if (event->type | QWSEmbedEvent::Region)
-        dp->setRegion(event->region);
+    if (event->type | QWSEmbedEvent::Region) {
+        QScreen *screen = dp->d_func()->surface->screen();
+        QRegion r = event->region;
+        if (screen->isTransformed()) {
+            const QSize screenSize(screen->width(), screen->height());
+            r = screen->mapToDevice(r, screenSize);
+        }
+        dp->setRegion(r);
+    }
 }
 #endif
 
@@ -320,7 +318,15 @@ void QDirectPainter::setRegion(const QRegion &region)
 {
     Q_D(QDirectPainter);
     d->requested_region = region;
-    d->surface->setRegion(region);
+
+    const QScreen *screen = d->surface->screen();
+    if (screen->isTransformed()) {
+        const QSize devSize(screen->deviceWidth(), screen->deviceHeight());
+        const QRegion r = screen->mapFromDevice(region, devSize);
+        d->surface->setRegion(r);
+    } else {
+        d->surface->setRegion(region);
+    }
 }
 
 /*!
@@ -356,7 +362,13 @@ QRegion QDirectPainter::requestedRegion() const
 QRegion QDirectPainter::allocatedRegion() const
 {
     Q_D(const QDirectPainter);
-    return d->surface->region();
+    const QScreen *screen = d->surface->screen();
+    if (screen->isTransformed()) {
+        const QSize screenSize(screen->width(), screen->height());
+        return screen->mapToDevice(d->surface->region(), screenSize);
+    } else {
+        return d->surface->region();
+    }
 }
 
 /*!
@@ -392,7 +404,6 @@ void QDirectPainter::regionChanged(const QRegion &region)
 }
 
 /*!
-    \preliminary
     \since 4.2
 
     Call this function before you start updating the pixels in the
@@ -414,14 +425,20 @@ void QDirectPainter::regionChanged(const QRegion &region)
 */
 void QDirectPainter::startPainting(bool lockDisplay)
 {
-    Q_UNUSED(lockDisplay);
-
     Q_D(QDirectPainter);
-    d->surface->beginPaint(d->surface->region());
+    d->surface->setLocking(lockDisplay);
+
+    const QScreen *screen = d->surface->screen();
+    if (screen->isTransformed()) {
+        const QSize devSize(screen->deviceWidth(), screen->deviceHeight());
+        const QRegion r = screen->mapFromDevice(d->surface->region(), devSize);
+        d->surface->beginPaint(r);
+    } else {
+        d->surface->beginPaint(d->surface->region());
+    }
 }
 
 /*!
-    \preliminary
     \since 4.2
 
     Call this function when you are done updating the screen. It will
@@ -431,11 +448,18 @@ void QDirectPainter::startPainting(bool lockDisplay)
 void QDirectPainter::endPainting()
 {
     Q_D(QDirectPainter);
-    d->surface->endPaint(d->surface->region());
+
+    const QScreen *screen = d->surface->screen();
+    if (screen->isTransformed()) {
+        const QSize devSize(screen->deviceWidth(), screen->deviceHeight());
+        const QRegion r = screen->mapFromDevice(d->surface->region(), devSize);
+        d->surface->endPaint(r);
+    } else {
+        d->surface->endPaint(d->surface->region());
+    }
 }
 
 /*!
-    \preliminary
     \since 4.3
     \overload
 
@@ -450,7 +474,6 @@ void QDirectPainter::endPainting(const QRegion &region)
 }
 
 /*!
-    \preliminary
     \since 4.3
 
     Flushes the \a region onto the screen.
@@ -458,7 +481,15 @@ void QDirectPainter::endPainting(const QRegion &region)
 void QDirectPainter::flush(const QRegion &region)
 {
     Q_D(QDirectPainter);
-    d->surface->flush(0, region, QPoint());
+
+    const QScreen *screen = d->surface->screen();
+    if (screen->isTransformed()) {
+        const QSize devSize(screen->deviceWidth(), screen->deviceHeight());
+        const QRegion r = screen->mapFromDevice(region, devSize);
+        d->surface->flush(0, r, QPoint());
+    } else {
+        d->surface->flush(0, region, QPoint());
+    }
 }
 
 /*!
@@ -615,19 +646,16 @@ int QDirectPainter::linestep()
 
 
 /*!
-  \warning This function is not yet implemented.
-
   Locks access to the framebuffer.
 
   Note that calling this function will prevent all other
-  applications from working until unlock() is called.
+  applications from updating the display until unlock() is called.
 
   \sa unlock()
 */
 void QDirectPainter::lock()
 {
-    //###
-    qDebug("QDirectPainter::lock() not implemented");
+    QWSDisplay::grab(true);
 }
 /*!
   \warning This function is not yet implemented.
@@ -639,10 +667,11 @@ void QDirectPainter::lock()
  */
 void QDirectPainter::unlock()
 {
-    //###
-    qDebug("QDirectPainter::unlock() not implemented");
+    QWSDisplay::ungrab();
 }
 
 #endif //QT_NO_DIRECTPAINTER
 
 #endif
+
+QT_END_NAMESPACE

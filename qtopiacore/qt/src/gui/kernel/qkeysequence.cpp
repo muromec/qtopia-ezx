@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -64,6 +58,8 @@
 # define QMAC_ALT  QChar(kOptionUnicode)
 # define QMAC_SHIFT QChar(kShiftUnicode)
 #endif
+
+QT_BEGIN_NAMESPACE
 
 #ifdef Q_WS_MAC
 static bool qt_sequence_no_mnemonics = true;
@@ -107,12 +103,7 @@ void Q_GUI_EXPORT qt_set_sequence_auto_mnemonic(bool b) { qt_sequence_no_mnemoni
     printing a document, and can be specified in any of the following
     ways:
 
-    \code
-    QKeySequence(QKeySequence::Print}
-    QKeySequence(tr("Ctrl+P"))
-    QKeySequence(tr("Ctrl+p"))
-    QKeySequence(Qt::CTRL + Qt::Key_P)
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qkeysequence.cpp 0
 
     Note that, for letters, the case used in the specification string does not
     matter. In the above examples, the user does not need to hold down the
@@ -180,7 +171,7 @@ void Q_GUI_EXPORT qt_set_sequence_auto_mnemonic(bool b) { qt_sequence_no_mnemoni
     \row    \i PreviousChild    \i Ctrl+Shift+Tab, Back, Ctrl+Shift+F6  \i Ctrl+{, Back, Ctrl+Shift+Tab \i Ctrl+Shift+Tab, Back, Ctrl+Period \i Ctrl+Shift+Tab, Back
     \row    \i Find             \i Ctrl+F                               \i Ctrl+F                   \i Ctrl+F         \i Ctrl+F
     \row    \i FindNext         \i F3, Ctrl+G                           \i Ctrl+G                   \i F3             \i Ctrl+G, F3
-    \row    \i FindPrevious     \i Shift+F3, Ctrl+Shift+G               \i Ctrl+Shift+G             \i Shift+F3       \i Ctrl+Shift+G, F3
+    \row    \i FindPrevious     \i Shift+F3, Ctrl+Shift+G               \i Ctrl+Shift+G             \i Shift+F3       \i Ctrl+Shift+G, Shift+F3
     \row    \i Replace          \i Ctrl+H                               \i (none)                   \i Ctrl+R         \i Ctrl+H
     \row    \i SelectAll        \i Ctrl+A                               \i Ctrl+A                   \i Ctrl+A         \i Ctrl+A 
     \row    \i Bold             \i Ctrl+B                               \i Ctrl+B                   \i Ctrl+B         \i Ctrl+B
@@ -279,10 +270,10 @@ void Q_GUI_EXPORT qt_set_sequence_auto_mnemonic(bool b) { qt_sequence_no_mnemoni
     For example, the key sequence, \key{Ctrl X} followed by \key{Ctrl C}, can
     be specified using either of the following ways:
 
-    \code
-    QKeySequence(tr("Ctrl+X, Ctrl+C"))
-    QKeySequence(Qt::CTRL + Qt::Key_X, Qt::CTRL + Qt::Key_C)
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qkeysequence.cpp 1
+
+    \warning A QApplication instance must have been constructed before a
+             QKeySequence is created; otherwise, your application may crash.
 
     \sa QShortcut
 */
@@ -518,8 +509,8 @@ const QKeyBinding QKeySequencePrivate::keyBindings[] = {
     {QKeySequence::AddTab,                  1,          Qt::CTRL | Qt::SHIFT | Qt::Key_N,       QApplicationPrivate::KB_KDE},
     {QKeySequence::Redo,                    0,          Qt::CTRL | Qt::SHIFT | Qt::Key_Z,       QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
     {QKeySequence::Redo,                    1,          Qt::CTRL | Qt::SHIFT | Qt::Key_Z,       QApplicationPrivate::KB_Mac}, //different priority from above
-    {QKeySequence::PreviousChild,           1,          Qt::CTRL | Qt::SHIFT | Qt::Key_Tab,     QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
-    {QKeySequence::PreviousChild,           0,          Qt::CTRL | Qt::SHIFT | Qt::Key_Tab,     QApplicationPrivate::KB_Mac },//different priority from above 
+    {QKeySequence::PreviousChild,           1,          Qt::CTRL | Qt::SHIFT | Qt::Key_Backtab, QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
+    {QKeySequence::PreviousChild,           0,          Qt::CTRL | Qt::SHIFT | Qt::Key_Backtab, QApplicationPrivate::KB_Mac },//different priority from above 
     {QKeySequence::SelectStartOfDocument,   0,          Qt::CTRL | Qt::SHIFT | Qt::Key_Home,    QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
     {QKeySequence::SelectEndOfDocument,     0,          Qt::CTRL | Qt::SHIFT | Qt::Key_End,     QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
     {QKeySequence::SelectPreviousWord,      0,          Qt::CTRL | Qt::SHIFT | Qt::Key_Left,    QApplicationPrivate::KB_Win | QApplicationPrivate::KB_X11},
@@ -680,11 +671,7 @@ QKeySequence::QKeySequence()
     \endlink(), so that shortcut keys can be replaced in
     translations:
 
-    \code
-        QMenu *file = new QMenu(this);
-        file->addAction(tr("&Open..."), this, SLOT(open()),
-                          QKeySequence(tr("Ctrl+O", "File|Open")));
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_kernel_qkeysequence.cpp 2
 
     Note the "File|Open" translator comment. It is by no means
     necessary, but it provides some context for the human translator.
@@ -736,11 +723,12 @@ QList<QKeySequence> QKeySequence::keyBindings(StandardKey key)
     QList <QKeySequence> list;
     for (uint i = 0; i < QKeySequencePrivate::numberOfKeyBindings ; ++i) {
         QKeyBinding keyBinding = QKeySequencePrivate::keyBindings[i];
-        if (keyBinding.standardKey == key && (keyBinding.platform & platform))
+        if (keyBinding.standardKey == key && (keyBinding.platform & platform)) {
             if (keyBinding.priority > 0) 
                 list.prepend(QKeySequence(QKeySequencePrivate::keyBindings[i].shortcut));    
             else 
                 list.append(QKeySequence(QKeySequencePrivate::keyBindings[i].shortcut));    
+        }
     }
     return list;
 }
@@ -808,6 +796,8 @@ bool QKeySequence::isEmpty() const
     in English. At the time of writing, Microsoft and Open Group do
     not appear to have issued equivalent recommendations for other
     languages.
+
+    \sa qt_set_sequence_auto_mnemonic()
 */
 QKeySequence QKeySequence::mnemonic(const QString &text)
 {
@@ -1383,3 +1373,5 @@ QDebug operator<<(QDebug dbg, const QKeySequence &p)
     \fn DataPtr &QKeySequence::data_ptr()
     \internal
 */
+
+QT_END_NAMESPACE

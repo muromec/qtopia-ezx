@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -53,10 +47,10 @@
 #include <qpolygon.h>
 #include <qtextlayout.h>
 #include <qvarlengtharray.h>
+#include <qmath.h>
 
 #include <private/qbezier_p.h>
 #include <private/qfontengine_p.h>
-#include <private/qmath_p.h>
 #include <private/qnumeric_p.h>
 #include <private/qobject_p.h>
 #include <private/qpathclipper_p.h>
@@ -64,7 +58,6 @@
 #include <private/qtextengine_p.h>
 
 #include <limits.h>
-#include <math.h>
 
 #if 0
 #include <performance.h>
@@ -73,6 +66,8 @@
 #define PM_MEASURE(x)
 #define PM_DISPLAY
 #endif
+
+QT_BEGIN_NAMESPACE
 
 // This value is used to determine the length of control point vectors
 // when approximating arc segments as curves. The factor is multiplied
@@ -88,17 +83,49 @@ QPainterPath qt_stroke_dash(const QPainterPath &path, qreal *dashes, int dashCou
 void qt_find_ellipse_coords(const QRectF &r, qreal angle, qreal length,
                             QPointF* startPoint, QPointF *endPoint)
 {
-#define ANGLE(t) ((t) * 2 * Q_PI / qreal(360.0))
-    qreal a = r.width() / qreal(2.0);
-    qreal b = r.height() / qreal(2.0);
-
-    if (startPoint) {
-        *startPoint = r.center()
-                      + QPointF(a * qCos(ANGLE(angle)), -b * qSin(ANGLE(angle)));
+    if (r.isNull()) {
+        if (startPoint)
+            *startPoint = QPointF();
+        if (endPoint)
+            *endPoint = QPointF();
+        return;
     }
-    if (endPoint) {
-        *endPoint = r.center()
-                    + QPointF(a * qCos(ANGLE(angle + length)), -b * qSin(ANGLE(angle + length)));
+
+    qreal w2 = r.width() / 2;
+    qreal h2 = r.height() / 2;
+
+    qreal angles[2] = { angle, angle + length };
+    QPointF *points[2] = { startPoint, endPoint };
+
+    for (int i = 0; i < 2; ++i) {
+        if (!points[i])
+            continue;
+
+        qreal theta = angles[i] - 360 * qFloor(angles[i] / 360);
+        qreal t = theta / 90;
+        // truncate
+        int quadrant = int(t);
+        t -= quadrant;
+
+        t = qt_t_for_arc_angle(90 * t);
+
+        // swap x and y?
+        if (quadrant & 1)
+            t = 1 - t;
+
+        qreal a, b, c, d;
+        QBezier::coefficients(t, a, b, c, d);
+        QPointF p(a + b + c*QT_PATH_KAPPA, d + c + b*QT_PATH_KAPPA);
+
+        // left quadrants
+        if (quadrant == 1 || quadrant == 2)
+            p.rx() = -p.x();
+
+        // top quadrants
+        if (quadrant == 0 || quadrant == 1)
+            p.ry() = -p.y();
+
+        *points[i] = r.center() + QPointF(w2 * p.x(), h2 * p.y());
     }
 }
 
@@ -124,6 +151,7 @@ static void qt_debug_path(const QPainterPath &path)
 /*!
     \class QPainterPath
     \ingroup multimedia
+    \ingroup shared
 
     \brief The QPainterPath class provides a container for painting operations,
     enabling graphical shapes to be constructed and reused.
@@ -187,22 +215,7 @@ static void qt_debug_path(const QPainterPath &path)
     \row
     \o \inlineimage qpainterpath-construction.png
     \o
-    \code
-        QPainterPath path;
-        path.addRect(20, 20, 60, 60);
-
-        path.moveTo(0, 0);
-        path.cubicTo(99, 0,  50, 50,  99, 99);
-        path.cubicTo(0, 99,  50, 50,  0, 0);
-
-        QPainter painter(this);
-        painter.fillRect(0, 0, 100, 100, Qt::white);
-        painter.setPen(QPen(QColor(79, 106, 25), 1, Qt::SolidLine,
-                            Qt::FlatCap, Qt::MiterJoin));
-        painter.setBrush(QColor(122, 163, 39));
-
-        painter.drawPath(path);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 0
     \endtable
 
     The painter path is initially empty when constructed. We first add
@@ -425,6 +438,16 @@ static void qt_debug_path(const QPainterPath &path)
 */
 
 /*!
+    \since 4.4
+
+    \fn void QPainterPath::addEllipse(const QPointF &center, qreal rx, qreal ry)
+    \overload
+
+    Creates an ellipse positioned at \a{center} with radii \a{rx} and \a{ry},
+    and adds it to the painter path as a closed subpath.
+*/
+
+/*!
     \fn void QPainterPath::addText(qreal x, qreal y, const QFont &font, const QString &text)
     \overload
 
@@ -504,9 +527,9 @@ QPainterPath::QPainterPath(const QPointF &startPoint)
 void QPainterPath::detach_helper()
 {
     QPainterPathPrivate *data = new QPainterPathData(*d_func());
-    data = qAtomicSetPtr(&d_ptr, data);
-    if (data && !data->ref.deref())
-        delete (QPainterPathData *) data;
+    if (d_ptr && !d_ptr->ref.deref())
+        delete d_ptr;
+    d_ptr = data;
 }
 
 /*!
@@ -518,9 +541,9 @@ void QPainterPath::ensureData_helper()
     data->elements.reserve(16);
     QPainterPath::Element e = { 0, 0, QPainterPath::MoveToElement };
     data->elements << e;
-    data = qAtomicSetPtr(&d_ptr, data);
-    if (data && !data->ref.deref())
-        delete (QPainterPathData *) data;
+    if (d_ptr && !d_ptr->ref.deref())
+        delete d_ptr;
+    d_ptr = data;
     Q_ASSERT(d_ptr != 0);
 }
 
@@ -535,10 +558,11 @@ QPainterPath &QPainterPath::operator=(const QPainterPath &other)
 {
     if (other.d_func() != d_func()) {
         QPainterPathPrivate *data = other.d_func();
-        if (data) data->ref.ref();
-        data = qAtomicSetPtr(&d_ptr, data);
-        if (data && !data->ref.deref())
-            delete (QPainterPathData *) data;
+        if (data)
+            data->ref.ref();
+        if (d_ptr && !d_ptr->ref.deref())
+            delete d_ptr;
+        d_ptr = data;
     }
     return *this;
 }
@@ -685,18 +709,7 @@ void QPainterPath::lineTo(const QPointF &p)
     \row
     \o \inlineimage qpainterpath-cubicto.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-
-        QPainterPath myPath;
-        myPath.cubicto(c1, c2, endPoint);
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 1
     \endtable
 
     \sa quadTo(), {QPainterPath#Composing a QPainterPath}{Composing
@@ -815,22 +828,7 @@ void QPainterPath::quadTo(const QPointF &c, const QPointF &e)
     \row
     \o \inlineimage qpainterpath-arcto.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-
-        QPointF center, startPoint;
-
-        QPainterPath myPath;
-        myPath.moveTo(center);
-        myPath.arcTo(boundingRect, startAngle,
-                     sweepLength);
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 2
     \endtable
 
     \sa arcMoveTo(), addEllipse(), QPainter::drawArc(), QPainter::drawPie(),
@@ -855,7 +853,7 @@ void QPainterPath::arcTo(const QRectF &rect, qreal startAngle, qreal sweepLength
     detach();
 
     int point_count;
-    QPointF pts[12];
+    QPointF pts[15];
     QPointF curve_start = qt_curves_for_arc(rect, startAngle, sweepLength, pts, &point_count);
 
     lineTo(curve_start);
@@ -938,19 +936,7 @@ QPointF QPainterPath::currentPosition() const
     \row
     \o \inlineimage qpainterpath-addrectangle.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-        QRectF myRectangle;
-
-        QPainterPath myPath;
-        myPath.addRect(myRectangle);
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 3
     \endtable
 
     \sa addRegion(), lineTo(), {QPainterPath#Composing a
@@ -991,19 +977,7 @@ void QPainterPath::addRect(const QRectF &r)
     \row
     \o \inlineimage qpainterpath-addpolygon.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-        QPolygonF myPolygon;
-
-        QPainterPath myPath;
-        myPath.addPolygon(myPolygon);
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 4
     \endtable
 
     \sa lineTo(), {QPainterPath#Composing a QPainterPath}{Composing
@@ -1039,19 +1013,7 @@ void QPainterPath::addPolygon(const QPolygonF &polygon)
     \row
     \o \inlineimage qpainterpath-addellipse.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-        QRectF boundingRectangle;
-
-        QPainterPath myPath;
-        myPath.addEllipse(boundingRectangle);
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 5
     \endtable
 
     \sa arcTo(), QPainter::drawEllipse(), {QPainterPath#Composing a
@@ -1075,7 +1037,7 @@ void QPainterPath::addEllipse(const QRectF &boundingRect)
 
     QPointF pts[12];
     int point_count;
-    QPointF start = qt_curves_for_arc(boundingRect, 0, 360, pts, &point_count);
+    QPointF start = qt_curves_for_arc(boundingRect, 0, -360, pts, &point_count);
 
     moveTo(start);
     cubicTo(pts[0], pts[1], pts[2]);           // 0 -> 270
@@ -1097,20 +1059,7 @@ void QPainterPath::addEllipse(const QRectF &boundingRect)
     \row
     \o \inlineimage qpainterpath-addtext.png
     \o
-    \code
-        QLinearGradient myGradient;
-        QPen myPen;
-        QFont myFont;
-        QPointF baseline(x, y);
-
-        QPainterPath myPath;
-        myPath.addText(baseline, myFont, tr("Qt"));
-
-        QPainter painter(this);
-        painter.setBrush(myGradient);
-        painter.setPen(myPen);
-        painter.drawPath(myPath);
-    \endcode
+    \snippet doc/src/snippets/code/src_gui_painting_qpainterpath.cpp 6
     \endtable
 
     \sa QPainter::drawText(), {QPainterPath#Composing a
@@ -1149,7 +1098,7 @@ void QPainterPath::addText(const QPointF &point, const QFont &f, const QString &
         int item = visualOrder[i];
         QScriptItem &si = eng->layoutData->items[item];
 
-        if (!si.isTab && !si.isObject) {
+        if (si.analysis.flags < QScriptAnalysis::TabOrObject) {
             QGlyphLayout *glyphs = eng->glyphs(&si);
             QFontEngine *fe = f.d->engineForScript(si.analysis.script);
             Q_ASSERT(fe);
@@ -1340,22 +1289,26 @@ static QRectF qt_painterpath_bezier_extrema(const QBezier &b)
         qreal bx = QT_BEZIER_B(b, x);
         qreal cx = QT_BEZIER_C(b, x);
         // specialcase quadratic curves to avoid div by zero
-        if (qFuzzyCompare(ax, 0)) {
+        if (qFuzzyCompare(ax + 1, 1)) {
 
             // linear curves are covered by initialization.
-            if (!qFuzzyCompare(bx, 0)) {
+            if (!qFuzzyCompare(bx + 1, 1)) {
                 qreal t = -cx / bx;
                 QT_BEZIER_CHECK_T(b, t);
             }
 
         } else {
-            qreal temp = qSqrt(bx * bx - 4 * ax * cx);
-            qreal rcp = 1 / (2 * ax);
-            qreal t1 = (-bx + temp) * rcp;
-            QT_BEZIER_CHECK_T(b, t1);
+            const qreal tx = bx * bx - 4 * ax * cx;
 
-            qreal t2 = (-bx - temp) * rcp;
-            QT_BEZIER_CHECK_T(b, t2);
+            if (tx >= 0) {
+                qreal temp = qSqrt(tx);
+                qreal rcp = 1 / (2 * ax);
+                qreal t1 = (-bx + temp) * rcp;
+                QT_BEZIER_CHECK_T(b, t1);
+
+                qreal t2 = (-bx - temp) * rcp;
+                QT_BEZIER_CHECK_T(b, t2);
+            }
         }
     }
 
@@ -1366,22 +1319,26 @@ static QRectF qt_painterpath_bezier_extrema(const QBezier &b)
         qreal cy = QT_BEZIER_C(b, y);
 
         // specialcase quadratic curves to avoid div by zero
-        if (qFuzzyCompare(ay, 0)) {
+        if (qFuzzyCompare(ay + 1, 1)) {
 
             // linear curves are covered by initialization.
-            if (!qFuzzyCompare(by, 0)) {
+            if (!qFuzzyCompare(by + 1, 1)) {
                 qreal t = -cy / by;
                 QT_BEZIER_CHECK_T(b, t);
             }
 
         } else {
-            qreal temp = qSqrt(by * by - 4 * ay * cy);
-            qreal rcp = 1 / (2 * ay);
-            qreal t1 = (-by + temp) * rcp;
-            QT_BEZIER_CHECK_T(b, t1);
+            const qreal ty = by * by - 4 * ay * cy;
 
-            qreal t2 = (-by - temp) * rcp;
-            QT_BEZIER_CHECK_T(b, t2);
+            if (ty > 0) {
+                qreal temp = qSqrt(ty);
+                qreal rcp = 1 / (2 * ay);
+                qreal t1 = (-by + temp) * rcp;
+                QT_BEZIER_CHECK_T(b, t1);
+
+                qreal t2 = (-by - temp) * rcp;
+                QT_BEZIER_CHECK_T(b, t2);
+            }
         }
     }
     return QRectF(minx, miny, maxx - minx, maxy - miny);
@@ -1395,7 +1352,7 @@ static QRectF qt_painterpath_bezier_extrema(const QBezier &b)
 */
 QRectF QPainterPath::boundingRect() const
 {
-    if (isEmpty())
+    if (!d_ptr)
         return QRectF();
     QPainterPathData *d = d_func();
 
@@ -1416,7 +1373,7 @@ QRectF QPainterPath::boundingRect() const
 */
 QRectF QPainterPath::controlPointRect() const
 {
-    if (isEmpty())
+    if (!d_ptr)
         return QRectF();
     QPainterPathData *d = d_func();
 
@@ -1429,8 +1386,8 @@ QRectF QPainterPath::controlPointRect() const
 /*!
     \fn bool QPainterPath::isEmpty() const
 
-    Returns true if there are no elements in this path, otherwise
-    returns false.
+    Returns true if either there are no elements in this path, or if the only
+    element is a MoveToElement; otherwise returns false.
 
     \sa elementCount()
 */
@@ -1557,7 +1514,7 @@ static inline bool rect_intersects(const QRectF &r1, const QRectF &r2)
 }
 
 /*!
-    Converts the path into a list of polygons using the 
+    Converts the path into a list of polygons using the
     QTransform \a matrix, and returns the list.
 
     The function differs from the toFillPolygon() function in that it
@@ -1659,7 +1616,10 @@ QList<QPolygonF> QPainterPath::toFillPolygons(const QTransform &matrix) const
         if (!subpath_list.isEmpty()) {
             QPolygonF buildUp;
             for (int j=0; j<subpath_list.size(); ++j) {
-                buildUp += subpaths.at(subpath_list.at(j));
+                const QPolygonF &subpath = subpaths.at(subpath_list.at(j));
+                buildUp += subpath;
+                if (!subpath.isClosed())
+                    buildUp += subpath.first();
                 if (!buildUp.isClosed())
                     buildUp += buildUp.first();
             }
@@ -1726,7 +1686,7 @@ static void qt_painterpath_isect_curve(const QBezier &bezier, const QPointF &pt,
 
         // hit lower limit... This is a rough threshold, but its a
         // tradeoff between speed and precision.
-        const qreal lower_bound = .001;
+        const qreal lower_bound = qreal(.001);
         if (bounds.width() < lower_bound && bounds.height() < lower_bound) {
             // We make the assumption here that the curve starts to
             // approximate a line after while (i.e. that it doesn't
@@ -1891,7 +1851,7 @@ static bool qt_isect_curve_horizontal(const QBezier &bezier, qreal y, qreal x1, 
 
     if (y >= bounds.top() && y < bounds.bottom()
         && bounds.right() >= x1 && bounds.left() < x2) {
-        const qreal lower_bound = .01;
+        const qreal lower_bound = qreal(.01);
         if (bounds.width() < lower_bound && bounds.height() < lower_bound)
             return true;
 
@@ -1910,7 +1870,7 @@ static bool qt_isect_curve_vertical(const QBezier &bezier, qreal x, qreal y1, qr
 
     if (x >= bounds.left() && x < bounds.right()
         && bounds.bottom() >= y1 && bounds.top() < y2) {
-        const qreal lower_bound = .01;
+        const qreal lower_bound = qreal(.01);
         if (bounds.width() < lower_bound && bounds.height() < lower_bound)
             return true;
 
@@ -1995,7 +1955,20 @@ static bool qt_painterpath_check_crossing(const QPainterPath *path, const QRectF
 */
 bool QPainterPath::intersects(const QRectF &rect) const
 {
-    if (isEmpty() || !controlPointRect().intersects(rect))
+    if (elementCount() == 1 && rect.contains(elementAt(0)))
+        return true;
+
+    if (isEmpty())
+        return false;
+
+    QRectF cp = controlPointRect();
+    QRectF rn = rect.normalized();
+
+    // QRectF::intersects returns false if one of the rects is a null rect
+    // which would happen for a painter path consisting of a vertical or
+    // horizontal line
+    if (qMax(rn.left(), cp.left()) > qMin(rn.right(), cp.right())
+        || qMax(rn.top(), cp.top()) > qMin(rn.bottom(), cp.bottom()))
         return false;
 
     // If any path element cross the rect its bound to be an intersection
@@ -2021,7 +1994,6 @@ bool QPainterPath::intersects(const QRectF &rect) const
 
 /*!
     \fn bool QPainterPath::contains(const QRectF &rectangle) const
-    \overload
 
     Returns true if the given \a rectangle is inside the path,
     otherwise returns false.
@@ -2100,6 +2072,11 @@ bool QPainterPath::contains(const QRectF &rect) const
     return true;
 }
 
+static inline bool epsilonCompare(const QPointF &a, const QPointF &b, const QSizeF &epsilon)
+{
+    return qAbs(a.x() - b.x()) <= epsilon.width()
+        && qAbs(a.y() - b.y()) <= epsilon.height();
+}
 
 /*!
     Returns true if this painterpath is equal to the given \a path.
@@ -2117,10 +2094,23 @@ bool QPainterPath::operator==(const QPainterPath &path) const
         return true;
     else if (!d || !path.d_func())
         return false;
-    bool equal = d->fillRule == path.d_func()->fillRule && d->elements.size() == path.d_func()->elements.size();
-    for (int i = 0; i < d->elements.size() && equal; ++i)
-        equal = d->elements.at(i) == path.d_func()->elements.at(i);
-    return equal;
+    else if (d->fillRule != path.d_func()->fillRule)
+        return false;
+    else if (d->elements.size() != path.d_func()->elements.size())
+        return false;
+
+    const qreal qt_epsilon = sizeof(qreal) == sizeof(double) ? 1e-12 : qreal(1e-5);
+
+    QSizeF epsilon = boundingRect().size();
+    epsilon.rwidth() *= qt_epsilon;
+    epsilon.rheight() *= qt_epsilon;
+
+    for (int i = 0; i < d->elements.size(); ++i)
+        if (d->elements.at(i).type != path.d_func()->elements.at(i).type
+            || !epsilonCompare(d->elements.at(i), path.d_func()->elements.at(i), epsilon))
+            return false;
+
+    return true;
 }
 
 /*!
@@ -2338,6 +2328,8 @@ QPainterPath QPainterPathStroker::createStroke(const QPainterPath &path) const
 {
     QPainterPathStrokerPrivate *d = const_cast<QPainterPathStrokerPrivate *>(d_func());
     QPainterPath stroke;
+    if (path.isEmpty())
+        return path;
     if (d->dashPattern.isEmpty()) {
         d->stroker.strokePath(path, &stroke, QTransform());
     } else {
@@ -2512,15 +2504,15 @@ void QPainterPathStroker::setDashOffset(qreal offset)
 /*!
   Converts the path into a polygon using the QTransform
   \a matrix, and returns the polygon.
-  
+
   The polygon is created by first converting all subpaths to
   polygons, then using a rewinding technique to make sure that
   overlapping subpaths can be filled using the correct fill rule.
-  
+
   Note that rewinding inserts addition lines in the polygon so
   the outline of the fill polygon does not match the outline of
   the path.
-  
+
   \sa toSubpathPolygons(), toFillPolygons(),
   {QPainterPath#QPainterPath Conversion}{QPainterPath Conversion}
 */
@@ -2666,7 +2658,8 @@ static inline QBezier bezierAtT(const QPainterPath &path, qreal t, qreal *starti
     qreal curLen = 0;
     qreal totalLength = path.length();
 
-    for (int i=0; i < path.elementCount(); ++i) {
+    const int lastElement = path.elementCount() - 1;
+    for (int i=0; i <= lastElement; ++i) {
         const QPainterPath::Element &e = path.elementAt(i);
 
         switch (e.type) {
@@ -2677,7 +2670,7 @@ static inline QBezier bezierAtT(const QPainterPath &path, qreal t, qreal *starti
             QLineF line(path.elementAt(i-1), e);
             qreal llen = line.length();
             curLen += llen;
-            if (curLen/totalLength >= t) {
+            if (i == lastElement || curLen/totalLength >= t) {
                 *bezierLength = llen;
                 QPointF a = path.elementAt(i-1);
                 QPointF delta = e - a;
@@ -2694,7 +2687,7 @@ static inline QBezier bezierAtT(const QPainterPath &path, qreal t, qreal *starti
             qreal blen = b.length();
             curLen += blen;
 
-            if (curLen/totalLength >= t) {
+            if (i + 2 == lastElement || curLen/totalLength >= t) {
                 *bezierLength = blen;
                 return b;
             }
@@ -2735,15 +2728,15 @@ QPointF QPainterPath::pointAtPercent(qreal t) const
     QBezier b = bezierAtT(*this, t, &curLen, &bezierLen);
     qreal realT = (totalLength * t - curLen) / bezierLen;
 
-    return b.pointAt(realT);
+    return b.pointAt(qBound(qreal(0), realT, qreal(1)));
 }
 
 /*!
-    Returns the angle perpendicular to the slope of the path at the
-    percentage \a t. The angle is constructed with the reference frame
-    of the horizontal (x) axis and the left side of the path (left as
-    defined by the direction of the path).
+    Returns the angle of the path tangent at the percentage \a t.
     The argument \a t has to be between 0 and 1.
+
+    Positive values for the angles mean counter-clockwise while negative values
+    mean the clockwise direction. Zero degrees is at the 3 o'clock position.
 
     Note that similarly to the other percent methods, the percentage measurment
     is not linear with regards to the length if curves are present
@@ -2765,41 +2758,13 @@ qreal QPainterPath::angleAtPercent(qreal t) const
 
     qreal m1 = slopeAt(realT, bez.x1, bez.x2, bez.x3, bez.x4);
     qreal m2 = slopeAt(realT, bez.y1, bez.y2, bez.y3, bez.y4);
-    //tangent line
-    qreal slope = 0;
 
-#define SIGN(x) ((x < 0)?-1:1)
-    qreal angle = 0;
-    if (m1) {
-        slope = m2/m1;
-        angle = (atan((-slope)/(1.0))*180./Q_PI);
-    } else {
-        if (m2 > 0) {
-            angle = -90;
-        } else {
-            angle = 90;
-        }
-    }
-
-    //adjust the angle so that it's in the direction
-    //in which the path is going
-    if (m1 >= 0 && m2 >= 0) {
-        //Quadrant 1
-        angle *= -1;
-    } else if (m1 <  0 && m2 >= 0) {
-        //Quadrant 2
-        angle = 180 - angle;
-    } else if (m1 <  0 && m2 < 0) {
-        //Quadrant 3
-        angle = -180-angle;
-    } else if (m1 >= 0 && m2 < 0) {
-        //Quadrant 4
-        angle *= -1;
-    }
-
-    return angle;
+    return QLineF(0, 0, m1, m2).angle();
 }
 
+#if defined(Q_OS_WINCE)
+#pragma warning( disable : 4056 4756 )
+#endif
 
 /*!
     Returns the slope of the path at the percentage \a t. The
@@ -2848,15 +2813,82 @@ qreal QPainterPath::slopeAtPercent(qreal t) const
 }
 
 /*!
+  \since 4.4
+
+  Adds the given rectangle \a rect with rounded corners to the path.
+
+  The \a xRadius and \a yRadius arguments specify the radii of
+  the ellipses defining the corners of the rounded rectangle.
+  When \a mode is Qt::RelativeSize, \a xRadius and
+  \a yRadius are specified in percentage of half the rectangle's
+  width and height respectively, and should be in the range 0.0 to 100.0.
+
+  \sa addRect()
+*/
+void QPainterPath::addRoundedRect(const QRectF &rect, qreal xRadius, qreal yRadius,
+                                  Qt::SizeMode mode)
+{
+    QRectF r = rect.normalized();
+
+    if (r.isNull())
+        return;
+
+    if (mode == Qt::AbsoluteSize) {
+        qreal w = r.width() / 2;
+        qreal h = r.height() / 2;
+
+        xRadius = 100 * qMin(xRadius, w) / w;
+        yRadius = 100 * qMin(yRadius, h) / h;
+    } else {
+        if (xRadius > 100)                          // fix ranges
+            xRadius = 100;
+
+        if (yRadius > 100)
+            yRadius = 100;
+    }
+
+    if (xRadius <= 0 || yRadius <= 0) {             // add normal rectangle
+        addRect(r);
+        return;
+    }
+
+    qreal x = r.x();
+    qreal y = r.y();
+    qreal w = r.width();
+    qreal h = r.height();
+    qreal rxx2 = w*xRadius/100;
+    qreal ryy2 = h*yRadius/100;
+
+    ensureData();
+    detach();
+
+    arcMoveTo(x, y, rxx2, ryy2, 90);
+    arcTo(x, y, rxx2, ryy2, 90, 90);
+    arcTo(x, y+h-ryy2, rxx2, ryy2, 2*90, 90);
+    arcTo(x+w-rxx2, y+h-ryy2, rxx2, ryy2, 3*90, 90);
+    arcTo(x+w-rxx2, y, rxx2, ryy2, 0, 90);
+    closeSubpath();
+
+    d_func()->require_moveTo = true;
+}
+
+/*!
+  \fn void QPainterPath::addRoundedRect(qreal x, qreal y, qreal w, qreal h, qreal xRadius, qreal yRadius, Qt::SizeMode mode = Qt::AbsoluteSize);
+  \since 4.4
+  \overload
+
+  Adds the given rectangle \a x, \a y, \a w, \a h  with rounded corners to the path.
+ */
+
+/*!
+  \obsolete
+
   Adds a rectangle \a r with rounded corners to the path.
 
   The \a xRnd and \a yRnd arguments specify how rounded the corners
   should be. 0 is angled corners, 99 is maximum roundedness.
 
-  A filled rectangle has a size of r.size(). A stroked rectangle has a
-  size of r.size() plus the pen width.
-
-  \sa addRect(), QPen
+  \sa addRoundedRect()
 */
 void QPainterPath::addRoundRect(const QRectF &r, int xRnd, int yRnd)
 {
@@ -2878,15 +2910,8 @@ void QPainterPath::addRoundRect(const QRectF &r, int xRnd, int yRnd)
     qreal y = rect.y();
     qreal w = rect.width();
     qreal h = rect.height();
-    qreal rxx = w*xRnd/200;
-    qreal ryy = h*yRnd/200;
-    // were there overflows?
-    if (rxx < 0)
-        rxx = w/200*xRnd;
-    if (ryy < 0)
-        ryy = h/200*yRnd;
-    qreal rxx2 = 2*rxx;
-    qreal ryy2 = 2*ryy;
+    qreal rxx2 = w*xRnd/100;
+    qreal ryy2 = h*yRnd/100;
 
     ensureData();
     detach();
@@ -2902,6 +2927,8 @@ void QPainterPath::addRoundRect(const QRectF &r, int xRnd, int yRnd)
 }
 
 /*!
+  \obsolete
+
   \fn bool QPainterPath::addRoundRect(const QRectF &rect, int roundness);
   \since 4.3
   \overload
@@ -2914,22 +2941,28 @@ void QPainterPath::addRoundRect(const QRectF &r, int xRnd, int yRnd)
   method if you want a rectangle equally rounded across both the X and
   Y axis.
 
-  \sa addRoundRect()
+  \sa addRoundedRect()
 */
 
 /*!
+  \obsolete
+
   \fn void QPainterPath::addRoundRect(qreal x, qreal y, qreal w, qreal h, int xRnd, int yRnd);
   \overload
 
   Adds a rectangle with rounded corners to the path. The rectangle
   is constructed from \a x, \a y, and the width and height \a w
   and \a h.
-  
+
   The \a xRnd and \a yRnd arguments specify how rounded the corners
   should be. 0 is angled corners, 99 is maximum roundedness.
+
+  \sa addRoundedRect()
  */
 
 /*!
+  \obsolete
+
   \fn bool QPainterPath::addRoundRect(qreal x, qreal y, qreal width, qreal height, int roundness);
   \since 4.3
   \overload
@@ -2943,13 +2976,13 @@ void QPainterPath::addRoundRect(const QRectF &r, int xRnd, int yRnd)
   method if you want a rectangle equally rounded across both the X and
   Y axis.
 
-  \sa addRoundRect()
+  \sa addRoundedRect()
 */
 
 /*!
     \since 4.3
 
-    Returns a path which is the union of this path and \a p.
+    Returns a path which is the union of this path's fill area and \a p's fill area.
 
     \sa intersected(), subtracted(), subtractedInverted()
 */
@@ -2964,7 +2997,7 @@ QPainterPath QPainterPath::united(const QPainterPath &p) const
 /*!
     \since 4.3
 
-    Returns a path which is the intersection of this path and \a p.
+    Returns a path which is the intersection of this path's fill area and \a p's fill area.
 */
 QPainterPath QPainterPath::intersected(const QPainterPath &p) const
 {
@@ -2977,7 +3010,7 @@ QPainterPath QPainterPath::intersected(const QPainterPath &p) const
 /*!
     \since 4.3
 
-    Returns a path which is \a p subtracted from this path.
+    Returns a path which is \a p's fill area subtracted from this path's fill area.
 */
 QPainterPath QPainterPath::subtracted(const QPainterPath &p) const
 {
@@ -2989,8 +3022,11 @@ QPainterPath QPainterPath::subtracted(const QPainterPath &p) const
 
 /*!
     \since 4.3
+    \obsolete
 
-    Returns a path which is this path subtracted from \a p.
+    Use subtracted() instead.
+
+    \sa subtracted()
 */
 QPainterPath QPainterPath::subtractedInverted(const QPainterPath &p) const
 {
@@ -2998,15 +3034,32 @@ QPainterPath QPainterPath::subtractedInverted(const QPainterPath &p) const
 }
 
 /*!
+    \since 4.4
+
+    Returns a simplified version of this path. This implies merging all subpaths that intersect,
+    and returning a path containing no intersecting edges. Consecutive parallel lines will also
+    be merged. The simplified path will always use the default fill rule, Qt::OddEvenFill.
+*/
+QPainterPath QPainterPath::simplified() const
+{
+    if(isEmpty())
+        return *this;
+    QPathClipper clipper(*this, QPainterPath());
+    return clipper.clip(QPathClipper::Simplify);
+}
+
+/*!
   \since 4.3
 
-  Returns true if the current path intersects at any point the
-  given path \a p. The intersection will return false if the path
-  is fully contained within this path (use contains() to check for that
-  case).
+  Returns true if the current path intersects at any point the given path \a p.
+  Also returns true if the current path contains or is contained by any part of \a p.
+
+  \sa contains()
  */
 bool QPainterPath::intersects(const QPainterPath &p) const
 {
+    if (p.elementCount() == 1)
+        return contains(p.elementAt(0));
     if (isEmpty() || p.isEmpty())
         return false;
     QPathClipper clipper(*this, p);
@@ -3017,10 +3070,15 @@ bool QPainterPath::intersects(const QPainterPath &p) const
   \since 4.3
 
   Returns true if the given path \a p is contained within
-  the current path.
+  the current path. Returns false if any edges of the current path and
+  \a p intersect.
+
+  \sa intersects()
  */
 bool QPainterPath::contains(const QPainterPath &p) const
 {
+    if (p.elementCount() == 1)
+        return contains(p.elementAt(0));
     if (isEmpty() || p.isEmpty())
         return false;
     QPathClipper clipper(*this, p);
@@ -3037,7 +3095,7 @@ void QPainterPath::computeBoundingRect() const
 {
     QPainterPathData *d = d_func();
     d->dirtyBounds = false;
-    if (isEmpty()) {
+    if (!d_ptr) {
         d->bounds = QRect();
         return;
     }
@@ -3079,11 +3137,12 @@ void QPainterPath::computeBoundingRect() const
     d->bounds = QRectF(minx, miny, maxx - minx, maxy - miny);
 }
 
+
 void QPainterPath::computeControlPointRect() const
 {
     QPainterPathData *d = d_func();
     d->dirtyControlBounds = false;
-    if (isEmpty()) {
+    if (!d_ptr) {
         d->controlBounds = QRect();
         return;
     }
@@ -3100,3 +3159,18 @@ void QPainterPath::computeControlPointRect() const
     }
     d->controlBounds = QRectF(minx, miny, maxx - minx, maxy - miny);
 }
+
+#ifndef QT_NO_DEBUG_STREAM
+QDebug operator<<(QDebug s, const QPainterPath &p)
+{
+    s.nospace() << "QPainterPath: Element count=" << p.elementCount() << endl;
+    const char *types[] = {"MoveTo", "LineTo", "CurveTo", "CurveToData"};
+    for (int i=0; i<p.elementCount(); ++i) {
+        s.nospace() << " -> " << types[p.elementAt(i).type] << "(x=" << p.elementAt(i).x << ", y=" << p.elementAt(i).y << ")" << endl;
+
+    }
+    return s;
+}
+#endif
+
+QT_END_NAMESPACE

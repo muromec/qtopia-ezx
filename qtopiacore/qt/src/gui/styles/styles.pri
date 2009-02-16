@@ -16,7 +16,11 @@ SOURCES += \
 	styles/qcommonstyle.cpp \
 	styles/qstylesheetstyle.cpp
 
-RESOURCES += styles/qstyle.qrc
+!wince* {
+        RESOURCES += styles/qstyle.qrc
+} else {
+        RESOURCES += styles/qstyle_wince.qrc
+}
 
 contains( styles, all ) {
 	styles = mac windows windowsxp windowsvista
@@ -115,3 +119,18 @@ contains( styles, motif ) {
 } else {
 	DEFINES += QT_NO_STYLE_MOTIF
 }
+
+contains( styles, windowsce ) {
+	HEADERS += styles/qwindowscestyle.h
+	SOURCES += styles/qwindowscestyle.cpp
+} else {
+	DEFINES += QT_NO_STYLE_WINDOWSCE
+}
+
+contains( styles, windowsmobile ) {
+	HEADERS += styles/qwindowsmobilestyle.h
+	SOURCES += styles/qwindowsmobilestyle.cpp
+} else {
+	DEFINES += QT_NO_STYLE_WINDOWSMOBILE
+}
+

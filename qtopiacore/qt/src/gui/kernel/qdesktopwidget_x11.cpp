@@ -1,56 +1,54 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the QtGui module of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
-#include "qvariant.h"
-#include "qdesktopwidget.h"
 #include "qapplication.h"
+#include "qdesktopwidget.h"
+#include "qlibrary.h"
 #include "qt_x11_p.h"
-#include "qx11info_x11.h"
+#include "qvariant.h"
 #include "qwidget_p.h"
+#include "qx11info_x11.h"
 #include <limits.h>
+
+QT_BEGIN_NAMESPACE
 
 // defined in qwidget_x11.cpp
 extern int qt_x11_create_desktop_on_screen;
+
 
 // function to update the workarea of the screen
 static bool qt_desktopwidget_workarea_dirty = true;
@@ -114,7 +112,7 @@ QDesktopWidgetPrivate::~QDesktopWidgetPrivate()
             screens[i] = 0;
         }
 
-        delete [] screens;
+        free (screens);
     }
 
     if (rects)     delete [] rects;
@@ -124,30 +122,45 @@ QDesktopWidgetPrivate::~QDesktopWidgetPrivate()
 void QDesktopWidgetPrivate::init()
 {
     // get the screen count
+    int newScreenCount = ScreenCount(X11->display);
 #ifndef QT_NO_XINERAMA
+
     XineramaScreenInfo *xinerama_screeninfo = 0;
-    int unused;
-    use_xinerama = (XineramaQueryExtension(X11->display, &unused, &unused) && XineramaIsActive(X11->display));
+
+    // we ignore the Xinerama extension when using the display is
+    // using traditional multi-screen (with multiple root windows)
+    if (newScreenCount == 1
+        && X11->ptrXineramaQueryExtension
+        && X11->ptrXineramaIsActive
+        && X11->ptrXineramaQueryScreens) {
+        int unused;
+        use_xinerama = (X11->ptrXineramaQueryExtension(X11->display, &unused, &unused)
+                        && X11->ptrXineramaIsActive(X11->display));
+    }
 
     if (use_xinerama) {
         xinerama_screeninfo =
-            XineramaQueryScreens(X11->display, &screenCount);
+            X11->ptrXineramaQueryScreens(X11->display, &newScreenCount);
+    }
+
+    if (xinerama_screeninfo) {
         defaultScreen = 0;
-    } else
+     } else
 #endif // QT_NO_XINERAMA
     {
         defaultScreen = DefaultScreen(X11->display);
-        screenCount = ScreenCount(X11->display);
+        newScreenCount = ScreenCount(X11->display);
+        use_xinerama = false;
     }
 
     delete [] rects;
-    rects     = new QRect[screenCount];
+    rects     = new QRect[newScreenCount];
     delete [] workareas;
-    workareas = new QRect[screenCount];
+    workareas = new QRect[newScreenCount];
 
     // get the geometry of each screen
-    int i, x, y, w, h;
-    for (i = 0; i < screenCount; i++) {
+    int i, j, x, y, w, h;
+    for (i = 0, j = 0; i < newScreenCount; i++, j++) {
 
 #ifndef QT_NO_XINERAMA
         if (use_xinerama) {
@@ -164,11 +177,33 @@ void QDesktopWidgetPrivate::init()
                 h = HeightOfScreen(ScreenOfDisplay(X11->display, i));
             }
 
-        rects[i].setRect(x, y, w, h);
+        rects[j].setRect(x, y, w, h);
+
+        if (use_xinerama && j > 0 && rects[j-1].intersects(rects[j])) {
+            // merge a "cloned" screen with the previous, hiding all crtcs
+            // that are currently showing a sub-rect of the previous screen
+            if ((rects[j].width()*rects[j].height()) >
+                (rects[j-1].width()*rects[j-1].height()))
+                rects[j-1] = rects[j];
+            j--;
+        }
+
         workareas[i] = QRect();
     }
 
+    if (screens) {
+        // leaks QWidget* pointers on purpose, can't delete them as pointer escapes
+        screens = (QWidget**) realloc(screens, j * sizeof(QWidget*));
+        if (j > screenCount)
+            memset(&screens[screenCount], 0, (j-screenCount) * sizeof(QWidget*));
+    }
+
+    screenCount = j;
+
 #ifndef QT_NO_XINERAMA
+    if (use_xinerama && screenCount == 1)
+        use_xinerama = false;
+
     if (xinerama_screeninfo)
         XFree(xinerama_screeninfo);
 #endif // QT_NO_XINERAMA
@@ -216,8 +251,7 @@ QWidget *QDesktopWidget::screen(int screen)
         screen = d->defaultScreen;
 
     if (! d->screens) {
-        d->screens = new QWidget*[d->screenCount];
-        memset(d->screens, 0, d->screenCount * sizeof(QWidget *));
+        d->screens = (QWidget**) calloc( d->screenCount, sizeof(QWidget*));
         d->screens[d->defaultScreen] = this;
     }
 
@@ -247,7 +281,8 @@ const QRect QDesktopWidget::availableGeometry(int screen) const
     if (d->workareas[screen].isValid())
         return d->workareas[screen];
 
-    if (! isVirtualDesktop() && X11->isSupportedByWM(ATOM(_NET_WORKAREA))) {
+    if ((d->screenCount == 1 || !isVirtualDesktop())
+        && X11->isSupportedByWM(ATOM(_NET_WORKAREA))) {
         Atom ret;
         int format, e;
         unsigned char *data = 0;
@@ -337,3 +372,5 @@ void QDesktopWidget::resizeEvent(QResizeEvent *event)
     qt_desktopwidget_workarea_dirty = true;
     QWidget::resizeEvent(event);
 }
+
+QT_END_NAMESPACE

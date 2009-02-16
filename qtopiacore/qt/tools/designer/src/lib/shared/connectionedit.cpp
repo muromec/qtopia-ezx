@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the Qt Designer of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -52,8 +46,13 @@
 #include <QtGui/QPixmap>
 #include <QtGui/QMatrix>
 #include <QtGui/QApplication>
+#include <QtGui/QContextMenuEvent>
+#include <QtGui/QMenu>
+#include <QtGui/QAction>
 
 #include <QtCore/QMultiMap>
+
+QT_BEGIN_NAMESPACE
 
 static const int BG_ALPHA =              32;
 static const int LINE_PROXIMITY_RADIUS =  3;
@@ -77,7 +76,7 @@ static QRect expand(const QRect &r, int i)
     return QRect(r.x() - i, r.y() - i, r.width() + 2*i, r.height() + 2*i);
 }
 
-static QRect endPointRect(const QPoint &pos)
+static QRect endPointRectHelper(const QPoint &pos)
 {
     const QRect r(pos + QPoint(-LINE_PROXIMITY_RADIUS, -LINE_PROXIMITY_RADIUS),
                   QSize(2*LINE_PROXIMITY_RADIUS, 2*LINE_PROXIMITY_RADIUS));
@@ -507,7 +506,7 @@ void Connection::updateKneeList()
         }
     } else {
         if (r.height() < sr.height() + tr.height()) {
-            if (s.y() >= tr.top() && s.y() <= tr.bottom() || t.y() >= sr.bottom() || t.y() <= sr.top()) {
+            if ((s.y() >= tr.top() && s.y() <= tr.bottom()) || (t.y() >= sr.bottom() || t.y() <= sr.top())) {
 /*
                 +--------+
                 |        |   +--------+
@@ -547,7 +546,7 @@ void Connection::updateKneeList()
                 m_knee_list.append(QPoint(t.x(), s.y()));
             }
         } else if (r.width() < sr.width() + tr.width()) {
-            if (s.x() >= tr.left() && s.x() <= tr.right() || t.x() >= sr.right() || t.x() <= sr.left()) {
+            if ((s.x() >= tr.left() && s.x() <= tr.right()) || t.x() >= sr.right() || t.x() <= sr.left()) {
 /*
                 +--------+
                 |        |
@@ -789,10 +788,10 @@ QRect Connection::endPointRect(EndPoint::Type type) const
 {
     if (type == EndPoint::Source) {
         if (m_source_pos != QPoint(-1, -1))
-            return ::endPointRect(m_source_pos);
+            return endPointRectHelper(m_source_pos);
     } else {
         if (m_target_pos != QPoint(-1, -1))
-            return ::endPointRect(m_target_pos);
+            return endPointRectHelper(m_target_pos);
     }
     return QRect();
 }
@@ -1136,15 +1135,24 @@ void ConnectionEdit::abortConnection()
     m_tmp_con->update();
     delete m_tmp_con;
     m_tmp_con = 0;
+#ifndef QT_NO_CURSOR
     setCursor(QCursor());
+#endif
     if (m_widget_under_mouse == m_bg_widget)
         m_widget_under_mouse = 0;
 }
 
 void ConnectionEdit::mousePressEvent(QMouseEvent *e)
 {
-    e->accept();
+    // Right click only to cancel
+    const Qt::MouseButton button = e->button();
+    const State cstate = state();
+    if (button != Qt::LeftButton && !(button == Qt::RightButton && cstate == Connecting)) {
+        QWidget::mousePressEvent(e);
+        return;
+    }
 
+    e->accept();
     // Prefer a non-background widget over the connection,
     // otherwise, widgets covered by the connection labels cannot be accessed
     Connection *con_under_mouse = 0;
@@ -1152,9 +1160,9 @@ void ConnectionEdit::mousePressEvent(QMouseEvent *e)
         con_under_mouse = connectionAt(e->pos());
 
     m_start_connection_on_drag = false;
-    switch (state()) {
+    switch (cstate) {
         case Connecting:
-            if (e->button() == Qt::RightButton)
+            if (button == Qt::RightButton)
                 abortConnection();
             break;
         case Dragging:
@@ -1184,6 +1192,11 @@ void ConnectionEdit::mousePressEvent(QMouseEvent *e)
 
 void ConnectionEdit::mouseDoubleClickEvent(QMouseEvent *e)
 {
+    if (e->button() != Qt::LeftButton) {
+        QWidget::mouseDoubleClickEvent(e);
+        return;
+    }
+
     e->accept();
     switch (state()) {
         case Connecting:
@@ -1205,6 +1218,10 @@ void ConnectionEdit::mouseDoubleClickEvent(QMouseEvent *e)
 
 void ConnectionEdit::mouseReleaseEvent(QMouseEvent *e)
 {
+    if (e->button() != Qt::LeftButton) {
+        QWidget::mouseReleaseEvent(e);
+        return;
+    }
     e->accept();
 
     switch (state()) {
@@ -1213,7 +1230,9 @@ void ConnectionEdit::mouseReleaseEvent(QMouseEvent *e)
                 abortConnection();
             else
                 endConnection(m_widget_under_mouse, e->pos());
+#ifndef QT_NO_CURSOR
             setCursor(QCursor());
+#endif
             break;
         case Editing:
             break;
@@ -1246,10 +1265,12 @@ void ConnectionEdit::findObjectsUnderMouse(const QPoint &pos)
 
     const EndPoint hs = endPointAt(pos);
     if (hs != m_end_point_under_mouse) {
+#ifndef QT_NO_CURSOR
         if (m_end_point_under_mouse.isNull())
             setCursor(Qt::PointingHandCursor);
         else
             setCursor(QCursor());
+#endif
         m_end_point_under_mouse = hs;
     }
 }
@@ -1267,7 +1288,9 @@ void ConnectionEdit::mouseMoveEvent(QMouseEvent *e)
                     && !m_widget_under_mouse.isNull()) {
                 m_start_connection_on_drag = false;
                 startConnection(m_widget_under_mouse, e->pos());
+#ifndef QT_NO_CURSOR
                 setCursor(Qt::CrossCursor);
+#endif
             }
             break;
         case Dragging:
@@ -1391,6 +1414,14 @@ void ConnectionEdit::selectNone()
     m_sel_con_set.clear();
 }
 
+void ConnectionEdit::selectAll()
+{
+    if (m_sel_con_set.size() == m_con_list.size())
+        return;
+    foreach (Connection *con, m_con_list)
+        setSelected(con, true);
+}
+
 Connection *ConnectionEdit::connectionAt(const QPoint &pos) const
 {
     foreach (Connection *con, m_con_list) {
@@ -1503,4 +1534,44 @@ void ConnectionEdit::setTarget(Connection *con, const QString &obj_name)
     m_undo_stack->push(new SetEndPointCommand(this, con, EndPoint::Target, object));
 }
 
+Connection *ConnectionEdit::takeConnection(Connection *con)
+{
+    if (!m_con_list.contains(con))
+        return 0;
+    m_con_list.removeAll(con);
+    return con;
+}
+
+void ConnectionEdit::clearNewlyAddedConnection()
+{
+    delete m_tmp_con;
+    m_tmp_con = 0;
+}
+
+void ConnectionEdit::createContextMenu(QMenu &menu)
+{
+    // Select
+    QAction *selectAllAction = menu.addAction(tr("Select All"));
+    selectAllAction->setEnabled(connectionList().size());
+    connect(selectAllAction, SIGNAL(triggered()), this, SLOT(selectAll()));
+    QAction *deselectAllAction = menu.addAction(tr("Deselect All"));
+    deselectAllAction->setEnabled(selection().size());
+    connect(deselectAllAction, SIGNAL(triggered()), this, SLOT(selectNone()));
+    menu.addSeparator();
+    // Delete
+    QAction *deleteAction = menu.addAction(tr("Delete"));
+    deleteAction->setShortcut(QKeySequence::Delete);
+    deleteAction->setEnabled(!selection().isEmpty());
+    connect(deleteAction, SIGNAL(triggered()), this, SLOT(deleteSelected()));
+}
+
+void ConnectionEdit::contextMenuEvent(QContextMenuEvent * event)
+{
+    QMenu menu;
+    createContextMenu(menu);
+    menu.exec(event->globalPos());
+}
+
 } // namespace qdesigner_internal
+
+QT_END_NAMESPACE

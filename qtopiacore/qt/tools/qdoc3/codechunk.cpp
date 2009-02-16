@@ -1,43 +1,37 @@
 /****************************************************************************
 **
-** Copyright (C) 1992-2008 Trolltech ASA. All rights reserved.
+** Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies).
+** Contact: Qt Software Information (qt-info@nokia.com)
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
-** This file may be used under the terms of the GNU General Public
-** License versions 2.0 or 3.0 as published by the Free Software
-** Foundation and appearing in the files LICENSE.GPL2 and LICENSE.GPL3
-** included in the packaging of this file.  Alternatively you may (at
-** your option) use any later version of the GNU General Public
-** License if such license has been publicly approved by Trolltech ASA
-** (or its successors, if any) and the KDE Free Qt Foundation. In
-** addition, as a special exception, Trolltech gives you certain
-** additional rights. These rights are described in the Trolltech GPL
-** Exception version 1.2, which can be found at
-** http://www.trolltech.com/products/qt/gplexception/ and in the file
-** GPL_EXCEPTION.txt in this package.
+** Commercial Usage
+** Licensees holding valid Qt Commercial licenses may use this file in
+** accordance with the Qt Commercial License Agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Nokia.
 **
-** Please review the following information to ensure GNU General
-** Public Licensing requirements will be met:
-** http://trolltech.com/products/qt/licenses/licensing/opensource/. If
-** you are unsure which license is appropriate for your use, please
-** review the following information:
-** http://trolltech.com/products/qt/licenses/licensing/licensingoverview
-** or contact the sales department at sales@trolltech.com.
 **
-** In addition, as a special exception, Trolltech, as the sole
-** copyright holder for Qt Designer, grants users of the Qt/Eclipse
-** Integration plug-in the right for the Qt/Eclipse Integration to
-** link to functionality provided by Qt Designer and its related
-** libraries.
+** GNU General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License versions 2.0 or 3.0 as published by the Free
+** Software Foundation and appearing in the file LICENSE.GPL included in
+** the packaging of this file.  Please review the following information
+** to ensure GNU General Public Licensing requirements will be met:
+** http://www.fsf.org/licensing/licenses/info/GPLv2.html and
+** http://www.gnu.org/copyleft/gpl.html.  In addition, as a special
+** exception, Nokia gives you certain additional rights. These rights
+** are described in the Nokia Qt GPL Exception version 1.3, included in
+** the file GPL_EXCEPTION.txt in this package.
 **
-** This file is provided "AS IS" with NO WARRANTY OF ANY KIND,
-** INCLUDING THE WARRANTIES OF DESIGN, MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE. Trolltech reserves all rights not expressly
-** granted herein.
+** Qt for Windows(R) Licensees
+** As a special exception, Nokia, as the sole copyright holder for Qt
+** Designer, grants users of the Qt/Eclipse Integration plug-in the
+** right for the Qt/Eclipse Integration to link to functionality
+** provided by Qt Designer and its related libraries.
 **
-** This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
-** WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+** If you are unsure which license is appropriate for your use, please
+** contact the sales department at qt-sales@nokia.com.
 **
 ****************************************************************************/
 
@@ -49,6 +43,8 @@
 #include <qstringlist.h>
 
 #include "codechunk.h"
+
+QT_BEGIN_NAMESPACE
 
 enum { Other, Alnum, Gizmo, Comma, LParen, RParen, RAngle, Colon };
 
@@ -102,67 +98,28 @@ static int category( QChar ch )
 }
 
 CodeChunk::CodeChunk()
-    : s( "" ), bstart( -1 ), blen( 0 ), hotspot( -1 )
+    : hotspot( -1 )
 {
 }
 
 CodeChunk::CodeChunk( const QString& str )
-    : s( str ), bstart( 0 ), hotspot( -1 )
+    : s( str ), hotspot( -1 )
 {
-    /*
-      That's good enough for base class names.
-    */
-    blen = str.indexOf( QChar('<') );
-    if ( blen == -1 )
-	blen = str.length();
-    b = str.left( blen );
-}
-
-CodeChunk::CodeChunk( const CodeChunk& chk )
-    : s( chk.s ), b( chk.b ), bstart( chk.bstart ), blen( chk.blen ),
-      hotspot( chk.hotspot )
-{
-}
-
-CodeChunk& CodeChunk::operator=( const CodeChunk& chk )
-{
-    s = chk.s;
-    b = chk.b;
-    bstart = chk.bstart;
-    blen = chk.blen;
-    hotspot = chk.hotspot;
-    return *this;
 }
 
 void CodeChunk::append( const QString& lexeme )
 {
     if ( !s.isEmpty() && !lexeme.isEmpty() ) {
-	/*
-	  Should there be a space or not between the code chunk so far and the
-	  new lexeme?
-	*/
-        int cat1 = category(s.right(1)[0]);
+        /*
+          Should there be a space or not between the code chunk so far and the
+          new lexeme?
+        */
+        int cat1 = category(s.at(s.size() - 1));
         int cat2 = category(lexeme[0]);
-	if ( needSpace[cat1][cat2] )
-	    s += QChar( ' ' );
+        if ( needSpace[cat1][cat2] )
+            s += QLatin1Char( ' ' );
     }
     s += lexeme;
-}
-
-void CodeChunk::appendBase( const QString& lexeme )
-{
-    append( lexeme );
-
-    /*
-      The first base is the right one.  If many bases follow each other, they
-      form the base together.
-    */
-    if ( bstart == -1 )
-	bstart = s.length() - lexeme.length();
-    if ( bstart + blen + lexeme.length() == s.length() ) {
-	blen += lexeme.length();
-	b = s.mid( bstart, blen );
-    }
 }
 
 void CodeChunk::appendHotspot()
@@ -171,7 +128,7 @@ void CodeChunk::appendHotspot()
       The first hotspot is the right one.
     */
     if ( hotspot == -1 )
-	hotspot = s.length();
+        hotspot = s.length();
 }
 
 QString CodeChunk::toString() const
@@ -182,6 +139,8 @@ QString CodeChunk::toString() const
 QStringList CodeChunk::toPath() const
 {
     QString t = s;
-    t.remove(QRegExp("<([^<>]|<([^<>]|<[^<>]*>)*>)*>"));
-    return t.split("::");
+    t.remove(QRegExp(QLatin1String("<([^<>]|<([^<>]|<[^<>]*>)*>)*>")));
+    return t.split(QLatin1String("::"));
 }
+
+QT_END_NAMESPACE
