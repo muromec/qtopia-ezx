@@ -234,19 +234,19 @@ void PlaylistMenuModel::setPlaylist( QExplicitlySharedDataPointer<Playlist> play
 
     m_playlist = playlist;
 
-    if ( m_playlist == NULL )
+    if ( m_playlist.data() == NULL )
         return;
 
     // Connect to new playlist
-    connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+    connect( m_playlist.data(), SIGNAL(playingChanged(QModelIndex)),
         this, SLOT(emitDataChanged()) );
-    connect( m_playlist, SIGNAL(rowsAboutToBeInserted(QModelIndex,int,int)),
+    connect( m_playlist.data(), SIGNAL(rowsAboutToBeInserted(QModelIndex,int,int)),
         this, SLOT(doBeginInsertRows(QModelIndex,int,int)) );
-    connect( m_playlist, SIGNAL(rowsInserted(QModelIndex,int,int)),
+    connect( m_playlist.data(), SIGNAL(rowsInserted(QModelIndex,int,int)),
         this, SLOT(doEndInsertRows()) );
-    connect( m_playlist, SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
+    connect( m_playlist.data(), SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
         this, SLOT(doBeginRemoveRows(QModelIndex,int,int)) );
-    connect( m_playlist, SIGNAL(rowsRemoved(QModelIndex,int,int)),
+    connect( m_playlist.data(), SIGNAL(rowsRemoved(QModelIndex,int,int)),
         this, SLOT(doEndRemoveRows()) );
 
     // Determine if playlist is a My Shuffle playlist
@@ -1207,7 +1207,7 @@ void ItemDelegate::paint( QPainter* painter, const QStyleOptionViewItem& option,
             switch( m_helpicon )
             {
             case Cue:
-                painter->drawPixmap( topleft, m_iconcache.pixmap( ADD_ICON_ID, 
+                painter->drawPixmap( topleft, m_iconcache.pixmap( ADD_ICON_ID,
                     ":icon/mediaplayer/black/add", QSize( iconwidth, iconwidth ) ) );
                 break;
             case PlayNow:
@@ -2227,11 +2227,11 @@ void MediaBrowser::setCurrentPlaylist( QExplicitlySharedDataPointer<Playlist> pl
 
         m_playlist = playlist;
 
-        if ( m_playlist == NULL)
+        if ( m_playlist.data() == NULL)
             return;
 
         // Connect to new playlist
-        connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+        connect( m_playlist.data(), SIGNAL(playingChanged(QModelIndex)),
             this, SLOT(enableNowPlaying()) );
     }
     m_currentplaylistmenu->setPlaylist( playlist );
@@ -2246,7 +2246,7 @@ bool MediaBrowser::hasBack() const
 
 void MediaBrowser::goBack()
 {
-    m_history->setIndex( m_view->currentIndex().row() ); 
+    m_history->setIndex( m_view->currentIndex().row() );
 
     m_stack->pop();
 

@@ -412,11 +412,11 @@ void PlaylistLabel::setPlaylist( QExplicitlySharedDataPointer<Playlist> playlist
     } else {
 
         // Connect to new playlist
-        connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+        connect( m_playlist.data(), SIGNAL(playingChanged(QModelIndex)),
             this, SLOT(updateLabel()) );
-        connect( m_playlist, SIGNAL(rowsInserted(QModelIndex,int,int)),
+        connect( m_playlist.data(), SIGNAL(rowsInserted(QModelIndex,int,int)),
             this, SLOT(updateLabel()) );
-        connect( m_playlist, SIGNAL(rowsRemoved(QModelIndex,int,int)),
+        connect( m_playlist.data(), SIGNAL(rowsRemoved(QModelIndex,int,int)),
             this, SLOT(updateLabel()) );
 
         updateLabel();
@@ -1072,7 +1072,7 @@ void TrackInfoDialog::setPlaylist( QExplicitlySharedDataPointer<Playlist> playli
     m_playlist = playlist;
 
     // Connect to new playlist
-    connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+    connect( m_playlist.data(), SIGNAL(playingChanged(QModelIndex)),
         this, SLOT(updateInfo()) );
 
     updateInfo();
@@ -1790,11 +1790,11 @@ void PlayerWidget::setPlaylist( QExplicitlySharedDataPointer<Playlist> playlist 
 
     m_playlist = playlist;
 
-    if ( m_playlist == NULL )
+    if ( m_playlist.data() == NULL )
         return;
 
     // Connect to new playlist
-    connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+    connect( m_playlist.data(), SIGNAL(playingChanged(QModelIndex)),
         this, SLOT(playingChanged(QModelIndex)) );
 
     if( m_playlist ) {
@@ -2134,19 +2134,19 @@ void PlayerWidget::keyPressEvent( QKeyEvent* e )
         break;
     case Qt::Key_1:
         e->accept();
-        if( !qobject_cast<MyShufflePlaylist*>(m_playlist) ) {
+        if( !qobject_cast<MyShufflePlaylist*>(m_playlist.data()) ) {
             m_repeatstate->setState( RepeatState::RepeatOne );
         }
         break;
     case Qt::Key_Asterisk:
         e->accept();
-        if( !qobject_cast<MyShufflePlaylist*>(m_playlist) ) {
+        if( !qobject_cast<MyShufflePlaylist*>(m_playlist.data()) ) {
             m_repeatstate->setState( RepeatState::RepeatAll );
         }
         break;
     case Qt::Key_0:
         e->accept();
-        if( !qobject_cast<MyShufflePlaylist*>(m_playlist) ) {
+        if( !qobject_cast<MyShufflePlaylist*>(m_playlist.data()) ) {
             m_repeatstate->setState( RepeatState::RepeatNone );
         }
         break;

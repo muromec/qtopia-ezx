@@ -188,7 +188,7 @@ void MediaPlayer::setPlaylist( QExplicitlySharedDataPointer<Playlist> playlist )
         m_playlist = playlist;
 
         // Connect to new playlist
-        connect( m_playlist, SIGNAL(playingChanged(QModelIndex)),
+        connect( m_playlist.constData(), SIGNAL(playingChanged(QModelIndex)),
             this, SLOT(playingChanged(QModelIndex)) );
     }
 
