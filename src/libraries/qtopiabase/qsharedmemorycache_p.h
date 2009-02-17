@@ -1,13 +1,13 @@
 /****************************************************************************
 **
-** This file is part of the Qtopia Opensource Edition Package.
+** This file is part of the Qt Extended Opensource Package.
 **
-** Copyright (C) 2008 Trolltech ASA.
+** Copyright (C) 2009 Trolltech ASA.
 **
 ** Contact: Qt Extended Information (info@qtextended.org)
 **
 ** This file may be used under the terms of the GNU General Public License
-** versions 2.0 as published by the Free Software Foundation and appearing
+** version 2.0 as published by the Free Software Foundation and appearing
 ** in the file LICENSE.GPL included in the packaging of this file.
 **
 ** Please review the following information to ensure GNU General Public
@@ -17,14 +17,14 @@
 **
 ****************************************************************************/
 
-#ifndef QSHAREDMEMORYCACHE_H
-#define QSHAREDMEMORYCACHE_H
+#ifndef QSHAREDMEMORYCACHE_P_H
+#define QSHAREDMEMORYCACHE_P_H
 
 //
 //  W A R N I N G
 //  -------------
 //
-// This file is not part of the Qtopia API.  It exists purely as an
+// This file is not part of the Qt Extended API.  It exists purely as an
 // implementation detail.  This header file may change from version to
 // version without notice, or even be removed.
 //
@@ -32,7 +32,7 @@
 //
 
 #include <QString>
-#include <QMap>
+#include <QHash>
 
 //#define DEBUG_SHARED_MEMORY_CACHE
 
@@ -40,7 +40,7 @@
 //#  define QT_NO_QWS_SHARED_MEMORY_CACHE
 //#endif
 
-//#define QT_NO_QWS_SHARED_MEMORY_CACHE //XXX just for now.
+//#define QT_NO_QWS_SHARED_MEMORY_CACHE 
 
 #ifdef QT_NO_QWS_SHARED_MEMORY_CACHE
 #define QT_NO_SHARED_FONT_CACHE
@@ -188,7 +188,7 @@ private:
     QSharedMemoryCache *cache;
     QSharedMemoryData *shm;
 
-    mutable QMap<int,char*> localSerialMap;
+    mutable QHash<int,char*> localSerialMap;
     static void derefSharedMemoryPixmap(qint64);
 };
 

@@ -1,13 +1,13 @@
 /****************************************************************************
 **
-** This file is part of the Qtopia Opensource Edition Package.
+** This file is part of the Qt Extended Opensource Package.
 **
-** Copyright (C) 2008 Trolltech ASA.
+** Copyright (C) 2009 Trolltech ASA.
 **
 ** Contact: Qt Extended Information (info@qtextended.org)
 **
 ** This file may be used under the terms of the GNU General Public License
-** versions 2.0 as published by the Free Software Foundation and appearing
+** version 2.0 as published by the Free Software Foundation and appearing
 ** in the file LICENSE.GPL included in the packaging of this file.
 **
 ** Please review the following information to ensure GNU General Public
@@ -27,16 +27,12 @@
 #include <QVector>
 #include <QDebug>
 #include <private/qlock_p.h>
-#include <private/qpixmap_p.h>
+#include <private/qpixmapdata_p.h>
 #include <QStringList>
 #include <qglobal.h>
 
 #include <qwindowdefs.h>
 #include <qbitmap.h>
-
-
-void cleanup_pixmap_cache();
-
 
 #ifndef QT_NO_QWS_SHARED_MEMORY_CACHE
 
@@ -437,7 +433,8 @@ QSharedMemoryManager::QSharedMemoryManager()
     if ( !f.exists() ) {
         if (!f.open(QIODevice::WriteOnly))
             qFatal("%s creating shared memory key file %s",
-                    ( f.error() == QFile::PermissionsError ? "Permissions error" : "Error" ), qPrintable(tmp));
+                    ( f.error() == QFile::PermissionsError ? "Permissions error" :
+                      "Error" ), qPrintable(tmp));
         f.close();
     }
 
@@ -891,7 +888,7 @@ QSMCacheItemPtr QSharedMemoryCache::newItem(const char *key, int size, int type)
 }
 
 
-// XXX "type" is currently ignored, but could be used to find the hash table to look in
+// Optimization: "type" is currently ignored, but could be used to find the hash table to look in
 QSMCacheItemPtr QSharedMemoryCache::findItem(const char *keyStr, bool ref, int /*type*/)
 {
     QLockHandle lh(qt_getSMManager()->lock(),QLock::Read);
@@ -957,7 +954,7 @@ public:
     uint    h : 16;
     uint    d : 6;
     uint    numCols : 8;
-    QImage::Format format;      //XXX should pack
+    QImage::Format format;      //compiler should should pack this correctly
     //uint    mostRecentId; // relative age of the pixmap
 };
 
@@ -973,12 +970,6 @@ void QSharedMemoryManager::derefSharedMemoryPixmap(qint64 s)
 }
 
 
-const QString mangleRot(const QString &key)
-{
-    return QString("%1_$R%2").arg( key ).arg( qt_screen->transformOrientation() );
-}
-
-
 // Nasty - use a friend class not in E to access QPixmap private data
 class QX11PaintEngine {
 public:
@@ -987,9 +978,8 @@ public:
     }
 };
 
-bool QSharedMemoryManager::findPixmap(const QString &key, QPixmap &pm, bool ref) const
+bool QSharedMemoryManager::findPixmap(const QString &k, QPixmap &pm, bool ref) const
 {
-    const QString k = mangleRot(key);
     qLog(SharedMemCache) << "search for" << k;
 
     if ( isGlobalPixmap(k) ) {
@@ -997,17 +987,18 @@ bool QSharedMemoryManager::findPixmap(const QString &key, QPixmap &pm, bool ref)
         PixmapShmItem *item = (PixmapShmItem*)(char*)cache->findItem(k.toLatin1().data(), ref, QSMCacheItem::Pixmap);
 
         if ( item ) {
-            QPixmapData *data = QX11PaintEngine::getPixmapData(pm);
-            data->image = QImage((uchar*)item + sizeof(PixmapShmItem),
+            QPixmapData *data = pm.data_ptr();
+            QImage newimage((uchar*)item + sizeof(PixmapShmItem),
                                 item->w, item->h, item->format);
-            localSerialMap.insert(data->image.serialNumber(), (char*)item);
-            qLog(SharedMemCache) << "Created image" << data->image.width() << "x" << data->image.height() << "format" << data->image.format();
+            localSerialMap.insert(newimage.serialNumber(), (char*)item);
+            qLog(SharedMemCache) << "Created image" << newimage.width() << "x" << newimage.height() << "format" << newimage.format();
             if (item->d <= 8) {
-                data->image.setNumColors(item->numCols);
+                newimage.setNumColors(item->numCols);
                 QVector<QRgb> clut(item->numCols);
-                memcpy(clut.data(), (char*)item+sizeof(PixmapShmItem)+data->image.numBytes(), item->numCols*sizeof(QRgb));
-                data->image.setColorTable(clut);
+                memcpy(clut.data(), (char*)item+sizeof(PixmapShmItem)+newimage.numBytes(), item->numCols*sizeof(QRgb));
+                newimage.setColorTable(clut);
             }
+            data->fromImage(newimage,0);
             qLog(SharedMemCache) << "Found pixmap" << pm.width() << "x" << pm.height();
             return true;
         }
@@ -1015,13 +1006,12 @@ bool QSharedMemoryManager::findPixmap(const QString &key, QPixmap &pm, bool ref)
     return false;
 }
 
-bool QSharedMemoryManager::insertPixmap(const QString& key, const QPixmap &pm)
+bool QSharedMemoryManager::insertPixmap(const QString& k, const QPixmap &pm)
 {
-    const QString k = mangleRot(key);
 
     if (isGlobalPixmap(k)) {
-        QPixmapData *data = QX11PaintEngine::getPixmapData(pm);
-        const QImage &img = data->image;
+        QPixmapData *data = const_cast<QPixmap&>(pm).data_ptr();
+        const QImage &img = data->toImage();
 
         int size = img.numBytes() + sizeof(PixmapShmItem);
         if (img.depth() <= 8)
@@ -1050,15 +1040,16 @@ bool QSharedMemoryManager::insertPixmap(const QString& key, const QPixmap &pm)
             }
 
             // Now replace pixmap's internal image with the one in shared mem
-            data->image = QImage((uchar*)item + sizeof(PixmapShmItem),
+            QImage newimage((uchar*)item + sizeof(PixmapShmItem),
                                 item->w, item->h, item->format);
             if (item->d <= 8) {
-                data->image.setNumColors(item->numCols);
+                newimage.setNumColors(item->numCols);
                 QVector<QRgb> clut(item->numCols);
                 memcpy(clut.data(), (char*)item+sizeof(PixmapShmItem)+img.numBytes(), item->numCols*sizeof(QRgb));
-                data->image.setColorTable(clut);
+                newimage.setColorTable(clut);
             }
-            localSerialMap.insert(data->image.serialNumber(), (char*)item);
+            localSerialMap.insert(newimage.serialNumber(), (char*)item);
+            data->fromImage(newimage,0);
 
             return true;
         }
@@ -1067,9 +1058,8 @@ bool QSharedMemoryManager::insertPixmap(const QString& key, const QPixmap &pm)
 }
 
 // removes a pixmap from the shared memory cache
-void QSharedMemoryManager::removePixmap(const QString &key)
+void QSharedMemoryManager::removePixmap(const QString &k)
 {
-    const QString k = mangleRot(key);
     qLog(SharedMemCache) << "search for" << k;
 
     if ( isGlobalPixmap(k) ) {
@@ -1093,7 +1083,8 @@ void QSharedMemoryManager::removePixmap(const QString &key)
 
 /*!
     \class QGlobalPixmapCache
-    \mainclass
+    \inpublicgroup QtBaseModule
+
 
     \brief The QGlobalPixmapCache class provides a system-wide cache for pixmaps.
 
@@ -1175,7 +1166,7 @@ bool QGlobalPixmapCache::find( const QString &key, QPixmap &pixmap)
     Inserts the pixmap \a pixmap associated with the \a key into
     the global cache.
 
-    All pixmaps inserted by Qtopia have a key starting with "_$QTOPIA",
+    All pixmaps inserted by Qt Extended have a key starting with "_$QTOPIA",
     so your own pixmap keys should never begin with "_$QTOPIA".
 
     The function returns true if the object was inserted into the
@@ -1222,22 +1213,3 @@ void QGlobalPixmapCache::remove( const QString &key )
 }
 
 #endif // QT_NO_QWS_SHARED_MEMORY_CACHE
-
-
-#if 0
-void cleanup_pixmap_cache()
-{
-    delete pm_cache;
-    pm_cache = 0;
-#ifndef QT_NO_QWS_SHARED_MEMORY_CACHE
-# ifdef THROW_AWAY_UNUSED_PAGES
-#  ifdef WHEN_APP_CLOSES_DESTROY_ANY_PIXMAPS_WITH_ZERO_REFERENCES
-    while ( qt_getSMManager()->pixmapCache()->cleanUp() )
-        /*do nothing*/;
-#  endif
-# endif // THROW_AWAY_UNUSED_PAGES
-#endif // QT_NO_QWS_SHARED_MEMORY_CACHE
-}
-
-#endif
-
