@@ -731,7 +731,7 @@ void DialerControl::recordCall( const QPhoneCall &call )
     QCallListItem::CallType ct;
     if( call.dialed() )
         ct = QCallListItem::Dialed;
-    else if( call.hasBeenConnected() )
+    else if( call.hasBeenConnected() || call.state() == QPhoneCall::HangupLocal )
         ct = QCallListItem::Received;
     else {
         ct = QCallListItem::Missed;
