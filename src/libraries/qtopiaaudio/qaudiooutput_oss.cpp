@@ -35,7 +35,7 @@
 
 #include "qaudiooutput.h"
 
-int *qtopia_dsp; 
+int *qtopia_dsp = NULL;
 
 /*!
     \class QAudioOutput
@@ -113,6 +113,7 @@ public:
     ~QAudioOutputPrivate()
     {
         close();
+        qtopia_dsp = NULL;
     }
 
     bool open()
