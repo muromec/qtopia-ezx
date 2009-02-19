@@ -2,6 +2,12 @@
 File=QtopiaServices
 Context=Alert
 [Service]
-Actions = "soundAlert()"
+Actions = "soundAlert();stopAlert()"
 Icon = alarmbell
 Name[]=Sound Alarm
+[stopAlert()]
+Icon = alarmbell
+Name[]=Stop alarm
+[soundAlert()]
+Icon = alarmbell
+Name[]=Start alarm

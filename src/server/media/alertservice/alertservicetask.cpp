@@ -89,16 +89,19 @@ AlertService::~AlertService()
 AlertServiceTask::AlertServiceTask()
 : AlertService(0)
 {
+  soundcontrol = NULL;
 }
 
 /*! \internal */
 void AlertServiceTask::soundAlert()
 {
+    if (soundcontrol)
+      return;
+
     QSettings* cfg = new QSettings ("Trolltech","RingTones");
     QString file = cfg->value("Alarm/file",":sound/alarm.mp3").toString();
 
-    QSoundControl *soundcontrol =
-        new QSoundControl(new QSound(file));
+    soundcontrol = new QSoundControl(new QSound(file));
     soundcontrol->setPriority(QSoundControl::RingTone);
     soundcontrol->sound()->play();
 
@@ -106,12 +109,23 @@ void AlertServiceTask::soundAlert()
                         this, SLOT(playDone()));
 }
 
+void AlertServiceTask::stopAlert()
+{
+    if (!soundcontrol)
+      return;
+
+    soundcontrol->sound()->stop();
+}
+
 void AlertServiceTask::playDone()
 {
-    QSoundControl* soundControl = qobject_cast<QSoundControl*>(sender());
+    if (soundcontrol) {
+      if (soundcontrol->sound())
+        delete soundcontrol->sound();
 
-    soundControl->sound()->deleteLater();
-    soundControl->deleteLater();
+      delete soundcontrol;
+      soundcontrol = NULL;
+    }
 }
 
 QTOPIA_TASK(AlertService, AlertServiceTask);

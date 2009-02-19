@@ -145,6 +145,7 @@ void Alarm::triggerAlarm(const QDateTime &when, int type)
         if ( !alarmDlg->isVisible() ) {
             QtopiaApplication::execDialog(alarmDlg);
             alarmt->stop();
+            Qtopia::stopAlarm();
             setRingPriority(false);
         }
     }

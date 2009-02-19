@@ -82,6 +82,7 @@ namespace Qtopia
     QTOPIABASE_EXPORT bool confirmDelete(QWidget *parent, const QString &caption, const QString &object);
     QTOPIABASE_EXPORT void actionConfirmation(const QPixmap &pix, const QString &text);
     QTOPIABASE_EXPORT void soundAlarm();
+    QTOPIABASE_EXPORT void stopAlarm();
     QTOPIABASE_EXPORT void statusMessage(const QString&);
 
     /*
