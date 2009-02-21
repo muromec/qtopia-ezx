@@ -73,6 +73,7 @@ DialupImpl::DialupImpl( const QString& confFile)
     connect( &thread, SIGNAL(scriptDone()), this, SLOT(updateState()));
 #ifdef QT_QWS_EZX
     control = NULL;
+    gprsv = 0;
 #endif
 }
 
@@ -391,6 +392,7 @@ bool DialupImpl::start( const QVariant /*options*/ )
 }
 #ifdef QT_QWS_EZX
 void DialupImpl::gConnect( const QString& msg ) {
+  int ret;
   qLog(Network) << "AGGRH!" << msg;
 
   if (msg.startsWith("G_CONNECT:")) {
@@ -408,21 +410,26 @@ void DialupImpl::gConnect( const QString& msg ) {
 
     // create interface
     gprsv = ::open (EZX_DATA, O_RDWR|O_NONBLOCK|O_NOCTTY );  // 
+    qLog(Network) << "open mux12" << gprsv;
 
     int unit = 0;
     int disc = 16;
 
-    ioctl( gprsv, TIOCSETD, &disc );
-    ioctl( gprsv, GPRSV_IOC, &unit );
+    ret = ioctl( gprsv, TIOCSETD, &disc );
+    qLog(Network) << "TIOCSETD" << ret;
+    ret = ioctl( gprsv, GPRSV_IOC, &unit );
+    qLog(Network) << "GPRSV_IOC" << ret;
 
     pppIface = QString ("gprsv0");
 
     QStringList args;
+
+    args << "/sbin/ifconfig";
     args << pppIface;
     args << localIp;
     args << "dstaddr" << EZX_IP;
     args << "netmask" << "255.255.255.255";
-    thread.addScriptToRun("/sbin/ifconfig",args);
+    thread.addScriptToRun("/usr/bin/sudo",args);
 
     /*args.clear();
     args << "add" << "default" << pppIface;
@@ -521,6 +528,7 @@ bool DialupImpl::stop()
 #ifdef QTOPIA_CELL
 #ifdef QT_QWS_EZX
         close(gprsv);
+        gprsv = -1;
         QSerialIODeviceMultiplexer::chatWithResponse(control,"AT+CGATT=0");
 
         QStringList down;
@@ -673,6 +681,14 @@ bool DialupImpl::isAvailable() const
 
 bool DialupImpl::isActive() const
 {
+
+#ifdef QT_QWS_EZX
+    if (gprsv >0 )
+      return true;
+    else
+      return false;
+#endif
+
 
     if ( pppIface.isEmpty() ||  device().isEmpty() ) {
         qLog(Network) << "DialupImpl::isActive: no PPP connection active";
