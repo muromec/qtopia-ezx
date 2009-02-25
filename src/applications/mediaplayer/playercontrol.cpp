@@ -109,11 +109,15 @@ void PlayerControl::activate()
 
 void PlayerControl::setMediaContent( QMediaContent* content )
 {
+    if (m_control)
+      m_control->stop();
+
     delete m_control;
     m_control = 0;
 
     m_notifier->setMediaContent( content );
     emit contentChanged( content );
 
+    delete m_content;
     m_content = content;
 }
