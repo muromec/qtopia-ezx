@@ -115,6 +115,5 @@ void PlayerControl::setMediaContent( QMediaContent* content )
     m_notifier->setMediaContent( content );
     emit contentChanged( content );
 
-    delete m_content;
     m_content = content;
 }
