@@ -52,6 +52,8 @@ static const QString  pppDown = Qtopia::qtopiaDir()+"etc/ppp/ip-down";
 #define EZX_CONTROL "/dev/mux6"
 #define EZX_DATA    "/dev/mux12"
 
+int gprsv;
+
 #endif
 
 
