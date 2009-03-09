@@ -1,2 +1,0 @@
-#include <QtNetwork/QtNetwork>
-#include "qassistantclient.h"

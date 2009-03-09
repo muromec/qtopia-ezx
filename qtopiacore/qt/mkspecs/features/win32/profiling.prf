@@ -1,4 +1,0 @@
-wince*:{
-    QMAKE_LFLAGS += cecap.lib
-    QMAKE_CXXFLAGS += /callcap
-}

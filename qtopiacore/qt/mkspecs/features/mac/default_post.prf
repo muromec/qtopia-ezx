@@ -1,2 +1,0 @@
-load(default_post)
-!no_objective_c:CONFIG += objective_c
