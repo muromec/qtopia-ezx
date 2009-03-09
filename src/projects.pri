@@ -13,7 +13,6 @@ DQT_PROJECTS=\
     libraries/qt/corelib\
     libraries/qt/gui\
     libraries/qt/network\
-    libraries/qt/qtestlib\
     libraries/qt/sql\
     libraries/qt/xml\
     libraries/qt/svg\
