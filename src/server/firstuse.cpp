@@ -289,7 +289,7 @@ FirstUse::FirstUse(QWidget *parent, Qt::WFlags f)
 
     setFocusPolicy(Qt::NoFocus);
 
-    taskBar = new QWidget(0, (Qt::Tool | Qt::WindowStaysOnTopHint));
+    taskBar = new QWidget(0, (Qt::Tool | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint));
     taskBar->setAttribute(Qt::WA_GroupLeader, true);
 
 #ifdef USE_INPUTMETHODS
@@ -328,7 +328,7 @@ FirstUse::FirstUse(QWidget *parent, Qt::WFlags f)
     int titleHeight = w->geometry().y() - w->frameGeometry().y();
     delete w;
 
-    titleBar = new QLabel(0, (Qt::Tool |Qt::WindowStaysOnTopHint));
+    titleBar = new QLabel(0, (Qt::Tool | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint));
     titleBar->setAttribute(Qt::WA_GroupLeader, true);
     QPalette pal = titleBar->palette();
     pal.setBrush(QPalette::Background, pal.brush(QPalette::Normal, QPalette::Highlight));
