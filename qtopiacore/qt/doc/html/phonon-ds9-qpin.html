@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: QPin Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QPin Class Reference<br /><span class="small-subtitle">(Phonon::DS9::QPin)<br /></span>
+</h1>
+<p>Inherited by </p>
+<ul>
+<li><a href="phonon-ds9-qpin-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-ds9-qpin.html#QPin">QPin</a></b> ( QBaseFilter * <i>parent</i>, PIN_DIRECTION <i>dir</i>, const QVector&lt;AM_MEDIA_TYPE&gt; &amp; <i>mt</i> )</li>
+<li><div class="fn"></div>virtual <b><a href="phonon-ds9-qpin.html#dtor.QPin">~QPin</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#BeginFlush">BeginFlush</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#Connectx">Connect</a></b> ( IPin *, const AM_MEDIA_TYPE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#ConnectedTo">ConnectedTo</a></b> ( IPin ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#ConnectionMediaType">ConnectionMediaType</a></b> ( AM_MEDIA_TYPE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#Disconnectx">Disconnect</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#EndFlush">EndFlush</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#EndOfStream">EndOfStream</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#EnumMediaTypes">EnumMediaTypes</a></b> ( IEnumMediaTypes ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#NewSegment">NewSegment</a></b> ( REFERENCE_TIME, REFERENCE_TIME, double )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryAccept">QueryAccept</a></b> ( const AM_MEDIA_TYPE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryDirection">QueryDirection</a></b> ( PIN_DIRECTION * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryId">QueryId</a></b> ( LPWSTR * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryInterface">QueryInterface</a></b> ( REFIID <i>iid</i>, void ** <i>out</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryInternalConnections">QueryInternalConnections</a></b> ( IPin **, ULONG * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#QueryPinInfo">QueryPinInfo</a></b> ( PIN_INFO * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qpin.html#ReceiveConnection">ReceiveConnection</a></b> ( IPin *, const AM_MEDIA_TYPE * )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qpin.html#STDMETHODIMP_">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qpin.html#STDMETHODIMP_-2">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div>IPin * <b><a href="phonon-ds9-qpin.html#connected">connected</a></b> ( bool = false ) const</li>
+<li><div class="fn"></div>const AM_MEDIA_TYPE &amp; <b><a href="phonon-ds9-qpin.html#connectedType">connectedType</a></b> () const</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#createDefaultMemoryAllocator">createDefaultMemoryAllocator</a></b> ( ALLOCATOR_PROPERTIES * = 0 )</li>
+<li><div class="fn"></div>PIN_DIRECTION <b><a href="phonon-ds9-qpin.html#direction">direction</a></b> () const</li>
+<li><div class="fn"></div>FILTER_STATE <b><a href="phonon-ds9-qpin.html#filterState">filterState</a></b> () const</li>
+<li><div class="fn"></div>bool <b><a href="phonon-ds9-qpin.html#isFlushing">isFlushing</a></b> () const</li>
+<li><div class="fn"></div>QVector&lt;AM_MEDIA_TYPE&gt; <b><a href="phonon-ds9-qpin.html#mediaTypes">mediaTypes</a></b> () const</li>
+<li><div class="fn"></div>IMemAllocator * <b><a href="phonon-ds9-qpin.html#memoryAllocator">memoryAllocator</a></b> ( bool = false ) const</li>
+<li><div class="fn"></div>HRESULT <b><a href="phonon-ds9-qpin.html#setAcceptedMediaType">setAcceptedMediaType</a></b> ( const AM_MEDIA_TYPE &amp; )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#setConnected">setConnected</a></b> ( IPin * <i>pin</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#setConnectedType">setConnectedType</a></b> ( const AM_MEDIA_TYPE &amp; <i>type</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#setMemoryAllocator">setMemoryAllocator</a></b> ( IMemAllocator * <i>alloc</i> )</li>
+</ul>
+<a name="static-public-members"></a>
+<h3>Static Public Members</h3>
+<ul>
+<li><div class="fn"></div>AM_MEDIA_TYPE <b><a href="phonon-ds9-qpin.html#copyMediaType">copyMediaType</a></b> ( const AM_MEDIA_TYPE &amp; <i>type</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#freeMediaType">freeMediaType</a></b> ( AM_MEDIA_TYPE * <i>type</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qpin.html#freeMediaType-2">freeMediaType</a></b> ( const AM_MEDIA_TYPE &amp; <i>type</i> )</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QPin"></a>QPin::QPin ( <a href="phonon-ds9-qbasefilter.html">QBaseFilter</a> * <i>parent</i>, PIN_DIRECTION <i>dir</i>, const <a href="qvector.html">QVector</a>&lt;AM_MEDIA_TYPE&gt; &amp; <i>mt</i> )</h3>
+<h3 class="fn"><a name="dtor.QPin"></a>QPin::~QPin ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="BeginFlush"></a>STDMETHODIMP QPin::BeginFlush ()</h3>
+<h3 class="fn"><a name="Connectx"></a>STDMETHODIMP QPin::Connect ( IPin *, const AM_MEDIA_TYPE * )</h3>
+<h3 class="fn"><a name="ConnectedTo"></a>STDMETHODIMP QPin::ConnectedTo ( IPin ** )</h3>
+<h3 class="fn"><a name="ConnectionMediaType"></a>STDMETHODIMP QPin::ConnectionMediaType ( AM_MEDIA_TYPE * )</h3>
+<h3 class="fn"><a name="Disconnectx"></a>STDMETHODIMP QPin::Disconnect ()</h3>
+<h3 class="fn"><a name="EndFlush"></a>STDMETHODIMP QPin::EndFlush ()</h3>
+<h3 class="fn"><a name="EndOfStream"></a>STDMETHODIMP QPin::EndOfStream ()</h3>
+<h3 class="fn"><a name="EnumMediaTypes"></a>STDMETHODIMP QPin::EnumMediaTypes ( IEnumMediaTypes ** )</h3>
+<h3 class="fn"><a name="NewSegment"></a>STDMETHODIMP QPin::NewSegment ( REFERENCE_TIME, REFERENCE_TIME, double )</h3>
+<h3 class="fn"><a name="QueryAccept"></a>STDMETHODIMP QPin::QueryAccept ( const AM_MEDIA_TYPE * )</h3>
+<h3 class="fn"><a name="QueryDirection"></a>STDMETHODIMP QPin::QueryDirection ( PIN_DIRECTION * )</h3>
+<h3 class="fn"><a name="QueryId"></a>STDMETHODIMP QPin::QueryId ( LPWSTR * )</h3>
+<h3 class="fn"><a name="QueryInterface"></a>STDMETHODIMP QPin::QueryInterface ( REFIID <i>iid</i>, void ** <i>out</i> )</h3>
+<h3 class="fn"><a name="QueryInternalConnections"></a>STDMETHODIMP QPin::QueryInternalConnections ( IPin **, ULONG * )</h3>
+<h3 class="fn"><a name="QueryPinInfo"></a>STDMETHODIMP QPin::QueryPinInfo ( PIN_INFO * )</h3>
+<h3 class="fn"><a name="ReceiveConnection"></a>STDMETHODIMP QPin::ReceiveConnection ( IPin *, const AM_MEDIA_TYPE * )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_"></a>QPin::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_-2"></a>QPin::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="connected"></a>IPin * QPin::connected ( bool = false ) const</h3>
+<p>See also <a href="phonon-ds9-qpin.html#setConnected">setConnected</a>().</p>
+<h3 class="fn"><a name="connectedType"></a>const AM_MEDIA_TYPE &amp; QPin::connectedType () const</h3>
+<p>See also <a href="phonon-ds9-qpin.html#setConnectedType">setConnectedType</a>().</p>
+<h3 class="fn"><a name="copyMediaType"></a>AM_MEDIA_TYPE QPin::copyMediaType ( const AM_MEDIA_TYPE &amp; <i>type</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<h3 class="fn"><a name="createDefaultMemoryAllocator"></a>void QPin::createDefaultMemoryAllocator ( ALLOCATOR_PROPERTIES * = 0 )</h3>
+<h3 class="fn"><a name="direction"></a>PIN_DIRECTION QPin::direction () const</h3>
+<h3 class="fn"><a name="filterState"></a>FILTER_STATE QPin::filterState () const</h3>
+<h3 class="fn"><a name="freeMediaType"></a>void QPin::freeMediaType ( AM_MEDIA_TYPE * <i>type</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<h3 class="fn"><a name="freeMediaType-2"></a>void QPin::freeMediaType ( const AM_MEDIA_TYPE &amp; <i>type</i> )&nbsp;&nbsp;<tt> [static]</tt></h3>
+<h3 class="fn"><a name="isFlushing"></a>bool QPin::isFlushing () const</h3>
+<h3 class="fn"><a name="mediaTypes"></a><a href="qvector.html">QVector</a>&lt;AM_MEDIA_TYPE&gt; QPin::mediaTypes () const</h3>
+<h3 class="fn"><a name="memoryAllocator"></a>IMemAllocator * QPin::memoryAllocator ( bool = false ) const</h3>
+<p>See also <a href="phonon-ds9-qpin.html#setMemoryAllocator">setMemoryAllocator</a>().</p>
+<h3 class="fn"><a name="setAcceptedMediaType"></a>HRESULT QPin::setAcceptedMediaType ( const AM_MEDIA_TYPE &amp; )</h3>
+<h3 class="fn"><a name="setConnected"></a>void QPin::setConnected ( IPin * <i>pin</i> )</h3>
+<p>See also <a href="phonon-ds9-qpin.html#connected">connected</a>().</p>
+<h3 class="fn"><a name="setConnectedType"></a>void QPin::setConnectedType ( const AM_MEDIA_TYPE &amp; <i>type</i> )</h3>
+<p>See also <a href="phonon-ds9-qpin.html#connectedType">connectedType</a>().</p>
+<h3 class="fn"><a name="setMemoryAllocator"></a>void QPin::setMemoryAllocator ( IMemAllocator * <i>alloc</i> )</h3>
+<p>See also <a href="phonon-ds9-qpin.html#memoryAllocator">memoryAllocator</a>().</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

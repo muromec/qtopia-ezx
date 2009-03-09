@@ -1,0 +1,9 @@
+#ifndef QT_QTSVG_MODULE_H
+#define QT_QTSVG_MODULE_H
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
+#include "qsvgwidget.h"
+#include "qgraphicssvgitem.h"
+#include "qsvgrenderer.h"
+#include "qsvggenerator.h"
+#endif

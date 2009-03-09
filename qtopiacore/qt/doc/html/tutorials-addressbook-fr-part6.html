@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- /fasttmp/mkdist-qt-4.5.0-1235596081/qt-embedded-linux-opensource-src-4.5.0/doc/src/tutorials/addressbook-fr.qdoc -->
+<head>
+  <title>Qt 4.5: Carnet d'Adresses 6 - Sauvegarde et chargement</title>
+  <link rel="prev" href="tutorials-addressbook-fr-part5.html" />
+  <link rel="contents" href="tutorials-addressbook-fr.html" />
+  <link rel="next" href="tutorials-addressbook-fr-part7.html" />
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
+[Previous: <a href="tutorials-addressbook-fr-part5.html">Chapitre 5</a>]
+[<a href="tutorials-addressbook-fr.html">Sommaire</a>]
+[Next: <a href="tutorials-addressbook-fr-part7.html">Chapitre 7</a>]
+</p>
+<h1 class="title">Carnet d'Adresses 6 - Sauvegarde et chargement<br /><span class="subtitle"></span>
+</h1>
+<p>Files:</p>
+<ul>
+<li><a href="tutorials-addressbook-fr-part6-addressbook-cpp.html">tutorials/addressbook-fr/part6/addressbook.cpp</a></li>
+<li><a href="tutorials-addressbook-fr-part6-addressbook-h.html">tutorials/addressbook-fr/part6/addressbook.h</a></li>
+<li><a href="tutorials-addressbook-fr-part6-finddialog-cpp.html">tutorials/addressbook-fr/part6/finddialog.cpp</a></li>
+<li><a href="tutorials-addressbook-fr-part6-finddialog-h.html">tutorials/addressbook-fr/part6/finddialog.h</a></li>
+<li><a href="tutorials-addressbook-fr-part6-main-cpp.html">tutorials/addressbook-fr/part6/main.cpp</a></li>
+<li><a href="tutorials-addressbook-fr-part6-part6-pro.html">tutorials/addressbook-fr/part6/part6.pro</a></li>
+</ul>
+<p>Ce chapitre couvre les fonctionnalités de gestion des fichiers de Qt que l'on utilise pour écrire les procédures de sauvegarde et chargement pour l'application carnet d'adresses.</p>
+<p align="center"><img src="images/addressbook-tutorial-part6-screenshot.png" /></p><p>Bien que la navigation et la recherche de contacts soient des fonctionnalités importantes, notre carnet d'adresses ne sera pleinement utilisable qu'une fois que l'on pourra sauvegarder les contacts existants et les charger a nouveau par la suite. Qt fournit de nombreuses classes pour gérer les <a href="io.html">entrées et sorties</a>, mais nous avons choisi de nous contenter de deux classes qui sont simple à utiliser ensemble: <a href="qfile.html">QFile</a> et <a href="qdatastream.html">QDataStream</a>.</p>
+<p>Un objet <a href="qfile.html">QFile</a> représente un fichier sur le disque qui peut être lu, et dans lequel on peut écrire. <a href="qfile.html">QFile</a> est une classe fille de la classe plus générique <a href="qiodevice.html">QIODevice</a>, qui peut représenter différents types de périphériques.</p>
+<p>Un objet <a href="qdatastream.html">QDataStream</a> est utilisé pour sérialiser des données binaires dans le but de les passer à un <a href="qiodevice.html">QIODevice</a> pour les récupérer dans le futur. Pour lire ou écrire dans un <a href="qiodevice.html">QIODevice</a>, il suffit d'ouvrir le flux, avec le périphérique approprié en paramètre, et d'y lire ou écrire.</p>
+<a name="d-finir-de-la-classe-addressbook"></a>
+<h2>Définir de la Classe AddressBook</h2>
+<p>On déclare deux slots publics, <tt>saveToFile()</tt> et <tt>loadFromFile()</tt>, ainsi que deux objets <a href="qpushbutton.html">QPushButton</a>, <tt>loadButton</tt> et <tt>saveButton</tt>.</p>
+<pre>     void saveToFile();
+     void loadFromFile();
+     ...
+     QPushButton *loadButton;
+     QPushButton *saveButton;</pre>
+<a name="impl-menter-la-classe-addressbook"></a>
+<h2>Implémenter la classe AddressBook</h2>
+<p>Dans notre constructeur, on instancie <tt>loadButton</tt> et <tt>saveButton</tt>. Idéalement, l'interface serait plus conviviale avec des boutons affichant &quot;Load contacts from a file&quot; et &quot;Save contacts to a file&quot;. Mais compte tenu de la dimension des autres boutons, on initialise les labels des boutons à <b>Load..&#x2e;</b> et <b>Save..&#x2e;</b>. Heureusement, Qt offre une façon simple d'ajouter des info-bulles avec <a href="qwidget.html#toolTip-prop">setToolTip()</a> et nous l'utilisons de la façon suivante pour nos boutons:</p>
+<pre>     loadButton-&gt;setToolTip(tr(&quot;Load contacts from a file&quot;));
+     ...
+     saveButton-&gt;setToolTip(tr(&quot;Save contacts to a file&quot;));</pre>
+<p>Bien que nous ne le traitions pas ici, nous ajoutons ces deux boutons au layout de droite, <tt>button1Layout</tt>, comme pour les fonctionnalités précédentes, et nous connectons leurs signaux <a href="qabstractbutton.html#clicked">clicked()</a> à leurs slots respectifs.</p>
+<p>Pour la sauvegarde, on commence par récupérer le nom de fichier <tt>fileName</tt>, en utilisant <a href="qfiledialog.html#getSaveFileName">QFileDialog::getSaveFileName</a>(). C'est une méthode pratique fournie par <a href="qfiledialog.html">QFileDialog</a>, qui ouvre une boîte de dialogue modale et permet à l'utilisateur d'entrer un nom de fichier ou de choisir un fichier <tt>.abk</tt> existant. Les fichiers <tt>.abk</tt> correspondent à l'extension choisie pour la sauvegarde des contacts de notre carnet d'adresses.</p>
+<pre> void AddressBook::saveToFile()
+ {
+     QString fileName = QFileDialog::getSaveFileName(this,
+         tr(&quot;Save Address Book&quot;), &quot;&quot;,
+         tr(&quot;Address Book (*.abk);;All Files (*)&quot;));</pre>
+<p>La boîte de dialogue affichée est visible sur la capture d'écran ci- dessous.</p>
+<p align="center"><img src="images/addressbook-tutorial-part6-save.png" /></p><p>Si <tt>fileName</tt> n'est pas vide, on crée un objet <a href="qfile.html">QFile</a>, <tt>file</tt>, à partirZ de <tt>fileName</tt>. <a href="qfile.html">QFile</a> fonctionne avec <a href="qdatastream.html">QDataStream</a> puisqu'il dérive de <a href="qiodevice.html">QIODevice</a>.</p>
+<p>Ensuite, on essaie d'ouvrir le fichier en écriture, ce qui correspond au mode <a href="qiodevice.html#OpenModeFlag-enum">WriteOnly</a>. Si cela échoue, on en informe l'utilisateur avec une <a href="qmessagebox.html">QMessageBox</a>.</p>
+<pre>     if (fileName.isEmpty())
+         return;
+     else {
+         QFile file(fileName);
+         if (!file.open(QIODevice::WriteOnly)) {
+             QMessageBox::information(this, tr(&quot;Unable to open file&quot;),
+                 file.errorString());
+             return;
+         }</pre>
+<p>Dans le cas contraire, on instancie un objet <a href="qdatastream.html">QDataStream</a>, <tt>out</tt>, afin d'écrire dans le fichier ouvert. <a href="qdatastream.html">QDataStream</a> nécessite que la même version de flux soit utilisée pour la lecture et l'écriture. On s'assure que c'est le cas en spécifiant explicitement d'utiliser la <a href="qdatastream.html#Version-enum">version introduite avec Qt 4.5</a> avant de sérialiser les données vers le fichier <tt>file</tt>.</p>
+<pre>         QDataStream out(&amp;file);
+         out.setVersion(QDataStream::Qt_4_5);
+         out &lt;&lt; contacts;
+     }
+ }</pre>
+<p>Pour le chargement, on récupère également <tt>fileName</tt> en utilisant <a href="qfiledialog.html#getOpenFileName">QFileDialog::getOpenFileName</a>(). Cette méthode est l'homologue de <a href="qfiledialog.html#getSaveFileName">QFileDialog::getSaveFileName</a>() et affiche également une boîte de dialogue modale permettant à l'utilisateur d'entrer un nom de fichier ou de selectionner un fichier <tt>.abk</tt> existant, afin de le charger dans le carnet d'adresses.</p>
+<pre> void AddressBook::loadFromFile()
+ {
+     QString fileName = QFileDialog::getOpenFileName(this,
+         tr(&quot;Open Address Book&quot;), &quot;&quot;,
+         tr(&quot;Address Book (*.abk);;All Files (*)&quot;));</pre>
+<p>Sous Windows, par exemple, cette méthode affiche une boîte de dialogue native pour la sélection de fichier, comme illustré sur la capture d'écran suivante:</p>
+<p align="center"><img src="images/addressbook-tutorial-part6-load.png" /></p><p>Si <tt>fileName</tt> n'est pas vide, on utilise une fois de plus un objet <a href="qfile.html">QFile</a>, <tt>file</tt>, et on tente de l'ouvrir en lecture, avec le mode <a href="qiodevice.html#OpenModeFlag-enum">ReadOnly</a>. De même que précédemment dans notre implémentation de <tt>saveToFile()</tt>, si cette tentative s'avère infructueuse, on affiche en informe l'utilisateur par le biais d'une <a href="qmessagebox.html">QMessageBox</a>.</p>
+<pre>     if (fileName.isEmpty())
+         return;
+     else {
+
+         QFile file(fileName);
+
+         if (!file.open(QIODevice::ReadOnly)) {
+             QMessageBox::information(this, tr(&quot;Unable to open file&quot;),
+                 file.errorString());
+             return;
+         }
+
+         QDataStream in(&amp;file);
+         in.setVersion(QDataStream::Qt_4_5);
+         contacts.empty();   <span class="comment">// empty existing contacts</span>
+         in &gt;&gt; contacts;</pre>
+<p>Dans le cas contraire, on instancie un objet <a href="qdatastream.html">QDataStream</a>, <tt>in</tt>, en spécifiant la version à utiliser comme précédemment, et on lit les informations sérialisées vers la structure de données <tt>contacts</tt>. Notez qu'on purge <tt>contacts</tt> avant d'y mettre les informations lues afin de simplifier le processus de lecture de fichier. Une façon plus avancée de procéder serait de lire les contacts dans un objet <a href="qmap.html">QMap</a> temporaire, et de copier uniquement les contacts n'existant pas encore dans <tt>contacts</tt>.</p>
+<pre>         if (contacts.isEmpty()) {
+             QMessageBox::information(this, tr(&quot;No contacts in file&quot;),
+                 tr(&quot;The file you are attempting to open contains no contacts.&quot;));
+         } else {
+             QMap&lt;QString, QString&gt;::iterator i = contacts.begin();
+             nameLine-&gt;setText(i.key());
+             addressText-&gt;setText(i.value());
+         }
+     }
+
+     updateInterface(NavigationMode);
+ }</pre>
+<p>Pour afficher les contacts lus depuis le fichier, on doit d'abord valider les données obtenues afin de s'assurer que le fichier lu contient effectivement des entrées de carnet d'adresses. Si c'est le cas, on affiche le premier contact; sinon on informe l'utilisateur du problème par une <a href="qmessagebox.html">QMessageBox</a>. Enfin, on met à jour l'interface afin d'activer et de désactiver les boutons de façon appropriée.</p>
+<p>
+[Previous: <a href="tutorials-addressbook-fr-part5.html">Chapitre 5</a>]
+[<a href="tutorials-addressbook-fr.html">Sommaire</a>]
+[Next: <a href="tutorials-addressbook-fr-part7.html">Chapitre 7</a>]
+</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

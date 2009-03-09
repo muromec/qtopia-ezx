@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: StreamReader Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">StreamReader Class Reference<br /><span class="small-subtitle">(Phonon::Gstreamer::StreamReader)<br /></span>
+</h1>
+<ul>
+<li><a href="phonon-gstreamer-streamreader-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-gstreamer-streamreader.html#StreamReader">StreamReader</a></b> ( const Phonon::MediaSource &amp; <i>source</i> )</li>
+<li><div class="fn"></div>int <b><a href="phonon-gstreamer-streamreader.html#currentBufferSize">currentBufferSize</a></b> () const</li>
+<li><div class="fn"></div>quint64 <b><a href="phonon-gstreamer-streamreader.html#currentPos">currentPos</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-gstreamer-streamreader.html#endOfData">endOfData</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-streamreader.html#read">read</a></b> ( quint64 <i>offset</i>, int <i>length</i>, char * <i>buffer</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-streamreader.html#setCurrentPos">setCurrentPos</a></b> ( qint64 <i>pos</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-gstreamer-streamreader.html#setStreamSeekable">setStreamSeekable</a></b> ( bool <i>s</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-gstreamer-streamreader.html#setStreamSize">setStreamSize</a></b> ( qint64 <i>newSize</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-streamreader.html#streamSeekable">streamSeekable</a></b> () const</li>
+<li><div class="fn"></div>qint64 <b><a href="phonon-gstreamer-streamreader.html#streamSize">streamSize</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-gstreamer-streamreader.html#writeData">writeData</a></b> ( const QByteArray &amp; <i>data</i> )</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="StreamReader"></a>StreamReader::StreamReader ( const <a href="phonon-mediasource.html">Phonon::MediaSource</a> &amp; <i>source</i> )</h3>
+<h3 class="fn"><a name="currentBufferSize"></a>int StreamReader::currentBufferSize () const</h3>
+<h3 class="fn"><a name="currentPos"></a><a href="qtglobal.html#quint64-typedef">quint64</a> StreamReader::currentPos () const</h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#setCurrentPos">setCurrentPos</a>().</p>
+<h3 class="fn"><a name="endOfData"></a>void StreamReader::endOfData ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="read"></a>bool StreamReader::read ( <a href="qtglobal.html#quint64-typedef">quint64</a> <i>offset</i>, int <i>length</i>, char * <i>buffer</i> )</h3>
+<h3 class="fn"><a name="setCurrentPos"></a>void StreamReader::setCurrentPos ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>pos</i> )</h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#currentPos">currentPos</a>().</p>
+<h3 class="fn"><a name="setStreamSeekable"></a>void StreamReader::setStreamSeekable ( bool <i>s</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#streamSeekable">streamSeekable</a>().</p>
+<h3 class="fn"><a name="setStreamSize"></a>void StreamReader::setStreamSize ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>newSize</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#streamSize">streamSize</a>().</p>
+<h3 class="fn"><a name="streamSeekable"></a>bool StreamReader::streamSeekable () const</h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#setStreamSeekable">setStreamSeekable</a>().</p>
+<h3 class="fn"><a name="streamSize"></a><a href="qtglobal.html#qint64-typedef">qint64</a> StreamReader::streamSize () const</h3>
+<p>See also <a href="phonon-gstreamer-streamreader.html#setStreamSize">setStreamSize</a>().</p>
+<h3 class="fn"><a name="writeData"></a>void StreamReader::writeData ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>data</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- /fasttmp/mkdist-qt-4.5.0-1235596081/qt-embedded-linux-opensource-src-4.5.0/src/corelib/tools/qsharedpointer.cpp -->
+<head>
+  <title>Qt 4.5: QWeakPointer Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QWeakPointer Class Reference<br /><span class="small-subtitle">[<a href="qtcore.html">QtCore</a> module]</span>
+</h1>
+<p>The QWeakPointer class holds a weak reference to a shared pointer <a href="#details">More...</a></p>
+<pre> #include &lt;QWeakPointer&gt;</pre><p><b>Note:</b> All the functions in this class are <a href="threads.html#reentrant">reentrant</a>.</p>
+<p>This class was introduced in Qt 4.5.</p>
+<ul>
+<li><a href="qweakpointer-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="qweakpointer.html#QWeakPointer">QWeakPointer</a></b> ()</li>
+<li><div class="fn"></div><b><a href="qweakpointer.html#QWeakPointer-2">QWeakPointer</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div><b><a href="qweakpointer.html#QWeakPointer-3">QWeakPointer</a></b> ( const QSharedPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div><b><a href="qweakpointer.html#dtor.QWeakPointer">~QWeakPointer</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="qweakpointer.html#clear">clear</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#isNull">isNull</a></b> () const</li>
+<li><div class="fn"></div>QSharedPointer&lt;T&gt; <b><a href="qweakpointer.html#toStrongRef">toStrongRef</a></b> () const</li>
+<li><div class="fn"></div><b><a href="qweakpointer.html#operator-bool">operator bool</a></b> () const</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#operator-not">operator!</a></b> () const</li>
+<li><div class="fn"></div>QWeakPointer&lt;T&gt; <b><a href="qweakpointer.html#operator-eq">operator=</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div>QWeakPointer&lt;T&gt; <b><a href="qweakpointer.html#operator-eq-2">operator=</a></b> ( const QSharedPointer&lt;T&gt; &amp; <i>other</i> )</li>
+</ul>
+<a name="related-non-members"></a>
+<h3>Related Non-Members</h3>
+<ul>
+<li><div class="fn"></div>QSharedPointer&lt;X&gt; <b><a href="qweakpointer.html#qSharedPointerCast-2">qSharedPointerCast</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div>QSharedPointer&lt;X&gt; <b><a href="qweakpointer.html#qSharedPointerConstCast-2">qSharedPointerConstCast</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div>QSharedPointer&lt;X&gt; <b><a href="qweakpointer.html#qSharedPointerDynamicCast-2">qSharedPointerDynamicCast</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div>QWeakPointer&lt;X&gt; <b><a href="qweakpointer.html#qWeakPointerCast">qWeakPointerCast</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#operator-not-eq-44">operator!=</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>ptr1</i>, const QSharedPointer&lt;X&gt; &amp; <i>ptr2</i> )</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#operator-not-eq-45">operator!=</a></b> ( const QSharedPointer&lt;T&gt; &amp; <i>ptr1</i>, const QWeakPointer&lt;X&gt; &amp; <i>ptr2</i> )</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#operator-eq-eq-50">operator==</a></b> ( const QWeakPointer&lt;T&gt; &amp; <i>ptr1</i>, const QSharedPointer&lt;X&gt; &amp; <i>ptr2</i> )</li>
+<li><div class="fn"></div>bool <b><a href="qweakpointer.html#operator-eq-eq-51">operator==</a></b> ( const QSharedPointer&lt;T&gt; &amp; <i>ptr1</i>, const QWeakPointer&lt;X&gt; &amp; <i>ptr2</i> )</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Detailed Description</h2>
+<p>The QWeakPointer class holds a weak reference to a shared pointer</p>
+<p>The QWeakPointer is an automatic weak reference to a pointer in C++. It cannot be used to dereference the pointer directly, but it can be used to verify if the pointer has been deleted or not in another context.</p>
+<p>QWeakPointer objects can only be created by assignment from a <a href="qsharedpointer.html">QSharedPointer</a>.</p>
+<p>To access the pointer that QWeakPointer is tracking, you must first create a <a href="qsharedpointer.html">QSharedPointer</a> object and verify if the pointer is null or not.</p>
+<p>See also <a href="qsharedpointer.html">QSharedPointer</a>.</p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QWeakPointer"></a>QWeakPointer::QWeakPointer ()</h3>
+<p>Creates a <a href="qweakpointer.html">QWeakPointer</a> that points to nothing.</p>
+<h3 class="fn"><a name="QWeakPointer-2"></a>QWeakPointer::QWeakPointer ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Creates a <a href="qweakpointer.html">QWeakPointer</a> that holds a weak reference to the pointer referenced by <i>other</i>.</p>
+<p>If <tt>T</tt> is a derived type of the template parameter of this class, <a href="qweakpointer.html">QWeakPointer</a> will perform an automatic cast. Otherwise, you will get a compiler error.</p>
+<h3 class="fn"><a name="QWeakPointer-3"></a>QWeakPointer::QWeakPointer ( const <a href="qsharedpointer.html">QSharedPointer</a>&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Creates a <a href="qweakpointer.html">QWeakPointer</a> that holds a weak reference to the pointer referenced by <i>other</i>.</p>
+<p>If <tt>T</tt> is a derived type of the template parameter of this class, <a href="qweakpointer.html">QWeakPointer</a> will perform an automatic cast. Otherwise, you will get a compiler error.</p>
+<h3 class="fn"><a name="dtor.QWeakPointer"></a>QWeakPointer::~QWeakPointer ()</h3>
+<p>Destroys this <a href="qweakpointer.html">QWeakPointer</a> object. The pointer referenced by this object will not be deleted.</p>
+<h3 class="fn"><a name="clear"></a>void QWeakPointer::clear ()</h3>
+<p>Clears this <a href="qweakpointer.html">QWeakPointer</a> object, dropping the reference that it may have had to the pointer.</p>
+<h3 class="fn"><a name="isNull"></a>bool QWeakPointer::isNull () const</h3>
+<p>Returns true if this object is holding a reference to a null pointer.</p>
+<p>Note that, due to the nature of weak references, the pointer that <a href="qweakpointer.html">QWeakPointer</a> references can become null at any moment, so the value returned from this function can change from false to true from one call to the next.</p>
+<h3 class="fn"><a name="toStrongRef"></a><a href="qsharedpointer.html">QSharedPointer</a>&lt;T&gt; QWeakPointer::toStrongRef () const</h3>
+<p>Promotes this weak reference to a strong one and returns a <a href="qsharedpointer.html">QSharedPointer</a> object holding that reference.</p>
+<h3 class="fn"><a name="operator-bool"></a>QWeakPointer::operator bool () const</h3>
+<p>Returns true if this object is not null. This function is suitable for use in <tt>if-constructs</tt>, like:</p>
+<pre> if (weakref) { ... }</pre>
+<p>Note that, due to the nature of weak references, the pointer that <a href="qweakpointer.html">QWeakPointer</a> references can become null at any moment, so the value returned from this function can change from true to false from one call to the next.</p>
+<p>See also <a href="qweakpointer.html#isNull">isNull</a>().</p>
+<h3 class="fn"><a name="operator-not"></a>bool QWeakPointer::operator! () const</h3>
+<p>Returns true if this object is null. This function is suitable for use in <tt>if-constructs</tt>, like:</p>
+<pre> if (!weakref) { ... }</pre>
+<p>Note that, due to the nature of weak references, the pointer that <a href="qweakpointer.html">QWeakPointer</a> references can become null at any moment, so the value returned from this function can change from false to true from one call to the next.</p>
+<p>See also <a href="qweakpointer.html#isNull">isNull</a>().</p>
+<h3 class="fn"><a name="operator-eq"></a>QWeakPointer&lt;T&gt; QWeakPointer::operator= ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Makes this object share <i>other</i>'s pointer. The current pointer reference is discarded but is not deleted.</p>
+<p>If <tt>T</tt> is a derived type of the template parameter of this class, <a href="qweakpointer.html">QWeakPointer</a> will perform an automatic cast. Otherwise, you will get a compiler error.</p>
+<h3 class="fn"><a name="operator-eq-2"></a>QWeakPointer&lt;T&gt; QWeakPointer::operator= ( const <a href="qsharedpointer.html">QSharedPointer</a>&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Makes this object share <i>other</i>'s pointer. The current pointer reference is discarded but is not deleted.</p>
+<p>If <tt>T</tt> is a derived type of the template parameter of this class, <a href="qweakpointer.html">QWeakPointer</a> will perform an automatic cast. Otherwise, you will get a compiler error.</p>
+<hr />
+<h2>Related Non-Members</h2>
+<h3 class="fn"><a name="qSharedPointerCast-2"></a><a href="qsharedpointer.html">QSharedPointer</a>&lt;X&gt; qSharedPointerCast ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Returns a shared pointer to the pointer held by <i>other</i>, cast to type <tt>X</tt>. The types <tt>T</tt> and <tt>X</tt> must belong to one hierarchy for the <tt>static_cast</tt> to succeed.</p>
+<p>The <i>other</i> object is converted first to a strong reference. If that conversion fails (because the object it's pointing to has already been deleted), this function returns a null <a href="qsharedpointer.html">QSharedPointer</a>.</p>
+<p>Note that <tt>X</tt> must have the same cv-qualifiers (<tt>const</tt> and <tt>volatile</tt>) that <tt>T</tt> has, or the code will fail to compile. Use qSharedPointerConstCast to cast away the constness.</p>
+<p>See also <a href="qweakpointer.html#toStrongRef">QWeakPointer::toStrongRef</a>(), <a href="qsharedpointer.html#qSharedPointerDynamicCast">qSharedPointerDynamicCast</a>(), and <a href="qsharedpointer.html#qSharedPointerConstCast">qSharedPointerConstCast</a>().</p>
+<h3 class="fn"><a name="qSharedPointerConstCast-2"></a><a href="qsharedpointer.html">QSharedPointer</a>&lt;X&gt; qSharedPointerConstCast ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Returns a shared pointer to the pointer held by <i>other</i>, cast to type <tt>X</tt>. The types <tt>T</tt> and <tt>X</tt> must belong to one hierarchy for the <tt>const_cast</tt> to succeed. The <tt>const</tt> and <tt>volatile</tt> differences between <tt>T</tt> and <tt>X</tt> are ignored.</p>
+<p>The <i>other</i> object is converted first to a strong reference. If that conversion fails (because the object it's pointing to has already been deleted), this function returns a null <a href="qsharedpointer.html">QSharedPointer</a>.</p>
+<p>See also <a href="qweakpointer.html#toStrongRef">QWeakPointer::toStrongRef</a>(), <a href="qsharedpointer.html#qSharedPointerCast">qSharedPointerCast</a>(), and <a href="qsharedpointer.html#qSharedPointerDynamicCast">qSharedPointerDynamicCast</a>().</p>
+<h3 class="fn"><a name="qSharedPointerDynamicCast-2"></a><a href="qsharedpointer.html">QSharedPointer</a>&lt;X&gt; qSharedPointerDynamicCast ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Returns a shared pointer to the pointer held by <i>other</i>, using a dynamic cast to type <tt>X</tt> to obtain an internal pointer of the appropriate type. If the <tt>dynamic_cast</tt> fails, the object returned will be null.</p>
+<p>The <i>other</i> object is converted first to a strong reference. If that conversion fails (because the object it's pointing to has already been deleted), this function also returns a null <a href="qsharedpointer.html">QSharedPointer</a>.</p>
+<p>Note that <tt>X</tt> must have the same cv-qualifiers (<tt>const</tt> and <tt>volatile</tt>) that <tt>T</tt> has, or the code will fail to compile. Use qSharedPointerConstCast to cast away the constness.</p>
+<p>See also <a href="qweakpointer.html#toStrongRef">QWeakPointer::toStrongRef</a>(), <a href="qsharedpointer.html#qSharedPointerCast">qSharedPointerCast</a>(), and <a href="qsharedpointer.html#qSharedPointerConstCast">qSharedPointerConstCast</a>().</p>
+<h3 class="fn"><a name="qWeakPointerCast"></a>QWeakPointer&lt;X&gt; qWeakPointerCast ( const QWeakPointer&lt;T&gt; &amp; <i>other</i> )</h3>
+<p>Returns a weak pointer to the pointer held by <i>other</i>, cast to type <tt>X</tt>. The types <tt>T</tt> and <tt>X</tt> must belong to one hierarchy for the <tt>static_cast</tt> to succeed.</p>
+<p>Note that <tt>X</tt> must have the same cv-qualifiers (<tt>const</tt> and <tt>volatile</tt>) that <tt>T</tt> has, or the code will fail to compile. Use qSharedPointerConstCast to cast away the constness.</p>
+<h3 class="fn"><a name="operator-not-eq-44"></a>bool operator!= ( const QWeakPointer&lt;T&gt; &amp; <i>ptr1</i>, const <a href="qsharedpointer.html">QSharedPointer</a>&lt;X&gt; &amp; <i>ptr2</i> )</h3>
+<p>Returns true if the pointer referenced by <i>ptr1</i> is not the same pointer as that referenced by <i>ptr2</i>.</p>
+<p>If <i>ptr2</i>'s template parameter is different from <i>ptr1</i>'s, <a href="qsharedpointer.html">QSharedPointer</a> will attempt to perform an automatic <tt>static_cast</tt> to ensure that the pointers being compared are equal. If <i>ptr2</i>'s template parameter is not a base or a derived type from <i>ptr1</i>'s, you will get a compiler error.</p>
+<h3 class="fn"><a name="operator-not-eq-45"></a>bool operator!= ( const <a href="qsharedpointer.html">QSharedPointer</a>&lt;T&gt; &amp; <i>ptr1</i>, const QWeakPointer&lt;X&gt; &amp; <i>ptr2</i> )</h3>
+<p>Returns true if the pointer referenced by <i>ptr1</i> is not the same pointer as that referenced by <i>ptr2</i>.</p>
+<p>If <i>ptr2</i>'s template parameter is different from <i>ptr1</i>'s, <a href="qsharedpointer.html">QSharedPointer</a> will attempt to perform an automatic <tt>static_cast</tt> to ensure that the pointers being compared are equal. If <i>ptr2</i>'s template parameter is not a base or a derived type from <i>ptr1</i>'s, you will get a compiler error.</p>
+<h3 class="fn"><a name="operator-eq-eq-50"></a>bool operator== ( const QWeakPointer&lt;T&gt; &amp; <i>ptr1</i>, const <a href="qsharedpointer.html">QSharedPointer</a>&lt;X&gt; &amp; <i>ptr2</i> )</h3>
+<p>Returns true if the pointer referenced by <i>ptr1</i> is the same pointer as that referenced by <i>ptr2</i>.</p>
+<p>If <i>ptr2</i>'s template parameter is different from <i>ptr1</i>'s, <a href="qsharedpointer.html">QSharedPointer</a> will attempt to perform an automatic <tt>static_cast</tt> to ensure that the pointers being compared are equal. If <i>ptr2</i>'s template parameter is not a base or a derived type from <i>ptr1</i>'s, you will get a compiler error.</p>
+<h3 class="fn"><a name="operator-eq-eq-51"></a>bool operator== ( const <a href="qsharedpointer.html">QSharedPointer</a>&lt;T&gt; &amp; <i>ptr1</i>, const QWeakPointer&lt;X&gt; &amp; <i>ptr2</i> )</h3>
+<p>Returns true if the pointer referenced by <i>ptr1</i> is the same pointer as that referenced by <i>ptr2</i>.</p>
+<p>If <i>ptr2</i>'s template parameter is different from <i>ptr1</i>'s, <a href="qsharedpointer.html">QSharedPointer</a> will attempt to perform an automatic <tt>static_cast</tt> to ensure that the pointers being compared are equal. If <i>ptr2</i>'s template parameter is not a base or a derived type from <i>ptr1</i>'s, you will get a compiler error.</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

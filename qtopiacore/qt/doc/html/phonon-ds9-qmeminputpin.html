@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: QMemInputPin Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QMemInputPin Class Reference<br /><span class="small-subtitle">(Phonon::DS9::QMemInputPin)<br /></span>
+</h1>
+<p>Inherits <a href="phonon-ds9-qpin.html">QPin</a> and <a href="phonon-ds9-qpin.html">QPin</a>.</p>
+<ul>
+<li><a href="phonon-ds9-qmeminputpin-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-ds9-qmeminputpin.html#QMemInputPin">QMemInputPin</a></b> ( QBaseFilter *, const QVector&lt;AM_MEDIA_TYPE&gt; &amp;, bool <i>transform</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qmeminputpin.html#dtor.QMemInputPin">~QMemInputPin</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#BeginFlush">BeginFlush</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#EndFlush">EndFlush</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#EndOfStream">EndOfStream</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#GetAllocator">GetAllocator</a></b> ( IMemAllocator ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#GetAllocatorRequirements">GetAllocatorRequirements</a></b> ( ALLOCATOR_PROPERTIES * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#NewSegment">NewSegment</a></b> ( REFERENCE_TIME <i>start</i>, REFERENCE_TIME <i>stop</i>, double <i>rate</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#NotifyAllocator">NotifyAllocator</a></b> ( IMemAllocator *, BOOL )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#QueryInterface">QueryInterface</a></b> ( REFIID <i>iid</i>, void ** <i>out</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#Receive">Receive</a></b> ( IMediaSample * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#ReceiveCanBlock">ReceiveCanBlock</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#ReceiveConnection">ReceiveConnection</a></b> ( IPin *, const AM_MEDIA_TYPE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qmeminputpin.html#ReceiveMultiple">ReceiveMultiple</a></b> ( IMediaSample **, long, long * )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qmeminputpin.html#STDMETHODIMP_">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qmeminputpin.html#STDMETHODIMP_-2">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qmeminputpin.html#addOutput">addOutput</a></b> ( QPin * <i>output</i> )</li>
+<li><div class="fn"></div>QList&lt;QPin *&gt; <b><a href="phonon-ds9-qmeminputpin.html#outputs">outputs</a></b> () const</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qmeminputpin.html#removeOutput">removeOutput</a></b> ( QPin * <i>output</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>60 public functions inherited from <a href="phonon-ds9-qpin.html#public-functions">Phonon::DS9::QPin</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>6 static public members inherited from <a href="phonon-ds9-qpin.html#static-public-members">Phonon::DS9::QPin</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QMemInputPin"></a>QMemInputPin::QMemInputPin ( <a href="phonon-ds9-qbasefilter.html">QBaseFilter</a> *, const <a href="qvector.html">QVector</a>&lt;AM_MEDIA_TYPE&gt; &amp;, bool <i>transform</i> )</h3>
+<h3 class="fn"><a name="dtor.QMemInputPin"></a>QMemInputPin::~QMemInputPin ()</h3>
+<h3 class="fn"><a name="BeginFlush"></a>STDMETHODIMP QMemInputPin::BeginFlush ()</h3>
+<h3 class="fn"><a name="EndFlush"></a>STDMETHODIMP QMemInputPin::EndFlush ()</h3>
+<h3 class="fn"><a name="EndOfStream"></a>STDMETHODIMP QMemInputPin::EndOfStream ()</h3>
+<h3 class="fn"><a name="GetAllocator"></a>STDMETHODIMP QMemInputPin::GetAllocator ( IMemAllocator ** )</h3>
+<h3 class="fn"><a name="GetAllocatorRequirements"></a>STDMETHODIMP QMemInputPin::GetAllocatorRequirements ( ALLOCATOR_PROPERTIES * )</h3>
+<h3 class="fn"><a name="NewSegment"></a>STDMETHODIMP QMemInputPin::NewSegment ( REFERENCE_TIME <i>start</i>, REFERENCE_TIME <i>stop</i>, double <i>rate</i> )</h3>
+<h3 class="fn"><a name="NotifyAllocator"></a>STDMETHODIMP QMemInputPin::NotifyAllocator ( IMemAllocator *, BOOL )</h3>
+<h3 class="fn"><a name="QueryInterface"></a>STDMETHODIMP QMemInputPin::QueryInterface ( REFIID <i>iid</i>, void ** <i>out</i> )</h3>
+<h3 class="fn"><a name="Receive"></a>STDMETHODIMP QMemInputPin::Receive ( IMediaSample * )</h3>
+<h3 class="fn"><a name="ReceiveCanBlock"></a>STDMETHODIMP QMemInputPin::ReceiveCanBlock ()</h3>
+<h3 class="fn"><a name="ReceiveConnection"></a>STDMETHODIMP QMemInputPin::ReceiveConnection ( IPin *, const AM_MEDIA_TYPE * )</h3>
+<h3 class="fn"><a name="ReceiveMultiple"></a>STDMETHODIMP QMemInputPin::ReceiveMultiple ( IMediaSample **, long, long * )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_"></a>QMemInputPin::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_-2"></a>QMemInputPin::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="addOutput"></a>void QMemInputPin::addOutput ( <a href="phonon-ds9-qpin.html">QPin</a> * <i>output</i> )</h3>
+<h3 class="fn"><a name="outputs"></a><a href="qlist.html">QList</a>&lt;<a href="phonon-ds9-qpin.html">QPin</a> *&gt; QMemInputPin::outputs () const</h3>
+<h3 class="fn"><a name="removeOutput"></a>void QMemInputPin::removeOutput ( <a href="phonon-ds9-qpin.html">QPin</a> * <i>output</i> )</h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: trackball.cpp Example File (demos/boxes/trackball.cpp)</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">trackball.cpp Example File<br /><span class="small-subtitle">demos/boxes/trackball.cpp</span>
+</h1>
+<pre><span class="comment"> /****************************************************************************
+ **
+ ** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
+ ** Contact: Qt Software Information (qt-info@nokia.com)
+ **
+ ** This file is part of the demonstration applications of the Qt Toolkit.
+ **
+ ** $QT_BEGIN_LICENSE:LGPL$
+ ** Commercial Usage
+ ** Licensees holding valid Qt Commercial licenses may use this file in
+ ** accordance with the Qt Commercial License Agreement provided with the
+ ** Software or, alternatively, in accordance with the terms contained in
+ ** a written agreement between you and Nokia.
+ **
+ ** GNU Lesser General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU Lesser
+ ** General Public License version 2.1 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.LGPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU Lesser General Public License version 2.1 requirements
+ ** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+ **
+ ** In addition, as a special exception, Nokia gives you certain
+ ** additional rights. These rights are described in the Nokia Qt LGPL
+ ** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
+ ** package.
+ **
+ ** GNU General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU
+ ** General Public License version 3.0 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.GPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU General Public License version 3.0 requirements will be
+ ** met: http://www.gnu.org/copyleft/gpl.html.
+ **
+ ** If you are unsure which license is appropriate for your use, please
+ ** contact the sales department at qt-sales@nokia.com.
+ ** $QT_END_LICENSE$
+ **
+ ****************************************************************************/</span>
+
+ #include &quot;trackball.h&quot;
+
+<span class="comment"> //============================================================================//</span>
+<span class="comment"> //                                  TrackBall                                 //</span>
+<span class="comment"> //============================================================================//</span>
+
+ TrackBall::TrackBall(TrackMode mode)
+     : m_angularVelocity(0)
+     , m_paused(false)
+     , m_pressed(false)
+     , m_mode(mode)
+ {
+     m_axis = gfx::Vector3f::vector(0, 1, 0);
+     m_rotation = gfx::Quaternionf::quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+     m_lastTime = QTime::currentTime();
+ }
+
+ TrackBall::TrackBall(float angularVelocity, const gfx::Vector3f&amp; axis, TrackMode mode)
+     : m_axis(axis)
+     , m_angularVelocity(angularVelocity)
+     , m_paused(false)
+     , m_pressed(false)
+     , m_mode(mode)
+ {
+     m_rotation = gfx::Quaternionf::quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+     m_lastTime = QTime::currentTime();
+ }
+
+ void TrackBall::push(const QPointF&amp; p, const gfx::Quaternionf &amp;)
+ {
+     m_rotation = rotation();
+     m_pressed = true;
+     m_lastTime = QTime::currentTime();
+     m_lastPos = p;
+     m_angularVelocity = 0.0f;
+ }
+
+ void TrackBall::move(const QPointF&amp; p, const gfx::Quaternionf &amp;transformation)
+ {
+     if (!m_pressed)
+         return;
+
+     QTime currentTime = QTime::currentTime();
+     int msecs = m_lastTime.msecsTo(currentTime);
+     if (msecs &lt;= 20)
+         return;
+
+     switch (m_mode) {
+     case Plane:
+         {
+             QLineF delta(m_lastPos, p);
+             m_angularVelocity = delta.length() / msecs;
+             m_axis = gfx::Vector3f::vector(delta.dy(), -delta.dx(), 0.0f).normalized();
+             m_axis = transformation.transform(m_axis);
+             m_rotation *= gfx::Quaternionf::rotation(delta.length(), m_axis);
+         }
+         break;
+     case Sphere:
+         {
+             gfx::Vector3f lastPos3D = gfx::Vector3f::vector(m_lastPos.x(), m_lastPos.y(), 0);
+             float sqrZ = 1 - lastPos3D.sqrNorm();
+             if (sqrZ &gt; 0)
+                 lastPos3D[2] = sqrt(sqrZ);
+             else
+                 lastPos3D.normalize();
+
+             gfx::Vector3f currentPos3D = gfx::Vector3f::vector(p.x(), p.y(), 0);
+             sqrZ = 1 - currentPos3D.sqrNorm();
+             if (sqrZ &gt; 0)
+                 currentPos3D[2] = sqrt(sqrZ);
+             else
+                 currentPos3D.normalize();
+
+             m_axis = gfx::Vector3f::cross(currentPos3D, lastPos3D);
+             float angle = asin(sqrt(m_axis.sqrNorm()));
+
+             m_angularVelocity = angle / msecs;
+             m_axis.normalize();
+             m_axis = transformation.transform(m_axis);
+             m_rotation *= gfx::Quaternionf::rotation(angle, m_axis);
+         }
+         break;
+     }
+
+     m_lastPos = p;
+     m_lastTime = currentTime;
+ }
+
+ void TrackBall::release(const QPointF&amp; p, const gfx::Quaternionf &amp;transformation)
+ {
+     <span class="comment">// Calling move() caused the rotation to stop if the framerate was too low.</span>
+     move(p, transformation);
+     m_pressed = false;
+ }
+
+ void TrackBall::start()
+ {
+     m_lastTime = QTime::currentTime();
+     m_paused = false;
+ }
+
+ void TrackBall::stop()
+ {
+     m_rotation = rotation();
+     m_paused = true;
+ }
+
+ gfx::Quaternionf TrackBall::rotation() const
+ {
+     if (m_paused || m_pressed)
+         return m_rotation;
+
+     QTime currentTime = QTime::currentTime();
+     float angle = m_angularVelocity * m_lastTime.msecsTo(currentTime);
+     return m_rotation * gfx::Quaternionf::rotation(angle, m_axis);
+ }</pre>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

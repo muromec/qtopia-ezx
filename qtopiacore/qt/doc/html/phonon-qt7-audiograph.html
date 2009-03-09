@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: AudioGraph Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">AudioGraph Class Reference<br /><span class="small-subtitle">(Phonon::QT7::AudioGraph)<br /></span>
+</h1>
+<p>Inherits <a href="phonon-qt7-medianode.html">MediaNode</a> and <a href="phonon-qt7-medianode.html">MediaNode</a>.</p>
+<ul>
+<li><a href="phonon-qt7-audiograph-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-qt7-audiograph.html#AudioGraph">AudioGraph</a></b> ( MediaNode * <i>root</i> )</li>
+<li><div class="fn"></div>virtual <b><a href="phonon-qt7-audiograph.html#dtor.AudioGraph">~AudioGraph</a></b> ()</li>
+<li><div class="fn"></div>AUGraph <b><a href="phonon-qt7-audiograph.html#audioGraphRef">audioGraphRef</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audiograph.html#graphCannotPlay">graphCannotPlay</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audiograph.html#isRunning">isRunning</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#notify">notify</a></b> ( const MediaNodeEvent * <i>event</i>, bool <i>propagate</i> = true )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audiograph.html#openAndInit">openAndInit</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#prepare">prepare</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#rebuildGraph">rebuildGraph</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#rebuildGraphIfNeeded">rebuildGraphIfNeeded</a></b> ()</li>
+<li><div class="fn"></div>MediaNode * <b><a href="phonon-qt7-audiograph.html#root">root</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#setPaused">setPaused</a></b> ( bool <i>pause</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#setStatusCannotPlay">setStatusCannotPlay</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#start">start</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#startAllOverFromScratch">startAllOverFromScratch</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#stop">stop</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#tryStartGraph">tryStartGraph</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#update">update</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audiograph.html#updateStreamSpecifications">updateStreamSpecifications</a></b> ()</li>
+</ul>
+<ul>
+<li><div class="fn"></div>20 public functions inherited from <a href="phonon-qt7-medianode.html#public-functions">Phonon::QT7::MediaNode</a></li>
+<li><div class="fn"></div>116 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>4 properties inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"></div>4 public slots inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"></div>4 signals inherited from <a href="qobject.html#signals">QObject</a></li>
+<li><div class="fn"></div>20 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"></div>28 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="AudioGraph"></a>AudioGraph::AudioGraph ( <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>root</i> )</h3>
+<h3 class="fn"><a name="dtor.AudioGraph"></a>AudioGraph::~AudioGraph ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="audioGraphRef"></a>AUGraph AudioGraph::audioGraphRef ()</h3>
+<h3 class="fn"><a name="graphCannotPlay"></a>bool AudioGraph::graphCannotPlay ()</h3>
+<h3 class="fn"><a name="isRunning"></a>bool AudioGraph::isRunning ()</h3>
+<h3 class="fn"><a name="notify"></a>void AudioGraph::notify ( const <a href="phonon-qt7-medianodeevent.html">MediaNodeEvent</a> * <i>event</i>, bool <i>propagate</i> = true )</h3>
+<h3 class="fn"><a name="openAndInit"></a>bool AudioGraph::openAndInit ()</h3>
+<h3 class="fn"><a name="prepare"></a>void AudioGraph::prepare ()</h3>
+<h3 class="fn"><a name="rebuildGraph"></a>void AudioGraph::rebuildGraph ()</h3>
+<h3 class="fn"><a name="rebuildGraphIfNeeded"></a>void AudioGraph::rebuildGraphIfNeeded ()</h3>
+<h3 class="fn"><a name="root"></a><a href="phonon-qt7-medianode.html">MediaNode</a> * AudioGraph::root ()</h3>
+<h3 class="fn"><a name="setPaused"></a>void AudioGraph::setPaused ( bool <i>pause</i> )</h3>
+<h3 class="fn"><a name="setStatusCannotPlay"></a>void AudioGraph::setStatusCannotPlay ()</h3>
+<h3 class="fn"><a name="start"></a>void AudioGraph::start ()</h3>
+<h3 class="fn"><a name="startAllOverFromScratch"></a>void AudioGraph::startAllOverFromScratch ()</h3>
+<h3 class="fn"><a name="stop"></a>void AudioGraph::stop ()</h3>
+<h3 class="fn"><a name="tryStartGraph"></a>void AudioGraph::tryStartGraph ()</h3>
+<h3 class="fn"><a name="update"></a>void AudioGraph::update ()</h3>
+<h3 class="fn"><a name="updateStreamSpecifications"></a>void AudioGraph::updateStreamSpecifications ()</h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

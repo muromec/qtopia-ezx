@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- /fasttmp/mkdist-qt-4.5.0-1235596081/qt-embedded-linux-opensource-src-4.5.0/doc/src/designer-manual.qdoc -->
+<head>
+  <title>Qt 4.5: What's New in Qt Designer 4.5</title>
+  <link rel="contents" href="designer-manual.html" />
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><p>
+[<a href="designer-manual.html">Contents</a>]
+</p>
+<h1 class="title">What's New in Qt Designer 4.5<br /><span class="subtitle"></span>
+</h1>
+<a name="general-changes"></a>
+<h2>General Changes</h2>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Widget Filter Box</th><th>Widget Morphing</th></tr></thead>
+<tr valign="top" class="odd"><td><img src="images/designer-widget-filter.png" /></td><td><img src="images/designer-widget-morph.png" /></td><td><font color="red">[Missing image designer-disambiguation.png]</font></td></tr>
+</table></p>
+<ol type="1">
+<li>Displaying only icons in the <b>Widget Box</b>: It is now possible for the <b>Widget Box</b> to display icons only. Simply select <b>Icon View</b> from the context menu.</li>
+<li>Filter for <b>Widget Box</b>: A filter is now provided to quickly locate the widget you need. If you use a particular widget frequently, you can always add it to the <a href="designer-to-know.html#widgetbox">scratch pad</a>.</li>
+<li>Support for <a href="qbuttongroup.html">QButtonGroup</a>: It is available via the context menu of a selection of <a href="qabstractbutton.html">QAbstractButton</a> objects.</li>
+<li>Improved support for item widgets: The item widgets' (e.g&#x2e;, <a href="qlistwidget.html">QListWidget</a>, <a href="qtablewidget.html">QTableWidget</a>, and <a href="qtreewidget.html">QTreeWidget</a>) contents dialogs have been improved. You can now add translation comments and also modify the header properties.</li>
+<li>Widget morphing: A widget can now be morphed from one type to another with its layout and properties preserved. To begin, click on your widget and select <b>Morph into</b> from the context menu.</li>
+<li>Disambiguation field: The property editor now shows this extra field under the <b>accessibleDescription</b> property. This field has been introduced to aid translators in the case of two source texts being the same but used for different purposes. For example, a dialog could have two <b>Add</b> buttons for two different reasons. <b>Note:</b> To maintain compatibility, comments in <tt>.ui</tt> files created prior to Qt 4.5 will be listed in the <b>Disambiguation</b> field.</li>
+</ol>
+<a name="improved-shortcuts-for-the-editing-mode"></a>
+<h2>Improved Shortcuts for the Editing Mode</h2>
+<ul>
+<li>The <b>Shift+Click</b> key combination now selects the ancestor for nested layouts. This iterates from one ancestor to the other.</li>
+<li>The <b>Ctrl</b> key is now used to toggle and copy drag. Previously this was done with the <b>Shift</b> key but is now changed to conform to standards.</li>
+<li>The left mouse button does rubber band selection for form windows; the middle mouse button does rubber band selection everywhere.</li>
+</ul>
+<a name="layouts"></a>
+<h2>Layouts</h2>
+<ul>
+<li>It is now possible to switch a widget's layout without breaking it first. Simply select the existing layout and change it to another type using the context menu or the layout buttons on the toolbar.</li>
+<li>To quickly populate a <b>Form Layout</b>, you can now use the <b>Add form layout row..&#x2e;</b> item available in the context menu or double-click on the red layout.</li>
+</ul>
+<a name="support-for-embedded-design"></a>
+<h2>Support for Embedded Design</h2>
+<p><table align="center" cellpadding="2" cellspacing="1" border="0">
+<thead><tr valign="top" class="qt-style"><th>Comboboxes to Select a Device Profile</th></tr></thead>
+<tr valign="top" class="odd"><td><img src="images/designer-embedded-preview.png" /></td></tr>
+</table></p>
+<p>It is now possible to specify embedded device profiles, e.g&#x2e;, Style, Font, Screen DPI, resolution, default font, etc., in <b>Preferences</b>. These settings will affect the <b>Form Editor</b>. The profiles will also be visible with <b>Preview</b>.</p>
+<a name="related-classes"></a>
+<h2>Related Classes</h2>
+<ul>
+<li><a href="quiloader.html">QUiLoader</a> &mdash; forms loaded with this class will now react to <a href="qevent.html#Type-enum">QEvent::LanguageChange</a> if <a href="quiloader.html#setLanguageChangeEnabled">QUiLoader::setLanguageChangeEnabled</a>() or <a href="quiloader.html#isLanguageChangeEnabled">QUiLoader::isLanguageChangeEnabled</a>() is set to true.</li>
+<li><a href="qdesignercustomwidgetinterface.html">QDesignerCustomWidgetInterface</a> &mdash; the <a href="qdesignercustomwidgetinterface.html#domXml">domXml()</a> function now has new attributes for its <tt>&lt;ui&gt;</tt> element. These attributes are <tt>language</tt> and <tt>displayname</tt>. The <tt>language</tt> element can be one of the following &quot;&quot;, &quot;c++&quot;, &quot;jambi&quot;. If this element is specified, it must match the language in which Designer is running. Otherwise, this element will not be available. The <tt>displayname</tt> element represents the name that will be displayed in the <b>Widget Box</b>. Previously this was hardcoded to be the class name.</li>
+<li><a href="qwizard.html">QWizard</a> &mdash; <a href="qwizard.html">QWizard</a>'s page now has a string <tt>id</tt> attribute that can be used to fill in enumeration values to be used by the <tt>uic</tt>. However, this attribute has no effect on <a href="quiloader.html">QUiLoader</a>.</li>
+</ul>
+<p>
+[<a href="designer-manual.html">Contents</a>]
+</p>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

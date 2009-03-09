@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: QBaseFilter Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QBaseFilter Class Reference<br /><span class="small-subtitle">(Phonon::DS9::QBaseFilter)<br /></span>
+</h1>
+<p>Inherited by </p>
+<ul>
+<li><a href="phonon-ds9-qbasefilter-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-ds9-qbasefilter.html#QBaseFilter">QBaseFilter</a></b> ( const CLSID &amp; <i>clsid</i> )</li>
+<li><div class="fn"></div>virtual <b><a href="phonon-ds9-qbasefilter.html#dtor.QBaseFilter">~QBaseFilter</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#CanSeekBackward">CanSeekBackward</a></b> ( LONG * <i>pCanSeekBackward</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#CanSeekForward">CanSeekForward</a></b> ( LONG * <i>pCanSeekForward</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#CheckCapabilities">CheckCapabilities</a></b> ( DWORD * <i>pCapabilities</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#ConvertTimeFormat">ConvertTimeFormat</a></b> ( LONGLONG * <i>pTarget</i>, const GUID * <i>pTargetFormat</i>, LONGLONG <i>Source</i>, const GUID * <i>pSourceFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#EnumPins">EnumPins</a></b> ( IEnumPins ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#FindPin">FindPin</a></b> ( LPCWSTR, IPin ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetAvailable">GetAvailable</a></b> ( LONGLONG * <i>pEarliest</i>, LONGLONG * <i>pLatest</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetCapabilities">GetCapabilities</a></b> ( DWORD * <i>pCapabilities</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetClassID">GetClassID</a></b> ( CLSID * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetCurrentPosition">GetCurrentPosition</a></b> ( LONGLONG * <i>pCurrent</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetDuration">GetDuration</a></b> ( LONGLONG * <i>pDuration</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetIDsOfNames">GetIDsOfNames</a></b> ( REFIID <i>riid</i>, LPOLESTR * <i>rgszNames</i>, UINT <i>cNames</i>, LCID <i>lcid</i>, DISPID * <i>rgDispId</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetPositions">GetPositions</a></b> ( LONGLONG * <i>pCurrent</i>, LONGLONG * <i>pStop</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetPreroll">GetPreroll</a></b> ( LONGLONG * <i>pllPreroll</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetRate">GetRate</a></b> ( double * <i>dRate</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetState">GetState</a></b> ( DWORD, FILTER_STATE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetStopPosition">GetStopPosition</a></b> ( LONGLONG * <i>pStop</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetSyncSource">GetSyncSource</a></b> ( IReferenceClock ** )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetTimeFormat">GetTimeFormat</a></b> ( GUID * <i>pFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetTypeInfo">GetTypeInfo</a></b> ( UINT <i>iTInfo</i>, LCID <i>lcid</i>, ITypeInfo ** <i>ppTInfo</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#GetTypeInfoCount">GetTypeInfoCount</a></b> ( UINT * <i>pctinfo</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#Invoke">Invoke</a></b> ( DISPID <i>dispIdMember</i>, REFIID <i>riid</i>, LCID <i>lcid</i>, WORD <i>wFlags</i>, DISPPARAMS * <i>pDispParams</i>, VARIANT * <i>pVarResult</i>, EXCEPINFO * <i>pExcepInfo</i>, UINT * <i>puArgErr</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#IsFormatSupported">IsFormatSupported</a></b> ( const GUID * <i>pFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#IsUsingTimeFormat">IsUsingTimeFormat</a></b> ( const GUID * <i>pFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#JoinFilterGraph">JoinFilterGraph</a></b> ( IFilterGraph *, LPCWSTR )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#Pausex">Pause</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#QueryFilterInfo">QueryFilterInfo</a></b> ( FILTER_INFO * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#QueryInterface">QueryInterface</a></b> ( REFIID <i>iid</i>, void ** <i>out</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#QueryPreferredFormat">QueryPreferredFormat</a></b> ( GUID * <i>pFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#QueryVendorInfo">QueryVendorInfo</a></b> ( LPWSTR * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#Run">Run</a></b> ( REFERENCE_TIME )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qbasefilter.html#STDMETHODIMP_">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qbasefilter.html#STDMETHODIMP_-2">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#SetPositions">SetPositions</a></b> ( LONGLONG * <i>pCurrent</i>, DWORD <i>dwCurrentFlags</i>, LONGLONG * <i>pStop</i>, DWORD <i>dwStopFlags</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#SetRate">SetRate</a></b> ( double <i>dRate</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#SetSyncSource">SetSyncSource</a></b> ( IReferenceClock * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#SetTimeFormat">SetTimeFormat</a></b> ( const GUID * <i>pFormat</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#Stopx">Stop</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qbasefilter.html#addPin">addPin</a></b> ( QPin * <i>pin</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#get_CurrentPosition">get_CurrentPosition</a></b> ( REFTIME * <i>pllTime</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#get_Duration">get_Duration</a></b> ( REFTIME * <i>plength</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#get_PrerollTime">get_PrerollTime</a></b> ( REFTIME * <i>pllTime</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#get_Rate">get_Rate</a></b> ( double * <i>pdRate</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#get_StopTime">get_StopTime</a></b> ( REFTIME * <i>pllTime</i> )</li>
+<li><div class="fn"></div>IFilterGraph * <b><a href="phonon-ds9-qbasefilter.html#graph">graph</a></b> () const</li>
+<li><div class="fn"></div>const QList&lt;QPin *&gt; <b><a href="phonon-ds9-qbasefilter.html#pins">pins</a></b> () const</li>
+<li><div class="fn"></div>virtual HRESULT <b><a href="phonon-ds9-qbasefilter.html#processSample">processSample</a></b> ( IMediaSample * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#put_CurrentPosition">put_CurrentPosition</a></b> ( REFTIME <i>llTime</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#put_PrerollTime">put_PrerollTime</a></b> ( REFTIME <i>llTime</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#put_Rate">put_Rate</a></b> ( double <i>dRate</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qbasefilter.html#put_StopTime">put_StopTime</a></b> ( REFTIME <i>llTime</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-qbasefilter.html#removePin">removePin</a></b> ( QPin * <i>pin</i> )</li>
+<li><div class="fn"></div>FILTER_STATE <b><a href="phonon-ds9-qbasefilter.html#state">state</a></b> () const</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QBaseFilter"></a>QBaseFilter::QBaseFilter ( const CLSID &amp; <i>clsid</i> )</h3>
+<h3 class="fn"><a name="dtor.QBaseFilter"></a>QBaseFilter::~QBaseFilter ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="CanSeekBackward"></a>STDMETHODIMP QBaseFilter::CanSeekBackward ( LONG * <i>pCanSeekBackward</i> )</h3>
+<h3 class="fn"><a name="CanSeekForward"></a>STDMETHODIMP QBaseFilter::CanSeekForward ( LONG * <i>pCanSeekForward</i> )</h3>
+<h3 class="fn"><a name="CheckCapabilities"></a>STDMETHODIMP QBaseFilter::CheckCapabilities ( DWORD * <i>pCapabilities</i> )</h3>
+<h3 class="fn"><a name="ConvertTimeFormat"></a>STDMETHODIMP QBaseFilter::ConvertTimeFormat ( LONGLONG * <i>pTarget</i>, const GUID * <i>pTargetFormat</i>, LONGLONG <i>Source</i>, const GUID * <i>pSourceFormat</i> )</h3>
+<h3 class="fn"><a name="EnumPins"></a>STDMETHODIMP QBaseFilter::EnumPins ( IEnumPins ** )</h3>
+<h3 class="fn"><a name="FindPin"></a>STDMETHODIMP QBaseFilter::FindPin ( LPCWSTR, IPin ** )</h3>
+<h3 class="fn"><a name="GetAvailable"></a>STDMETHODIMP QBaseFilter::GetAvailable ( LONGLONG * <i>pEarliest</i>, LONGLONG * <i>pLatest</i> )</h3>
+<h3 class="fn"><a name="GetCapabilities"></a>STDMETHODIMP QBaseFilter::GetCapabilities ( DWORD * <i>pCapabilities</i> )</h3>
+<h3 class="fn"><a name="GetClassID"></a>STDMETHODIMP QBaseFilter::GetClassID ( CLSID * )</h3>
+<h3 class="fn"><a name="GetCurrentPosition"></a>STDMETHODIMP QBaseFilter::GetCurrentPosition ( LONGLONG * <i>pCurrent</i> )</h3>
+<h3 class="fn"><a name="GetDuration"></a>STDMETHODIMP QBaseFilter::GetDuration ( LONGLONG * <i>pDuration</i> )</h3>
+<h3 class="fn"><a name="GetIDsOfNames"></a>STDMETHODIMP QBaseFilter::GetIDsOfNames ( REFIID <i>riid</i>, LPOLESTR * <i>rgszNames</i>, UINT <i>cNames</i>, LCID <i>lcid</i>, DISPID * <i>rgDispId</i> )</h3>
+<h3 class="fn"><a name="GetPositions"></a>STDMETHODIMP QBaseFilter::GetPositions ( LONGLONG * <i>pCurrent</i>, LONGLONG * <i>pStop</i> )</h3>
+<h3 class="fn"><a name="GetPreroll"></a>STDMETHODIMP QBaseFilter::GetPreroll ( LONGLONG * <i>pllPreroll</i> )</h3>
+<h3 class="fn"><a name="GetRate"></a>STDMETHODIMP QBaseFilter::GetRate ( double * <i>dRate</i> )</h3>
+<h3 class="fn"><a name="GetState"></a>STDMETHODIMP QBaseFilter::GetState ( DWORD, FILTER_STATE * )</h3>
+<h3 class="fn"><a name="GetStopPosition"></a>STDMETHODIMP QBaseFilter::GetStopPosition ( LONGLONG * <i>pStop</i> )</h3>
+<h3 class="fn"><a name="GetSyncSource"></a>STDMETHODIMP QBaseFilter::GetSyncSource ( IReferenceClock ** )</h3>
+<h3 class="fn"><a name="GetTimeFormat"></a>STDMETHODIMP QBaseFilter::GetTimeFormat ( GUID * <i>pFormat</i> )</h3>
+<h3 class="fn"><a name="GetTypeInfo"></a>STDMETHODIMP QBaseFilter::GetTypeInfo ( UINT <i>iTInfo</i>, LCID <i>lcid</i>, ITypeInfo ** <i>ppTInfo</i> )</h3>
+<h3 class="fn"><a name="GetTypeInfoCount"></a>STDMETHODIMP QBaseFilter::GetTypeInfoCount ( UINT * <i>pctinfo</i> )</h3>
+<h3 class="fn"><a name="Invoke"></a>STDMETHODIMP QBaseFilter::Invoke ( DISPID <i>dispIdMember</i>, REFIID <i>riid</i>, LCID <i>lcid</i>, WORD <i>wFlags</i>, DISPPARAMS * <i>pDispParams</i>, VARIANT * <i>pVarResult</i>, EXCEPINFO * <i>pExcepInfo</i>, UINT * <i>puArgErr</i> )</h3>
+<h3 class="fn"><a name="IsFormatSupported"></a>STDMETHODIMP QBaseFilter::IsFormatSupported ( const GUID * <i>pFormat</i> )</h3>
+<h3 class="fn"><a name="IsUsingTimeFormat"></a>STDMETHODIMP QBaseFilter::IsUsingTimeFormat ( const GUID * <i>pFormat</i> )</h3>
+<h3 class="fn"><a name="JoinFilterGraph"></a>STDMETHODIMP QBaseFilter::JoinFilterGraph ( IFilterGraph *, LPCWSTR )</h3>
+<h3 class="fn"><a name="Pausex"></a>STDMETHODIMP QBaseFilter::Pause ()</h3>
+<h3 class="fn"><a name="QueryFilterInfo"></a>STDMETHODIMP QBaseFilter::QueryFilterInfo ( FILTER_INFO * )</h3>
+<h3 class="fn"><a name="QueryInterface"></a>STDMETHODIMP QBaseFilter::QueryInterface ( REFIID <i>iid</i>, void ** <i>out</i> )</h3>
+<h3 class="fn"><a name="QueryPreferredFormat"></a>STDMETHODIMP QBaseFilter::QueryPreferredFormat ( GUID * <i>pFormat</i> )</h3>
+<h3 class="fn"><a name="QueryVendorInfo"></a>STDMETHODIMP QBaseFilter::QueryVendorInfo ( LPWSTR * )</h3>
+<h3 class="fn"><a name="Run"></a>STDMETHODIMP QBaseFilter::Run ( REFERENCE_TIME )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_"></a>QBaseFilter::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_-2"></a>QBaseFilter::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="SetPositions"></a>STDMETHODIMP QBaseFilter::SetPositions ( LONGLONG * <i>pCurrent</i>, DWORD <i>dwCurrentFlags</i>, LONGLONG * <i>pStop</i>, DWORD <i>dwStopFlags</i> )</h3>
+<h3 class="fn"><a name="SetRate"></a>STDMETHODIMP QBaseFilter::SetRate ( double <i>dRate</i> )</h3>
+<h3 class="fn"><a name="SetSyncSource"></a>STDMETHODIMP QBaseFilter::SetSyncSource ( IReferenceClock * )</h3>
+<h3 class="fn"><a name="SetTimeFormat"></a>STDMETHODIMP QBaseFilter::SetTimeFormat ( const GUID * <i>pFormat</i> )</h3>
+<h3 class="fn"><a name="Stopx"></a>STDMETHODIMP QBaseFilter::Stop ()</h3>
+<h3 class="fn"><a name="addPin"></a>void QBaseFilter::addPin ( <a href="phonon-ds9-qpin.html">QPin</a> * <i>pin</i> )</h3>
+<h3 class="fn"><a name="get_CurrentPosition"></a>STDMETHODIMP QBaseFilter::get_CurrentPosition ( REFTIME * <i>pllTime</i> )</h3>
+<h3 class="fn"><a name="get_Duration"></a>STDMETHODIMP QBaseFilter::get_Duration ( REFTIME * <i>plength</i> )</h3>
+<h3 class="fn"><a name="get_PrerollTime"></a>STDMETHODIMP QBaseFilter::get_PrerollTime ( REFTIME * <i>pllTime</i> )</h3>
+<h3 class="fn"><a name="get_Rate"></a>STDMETHODIMP QBaseFilter::get_Rate ( double * <i>pdRate</i> )</h3>
+<h3 class="fn"><a name="get_StopTime"></a>STDMETHODIMP QBaseFilter::get_StopTime ( REFTIME * <i>pllTime</i> )</h3>
+<h3 class="fn"><a name="graph"></a>IFilterGraph * QBaseFilter::graph () const</h3>
+<h3 class="fn"><a name="pins"></a>const <a href="qlist.html">QList</a>&lt;<a href="phonon-ds9-qpin.html">QPin</a> *&gt; QBaseFilter::pins () const</h3>
+<h3 class="fn"><a name="processSample"></a>HRESULT QBaseFilter::processSample ( IMediaSample * )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="put_CurrentPosition"></a>STDMETHODIMP QBaseFilter::put_CurrentPosition ( REFTIME <i>llTime</i> )</h3>
+<h3 class="fn"><a name="put_PrerollTime"></a>STDMETHODIMP QBaseFilter::put_PrerollTime ( REFTIME <i>llTime</i> )</h3>
+<h3 class="fn"><a name="put_Rate"></a>STDMETHODIMP QBaseFilter::put_Rate ( double <i>dRate</i> )</h3>
+<h3 class="fn"><a name="put_StopTime"></a>STDMETHODIMP QBaseFilter::put_StopTime ( REFTIME <i>llTime</i> )</h3>
+<h3 class="fn"><a name="removePin"></a>void QBaseFilter::removePin ( <a href="phonon-ds9-qpin.html">QPin</a> * <i>pin</i> )</h3>
+<h3 class="fn"><a name="state"></a>FILTER_STATE QBaseFilter::state () const</h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

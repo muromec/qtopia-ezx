@@ -1,0 +1,623 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: vector.h Example File (demos/boxes/vector.h)</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">vector.h Example File<br /><span class="small-subtitle">demos/boxes/vector.h</span>
+</h1>
+<pre><span class="comment"> /****************************************************************************
+ **
+ ** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
+ ** Contact: Qt Software Information (qt-info@nokia.com)
+ **
+ ** This file is part of the demonstration applications of the Qt Toolkit.
+ **
+ ** $QT_BEGIN_LICENSE:LGPL$
+ ** Commercial Usage
+ ** Licensees holding valid Qt Commercial licenses may use this file in
+ ** accordance with the Qt Commercial License Agreement provided with the
+ ** Software or, alternatively, in accordance with the terms contained in
+ ** a written agreement between you and Nokia.
+ **
+ ** GNU Lesser General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU Lesser
+ ** General Public License version 2.1 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.LGPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU Lesser General Public License version 2.1 requirements
+ ** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+ **
+ ** In addition, as a special exception, Nokia gives you certain
+ ** additional rights. These rights are described in the Nokia Qt LGPL
+ ** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
+ ** package.
+ **
+ ** GNU General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU
+ ** General Public License version 3.0 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.GPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU General Public License version 3.0 requirements will be
+ ** met: http://www.gnu.org/copyleft/gpl.html.
+ **
+ ** If you are unsure which license is appropriate for your use, please
+ ** contact the sales department at qt-sales@nokia.com.
+ ** $QT_END_LICENSE$
+ **
+ ****************************************************************************/</span>
+
+ #ifndef VECTOR_H
+ #define VECTOR_H
+
+ #include &lt;cassert&gt;
+ #include &lt;cmath&gt;
+ #include &lt;iostream&gt;
+
+ namespace gfx
+ {
+
+ template&lt;class T, int n&gt;
+ struct Vector
+ {
+     <span class="comment">// Keep the Vector struct a plain old data (POD) struct by avoiding constructors</span>
+
+     static Vector vector(T x)
+     {
+         Vector result;
+         for (int i = 0; i &lt; n; ++i)
+             result.v[i] = x;
+         return result;
+     }
+
+     <span class="comment">// Use only for 2D vectors</span>
+     static Vector vector(T x, T y)
+     {
+         assert(n == 2);
+         Vector result;
+         result.v[0] = x;
+         result.v[1] = y;
+         return result;
+     }
+
+     <span class="comment">// Use only for 3D vectors</span>
+     static Vector vector(T x, T y, T z)
+     {
+         assert(n == 3);
+         Vector result;
+         result.v[0] = x;
+         result.v[1] = y;
+         result.v[2] = z;
+         return result;
+     }
+
+     <span class="comment">// Use only for 4D vectors</span>
+     static Vector vector(T x, T y, T z, T w)
+     {
+         assert(n == 4);
+         Vector result;
+         result.v[0] = x;
+         result.v[1] = y;
+         result.v[2] = z;
+         result.v[3] = w;
+         return result;
+     }
+
+     <span class="comment">// Pass 'n' arguments to this function.</span>
+     static Vector vector(T *v)
+     {
+         Vector result;
+         for (int i = 0; i &lt; n; ++i)
+             result.v[i] = v[i];
+         return result;
+     }
+
+     T &amp;operator [] (int i) {return v[i];}
+     T operator [] (int i) const {return v[i];}
+
+ #define VECTOR_BINARY_OP(op, arg, rhs)      \
+     Vector operator op (arg) const          \
+     {                                       \
+         Vector result;                      \
+         for (int i = 0; i &lt; n; ++i)         \
+             result.v[i] = v[i] op rhs;      \
+         return result;                      \
+     }
+
+     VECTOR_BINARY_OP(+, const Vector &amp;u, u.v[i])
+     VECTOR_BINARY_OP(-, const Vector &amp;u, u.v[i])
+     VECTOR_BINARY_OP(*, const Vector &amp;u, u.v[i])
+     VECTOR_BINARY_OP(/, const Vector &amp;u, u.v[i])
+     VECTOR_BINARY_OP(+, T s, s)
+     VECTOR_BINARY_OP(-, T s, s)
+     VECTOR_BINARY_OP(*, T s, s)
+     VECTOR_BINARY_OP(/, T s, s)
+ #undef VECTOR_BINARY_OP
+
+     Vector operator - () const
+     {
+         Vector result;
+         for (int i = 0; i &lt; n; ++i)
+             result.v[i] = -v[i];
+         return result;
+     }
+
+ #define VECTOR_ASSIGN_OP(op, arg, rhs)      \
+     Vector &amp;operator op (arg)               \
+     {                                       \
+         for (int i = 0; i &lt; n; ++i)         \
+             v[i] op rhs;                    \
+         return *this;                       \
+     }
+
+     VECTOR_ASSIGN_OP(+=, const Vector &amp;u, u.v[i])
+     VECTOR_ASSIGN_OP(-=, const Vector &amp;u, u.v[i])
+     VECTOR_ASSIGN_OP(=, T s, s)
+     VECTOR_ASSIGN_OP(*=, T s, s)
+     VECTOR_ASSIGN_OP(/=, T s, s)
+ #undef VECTOR_ASSIGN_OP
+
+     static T dot(const Vector &amp;u, const Vector &amp;v)
+     {
+         T sum(0);
+         for (int i = 0; i &lt; n; ++i)
+             sum += u.v[i] * v.v[i];
+         return sum;
+     }
+
+     static Vector cross(const Vector &amp;u, const Vector &amp;v)
+     {
+         assert(n == 3);
+         return vector(u.v[1] * v.v[2] - u.v[2] * v.v[1],
+                       u.v[2] * v.v[0] - u.v[0] * v.v[2],
+                       u.v[0] * v.v[1] - u.v[1] * v.v[0]);
+     }
+
+     T sqrNorm() const
+     {
+         return dot(*this, *this);
+     }
+
+     <span class="comment">// requires floating point type T</span>
+     void normalize()
+     {
+         T s = sqrNorm();
+         if (s != 0)
+             *this /= sqrt(s);
+     }
+
+     <span class="comment">// requires floating point type T</span>
+     Vector normalized() const
+     {
+         T s = sqrNorm();
+         if (s == 0)
+             return *this;
+         return *this / sqrt(s);
+     }
+
+     T *bits() {return v;}
+     const T *bits() const {return v;}
+
+     T v[n];
+ };
+
+ #define SCALAR_VECTOR_BINARY_OP(op)                     \
+ template&lt;class T, int n&gt;                                \
+ Vector&lt;T, n&gt; operator op (T s, const Vector&lt;T, n&gt;&amp; u)   \
+ {                                                       \
+     Vector&lt;T, n&gt; result;                                \
+     for (int i = 0; i &lt; n; ++i)                         \
+         result[i] = s op u[i];                          \
+     return result;                                      \
+ }
+
+ SCALAR_VECTOR_BINARY_OP(+)
+ SCALAR_VECTOR_BINARY_OP(-)
+ SCALAR_VECTOR_BINARY_OP(*)
+ SCALAR_VECTOR_BINARY_OP(/)
+ #undef SCALAR_VECTOR_BINARY_OP
+
+ template&lt;class T, int n&gt;
+ std::ostream &amp;operator &lt;&lt; (std::ostream &amp;os, const Vector&lt;T, n&gt; &amp;v)
+ {
+     assert(n &gt; 0);
+     os &lt;&lt; &quot;[&quot; &lt;&lt; v[0];
+     for (int i = 1; i &lt; n; ++i)
+         os &lt;&lt; &quot;, &quot; &lt;&lt; v[i];
+     os &lt;&lt; &quot;]&quot;;
+     return os;
+ }
+
+ typedef Vector&lt;float, 2&gt; Vector2f;
+ typedef Vector&lt;float, 3&gt; Vector3f;
+ typedef Vector&lt;float, 4&gt; Vector4f;
+
+ template&lt;class T, int rows, int cols&gt;
+ struct Matrix
+ {
+     <span class="comment">// Keep the Matrix struct a plain old data (POD) struct by avoiding constructors</span>
+
+     static Matrix matrix(T x)
+     {
+         Matrix result;
+         for (int i = 0; i &lt; rows; ++i) {
+             for (int j = 0; j &lt; cols; ++j)
+                 result.v[i][j] = x;
+         }
+         return result;
+     }
+
+     static Matrix matrix(T *m)
+     {
+         Matrix result;
+         for (int i = 0; i &lt; rows; ++i) {
+             for (int j = 0; j &lt; cols; ++j) {
+                 result.v[i][j] = *m;
+                 ++m;
+             }
+         }
+         return result;
+     }
+
+     T &amp;operator () (int i, int j) {return v[i][j];}
+     T operator () (int i, int j) const {return v[i][j];}
+     Vector&lt;T, cols&gt; &amp;operator [] (int i) {return v[i];}
+     const Vector&lt;T, cols&gt; &amp;operator [] (int i) const {return v[i];}
+
+     <span class="comment">// TODO: operators, methods</span>
+
+     Vector&lt;T, rows&gt; operator * (const Vector&lt;T, cols&gt; &amp;u) const
+     {
+         Vector&lt;T, rows&gt; result;
+         for (int i = 0; i &lt; rows; ++i)
+             result[i] = Vector&lt;T, cols&gt;::dot(v[i], u);
+         return result;
+     }
+
+     template&lt;int k&gt;
+     Matrix&lt;T, rows, k&gt; operator * (const Matrix&lt;T, cols, k&gt; &amp;m)
+     {
+         Matrix&lt;T, rows, k&gt; result;
+         for (int i = 0; i &lt; rows; ++i)
+             result[i] = v[i] * m;
+         return result;
+     }
+
+     T* bits() {return reinterpret_cast&lt;T *&gt;(this);}
+     const T* bits() const {return reinterpret_cast&lt;const T *&gt;(this);}
+
+     <span class="comment">// Simple Gauss elimination.</span>
+     <span class="comment">// TODO: Optimize and improve stability.</span>
+     Matrix inverse(bool *ok = 0) const
+     {
+         assert(rows == cols);
+         Matrix rhs = identity();
+         Matrix lhs(*this);
+         T temp;
+         <span class="comment">// Down</span>
+         for (int i = 0; i &lt; rows; ++i) {
+             <span class="comment">// Pivoting</span>
+             int pivot = i;
+             for (int j = i; j &lt; rows; ++j) {
+                 if (qAbs(lhs(j, i)) &gt; lhs(pivot, i))
+                     pivot = j;
+             }
+                         <span class="comment">// TODO: fuzzy compare.</span>
+             if (lhs(pivot, i) == T(0)) {
+                 if (ok)
+                     *ok = false;
+                 return rhs;
+             }
+             if (pivot != i) {
+                 for (int j = i; j &lt; cols; ++j) {
+                     temp = lhs(pivot, j);
+                     lhs(pivot, j) = lhs(i, j);
+                     lhs(i, j) = temp;
+                 }
+                 for (int j = 0; j &lt; cols; ++j) {
+                     temp = rhs(pivot, j);
+                     rhs(pivot, j) = rhs(i, j);
+                     rhs(i, j) = temp;
+                 }
+             }
+
+             <span class="comment">// Normalize i-th row</span>
+             rhs[i] /= lhs(i, i);
+             for (int j = cols - 1; j &gt; i; --j)
+                 lhs(i, j) /= lhs(i, i);
+
+                         <span class="comment">// Eliminate non-zeros in i-th column below the i-th row.</span>
+             for (int j = i + 1; j &lt; rows; ++j) {
+                 rhs[j] -= lhs(j, i) * rhs[i];
+                 for (int k = i + 1; k &lt; cols; ++k)
+                     lhs(j, k) -= lhs(j, i) * lhs(i, k);
+             }
+         }
+         <span class="comment">// Up</span>
+         for (int i = rows - 1; i &gt; 0; --i) {
+             for (int j = i - 1; j &gt;= 0; --j)
+                 rhs[j] -= lhs(j, i) * rhs[i];
+         }
+         if (ok)
+             *ok = true;
+         return rhs;
+     }
+
+     Matrix&lt;T, cols, rows&gt; transpose() const
+     {
+         Matrix&lt;T, cols, rows&gt; result;
+         for (int i = 0; i &lt; rows; ++i) {
+             for (int j = 0; j &lt; cols; ++j)
+                 result.v[j][i] = v[i][j];
+         }
+         return result;
+     }
+
+     static Matrix identity()
+     {
+         Matrix result = matrix(T(0));
+         for (int i = 0; i &lt; rows &amp;&amp; i &lt; cols; ++i)
+             result.v[i][i] = T(1);
+         return result;
+     }
+
+     Vector&lt;T, cols&gt; v[rows];
+ };
+
+ template&lt;class T, int rows, int cols&gt;
+ Vector&lt;T, cols&gt; operator * (const Vector&lt;T, rows&gt; &amp;u, const Matrix&lt;T, rows, cols&gt; &amp;m)
+ {
+     Vector&lt;T, cols&gt; result = Vector&lt;T, cols&gt;::vector(T(0));
+     for (int i = 0; i &lt; rows; ++i)
+         result += m[i] * u[i];
+     return result;
+ }
+
+ template&lt;class T, int rows, int cols&gt;
+ std::ostream &amp;operator &lt;&lt; (std::ostream &amp;os, const Matrix&lt;T, rows, cols&gt; &amp;m)
+ {
+     assert(rows &gt; 0);
+     os &lt;&lt; &quot;[&quot; &lt;&lt; m[0];
+     for (int i = 1; i &lt; rows; ++i)
+         os &lt;&lt; &quot;, &quot; &lt;&lt; m[i];
+     os &lt;&lt; &quot;]&quot;;
+     return os;
+ }
+
+ typedef Matrix&lt;float, 2, 2&gt; Matrix2x2f;
+ typedef Matrix&lt;float, 3, 3&gt; Matrix3x3f;
+ typedef Matrix&lt;float, 4, 4&gt; Matrix4x4f;
+
+ template&lt;class T&gt;
+ struct Quaternion
+ {
+     <span class="comment">// Keep the Quaternion struct a plain old data (POD) struct by avoiding constructors</span>
+
+     static Quaternion quaternion(T s, T x, T y, T z)
+     {
+         Quaternion result;
+         result.scalar = s;
+         result.vector[0] = x;
+         result.vector[1] = y;
+         result.vector[2] = z;
+         return result;
+     }
+
+     static Quaternion quaternion(T s, const Vector&lt;T, 3&gt; &amp;v)
+     {
+         Quaternion result;
+         result.scalar = s;
+         result.vector = v;
+         return result;
+     }
+
+     static Quaternion identity()
+     {
+         return quaternion(T(1), T(0), T(0), T(0));
+     }
+
+     <span class="comment">// assumes that all the elements are packed tightly</span>
+     T&amp; operator [] (int i) {return reinterpret_cast&lt;T *&gt;(this)[i];}
+     T operator [] (int i) const {return reinterpret_cast&lt;const T *&gt;(this)[i];}
+
+ #define QUATERNION_BINARY_OP(op, arg, rhs)  \
+     Quaternion operator op (arg) const      \
+     {                                       \
+         Quaternion result;                  \
+         for (int i = 0; i &lt; 4; ++i)         \
+             result[i] = (*this)[i] op rhs;  \
+         return result;                      \
+     }
+
+     QUATERNION_BINARY_OP(+, const Quaternion &amp;q, q[i])
+     QUATERNION_BINARY_OP(-, const Quaternion &amp;q, q[i])
+     QUATERNION_BINARY_OP(*, T s, s)
+     QUATERNION_BINARY_OP(/, T s, s)
+ #undef QUATERNION_BINARY_OP
+
+     Quaternion operator - () const
+     {
+         return Quaternion(-scalar, -vector);
+     }
+
+     Quaternion operator * (const Quaternion &amp;q) const
+     {
+         Quaternion result;
+         result.scalar = scalar * q.scalar - Vector&lt;T, 3&gt;::dot(vector, q.vector);
+         result.vector = scalar * q.vector + vector * q.scalar + Vector&lt;T, 3&gt;::cross(vector, q.vector);
+         return result;
+     }
+
+     Quaternion operator * (const Vector&lt;T, 3&gt; &amp;v) const
+     {
+         Quaternion result;
+         result.scalar = -Vector&lt;T, 3&gt;::dot(vector, v);
+         result.vector = scalar * v + Vector&lt;T, 3&gt;::cross(vector, v);
+         return result;
+     }
+
+     friend Quaternion operator * (const Vector&lt;T, 3&gt; &amp;v, const Quaternion &amp;q)
+     {
+         Quaternion result;
+         result.scalar = -Vector&lt;T, 3&gt;::dot(v, q.vector);
+         result.vector = v * q.scalar + Vector&lt;T, 3&gt;::cross(v, q.vector);
+         return result;
+     }
+
+ #define QUATERNION_ASSIGN_OP(op, arg, rhs)  \
+     Quaternion &amp;operator op (arg)           \
+     {                                       \
+         for (int i = 0; i &lt; 4; ++i)         \
+             (*this)[i] op rhs;              \
+         return *this;                       \
+     }
+
+     QUATERNION_ASSIGN_OP(+=, const Quaternion &amp;q, q[i])
+     QUATERNION_ASSIGN_OP(-=, const Quaternion &amp;q, q[i])
+     QUATERNION_ASSIGN_OP(=, T s, s)
+     QUATERNION_ASSIGN_OP(*=, T s, s)
+     QUATERNION_ASSIGN_OP(/=, T s, s)
+ #undef QUATERNION_ASSIGN_OP
+
+     Quaternion&amp; operator *= (const Quaternion &amp;q)
+     {
+         Quaternion result;
+         result.scalar = scalar * q.scalar - Vector&lt;T, 3&gt;::dot(vector, q.vector);
+         result.vector = scalar * q.vector + vector * q.scalar + Vector&lt;T, 3&gt;::cross(vector, q.vector);
+         return (*this = result);
+     }
+
+     Quaternion&amp; operator *= (const Vector&lt;T, 3&gt; &amp;v)
+     {
+         Quaternion result;
+         result.scalar = -Vector&lt;T, 3&gt;::dot(vector, v);
+         result.vector = scalar * v + Vector&lt;T, 3&gt;::cross(vector, v);
+         return (*this = result);
+     }
+
+     Quaternion conjugate() const
+     {
+         return quaternion(scalar, -vector);
+     }
+
+     T sqrNorm() const
+     {
+         return scalar * scalar + vector.sqrNorm();
+     }
+
+     Quaternion inverse() const
+     {
+         return conjugate() / sqrNorm();
+     }
+
+     <span class="comment">// requires floating point type T</span>
+     Quaternion normalized() const
+     {
+         T s = sqrNorm();
+         if (s == 0)
+             return *this;
+         return *this / sqrt(s);
+     }
+
+     void matrix(Matrix&lt;T, 3, 3&gt;&amp; m) const
+     {
+         T bb = vector[0] * vector[0];
+         T cc = vector[1] * vector[1];
+         T dd = vector[2] * vector[2];
+         T diag = scalar * scalar - bb - cc - dd;
+         T ab = scalar * vector[0];
+         T ac = scalar * vector[1];
+         T ad = scalar * vector[2];
+         T bc = vector[0] * vector[1];
+         T cd = vector[1] * vector[2];
+         T bd = vector[2] * vector[0];
+         m(0, 0) = diag + 2 * bb;
+         m(0, 1) = 2 * (bc - ad);
+         m(0, 2) = 2 * (ac + bd);
+         m(1, 0) = 2 * (ad + bc);
+         m(1, 1) = diag + 2 * cc;
+         m(1, 2) = 2 * (cd - ab);
+         m(2, 0) = 2 * (bd - ac);
+         m(2, 1) = 2 * (ab + cd);
+         m(2, 2) = diag + 2 * dd;
+     }
+
+     void matrix(Matrix&lt;T, 4, 4&gt;&amp; m) const
+     {
+         T bb = vector[0] * vector[0];
+         T cc = vector[1] * vector[1];
+         T dd = vector[2] * vector[2];
+         T diag = scalar * scalar - bb - cc - dd;
+         T ab = scalar * vector[0];
+         T ac = scalar * vector[1];
+         T ad = scalar * vector[2];
+         T bc = vector[0] * vector[1];
+         T cd = vector[1] * vector[2];
+         T bd = vector[2] * vector[0];
+         m(0, 0) = diag + 2 * bb;
+         m(0, 1) = 2 * (bc - ad);
+         m(0, 2) = 2 * (ac + bd);
+         m(0, 3) = 0;
+         m(1, 0) = 2 * (ad + bc);
+         m(1, 1) = diag + 2 * cc;
+         m(1, 2) = 2 * (cd - ab);
+         m(1, 3) = 0;
+         m(2, 0) = 2 * (bd - ac);
+         m(2, 1) = 2 * (ab + cd);
+         m(2, 2) = diag + 2 * dd;
+         m(2, 3) = 0;
+         m(3, 0) = 0;
+         m(3, 1) = 0;
+         m(3, 2) = 0;
+         m(3, 3) = 1;
+     }
+
+     <span class="comment">// assumes that 'this' is normalized</span>
+     Vector&lt;T, 3&gt; transform(const Vector&lt;T, 3&gt; &amp;v) const
+     {
+         Matrix&lt;T, 3, 3&gt; m;
+         matrix(m);
+         return v * m;
+     }
+
+     <span class="comment">// assumes that all the elements are packed tightly</span>
+     T* bits() {return reinterpret_cast&lt;T *&gt;(this);}
+     const T* bits() const {return reinterpret_cast&lt;const T *&gt;(this);}
+
+     <span class="comment">// requires floating point type T</span>
+     static Quaternion rotation(T angle, const Vector&lt;T, 3&gt; &amp;unitAxis)
+     {
+         T s = sin(angle / 2);
+         T c = cos(angle / 2);
+         return quaternion(c, unitAxis * s);
+     }
+
+     T scalar;
+     Vector&lt;T, 3&gt; vector;
+ };
+
+ template&lt;class T&gt;
+ Quaternion&lt;T&gt; operator * (T s, const Quaternion&lt;T&gt;&amp; q)
+ {
+     return Quaternion&lt;T&gt;::quaternion(s * q.scalar, s * q.vector);
+ }
+
+ typedef Quaternion&lt;float&gt; Quaternionf;
+
+ } <span class="comment">// end namespace gfx</span>
+
+ #endif</pre>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

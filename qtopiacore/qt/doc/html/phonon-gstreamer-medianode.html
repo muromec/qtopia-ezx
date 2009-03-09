@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: MediaNode Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">MediaNode Class Reference<br /><span class="small-subtitle">(Phonon::Gstreamer::MediaNode)<br /></span>
+</h1>
+<p>Inherited by </p>
+<ul>
+<li><a href="phonon-gstreamer-medianode-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-types"></a>
+<h3>Public Types</h3>
+<ul>
+<li><div class="fn"></div>flags <b><a href="phonon-gstreamer-medianode.html#NodeDescriptionEnum-enum">NodeDescription</a></b></li>
+<li><div class="fn"></div>enum <b><a href="phonon-gstreamer-medianode.html#NodeDescriptionEnum-enum">NodeDescriptionEnum</a></b> { AudioSource, AudioSink, VideoSource, VideoSink }</li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-gstreamer-medianode.html#MediaNode">MediaNode</a></b> ( Backend * <i>backend</i>, NodeDescription <i>description</i> )</li>
+<li><div class="fn"></div>virtual <b><a href="phonon-gstreamer-medianode.html#dtor.MediaNode">~MediaNode</a></b> ()</li>
+<li><div class="fn"></div>virtual GstElement * <b><a href="phonon-gstreamer-medianode.html#audioElement">audioElement</a></b> ()</li>
+<li><div class="fn"></div>Backend * <b><a href="phonon-gstreamer-medianode.html#backendx">backend</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#breakGraph">breakGraph</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#buildGraph">buildGraph</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#connectNode">connectNode</a></b> ( QObject * <i>other</i> )</li>
+<li><div class="fn"></div>NodeDescription <b><a href="phonon-gstreamer-medianode.html#description">description</a></b> () const</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#disconnectNode">disconnectNode</a></b> ( QObject * <i>other</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#isValid">isValid</a></b> ()</li>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-gstreamer-medianode.html#link">link</a></b> ()</li>
+<li><div class="fn"></div>const QString &amp; <b><a href="phonon-gstreamer-medianode.html#name">name</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-medianode.html#notify">notify</a></b> ( const MediaNodeEvent * <i>event</i> )</li>
+<li><div class="fn"></div>MediaObject * <b><a href="phonon-gstreamer-medianode.html#root">root</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-medianode.html#setRoot">setRoot</a></b> ( MediaObject * <i>mediaObject</i> )</li>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-gstreamer-medianode.html#unlink">unlink</a></b> ()</li>
+<li><div class="fn"></div>virtual GstElement * <b><a href="phonon-gstreamer-medianode.html#videoElement">videoElement</a></b> ()</li>
+</ul>
+<a name="protected-functions"></a>
+<h3>Protected Functions</h3>
+<ul>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#connectToFakeSink">connectToFakeSink</a></b> ( GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>bin</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#linkMediaNodeList">linkMediaNodeList</a></b> ( QList&lt;QObject *&gt; &amp; <i>list</i>, GstElement * <i>bin</i>, GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>src</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-gstreamer-medianode.html#mediaNodeEvent">mediaNodeEvent</a></b> ( const MediaNodeEvent * <i>event</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-gstreamer-medianode.html#releaseFakeSinkIfConnected">releaseFakeSinkIfConnected</a></b> ( GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>bin</i> )</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Type Documentation</h2>
+<h3 class="flags"><a name="NodeDescriptionEnum-enum"></a>enum MediaNode::NodeDescriptionEnum<br />flags MediaNode::NodeDescription</h3>
+<p>The NodeDescription type is a typedef for <a href="qflags.html">QFlags</a>&lt;NodeDescriptionEnum&gt;. It stores an OR combination of NodeDescriptionEnum values.</p>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="MediaNode"></a>MediaNode::MediaNode ( <a href="phonon-gstreamer-backend.html">Backend</a> * <i>backend</i>, <a href="phonon-gstreamer-medianode.html#NodeDescriptionEnum-enum">NodeDescription</a> <i>description</i> )</h3>
+<h3 class="fn"><a name="dtor.MediaNode"></a>MediaNode::~MediaNode ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="audioElement"></a>GstElement * MediaNode::audioElement ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="backendx"></a><a href="phonon-gstreamer-backend.html">Backend</a> * MediaNode::backend ()</h3>
+<h3 class="fn"><a name="breakGraph"></a>bool MediaNode::breakGraph ()</h3>
+<h3 class="fn"><a name="buildGraph"></a>bool MediaNode::buildGraph ()</h3>
+<h3 class="fn"><a name="connectNode"></a>bool MediaNode::connectNode ( <a href="qobject.html">QObject</a> * <i>other</i> )</h3>
+<h3 class="fn"><a name="connectToFakeSink"></a>bool MediaNode::connectToFakeSink ( GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>bin</i> )&nbsp;&nbsp;<tt> [protected]</tt></h3>
+<h3 class="fn"><a name="description"></a><a href="phonon-gstreamer-medianode.html#NodeDescriptionEnum-enum">NodeDescription</a> MediaNode::description () const</h3>
+<h3 class="fn"><a name="disconnectNode"></a>bool MediaNode::disconnectNode ( <a href="qobject.html">QObject</a> * <i>other</i> )</h3>
+<h3 class="fn"><a name="isValid"></a>bool MediaNode::isValid ()</h3>
+<h3 class="fn"><a name="link"></a>bool MediaNode::link ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="linkMediaNodeList"></a>bool MediaNode::linkMediaNodeList ( <a href="qlist.html">QList</a>&lt;<a href="qobject.html">QObject</a> *&gt; &amp; <i>list</i>, GstElement * <i>bin</i>, GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>src</i> )&nbsp;&nbsp;<tt> [protected]</tt></h3>
+<h3 class="fn"><a name="mediaNodeEvent"></a>void MediaNode::mediaNodeEvent ( const <a href="phonon-gstreamer-medianodeevent.html">MediaNodeEvent</a> * <i>event</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
+<h3 class="fn"><a name="name"></a>const <a href="qstring.html">QString</a> &amp; MediaNode::name ()</h3>
+<h3 class="fn"><a name="notify"></a>void MediaNode::notify ( const <a href="phonon-gstreamer-medianodeevent.html">MediaNodeEvent</a> * <i>event</i> )</h3>
+<h3 class="fn"><a name="releaseFakeSinkIfConnected"></a>bool MediaNode::releaseFakeSinkIfConnected ( GstElement * <i>tee</i>, GstElement * <i>sink</i>, GstElement * <i>bin</i> )&nbsp;&nbsp;<tt> [protected]</tt></h3>
+<h3 class="fn"><a name="root"></a><a href="phonon-gstreamer-mediaobject.html">MediaObject</a> * MediaNode::root ()</h3>
+<p>See also <a href="phonon-gstreamer-medianode.html#setRoot">setRoot</a>().</p>
+<h3 class="fn"><a name="setRoot"></a>void MediaNode::setRoot ( <a href="phonon-gstreamer-mediaobject.html">MediaObject</a> * <i>mediaObject</i> )</h3>
+<p>See also <a href="phonon-gstreamer-medianode.html#root">root</a>().</p>
+<h3 class="fn"><a name="unlink"></a>bool MediaNode::unlink ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="videoElement"></a>GstElement * MediaNode::videoElement ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

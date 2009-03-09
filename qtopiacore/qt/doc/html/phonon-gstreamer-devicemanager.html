@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: DeviceManager Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">DeviceManager Class Reference<br /><span class="small-subtitle">(Phonon::Gstreamer::DeviceManager)<br /></span>
+</h1>
+<p>Inherits <a href="qobject.html">QObject</a> and <a href="qobject.html">QObject</a>.</p>
+<ul>
+<li><a href="phonon-gstreamer-devicemanager-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-gstreamer-devicemanager.html#DeviceManagerx">DeviceManager</a></b> ( Backend * <i>parent</i> )</li>
+<li><div class="fn"></div>virtual <b><a href="phonon-gstreamer-devicemanager.html#dtor.DeviceManager">~DeviceManager</a></b> ()</li>
+<li><div class="fn"></div>const QList&lt;AudioDevice&gt; <b><a href="phonon-gstreamer-devicemanager.html#audioOutputDevices">audioOutputDevices</a></b> () const</li>
+<li><div class="fn"></div>GstElement * <b><a href="phonon-gstreamer-devicemanager.html#createAudioSink">createAudioSink</a></b> ( Category <i>category</i> = NoCategory )</li>
+<li><div class="fn"></div>GstElement * <b><a href="phonon-gstreamer-devicemanager.html#createGNOMEAudioSink">createGNOMEAudioSink</a></b> ( Category <i>category</i> )</li>
+<li><div class="fn"></div>AbstractRenderer * <b><a href="phonon-gstreamer-devicemanager.html#createVideoRenderer">createVideoRenderer</a></b> ( VideoWidget * <i>parent</i> )</li>
+<li><div class="fn"></div>QByteArray <b><a href="phonon-gstreamer-devicemanager.html#deviceDescription">deviceDescription</a></b> ( int <i>id</i> ) const</li>
+<li><div class="fn"></div>int <b><a href="phonon-gstreamer-devicemanager.html#deviceId">deviceId</a></b> ( const QByteArray &amp; <i>gstId</i> ) const</li>
+<li><div class="fn"></div>GstPad * <b><a href="phonon-gstreamer-devicemanager.html#requestPad">requestPad</a></b> ( int <i>device</i> ) const</li>
+</ul>
+<ul>
+<li><div class="fn"></div>58 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="public-slots"></a>
+<h3>Public Slots</h3>
+<ul>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-devicemanager.html#updateDeviceList">updateDeviceList</a></b> ()</li>
+</ul>
+<ul>
+<li><div class="fn"></div>2 public slots inherited from <a href="qobject.html#public-slots">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-devicemanager.html#deviceAdded">deviceAdded</a></b> ( int )</li>
+<li><div class="fn"></div>void <b><a href="phonon-gstreamer-devicemanager.html#deviceRemoved">deviceRemoved</a></b> ( int )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>2 signals inherited from <a href="qobject.html#signals">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>2 properties inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"></div>10 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"></div>14 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="DeviceManagerx"></a>DeviceManager::DeviceManager ( <a href="phonon-gstreamer-backend.html">Backend</a> * <i>parent</i> )</h3>
+<h3 class="fn"><a name="dtor.DeviceManager"></a>DeviceManager::~DeviceManager ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="audioOutputDevices"></a>const <a href="qlist.html">QList</a>&lt;<a href="phonon-gstreamer-audiodevice.html">AudioDevice</a>&gt; DeviceManager::audioOutputDevices () const</h3>
+<h3 class="fn"><a name="createAudioSink"></a>GstElement * DeviceManager::createAudioSink ( <a href="phonon.html#Category-enum">Category</a> <i>category</i> = NoCategory )</h3>
+<h3 class="fn"><a name="createGNOMEAudioSink"></a>GstElement * DeviceManager::createGNOMEAudioSink ( <a href="phonon.html#Category-enum">Category</a> <i>category</i> )</h3>
+<h3 class="fn"><a name="createVideoRenderer"></a><a href="phonon-gstreamer-abstractrenderer.html">AbstractRenderer</a> * DeviceManager::createVideoRenderer ( <a href="phonon-gstreamer-videowidget.html">VideoWidget</a> * <i>parent</i> )</h3>
+<h3 class="fn"><a name="deviceAdded"></a>void DeviceManager::deviceAdded ( int )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="deviceDescription"></a><a href="qbytearray.html">QByteArray</a> DeviceManager::deviceDescription ( int <i>id</i> ) const</h3>
+<h3 class="fn"><a name="deviceId"></a>int DeviceManager::deviceId ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>gstId</i> ) const</h3>
+<h3 class="fn"><a name="deviceRemoved"></a>void DeviceManager::deviceRemoved ( int )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="requestPad"></a>GstPad * DeviceManager::requestPad ( int <i>device</i> ) const</h3>
+<h3 class="fn"><a name="updateDeviceList"></a>void DeviceManager::updateDeviceList ()&nbsp;&nbsp;<tt> [slot]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: AudioConnection Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">AudioConnection Class Reference<br /><span class="small-subtitle">(Phonon::QT7::AudioConnection)<br /></span>
+</h1>
+<ul>
+<li><a href="phonon-qt7-audioconnection-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#AudioConnection">AudioConnection</a></b> ()</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#AudioConnection-2">AudioConnection</a></b> ( MediaNode * <i>sink</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#AudioConnection-3">AudioConnection</a></b> ( MediaNode * <i>source</i>, int <i>output</i>, MediaNode * <i>sink</i>, int <i>input</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#AudioConnection-4">AudioConnection</a></b> ( AudioNode * <i>sink</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#AudioConnection-5">AudioConnection</a></b> ( AudioNode * <i>source</i>, int <i>output</i>, AudioNode * <i>sink</i>, int <i>input</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-audioconnection.html#dtor.AudioConnection">~AudioConnection</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#connect">connect</a></b> ( AudioGraph * <i>graph</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#disconnect">disconnect</a></b> ( AudioGraph * <i>graph</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audioconnection.html#freeMemoryAllocations">freeMemoryAllocations</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-audioconnection.html#invalidate">invalidate</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#isBetween">isBetween</a></b> ( MediaNode * <i>source</i>, MediaNode * <i>sink</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#isSinkOnly">isSinkOnly</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#isValid">isValid</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-audioconnection.html#updateStreamSpecification">updateStreamSpecification</a></b> ()</li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="AudioConnection"></a>AudioConnection::AudioConnection ()</h3>
+<h3 class="fn"><a name="AudioConnection-2"></a>AudioConnection::AudioConnection ( <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>sink</i> )</h3>
+<h3 class="fn"><a name="AudioConnection-3"></a>AudioConnection::AudioConnection ( <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>source</i>, int <i>output</i>, <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>sink</i>, int <i>input</i> )</h3>
+<h3 class="fn"><a name="AudioConnection-4"></a>AudioConnection::AudioConnection ( <a href="phonon-qt7-audionode.html">AudioNode</a> * <i>sink</i> )</h3>
+<h3 class="fn"><a name="AudioConnection-5"></a>AudioConnection::AudioConnection ( <a href="phonon-qt7-audionode.html">AudioNode</a> * <i>source</i>, int <i>output</i>, <a href="phonon-qt7-audionode.html">AudioNode</a> * <i>sink</i>, int <i>input</i> )</h3>
+<h3 class="fn"><a name="dtor.AudioConnection"></a>AudioConnection::~AudioConnection ()</h3>
+<h3 class="fn"><a name="connect"></a>bool AudioConnection::connect ( <a href="phonon-qt7-audiograph.html">AudioGraph</a> * <i>graph</i> )</h3>
+<h3 class="fn"><a name="disconnect"></a>bool AudioConnection::disconnect ( <a href="phonon-qt7-audiograph.html">AudioGraph</a> * <i>graph</i> )</h3>
+<h3 class="fn"><a name="freeMemoryAllocations"></a>void AudioConnection::freeMemoryAllocations ()</h3>
+<h3 class="fn"><a name="invalidate"></a>void AudioConnection::invalidate ()</h3>
+<h3 class="fn"><a name="isBetween"></a>bool AudioConnection::isBetween ( <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>source</i>, <a href="phonon-qt7-medianode.html">MediaNode</a> * <i>sink</i> )</h3>
+<h3 class="fn"><a name="isSinkOnly"></a>bool AudioConnection::isSinkOnly ()</h3>
+<h3 class="fn"><a name="isValid"></a>bool AudioConnection::isValid ()</h3>
+<h3 class="fn"><a name="updateStreamSpecification"></a>bool AudioConnection::updateStreamSpecification ()</h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

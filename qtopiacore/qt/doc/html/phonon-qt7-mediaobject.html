@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: MediaObject Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">MediaObject Class Reference<br /><span class="small-subtitle">(Phonon::QT7::MediaObject)<br /></span>
+</h1>
+<p>Inherits <a href="phonon-qt7-medianode.html">MediaNode</a> and <a href="phonon-qt7-medianode.html">MediaNode</a>.</p>
+<ul>
+<li><a href="phonon-qt7-mediaobject-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-qt7-mediaobject.html#MediaObject">MediaObject</a></b> ( QObject * <i>parent</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-mediaobject.html#dtor.MediaObject">~MediaObject</a></b> ()</li>
+<li><div class="fn"></div>QuickTimeAudioPlayer * <b><a href="phonon-qt7-mediaobject.html#audioPlayer">audioPlayer</a></b> () const</li>
+<li><div class="fn"></div>QStringList <b><a href="phonon-qt7-mediaobject.html#availableAudioStreams">availableAudioStreams</a></b> () const</li>
+<li><div class="fn"></div>QStringList <b><a href="phonon-qt7-mediaobject.html#availableSubtitleStreams">availableSubtitleStreams</a></b> () const</li>
+<li><div class="fn"></div>QStringList <b><a href="phonon-qt7-mediaobject.html#availableVideoStreams">availableVideoStreams</a></b> () const</li>
+<li><div class="fn"></div>QString <b><a href="phonon-qt7-mediaobject.html#currentAudioStream">currentAudioStream</a></b> ( const QObject * <i>audioPath</i> ) const</li>
+<li><div class="fn"></div>QString <b><a href="phonon-qt7-mediaobject.html#currentSubtitleStream">currentSubtitleStream</a></b> ( const QObject * <i>videoPath</i> ) const</li>
+<li><div class="fn"></div>virtual qint64 <b><a href="phonon-qt7-mediaobject.html#currentTime">currentTime</a></b> () const</li>
+<li><div class="fn"></div>QString <b><a href="phonon-qt7-mediaobject.html#currentVideoStream">currentVideoStream</a></b> ( const QObject * <i>videoPath</i> ) const</li>
+<li><div class="fn"></div>virtual QString <b><a href="phonon-qt7-mediaobject.html#errorString">errorString</a></b> () const</li>
+<li><div class="fn"></div>virtual Phonon::ErrorType <b><a href="phonon-qt7-mediaobject.html#errorType">errorType</a></b> () const</li>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-qt7-mediaobject.html#hasInterface">hasInterface</a></b> ( Interface <i>interface</i> ) const</li>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-qt7-mediaobject.html#hasVideo">hasVideo</a></b> () const</li>
+<li><div class="fn"></div>virtual QVariant <b><a href="phonon-qt7-mediaobject.html#interfaceCall">interfaceCall</a></b> ( Interface <i>interface</i>, int <i>command</i>, const QList&lt;QVariant&gt; &amp; <i>arguments</i> = QList&lt;QVariant&gt; () )</li>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-qt7-mediaobject.html#isSeekable">isSeekable</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#pause">pause</a></b> ()</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#play">play</a></b> ()</li>
+<li><div class="fn"></div>virtual qint32 <b><a href="phonon-qt7-mediaobject.html#prefinishMark">prefinishMark</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#seek">seek</a></b> ( qint64 <i>milliseconds</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-mediaobject.html#setAudioDeviceOnMovie">setAudioDeviceOnMovie</a></b> ( int <i>id</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#setCurrentAudioStream">setCurrentAudioStream</a></b> ( const QString &amp; <i>streamName</i>, const QObject * <i>audioPath</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#setCurrentSubtitleStream">setCurrentSubtitleStream</a></b> ( const QString &amp; <i>streamName</i>, const QObject * <i>videoPath</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#setCurrentVideoStream">setCurrentVideoStream</a></b> ( const QString &amp; <i>streamName</i>, const QObject * <i>videoPath</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#setNextSource">setNextSource</a></b> ( const MediaSource &amp; <i>source</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#setPrefinishMark">setPrefinishMark</a></b> ( qint32 )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#setSource">setSource</a></b> ( const MediaSource &amp; )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#setTickInterval">setTickInterval</a></b> ( qint32 <i>interval</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#setTransitionTime">setTransitionTime</a></b> ( qint32 )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#setVolumeOnMovie">setVolumeOnMovie</a></b> ( float <i>volume</i> )</li>
+<li><div class="fn"></div>virtual MediaSource <b><a href="phonon-qt7-mediaobject.html#source">source</a></b> () const</li>
+<li><div class="fn"></div>virtual Phonon::State <b><a href="phonon-qt7-mediaobject.html#state">state</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#stop">stop</a></b> ()</li>
+<li><div class="fn"></div>virtual qint32 <b><a href="phonon-qt7-mediaobject.html#tickInterval">tickInterval</a></b> () const</li>
+<li><div class="fn"></div>virtual qint64 <b><a href="phonon-qt7-mediaobject.html#totalTime">totalTime</a></b> () const</li>
+<li><div class="fn"></div>virtual qint32 <b><a href="phonon-qt7-mediaobject.html#transitionTime">transitionTime</a></b> () const</li>
+<li><div class="fn"></div>int <b><a href="phonon-qt7-mediaobject.html#videoOutputCount">videoOutputCount</a></b> ()</li>
+<li><div class="fn"></div>QuickTimeVideoPlayer * <b><a href="phonon-qt7-mediaobject.html#videoPlayer">videoPlayer</a></b> () const</li>
+</ul>
+<ul>
+<li><div class="fn"></div>20 public functions inherited from <a href="phonon-qt7-medianode.html#public-functions">Phonon::QT7::MediaNode</a></li>
+<li><div class="fn"></div>116 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#aboutToFinish">aboutToFinish</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#bufferStatus">bufferStatus</a></b> ( int )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#currentSourceChanged">currentSourceChanged</a></b> ( const MediaSource &amp; <i>newSource</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#finished">finished</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#hasVideoChanged">hasVideoChanged</a></b> ( bool )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#metaDataChanged">metaDataChanged</a></b> ( QMultiMap&lt;QString, QString&gt; )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#prefinishMarkReached">prefinishMarkReached</a></b> ( qint32 )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#seekableChanged">seekableChanged</a></b> ( bool )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#stateChanged">stateChanged</a></b> ( Phonon::State, Phonon::State )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#tick">tick</a></b> ( qint64 )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-mediaobject.html#totalTimeChanged">totalTimeChanged</a></b> ( qint64 )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>4 signals inherited from <a href="qobject.html#signals">QObject</a></li>
+</ul>
+<a name="protected-functions"></a>
+<h3>Protected Functions</h3>
+<ul>
+<li><div class="fn"></div>virtual bool <b><a href="phonon-qt7-mediaobject.html#event">event</a></b> ( QEvent * <i>event</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-mediaobject.html#mediaNodeEvent">mediaNodeEvent</a></b> ( const MediaNodeEvent * <i>event</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>28 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>4 properties inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"></div>4 public slots inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"></div>20 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="MediaObject"></a>MediaObject::MediaObject ( <a href="qobject.html">QObject</a> * <i>parent</i> )</h3>
+<h3 class="fn"><a name="dtor.MediaObject"></a>MediaObject::~MediaObject ()</h3>
+<h3 class="fn"><a name="aboutToFinish"></a>void MediaObject::aboutToFinish ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="audioPlayer"></a><a href="phonon-qt7-quicktimeaudioplayer.html">QuickTimeAudioPlayer</a> * MediaObject::audioPlayer () const</h3>
+<h3 class="fn"><a name="availableAudioStreams"></a><a href="qstringlist.html">QStringList</a> MediaObject::availableAudioStreams () const</h3>
+<h3 class="fn"><a name="availableSubtitleStreams"></a><a href="qstringlist.html">QStringList</a> MediaObject::availableSubtitleStreams () const</h3>
+<h3 class="fn"><a name="availableVideoStreams"></a><a href="qstringlist.html">QStringList</a> MediaObject::availableVideoStreams () const</h3>
+<h3 class="fn"><a name="bufferStatus"></a>void MediaObject::bufferStatus ( int )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="currentAudioStream"></a><a href="qstring.html">QString</a> MediaObject::currentAudioStream ( const <a href="qobject.html">QObject</a> * <i>audioPath</i> ) const</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setCurrentAudioStream">setCurrentAudioStream</a>().</p>
+<h3 class="fn"><a name="currentSourceChanged"></a>void MediaObject::currentSourceChanged ( const <a href="phonon-mediasource.html">MediaSource</a> &amp; <i>newSource</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="currentSubtitleStream"></a><a href="qstring.html">QString</a> MediaObject::currentSubtitleStream ( const <a href="qobject.html">QObject</a> * <i>videoPath</i> ) const</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setCurrentSubtitleStream">setCurrentSubtitleStream</a>().</p>
+<h3 class="fn"><a name="currentTime"></a><a href="qtglobal.html#qint64-typedef">qint64</a> MediaObject::currentTime () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="currentVideoStream"></a><a href="qstring.html">QString</a> MediaObject::currentVideoStream ( const <a href="qobject.html">QObject</a> * <i>videoPath</i> ) const</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setCurrentVideoStream">setCurrentVideoStream</a>().</p>
+<h3 class="fn"><a name="errorString"></a><a href="qstring.html">QString</a> MediaObject::errorString () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="errorType"></a><a href="phonon.html#ErrorType-enum">Phonon::ErrorType</a> MediaObject::errorType () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="event"></a>bool MediaObject::event ( <a href="qevent.html">QEvent</a> * <i>event</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
+<h3 class="fn"><a name="finished"></a>void MediaObject::finished ()&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="hasInterface"></a>bool MediaObject::hasInterface ( Interface <i>interface</i> ) const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="hasVideo"></a>bool MediaObject::hasVideo () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="hasVideoChanged"></a>void MediaObject::hasVideoChanged ( bool )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="interfaceCall"></a><a href="qvariant.html">QVariant</a> MediaObject::interfaceCall ( Interface <i>interface</i>, int <i>command</i>, const <a href="qlist.html">QList</a>&lt;<a href="qvariant.html">QVariant</a>&gt; &amp; <i>arguments</i> = QList&lt;QVariant&gt; () )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="isSeekable"></a>bool MediaObject::isSeekable () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="mediaNodeEvent"></a>void MediaObject::mediaNodeEvent ( const <a href="phonon-qt7-medianodeevent.html">MediaNodeEvent</a> * <i>event</i> )&nbsp;&nbsp;<tt> [virtual protected]</tt></h3>
+<h3 class="fn"><a name="metaDataChanged"></a>void MediaObject::metaDataChanged ( <a href="qmultimap.html">QMultiMap</a>&lt;<a href="qstring.html">QString</a>, <a href="qstring.html">QString</a>&gt; )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="pause"></a>void MediaObject::pause ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="play"></a>void MediaObject::play ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="prefinishMark"></a><a href="qtglobal.html#qint32-typedef">qint32</a> MediaObject::prefinishMark () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setPrefinishMark">setPrefinishMark</a>().</p>
+<h3 class="fn"><a name="prefinishMarkReached"></a>void MediaObject::prefinishMarkReached ( <a href="qtglobal.html#qint32-typedef">qint32</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="seek"></a>void MediaObject::seek ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>milliseconds</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="seekableChanged"></a>void MediaObject::seekableChanged ( bool )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="setAudioDeviceOnMovie"></a>bool MediaObject::setAudioDeviceOnMovie ( int <i>id</i> )</h3>
+<h3 class="fn"><a name="setCurrentAudioStream"></a>void MediaObject::setCurrentAudioStream ( const <a href="qstring.html">QString</a> &amp; <i>streamName</i>, const <a href="qobject.html">QObject</a> * <i>audioPath</i> )</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#currentAudioStream">currentAudioStream</a>().</p>
+<h3 class="fn"><a name="setCurrentSubtitleStream"></a>void MediaObject::setCurrentSubtitleStream ( const <a href="qstring.html">QString</a> &amp; <i>streamName</i>, const <a href="qobject.html">QObject</a> * <i>videoPath</i> )</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#currentSubtitleStream">currentSubtitleStream</a>().</p>
+<h3 class="fn"><a name="setCurrentVideoStream"></a>void MediaObject::setCurrentVideoStream ( const <a href="qstring.html">QString</a> &amp; <i>streamName</i>, const <a href="qobject.html">QObject</a> * <i>videoPath</i> )</h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#currentVideoStream">currentVideoStream</a>().</p>
+<h3 class="fn"><a name="setNextSource"></a>void MediaObject::setNextSource ( const <a href="phonon-mediasource.html">MediaSource</a> &amp; <i>source</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="setPrefinishMark"></a>void MediaObject::setPrefinishMark ( <a href="qtglobal.html#qint32-typedef">qint32</a> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#prefinishMark">prefinishMark</a>().</p>
+<h3 class="fn"><a name="setSource"></a>void MediaObject::setSource ( const <a href="phonon-mediasource.html">MediaSource</a> &amp; )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#source">source</a>().</p>
+<h3 class="fn"><a name="setTickInterval"></a>void MediaObject::setTickInterval ( <a href="qtglobal.html#qint32-typedef">qint32</a> <i>interval</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#tickInterval">tickInterval</a>().</p>
+<h3 class="fn"><a name="setTransitionTime"></a>void MediaObject::setTransitionTime ( <a href="qtglobal.html#qint32-typedef">qint32</a> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#transitionTime">transitionTime</a>().</p>
+<h3 class="fn"><a name="setVolumeOnMovie"></a>void MediaObject::setVolumeOnMovie ( float <i>volume</i> )</h3>
+<h3 class="fn"><a name="source"></a><a href="phonon-mediasource.html">MediaSource</a> MediaObject::source () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setSource">setSource</a>().</p>
+<h3 class="fn"><a name="state"></a><a href="phonon.html#State-enum">Phonon::State</a> MediaObject::state () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="stateChanged"></a>void MediaObject::stateChanged ( <a href="phonon.html#State-enum">Phonon::State</a>, <a href="phonon.html#State-enum">Phonon::State</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="stop"></a>void MediaObject::stop ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="tick"></a>void MediaObject::tick ( <a href="qtglobal.html#qint64-typedef">qint64</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="tickInterval"></a><a href="qtglobal.html#qint32-typedef">qint32</a> MediaObject::tickInterval () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setTickInterval">setTickInterval</a>().</p>
+<h3 class="fn"><a name="totalTime"></a><a href="qtglobal.html#qint64-typedef">qint64</a> MediaObject::totalTime () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="totalTimeChanged"></a>void MediaObject::totalTimeChanged ( <a href="qtglobal.html#qint64-typedef">qint64</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="transitionTime"></a><a href="qtglobal.html#qint32-typedef">qint32</a> MediaObject::transitionTime () const&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-mediaobject.html#setTransitionTime">setTransitionTime</a>().</p>
+<h3 class="fn"><a name="videoOutputCount"></a>int MediaObject::videoOutputCount ()</h3>
+<h3 class="fn"><a name="videoPlayer"></a><a href="phonon-qt7-quicktimevideoplayer.html">QuickTimeVideoPlayer</a> * MediaObject::videoPlayer () const</h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

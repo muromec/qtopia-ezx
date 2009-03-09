@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: QuickTimeStreamReader Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QuickTimeStreamReader Class Reference<br /><span class="small-subtitle">(Phonon::QT7::QuickTimeStreamReader)<br /></span>
+</h1>
+<p>Inherits <a href="qobject.html">QObject</a> and <a href="qobject.html">QObject</a>.</p>
+<ul>
+<li><a href="phonon-qt7-quicktimestreamreader-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-qt7-quicktimestreamreader.html#QuickTimeStreamReader">QuickTimeStreamReader</a></b> ( const Phonon::MediaSource &amp; <i>source</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-qt7-quicktimestreamreader.html#dtor.QuickTimeStreamReader">~QuickTimeStreamReader</a></b> ()</li>
+<li><div class="fn"></div>int <b><a href="phonon-qt7-quicktimestreamreader.html#currentBufferSize">currentBufferSize</a></b> () const</li>
+<li><div class="fn"></div>qint64 <b><a href="phonon-qt7-quicktimestreamreader.html#currentPos">currentPos</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-quicktimestreamreader.html#endOfData">endOfData</a></b> ()</li>
+<li><div class="fn"></div>Movie <b><a href="phonon-qt7-quicktimestreamreader.html#movieRef">movieRef</a></b> ()</li>
+<li><div class="fn"></div>QByteArray * <b><a href="phonon-qt7-quicktimestreamreader.html#pointerToData">pointerToData</a></b> ()</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-quicktimestreamreader.html#readAllData">readAllData</a></b> ()</li>
+<li><div class="fn"></div>int <b><a href="phonon-qt7-quicktimestreamreader.html#readData">readData</a></b> ( long <i>offset</i>, long <i>size</i>, void * <i>data</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-qt7-quicktimestreamreader.html#setCurrentPos">setCurrentPos</a></b> ( qint64 <i>pos</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-quicktimestreamreader.html#setStreamSeekable">setStreamSeekable</a></b> ( bool <i>s</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-quicktimestreamreader.html#setStreamSize">setStreamSize</a></b> ( qint64 <i>newSize</i> )</li>
+<li><div class="fn"></div>bool <b><a href="phonon-qt7-quicktimestreamreader.html#streamSeekable">streamSeekable</a></b> () const</li>
+<li><div class="fn"></div>qint64 <b><a href="phonon-qt7-quicktimestreamreader.html#streamSize">streamSize</a></b> () const</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-qt7-quicktimestreamreader.html#writeData">writeData</a></b> ( const QByteArray &amp; <i>data</i> )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>58 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>2 properties inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"></div>2 public slots inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"></div>2 signals inherited from <a href="qobject.html#signals">QObject</a></li>
+<li><div class="fn"></div>10 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"></div>14 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QuickTimeStreamReader"></a>QuickTimeStreamReader::QuickTimeStreamReader ( const <a href="phonon-mediasource.html">Phonon::MediaSource</a> &amp; <i>source</i> )</h3>
+<h3 class="fn"><a name="dtor.QuickTimeStreamReader"></a>QuickTimeStreamReader::~QuickTimeStreamReader ()</h3>
+<h3 class="fn"><a name="currentBufferSize"></a>int QuickTimeStreamReader::currentBufferSize () const</h3>
+<h3 class="fn"><a name="currentPos"></a><a href="qtglobal.html#qint64-typedef">qint64</a> QuickTimeStreamReader::currentPos () const</h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#setCurrentPos">setCurrentPos</a>().</p>
+<h3 class="fn"><a name="endOfData"></a>void QuickTimeStreamReader::endOfData ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="movieRef"></a>Movie QuickTimeStreamReader::movieRef ()</h3>
+<h3 class="fn"><a name="pointerToData"></a><a href="qbytearray.html">QByteArray</a> * QuickTimeStreamReader::pointerToData ()</h3>
+<h3 class="fn"><a name="readAllData"></a>bool QuickTimeStreamReader::readAllData ()</h3>
+<h3 class="fn"><a name="readData"></a>int QuickTimeStreamReader::readData ( long <i>offset</i>, long <i>size</i>, void * <i>data</i> )</h3>
+<h3 class="fn"><a name="setCurrentPos"></a>void QuickTimeStreamReader::setCurrentPos ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>pos</i> )</h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#currentPos">currentPos</a>().</p>
+<h3 class="fn"><a name="setStreamSeekable"></a>void QuickTimeStreamReader::setStreamSeekable ( bool <i>s</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#streamSeekable">streamSeekable</a>().</p>
+<h3 class="fn"><a name="setStreamSize"></a>void QuickTimeStreamReader::setStreamSize ( <a href="qtglobal.html#qint64-typedef">qint64</a> <i>newSize</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#streamSize">streamSize</a>().</p>
+<h3 class="fn"><a name="streamSeekable"></a>bool QuickTimeStreamReader::streamSeekable () const</h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#setStreamSeekable">setStreamSeekable</a>().</p>
+<h3 class="fn"><a name="streamSize"></a><a href="qtglobal.html#qint64-typedef">qint64</a> QuickTimeStreamReader::streamSize () const</h3>
+<p>See also <a href="phonon-qt7-quicktimestreamreader.html#setStreamSize">setStreamSize</a>().</p>
+<h3 class="fn"><a name="writeData"></a>void QuickTimeStreamReader::writeData ( const <a href="qbytearray.html">QByteArray</a> &amp; <i>data</i> )&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

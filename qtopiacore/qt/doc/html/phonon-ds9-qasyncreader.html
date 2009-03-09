@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: QAsyncReader Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">QAsyncReader Class Reference<br /><span class="small-subtitle">(Phonon::DS9::QAsyncReader)<br /></span>
+</h1>
+<p>Inherits <a href="phonon-ds9-qpin.html">QPin</a> and <a href="phonon-ds9-qpin.html">QPin</a>.</p>
+<ul>
+<li><a href="phonon-ds9-qasyncreader-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-ds9-qasyncreader.html#QAsyncReader">QAsyncReader</a></b> ( QBaseFilter *, const QVector&lt;AM_MEDIA_TYPE&gt; &amp; <i>mediaTypes</i> )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qasyncreader.html#dtor.QAsyncReader">~QAsyncReader</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#BeginFlush">BeginFlush</a></b> ()</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#EndFlush">EndFlush</a></b> ()</li>
+<li><div class="fn"></div>virtual STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#Length">Length</a></b> ( LONGLONG *, LONGLONG * ) = 0</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#QueryInterface">QueryInterface</a></b> ( REFIID <i>iid</i>, void ** <i>out</i> )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#Request">Request</a></b> ( IMediaSample *, DWORD_PTR )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#RequestAllocator">RequestAllocator</a></b> ( IMemAllocator *, ALLOCATOR_PROPERTIES *, IMemAllocator ** )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qasyncreader.html#STDMETHODIMP_">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-qasyncreader.html#STDMETHODIMP_-2">STDMETHODIMP_</a></b> ( ULONG )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#SyncRead">SyncRead</a></b> ( LONGLONG, LONG, BYTE * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#SyncReadAligned">SyncReadAligned</a></b> ( IMediaSample * )</li>
+<li><div class="fn"></div>STDMETHODIMP <b><a href="phonon-ds9-qasyncreader.html#WaitForNext">WaitForNext</a></b> ( DWORD, IMediaSample **, DWORD_PTR * )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>60 public functions inherited from <a href="phonon-ds9-qpin.html#public-functions">Phonon::DS9::QPin</a></li>
+</ul>
+<a name="protected-functions"></a>
+<h3>Protected Functions</h3>
+<ul>
+<li><div class="fn"></div>virtual HRESULT <b><a href="phonon-ds9-qasyncreader.html#read">read</a></b> ( LONGLONG <i>pos</i>, LONG <i>length</i>, BYTE * <i>buffer</i>, LONG * <i>actual</i> ) = 0</li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>6 static public members inherited from <a href="phonon-ds9-qpin.html#static-public-members">Phonon::DS9::QPin</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="QAsyncReader"></a>QAsyncReader::QAsyncReader ( <a href="phonon-ds9-qbasefilter.html">QBaseFilter</a> *, const <a href="qvector.html">QVector</a>&lt;AM_MEDIA_TYPE&gt; &amp; <i>mediaTypes</i> )</h3>
+<h3 class="fn"><a name="dtor.QAsyncReader"></a>QAsyncReader::~QAsyncReader ()</h3>
+<h3 class="fn"><a name="BeginFlush"></a>STDMETHODIMP QAsyncReader::BeginFlush ()</h3>
+<h3 class="fn"><a name="EndFlush"></a>STDMETHODIMP QAsyncReader::EndFlush ()</h3>
+<h3 class="fn"><a name="Length"></a>STDMETHODIMP QAsyncReader::Length ( LONGLONG *, LONGLONG * )&nbsp;&nbsp;<tt> [pure virtual]</tt></h3>
+<h3 class="fn"><a name="QueryInterface"></a>STDMETHODIMP QAsyncReader::QueryInterface ( REFIID <i>iid</i>, void ** <i>out</i> )</h3>
+<h3 class="fn"><a name="Request"></a>STDMETHODIMP QAsyncReader::Request ( IMediaSample *, DWORD_PTR )</h3>
+<h3 class="fn"><a name="RequestAllocator"></a>STDMETHODIMP QAsyncReader::RequestAllocator ( IMemAllocator *, ALLOCATOR_PROPERTIES *, IMemAllocator ** )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_"></a>QAsyncReader::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="STDMETHODIMP_-2"></a>QAsyncReader::STDMETHODIMP_ ( ULONG )</h3>
+<h3 class="fn"><a name="SyncRead"></a>STDMETHODIMP QAsyncReader::SyncRead ( LONGLONG, LONG, BYTE * )</h3>
+<h3 class="fn"><a name="SyncReadAligned"></a>STDMETHODIMP QAsyncReader::SyncReadAligned ( IMediaSample * )</h3>
+<h3 class="fn"><a name="WaitForNext"></a>STDMETHODIMP QAsyncReader::WaitForNext ( DWORD, IMediaSample **, DWORD_PTR * )</h3>
+<h3 class="fn"><a name="read"></a>HRESULT QAsyncReader::read ( LONGLONG <i>pos</i>, LONG <i>length</i>, BYTE * <i>buffer</i>, LONG * <i>actual</i> )&nbsp;&nbsp;<tt> [pure virtual protected]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

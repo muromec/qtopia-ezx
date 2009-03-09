@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- /fasttmp/mkdist-qt-4.5.0-1235596081/qt-embedded-linux-opensource-src-4.5.0/doc/src/qtcocoa-known-issues.qdoc -->
+<head>
+  <title>Qt 4.5: Known Issues with the Qt/Mac Cocoa Port</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">Known Issues with the Qt/Mac Cocoa Port<br /><span class="subtitle"></span>
+</h1>
+<p>This document explains the current list of features in the Qt/Mac Cocoa port that are currently not working. Most of the issues will be addressed in upcoming snapshots and beta releases. We hope that all the issues should be addressed by the time the of the final 4.5&#x2e;0 release.</p>
+<ul><li><a href="#what-works">What Works</a></li>
+<li><a href="#current-known-issues">Current Known Issues</a></li>
+<li><a href="#things-we-don-t-expect-to-support">Things We Don't Expect to Support</a></li>
+</ul>
+<a name="what-works"></a>
+<h2>What Works</h2>
+<p>Here are the things that we can say about the current state of the Qt/Mac Cocoa port.</p>
+<ul>
+<li><i>64-bit Support</i>: The Qt libraries currently do build and link as 64-bit frameworks and it is possible to build and run many of the Qt examples as 64-bit.</li>
+<li><i>HIViews are now NSViews</i>: Every <a href="qwidget.html">QWidget</a> is now backed by an NSView pointer instead of an HIViewRef. <a href="qwidget.html#winId">QWidget::winId</a>() will return an NSView pointer that can be used in other Cocoa technologies (e.g&#x2e;, Core Animation).</li>
+<li><i>Some Native Dialogs Work</i>: <a href="qfiledialog.html">QFileDialog</a> and <a href="qcolordialog.html">QColorDialog</a> have been ported to use NSOpen-/NSSavePanel and NSColorPanel respectively. <a href="qprintdialog.html">QPrintDialog</a> and <a href="qpagesetupdialog.html">QPageSetupDialog</a> are not in this release, but are on their way. Currently, none of these dialogs show up as sheets pending the creation of an asynchronous API.</li>
+<li><i>Painting, Printing, and Styles</i>: Since printing and painting used Quartz 2D and styling used HITheme, these sub-systems work without any changes.</li>
+<li><i>OpenGL</i>: OpenGL is fully supported,including pixel buffers and framebuffer objects.</li>
+<li><i>Clipboard</i>: Using <a href="qclipboard.html">QClipboard</a> to copy and paste data works as expected.</li>
+<li><i>Mouse, Keyboard, and Wheel events</i>: Mouse, keyboard, and wheel events are dispatched to the proper widget. The Qt/Mac Cocoa port respects Cocoa's idea of a &quot;First Responder.&quot;</li>
+</ul>
+<a name="current-known-issues"></a>
+<h2>Current Known Issues</h2>
+<p>The following are items that don't currently work, but that we plan to have resolved before the final release of the Qt/Mac Cocoa port. Please do not file bugs on these.</p>
+<ul>
+<li><i>Carbon Support</i>: The current source tree for the Qt/Mac Cocoa port contains source for building Qt/Mac with Cocoa. It contains some of the source code that is used for the Carbon port, but it is currently not set up to build the Carbon Qt/Mac libraries. Please use a normal release or snapshot if you want to use Carbon.</li>
+<li><i>Drag and Drop Support</i>: Drag and Drop is currently not implemented and needs to be ported to Cocoa, but using the clipboard does work at this time.</li>
+<li><i>Accessibility</i>: Accessibility support is not implemented and needs to be ported to Cocoa.</li>
+<li><i>Text</i>: Most text rendering works fine for Latin-1 characters. However, rendering non-Latin-1 characters has not been tested.</li>
+<li><i>Input Methods</i>: Input methods also need to be ported to Cocoa.</li>
+<li><i>Shortcuts</i>: Shortcuts that exist outside of the menu bar may not be dispatched.</li>
+<li><i>Tablet Support</i>: The tablet support has not been ported from Carbon yet. However, it should still be possible to use the tablet as a mouse.</li>
+<li><i>Phonon</i>: Phonon uses the QuickTime backend that is only available on 32-bit. Using Phonon in 64-bit requires a QTKit-based backend and has not been done.</li>
+<li><i>Unified Toolbar</i>: The <a href="qmainwindow.html#unifiedTitleAndToolBarOnMac-prop">QMainWindow::setUnifiedTitleAndToolBarOnMac</a>() method currently does nothing.</li>
+<li><i>Dialogs, Tool Windows, Sheets, and Drawers</i>: At the moment, all windows are subclasses of NSWindow. This means that window types like drawers and sheets do not work and tool windows do not get the right decorations. Modal dialogs do show up at the correct window level, but are not yet considered &quot;panels.&quot; Many window flags are not recognized.</li>
+</ul>
+<a name="things-we-don-t-expect-to-support"></a>
+<h2>Things We Don't Expect to Support</h2>
+<p>The following items that we do not plan on spending any resources on unless there is monumental outcry for their inclusion.</p>
+<ul>
+<li><i><a href="qt3support.html">Qt3Support</a></i>: At this time we have no plans for making the <a href="qt3support.html">Qt3Support</a> module work with the Qt/Mac Cocoa port in 64-bit mode. Following in footsteps of Apple, we would like to encourage you to consider the time of going Cocoa and 64-bit as a chance to jettison Qt 3 constructs and classes.</li>
+<li><i>Support for versions of Mac OS X below 10.5</i>: We are using methods and classes that are only available in 10.5 and higher. Most of these functions don't have any equivalent on earlier versions. We recommend using the Carbon version for earlier versions of Mac OS X. We anticipate keeping the Carbon port supported at least for the lifetime of 4.5&#x2e;</li>
+<li><i>Support for -no-framework or -static</i>: Cocoa requires that we load a nib in order to properly access the global menu bar. This nib has to reside on disk somewhere. The most logical place for it to reside is inside the <a href="qtgui.html">QtGui</a> framework. For this reason, building Qt as standard &quot;dylibs&quot; or statically is no longer supported.</li>
+</ul>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

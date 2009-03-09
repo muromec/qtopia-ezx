@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: WorkerThread Class Reference</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">WorkerThread Class Reference<br /><span class="small-subtitle">(Phonon::DS9::WorkerThread)<br /></span>
+</h1>
+<p>Inherits <a href="qthread.html">QThread</a> and <a href="qthread.html">QThread</a>.</p>
+<ul>
+<li><a href="phonon-ds9-workerthread-members.html">List of all members, including inherited members</a></li>
+</ul>
+<a name="public-functions"></a>
+<h3>Public Functions</h3>
+<ul>
+<li><div class="fn"></div><b><a href="phonon-ds9-workerthread.html#WorkerThread">WorkerThread</a></b> ()</li>
+<li><div class="fn"></div><b><a href="phonon-ds9-workerthread.html#dtor.WorkerThread">~WorkerThread</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#abortCurrentRender">abortCurrentRender</a></b> ( qint16 <i>renderId</i> )</li>
+<li><div class="fn"></div>quint16 <b><a href="phonon-ds9-workerthread.html#addFilterToRender">addFilterToRender</a></b> ( const Filter &amp; <i>filter</i> )</li>
+<li><div class="fn"></div>quint16 <b><a href="phonon-ds9-workerthread.html#addSeekRequest">addSeekRequest</a></b> ( Graph <i>graph</i>, qint64 <i>time</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#addStateChangeRequest">addStateChangeRequest</a></b> ( Graph <i>graph</i>, OAFilterState, QList&lt;Filter&gt; = QList&lt;Filter&gt; () )</li>
+<li><div class="fn"></div>quint16 <b><a href="phonon-ds9-workerthread.html#addUrlToRender">addUrlToRender</a></b> ( const QString &amp; <i>url</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#replaceGraphForEventManagement">replaceGraphForEventManagement</a></b> ( Graph <i>newGraph</i>, Graph <i>oldGraph</i> )</li>
+<li><div class="fn"></div>virtual void <b><a href="phonon-ds9-workerthread.html#runx">run</a></b> ()</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#signalStop">signalStop</a></b> ()</li>
+</ul>
+<ul>
+<li><div class="fn"></div>16 public functions inherited from <a href="qthread.html#public-functions">QThread</a></li>
+<li><div class="fn"></div>58 public functions inherited from <a href="qobject.html#public-functions">QObject</a></li>
+</ul>
+<a name="signals"></a>
+<h3>Signals</h3>
+<ul>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#asyncRenderFinished">asyncRenderFinished</a></b> ( quint16, HRESULT, Graph )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#asyncSeekingFinished">asyncSeekingFinished</a></b> ( quint16, qint64 )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#eventReady">eventReady</a></b> ( Graph, long <i>eventCode</i>, long <i>param1</i> )</li>
+<li><div class="fn"></div>void <b><a href="phonon-ds9-workerthread.html#stateReady">stateReady</a></b> ( Graph, Phonon::State )</li>
+</ul>
+<ul>
+<li><div class="fn"></div>6 signals inherited from <a href="qthread.html#signals">QThread</a></li>
+<li><div class="fn"></div>2 signals inherited from <a href="qobject.html#signals">QObject</a></li>
+</ul>
+<h3>Additional Inherited Members</h3>
+<ul>
+<li><div class="fn"></div>2 properties inherited from <a href="qobject.html#properties">QObject</a></li>
+<li><div class="fn"></div>6 public slots inherited from <a href="qthread.html#public-slots">QThread</a></li>
+<li><div class="fn"></div>2 public slots inherited from <a href="qobject.html#public-slots">QObject</a></li>
+<li><div class="fn"></div>8 static public members inherited from <a href="qthread.html#static-public-members">QThread</a></li>
+<li><div class="fn"></div>10 static public members inherited from <a href="qobject.html#static-public-members">QObject</a></li>
+<li><div class="fn"></div>4 protected functions inherited from <a href="qthread.html#protected-functions">QThread</a></li>
+<li><div class="fn"></div>14 protected functions inherited from <a href="qobject.html#protected-functions">QObject</a></li>
+<li><div class="fn"></div>8 static protected members inherited from <a href="qthread.html#static-protected-members">QThread</a></li>
+</ul>
+<a name="details"></a>
+<hr />
+<h2>Member Function Documentation</h2>
+<h3 class="fn"><a name="WorkerThread"></a>WorkerThread::WorkerThread ()</h3>
+<h3 class="fn"><a name="dtor.WorkerThread"></a>WorkerThread::~WorkerThread ()</h3>
+<h3 class="fn"><a name="abortCurrentRender"></a>void WorkerThread::abortCurrentRender ( <a href="qtglobal.html#qint16-typedef">qint16</a> <i>renderId</i> )</h3>
+<h3 class="fn"><a name="addFilterToRender"></a><a href="qtglobal.html#quint16-typedef">quint16</a> WorkerThread::addFilterToRender ( const <a href="phonon-ds9.html#Filter-typedef">Filter</a> &amp; <i>filter</i> )</h3>
+<h3 class="fn"><a name="addSeekRequest"></a><a href="qtglobal.html#quint16-typedef">quint16</a> WorkerThread::addSeekRequest ( <a href="phonon-ds9.html#Graph-typedef">Graph</a> <i>graph</i>, <a href="qtglobal.html#qint64-typedef">qint64</a> <i>time</i> )</h3>
+<h3 class="fn"><a name="addStateChangeRequest"></a>void WorkerThread::addStateChangeRequest ( <a href="phonon-ds9.html#Graph-typedef">Graph</a> <i>graph</i>, OAFilterState, <a href="qlist.html">QList</a>&lt;<a href="phonon-ds9.html#Filter-typedef">Filter</a>&gt; = QList&lt;Filter&gt; () )</h3>
+<h3 class="fn"><a name="addUrlToRender"></a><a href="qtglobal.html#quint16-typedef">quint16</a> WorkerThread::addUrlToRender ( const <a href="qstring.html">QString</a> &amp; <i>url</i> )</h3>
+<h3 class="fn"><a name="asyncRenderFinished"></a>void WorkerThread::asyncRenderFinished ( <a href="qtglobal.html#quint16-typedef">quint16</a>, HRESULT, <a href="phonon-ds9.html#Graph-typedef">Graph</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="asyncSeekingFinished"></a>void WorkerThread::asyncSeekingFinished ( <a href="qtglobal.html#quint16-typedef">quint16</a>, <a href="qtglobal.html#qint64-typedef">qint64</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="eventReady"></a>void WorkerThread::eventReady ( <a href="phonon-ds9.html#Graph-typedef">Graph</a>, long <i>eventCode</i>, long <i>param1</i> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<h3 class="fn"><a name="replaceGraphForEventManagement"></a>void WorkerThread::replaceGraphForEventManagement ( <a href="phonon-ds9.html#Graph-typedef">Graph</a> <i>newGraph</i>, <a href="phonon-ds9.html#Graph-typedef">Graph</a> <i>oldGraph</i> )</h3>
+<h3 class="fn"><a name="runx"></a>void WorkerThread::run ()&nbsp;&nbsp;<tt> [virtual]</tt></h3>
+<h3 class="fn"><a name="signalStop"></a>void WorkerThread::signalStop ()</h3>
+<h3 class="fn"><a name="stateReady"></a>void WorkerThread::stateReady ( <a href="phonon-ds9.html#Graph-typedef">Graph</a>, <a href="phonon.html#State-enum">Phonon::State</a> )&nbsp;&nbsp;<tt> [signal]</tt></h3>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>

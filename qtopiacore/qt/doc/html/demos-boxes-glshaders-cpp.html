@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Qt 4.5: glshaders.cpp Example File (demos/boxes/glshaders.cpp)</title>
+  <link href="classic.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+<td align="left" valign="top" width="32"><a href="http://qtsoftware.com/products/qt"><img src="images/qt-logo.png" align="left" border="0" /></a></td>
+<td width="1">&nbsp;&nbsp;</td><td class="postheader" valign="center"><a href="index.html"><font color="#004faf">Home</font></a>&nbsp;&middot; <a href="namespaces.html"><font color="#004faf">All&nbsp;Namespaces</font></a>&nbsp;&middot; <a href="classes.html"><font color="#004faf">All&nbsp;Classes</font></a>&nbsp;&middot; <a href="mainclasses.html"><font color="#004faf">Main&nbsp;Classes</font></a>&nbsp;&middot; <a href="groups.html"><font color="#004faf">Grouped&nbsp;Classes</font></a>&nbsp;&middot; <a href="modules.html"><font color="#004faf">Modules</font></a>&nbsp;&middot; <a href="functions.html"><font color="#004faf">Functions</font></a></td>
+<td align="right" valign="top" width="230"></td></tr></table><h1 class="title">glshaders.cpp Example File<br /><span class="small-subtitle">demos/boxes/glshaders.cpp</span>
+</h1>
+<pre><span class="comment"> /****************************************************************************
+ **
+ ** Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
+ ** Contact: Qt Software Information (qt-info@nokia.com)
+ **
+ ** This file is part of the demonstration applications of the Qt Toolkit.
+ **
+ ** $QT_BEGIN_LICENSE:LGPL$
+ ** Commercial Usage
+ ** Licensees holding valid Qt Commercial licenses may use this file in
+ ** accordance with the Qt Commercial License Agreement provided with the
+ ** Software or, alternatively, in accordance with the terms contained in
+ ** a written agreement between you and Nokia.
+ **
+ ** GNU Lesser General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU Lesser
+ ** General Public License version 2.1 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.LGPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU Lesser General Public License version 2.1 requirements
+ ** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+ **
+ ** In addition, as a special exception, Nokia gives you certain
+ ** additional rights. These rights are described in the Nokia Qt LGPL
+ ** Exception version 1.0, included in the file LGPL_EXCEPTION.txt in this
+ ** package.
+ **
+ ** GNU General Public License Usage
+ ** Alternatively, this file may be used under the terms of the GNU
+ ** General Public License version 3.0 as published by the Free Software
+ ** Foundation and appearing in the file LICENSE.GPL included in the
+ ** packaging of this file.  Please review the following information to
+ ** ensure the GNU General Public License version 3.0 requirements will be
+ ** met: http://www.gnu.org/copyleft/gpl.html.
+ **
+ ** If you are unsure which license is appropriate for your use, please
+ ** contact the sales department at qt-sales@nokia.com.
+ ** $QT_END_LICENSE$
+ **
+ ****************************************************************************/</span>
+
+ #include &quot;glshaders.h&quot;
+
+ #define GLSHADERS_ASSERT_OPENGL(prefix, assertion, returnStatement)                         \
+ if (m_failed || !(assertion)) {                                                             \
+     if (!m_failed) qCritical(prefix &quot;: The necessary OpenGL functions are not available.&quot;); \
+     m_failed = true;                                                                        \
+     returnStatement;                                                                        \
+ }
+
+ GLShader::GLShader(const char *data, int size, GLenum shaderType)
+ : m_compileError(false), m_failed(false)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLShader::GLShader&quot;,
+         glCreateShaderObjectARB &amp;&amp; glShaderSourceARB &amp;&amp; glCompileShaderARB &amp;&amp; glGetObjectParameterivARB, return)
+
+     m_shader = glCreateShaderObjectARB(shaderType);
+
+     GLint glSize = size;
+     glShaderSourceARB(m_shader, 1, &amp;data, &amp;glSize);
+     glCompileShaderARB(m_shader);
+     int status;
+     glGetObjectParameterivARB(m_shader, GL_OBJECT_COMPILE_STATUS_ARB, &amp;status);
+     m_compileError = (status != 1);
+ }
+
+ GLShader::GLShader(const QString&amp; fileName, GLenum shaderType)
+     : m_compileError(false), m_failed(false)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLShader::GLShader&quot;,
+         glCreateShaderObjectARB &amp;&amp; glShaderSourceARB &amp;&amp; glCompileShaderARB &amp;&amp; glGetObjectParameterivARB, return)
+
+     m_shader = glCreateShaderObjectARB(shaderType);
+
+     QFile file(fileName);
+     if (file.open(QIODevice::ReadOnly)) {
+         QByteArray bytes = file.readAll();
+         GLint size = file.size();
+         const char *p = bytes.data();
+         file.close();
+         glShaderSourceARB(m_shader, 1, &amp;p, &amp;size);
+         glCompileShaderARB(m_shader);
+         int status;
+         glGetObjectParameterivARB(m_shader, GL_OBJECT_COMPILE_STATUS_ARB, &amp;status);
+         m_compileError = (status != 1);
+     } else {
+         m_compileError = true;
+     }
+ }
+
+ GLShader::~GLShader()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLShader::~GLShader&quot;, glDeleteObjectARB, return)
+
+     glDeleteObjectARB(m_shader);
+ }
+
+ QString GLShader::log()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLShader::log&quot;, glGetObjectParameterivARB
+         &amp;&amp; glGetInfoLogARB, return QLatin1String(&quot;GLSL not supported.&quot;))
+
+     int length;
+     glGetObjectParameterivARB(m_shader, GL_OBJECT_INFO_LOG_LENGTH_ARB, &amp;length);
+     char *log = new char[length + 1];
+     GLsizei glLength = length;
+     glGetInfoLogARB(m_shader, glLength, &amp;glLength, log);
+     log[glLength] = '\0';
+     QString result(log);
+     delete log;
+     return result;
+ }
+
+ GLVertexShader::GLVertexShader(const char *data, int size) : GLShader(data, size, GL_VERTEX_SHADER_ARB)
+ {
+ }
+
+ GLVertexShader::GLVertexShader(const QString&amp; fileName) : GLShader(fileName, GL_VERTEX_SHADER_ARB)
+ {
+ }
+
+ GLFragmentShader::GLFragmentShader(const char *data, int size) : GLShader(data, size, GL_FRAGMENT_SHADER_ARB)
+ {
+ }
+
+ GLFragmentShader::GLFragmentShader(const QString&amp; fileName) : GLShader(fileName, GL_FRAGMENT_SHADER_ARB)
+ {
+ }
+
+ GLProgram::GLProgram() : m_linked(false), m_linkError(false), m_failed(false)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::GLProgram&quot;, glCreateProgramObjectARB, return)
+
+     m_program = glCreateProgramObjectARB();
+ }
+
+ GLProgram::~GLProgram()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::~GLProgram&quot;, glDeleteObjectARB, return)
+
+     glDeleteObjectARB(m_program);
+ }
+
+ void GLProgram::attach(const GLShader &amp;shader)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::attach&quot;, glAttachObjectARB, return)
+
+     glAttachObjectARB(m_program, shader.m_shader);
+     m_linked = m_linkError = false;
+ }
+
+ void GLProgram::detach(const GLShader &amp;shader)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::detach&quot;, glDetachObjectARB, return)
+
+     glDetachObjectARB(m_program, shader.m_shader);
+     m_linked = m_linkError = false;
+ }
+
+ bool GLProgram::failed()
+ {
+     if (m_failed || m_linkError)
+         return true;
+
+     if (m_linked)
+         return false;
+
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::failed&quot;, glLinkProgramARB &amp;&amp; glGetObjectParameterivARB, return true)
+
+     glLinkProgramARB(m_program);
+     int status;
+     glGetObjectParameterivARB(m_program, GL_OBJECT_LINK_STATUS_ARB, &amp;status);
+     m_linkError = !(m_linked = (status == 1));
+     return m_linkError;
+ }
+
+ QString GLProgram::log()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::log&quot;, glGetObjectParameterivARB &amp;&amp; glGetInfoLogARB,
+         return QLatin1String(&quot;Failed.&quot;))
+
+     int length;
+     glGetObjectParameterivARB(m_program, GL_OBJECT_INFO_LOG_LENGTH_ARB, &amp;length);
+     char *log = new char[length + 1];
+     GLsizei glLength = length;
+     glGetInfoLogARB(m_program, glLength, &amp;glLength, log);
+     log[glLength] = '\0';
+     QString result(log);
+     delete log;
+     return result;
+ }
+
+ void GLProgram::bind()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::bind&quot;, glUseProgramObjectARB, return)
+
+     if (!failed())
+         glUseProgramObjectARB(m_program);
+ }
+
+ void GLProgram::unbind()
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::bind&quot;, glUseProgramObjectARB, return)
+
+     glUseProgramObjectARB(0);
+ }
+
+ bool GLProgram::hasParameter(const QString&amp; name)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::hasParameter&quot;, glGetUniformLocationARB, return false)
+
+     if (!failed()) {
+         QByteArray asciiName = name.toAscii();
+         return -1 != glGetUniformLocationARB(m_program, asciiName.data());
+     }
+     return false;
+ }
+
+ void GLProgram::setInt(const QString&amp; name, int value)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::setInt&quot;, glGetUniformLocationARB &amp;&amp; glUniform1iARB, return)
+
+     if (!failed()) {
+         QByteArray asciiName = name.toAscii();
+         int loc = glGetUniformLocationARB(m_program, asciiName.data());
+             glUniform1iARB(loc, value);
+     }
+ }
+
+ void GLProgram::setFloat(const QString&amp; name, float value)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::setFloat&quot;, glGetUniformLocationARB &amp;&amp; glUniform1fARB, return)
+
+     if (!failed()) {
+         QByteArray asciiName = name.toAscii();
+         int loc = glGetUniformLocationARB(m_program, asciiName.data());
+             glUniform1fARB(loc, value);
+     }
+ }
+
+ void GLProgram::setColor(const QString&amp; name, QRgb value)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::setColor&quot;, glGetUniformLocationARB &amp;&amp; glUniform4fARB, return)
+
+     <span class="comment">//qDebug() &lt;&lt; &quot;Setting color&quot; &lt;&lt; name;</span>
+     if (!failed()) {
+         QByteArray asciiName = name.toAscii();
+         int loc = glGetUniformLocationARB(m_program, asciiName.data());
+         <span class="comment">//qDebug() &lt;&lt; &quot;Location of&quot; &lt;&lt; name &lt;&lt; &quot;is&quot; &lt;&lt; loc;</span>
+         QColor color(value);
+             glUniform4fARB(loc, color.redF(), color.greenF(), color.blueF(), color.alphaF());
+     }
+ }
+
+ void GLProgram::setMatrix(const QString&amp; name, const gfx::Matrix4x4f &amp;mat)
+ {
+     GLSHADERS_ASSERT_OPENGL(&quot;GLProgram::setMatrix&quot;, glGetUniformLocationARB &amp;&amp; glUniformMatrix4fvARB, return)
+
+     if (!failed()) {
+         QByteArray asciiName = name.toAscii();
+         int loc = glGetUniformLocationARB(m_program, asciiName.data());
+         <span class="comment">//qDebug() &lt;&lt; &quot;Location of&quot; &lt;&lt; name &lt;&lt; &quot;is&quot; &lt;&lt; loc;</span>
+             glUniformMatrix4fvARB(loc, 1, GL_FALSE, mat.bits());
+     }
+ }</pre>
+<p /><address><hr /><div align="center">
+<table width="100%" cellspacing="0" border="0"><tr class="address">
+<td width="30%" align="left">Copyright &copy; 2009 Nokia Corporation and/or its subsidiary(-ies)</td>
+<td width="40%" align="center"><a href="trademarks.html">Trademarks</a></td>
+<td width="30%" align="right"><div align="right">Qt 4.5.0</div></td>
+</tr></table></div></address></body>
+</html>
