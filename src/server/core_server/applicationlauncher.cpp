@@ -46,10 +46,6 @@
 #include <qtopiaservices.h>
 #include "qperformancelog.h"
 
-#include <fstream>
-#include <iostream>
-using namespace std;
-
 #include "oommanager.h"
 
 /*!
@@ -580,7 +576,7 @@ void ExeApplicationLauncher::appExited(int , QProcess::ExitStatus)
     }
     else {
         rp->state = NotRunning;
-        if (rp->killed()) 
+        if (rp->killed())
             emit terminated(rp->app,Killed);
         else
             emit terminated(rp->app,Normal);

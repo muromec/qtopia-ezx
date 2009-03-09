@@ -1741,6 +1741,7 @@ void KeyboardWidget::stroke(Stroke s)
 {
     switch(s) {
         case StrokeUp:
+        {
             m_oldBoard = m_currentBoard;
             int newBoard = m_currentBoard-1;
             if(newBoard < 0)
@@ -1753,7 +1754,7 @@ void KeyboardWidget::stroke(Stroke s)
             } else {
                update();
             }
-            break;
+        } break;
 
         case StrokeDown:
             m_oldBoard = m_currentBoard;

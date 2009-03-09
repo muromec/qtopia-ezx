@@ -1,1 +1,1 @@
--platform linux-g++ -xplatform linux-generic-g++ -qvfb
+-platform linux-g++ -xplatform linux-generic-g++ -qvfb -no-sxe

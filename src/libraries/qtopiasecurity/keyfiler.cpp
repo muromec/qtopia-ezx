@@ -29,6 +29,7 @@
 #include <fcntl.h>
 
 #include <qtopiasxe.h>
+#include <qtransportauthdefs_qws.h>
 
 #include <qtopialog.h>
 

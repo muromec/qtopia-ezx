@@ -162,4 +162,8 @@
 #  define QT_NO_TOOLTIP
 #endif
 
+#ifndef QT_NO_CONCURRENT
+#  define QT_NO_CONCURRENT
+#endif
+
 #endif

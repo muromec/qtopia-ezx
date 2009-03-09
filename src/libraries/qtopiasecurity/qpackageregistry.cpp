@@ -31,6 +31,7 @@
 #ifdef Q_WS_QWS
 #include <qtopiaipcenvelope.h>
 #endif
+#include <qtransportauthdefs_qws.h>
 
 #include <QFile>
 #include <QTextStream>
