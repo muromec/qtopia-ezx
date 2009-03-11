@@ -7,6 +7,7 @@ PROJECTS*=\
 
 # Qt files
 DQT_PROJECTS=\
+    libraries/qt/tools/bootstrap\
     libraries/qt/tools/moc\
     libraries/qt/tools/uic\
     libraries/qt/tools/rcc\
@@ -30,8 +31,7 @@ DQT_PROJECTS=\
 !equals(DQT_MINOR_VERSION,2):DQT_PROJECTS+=libraries/qt/script
 !win32:DQT_PROJECTS+=\
     tools/qt/qvfb\
-    libraries/qt/qt3support\
-    libraries/qt/tools/uic3
+    libraries/qt/qt3support
 contains(DQT_CONFIG,opengl):DQT_PROJECTS+=libraries/qt/opengl
 qtopia_depot:DQT_PROJECTS*=tools/qt/qdoc3
 win32:DQT_PROJECTS*=\
@@ -43,6 +43,7 @@ build_qtopia:!build_dqt:DQT_PROJECTS-=tools/qt/qvfb
 build_qtopia {
     # Qtopia Core files
     QTE_PROJECTS=\
+	libraries/qtopiacore/tools/bootstrap\
         libraries/qtopiacore/tools/moc\
         libraries/qtopiacore/tools/uic\
         libraries/qtopiacore/tools/rcc\

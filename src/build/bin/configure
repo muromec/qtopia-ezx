@@ -2109,7 +2109,8 @@ touch_force_qmake();
 if ( $HOST_QT eq $DQTDIR ) {
     if ( !opt("dqt_config") ) {
         my $args = "-platform $qt_platform ".
-                   "-no-stl -no-exceptions -fast -no-phonon -no-webkit ".
+                   "-no-stl -no-exceptions -fast -optimized-qmake ".
+                   "-no-phonon -no-webkit -no-scripttools -no-xmlpatterns -no-accessibility ".
                    "-D QTOPIA_NO_ICONV_OPEN_ERRORS -confirm-license";
         map { $args .= " -no-sql-".basename($_) if ( basename($_) ne "tmp" && -d $_ ); } glob("$qt_depot_path/src/plugins/sqldrivers/*");
         $args .= " -qt-sql-sqlite";
@@ -2525,7 +2526,7 @@ if ( opt("edition") && !opt("qte_config") ) {
     my $args = "-embedded ".opt("arch")." -platform $qt_platform -xplatform $qt_xplatform ".
                "-DQTOPIA_NO_ICONV_OPEN_ERRORS ".
                "-prefix $prefix -make src -make tools ".
-               "-no-stl -no-exceptions -no-pch -no-qt3support -no-glib -no-cups -no-qdbus -no-accessibility -no-phonon -no-webkit ".
+               "-no-stl -no-exceptions -no-pch -no-qt3support -no-glib -no-cups -no-qdbus -no-accessibility -no-phonon -no-webkit -no-scripttools ".
                "-DQT_QWS_DISABLE_FLUSHCLIPPING ".
                "-confirm-license";
     if ( opt("qws") ) {
@@ -3724,7 +3725,7 @@ sub checkLicenseKey
     if ( -f "$depotpath/LICENSE.GPL" && configopt("free") ) {
         $licenseInfo{Product} .= " Open Source";
         $licenseInfo{LicenseFile} = "LICENSE.GPL";
-        $licenseInfo{DestLicenseFile} = "LICENSE.GPL2";
+        $licenseInfo{DestLicenseFile} = "LICENSE.QtopiaGPL";
     } elsif ( -f "$depotpath/LICENSE.TROLL" && configopt("depot") ) {
         $licenseInfo{Product} .= " Trolltech Internal";
         $licenseInfo{LicenseFile} = "LICENSE.TROLL";

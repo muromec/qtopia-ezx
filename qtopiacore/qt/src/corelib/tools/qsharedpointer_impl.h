@@ -492,7 +492,8 @@ namespace QtSharedPointer {
     template <class X, class T>
     Q_INLINE_TEMPLATE X *qVerifyDynamicCast(T *src, X *)
     {
-        return dynamic_cast<X *>(src); // if you get an error in this line, the cast is invalid
+        // return dynamic_cast<X *>(src); // if you get an error in this line, the cast is invalid
+        return static_cast<X *>(src); // we have no dynamic_cast
     }
     template <class X, class T>
     Q_INLINE_TEMPLATE X *qVerifyConstCast(T *src, X *)
