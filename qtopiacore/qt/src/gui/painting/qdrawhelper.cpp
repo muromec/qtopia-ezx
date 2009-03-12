@@ -45,6 +45,8 @@
 #include <private/qmath_p.h>
 #include <qmath.h>
 
+#undef QT_HAVE_IWMMXT
+
 QT_BEGIN_NAMESPACE
 
 #define MASK(src, a) src = BYTE_MUL(src, a)

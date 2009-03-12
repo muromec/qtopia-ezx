@@ -2526,7 +2526,7 @@ if ( opt("edition") && !opt("qte_config") ) {
     my $args = "-embedded ".opt("arch")." -platform $qt_platform -xplatform $qt_xplatform ".
                "-DQTOPIA_NO_ICONV_OPEN_ERRORS ".
                "-prefix $prefix -make src -make tools ".
-               "-no-stl -no-exceptions -no-pch -no-qt3support -no-glib -no-cups -no-qdbus -no-accessibility -no-phonon -no-webkit -no-scripttools ".
+               "-no-stl -no-exceptions -no-pch -no-qt3support -no-glib -no-cups -no-qdbus -no-accessibility -no-phonon -webkit -no-scripttools ".
                "-DQT_QWS_DISABLE_FLUSHCLIPPING ".
                "-confirm-license";
     if ( opt("qws") ) {
