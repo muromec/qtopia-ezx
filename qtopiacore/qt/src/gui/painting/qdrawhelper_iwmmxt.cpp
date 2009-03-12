@@ -46,7 +46,7 @@
 #  include "qplatformdefs.h"
 #endif
 #if !defined(__IWMMXT__) && !defined(Q_OS_WINCE)
-#  include <xmmintrin.h>
+//#  include <xmmintrin.h>
 #elif defined(Q_OS_WINCE_STD) && defined(_X86_)
 #  pragma warning(disable: 4391)
 #  include <xmmintrin.h>
@@ -122,6 +122,6 @@ void qt_blend_color_argb_iwmmxt(int count, const QSpan *spans, void *userData)
                                                (CompositionFunctionSolid*)qt_functionForModeSolid_IWMMXT);
 }
 
-#endif // QT_HAVE_IWMMXT
-
 QT_END_NAMESPACE
+
+#endif // QT_HAVE_IWMMXT
