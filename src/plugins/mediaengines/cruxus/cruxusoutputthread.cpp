@@ -140,6 +140,7 @@ void OutputThreadPrivate::run()
     } while (!quit);
 
     delete audioOutput;
+    audioOutput = NULL;
 
     qLog(Media) << "OutputThreadPrivate::run(); exiting";
 }
@@ -394,8 +395,10 @@ void OutputThread::deviceReady()
     QMutexLocker    lock(&d->mutex);
 
     if(!d->opened) {
+      if (d->audioOutput)
         d->audioOutput->open(QIODevice::ReadWrite | QIODevice::Unbuffered);
-        d->opened = true;
+
+      d->opened = true;
     }
 
     d->activeSessions.append(qobject_cast<QMediaDevice*>(sender()));
