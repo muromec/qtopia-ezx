@@ -54,6 +54,7 @@ build_qtopia {
         libraries/qtopiacore/xml\
         libraries/qtopiacore/script\
         libraries/qtopiacore/svg\
+	libraries/qtopiacore/webkit\
         plugins/qtopiacore
     contains(QTE_CONFIG,opengl):QTE_PROJECTS+=libraries/qtopiacore/opengl
     PROJECTS*=$$QTE_PROJECTS

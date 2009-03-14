@@ -1,0 +1,9 @@
+qtopia_project(qtopiacore)
+QTOPIACORE_CONFIG=lib
+qt=target
+dir=src/3rdparty/webkit/WebCore
+depends(libraries/qtopiacore/corelib)
+depends(libraries/qtopiacore/gui)
+depends(libraries/qtopiacore/xml)
+depends(libraries/qtopiacore/sql)
+depends(libraries/qtopiacore/network)

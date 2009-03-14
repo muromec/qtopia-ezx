@@ -272,6 +272,7 @@ defineReplace(resolveqt) {
     else:equals(1,script):return(QtScript)
     else:equals(1,qt3support):return(Qt3Support)
     else:equals(1,uitools):return(QtUiTools)
+    else:equals(1,WebCore):return(QtWebKit)
     else:error(functions.prf: Unknown QT value $$1)
 }
 
