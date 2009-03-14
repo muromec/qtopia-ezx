@@ -32,6 +32,7 @@
 #include <qtopiaipcadaptor.h>
 #include <QAction>
 #include <QMenu>
+#include <QtopiaItemDelegate>
 
 WapUI::WapUI( QWidget* parent, Qt::WFlags fl)
     : QWidget( parent, fl )
@@ -68,6 +69,8 @@ void WapUI::init()
     wapList->setAlternatingRowColors( true );
     wapList->setSelectionBehavior( QAbstractItemView::SelectRows );
     wapList->setSelectionMode( QAbstractItemView::SingleSelection );
+    wapList->setItemDelegate(new QtopiaItemDelegate(wapList));
+    wapList->setFrameStyle(QFrame::NoFrame);
     vb->addWidget( wapList );
     connect( wapList, SIGNAL(currentItemChanged(QListWidgetItem*,QListWidgetItem*)),
             this, SLOT(updateActions()));

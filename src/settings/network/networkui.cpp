@@ -50,6 +50,7 @@
 #include <qnetworkstate.h>
 #include <qnetworkdevice.h>
 #include <qvaluespace.h>
+#include <QtopiaItemDelegate>
 
 #ifdef QTOPIA_CELL
 #include <qotareader.h>
@@ -329,6 +330,9 @@ void NetworkUI::init()
     table->horizontalHeader()->hide();
     table->setSelectionBehavior( QAbstractItemView::SelectRows );
     table->setSelectionMode( QAbstractItemView::SingleSelection );
+    table->setItemDelegate(new QtopiaItemDelegate(table));
+    table->setFrameStyle(QFrame::NoFrame);
+
     vb->addWidget( table );
     connect(table, SIGNAL(currentItemChanged(QTableWidgetItem*,QTableWidgetItem*)),
               this, SLOT(updateActions()));

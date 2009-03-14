@@ -32,6 +32,7 @@
 #include <qtopianamespace.h>
 #include <qtopianetworkinterface.h>
 #include <qsoftmenubar.h>
+#include <QtopiaItemDelegate>
 
 #include "ui_gatewaybase.h"
 #include "ui_mmsbase.h"
@@ -210,7 +211,7 @@ public:
         QtopiaApplication::setInputMethodHint( ui.mms, QtopiaApplication::Text );
 
         QUrl url( wapAccount->mmsServer() );
-        
+
         QString host( url.toString( QUrl::RemovePort ) );
         if ( host.startsWith( "http://" ) )
             host.remove(0, 7);
@@ -266,7 +267,7 @@ private slots:
     {
         QUrl url;
 
-        // Parse the input: 
+        // Parse the input:
         QRegExp elements( "(?:(\\w+)://)?"  // optional scheme info
                           "([^:/]+)"        // mandatory host component
                           "(?::(\\d+))?"    // optional port specifier
@@ -424,6 +425,8 @@ void AddWapUI::init()
     options->setSpacing( 1 );
     options->setAlternatingRowColors( true );
     options->setSelectionBehavior( QAbstractItemView::SelectRows );
+    options->setItemDelegate(new QtopiaItemDelegate(options));
+    options->setFrameStyle(QFrame::NoFrame);
     QListWidgetItem* item = new QListWidgetItem( QIcon(":icon/account"),
             tr("Account"), options, Account );
     item->setTextAlignment( Qt::AlignHCenter);
@@ -433,7 +436,7 @@ void AddWapUI::init()
     item = new QListWidgetItem( QIcon(":icon/mms"),
             tr("MMS"), options, MMS );
     item->setTextAlignment( Qt::AlignHCenter);
-    item = new QListWidgetItem( QIcon(":icon/settings"), 
+    item = new QListWidgetItem( QIcon(":icon/settings"),
             tr("Misc"), options, Browsing );
     item->setTextAlignment( Qt::AlignHCenter);
     vb->addWidget( options );
@@ -465,6 +468,7 @@ void AddWapUI::init()
     scroll->setFocusPolicy( Qt::NoFocus );
     gatewayPage = new GatewayPage( &acc );
     scroll->setWidget( gatewayPage );
+    scroll->setFrameStyle(QFrame::NoFrame);
     stack->addWidget( scroll );
 
     scroll = new QScrollArea();
@@ -472,6 +476,7 @@ void AddWapUI::init()
     scroll->setFocusPolicy( Qt::NoFocus );
     mmsPage = new MMSPage( &acc );
     scroll->setWidget( mmsPage );
+    scroll->setFrameStyle(QFrame::NoFrame);
     stack->addWidget( scroll );
 
     scroll = new QScrollArea();
@@ -479,6 +484,7 @@ void AddWapUI::init()
     scroll->setFocusPolicy( Qt::NoFocus );
     browserPage = new BrowserPage( acc.configuration() );
     scroll->setWidget( browserPage );
+    scroll->setFrameStyle(QFrame::NoFrame);
     stack->addWidget( scroll );
 
     stack->setCurrentIndex( 0 );
