@@ -582,6 +582,15 @@ void Qtopia::soundAlarm()
 #endif
 }
 
+void Qtopia::stopAlarm()
+{
+#ifndef QTOPIA_HOST
+    QtopiaServiceRequest e( "Alert", "stopAlert()" );
+    e.send();
+#endif
+}
+
+
 /*!
   \fn void Qtopia::statusMessage(const QString& message)
   \obsolete

@@ -21,6 +21,7 @@
 #define _ALERTSERVICETASK_H_
 
 #include <qtopiaabstractservice.h>
+#include <QSoundControl>
 
 class AlertService : public QtopiaAbstractService
 {
@@ -31,6 +32,7 @@ public:
 
 public slots:
     virtual void soundAlert() = 0;
+    virtual void stopAlert() = 0;
 };
 
 class AlertServiceTask : public AlertService
@@ -39,6 +41,10 @@ Q_OBJECT
 public:
     AlertServiceTask();
     virtual void soundAlert();
+    virtual void stopAlert();
+
+private:
+    QSoundControl *soundcontrol;
 
 private slots:
 

@@ -102,8 +102,6 @@ private:
 #ifdef QT_QWS_EZX
     QSerialPort *control;
     QAtChat *controlChat;
-
-    int gprsv;
 #endif
 
 #endif
