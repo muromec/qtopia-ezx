@@ -285,6 +285,7 @@ PackageView::PackageView( QWidget *parent, Qt::WFlags flags )
     installedView->setModel( model  );
     installedView->setRootIndex( model->index(InstalledIndex,0,QModelIndex()) );
     installedView->setRootIsDecorated( false );
+    installedView->setFrameStyle(QFrame::NoFrame);
     connect( installedView, SIGNAL(activated(QModelIndex)),
             this, SLOT(activateItem(QModelIndex)) );
     connect( model, SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
@@ -295,8 +296,7 @@ PackageView::PackageView( QWidget *parent, Qt::WFlags flags )
     //setup page for installed packages
     QWidget *installedPage = new QWidget;
     QVBoxLayout *vbInstalledPage = new QVBoxLayout( installedPage );
-    vbInstalledPage->setSpacing( 2 );
-    vbInstalledPage->setMargin( 2 );
+    vbInstalledPage->setMargin( 0 );
     vbInstalledPage->addWidget( installedView );
 
     //setup view for downloadable packages
@@ -304,6 +304,7 @@ PackageView::PackageView( QWidget *parent, Qt::WFlags flags )
     downloadView->setModel( model );
     downloadView->setRootIndex( model->index(DownloadIndex,0,QModelIndex()) );
     downloadView->setRootIsDecorated( false );
+    downloadView->setFrameStyle(QFrame::NoFrame);
     connect( downloadView, SIGNAL(activated(QModelIndex)),
             this, SLOT(activateItem(QModelIndex)) );
     connect( model, SIGNAL(rowsAboutToBeRemoved(QModelIndex,int,int)),
@@ -531,7 +532,7 @@ void PackageView::editServers()
 {
     ServerEdit *edit = new ServerEdit( this );
 
-    int result = edit->exec();
+    int result = QtopiaApplication::execDialog(edit);
 
     if ( result == QDialog::Accepted && edit->wasModified() )
         model->setServers( edit->serverList() );
@@ -579,16 +580,16 @@ void PackageView::showDetails( const QModelIndex &item , PackageDetails::Type ty
                     .arg( DomainInfo::explain( model->data( item, AbstractPackageController::Domains ).toString(), name ));
         }
 #else
-        text = QString("<font color=\"#000000\">") + "<center><b><u>" + tr( "Confirm Install") + " </u></b></center><p>"
-                    + tr("About to install <font color=\"#0000CC\"><b> %1 </b></font>", "%1 = package name")
-                        .arg( name );
+        text = "<center><b><u>" + tr( "Confirm Install") + " </u></b></center><p>"
+             + tr("About to install <font color=\"#0000CC\"><b> %1 </b></font>", "%1 = package name")
+             .arg( name );
 #endif
         if ( options == PackageDetails::Allow )
-            text += QString("<br>") + tr( "Confirm Install?" ) + QString("</font>");
+            text += QString("<br>") + tr( "Confirm Install?" );
     }
     else //must be requesting package information
     {
-        text = QString("<font color=\"#000000\">") + model->data(item, Qt::WhatsThisRole).toString() +"</font>";
+        text = model->data(item, Qt::WhatsThisRole).toString();
 
         if ( tabWidget->currentIndex() == InstalledIndex )
             options = PackageDetails::Uninstall;
@@ -612,8 +613,7 @@ void PackageView::showDetails( const QModelIndex &item , PackageDetails::Type ty
     qLog(Package) << "show details" << ( name.isNull() ? "no valid name" : name );
 
     PackageDetails *pd = new PackageDetails( this, name, text, type, options );
-    pd->showMaximized();
-    int result = pd->exec();
+    int result = QtopiaApplication::execDialog(pd);;
     delete pd;
 
     //see if the user wants to proceed to the next stage

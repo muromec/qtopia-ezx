@@ -174,21 +174,21 @@ QString AbstractPackageController::packageDetails( int pkgId ) const
                                QT_TRANSLATE_NOOP("PackageView", "Trusted:" )
                              };
     Q_UNUSED( dummyStr );
-    QString str = tr( "Name:" ) + QLatin1String(" ") + pkg.name + "<br>" +
-                  tr( "Description:" ) + QLatin1String(" ")+ pkg.description + "<br>" +
-                  tr( "Installation Size:" )  + QLatin1String(" ")+ pkg.installedSize + "<br>" +
-                  tr( "MD5Sum:" ) + QLatin1String(" ")+ pkg.md5Sum + "<br>";
+    QString str = QLatin1String("<b>") + tr( "Name:" ) + QLatin1String("</b> ") + pkg.name + "<br>" +
+                  QLatin1String("<b>") + tr( "Description:" ) + QLatin1String("</b> ")+ pkg.description + "<br>" +
+                  QLatin1String("<b>") + tr( "Installation Size:" )  + QLatin1String("</b> ")+ pkg.installedSize + "<br>" +
+                  QLatin1String("<b>") + tr( "MD5Sum:" ) + QLatin1String("</b> ")+ pkg.md5Sum + "<br>";
 #ifndef QT_NO_SXE
     if ( DomainInfo::hasSensitiveDomains(pkg.domain) )
     {
-        str += "<font color=\"#0000FF\">"; 
+        str += "<font color=\"#0000FF\">";
         str += QCoreApplication::translate( "PackageView","The package <font color=\"#0000FF\">%1</font> <b>cannot be installed</b> "
                                             "as it utilizes protected resources" ).arg( pkg.name );
         str += "</font>";
     }
-    else 
+    else
     {
-        str += tr( "Capabilities:" ) + QLatin1String(" ") + DomainInfo::explain( pkg.domain, pkg.name );
+        str += QLatin1String("<b>") + tr( "Capabilities:" ) + QLatin1String("</b> ") + DomainInfo::explain( pkg.domain, pkg.name );
     }
 #endif
     return str;
@@ -272,7 +272,7 @@ void LocalPackageController::install( int pkgId )
 
     //TODO: Error handling
     emit updated();
-    emit packageInstalled( pkgList[pkgId] ); 
+    emit packageInstalled( pkgList[pkgId] );
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -290,12 +290,12 @@ NetworkPackageController::NetworkPackageController( QObject *parent )
 
     //The signal mapper is used to provide an empty error parameter
     //from the progressDiplay dialog's cancelled signal to the
-    //cancel slot of a httpfetcher which is connected later. 
+    //cancel slot of a httpfetcher which is connected later.
     signalMapper = new QSignalMapper(this);
     connect( progressDisplay, SIGNAL(canceled()),
                 signalMapper, SLOT(map()));
-    signalMapper->setMapping( progressDisplay, ""); //empty error parameter implies user aborted 
-    
+    signalMapper->setMapping( progressDisplay, ""); //empty error parameter implies user aborted
+
     connect( progressDisplay, SIGNAL(rejected()),
              progressDisplay, SIGNAL(canceled()) );
 }
@@ -330,7 +330,7 @@ void NetworkPackageController::insertNetworkPackageItems()
     connect( hf, SIGNAL(progressValue(int)), progressDisplay, SLOT(setValue(int)));
     connect( hf, SIGNAL(finished()), this, SLOT(listFetchComplete()));
     connect( hf, SIGNAL(terminated()), this, SLOT(listFetchComplete()));
-   
+
     QtopiaApplication::setMenuLike( progressDisplay, true );
     QtopiaApplication::showDialog( progressDisplay );
     hf->start();
@@ -569,12 +569,12 @@ QIcon InstalledPackageController::getDataIcon( int pkgId ) const
         return QIcon( ":icon/reset" );
 }
 
-bool InstalledPackageController::reenable( int pkgId ) 
+bool InstalledPackageController::reenable( int pkgId )
 {
     InstallControl::PackageInfo pi = packageInfo( pkgId );
     QDir installSystemBinPath( Qtopia::packagePath() + "/bin" );
 
-    QFileInfoList links = installSystemBinPath.entryInfoList( QStringList( pi.md5Sum + "*" ), QDir::System );        
+    QFileInfoList links = installSystemBinPath.entryInfoList( QStringList( pi.md5Sum + "*" ), QDir::System );
 
     if ( links.count() == 0 )
     {
