@@ -13,6 +13,7 @@ PROJECTS*=\
     libraries/qtopiacomm \
     libraries/qtopiapim \
     libraries/qtopiaprinting \
+    libraries/qtopiagfx \
     settings/appearance \
     settings/handwriting \
     settings/homescreen \
@@ -55,7 +56,8 @@ PROJECTS*=\
     3rdparty/libraries/sqlite\
     3rdparty/libraries/dlmalloc\
     3rdparty/libraries/vobject\
-    3rdparty/libraries/g711
+    3rdparty/libraries/g711\
+    3rdparty/libraries/easing
     
 
 build_qtopia_sqlite:PROJECTS*=\
