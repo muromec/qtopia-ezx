@@ -132,13 +132,7 @@ int MAIN_FUNC( int argc, char** argv )
 
         // Create a widget to force initialization of title bar images, etc.
         QObject::disconnect(QuickLauncher::app, SIGNAL(lastWindowClosed()), QuickLauncher::app, SLOT(hideOrQuit()));
-#if QT_VERSION < 0x040400
-        // Avoid warning about Qt::Tool and Qt::FramelessWindowHint in Qt 4.2
         Qt::WindowFlags wFlags = Qt::WindowContextHelpButtonHint | Qt::Tool | Qt::FramelessWindowHint;
-#else
-        // We do want this behaviour.  Hopefully Qt 4.3 will have it.
-        Qt::WindowFlags wFlags = Qt::WindowContextHelpButtonHint|Qt::Tool;
-#endif
         QWidget *w = new QWidget(0,wFlags);
         w->setWindowTitle("_ignore_");  // no tr
         w->setAttribute(Qt::WA_DeleteOnClose);
