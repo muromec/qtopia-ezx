@@ -24,9 +24,10 @@
 #include <QTimer>
 #include <QSettings>
 #include <QMenu>
-#include <qsoftmenubar.h>
+#include <QSoftMenuBar>
 #include <QLabel>
 #include <QMessageBox>
+#include <QtopiaItemDelegate>
 
 class ServerItem : public QListWidgetItem
 {
@@ -54,6 +55,7 @@ ServerEdit::ServerEdit( QWidget *parent, Qt::WFlags f )
     , serversToRemove()
 {
     setupUi( this );
+    servers->setItemDelegate(new QtopiaItemDelegate(servers));
 
     QMenu* contextMenu = QSoftMenuBar::menuFor( this );
 

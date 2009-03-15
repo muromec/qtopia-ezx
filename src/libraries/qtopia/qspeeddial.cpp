@@ -23,6 +23,7 @@
 #include <qtranslatablesettings.h>
 #include <qexpressionevaluator.h>
 #include <qsoftmenubar.h>
+#include <QtopiaItemDelegate>
 
 #include <QPainter>
 #include <QLineEdit>
@@ -270,7 +271,7 @@ private:
     void addItem(QSpeedDialItem* item);
 };
 
-class QSpeedDialItemDelegate : public QAbstractItemDelegate
+class QSpeedDialItemDelegate : public QtopiaItemDelegate
 {
 public:
     QSpeedDialItemDelegate(QListView* parent);
@@ -953,7 +954,7 @@ int QSpeedDialList::currentRow() const
   using \a label and \a icon as the display label and icon respectively.
   The dialog has the given \a parent.
 
-  Returns the input that the user selected, and assigns the input to the action. 
+  Returns the input that the user selected, and assigns the input to the action.
 
   If the user cancels the dialog, a null string is returned.
 
@@ -1062,7 +1063,7 @@ QList<QString> QSpeedDial::possibleInputs()
 }
 
 QSpeedDialItemDelegate::QSpeedDialItemDelegate(QListView* parent)
-    : QAbstractItemDelegate(parent)
+    : QtopiaItemDelegate(parent)
 {
     parentList = parent;
 
@@ -1094,6 +1095,8 @@ void QSpeedDialItemDelegate::setSelectionDetails(QString label, QString icon)
 void QSpeedDialItemDelegate::paint(QPainter * painter,
     const QStyleOptionViewItem & option, const QModelIndex & index) const
 {
+    QtopiaItemDelegate::paint(painter, option, index); // Will actually only paint background
+
     QSpeedDialModel* model = (QSpeedDialModel*)index.model();
 
     if(model)
@@ -1104,17 +1107,6 @@ void QSpeedDialItemDelegate::paint(QPainter * painter,
         int width = option.rect.width();
         int height = option.rect.height()-1;
         bool selected = option.state & QStyle::State_Selected;
-
-        if(selected)
-        {
-            painter->setPen(option.palette.highlightedText().color());
-            painter->fillRect(option.rect, option.palette.highlight());
-        }
-        else
-        {
-            painter->setPen(option.palette.text().color());
-            painter->fillRect(option.rect, option.palette.base());
-        }
 
         QSpeedDialItem* item = model->item(index);
         QString input = item->input();

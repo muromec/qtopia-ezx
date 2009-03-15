@@ -27,6 +27,9 @@
      <property name="focusPolicy" >
       <enum>Qt::TabFocus</enum>
      </property>
+     <property name="frameShape" >
+      <enum>QFrame::NoFrame</enum>
+     </property>
      <property name="readOnly" >
       <bool>true</bool>
      </property>
