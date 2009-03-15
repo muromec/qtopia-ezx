@@ -45,8 +45,6 @@
 #include <private/qmath_p.h>
 #include <qmath.h>
 
-#undef QT_HAVE_IWMMXT
-
 QT_BEGIN_NAMESPACE
 
 #define MASK(src, a) src = BYTE_MUL(src, a)
@@ -8149,27 +8147,18 @@ void qInitDrawhelperAsm()
 
 #endif // QT_NO_DEBUG
 
+    // Install optimized routines while falling back to reference ones
     if (functionForModeSolidAsm) {
-        const int destinationMode = QPainter::CompositionMode_Destination;
-        functionForModeSolidAsm[destinationMode] = functionForModeSolid_C[destinationMode];
-
-        // use the default qdrawhelper implementation for the
-        // extended composition modes
-        for (int mode = 12; mode < 24; ++mode)
-            functionForModeSolidAsm[mode] = functionForModeSolid_C[mode];
-
-        functionForModeSolid = functionForModeSolidAsm;
+      for (int mode=0; mode<numCompositionFunctions; mode++)
+        if (!functionForModeSolidAsm[mode])
+          functionForModeSolidAsm[mode] = functionForModeSolid_C[mode];
+      functionForModeSolid = functionForModeSolidAsm;
     }
     if (functionForModeAsm) {
-        const int destinationMode = QPainter::CompositionMode_Destination;
-        functionForModeAsm[destinationMode] = functionForMode_C[destinationMode];
-
-        // use the default qdrawhelper implementation for the
-        // extended composition modes
-        for (int mode = 12; mode < numCompositionFunctions; ++mode)
-            functionForModeAsm[mode] = functionForMode_C[mode];
-
-        functionForMode = functionForModeAsm;
+      for (int mode=0; mode<numCompositionFunctions; mode++)
+        if (!functionForModeAsm[mode])
+          functionForModeAsm[mode] = functionForMode_C[mode];
+      functionForMode = functionForModeAsm;
     }
 
     qt_build_pow_tables();

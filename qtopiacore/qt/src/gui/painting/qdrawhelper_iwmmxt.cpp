@@ -101,7 +101,7 @@ CompositionFunctionSolid qt_functionForModeSolid_IWMMXT[numCompositionFunctions]
     rasterop_solid_SourceAndNotDestination<QIWMMXTIntrinsics>
 };
 
-CompositionFunction qt_functionForMode_IWMMXT[] = {
+CompositionFunction qt_functionForMode_IWMMXT[numCompositionFunctions] = {
     comp_func_SourceOver<QIWMMXTIntrinsics>,
     comp_func_DestinationOver<QIWMMXTIntrinsics>,
     comp_func_Clear<QIWMMXTIntrinsics>,
