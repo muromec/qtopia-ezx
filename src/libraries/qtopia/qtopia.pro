@@ -141,7 +141,6 @@ QTOPIA_PRIVATE_HEADERS+=\
     qcontentfilterselector_p.h \
     qsparselist_p.h \
     qperformancelog_p.h \
-    motionpath_p.h \
     qthumbstyle_p.h \
     testslaveinterface_p.h \
     qtagmap_p.h \
@@ -259,7 +258,6 @@ QTOPIA_SOURCES+=\
     qdocumentselectorservice.cpp \
     qdocumentselectorsocketserver.cpp \
     qtopiaitemdelegate.cpp \
-    motionpath_p.cpp \
     qthumbstyle_p.cpp \
     qtopiasqlmigrateplugin.cpp
 
@@ -289,15 +287,14 @@ RESOURCES=qtopia.qrc
 LIBS+=-lrt
 idep(LIBS+=-lrt)
 
-enable_greenphone_effects {
-    INCLUDEPATH += ../../../include
-    LIBS += -L../../../lib -lblend
-    idep(LIBS+=-lblend)
-    QTOPIA_PRIVATE_HEADERS+=\
-        qsmoothlist_p.h
-    QTOPIA_SOURCES+=\
-        qsmoothlist_p.cpp
-}
+# QSmoothList
+depends(libraries/qtopiagfx)
+QTOPIA_PRIVATE_HEADERS+=\
+	qsmoothlist.h\
+	qsmoothlistwidget_p.h
+QTOPIA_SOURCES+=\
+	qsmoothlist.cpp\
+	qsmoothlistwidget_p.cpp
 
 PREFIX=QTOPIA
 resolve_include()
