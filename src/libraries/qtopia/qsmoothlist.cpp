@@ -2870,33 +2870,6 @@ void QSmoothList::collapseAll()
     doUpdate(true);
 }
 
-QTOPIA_EXPORT int qtopia_background_brush_rotation(int screen);
-
-static QMatrix brushRotationMatrix(int rotation, const QPoint& offset, const QImage& image)
-{
-    QMatrix matrix;
-
-    // Note: QMatrix transformations are applied in the reverse
-    // of the order listed below.
-
-    // Translate the image to its final location, accounting for the window offset.
-    matrix.translate(offset.x(), offset.y());
-
-    // Translate the rotated image to the screen mid-point.
-    switch (rotation) {
-        case  0: case 180: matrix.translate(image.width() / 2, image.height() / 2); break;
-        case 90: case 270: matrix.translate(image.height() / 2, image.width() / 2); break;
-    }
-
-    // Rotate the image about its mid-point.
-    matrix.rotate(rotation);
-
-    // Translate the mid-point of the image to the origin.
-    matrix.translate(-image.width() / 2, -image.height() / 2);
-
-    return matrix;
-}
-
 /*! \reimp */
 void QSmoothList::paintEvent(QPaintEvent *pe)
 {
@@ -2963,17 +2936,7 @@ void QSmoothList::paintEvent(QPaintEvent *pe)
                 d->backgroundOffset = -mapToGlobal(QPoint(0,0));
                 d->backgroundOffsetValid = true;
             }
-            int screen = QApplication::desktop()->screenNumber(this);
-            int rotation = qtopia_background_brush_rotation(screen);
-            if (rotation != 0) {
-                QMatrix matrix = brushRotationMatrix
-                    (rotation, d->backgroundOffset, d->background);
-                painter.setMatrix(matrix);
-                painter.drawImage(QPoint(0, 0), d->background);
-                painter.setMatrix(QMatrix());
-            } else {
-                painter.drawImage(d->backgroundOffset, d->background);
-            }
+            painter.drawImage(d->backgroundOffset, d->background);
         }
         painter.drawText(rect(), Qt::AlignCenter | Qt::AlignHCenter | Qt::TextWordWrap, d->m_emptyText);
         return;
@@ -2988,15 +2951,7 @@ void QSmoothList::paintEvent(QPaintEvent *pe)
                 d->backgroundOffset = -mapToGlobal(QPoint(0,0));
                 d->backgroundOffsetValid = true;
             }
-            int screen = QApplication::desktop()->screenNumber(this);
-            int rotation = qtopia_background_brush_rotation(screen);
-            if (rotation != 0) {
-                QMatrix matrix = brushRotationMatrix
-                    (rotation, d->backgroundOffset, d->background);
-                p.drawImageTransformed(matrix, d->background);
-            } else {
-                p.drawImage(d->backgroundOffset, d->background);
-            }
+            p.drawImage(d->backgroundOffset, d->background);
         }
         d->m_highlight->paint(&p);
 
