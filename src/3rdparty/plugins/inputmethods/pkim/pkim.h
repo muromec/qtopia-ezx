@@ -49,7 +49,7 @@ public:
     virtual bool filter(const QPoint &pos, int state, int w);
     // used to determine state
     bool isFiltering() const { return cMode != Off; }
-    
+
     void reset();
     void setMicroFocus( int x, int y );
     void mouseHandler( int index, int state );
@@ -120,7 +120,7 @@ private:
     int choicePos;
     QStringList choices;
     void loadProfiles();
-    
+
     // Worker functions for interpreting input
     bool processInputMatcherChar(InputMatcher *matcher, int unicode, int keycode, bool isPress, bool autoRepeat);
     bool processBackspace();
@@ -140,7 +140,7 @@ private:
     bool hintedAutoCapitalization;
     QString autoCapitalizingPunctuation;
     bool autoCapitalizeEveryWord;
-#ifdef GREENPHONE_EFFECTS
+#ifndef QTOPIA_NO_QSMOOTHLIST
     bool allowHandwriting;
 #endif
     bool active;
@@ -192,7 +192,7 @@ private:
         waiting_for_hold,
         waiting_for_release,
     };
-    holdstate key_hold_status;  
+    holdstate key_hold_status;
 };
 
 

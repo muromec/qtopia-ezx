@@ -25,12 +25,8 @@
 #include <QContentSet>
 #include <QSortFilterProxyModel>
 
-#ifdef GREENPHONE_EFFECTS
-#define ENABLE_SMOOTHLIST
-#endif
-
-#ifdef ENABLE_SMOOTHLIST
-#include <private/qsmoothlist_p.h>
+#ifndef QTOPIA_NO_QSMOOTHLIST
+#include <private/qsmoothlist.h>
 #endif
 
 class QContentSetMultiColumnProxyModel;
@@ -62,7 +58,7 @@ protected:
     void ensureSelected();
 };
 
-class LauncherView : public QWidget 
+class LauncherView : public QWidget
 {
     Q_OBJECT
 
@@ -92,7 +88,7 @@ class LauncherView : public QWidget
         friend class QLauncherProxyModel;
 
         LauncherViewListView *icons;
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
         QSmoothList *smoothicons;
 #endif
         QContentSet *contentSet;

@@ -76,7 +76,7 @@ bool LauncherViewListView::viewportEvent(QEvent *e)
 void LauncherViewListView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
 {
     QModelIndex index = currentIndex();
-    
+
     int scrollValue = verticalScrollBar()->value();
 
     QListView::rowsAboutToBeRemoved(parent, start, end);
@@ -185,7 +185,7 @@ public:
 LauncherView::LauncherView( QWidget* parent, Qt::WFlags fl )
     : QWidget(parent, fl)
         , icons(NULL)
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
         , smoothicons(NULL)
 #endif
         , contentSet(NULL)
@@ -206,8 +206,8 @@ void LauncherView::init() {
     icons->setItemDelegate(new LauncherViewDelegate(icons));
     mainLayout->addWidget(icons);
     setFocusProxy(icons);
-    
-#ifdef ENABLE_SMOOTHLIST
+
+#ifndef QTOPIA_NO_QSMOOTHLIST
     icons->setVisible(false);
     smoothicons = new QSmoothList(this);
     smoothicons->setItemDelegate(new LauncherViewDelegate(smoothicons));
@@ -215,7 +215,7 @@ void LauncherView::init() {
     setFocusProxy(smoothicons);
     QSoftMenuBar::setLabel(smoothicons, Qt::Key_Select, QSoftMenuBar::Select);
 #endif
-    
+
     QtopiaApplication::setStylusOperation( icons->viewport(), QtopiaApplication::RightOnHold );
 
     icons->setFrameStyle( QFrame::NoFrame );
@@ -240,8 +240,8 @@ void LauncherView::init() {
              SLOT(itemPressed(QModelIndex)));
 
     icons->setModel(model);
-    
-#ifdef ENABLE_SMOOTHLIST
+
+#ifndef QTOPIA_NO_QSMOOTHLIST
     connect( smoothicons, SIGNAL(activated(QModelIndex)),
              SLOT(returnPressed(QModelIndex)) );
     smoothicons->setModel(model);
@@ -274,7 +274,7 @@ void LauncherView::timerEvent ( QTimerEvent * event )
 void LauncherView::setItemDelegate(QAbstractItemDelegate *delegate)
 {
     icons->setItemDelegate(delegate);
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
     smoothicons->setItemDelegate(delegate);
 #endif
 }
@@ -284,14 +284,14 @@ void LauncherView::setViewMode( QListView::ViewMode m )
     Q_ASSERT(icons);
     if(m==QListView::ListMode) {
         icons->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
         icons->setVisible(false);
         smoothicons->setVisible(true);
         setFocusProxy(smoothicons);
 #endif
     } else {
         icons->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
         icons->setVisible(true);
         smoothicons->setVisible(false);
         setFocusProxy(icons);
@@ -432,7 +432,7 @@ void LauncherView::calculateGridSize(bool force)
         grSize = QSize((viewerWidth-(nColumns+1)*icons->spacing())/nColumns, iconHeight);
         QSize icoSize = QSize(iconHeight - 4, iconHeight - 4);
         icons->setIconSize(icoSize);
-#ifdef ENABLE_SMOOTHLIST
+#ifndef QTOPIA_NO_QSMOOTHLIST
         smoothicons->setIconSize(icoSize);
 #endif
     }
