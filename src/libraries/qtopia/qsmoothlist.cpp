@@ -52,7 +52,7 @@
 
 Q_GLOBAL_STATIC(QItemDelegate, standardDelegate);
 
-static const int rate = 18;
+static const int rate = 10;
 static const int selectionTimeout = 200; // highlight if finger stationary for selectionTimeout ms.
 static const int stationaryTimeout = 200;
 static const qreal nearZero = 0.01f;

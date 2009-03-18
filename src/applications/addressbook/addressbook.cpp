@@ -325,7 +325,7 @@ AddressbookWindow::AddressbookWindow( QWidget *parent, Qt::WFlags f )
     //
     //  Build the main contact list view
     //
-#ifndef GREENPHONE_EFFECTS
+#ifdef QTOPIA_NO_QSMOOTHLIST
     mListView = new ContactListPane(0, mModel);
 #else
     mListView = new ContactListPane(centralView, mModel);

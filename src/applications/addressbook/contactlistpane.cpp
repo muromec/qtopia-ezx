@@ -49,7 +49,7 @@ ContactListPane::ContactListPane(QWidget *w, QContactModel* model)
 
     mListView = new QContactListView(0);
 
-#ifndef GREENPHONE_EFFECTS
+#ifdef QTOPIA_NO_QSMOOTHLIST
     if (style()->inherits("Series60Style"))
         mDelegate = new QtopiaItemDelegate(mListView);
     else
@@ -75,7 +75,7 @@ ContactListPane::ContactListPane(QWidget *w, QContactModel* model)
 
     // Don't show find bar for QThumbStyle
     if (!style()->inherits("QThumbStyle")) {
-#ifndef GREENPHONE_EFFECTS
+#ifdef QTOPIA_NO_QSMOOTHLIST
         mTextProxy = new QTextEntryProxy(this, mListView);
 #else
         mTextProxy = new QTextEntryProxy(this, mSmoothListView);
@@ -98,13 +98,13 @@ ContactListPane::ContactListPane(QWidget *w, QContactModel* model)
 
         QtopiaApplication::setInputMethodHint( mListView, QtopiaApplication::Text );
     }
-#ifdef GREENPHONE_EFFECTS
+#ifndef QTOPIA_NO_QSMOOTHLIST
     mListView->setVisible(false);
     connect(mSmoothListView, SIGNAL(activated(QModelIndex)),
             this, SLOT(contactActivated(QModelIndex)));
 #endif
 
-#ifndef GREENPHONE_EFFECTS
+#ifdef QTOPIA_NO_QSMOOTHLIST
     mListView->installEventFilter(this);
 #endif
 
@@ -187,7 +187,7 @@ void ContactListPane::contactActivated(const QModelIndex &idx)
 */
 void ContactListPane::contactsChanged()
 {
-#ifdef GREENPHONE_EFFECTS
+#ifndef QTOPIA_QTOPIA_NO_QSMOOTHLIST
     mSmoothListView->reset();
 #endif
     if (!mListView->currentIndex().isValid()) {

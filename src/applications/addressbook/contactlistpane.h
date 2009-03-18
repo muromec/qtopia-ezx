@@ -25,8 +25,8 @@
 #include "quniqueid.h"
 #include "qcategorymanager.h"
 
-#ifdef GREENPHONE_EFFECTS
-#include <private/qsmoothlist_p.h>
+#ifndef QTOPIA_NO_QSMOOTHLIST
+#include <private/qsmoothlist.h>
 #endif
 
 class QContactListView;
@@ -75,7 +75,7 @@ class ContactListPane : public QWidget
 
     protected:
         QContactListView *mListView;
-#ifdef GREENPHONE_EFFECTS
+#ifndef QTOPIA_NO_QSMOOTHLIST
         QSmoothList *mSmoothListView;
 #endif
         QTextEntryProxy *mTextProxy;

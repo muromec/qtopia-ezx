@@ -6,6 +6,7 @@ VERSION = 4.0.0
 depends(3rdparty/libraries/easing)
 
 contains(arch,arm):DEFINES += QT_ARCH_ARMV5E
+QMAKE_CXXFLAGS_RELEASE += -O3 -fexpensive-optimizations -fprefetch-loop-arrays
 
 HEADERS=\
     routines.h\
