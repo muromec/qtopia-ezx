@@ -607,7 +607,7 @@ QFontEngineFT::QFontEngineFT(const QFontDef &fd)
     transform = false;
     antialias = true;
     default_load_flags = 0;
-    default_hint_style = HintNone;
+    default_hint_style = HintFull;
     subpixelType = Subpixel_None;
     lcdFilterType = 0;
 #if defined(FT_LCD_FILTER_H)
