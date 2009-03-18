@@ -43,6 +43,12 @@
 // Define the following to suppress non-essential animation:
 //#define SUPPRESS_QSMOOTHLIST_ANIMATION
 
+// Ignore palette and fill background with solid black color
+#define SOLID_BLACK_BACKGROUND
+
+// Set 18bpp as internal image format
+//#define USE_18BPP
+
 
 Q_GLOBAL_STATIC(QItemDelegate, standardDelegate);
 
@@ -52,6 +58,13 @@ static const int stationaryTimeout = 200;
 static const qreal nearZero = 0.01f;
 static const qreal nearOne = 0.99f;
 
+#ifdef USE_18BPP
+static const QImage::Format transp_format = QImage::Format_ARGB6666_Premultiplied;
+static const QImage::Format opaque_format = QImage::Format_RGB666;
+#else
+static const QImage::Format transp_format = QImage::Format_ARGB32_Premultiplied;
+static const QImage::Format opaque_format = QImage::Format_RGB32;
+#endif
 
 class MotionVelocity
 {
@@ -234,7 +247,7 @@ void Scrollbar::checkCache()
     if (!m_cacheValid) {
         int width = BarWidth - 2 * Margin;
         int height = barHeight();
-        imageCache = QImage(width, height, QImage::Format_ARGB32_Premultiplied);
+        imageCache = QImage(width, height, transp_format);
         imageCache.fill(0);
         QPainter cp(&imageCache);
         cp.setPen(QPalette().color(QPalette::HighlightedText));
@@ -1602,7 +1615,7 @@ void ListItem::prepareCache(QImage &image, int &height, QAbstractItemDelegate *d
         int width = m_opaque ? maxWidth : qMin(maxWidth, size.width());
         opt.rect = QRect(0, 0, width, height);
 
-        image = QImage(width, height, m_opaque ? QImage::Format_RGB32 : QImage::Format_ARGB32_Premultiplied);
+        image = QImage(width, height, m_opaque ? opaque_format : transp_format);
         image.fill(0);
 
         QPainter cp(&image);
@@ -1683,7 +1696,7 @@ void ListItem::paint(GfxPainter *p)
 
     p->drawImage(QPoint(left, mainRect.top()), imageCache);
 
-    QImage branchImage(branchRect.size(), m_opaque ? QImage::Format_RGB32 : QImage::Format_ARGB32_Premultiplied);
+    QImage branchImage(branchRect.size(), m_opaque ? opaque_format : transp_format);
     branchImage.fill(0);
 
     QPainter bp(&branchImage);
@@ -1737,7 +1750,7 @@ void ItemHighlight::checkCache()
 {
     if(!m_cacheValid) {
         //ideally, we would use the item delegate to determine what the highlight should look like
-        imageCache = QImage(m_width, int(m_height.value()), QImage::Format_ARGB32_Premultiplied);
+        imageCache = QImage(m_width, int(m_height.value()), transp_format);
         imageCache.fill(0);
         QPainter cp(&imageCache);
         cp.setRenderHint(QPainter::Antialiasing);
@@ -1940,8 +1953,14 @@ QSmoothList::QSmoothList(QWidget *parent, Qt::WFlags flags)
     QExportedBackground *bg = new QExportedBackground(this);
     QObject::connect(bg, SIGNAL(changed(QPixmap)),
                      this, SLOT(backgroundChanged(QPixmap)));
+#ifdef SOLID_BLACK_BACKGROUND
+    d->background = QImage();
+    d->backColor = Qt::black;
+#else
     d->background = bg->background().toImage();
     d->backColor = palette().brush(QPalette::Window).color();
+#endif
+    qWarning() << d->backColor;
 
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
     setFocusPolicy(Qt::StrongFocus);
@@ -2491,7 +2510,7 @@ void QSmoothList::wheelEvent(QWheelEvent *e)
 
 /*! \reimp */
 void QSmoothList::keyPressEvent(QKeyEvent *e)
-{   
+{
     bool handled(false);
 
     if (selectionMode() != NoSelection) {
@@ -2993,10 +3012,12 @@ void QSmoothList::paintEvent(QPaintEvent *pe)
 bool QSmoothList::event(QEvent *event)
 {
     switch(event->type()) {
+#ifndef SOLID_BLACK_BACKGROUND
         case QEvent::PaletteChange:
             refresh(false);
             d->backColor = palette().brush(QPalette::Window).color();
             break;
+#endif // SOLID_BLACK_BACKGROUND
         default:
             break;
     }
@@ -3299,8 +3320,10 @@ void QSmoothList::dataChanged(const QModelIndex &topLeft, const QModelIndex &bot
 /*! \internal */
 void QSmoothList::backgroundChanged(const QPixmap &n)
 {
+#ifndef SOLID_BLACK_BACKGROUND
     d->background = n.toImage();
     QWidget::update();
+#endif // SOLID_BLACK_BACKGROUND
 }
 
 /*! \internal */

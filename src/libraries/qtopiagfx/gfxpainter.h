@@ -69,11 +69,11 @@ public:
     void drawImage(const QRect &, const QImage &);
     void drawImage(const QRect &, const GfxImageRef &);
 
-    void drawImageTransformed(const QMatrix &, const QImage &, 
+    void drawImageTransformed(const QMatrix &, const QImage &,
                               bool smooth = false);
 
     void fillRect(const QRect &, const QColor &);
-    void fillRectTransformed(const QMatrix &, const QSize &, const QColor &, 
+    void fillRectTransformed(const QMatrix &, const QSize &, const QColor &,
                              bool smooth = false);
 
     void flip();
@@ -120,6 +120,7 @@ private:
     bool useQt;
 
     enum { Depth_16 = 2, Depth_18 = 3, Depth_32 = 4 } depth;
+    int dest_format;
 
     HorizontalOpacityFunction opacityFunc;
     void *opacityFuncData;

@@ -23,13 +23,20 @@
 #include <qglobal.h>
 
 #ifdef QT_ARCH_ARMV5E
-#define PLD(src) \
+#  define PLD(src) \
     asm volatile("pld [%0, #32]\n\t" \
             : : "r"(src));
 #else
-#define PLD(src)
+#  define PLD(src)
 #endif
 
+#if 0
+#  define TRACE printf("%s\n",  __PRETTY_FUNCTION__);
+#  define TRACE_STUB printf("STUB: %s\n",  __PRETTY_FUNCTION__);
+#else
+#  define TRACE
+#  define TRACE_STUB printf("STUB: %s\n",  __PRETTY_FUNCTION__);
+#endif
 static inline unsigned short rgba16_rgb16(unsigned short *dest,
                                           unsigned short *src,
                                           unsigned char alpha)
@@ -47,7 +54,7 @@ static inline unsigned short rgba16_rgb16(unsigned short *dest,
     }
 }
 
-static inline void rgba16_rgb16_inplace(unsigned short *dest, 
+static inline void rgba16_rgb16_inplace(unsigned short *dest,
                                         unsigned short *src,
                                         unsigned char alpha)
 {
@@ -63,9 +70,9 @@ static inline void rgba16_rgb16_inplace(unsigned short *dest,
     }
 }
 
-void def_blend_rgba16_rgb16(unsigned short *dest, 
-                            unsigned short *src, 
-                            unsigned char *alpha, 
+void def_blend_rgba16_rgb16(unsigned short *dest,
+                            unsigned short *src,
+                            unsigned char *alpha,
                             unsigned char opacity,
                             int width,
                             unsigned short *output)
@@ -82,11 +89,11 @@ void def_blend_rgba16_rgb16(unsigned short *dest,
         ++opacity;
         if(dest == output) {
             while(width--)
-                rgba16_rgb16_inplace(dest++, src++, 
+                rgba16_rgb16_inplace(dest++, src++,
                                      (*alpha++ * opacity) >> 8);
         } else {
             while(width--)
-                *output++ = rgba16_rgb16(dest++, src++, 
+                *output++ = rgba16_rgb16(dest++, src++,
                                          (*alpha++ * opacity) >> 8);
         }
     }
@@ -112,40 +119,6 @@ static inline unsigned short argb32p_rgb16(unsigned short *dest, unsigned int sr
     return qConvertRgb32To16((premul_noextents(qConvertRgb16To32(*dest), alpha) & 0xFFFFFF) + src);
 }
 
-static unsigned short argb32p_rgb18(unsigned char *dest, unsigned int *src)
-{
-    printf("argb32p_rgb18\n");
-    unsigned char alpha = *src >> 24;
-
-    if(alpha == 0x00) {
-        return *dest;
-    } else if(alpha == 0xFF) {
-        return qConvertRgb32To18(*src);
-    } else {
-        alpha = 0xFF - alpha;
-        printf("alpha...\n");
-
-        return qConvertRgb32To18((premul_nozero(qConvertRgb16To32(*dest), alpha) & 0xFFFFFF) + *src);
-    }
-}
-
-static inline unsigned short argb32p_rgb18(unsigned char *dest, unsigned int src, unsigned char alpha)
-{
-    printf("argb32p_rgb18\n");
-    return qConvertRgb32To18((premul_noextents(qConvertRgb18To32(*dest), alpha) & 0xFFFFFF) + src);
-}
-
-static unsigned short argb24p_rgb18(unsigned char *dest, unsigned int *src)
-{
-    printf("%s\n",__func__);
-    return 0;
-}
-
-static inline unsigned short argb24p_rgb18(unsigned char *dest, unsigned int src, unsigned char alpha)
-{
-    printf("%s\n",__func__);
-    return 0;
-}
 static inline unsigned short argb32p_rgb32_m(unsigned int dest, unsigned int src, unsigned char alpha)
 {
     return qConvertRgb32To16((premul_noextents(dest, alpha) & 0xFFFFFF) + src);
@@ -200,13 +173,6 @@ void def_blend_color_rgb16(unsigned short *dest,
         *(unsigned short *)(oint) = argb32p_rgb16((unsigned short *)dint, src, alpha);
 }
 
-void def_blend_color_rgb18(unsigned int *dest,
-                           unsigned int src,
-                           int width,
-                           unsigned int *output)
-{
-    printf("NONIMPL def_blend_color_rgb18\n");
-}
 static void _def_blend_argb32p_rgb16(unsigned short *dest,
                                      unsigned int *src,
                                      int width,
@@ -226,41 +192,8 @@ static void _def_blend_argb32p_rgb16(unsigned short *dest,
                     } while(--n > 0);
         }
     } else {
-        while(width--)  
+        while(width--)
             *output++ = argb32p_rgb16(dest++, src++);
-    }
-}
-static void _def_blend_argb32p_rgb18(unsigned char *dest,
-                                     unsigned int *src,
-                                     int width,
-                                     unsigned char *output)
-{
-    if(dest == output) {
-      // FIXME
-       while(width--) {
-         argb32p_rgb18_inplace(dest, src++);
-         dest+=3;
-       }
-    } else {
-        while(width--)  
-            *output++ = argb32p_rgb18(dest++, src++);
-    }
-}
-
-static void _def_blend_argb24p_rgb18(unsigned char *dest,
-                                     unsigned int *src,
-                                     int width,
-                                     unsigned char *output)
-{
-    if(dest == output) {
-      // FIXME
-       while(width--) {
-         argb24p_rgb18_inplace(dest, src++);
-         dest+=3;
-       }
-    } else {
-        while(width--)  
-            *output++ = argb24p_rgb18(dest++, src++);
     }
 }
 
@@ -286,34 +219,6 @@ static unsigned short argb32p_rgb16_opacity(unsigned short *dest, unsigned int *
     }
 }
 
-static unsigned char argb32p_rgb18_opacity(unsigned char *dest, unsigned int *src, unsigned char opacity)
-{
-    printf("argb32p_rgb18_opacity\n");
-    unsigned int srcval = *src;
-    unsigned char alpha = srcval >> 24;
-
-    if(alpha == 0x00) {
-        return *dest;
-    } else {
-        srcval = premul(srcval, opacity);
-        alpha = srcval >> 24;
-        if(alpha == 0x00) {
-            return *dest;
-        } else if(alpha == 0xFF) {
-            return qConvertRgb32To18(srcval);
-        } else {
-            alpha = 0xFF - alpha;
-
-            return qConvertRgb32To18((premul_nozero(qConvertRgb16To32(*dest), alpha) & 0xFFFFFF) + srcval);
-        }
-    }
-}
-static unsigned char argb24p_rgb18_opacity(unsigned char *dest, unsigned int *src, unsigned char opacity)
-{
-    printf("%s\n",__func__);
-    return 0;
-}
-
 static void _def_blend_argb32p_rgb16(unsigned short *dest,
                                      unsigned int *src,
                                      unsigned char opacity,
@@ -322,45 +227,11 @@ static void _def_blend_argb32p_rgb16(unsigned short *dest,
 {
     ++opacity;
     if(dest == output)
-        while(width--) 
+        while(width--)
             argb32p_rgb16_opacity_inplace(dest++, src++, opacity);
     else
-        while(width--) 
+        while(width--)
             *output++ = argb32p_rgb16_opacity(dest++, src++, opacity);
-}
-
-static void _def_blend_argb32p_rgb18(unsigned char *dest,
-                                     unsigned int *src,
-                                     unsigned char opacity,
-                                     int width,
-                                     unsigned char *output)
-{
-    ++opacity;
-    if(dest == output)
-        while(width--) {
-            argb32p_rgb18_opacity_inplace(dest, src++, opacity);
-            dest +=3;
-        }
-    else
-        while(width--) 
-            *output++ = argb32p_rgb18_opacity(dest++, src++, opacity);
-}
-
-static void _def_blend_argb24p_rgb18(unsigned char *dest,
-                                     unsigned int *src,
-                                     unsigned char opacity,
-                                     int width,
-                                     unsigned char *output)
-{
-    ++opacity;
-    if(dest == output)
-        while(width--) {
-            argb24p_rgb18_opacity_inplace(dest, src++, opacity);
-            dest +=3;
-        }
-    else
-        while(width--) 
-            *output++ = argb24p_rgb18_opacity(dest++, src++, opacity);
 }
 
 void def_blend_argb32p_rgb16(unsigned short *dest,
@@ -373,31 +244,6 @@ void def_blend_argb32p_rgb16(unsigned short *dest,
         _def_blend_argb32p_rgb16(dest, src, width, output);
     else
         _def_blend_argb32p_rgb16(dest, src, opacity, width, output);
-}
-
-void def_blend_argb32p_rgb18(unsigned char *dest,
-                             unsigned int *src,
-                             unsigned char opacity,
-                             int width,
-                             unsigned char *output)
-{
-    if(opacity == 0xFF)
-        _def_blend_argb32p_rgb18(dest, src, width, output);
-    else
-        _def_blend_argb32p_rgb18(dest, src, opacity, width, output);
-}
-
-void def_blend_argb24p_rgb18(unsigned char *dest,
-                             unsigned int *src,
-                             unsigned char opacity,
-                             int width,
-                             unsigned char *output)
-{
-    if(opacity == 0xFF)
-        _def_blend_argb24p_rgb18(dest, src, width, output);
-    else
-        _def_blend_argb24p_rgb18(dest, src, opacity, width, output);
-
 }
 
 static inline unsigned int argb32p_rgb32_opacity(unsigned int *dest, unsigned int *src, unsigned char opacity)
@@ -431,7 +277,7 @@ static void _def_blend_argb32p_rgb32(unsigned int *dest,
         while(width--)
             argb32p_rgb32_opacity_inplace(dest++, src++, opacity);
     } else {
-        while(width--) 
+        while(width--)
             *output++ = argb32p_rgb32_opacity(dest++, src++, opacity);
     }
 }
@@ -502,7 +348,148 @@ void def_blend_color_rgb32(unsigned int *dest,
                            int width,
                            unsigned int *output)
 {
-    while(width--) 
+    while(width--)
         *output++ = argb32p_rgb32(dest++, src);
 }
 
+// 18 BPP support
+
+// dest, output: rgb18
+// src: argb32p
+// output = blend(dest, src)
+static inline void _def_blend_argb32p_rgb18_opaque(unsigned char *dest,
+                                                   unsigned int *src,
+                                                   int width,
+                                                   unsigned char *output)
+{ TRACE
+  if(dest == output)
+    while(width--) {
+      argb32p_rgb18_inplace(dest, src++);
+      dest += 3;
+    }
+  else
+    while(width--)
+    {
+      argb32p_rgb18(dest, src++, output);
+      dest += 3;
+      output += 3;
+    }
+}
+
+// dest, output: rgb18
+// src: argb32p
+// output = blend(dest, src*opacity)
+static inline void _def_blend_argb32p_rgb18(unsigned char *dest,
+                                            unsigned int *src,
+                                            unsigned char opacity,
+                                            int width,
+                                            unsigned char *output)
+{ TRACE
+  if(dest == output)
+    while(width--) {
+      argb32p_rgb18_opacity_inplace(dest, src++, opacity);
+      dest += 3;
+    }
+  else
+    while(width--)
+    {
+      argb32p_rgb18_opacity(dest, src++, opacity, output);
+      dest += 3;
+      output += 3;
+    }
+}
+
+// dest, output: rgb18
+// src: argb24p
+// output = blend(dest, src)
+static inline void _def_blend_argb24p_rgb18_opaque(unsigned char *dest,
+                                                   unsigned char *src,
+                                                   int width,
+                                                   unsigned char *output)
+{ TRACE
+  if(dest == output)
+  {
+    while(width--)
+    {
+      argb24p_rgb18_inplace(dest, src);
+      dest += 3;
+      src += 3;
+    }
+  }
+  else
+  {
+    while(width--)
+    {
+      argb24p_rgb18(dest, src, output);
+      dest += 3;
+      src += 3;
+      output += 3;
+    }
+  }
+}
+
+// dest, output: rgb18
+// src: argb24p
+// output = blend(dest, src*opacity)
+static inline void _def_blend_argb24p_rgb18(unsigned char *dest,
+                                            unsigned char *src,
+                                            unsigned char opacity,
+                                            int width,
+                                            unsigned char *output)
+{ TRACE
+  //++opacity;
+  if(dest == output)
+    while(width--)
+    {
+      argb24p_rgb18_opacity_inplace(dest, src, opacity);
+      dest += 3;
+      src += 3;
+    }
+  else
+    while(width--)
+    {
+      argb24p_rgb18_opacity(dest, src, opacity, output);
+      output += 3;
+      dest += 3;
+      src += 3;
+    }
+}
+
+// dest, output: rgb18
+// src: argb32p
+// output = blend(dest, src*opacity)
+void def_blend_argb32p_rgb18(unsigned char *dest,
+                             unsigned int *src,
+                             unsigned char opacity,
+                             int width,
+                             unsigned char *output)
+{ TRACE
+  if(opacity == 0xFF)
+    _def_blend_argb32p_rgb18_opaque(dest, src, width, output);
+  else
+    _def_blend_argb32p_rgb18(dest, src, opacity, width, output);
+}
+
+// dest, output: rgb18
+// src: argb24p
+// output = blend(dest, src*opacity)
+void def_blend_argb24p_rgb18(unsigned char *dest,
+                             unsigned char *src,
+                             unsigned char opacity,
+                             int width,
+                             unsigned char *output)
+{ TRACE
+  if(opacity == 0xFF)
+    _def_blend_argb24p_rgb18_opaque(dest, src, width, output);
+  else
+    _def_blend_argb24p_rgb18(dest, src, opacity, width, output);
+}
+
+
+
+void def_blend_color_rgb18(unsigned char *dest,
+                           unsigned int src,
+                           int width,
+                           unsigned char *output)
+{ TRACE_STUB
+}

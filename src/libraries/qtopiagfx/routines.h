@@ -26,9 +26,9 @@ extern "C" {
 
     struct BlurRoutines
     {
-        void (*blur32)(unsigned int *data, int width, int height, 
+        void (*blur32)(unsigned int *data, int width, int height,
                        int step_width, int alpha);
-        void (*blur16)(unsigned short *data, int width, int height, 
+        void (*blur16)(unsigned short *data, int width, int height,
                        int step_width, int alpha);
     };
 
@@ -37,9 +37,9 @@ extern "C" {
     struct BlendRoutines
     {
         // 16 + 16 -> 16
-        void (*blend_rgba16_rgb16)(unsigned short *dest, 
-                                   unsigned short *src, 
-                                   unsigned char *alpha, 
+        void (*blend_rgba16_rgb16)(unsigned short *dest,
+                                   unsigned short *src,
+                                   unsigned char *alpha,
                                    unsigned char opacity,
                                    int width,
                                    unsigned short *output);
@@ -66,7 +66,7 @@ extern "C" {
 
         // 23 + 18*3 -> 18*3
         void (*blend_argb24p_rgb18)(unsigned char *dest,
-                                    unsigned int *src,
+                                    unsigned char *src,
                                     unsigned char opacity,
                                     int width,
                                     unsigned char *output);
@@ -77,10 +77,10 @@ extern "C" {
                                   int width,
                                   unsigned int *output);
         // ??
-        void (*blend_color_rgb18)(unsigned int *dest,
+        void (*blend_color_rgb18)(unsigned char *dest,
                                   unsigned int src,
                                   int width,
-                                  unsigned int *output);
+                                  unsigned char *output);
 
         // 32 + 16 -> 16
         void (*blend_color_rgb16)(unsigned short *dest,
@@ -111,8 +111,8 @@ extern "C" {
                                      unsigned int *output);
 
         // 16 -> 32
-        void (*color_rgb16_rgb32)(unsigned short *src, 
-                                  int width, 
+        void (*color_rgb16_rgb32)(unsigned short *src,
+                                  int width,
                                   unsigned int *output);
 
         // 32 -> 16
@@ -136,7 +136,7 @@ extern "C" {
                                   int width,
                                   unsigned short *output);
     };
-    
+
     extern struct GrayscaleRoutines q_grayscaleroutines;
 
     struct MemoryRoutines
@@ -153,11 +153,11 @@ extern "C" {
 
     struct ScaleRoutines
     {
-        void (*scale_argb32p)(unsigned int *dest, unsigned int destwidth, 
+        void (*scale_argb32p)(unsigned int *dest, unsigned int destwidth,
                               const unsigned int *src, unsigned int srcwidth,
                               unsigned int adjust);
-        void (*scale_argb32p_accum)(unsigned int *dest, unsigned int destwidth, 
-                                    const unsigned int *src, 
+        void (*scale_argb32p_accum)(unsigned int *dest, unsigned int destwidth,
+                                    const unsigned int *src,
                                     unsigned int srcwidth,
                                     unsigned int adjust);
     };

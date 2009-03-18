@@ -40,7 +40,7 @@ void def_memset_8(unsigned char *dest, char c, int len)
     asm volatile("pld [%0, #32]\n\t" \
             : : "r"(src));
 #else
-#define PLD(src) 
+#define PLD(src)
 #endif
 
 #define MEMSET_SPAN(dest, val, length) \
@@ -68,7 +68,7 @@ void def_memset_16(unsigned short *dest, short c, int len)
         *dest++ = c;
         --len;
     }
-    
+
     int _len = len >> 1;
     if(_len) {
         unsigned int _val = (unsigned short)(c) | ((unsigned short)(c) << 16);
@@ -82,7 +82,7 @@ void def_memset_16(unsigned short *dest, short c, int len)
 
 void def_memset_24(unsigned char *dest, int c, int len)
 {
-  register unsigned char *dest_end = dest+len;
+  register unsigned char *dest_end = dest+len*3;
   register int st = 0;
   while (dest_end>dest)
   {

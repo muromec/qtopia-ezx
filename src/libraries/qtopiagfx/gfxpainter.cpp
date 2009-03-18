@@ -170,7 +170,7 @@ static inline void hazard(HazardType t)
     }
 }
 
-enum ImageType { RGB16 = 0, RGB32 = 1, ARGB32p = 2 , ARGB24p = 3 };
+// Blend functions
 typedef void(*SimpleBlendFunc)(uchar *in, uchar *out, int width, uchar opacity);
 
 static void sbf_argb32p_rgb32(uchar *in, uchar *out, int width, uchar opacity)
@@ -181,13 +181,8 @@ static void sbf_argb32p_rgb32(uchar *in, uchar *out, int width, uchar opacity)
 
 static void sbf_argb32p_rgb16(uchar *in, uchar *out, int width, uchar opacity)
 {
-#if BUFFER_BPP == 18
-    q_blendroutines.blend_argb32p_rgb18(out, (uint *)in,
-                                        opacity, width, out);
-#else
     q_blendroutines.blend_argb32p_rgb16((ushort *)out, (uint *)in,
                                         opacity, width, (ushort *)out);
-#endif
 }
 
 static void sbf_argb24p_rgb32(uchar *in, uchar *out, int width, uchar opacity)
@@ -195,12 +190,6 @@ static void sbf_argb24p_rgb32(uchar *in, uchar *out, int width, uchar opacity)
     qWarning() << __func__;
     q_blendroutines.blend_argb32p_rgb32((uint *)out, (uint *)in,
                                         opacity, width, (uint *)out);
-}
-
-static void sbf_argb24p_rgb18(uchar *in, uchar *out, int width, uchar opacity)
-{
-    q_blendroutines.blend_argb24p_rgb18(out, (uint *)in,
-                                        opacity, width, out);
 }
 
 static void sbf_rgb16_rgb32(uchar *_in, uchar *_out, int width, uchar opacity)
@@ -271,18 +260,67 @@ static void sbf_rgb32_rgb16(uchar *in, uchar *out, int width, uchar opacity)
     }
 }
 
-static const SimpleBlendFunc simpleBlendFuncs[RGB32 + 1][ARGB24p + 1] = {
+// To RGB18
+static void sbf_argb24p_rgb18(uchar *in, uchar *out, int width, uchar opacity)
+{
+    q_blendroutines.blend_argb24p_rgb18(out, in,
+                                        opacity, width, out);
+}
+
+static void sbf_argb32p_rgb18(uchar *in, uchar *out, int width, uchar opacity)
+{
+    q_blendroutines.blend_argb32p_rgb18(out, (uint *)in,
+                                        opacity, width, out);
+}
+
+enum ImageType
+{
+  RGB16 = 0,
+  RGB32 = 1,
+  ARGB32p = 2,
+  RGB18 = 3,
+  ARGB24p = 4
+};
+static const SimpleBlendFunc simpleBlendFuncs[ARGB24p + 1][ARGB24p + 1] = {
     {
+      // RGB16
         sbf_rgb16_rgb16,
         sbf_rgb32_rgb16,
         sbf_argb32p_rgb16,
-        sbf_argb24p_rgb18,
+        0,
+        0,
     },
     {
+      // RGB32
         sbf_rgb16_rgb32,
         sbf_rgb32_rgb32,
         sbf_argb32p_rgb32,
+        0,
         sbf_argb24p_rgb32,
+    },
+    {
+      // ARGB32p
+      0,
+      0,
+      0,
+      0,
+      0
+    },
+    {
+      // RGB18
+      0,
+      0,
+      sbf_argb32p_rgb18,
+      sbf_argb24p_rgb18,
+      sbf_argb24p_rgb18
+    },
+    {
+      // ARGB24p
+      0,
+      0,
+      0,
+      0,
+      0
     }
 };
 
@@ -302,7 +340,7 @@ GfxPainter::GfxPainter()
 
 GfxPainter::GfxPainter(QImage &img, const QRegion &reg)
 : fBuffer(0), buffer(0), _opacity(0xFF), realOpacity(1.0f),
-  mainThreadProxy(0), dp(0),  p(0), pImg(0), useQt(false), depth(Depth_16),
+  mainThreadProxy(0), dp(0),  p(0), pImg(0), useQt(false), depth(Depth_16), dest_format(RGB16),
   opacityFunc(0), opacityFuncData(0)
 {
     Gfx::init();
@@ -311,10 +349,13 @@ GfxPainter::GfxPainter(QImage &img, const QRegion &reg)
     if(!gfx_use_qt && (format == QImage::Format_RGB16 || format == QImage::Format_RGB32 || format == QImage::Format_RGB666)) {
         if(format == QImage::Format_RGB16) {
             depth = Depth_16;
+            dest_format = RGB16;
         } else if(format == QImage::Format_RGB32) {
             depth = Depth_32;
+            dest_format = RGB32;
         } else if (format==QImage::Format_RGB666) {
             depth = Depth_18;
+            dest_format = RGB18;
         }
 
         buffer = img.bits();
@@ -333,6 +374,7 @@ GfxPainter::GfxPainter(QImage &img, const QRegion &reg)
 
         if(format == QImage::Format_ARGB32_Premultiplied) {
             depth = Depth_32;
+            dest_format = ARGB32p;
             buffer = img.bits();
             width = img.width();
             step = img.bytesPerLine() / depth;
@@ -346,7 +388,7 @@ GfxPainter::GfxPainter(QImage &img, const QRegion &reg)
 
 GfxPainter::GfxPainter(QWidget *wid, QPaintEvent *e)
 : fBuffer(0), buffer(0), _opacity(0xFF), realOpacity(1.0f),
-  mainThreadProxy(0), dp(0),  p(0), pImg(0), useQt(false), depth(Depth_16),
+  mainThreadProxy(0), dp(0),  p(0), pImg(0), useQt(false), depth(Depth_16), dest_format(RGB16),
   opacityFunc(0), opacityFuncData(0)
 {
     Gfx::init();
@@ -363,12 +405,17 @@ GfxPainter::GfxPainter(QWidget *wid, QPaintEvent *e)
 
         if(windowImage->format() == QImage::Format_RGB16) {
             depth = Depth_16;
-        } else if(windowImage->format() == QImage::Format_ARGB32_Premultiplied ||
-                windowImage->format() == QImage::Format_ARGB32 ||
-                windowImage->format() == QImage::Format_RGB32) {
+            dest_format = RGB16;
+        } else if (windowImage->format() == QImage::Format_ARGB32_Premultiplied) {
             depth = Depth_32;
+            dest_format = ARGB32p;
+        } else if (windowImage->format() == QImage::Format_ARGB32 ||
+                   windowImage->format() == QImage::Format_RGB32) {
+            depth = Depth_32;
+            dest_format = RGB32;
         } else if (windowImage->format() == QImage::Format_RGB666) {
             depth = Depth_18;
+            dest_format = RGB18;
         } else {
             qWarning().nospace() << "GfxPainter: Unknown window image format (" << windowImage->format() << ").  Using default depth 16bpp";
         }
@@ -511,7 +558,7 @@ void GfxPainter::setUserClipRect(const QRect &r)
         } else {
             painter()->setClipRect(r);
         }
-    } 
+    }
     _userClipRect = r;
 }
 
@@ -792,26 +839,45 @@ void GfxPainter::drawImage(int x, int y, const GfxImageRef &img, bool flipped)
         return;
 
 
-    int src_depth = (img.format() == QImage::Format_RGB16)?(2):(4);
+    int src_depth = 4;
+    int src_format;
     SimpleBlendFunc sbf = 0;
     switch(img.format()) {
         case QImage::Format_RGB32:
-            sbf = simpleBlendFuncs[depth / 2 - 1][RGB32];
+            src_format = RGB32;
+            src_depth = 4;
             break;
         case QImage::Format_ARGB32_Premultiplied:
-            sbf = simpleBlendFuncs[depth / 2 - 1][ARGB32p];
+            src_format = ARGB32p;
+            src_depth = 4;
             break;
         case QImage::Format_RGB16:
-            sbf = simpleBlendFuncs[depth / 2 - 1][RGB16];
+            src_format = RGB16;
+            src_depth = 2;
             break;
         case QImage::Format_ARGB6666_Premultiplied:
-            sbf = simpleBlendFuncs[depth / 2 - 1][ARGB24p];
+            src_format = ARGB24p;
+            src_depth = 3;
+            break;
+        case QImage::Format_RGB666:
+            sbf = simpleBlendFuncs[dest_format][RGB18];
+            src_format = RGB18;
+            src_depth = 3;
             break;
         default:
             qWarning() << "GfxPainter: Source format" << img.format()
                        << "not supported";
             return;
             break;
+    }
+
+    //qWarning() << "src_format ==" << src_format << ", dest_format ==" << dest_format;
+    sbf = simpleBlendFuncs[dest_format][src_format];
+    //qWarning() << "sbf ==" << sbf;
+    if (!sbf)
+    {
+      qWarning() << "GfxPainter: no blend routine available";
+      return;
     }
 
     QRect origImgRect(QPoint(x, y), img.size());
@@ -927,7 +993,7 @@ void GfxPainter::fillOpaque(const QRect &r, const QRgb &rgb)
         } else if (depth==Depth_18) {
             uchar *destBits = buffer;
             uint destStep = step*3;
-            destBits += fillRect.y() * destStep + fillRect.x();
+            destBits += fillRect.y() * destStep + 3*fillRect.x();
 
             for(int ii = 0; ii < height; ++ii) {
                 q_memoryroutines.memset_24(destBits, color, width);
@@ -963,7 +1029,7 @@ void GfxPainter::fillOpaque(const QRect &r, const QRgb &rgb)
             } else if (depth==Depth_18) {
                 uchar *destBits = buffer;
                 uint destStep = step*3;
-                destBits += fillRect.y() * destStep + fillRect.x();
+                destBits += fillRect.y() * destStep + 3*fillRect.x();
 
                 for(int ii = 0; ii < height; ++ii) {
                     q_memoryroutines.memset_24(destBits, color, width);
@@ -1008,20 +1074,20 @@ void GfxPainter::drawImage(const QRect &target, const GfxImageRef &img)
     } else {
         QMatrix matrix;
         matrix.translate(target.x(), target.y());
-        matrix.scale(qreal(target.width()) / qreal(imgRect.width()), 
+        matrix.scale(qreal(target.width()) / qreal(imgRect.width()),
                      qreal(target.height()) / qreal(imgRect.height()));
         drawImageTransformed(matrix, img.toImage());
     }
- 
+
 }
 
-void GfxPainter::drawImage(const QRect &target, const GfxImageRef &img, 
+void GfxPainter::drawImage(const QRect &target, const GfxImageRef &img,
                            const QRect &source)
 {
     drawImage(target, img.subImage(source));
 }
 
-void GfxPainter::drawImage(const QRect &target, const QImage &img, 
+void GfxPainter::drawImage(const QRect &target, const QImage &img,
                            const QRect &source)
 {
     if(0 && useQt) {
@@ -1080,9 +1146,9 @@ void GfxPainter::fillRect(const QRect &_r, const QColor &c)
                 destBits += destStep;
             }
         } else if(depth == Depth_18) {
-            uint *destBits = (uint*)buffer;
+            uchar *destBits = buffer;
             uint destStep = step*3;
-            destBits += fillRect.y() * destStep + fillRect.x();
+            destBits += fillRect.y() * destStep + 3*fillRect.x();
 
             for(int ii = 0; ii < height; ++ii) {
                 q_blendroutines.blend_color_rgb18(destBits, rgba, width, destBits);
@@ -1116,9 +1182,9 @@ void GfxPainter::fillRect(const QRect &_r, const QColor &c)
                     destBits += destStep;
                 }
             } else if(depth == Depth_18) {
-                uint *destBits = (uint*)buffer;
+                uchar *destBits = buffer;
                 uint destStep = step*3;
-                destBits += fillRect.y() * destStep + fillRect.x();
+                destBits += fillRect.y() * destStep + 3*fillRect.x();
 
                 for(int ii = 0; ii < height; ++ii) {
                     q_blendroutines.blend_color_rgb18(destBits, rgba, width, destBits);

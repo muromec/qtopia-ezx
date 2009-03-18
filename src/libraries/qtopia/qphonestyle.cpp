@@ -20,6 +20,9 @@
 
 #include "qphonestyle.h"
 #include <custom.h>
+
+#undef QTOPIA_ENABLE_GLOBAL_BACKGROUNDS
+
 #ifdef QTOPIA_ENABLE_GLOBAL_BACKGROUNDS
 #include "qexportedbackground.h"
 #endif

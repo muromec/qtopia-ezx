@@ -40,7 +40,7 @@ void def_blend_argb32p_rgb18(unsigned char *dest,
                             unsigned char *output);
 
 void def_blend_argb24p_rgb18(unsigned char *dest,
-                            unsigned int *src,
+                            unsigned char *src,
                             unsigned char opacity,
                             int width,
                             unsigned char *output);
@@ -57,10 +57,10 @@ void def_blend_color_rgb32(unsigned int *dest,
                            int width,
                            unsigned int *output);
 
-void def_blend_color_rgb18(unsigned int *dest,
+void def_blend_color_rgb18(unsigned char *dest,
                            unsigned int src,
                            int width,
-                           unsigned int *output);
+                           unsigned char *output);
 
 void def_blend_color_rgb16(unsigned short *dest,
                            unsigned int src,

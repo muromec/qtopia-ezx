@@ -1,11 +1,11 @@
-qtopia_project(qtopia lib)
+qtopia_project(embedded lib) # Do not depend on libqtopia as libqtopia depends on libqtopiagfx
 TARGET = qtopiagfx
 CONFIG += syncqtopia qtopia_visibility
 CONFIG += no_tr
 VERSION = 4.0.0
 depends(3rdparty/libraries/easing)
 
-DEFINES += QT_ARCH_ARMV5E
+contains(arch,arm):DEFINES += QT_ARCH_ARMV5E
 
 HEADERS=\
     routines.h\
