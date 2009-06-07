@@ -1,0 +1,36 @@
+# server_capex
+
+UmakefileVersion(2,1)
+
+project.AddModuleIncludes(
+      "common/include"
+    , "common/container/pub"
+    , "common/dbgtool/pub"
+    , "common/system/pub"
+    , "common/runtime/pub"
+    , "common/util/pub"
+    , "server/include"
+    , "server/common/util/pub"
+    , "server/common/struct/pub"
+    , "server/engine/core/pub"
+    , "server/engine/context/pub"
+	)
+
+if "HELIX_FEATURE_SERVER_CAPEX" in project.defines:
+    project.AddModuleIncludes("server_rn/capex/common/pub")
+
+if "HELIX_FEATURE_SERVER_CAPEX" in project.defines:
+    project.AddModuleLibraries("server_rn/capex/common[servcapexlib_rn]")
+
+project.AddSources(
+     "client_profile_mgr.cpp"
+    ,"client_profile.cpp"
+    ,"profile_request.cpp"
+    ,"profile_cache.cpp"
+    ,"cpattribute.cpp"
+)
+
+LibraryTarget('servcapexlib')
+DependTarget()
+
+

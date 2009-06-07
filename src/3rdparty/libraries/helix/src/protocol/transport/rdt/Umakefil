@@ -1,0 +1,25 @@
+UmakefileVersion(2,1)
+
+project.AddModuleIncludes('common/include', 
+                          'common/container/pub',
+                          'common/util/pub', 
+                          'common/dbgtool/pub',
+                          'common/system/pub', 
+                          'common/fileio/pub',
+                          'common/netio/pub',
+                          'common/runtime/pub',
+                          'common/lang/xml/pub',
+                          'common/log/logutil/pub',
+                          'client/common/container/pub',
+                          'client/common/netio/pub',
+                          'protocol/sdp/pub',
+                          'protocol/common/util/pub',
+                          'protocol/rtsp/include',
+                          'protocol/rtsp/pub',
+					      'protocol/transport/rtp/include',
+                          'protocol/transport/common/system/pub')
+
+project.AddSources('rdttran.cpp',
+                   'inlines.cpp')
+
+LibraryTarget('rdttranlib')

@@ -1,0 +1,142 @@
+/* ***** BEGIN LICENSE BLOCK *****
+ * Source last modified: $Id: hxproductversion.h,v 1.3 2004/07/09 18:20:48 hubbe Exp $
+ * 
+ * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+ * 
+ * The contents of this file, and the files included with this file,
+ * are subject to the current version of the RealNetworks Public
+ * Source License (the "RPSL") available at
+ * http://www.helixcommunity.org/content/rpsl unless you have licensed
+ * the file under the current version of the RealNetworks Community
+ * Source License (the "RCSL") available at
+ * http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+ * will apply. You may also obtain the license terms directly from
+ * RealNetworks.  You may not use this file except in compliance with
+ * the RPSL or, if you have a valid RCSL with RealNetworks applicable
+ * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+ * the rights, obligations and limitations governing use of the
+ * contents of the file.
+ * 
+ * Alternatively, the contents of this file may be used under the
+ * terms of the GNU General Public License Version 2 or later (the
+ * "GPL") in which case the provisions of the GPL are applicable
+ * instead of those above. If you wish to allow use of your version of
+ * this file only under the terms of the GPL, and not to allow others
+ * to use your version of this file under the terms of either the RPSL
+ * or RCSL, indicate your decision by deleting the provisions above
+ * and replace them with the notice and other provisions required by
+ * the GPL. If you do not delete the provisions above, a recipient may
+ * use your version of this file under the terms of any one of the
+ * RPSL, the RCSL or the GPL.
+ * 
+ * This file is part of the Helix DNA Technology. RealNetworks is the
+ * developer of the Original Code and owns the copyrights in the
+ * portions it created.
+ * 
+ * This file, and the files included with this file, is distributed
+ * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+ * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+ * ENJOYMENT OR NON-INFRINGEMENT.
+ * 
+ * Technology Compatibility Kit Test Suite(s) Location:
+ *    http://www.helixcommunity.org/content/tck
+ * 
+ * Contributor(s):
+ * 
+ * ***** END LICENSE BLOCK ***** */
+/*
+ *  $Id: hxproductversion.h,v 1.3 2004/07/09 18:20:48 hubbe Exp $
+ */
+
+#ifndef _HXPRODUCTVERSION_H
+#define _HXPRODUCTVERSION_H
+
+#include "hxtypes.h"
+
+/*
+ * Forward declarations of interfaces used here
+ */
+typedef _INTERFACE  IHXBuffer                       IHXBuffer;
+typedef _INTERFACE  IHXProductVersion               IHXProductVersion;
+
+/****************************************************************************
+ * 
+ *  Interface:
+ * 
+ *      IHXProductVersion
+ * 
+ *  Purpose:
+ *
+ *      Provide version information regarding the executable core.
+ * 
+ *  IID_IHXProductVersion:
+ * 
+ *      {A0991C6E-D51B-4549-A0D7-BED5ED18F1C7}
+ * 
+ */
+
+DEFINE_GUID(IID_IHXProductVersion, 0xA0991C6E, 0xD51B, 0x4549, 
+	    0xA0, 0xD7, 0xBE, 0xD5, 0xED, 0x18, 0xF1, 0xC7);
+
+#undef  INTERFACE
+#define INTERFACE IHXProductVersion
+
+DECLARE_INTERFACE_(IHXProductVersion, IUnknown)
+{
+    /*
+     *	IUnknown methods
+     */
+    STDMETHOD(QueryInterface)	(THIS_
+				REFIID riid,
+				void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)	(THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release)	(THIS) PURE;
+
+    /*
+     *	IHXProductVersion methods
+     *
+     *  EXAMPLES:
+     *    ProductName:          "Helix Server"
+     *    ReleaseName:          "9.0 Beta"
+     *    FullProductName:      "Helix Server 9.0 Beta"
+     *    BuildName:            ""
+     *    VersionString:        "9.0.2.588"
+     *    MajorMinorString:     "9.0"
+     *    PlatformName:         "freebsd-4.0-i386"
+     *    MajorVersion:         9
+     *    MinorVersion:         0
+     *    GetVersion:           9,0,2,588
+     *    GetVersion32:         0x9000224c
+     */
+    STDMETHOD(ProductName)      (THIS_
+    				REF(IHXBuffer*) pProductName) PURE;
+    STDMETHOD(ReleaseName)      (THIS_
+    				REF(IHXBuffer*) pReleaseName) PURE;
+    STDMETHOD(FullProductName)  (THIS_
+    				REF(IHXBuffer*) pFullName) PURE;
+    STDMETHOD(BuildName)        (THIS_
+    				REF(IHXBuffer*) pBuildName) PURE;
+    STDMETHOD(ExecutableName)   (THIS_
+    				REF(IHXBuffer*) pExecutableName) PURE;
+    STDMETHOD(VersionString)    (THIS_
+                                REF(IHXBuffer*) pVersionString) PURE;
+    STDMETHOD(MajorMinorString) (THIS_
+                                REF(IHXBuffer*) pMajorMinorString) PURE;
+    STDMETHOD(PlatformName)     (THIS_
+                                REF(IHXBuffer*) pPlatformName) PURE;
+
+    STDMETHOD_(UINT32,MajorVersion) (THIS) PURE;
+    STDMETHOD_(UINT32,MinorVersion) (THIS) PURE;
+    STDMETHOD(GetVersion)       (THIS_
+                                 REF(UINT32) ulMajor,
+                                 REF(UINT32) ulMinor,
+                                 REF(UINT32) ulSubMinor,
+                                 REF(UINT32) ulSubSubMinor) PURE;
+    STDMETHOD_(UINT32,GetVersion32) (THIS) PURE;
+};
+
+#endif /* _HXPRODUCTVERSION_H */

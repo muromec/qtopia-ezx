@@ -1,0 +1,96 @@
+# 
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: RCSL 1.0/RPSL 1.0 
+#  
+# Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+#      
+# The contents of this file, and the files included with this file, are 
+# subject to the current version of the RealNetworks Public Source License 
+# Version 1.0 (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the RealNetworks Community Source License Version 1.0 
+# (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+# in which case the RCSL will apply. You may also obtain the license terms 
+# directly from RealNetworks.  You may not use this file except in 
+# compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+# applicable to this file, the RCSL.  Please see the applicable RPSL or 
+# RCSL for the rights, obligations and limitations governing use of the 
+# contents of the file.  
+#  
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the portions 
+# it created. 
+#  
+# This file, and the files included with this file, is distributed and made 
+# available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+# EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+# 
+# Technology Compatibility Kit Test Suite(s) Location: 
+#    http://www.helixcommunity.org/content/tck 
+# 
+# Contributor(s): 
+#  
+# ***** END LICENSE BLOCK ***** 
+# 
+
+UmakefileVersion(2,2)
+
+project.AddModuleIncludes("common/include",
+                          "common/runtime/pub",
+                          "datatype/common/util/pub",
+                          "common/system/pub")
+
+project.AddModuleLibraries("common/runtime[runtlib]",
+                           "common/dbgtool[debuglib]",
+                           "common/util[utillib]",
+                           "common/container[contlib]",
+                           "common/system[syslib]",
+                           "datatype/mp3/common[mp3lib]",
+                           "datatype/common/util[dtutillib]",
+                           "datatype/mp3/payload[mp3payld]",
+                           "common/log/logutil[logutillib]")
+
+
+project.AddModuleIncludes("datatype/mp3/codec/pub")
+
+if project.IsDefined("HELIX_CONFIG_FIXEDPOINT"):
+    if project.IsDefined("HELIX_FEATURE_USE_IPP4"):
+        project.AddDefines('USE_IPP_MP3')
+    project.AddModuleLibraries("datatype/mp3/codec/fixpt[mp3codecfixpt]")
+else:
+    project.AddModuleLibraries("datatype/mp3/codec/fltpt[mp3codecfltpt]")
+
+project.AddSources("mp3rend.cpp",
+                   "plugin.cpp")
+
+if project.IsDefined("HELIX_FEATURE_NOINLINE"):
+    project.AddModuleLibraries("datatype/rm/common[rmcommonlib]")
+
+if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL"):
+    project.AddDefines("MPA_FMT_RAW")
+
+if project.IsDefined("HELIX_FEATURE_PLAYBACK_NET"):
+    project.AddDefines("MPA_FMT_DRAFT00",
+                       "MPA_FMT_RFC3119",
+                       "MPA_FMT_RFC2250",
+                       "MPA_FMT_RFC2250_SYSTEM")
+
+if project.IsDefined("HELIX_FEATURE_MIN_HEAP"):
+    project.AddDefines("HELIX_CONFIG_MIN_PCM_PUSHDOWN_BYTES")
+#                       "HELIX_CONFIG_ONLY_DECODE_IF_DRY")
+
+if project.IsDefined("HELIX_FEATURE_AUDIO_MPA_SYSTEM"):
+    project.AddDefines("DEMUXER", "MPA_FMT_SYSTEM")
+
+project.ExportFunction("RMACreateInstance",
+                       "IUnknown** ppObj",
+                       "common/include",
+                       "hxcom.h")
+project.ExportFunction("CanUnload", "void")
+project.ExportFunction("CanUnload2", "void")
+
+DLLTarget("mp3render")
+
+DependTarget()

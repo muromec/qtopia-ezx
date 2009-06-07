@@ -1,0 +1,268 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: win32-tm1.cf,v 1.10 2006/07/06 19:28:06 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+"""Settings for the TCS Cross Compiler running on Win32."""
+
+## Get nmake settings
+exec_config_file("win-nmake.cf")
+
+platform.name = 'tm1'
+
+## enable the static build module for windows
+platform.can_build_static = 1
+
+platform.type = 'tm'
+platform.inc_subdir = "tm1"
+platform.include_arg = '-I'
+platform.define_arg = '-D'
+platform.object_suffix = 'o'
+platform.shared_object_suffix = 'o'
+
+## suffixes for target types
+platform.exe_suffix          = 'out'
+platform.library_suffix      = 'a'
+platform.dll_suffix          = 'so'
+platform.resource_dll_suffix = 'xrs'
+
+project.AddDefines("STRICT")
+#project.AddDefines("_STATICALLY_LINKED")
+project.AddBuildOption( 'nodll' )
+project.AddBuildOption( 'static' )
+project.AddBuildOption( 'static_only' )
+if project.build_choices.count("dynamic"):
+    print "*** -t dynamic is not supported."
+    project.RemoveBuildOption( 'dynamic' )
+
+## Add /i to make command line (why? /Hubbe)
+platform.make.args['default'] = '/nologo /i'
+
+platform.pcf_prefix_list = ['tm1']
+
+
+class WinVersioning(Versioning):
+    def  create_dll_name(self, target, path = ''):
+        if project.versioning_off:
+            return '%s.%s' % (target, platform.dll_suffix)
+    
+        self.get_version(target, path)
+        new_name = self.get_name(target, path)
+        
+        if new_name == '':
+            new_name = target[0:4]
+            
+        return '%s%s%s%s.%s' % (
+            new_name,
+            platform.name[3:6],
+            self.version[0],
+            self.version[1],
+            platform.dll_suffix)
+    
+platform.versioning = WinVersioning()
+
+project.AddIncludes( '.' )
+
+""" Compiler-specific settings. """
+
+commargs = '-target tm1 -host WinNT' # -el
+#commargs = '-target tm1 -host nohost' # -fp64'
+#symbols = '-g'
+symbols = ''
+
+## Set up the C compiler
+platform.cc = cc = Compiler()
+cc.cmd = 'tmcc'
+# -el = little-endian
+# -eb = big-endian
+# -B = allow // comments
+# -fp64 = doubles are 64-bit (as opposed to 32-bit)
+cc.args['default'] = commargs + ' -B'
+cc.args['debug'] = '-O1 %s -DDEBUG -D_DEBUG' % symbols
+cc.args['release'] = '-O3 -Xunroll=0'
+cc.args['dll'] = '-DPIC'
+cc.args['lib'] = '-DPIC'
+cc.args['profile'] = '-ptm'
+cc.define_arg = '-D'
+cc.include_arg = '-I'
+cc.source_arg = '-c'
+cc.target_arg = '-o'
+cc.make_var = 'CC'
+cc.make_flags = 'CCFLAGS'
+
+## Set up the C++ Compiler
+platform.cxx = cxx = Compiler()
+cxx.cmd = 'tmcpp'
+cxx.args['default'] = commargs
+cxx.args['debug'] = '-O1 %s -DDEBUG -D_DEBUG' % symbols
+cxx.args['release'] = '-O3 -Xunroll=0'
+cxx.args['dll'] = '-DPIC'
+cxx.args['lib'] = '-DPIC'
+cxx.args['profile'] = '-ptm'
+cxx.define_arg = '-D'
+cxx.include_arg = '-I'
+cxx.source_arg = '-c'
+cxx.target_arg = '-o'
+cxx.make_var = 'CXX'
+cxx.make_flags = 'CXXFLAGS'
+
+## Set up the Linker
+class TCSLinker(Linker, Linker2):
+    def __init__(self):
+        Linker.__init__(self)
+        Linker2.__init__(self)
+        self.make_var = 'LD'
+        self.make_flags = 'LDFLAGS'
+        self.args['default'] = commargs
+        self.args['debug'] = '-g' # symbols
+        self.args['release'] = '-bremoveunusedcode -bcompact -bfoldcode'
+        self.args['profile'] = '-ptm'
+        self.args['static'] = ''
+        self.target_arg = '-o'
+        self.cmd = 'tmcpp'
+        self.syslibs = '-lc -lC++ -lam'
+
+    def armerge_lib_path(self):
+        libname = "%s_libs.%s" % (project.target_name, platform.library_suffix)
+        return os.path.join(project.output_dir, libname)
+
+    def armerge_tmp_path(self):
+        return os.path.join(project.object_dir, "lib")
+
+    def AddARMerge(self, cmd_list, static_libs):
+        #
+        # We use the armerge script to merge all the static libs into
+        # one big one so that our one pass linker won't have troubles
+        # with the circular dependancies. After this armerge is run
+        # use mergedlibpath instead of static_libs.
+        #
+        armerge_cmd   = os.path.join(BUILD_ROOT, "bin", "armerge.py")
+        tmpMergePath  = self.armerge_tmp_path()
+        mergedLibPath = self.armerge_lib_path()
+        cmd           = "python %s -a tmar -d %s %s %s" % (armerge_cmd,
+                                                           tmpMergePath,
+                                                           mergedLibPath,
+                                                           static_libs)
+        cmd_list.append(cmd)
+
+        return mergedLibPath
+
+    def link_paths(self):
+        return string.join(platform.system_paths + project.system_paths)
+
+    def execute(self, target, objects, static_libs, dynamic_libs):
+        link_str = form_string(platform.form_var(self.make_var),
+                               platform.form_var(self.make_flags),
+                               self.target_arg,
+                               target,
+                               objects,
+                               self.link_paths(),
+                               static_libs,
+                               dynamic_libs,
+                               self.syslibs)
+        
+        return link_str
+
+    def LinkLIB(self, target_path, objects):
+        return [ platform.make_lib.execute(target_path, objects, "", "") ]
+
+    def CleanLIB(self, target_path):
+        return [target_path]
+
+
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list=[]
+        static_libs=self.AddARMerge(cmd_list, static_libs)
+        cmd_list.append(self.execute(target_path,
+                                     objects,
+                                     static_libs,
+                                     dynamic_libs))
+        return cmd_list
+
+    def CleanDLL(self, target_path):
+        list = []
+        list.append(target_path)
+        list.append(self.armerge_tmp_path())
+        list.append(self.armerge_lib_path())
+        return list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list=[]
+        static_libs=self.AddARMerge(cmd_list, static_libs)
+        cmd_list.append(self.execute(target_path,
+                                     objects,
+                                     static_libs,
+                                     dynamic_libs))
+        return cmd_list
+
+    def CleanEXE(self, target_path):
+        list = []
+        list.append(target_path)
+        list.append(self.armerge_tmp_path())
+        list.append(self.armerge_lib_path())
+        return list
+
+platform.link = TCSLinker()
+
+make_lib = platform.make_lib
+make_lib.cmd = 'tmar -rc '
+make_lib.make_var = 'MAKE_LIB'
+make_lib.make_flags = 'MAKE_LIB_FLAGS'

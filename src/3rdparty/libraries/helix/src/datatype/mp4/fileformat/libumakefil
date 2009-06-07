@@ -1,0 +1,184 @@
+# 
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: RCSL 1.0/RPSL 1.0 
+#  
+# Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+#      
+# The contents of this file, and the files included with this file, are 
+# subject to the current version of the RealNetworks Public Source License 
+# Version 1.0 (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the RealNetworks Community Source License Version 1.0 
+# (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+# in which case the RCSL will apply. You may also obtain the license terms 
+# directly from RealNetworks.  You may not use this file except in 
+# compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+# applicable to this file, the RCSL.  Please see the applicable RPSL or 
+# RCSL for the rights, obligations and limitations governing use of the 
+# contents of the file.  
+#  
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the portions 
+# it created. 
+#  
+# This file, and the files included with this file, is distributed and made 
+# available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+# EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+# 
+# Technology Compatibility Kit Test Suite(s) Location: 
+#    http://www.helixcommunity.org/content/tck 
+# 
+# Contributor(s): 
+#  
+# ***** END LICENSE BLOCK ***** 
+# 
+
+UmakefileVersion(2,1)
+
+# project.AddDefines("HELIX_FEATURE_MIN_HEAP")
+# project.AddDefines("HELIX_FEATURE_SERVER")
+# project.AddDefines("HELIX_FEATURE_TIMEDTEXT")
+
+# project.AddDefines("QTCONFIG_NO_PAGING")
+project.AddDefines("QTCONFIG_NO_ASYNC_PAGING")
+
+if project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL"):
+    project.AddDefines("HELIX_FEATURE_3GPP_METAINFO")
+
+if project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_M4A_ONLY"):
+    project.AddDefines("QTCONFIG_NO_PAGING",
+                       "QTCONFIG_M4A_ATOMSET_ONLY")
+
+if not project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL") and \
+   not project.IsDefined("HELIX_FEATURE_SERVER") and \
+   not project.IsDefined("HELIX_FEATURE_ISMA") and \
+   project.IsDefined("HELIX_FEATURE_3GPP"):
+    project.AddDefines("HELIX_FEATURE_3GPPCLIENT_ONLY")
+    project.AddDefines("QTCONFIG_3GPPCLIENT_ATOMSET_ONLY")
+
+if not project.IsDefined("HELIX_FEATURE_3GPPCLIENT_ONLY") and \
+   not project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_M4A_ONLY"):
+    project.AddDefines("QTCONFIG_FSWITCHER")
+    project.AddDefines("QTCONFIG_ALLOW_EXTERNAL_DATAREFS")
+
+if project.IsDefined("HELIX_FEATURE_TIMEDTEXT"):
+    project.AddDefines("QTCONFIG_TIMEDTEXT_PACKETIZER")
+
+if project.IsDefined("HELIX_FEATURE_CONCAT_AMR_PKTS"):
+    project.AddDefines("QTCONFIG_CONCAT_PACKETIZER")
+    
+if project.IsDefined("HELIX_FEATURE_QUICKTIME") or \
+   project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALTERNATES"):
+    project.AddDefines("QTCONFIG_ALTERNATE_STREAMS")
+
+if project.IsDefined("HELIX_FEATURE_QUICKTIME"):
+    project.AddDefines("QTCONFIG_LEGACY_ALTERNATE_STREAMS")
+
+if project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL") or \
+   project.IsDefined("HELIX_FEATURE_SERVER"):
+    project.AddDefines("QTCONFIG_TRACK_CACHE")
+#   QTCONFIG_BFRAG is required if caching is on
+    project.AddDefines("QTCONFIG_BFRAG")
+#   project.AddDefines("QTCONFIG_BFRAG_FACTORY")
+#   project.AddDefines("QTFORCE_AVG_BITRATE_DELIVERY")
+    project.AddDefines("QTCONFIG_AUDIO_PACKETIZER")
+    project.AddDefines("QTCONFIG_VIDEO_PACKETIZER")
+    project.AddDefines("QTCONFIG_LEGACY_ALTERNATE_STREAMS")
+    project.AddDefines("QTCONFIG_ALTERNATE_STREAMS")
+    project.AddDefines("QTCONFIG_SWITCHABLE_STREAMS")
+    project.AddDefines("QTCONFIG_SERVER")
+    project.AddDefines("QTCONFIG_RECURSION_PROTECTION")
+    project.AddDefines("QTCONFIG_SPEED_OVER_SIZE")
+    project.AddDefines("QTCONFIG_BANDWIDTH_PARTITIONING")
+
+if project.IsDefined("QTCONFIG_AUDIO_PACKETIZER") or \
+   project.IsDefined("QTCONFIG_VIDEO_PACKETIZER") or \
+   project.IsDefined("QTCONFIG_TIMEDTEXT_PACKETIZER") or \
+   project.IsDefined("QTCONFIG_CONCAT_PACKETIZER") :
+    project.AddDefines("QTCONFIG_PACKETIZER_FACTORY")
+
+# ************************************************************************
+# - To invoke this packetizer "QTCONFIG_H264_PACKETIZER" must be defined
+# - This packetizer will generte by default Single NAL RTP packets
+# - For non-interleave mode "QTCONFIG_NON_INTERLEAVE_MODE" must be defined
+# - For Interleave mode "QTCONFIG_INTERLEAVE_MODE" must be defined and 
+#   any one of the following defines
+#    - Define "QTCONFIG_STAP_B_PACKET" to generate STAP-B type packets
+#    - Define "QTCONFIG_MTAP_16_PACKET" to generate MTAP-16 type packets
+#    - Define "QTCONFIG_MTAP_24_PACKET" to generate MTAP-24 type packets
+# ************************************************************************
+
+if project.IsDefined("QTCONFIG_H264_PACKETIZER"):
+	project.AddSources( 'h264packetizer.cpp')
+	project.AddModuleIncludes('protocol/common/util/pub',
+					"protocol/transport/common/system/pub")
+	project.AddDefines("QTCONFIG_INTERLEAVE_MODE")
+
+if project.IsDefined("QTCONFIG_INTERLEAVE_MODE"):
+	project.AddDefines("QTCONFIG_STAP_B_PACKET")   
+
+project.AddModuleIncludes(  "common/include",
+			    "common/system/pub",
+			    "common/container/pub",
+			    "common/util/pub", 
+			    "common/dbgtool/pub", 
+                            "common/runtime/pub",
+			    "client/videosvc/include",
+			    "client/common/container/pub",
+			    "client/resource/pub",
+			    "client/common/include",
+                            "protocol/common/util/pub",
+			    "protocol/transport/rtp/include",
+                            "protocol/sdp",
+			    "protocol/sdp/pub",
+			    "protocol/rtsp/pub",
+                            "datatype/include",
+			    "datatype/common/container/pub",
+			    "datatype/common/util/pub",
+			    "datatype/rm/include",
+			    "datatype/rm/common/pub",
+			    "datatype/mp4/common/pub",
+			    "datatype/mp4/payload/pub",
+			    "datatype/mp4/fileformat/hinttrack"
+			    );
+
+project.AddIncludes(".")
+
+project.AddSources( 'qtbatom.cpp',
+		    'qtatoms.cpp',
+		    'atomizer.cpp',
+		    'qttrack.cpp',
+		    'qttrkmgr.cpp',
+		    'qtatmmgs.cpp',
+		    'qtffplin.cpp')
+
+if not project.IsDefined("QTCONFIG_NO_PAGING"):
+    project.AddSources("mempager.cpp")
+
+if project.IsDefined("QTCONFIG_PACKETIZER_FACTORY"):
+	project.AddSources( 'qtpacketizerfct.cpp')
+
+if project.IsDefined("QTCONFIG_FSWITCHER"):
+	project.AddSources( 'fswtchr.cpp')
+else:
+	project.AddSources( 'fswtchr_passthrough.cpp')
+
+if "QTCONFIG_BFRAG" in project.defines:
+	project.AddSources( 'bfrag.cpp')
+
+if "QTCONFIG_BFRAG_FACTORY" in project.defines:
+	project.AddSources( 'bfragfct.cpp')
+
+if project.IsDefined("QTCONFIG_ALTERNATE_STREAMS") and \
+   project.IsDefined("QTCONFIG_SWITCHABLE_STREAMS"):
+	project.AddSources( 'qtswtrack.cpp',
+                            'qtswtmembertable.cpp')
+
+if project.IsDefined("HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS"):
+    project.AddSources( 'qtoffsetmpr.cpp')
+
+LibraryTarget('mp4fformatlib')
+
+DependTarget()

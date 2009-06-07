@@ -1,0 +1,25 @@
+HKCR
+{
+	DMO.HXAudioDeviceHook.1 = s 'CHXAudioDeviceHook Class'
+	{
+		CLSID = s '{2cfa30da-118b-4ca3-aaf3-f474162302e5}'
+	}
+	DMO.HXAudioDeviceHook = s 'CHXAudioDeviceHook Class'
+	{
+		CLSID = s '{2cfa30da-118b-4ca3-aaf3-f474162302e5}'
+		CurVer = s 'DMO.HXAudioDeviceHook.1'
+	}
+
+	NoRemove CLSID
+	{
+		ForceRemove {2cfa30da-118b-4ca3-aaf3-f474162302e5} = s 'CHXAudioDeviceHook Class'
+		{
+			ProgID = s 'DMO.HXAudioDeviceHook.1'
+			VersionIndependentProgID = s 'DMO.HXAudioDeviceHook'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Both'
+			}
+		}
+	}
+}

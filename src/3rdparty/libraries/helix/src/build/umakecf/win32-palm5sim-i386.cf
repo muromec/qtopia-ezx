@@ -1,0 +1,152 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: win32-palm5sim-i386.cf,v 1.14 2006/04/24 23:34:08 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Preliminary settings to build for the Palm OS Simulator with MSVC on i386 Windows."""
+
+exec_config_file('win32-palm5.cf')
+exec_config_file('win-versioning.cf')
+exec_config_file('win32-msvc.cf')
+
+## list of PCF files to run
+platform.pcf_prefix_list = platform.pcf_prefix_list + ['palm5sim']
+
+project.versioning_off = 1
+
+project.AddDefines('_USRDLL',
+                   '__INTEL__',
+                   '_M_IX86',
+                   'BUS_ALIGN=BUS_ALIGN_32',
+                   'WIN32',
+                   '_MBCS',
+                   'DAL_DEBUG_ON',
+                   'ARM_PALM',
+                   '_PALM5SIM', '_PALM5SIM_X86')
+
+## We'll tell the compiler to not define its pre-defined symbols, but we
+## need SOMETHING to tell that we're using MSVC..
+project.AddDefines('_MSC_VER=1200')     # MS Dev Studio 6.0
+
+## Palm Defines
+if project.BuildOption("debug"):
+    project.AddDefines("_DEBUG", "DEBUG")
+
+## instance Window compiler object
+platform.cc = WinCompiler()
+platform.cxx = WinCompiler()
+
+cc = platform.cc
+cxx = platform.cxx
+
+cxx.cmd = cc.cmd = 'cl'
+cxx.source_arg = cc.source_arg = '/c '
+cxx.target_arg = cc.target_arg = '/Fo'
+cxx.make_var = cc.make_var = 'CC'
+cxx.make_flags = 'CXXFLAGS'
+cc.make_flags = 'CCFLAGS'
+cxx.include_arg = cc.include_arg = '/I'
+
+## additional includes
+for inc in ['Incs/Core/System', 'Incs', 'Incs/Core/Common',
+            'Incs/Core/System/Unix', 'Incs/Core/UI',
+            'Incs/Libraries', 'Incs/Core/DAL/Kernel']:
+    project.AddIncludes('%s' % os.path.join(GetSDKPath('PALMOS5BASE'),
+                                            'Palm OS 5.x Support',
+                                            'Palm_OS_ARM_Support',
+                                            inc))
+
+## define base arguments for build modes
+
+# It's important not to accidentally get the standard MSVC includes in
+# here, so add /X to make sure we don't get MS include dirs.
+
+# Add __size_t__ so Palm headers know that MSVC has already defined size_t
+# (blech!) for C++.
+cxx.args['default'] = '/X /nologo /Zp8 /u /Zm200 /W3 /GX /D__size_t__'
+cc.args['default'] = '/X /nologo /Zp8 /u /Zm200 /W3 /GX'
+cxx.args['debug'] = cc.args['debug'] = '/Od /GZ'
+
+## no_optimize: no optimization on release builds
+if project.BuildOption('no_optimize'):
+    cc.args['release'] = ''
+else:
+    cc.args['release'] = '/O2'
+
+## no_optimize: no optimization on release builds
+if project.BuildOption('nt_stackframe'):
+    cc.args['release'] = ''
+else:
+    cc.args['release'] = '/O2 /Oy-'
+
+## symbols: add symbols to release builds
+if project.BuildOption('symbols') and not project.BuildOption('pdb'):
+    cc.args['release'] = '%s /Z7' % (cc.args['release'])
+
+cxx.args['release'] = cc.args['release']
+
+## symbols: keep symbols in release builds
+if project.BuildOption('symbols'):
+    platform.link.args['release'] = platform.link.args['release'] + ' /debug'
+
+## target paths
+project.target_dir = os.path.join(project.target_dir, 'sim')
+project.output_dir = '%ssim' % project.output_dir

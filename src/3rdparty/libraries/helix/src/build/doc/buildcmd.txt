@@ -1,0 +1,103 @@
+NAME
+        build - Helix Ribosome Build System
+
+SYNOPSIS
+        build
+        build [options] target1 target2 ...
+
+        Options:
+        [-avqhcCuneko] [-d target-dir]  [-s skip-to-module]  [-r cvs-tag]
+        [-D cvs-timestamp]  [-t build-options]  [-V version-update-mode]
+        [-m BIF-branch] [-j jobs]  [-p red|yellow|green]  [--man]
+
+DESCRIPTION
+        The ribosome build system provides a single interface for
+        checking out and building targets in the Helix code
+        base on all platforms.
+
+OPTIONS
+        --man   Print this information.
+
+        --help  Print this information.
+
+        -a      Create a archive of the entire built tree after the build
+                is complete.  This uses the RNA archive format which is
+                part of the build system.
+
+        -c      During compiling, run "make clean" to remove targets and
+                object files.
+                
+        -C      Clobber mode. Deletes all modules for the specified target and
+                gets fresh code.  (Check in your changes first!)
+
+        -e      Do not run "make depend".
+
+        -l      Do not run "make copy".
+
+        -v      Verbose mode.  Print the output of all commands run by the
+                build system to standard output.
+
+        -q      Quiet mode.  Do not print any output to standard output.
+
+        -h      Checkout only.  Fetch all the code and binaries required
+                for the build, then exit.
+
+        -k      Do not attempt to check out any files from CVS.
+
+        -n      Does not run UMAKE to re-create the Makefile.  This is
+                intended for use on the Macintosh to speed up the build
+                process.  On other platforms it is not needed because
+                UMAKE takes almost no time to run.
+
+        -o      Do not attempt to compile any modules.
+
+        -u      Update mode.  Run a CVS update on all the modules for the
+                specified target before building.
+
+        -y      Yes mode.  Answer 'yes' to all interactive questions normally
+                prompted by the build system.
+
+        -m BIF-branch
+                Specify the BIF file branch ID of the BIF file the build
+                system should use to load its data from.  The default is
+                originally set to 'helix', the ID of the head branch.
+                Once this is changed by the user in the interactive build
+                system, that BIF branch ID is stored in the build system
+                preferences and becomes the default.
+
+        -P profile
+                Specify which profile to use. You can also specify this
+                by setting the PROFILE_ID environment variable. If -P
+                is used, it overrides the environment variable.
+
+        -p red|yellow|green
+                Set halt priority.  If a module errors while compiling,
+                check its .bif halt priority, and halt the build if that
+                halt priority is greater than or equal to the selected
+                halt priority (ie red > yellow).  This defaults to ignoring
+                all errors.
+
+        -d target-dir
+                Specify the copy directory for built targets.  This is the
+                directory targets are copied to when "make copy" is run.
+                The default for this directory is 'debug' when in debug
+                mode, and 'release' when in release mode.
+
+        -r cvs-tag
+                Checkout and build from the specified CVS tag.
+
+	-D cvs-timestamp
+                Checkout and build from the specified CVS timestamp.
+
+        -t build-options
+                Pass build options into the build system.  Multiple build
+                options can be passed in with multiple -t arguments.
+
+        -s module
+                Skip to the specified module and start building from there.
+
+        -j jobs
+                Specifies the number of jobs (commands) to run
+                simultaneously.  The number of jobs should be equal to
+                the number of processors you have for maximum effect.
+                This option is only supported on UNIX.

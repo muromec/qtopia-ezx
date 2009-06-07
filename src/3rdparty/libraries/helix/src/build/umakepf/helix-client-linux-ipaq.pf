@@ -1,0 +1,105 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: helix-client-linux-ipaq.pf,v 1.6 2006/04/24 23:34:19 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+
+project.AddDefines('HELIX_PROFILE_LINUX_IPAQ')
+
+# This profile is for building a player that works on
+# a Compaq iPaq that has Linux/ARM installed on it.
+# This is based on the helix-client-s60-advanced profile
+
+# Use Qt defines to turn avoid X11 header inclusions
+project.AddDefines('QWS')
+project.AddDefines('QT_CLEAN_NAMESPACE')
+
+
+# Use frame buffer video site for now
+project.AddDefines('HELIX_FEATURE_LINUX_FB_SITE')
+project.AddDefines('HELIX_FEATURE_CC_RGB32out')
+
+project.AddDefines('HELIX_FEATURE_AUDIO_INACCURATESAMPLING')
+project.AddDefines('HELIX_FEATURE_RTP')
+
+project.AddDefines('HELIX_FEATURE_PNA')
+
+# PNA needs the bandwidth lister and plugin handler 2 to
+# work correctly. 
+# - The bandwidth lister provides info about the bandwidths and
+#   codecs that the player supports
+# - Plugin handler 2 calls the bandwidth lister interface
+#   so that the bandwidth values are all set up when the PNA
+#   code looks for them
+project.AddDefines('HELIX_FEATURE_RAREND_BANDWIDTH_LISTER')
+project.AddDefines('HELIX_FEATURE_PLUGINHANDLER2')
+
+exec_profile_file("helix-client-mobile-common.pfi")
+exec_profile_file("helix-client-3gpp-advanced.pfi")
+
+# We want the core to have it's own prefs implementation
+# and we don't want to use the lite prefs for now
+project.RemoveDefines('HELIX_FEATURE_NO_INTERNAL_PREFS')
+project.RemoveDefines('HELIX_FEATURE_LITEPREFS')
+
+project.RemoveDefines('HELIX_FEATURE_CC_RGB444out')
+project.RemoveDefines('HELIX_FEATURE_DLLACCESS_SERVER')
+project.RemoveDefines('HELIX_FEATURE_DLLACCESS_CLIENT')
+project.RemoveDefines('HELIX_FEATURE_SMIL_SITE')
+

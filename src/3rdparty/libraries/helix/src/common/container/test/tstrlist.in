@@ -1,0 +1,793 @@
+# GetCount <expected count>
+# IsEmpty <0 = list not empty, 1 = list empty>
+# GetHead <expected value>
+# Note : ReplaceHead calls the void*& GetHead() on the left hand side of
+#        an experession. For example list.GetHead() = pSomeVoidPtr;
+# ReplaceHead <new value>
+# GetTail <expected value>
+# Note : ReplaceHead calls the void*& GetTail() on the left hand side of
+#        an experession. For example list.GetTail() = pSomeVoidPtr;
+# ReplaceTail <new value>
+# RemoveHead
+# RemoveHeadString
+# RemoveTail
+# RemoveTailString
+# AddHeadString <value>
+# AddTailString <value>
+# AddStringAlphabetic <value>
+# RemoveAll
+# GetHeadPosition
+# GetTailPosition
+# GetNext <expected value>
+# GetPrev <expected value>
+# ReplacePrev <new value>
+# GetAtNext <0 = value is not valid, 1 = value is valid> <expected value>
+# GetAtPrev <0 = value is not valid, 1 = value is valid> <expected value>
+# ReplaceAtPrev <new value>
+# GetAt <expected value>
+# ReplaceAt <new value>
+# SetAt <new value>
+# RemoveAt
+# Find <value> <0 = don't specify position, 1 = specify current position>
+# FindIndex <index>
+# IsPosValid <0 = position not valid, 1 = position valid>
+# ClearPos
+# Dump
+
+# Test initial conditions
+GetCount 0
+IsEmpty 1
+
+# Test Head operations
+GetCount 0
+AddHeadString 1
+GetCount 1
+IsEmpty 0
+GetHead 1
+AddHeadString 2
+GetCount 2
+GetHead 2
+RemoveHeadString
+GetHead 1
+ReplaceHead 3
+GetCount 1
+GetHead 3
+RemoveHead
+GetCount 0
+
+# Test Tail operations
+GetCount 0
+AddTailString 1
+GetCount 1
+IsEmpty 0
+GetTail 1
+AddTailString 2
+GetCount 2
+GetTail 2
+RemoveTailString
+GetTail 1
+ReplaceTail 3
+GetCount 1
+GetTail 3
+RemoveTail
+GetCount 0
+
+# Test mixed head and tail operations
+GetCount 0
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetCount 3
+GetHead 1
+RemoveHeadString
+GetHead 2
+RemoveHeadString
+GetHead 3
+GetTail 3
+AddTailString 5
+GetTail 5
+AddHeadString 4
+GetHead 4
+RemoveTailString
+GetTail 3
+RemoveTailString
+GetTail 4
+RemoveTailString
+GetCount 0
+
+# Test RemoveAll
+GetCount 0
+AddHeadString 1
+AddTailString 2
+AddHeadString 3
+AddTailString 4
+GetCount 4
+RemoveAll
+GetCount 0
+
+# Test GetHeadPosition
+IsEmpty 1
+ClearPos
+IsPosValid 0
+GetHeadPosition
+IsPosValid 0
+AddHeadString 1
+GetHeadPosition
+IsPosValid 1
+RemoveHeadString
+GetHeadPosition
+IsPosValid 0
+
+# Test GetTailPosition
+IsEmpty 1
+ClearPos
+IsPosValid 0
+GetTailPosition
+IsPosValid 0
+AddHeadString 1
+GetTailPosition
+IsPosValid 1
+RemoveHeadString
+GetTailPosition
+IsPosValid 0
+
+# Test GetNext
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetHeadPosition
+IsPosValid 1
+GetNext 1
+GetNext 2
+GetNext 3
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test GetPrev
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test ReplacePrev
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+ReplacePrev 4
+ReplacePrev 5
+ReplacePrev 6
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+GetPrev 4
+GetPrev 5
+GetPrev 6
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test mixed GetNext, GetPrev, and ReplacePrev operations
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+AddTailString 4
+GetTailPosition
+GetPrev 4
+ReplacePrev 5
+GetPrev 2
+ReplacePrev 6
+IsPosValid 0
+GetHeadPosition
+GetNext 6
+GetNext 2
+GetNext 5
+GetNext 4
+GetHeadPosition
+GetNext 6
+GetPrev 2
+GetNext 6
+ReplacePrev 10
+GetNext 6
+GetPrev 10
+GetNext 6
+GetNext 10
+GetNext 5
+GetNext 4
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test GetAtNext
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetHeadPosition
+IsPosValid 1
+GetAtNext 1 2
+GetAtNext 1 3
+IsPosValid 1
+GetAtNext 0 0
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test GetAtPrev
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetTailPosition
+IsPosValid 1
+GetAtPrev 1 2
+GetAtPrev 1 1
+IsPosValid 1
+#GetAtPrev 0 0 # causes crash
+GetPrev 1
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test ReplaceAtNext
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 2
+GetPrev 1
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+ReplaceAtPrev 4
+ReplaceAtPrev 5
+IsPosValid 1
+GetPrev 5
+IsPosValid 0
+GetTailPosition
+IsPosValid 1
+GetPrev 3
+GetPrev 4
+GetPrev 5
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test mixed GetAtNext, GetAtPrev, and ReplaceAtPrev operations
+IsEmpty 1
+ClearPos
+AddTailString 1
+AddTailString 2
+AddTailString 3
+AddTailString 4
+GetHeadPosition
+GetAtNext 1 2
+ReplaceAtPrev 5
+GetAtNext 1 2
+GetAtNext 1 3
+GetAtPrev 1 2
+GetAtNext 1 3
+GetAtNext 1 4
+ReplaceAtPrev 6
+ReplaceAtPrev 7
+GetAtNext 1 6
+GetAtNext 1 4
+GetAtNext 0 0
+IsPosValid 0
+GetHeadPosition
+GetNext 5
+GetNext 7
+GetNext 6
+GetNext 4
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test GetAt, ReplaceAt, and SetAt
+IsEmpty 1
+AddTailString 1
+AddTailString 2
+AddTailString 3
+GetHeadPosition
+GetAt 1
+GetNext 1
+GetAt 2
+GetNext 2
+GetAt 3
+GetNext 3
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+ReplaceAt 4
+GetNext 4
+SetAt 5
+GetNext 5
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+GetNext 4
+GetNext 5
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test RemoveAt
+IsEmpty 1
+AddTailString 1
+GetHeadPosition
+IsPosValid 1
+RemoveAt
+IsPosValid 0
+IsEmpty 1
+AddTailString 2
+AddTailString 3
+AddTailString 4
+# Test removal from head
+GetHeadPosition
+RemoveAt
+GetAt 3
+IsPosValid 1
+GetCount 2
+# Test to see if you can add something to the head
+# and use the current position to visit the new element
+AddHeadString 5
+GetPrev 3
+IsPosValid 1
+GetPrev 5
+IsPosValid 0
+# Test removal from the middle
+GetHeadPosition
+GetNext 5
+RemoveAt
+GetCount 2
+GetAt 4
+GetAtPrev 1 5
+GetPrev 5
+IsPosValid 0
+AddHeadString 6
+# verify that the list contains what we expect
+GetCount 3
+GetHeadPosition
+GetNext 6
+GetNext 5
+GetNext 4
+IsPosValid 0
+# Test removal from the tail
+GetTailPosition
+GetAt 4
+RemoveAt
+GetCount 2
+IsPosValid 1
+GetAt 5
+RemoveAt
+IsPosValid 1
+GetAt 6
+RemoveAt
+IsPosValid 0
+IsEmpty 1
+
+# Test InsertBefore
+IsEmpty 1
+# Test insert on empty list
+GetHeadPosition
+InsertBefore 1
+GetCount 1
+GetAt 1
+# Test insert at head position with elements in the list
+GetHeadPosition
+InsertBefore 2
+GetAt 2
+# Test insert in the middle of a list
+GetAtNext 1 1
+InsertBefore 3
+GetAt 3
+# Test insert at tail
+GetTailPosition
+InsertBefore 4
+GetAt 4
+# verify that the list contains what we expect
+GetHeadPosition
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 1
+IsPosValid 0
+# Test insert with an invalid position
+InsertBefore 5
+IsPosValid 1
+GetHeadPosition
+GetNext 5
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 1
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test InsertAfter
+IsEmpty 1
+# Test insert into an empty list
+GetHeadPosition
+InsertAfter 1
+GetAt 1
+GetCount 1
+# Test insert at head with elements in the list
+GetHeadPosition
+InsertAfter 2
+GetAt 2
+# Test insert in the middle of ths list
+InsertAfter 3
+GetAt 3
+# Test insert at tail with elements in the list
+GetTailPosition
+InsertAfter 4
+GetAt 4
+# Verify the list contains what we expect
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+GetNext 4
+IsPosValid 0
+# Test insert with an invalid position
+InsertAfter 5
+IsPosValid 1
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+GetNext 4
+GetNext 5
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test InsertBefore and InsertAt mix
+IsEmpty 1
+GetHeadPosition
+InsertBefore 1
+InsertAfter 2
+InsertBefore 3
+InsertAfter 4
+GetHeadPosition
+GetNext 1
+GetNext 3
+GetNext 4
+GetNext 2
+IsPosValid 0
+InsertBefore 5
+GetPrev 5
+IsPosValid 0
+InsertAfter 6
+GetHeadPosition
+GetNext 5
+GetNext 1
+GetNext 3
+GetNext 4
+GetNext 2
+GetNext 6
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test Find
+IsEmpty 1
+# Test find on an empty list
+GetHeadPosition
+IsPosValid 0
+Find 1 0
+IsPosValid 0
+# Populate the list
+AddTailString 1
+AddTailString 2
+AddTailString 3
+AddTailString 2
+AddTailString 4
+AddTailString 5
+# Test find without specifying a position
+Find 2 0
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 1
+GetAtNext 1 2
+GetAtNext 1 3
+# Test find by specifying the head as the starting position
+GetHeadPosition
+Find 2 1
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 1
+GetAtNext 1 2
+GetAtNext 1 3
+# Test find by specifying a position in the middle
+Find 2 1
+IsPosValid 1
+GetAt 2
+GetAtPrev 1 3
+GetAtNext 1 2
+GetAtNext 1 4
+# Test Find by specifying the tail as the starting position
+GetTailPosition
+Find 2 1
+IsPosValid 0
+# Test Find with an invalid position specified
+Find 2 1
+IsPosValid 0
+# Test Find with a value not in the list
+Find 7 0
+IsPosValid 0
+GetHeadPosition
+Find 7 1
+IsPosValid 0
+GetHeadPosition
+GetNext 1
+GetNext 2
+GetNext 3
+Find 7 1
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test FindIndex
+IsEmpty 1
+# Test on empty list
+FindIndex 0
+IsPosValid 0
+AddTailString 1
+AddTailString 2
+AddTailString 3
+AddTailString 4
+FindIndex 0
+IsPosValid 1
+GetAt 1
+FindIndex 2
+IsPosValid 1
+GetAt 3
+FindIndex 1
+IsPosValid 1
+GetAt 2
+FindIndex 3
+IsPosValid 1
+GetAt 4
+FindIndex 4
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test iterator
+IsEmpty 1
+# Test iterator on empty list
+TestIterator
+AddTailString 1
+AddTailString 2
+AddTailString 3
+TestIterator
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test AddStringAlphabetic
+IsEmpty 1
+AddStringAlphabetic "The bill"
+AddStringAlphabetic bill
+AddStringAlphabetic aaron
+AddStringAlphabetic Aaron
+AddStringAlphabetic Craig
+AddStringAlphabetic bIll
+AddStringAlphabetic craig
+AddStringAlphabetic Bill
+AddStringAlphabetic Bilby
+GetHeadPosition
+GetNext aaron
+GetNext Aaron
+GetNext Bilby
+GetNext bill
+GetNext bIll
+GetNext Bill
+GetNext Craig
+GetNext craig
+GetNext "The bill"
+IsPosValid 0
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test FindString
+IsEmpty 1
+AddTailString Aaron
+AddTailString bill
+AddTailString cRaig
+AddTailString HeLiX
+AddTailString Bill
+# Test with empty string
+FindString "" 0 0
+IsPosValid 0
+GetHeadPosition
+FindString "" 1 0
+IsPosValid 0
+FindString "" 0 1
+IsPosValid 0
+GetHeadPosition
+FindString "" 1 1
+IsPosValid 0
+# Test basic searches
+FindString cRaig 0 0
+IsPosValid 1
+GetAt cRaig
+FindString craig 0 0
+IsPosValid 1
+GetAt cRaig
+FindString CRAIG 0 0
+IsPosValid 1
+GetAt cRaig
+FindString craig 0 1
+IsPosValid 0
+FindString CRAIG 0 1
+IsPosValid 0
+FindString Bill 0 0
+GetAt bill
+IsPosValid 1
+FindString bill 0 1
+IsPosValid 1
+GetAt bill
+FindString Bill 0 0
+IsPosValid 1
+GetAt bill
+FindString Bill 0 1
+IsPosValid 1
+GetAt Bill
+GetAtPrev 1 HeLiX
+# Test position searches
+GetHeadPosition
+FindString Aaron 1 0
+IsPosValid 1
+GetHeadPosition
+GetNext Aaron
+FindString Aaron 1 0
+IsPosValid 0
+GetTailPosition
+FindString Aaron 1 0
+IsPosValid 0
+FindString bill 0 0
+FindString bill 1 0
+IsPosValid 1
+GetAt bill
+FindString bill 0 0
+FindString Bill 1 1
+IsPosValid 1
+GetAt Bill
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+RemoveHeadString
+
+# Test FindPrefixSubstring
+IsEmpty 1
+AddTailString aaa
+AddTailString bbb
+AddTailString AAB
+AddTailString bAa
+AddTailString AAaa
+# Test with empty string
+FindPrefixSubstring "" 0 0
+IsPosValid 1
+GetAt aaa
+GetHeadPosition
+FindPrefixSubstring "" 1 0
+IsPosValid 1
+GetAt aaa
+FindPrefixSubstring "" 0 1
+IsPosValid 1
+GetAt aaa
+GetHeadPosition
+FindPrefixSubstring "" 1 1
+IsPosValid 1
+GetAt aaa
+# Test basic searches
+FindPrefixSubstring bb 0 0
+IsPosValid 1
+GetAt bbb
+FindPrefixSubstring BB 0 0
+IsPosValid 1
+FindPrefixSubstring bB 0 0
+IsPosValid 1
+FindPrefixSubstring Bb 0 0 
+IsPosValid 1
+FindPrefixSubstring aa 0 0
+IsPosValid 1
+GetAt aaa
+FindPrefixSubstring AA 0 0
+IsPosValid 1
+GetAt aaa
+FindPrefixSubstring bb 0 1
+IsPosValid 1
+GetAt bbb
+FindPrefixSubstring aa 0 1
+IsPosValid 1
+GetAt aaa
+FindPrefixSubstring AA 0 1
+IsPosValid 1
+GetAt AAB
+# Test position searches
+GetHeadPosition
+FindPrefixSubstring AA 1 0
+IsPosValid 1
+GetAt aaa
+FindPrefixSubstring AA 1 0
+IsPosValid 1
+GetAt aaa
+GetNext aaa
+FindPrefixSubstring AA 1 0
+IsPosValid 1
+GetAt AAB
+GetHeadPosition
+FindPrefixSubstring cc 1 0
+IsPosValid 0
+FindPrefixSubstring AA 0 1
+IsPosValid 1
+GetAt AAB
+FindPrefixSubstring bb 1 0
+IsPosValid 0

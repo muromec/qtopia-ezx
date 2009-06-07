@@ -1,0 +1,1776 @@
+# HXURLRep(url) <url>
+# HXURLRep(common) type <index 0 -3; opaque, net-path, abs-path, rel-path> <scheme> <host> <port> <path>
+# HXURLRep(all) type <index 0 -3; opaque, net-path, abs-path, rel-path> <scheme> <user-info> <host> <port> <path> <query> <fragment>
+# == <url> <0 = == operation returns false, 1 = == operation returns true>
+# != <url> <0 = != operation returns false, 1 = != operation returns true>
+# String <expected string rep>
+# CheckState <expected protocol> <expected host> <expected port> <expected escaped path> <expected escaped query>
+# Path <expected unescaped path>
+# Query <expected unescaped query>
+# ApplyRelative <url to apply> <0 = apply failed, 1 apply success>
+# IsValid <expected Valid()>
+# test port
+
+HXURLRep(url) file:///host/foo.rm
+IsValid 1
+Path "host/foo.rm"
+PathOffset 8
+
+# Test the <scheme>://<host>? form 
+HXURLRep(url) "rtsp://example.com?"
+IsValid 1
+String "rtsp://example.com?"
+CheckState "rtsp" "example.com" 0 "" ""
+
+HXURLRep(url) "cont:///filename.ibr?file=internal.rec"
+IsValid 1
+String "cont:///filename.ibr?file=internal.rec"
+CheckState "cont" "" 0 "filename.ibr" "file=internal.rec"
+Path "filename.ibr"
+Query "file=internal.rec" 
+
+HXURLRep(url) "filename.ibr?file=internal.rec"
+IsValid 1
+PathOffset 0
+String "filename.ibr?file=internal.rec"
+CheckState "" "" 0 "filename.ibr" "file=internal.rec"
+Path "filename.ibr"
+Query "file=internal.rec"
+
+# parses as net scheme url with a bad port 
+HXURLRep(url) "cont://c:\\path\\filename.ibr?file=internal.rec"
+IsValid 0
+PathOffset 27 # as parsed (empty) path starts at '?'
+IsFullyParsed 1
+Path ""
+String "cont://c:\\path\\filename.ibr?file=internal.rec"
+Query "file=internal.rec"
+Normalize # discards colon and bad port
+IsValid 1
+String "cont://c/?file=internal.rec"
+IsFullyParsed 1
+
+
+
+# absolute path component is invalid
+HXURLRep(url) "cont:/c:\\path\\filename.ibr?file=internal.rec"
+IsValid 0
+IsFullyParsed 1
+PathOffset 6
+String "cont:/c:\\path\\filename.ibr?file=internal.rec"
+CheckState "cont" "" 0 "c:\\path\\filename.ibr" "file=internal.rec"
+Path "c:\\path\\filename.ibr"
+Query "file=internal.rec"
+Normalize
+IsValid 1
+IsFullyParsed 1
+Path "c:/path/filename.ibr"
+
+# opaque part 
+HXURLRep(url) "cont:c:\\path\\filename.ibr?file=internal.rec"
+IsValid 1
+PathOffset 5
+Protocol "cont"
+String "cont:c:\\path\\filename.ibr?file=internal.rec"
+CheckState "cont" "" 0 "c:\\path\\filename.ibr?file=internal.rec" ""
+Path "c:\\path\\filename.ibr?file=internal.rec"
+Query ""
+
+# windows path
+HXURLRep(url) "c:\\path\\filename.ibr?file=internal.rec"
+IsValid 1
+Protocol "c"
+Path "\\path\\filename.ibr?file=internal.rec"
+
+# windows path is invalid net path; everything parses
+HXURLRep(url) "file:///c:\\path\\filename.ibr?file=internal.rec"
+IsValid 0 # path
+IsFullyParsed 1
+Protocol "file"
+Path "c:\\path\\filename.ibr"
+Query "file=internal.rec"
+Normalize
+IsValid 1
+IsFullyParsed 1
+Path "c:/path/filename.ibr"
+Query "file=internal.rec"
+String "file:///c:/path/filename.ibr?file=internal.rec"
+
+# path component is fixed via slash (valid)
+HXURLRep(url) "cont:///c:/path/filename.ibr?file=internal.rec"
+IsValid 1
+String "cont:///c:/path/filename.ibr?file=internal.rec"
+CheckState "cont" "" 0 "c:/path/filename.ibr" "file=internal.rec"
+Path "c:/path/filename.ibr"
+Query "file=internal.rec" 
+
+# path component is fixed via escape (valid)
+HXURLRep(url) "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+IsValid 1
+String "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+CheckState "cont" "" 0 "c:%5cpath%5cfilename.ibr" "file=internal.rec"
+Path "c:%5cpath%5cfilename.ibr"
+
+# fails to do what you might expect because %5c's are not interpreted
+HXURLRep(url) "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+IsValid 1
+ApplyRelative "filename2.ibr?file=internal2.rec" 1
+String "cont:///filename2.ibr?file=internal2.rec"
+Query "file=internal2.rec"
+
+# \'s are interpreted (is this correct per rfc?)
+HXURLRep(url) "cont:///c:\\path\\filename.ibr?file=internal.rec"
+ApplyRelative "filename2.ibr?file=internal2.rec" 0
+Normalize
+ApplyRelative "filename2.ibr?file=internal2.rec" 1
+String "cont:///c:/path/filename2.ibr?file=internal2.rec"
+Query "file=internal2.rec"
+
+HXURLRep(url) "cont:///c:/path/filename.ibr?file=internal.rec"
+IsValid 1
+ApplyRelative "filename2.ibr?file=internal2.rec" 1
+String "cont:///c:/path/filename2.ibr?file=internal2.rec"
+Query "file=internal2.rec"
+
+
+# Test empty URL string
+HXURLRep(url) ""
+IsValid 1
+String ""
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test <rel_segment><abs_path> forms
+# Test <rel_segment>/ form
+HXURLRep(url) "somedir/"
+IsValid 1
+String "somedir/"
+CheckState "" "" 0 "somedir/" ""
+Path "somedir/"
+Query ""
+
+# Absolute URI test cases
+
+# Test the <scheme>: form
+HXURLRep(url) "rtsp:"
+IsValid 0
+String "rtsp:"
+Protocol "rtsp"
+CheckState "rtsp" "" 0 "" ""
+
+# Test the <scheme>:<opaque_part> forms
+HXURLRep(url) "rtsp:somedir/blah.rm"
+IsValid 1
+String "rtsp:somedir/blah.rm"
+CheckState "rtsp" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp:somedir/blah.rm?"
+IsValid 1
+String "rtsp:somedir/blah.rm?"
+CheckState "rtsp" "" 0 "somedir/blah.rm?" ""
+Path "somedir/blah.rm?"
+Query ""
+
+HXURLRep(url) "rtsp:somedir/blah.rm?foo=bar"
+IsValid 1
+String "rtsp:somedir/blah.rm?foo=bar"
+CheckState "rtsp" "" 0 "somedir/blah.rm?foo=bar" ""
+
+HXURLRep(url) "rtsp:?"
+IsValid 1
+String "rtsp:?"
+CheckState "rtsp" "" 0 "?" ""
+Path "?"
+Query ""
+
+HXURLRep(url) "rtsp:?foo=bar"
+IsValid 1
+String "rtsp:?foo=bar"
+CheckState "rtsp" "" 0 "?foo=bar" ""
+Path "?foo=bar"
+Query ""
+
+# Test the <scheme>:<hier_part> forms
+# Test the <scheme>:<net_path> forms
+# Test the <scheme>://<authority> forms  
+# Test the <scheme>://<server> forms
+# Test the <scheme>:// form
+HXURLRep(url) "rtsp://"
+IsValid 1
+String "rtsp://"
+CheckState "rtsp" "" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<hostport> forms
+# Test the <scheme>://<host> form 
+HXURLRep(url) "rtsp://example.com"
+IsValid 1
+String "rtsp://example.com"
+CheckState "rtsp" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>: form (empty port)
+HXURLRep(url) "rtsp://example.com:"
+IsValid 1 
+
+# Test the <scheme>://<host>? form 
+HXURLRep(url) "rtsp://example.com?"
+IsValid 1
+String "rtsp://example.com?"
+CheckState "rtsp" "example.com" 0 "" ""
+
+# Test the <scheme>://<host># form 
+HXURLRep(url) "rtsp://example.com#"
+IsValid 1
+String "rtsp://example.com#"
+CheckState "rtsp" "example.com" 0 "" ""
+
+# Test the <scheme>://<host>?<query> form 
+HXURLRep(url) "rtsp://example.com?foo=bar"
+IsValid 1
+String "rtsp://example.com?foo=bar"
+CheckState "rtsp" "example.com" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test the <scheme>://<host>:<port> form 
+HXURLRep(url) "rtsp://example.com:2345"
+IsValid 1
+String "rtsp://example.com:2345"
+CheckState "rtsp" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>:<port>? form 
+HXURLRep(url) "rtsp://example.com:2345?"
+IsValid 1
+String "rtsp://example.com:2345?"
+CheckState "rtsp" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>:<port>?<query> form 
+HXURLRep(url) "rtsp://example.com:2345?foo=bar"
+IsValid 1
+String "rtsp://example.com:2345?foo=bar"
+CheckState "rtsp" "example.com" 2345 "" "foo=bar"
+
+# Test the <scheme>://<authority><abs_path> forms
+
+# Test the <scheme>://<host>/ form
+HXURLRep(url) "rtsp://example.com/"
+IsValid 1  
+String "rtsp://example.com/"
+CheckState "rtsp" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>/? form
+HXURLRep(url) "rtsp://example.com/?"
+IsValid 1  
+String "rtsp://example.com/?"
+CheckState "rtsp" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>/?<query> form
+HXURLRep(url) "rtsp://example.com/?foo=bar"
+IsValid 1  
+String "rtsp://example.com/?foo=bar"
+CheckState "rtsp" "example.com" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test the <scheme>://<host>:/ form (empty port ok)
+HXURLRep(url) "rtsp://example.com:/"
+IsValid 1  
+String "rtsp://example.com:/"
+Normalize
+String "rtsp://example.com/"
+CheckState "rtsp" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>:<port>/ form
+HXURLRep(url) "rtsp://example.com:2345/"
+IsValid 1  
+String "rtsp://example.com:2345/"
+CheckState "rtsp" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>:<port>/? form
+HXURLRep(url) "rtsp://example.com:2345/?"
+IsValid 1  
+String "rtsp://example.com:2345/?"
+CheckState "rtsp" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>://<host>:<port>/?<query> form
+HXURLRep(url) "rtsp://example.com:2345/?foo=bar"
+IsValid 1  
+String "rtsp://example.com:2345/?foo=bar"
+CheckState "rtsp" "example.com" 2345 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test the <scheme>://<host>/<path_segments> form
+HXURLRep(url) "rtsp://example.com/somedir/blah.rm"
+IsValid 1  
+String "rtsp://example.com/somedir/blah.rm"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>/<path_segments>? form
+HXURLRep(url) "rtsp://example.com/somedir/blah.rm?"
+IsValid 1  
+String "rtsp://example.com/somedir/blah.rm?"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>/<path_segments>?<query> form
+HXURLRep(url) "rtsp://example.com/somedir/blah.rm?foo=bar"
+IsValid 1  
+String "rtsp://example.com/somedir/blah.rm?foo=bar"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test the <scheme>://<host>:/<path_segments> form
+HXURLRep(url) "rtsp://example.com:/somedir/blah.rm"
+Normalize
+IsValid 1
+String "rtsp://example.com/somedir/blah.rm"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>:/<path_segments>? form
+HXURLRep(url) "rtsp://example.com:/somedir/blah.rm?"
+String "rtsp://example.com:/somedir/blah.rm?"
+IsValid 1
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+Normalize
+IsValid 1
+String "rtsp://example.com/somedir/blah.rm"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>:/<path_segments>?<query> form
+HXURLRep(url) "rtsp://example.com:/somedir/blah.rm?foo=bar"
+IsValid 1
+String "rtsp://example.com:/somedir/blah.rm?foo=bar"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+Normalize
+IsValid 1
+String "rtsp://example.com/somedir/blah.rm?foo=bar"
+CheckState "rtsp" "example.com" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test the <scheme>://<host>:<port>/<path_segments> form
+HXURLRep(url) "rtsp://example.com:2345/somedir/blah.rm"
+IsValid 1  
+String "rtsp://example.com:2345/somedir/blah.rm"
+CheckState "rtsp" "example.com" 2345 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>:<port>/<path_segments>? form
+HXURLRep(url) "rtsp://example.com:2345/somedir/blah.rm?"
+IsValid 1  
+String "rtsp://example.com:2345/somedir/blah.rm?"
+CheckState "rtsp" "example.com" 2345 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>://<host>:<port>/<path_segments>?<query> form
+HXURLRep(url) "rtsp://example.com:2345/somedir/blah.rm?foo=bar"
+IsValid 1  
+String "rtsp://example.com:2345/somedir/blah.rm?foo=bar"
+CheckState "rtsp" "example.com" 2345 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test the <scheme>:<abs_path> forms
+# Test the <scheme>:/ form
+HXURLRep(url) "rtsp:/"
+IsValid 1
+String "rtsp:/"
+CheckState "rtsp" "" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>:/? form
+HXURLRep(url) "rtsp:/?"
+IsValid 1
+String "rtsp:/?"
+CheckState "rtsp" "" 0 "" ""
+Path ""
+Query ""
+
+# Test the <scheme>:/?<query> form
+HXURLRep(url) "rtsp:/?foo=blah"
+IsValid 1
+String "rtsp:/?foo=blah"
+CheckState "rtsp" "" 0 "" "foo=blah"
+Path ""
+Query "foo=blah"
+
+# Test the <scheme>:/<path_segments> form
+HXURLRep(url) "rtsp:/somedir/blah.rm"
+IsValid 1
+String "rtsp:/somedir/blah.rm"
+CheckState "rtsp" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>:/<path_segments>? form
+HXURLRep(url) "rtsp:/somedir/blah.rm?"
+IsValid 1
+String "rtsp:/somedir/blah.rm?"
+CheckState "rtsp" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test the <scheme>:/<path_segments>?<query> form
+HXURLRep(url) "rtsp:/somedir/blah.rm?foo=bar"
+IsValid 1
+String "rtsp:/somedir/blah.rm?foo=bar"
+CheckState "rtsp" "" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Relative URI test cases
+# Test <net_path> forms
+# Test //<authority> forms 
+# Test the //<server> forms
+# Test // form
+HXURLRep(url) "//"
+IsValid 1
+String "//"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test //? form
+HXURLRep(url) "//?"
+IsValid 1
+String "//?"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test //?<query> form
+HXURLRep(url) "//?foo=bar"
+IsValid 1
+String "//?foo=bar"
+CheckState "" "" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test //<hostport> forms
+# Test //<host> form
+HXURLRep(url) "//example.com"
+IsValid 1
+String "//example.com"
+CheckState "" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test //<host>? form
+HXURLRep(url) "//example.com?"
+IsValid 1
+String "//example.com?"
+CheckState "" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test //<host>?<query> form
+HXURLRep(url) "//example.com?foo=bar"
+IsValid 1
+String "//example.com?foo=bar"
+CheckState "" "example.com" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test //<host>:<port> form
+HXURLRep(url) "//example.com:2345"
+IsValid 1
+String "//example.com:2345"
+CheckState "" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test //<host>:<port>? form
+HXURLRep(url) "//example.com:2345?"
+IsValid 1
+String "//example.com:2345?"
+CheckState "" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test //<host>:<port>?<query> form
+HXURLRep(url) "//example.com:2345?foo=bar"
+IsValid 1
+String "//example.com:2345?foo=bar"
+CheckState "" "example.com" 2345 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test //<authority><abs_path> forms 
+# Test /// form
+HXURLRep(url) "///"
+IsValid 1
+String "///"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test ///? form
+HXURLRep(url) "///?"
+IsValid 1
+String "///?"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test ///?<query> form
+HXURLRep(url) "///?foo=bar"
+IsValid 1
+String "///?foo=bar"
+CheckState "" "" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test ///<path_segment> form
+HXURLRep(url) "///somedir/blah.rm"
+IsValid 1
+String "///somedir/blah.rm"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test ///<path_segment>? form
+HXURLRep(url) "///somedir/blah.rm?"
+IsValid 1
+String "///somedir/blah.rm?"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test ///<path_segment>?<query> form
+HXURLRep(url) "///somedir/blah.rm?foo=bar"
+IsValid 1
+String "///somedir/blah.rm?foo=bar"
+CheckState "" "" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test //<host>/ form
+HXURLRep(url) "//example.com/"
+IsValid 1
+String "//example.com/"
+CheckState "" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test //<host>/? form
+HXURLRep(url) "//example.com/?"
+IsValid 1
+String "//example.com/?"
+CheckState "" "example.com" 0 "" ""
+Path ""
+Query ""
+
+# Test //<host>/?<query> form
+HXURLRep(url) "//example.com/?foo=bar"
+IsValid 1
+String "//example.com/?foo=bar"
+CheckState "" "example.com" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test //<host>/<path_segment> form
+HXURLRep(url) "//example.com/somedir/blah.rm"
+IsValid 1
+String "//example.com/somedir/blah.rm"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test //<host>/<path_segment>? form
+HXURLRep(url) "//example.com/somedir/blah.rm?"
+IsValid 1
+String "//example.com/somedir/blah.rm?"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+UserInfo ""
+
+# Test //<host>/<path_segment>?<query> form
+HXURLRep(url) "//example.com/somedir/blah.rm?foo=bar"
+IsValid 1
+String "//example.com/somedir/blah.rm?foo=bar"
+CheckState "" "example.com" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+UserInfo ""
+
+# Test //<host>:/ form
+HXURLRep(url) "//example.com:/"
+IsValid 1
+String "//example.com:/"
+CheckState "" "example.com" 0 "" ""
+Normalize
+IsValid 1
+String "//example.com/
+CheckState "" "example.com" 0 "" ""
+
+# Test //<host>:/? form
+HXURLRep(url) "//example.com:/?"
+IsValid 1
+String "//example.com:/?"
+CheckState "" "example.com" 0 "" ""
+Normalize
+IsValid 1
+String "//example.com/"
+CheckState "" "example.com" 0 "" ""
+
+# Test //<host>:/?<query> form
+HXURLRep(url) "//example.com:/?foo=bar"
+IsValid 1
+String "//example.com:/?foo=bar"
+CheckState "" "example.com" 0 "" "foo=bar"
+Normalize
+IsValid 1
+String "//example.com/?foo=bar"
+CheckState "" "example.com" 0 "" "foo=bar"
+
+# Test //<host>:/<path_segment> form
+HXURLRep(url) "//example.com:/somedir/blah.rm"
+IsValid 1
+String "//example.com:/somedir/blah.rm"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+Normalize
+IsValid 1
+String "//example.com/somedir/blah.rm"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+
+# Test //<host>:/<path_segment>? form
+HXURLRep(url) "//example.com:/somedir/blah.rm?"
+IsValid 1
+String "//example.com:/somedir/blah.rm?"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+Normalize
+IsValid 1
+String "//example.com/somedir/blah.rm"
+CheckState "" "example.com" 0 "somedir/blah.rm" ""
+# Test //<host>:/<path_segment>?<query> form
+HXURLRep(url) "//example.com:/somedir/blah.rm?foo=bar"
+IsValid 1
+String "//example.com:/somedir/blah.rm?foo=bar"
+CheckState "" "example.com" 0 "somedir/blah.rm" "foo=bar"
+Normalize
+IsValid 1
+String "//example.com/somedir/blah.rm?foo=bar"
+CheckState "" "example.com" 0 "somedir/blah.rm" "foo=bar"
+
+# Test //<host>:<port>/ form
+HXURLRep(url) "//example.com:2345/"
+IsValid 1
+String "//example.com:2345/"
+CheckState "" "example.com" 2345 "" ""
+Path ""
+Query ""
+UserInfo ""
+
+# Test //<host>:<port>/? form
+HXURLRep(url) "//example.com:2345/?"
+IsValid 1
+String "//example.com:2345/?"
+CheckState "" "example.com" 2345 "" ""
+Path ""
+Query ""
+
+# Test //<host>:<port>/?<query> form
+HXURLRep(url) "//example.com:2345/?foo=bar"
+IsValid 1
+String "//example.com:2345/?foo=bar"
+CheckState "" "example.com" 2345 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test //<host>:<port>/<path_segment> form
+HXURLRep(url) "//example.com:2345/somedir/blah.rm"
+IsValid 1
+String "//example.com:2345/somedir/blah.rm"
+CheckState "" "example.com" 2345 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test //<host>:<port>/<path_segment>? form
+HXURLRep(url) "//example.com:2345/somedir/blah.rm?"
+IsValid 1
+String "//example.com:2345/somedir/blah.rm?"
+CheckState "" "example.com" 2345 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test //<host>:<port>/<path_segment>?<query> form
+HXURLRep(url) "//example.com:2345/somedir/blah.rm?foo=bar"
+IsValid 1
+String "//example.com:2345/somedir/blah.rm?foo=bar"
+CheckState "" "example.com" 2345 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test <abs_path> forms
+# Test / form
+HXURLRep(url) "/"
+IsValid 1
+String "/"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test /? form
+HXURLRep(url) "/?"
+IsValid 1
+String "/?"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test /?<query> form
+HXURLRep(url) "/?foo=bar"
+IsValid 1
+String "/?foo=bar"
+CheckState "" "" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test ? form
+HXURLRep(url) "?"
+IsValid 1
+String "?"
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test ?<query> form
+HXURLRep(url) "?foo=bar"
+IsValid 1
+String "?foo=bar"
+CheckState "" "" 0 "" "foo=bar"
+Path ""
+Query "foo=bar"
+
+# Test /<path_segments> form
+HXURLRep(url) "/somedir/blah.rm"
+IsValid 1
+String "/somedir/blah.rm"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test /<path_segments>? form
+HXURLRep(url) "/somedir/blah.rm?"
+IsValid 1
+String "/somedir/blah.rm?"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test /<path_segments>?<query> form
+HXURLRep(url) "/somedir/blah.rm?foo=bar"
+IsValid 1
+String "/somedir/blah.rm?foo=bar"
+CheckState "" "" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test <rel_path> forms
+# Test <rel_segment> form
+HXURLRep(url) "blah.rm"
+IsValid 1
+String "blah.rm"
+CheckState "" "" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+# Test <rel_segment>? form
+HXURLRep(url) "blah.rm?"
+IsValid 1
+String "blah.rm?"
+CheckState "" "" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+# Test <rel_segment>?<query> form
+HXURLRep(url) "blah.rm?foo=bar"
+IsValid 1
+String "blah.rm?foo=bar"
+CheckState "" "" 0 "blah.rm" "foo=bar"
+Path "blah.rm"
+Query "foo=bar"
+
+# Test <rel_segment><abs_path> forms
+# Test <rel_segment>/ form
+HXURLRep(url) "somedir/"
+IsValid 1
+String "somedir/"
+CheckState "" "" 0 "somedir/" ""
+Path "somedir/"
+Query ""
+
+# Test <rel_segment>/? form
+HXURLRep(url) "somedir/?"
+IsValid 1
+String "somedir/?"
+CheckState "" "" 0 "somedir/" ""
+Path "somedir/"
+Query ""
+
+# Test <rel_segment>/?<query> form
+HXURLRep(url) "somedir/?foo=bar"
+IsValid 1
+String "somedir/?foo=bar"
+CheckState "" "" 0 "somedir/" "foo=bar"
+Path "somedir/"
+Query "foo=bar"
+
+# Test <rel_segment>/<path_segment> form
+HXURLRep(url) "somedir/blah.rm"
+IsValid 1
+String "somedir/blah.rm"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test <rel_segment>/<path_segment>? form
+HXURLRep(url) "somedir/blah.rm?"
+IsValid 1
+String "somedir/blah.rm?"
+CheckState "" "" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test <rel_segment>/<path_segment>?<query> form
+HXURLRep(url) "somedir/blah.rm?foo=bar"
+IsValid 1
+String "somedir/blah.rm?foo=bar"
+CheckState "" "" 0 "somedir/blah.rm" "foo=bar"
+Path "somedir/blah.rm"
+Query "foo=bar"
+
+# Test an URL with all the fields present
+HXURLRep(url) rtsp://example.com:2554/blah.rm?foo=bar
+IsValid 1
+String rtsp://example.com:2554/blah.rm?foo=bar
+CheckState rtsp example.com 2554 blah.rm foo=bar
+Path blah.rm
+Query foo=bar
+
+# Test an URL with no query
+HXURLRep(url) rtsp://example.com:2554/blah.rm
+IsValid 1
+String rtsp://example.com:2554/blah.rm
+CheckState rtsp example.com 2554 blah.rm ""
+Path blah.rm
+Query ""
+
+# Test an URL with no path
+HXURLRep(url) rtsp://example.com:2554
+IsValid 1
+String rtsp://example.com:2554
+CheckState rtsp example.com 2554 "" ""
+Path ""
+Query ""
+
+# Test an URL with no port
+HXURLRep(url) rtsp://example.com
+IsValid 1
+String rtsp://example.com
+CheckState rtsp example.com 0 "" ""
+Path ""
+Query ""
+
+# Test an URL with no host
+HXURLRep(url) file:///blah.rm
+IsValid 1
+String file:///blah.rm
+CheckState file "" 0 blah.rm ""
+Path "blah.rm"
+Query ""
+
+# Test an URL with some escaped characters
+HXURLRep(url) file:///the%20movie.rm?foo=%5bbar%5d
+IsValid 1
+String file:///the%20movie.rm?foo=%5bbar%5d
+CheckState file "" 0 "the%20movie.rm" "foo=%5bbar%5d"
+Path "the%20movie.rm"
+Query "foo=%5bbar%5d"
+
+# Test an URL with some escaped characters that don't need to be escaped
+HXURLRep(url) file:///%4Dovie.rm
+PathOffset 8
+IsValid 1
+String file:///%4Dovie.rm
+CheckState file "" 0 "%4Dovie.rm" ""
+Path "%4Dovie.rm"
+Query ""
+
+# Test the constructor
+# rel path
+HXURLRep(common) 3 "" "" -1 ""
+IsValid 1
+String ""
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+# Test the constructor
+# rel path
+HXURLRep(all) 3 "" "" "" -1 "" "" ""
+IsValid 1
+String ""
+CheckState "" "" 0 "" ""
+Path ""
+Query ""
+
+HXURLRep(common) 1 rtsp example.com 2554 blah.rm
+IsValid 1
+String rtsp://example.com:2554/blah.rm
+CheckState rtsp example.com 2554 blah.rm ""
+Path blah.rm
+Query ""
+
+HXURLRep(all) 1 rtsp "" example.com 2554 blah.rm foo=bar ""
+IsValid 1
+String rtsp://example.com:2554/blah.rm?foo=bar
+CheckState rtsp example.com 2554 blah.rm foo=bar
+Path blah.rm
+Query foo=bar
+
+# No query
+HXURLRep(all) 1 rtsp "" example.com 2554 blah.rm "" ""
+IsValid 1
+String rtsp://example.com:2554/blah.rm
+CheckState rtsp example.com 2554 blah.rm ""
+Path blah.rm
+Query ""
+
+# userinfo
+HXURLRep(all) 1 rtsp "joebob:pw" example.com 2554 blah.rm "" ""
+IsValid 1
+String rtsp://joebob:pw@example.com:2554/blah.rm
+CheckState rtsp example.com 2554 blah.rm ""
+Path blah.rm
+Query ""
+
+# bad userinfo
+HXURLRep(all) 1 rtsp "?/joebob:pw" example.com 2554 blah.rm "" ""
+IsValid 1
+# IsValid 0
+# XXXLCM bad case
+
+# bad scheme
+HXURLRep(all) 1 "-tsp" "?/joebob:pw" example.com 2554 blah.rm "" ""
+IsValid 0
+IsFullyParsed 1
+# XXXLCM bad case (should ctor check validity first before assembling?)
+Path ""
+
+# No path
+HXURLRep(common) 1 rtsp example.com 2554 ""
+IsValid 1
+String rtsp://example.com:2554/
+CheckState rtsp example.com 2554 "" ""
+Path ""
+Query ""
+
+# No port or path
+HXURLRep(common) 1 rtsp example.com -1 "" 
+IsValid 1
+String rtsp://example.com/
+CheckState rtsp example.com 0 "" ""
+Path ""
+Query ""
+
+# Zero port
+HXURLRep(common) 1 rtsp example.com 0 "" 
+IsValid 1
+String rtsp://example.com:0/
+CheckState rtsp example.com 0 "" ""
+Path ""
+Query ""
+
+# No host
+HXURLRep(common) 1 rtsp "" -1 ""
+IsValid 1
+String rtsp://
+CheckState rtsp "" 0 "" ""
+Path ""
+Query ""
+
+# no host; has path
+HXURLRep(common) 1 "file" "" -1 "blah.rm"
+IsValid 1
+String "file:///blah.rm"
+CheckState "file" "" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+#invalid path, but still parse-able
+HXURLRep(all) 1 "file" "" "" -1 "the movie.rm" "foo=[bar]" ""
+IsValid 0 #scheme and file have invalid chars
+IsFullyParsed 1
+String "file:///the movie.rm?foo=[bar]"
+Path "the movie.rm"
+Query "foo=[bar]"
+
+# Test the case where the filename contains the escape character
+HXURLRep(common) 1 "file"  "" -1 "blah10%42.rm"
+IsValid 1
+String "file:///blah10%42.rm"
+CheckState "file" "" 0 "blah10%42.rm" ""
+Path "blah10%42.rm"
+Query ""
+
+# add 0 port to above
+HXURLRep(common) 1 "file" "" 0 "blah10%42.rm"
+IsValid 1
+String "file://:0/blah10%42.rm"
+CheckState "file" "" 0 "blah10%42.rm" ""
+Path "blah10%42.rm"
+Query ""
+
+# Test URLs used in the tapply_url unit test
+HXURLRep(url) "http://ab/b/c/d;p?q"
+IsValid 1
+String "http://ab/b/c/d;p?q"
+CheckState "http" "ab" 0 "b/c/d;p" "q"
+Path "b/c/d;p"
+Query "q"
+
+# Test invalid URL checks
+
+# Test valid scheme characters
+HXURLRep(url) "rt+-.sp1234://example.com/somedir/blah.rm"
+IsValid 1
+String "rt+-.sp1234://example.com/somedir/blah.rm"
+CheckState "rt+-.sp1234" "example.com" 0 "somedir/blah.rm" ""
+Path "somedir/blah.rm"
+Query ""
+
+# Test invalid scheme characters
+HXURLRep(url) "rt%2-.sp1234://example.com/somedir/blah.rm"
+IsValid 0
+String "rt%2-.sp1234://example.com/somedir/blah.rm"
+
+
+HXURLRep(url) "rt[^2-.sp1234://example.com/somedir/blah.rm"
+IsValid 0
+String "rt[^2-.sp1234://example.com/somedir/blah.rm"
+
+
+# Test valid hostnames
+HXURLRep(url) "rtsp://example-host.234.com/blah.rm"
+IsValid 1
+String "rtsp://example-host.234.com/blah.rm"
+CheckState "rtsp" "example-host.234.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://123.235.23.42/blah.rm"
+IsValid 1
+String "rtsp://123.235.23.42/blah.rm"
+CheckState "rtsp" "123.235.23.42" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+# Test invalid hostnames
+HXURLRep(url) "rtsp://a/blah.rm"
+IsValid 1
+String "rtsp://a/blah.rm"
+CheckState "rtsp" "a" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://-example.com/blah.rm"
+IsValid 0
+String "rtsp://-example.com/blah.rm"
+CheckState "rtsp" "-example.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://.example.com/blah.rm"
+IsValid 0
+String "rtsp://.example.com/blah.rm"
+CheckState "rtsp" ".example.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example./blah.rm"
+IsValid 0
+String "rtsp://example./blah.rm"
+CheckState "rtsp" "example." 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example-/blah.rm"
+IsValid 0
+String "rtsp://example-/blah.rm"
+CheckState "rtsp" "example-" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://ex+%1ample.com/blah.rm"
+IsValid 0
+String "rtsp://ex+%1ample.com/blah.rm"
+CheckState "rtsp" "ex+%1ample.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://ex+[am]ple.com/blah.rm"
+IsValid 0
+String "rtsp://ex+[am]ple.com/blah.rm"
+CheckState "rtsp" "ex+[am]ple.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+# Test valid paths
+HXURLRep(url) "rtsp://example.com/blah.rm"
+IsValid 1
+String "rtsp://example.com/blah.rm"
+CheckState "rtsp" "example.com" 0 "blah.rm" ""
+Path "blah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example.com/bB2134:@&=+$,-_.!*'()lah.rm"
+IsValid 1
+String "rtsp://example.com/bB2134:@&=+$,-_.!*'()lah.rm"
+CheckState "rtsp" "example.com" 0 "bB2134:@&=+$,-_.!*'()lah.rm" ""
+Path "bB2134:@&=+$,-_.!*'()lah.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example.com/b:@&=+$,la%20h.rm"
+IsValid 1
+String "rtsp://example.com/b:@&=+$,la%20h.rm"
+CheckState "rtsp" "example.com" 0 "b:@&=+$,la%20h.rm" ""
+Path "b:@&=+$,la%20h.rm"
+Query ""
+
+# Test invalid paths
+HXURLRep(url) "rtsp://example.com/b:%h.rm"
+IsValid 0
+String "rtsp://example.com/b:%h.rm"
+CheckState "rtsp" "example.com" 0 "b:%h.rm" ""
+Path "b:%h.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example.com/b:%2h.rm"
+IsValid 0
+String "rtsp://example.com/b:%2h.rm"
+CheckState "rtsp" "example.com" 0 "b:%2h.rm" ""
+Path "b:%2h.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example.com/b:%%20h.rm"
+IsValid 0
+String "rtsp://example.com/b:%%20h.rm"
+CheckState "rtsp" "example.com" 0 "b:%%20h.rm" ""
+Path "b:%%20h.rm"
+Query ""
+
+HXURLRep(url) "rtsp://example.com/b:[42h].rm"
+IsValid 0
+String "rtsp://example.com/b:[42h].rm"
+CheckState "rtsp" "example.com" 0 "b:[42h].rm" ""
+
+HXURLRep(url) "rtsp://example.com/the movie.rm"
+IsValid 0
+String "rtsp://example.com/the movie.rm"
+CheckState "rtsp" "example.com" 0 "the movie.rm" ""
+
+# Test valid query strings
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?:@&=+$,%20653hgdfDGFD-_.!*'()"
+IsValid 1
+String "rtsp://example.com/blah.rm?kdsf;/?:@&=+$,%20653hgdfDGFD-_.!*'()"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?:@&=+$,%20653hgdfDGFD-_.!*'()"
+
+# Test invalid query strings
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?foo bar"
+IsValid 0
+String "rtsp://example.com/blah.rm?kdsf;/?foo bar"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?foo bar"
+
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?foo%xbar"
+IsValid 0
+String "rtsp://example.com/blah.rm?kdsf;/?foo%xbar"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?foo%xbar"
+
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?foo%3xbar"
+IsValid 0
+String "rtsp://example.com/blah.rm?kdsf;/?foo%3xbar"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?foo%3xbar"
+
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?foo%3%xbar"
+IsValid 0
+String "rtsp://example.com/blah.rm?kdsf;/?foo%3%xbar"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?foo%3%xbar"
+
+HXURLRep(url) "rtsp://example.com/blah.rm?kdsf;/?foo[]xbar"
+IsValid 0
+String "rtsp://example.com/blah.rm?kdsf;/?foo[]xbar"
+CheckState "rtsp" "example.com" 0 "blah.rm" "kdsf;/?foo[]xbar"
+Path "blah.rm"
+Query "kdsf;/?foo[]xbar"
+
+#
+# Relative URLtest cases based on RFC 2396 Appendix C
+#
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g:h" 1
+String "g:h"
+
+# opaque url form applied (same scheme)
+# see rfc - we use strict interpretation
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "http:h" 1
+String "http:h"
+
+# opaque url form applied (same scheme)
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "foo:h" 1
+String "foo:h"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g" 1
+String "http://aa/b/c/g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "./g" 1
+String "http://aa/b/c/g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g/" 1
+String "http://aa/b/c/g/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "/g" 1
+String "http://aa/g"
+
+# we add / unlike example in rfc
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "//gg" 1
+String "http://gg/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "?y" 1
+String "http://aa/b/c/?y"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g?y" 1
+String "http://aa/b/c/g?y"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "#s" 1
+String "http://aa/b/c/d;p#s"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g#s" 1
+String "http://aa/b/c/g#s"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g?y#s" 1
+String "http://aa/b/c/g?y#s"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative ";x" 1
+String "http://aa/b/c/;x"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g;x" 1
+String "http://aa/b/c/g;x"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g;x?y#s" 1
+String "http://aa/b/c/g;x?y#s"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "." 1
+String "http://aa/b/c/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "./" 1
+String "http://aa/b/c/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative ".." 1
+String "http://aa/b/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../" 1
+String "http://aa/b/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../g" 1
+String "http://aa/b/g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../.." 1
+String "http://aa/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../../" 1
+String "http://aa/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../../g" 1
+String "http://aa/g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../../../g" 1
+String "http://aa/../g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "../../../../g" 1
+String "http://aa/../../g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "/./g" 1
+String "http://aa/./g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "/../g" 1
+String "http://aa/../g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g." 1
+String "http://aa/b/c/g."
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative ".g" 1
+String "http://aa/b/c/.g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g.." 1
+String "http://aa/b/c/g.."
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "..g" 1
+String "http://aa/b/c/..g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "./../g" 1
+String "http://aa/b/g"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "./g/." 1
+String "http://aa/b/c/g/"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g/./h" 1
+String "http://aa/b/c/g/h"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g/../h" 1
+String "http://aa/b/c/h"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g;x=1/./y" 1
+String "http://aa/b/c/g;x=1/y"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g;x=1/../y" 1
+String "http://aa/b/c/y"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g?y/./x" 1
+String "http://aa/b/c/g?y/./x"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g?y/../x" 1
+String "http://aa/b/c/g?y/../x"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g#s/./x" 1
+String "http://aa/b/c/g#s/./x"
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "g#s/../x" 1
+String "http://aa/b/c/g#s/../x"
+
+# Extra ApplyRelative cases
+
+HXURLRep(url) "http://aa/b/c/d;p?q"
+ApplyRelative "" 1
+String "http://aa/b/c/d;p"
+
+HXURLRep(url) "file:///b/c/d"
+ApplyRelative ".." 1
+String "file:///b/"
+
+HXURLRep(url) "file:///b/c/d"
+ApplyRelative "../" 1
+String "file:///b/"
+
+HXURLRep(url) "file:///b/c/d"
+ApplyRelative "../.." 1
+String "file://"
+Normalize
+String "file://"
+
+HXURLRep(url) "file:////b/c/d"
+ApplyRelative "../.." 1
+String "file:////"
+
+# too far back with rooted path
+HXURLRep(url) "file:////b/c/d"
+ApplyRelative "../../.." 1
+String "file:////"
+
+HXURLRep(url) "file:///b/c/d"
+ApplyRelative "../../.." 1
+String "file:///../"
+
+
+# Test absolute vs. relative cases
+
+HXURLRep(url) blah.rm
+IsValid 1
+Protocol ""
+
+HXURLRep(url) /blah.rm
+IsValid 1
+Protocol ""
+
+HXURLRep(url) //example.com
+IsValid 1
+Protocol ""
+
+HXURLRep(url) //example.com/blah.rm
+IsValid 1
+Protocol ""
+
+HXURLRep(url) ?foo=bar
+IsValid 1
+Protocol ""
+
+HXURLRep(url) "#foo"
+IsValid 1
+Protocol ""
+
+# scheme must begin with slash (net-path/abs-path) or non-slash (opaque)
+HXURLRep(url) rtsp:
+IsValid 0
+Protocol "rtsp"
+Path ""
+
+# parses as relative url
+HXURLRep(url) rtsp
+IsValid 1
+Protocol ""
+Path "rtsp"
+
+HXURLRep(url) rtsp:blah.rm
+IsValid 1
+Protocol "rtsp"
+Path "blah.rm"
+
+HXURLRep(url) rtsp://example.com
+IsValid 1
+Protocol "rtsp"
+
+HXURLRep(url) rtsp://example.com/blah.rm
+IsValid 1
+Protocol "rtsp"
+
+HXURLRep(url) rtsp:/blah.rm
+IsValid 1
+Protocol "rtsp"
+
+HXURLRep(url) rtsp:?foo=bar
+IsValid 1
+Protocol "rtsp"
+Path "?foo=bar"
+Query ""
+
+HXURLRep(url) "rtsp:#foo"
+IsValid 1
+Protocol "rtsp"
+Path "#foo"
+Query ""
+
+# IPv6 host tests
+HXURLRep(url) "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"
+IsValid 1  
+CheckState "http" "FEDC:BA98:7654:3210:FEDC:BA98:7654:3210" 80 "index.html" ""
+
+# same as good url above, no port
+HXURLRep(url) "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/index.html"
+IsValid 1  
+CheckState "http" "FEDC:BA98:7654:3210:FEDC:BA98:7654:3210" 0 "index.html" ""
+
+# XXXLCM is http://:80/index.html valid?
+# IPv6 empty host
+HXURLRep(url) "http://:80/index.html"
+IsValid 1 
+CheckState "http" "" 80 "index.html" ""
+
+# IPv6 empty host
+HXURLRep(url) "http://[]:80/index.html"
+IsValid 0 # empty ipv6 illegal
+IsFullyParsed 1
+CheckState "http" "" 80 "index.html" ""
+Normalize
+IsValid 1
+String "http://:80/index.html"
+
+# non IPv6 char in IPv6 host
+HXURLRep(url) "http://[FEDC:BA98:765-4:3210:FEDC:BA98:7654:3210]:80/index.html"
+IsValid 0  
+
+
+# no resource
+HXURLRep(url) "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]"
+IsValid 1  
+CheckState "http" "FEDC:BA98:7654:3210:FEDC:BA98:7654:3210" 0 "" ""
+
+# missing right bracket (can't find enf of host)
+HXURLRep(url) "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:80/index.html"
+IsValid 0
+
+# missing opening bracket (mis-interpret ':'; port will be bad)
+HXURLRep(url) "http://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"
+IsValid 0  
+
+HXURLRep(url) "http://[::192.9.5.5]:80/index.html"
+IsValid 1  
+CheckState "http" "::192.9.5.5" 80 "index.html" ""
+
+# USERINFO tests
+
+HXURLRep(url) "http://user@www.real.com:543/dir/foo/../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../bam.rm" ""
+UserInfo "user"
+
+HXURLRep(url) "http://user:pw@www.real.com:543/dir/foo/../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../bam.rm" ""
+UserInfo "user:pw"
+
+HXURLRep(url) "http://:pw@www.real.com:543/dir/foo/../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../bam.rm" ""
+UserInfo ":pw"
+Normalize
+CheckState "http" "www.real.com" 543 "dir/bam.rm" ""
+
+# no user info (valid?)
+HXURLRep(url) "http://@www.real.com:543/dir/foo/../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../bam.rm" ""
+UserInfo ""
+
+# NORMALIZE TEST
+HXURLRep(url) "http://www.real.com:543/dir/foo/../././../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../././../bam.rm" ""
+UserInfo ""
+Normalize
+CheckState "http" "www.real.com" 543 "bam.rm" ""
+
+HXURLRep(url) "http://www.real.com:543/dir/foo/../bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/foo/../bam.rm" ""
+UserInfo ""
+Normalize
+CheckState "http" "www.real.com" 543 "dir/bam.rm" ""
+
+HXURLRep(url) "http://www.real.com:543/dir/..foo/bam.rm"
+IsValid 1  
+CheckState "http" "www.real.com" 543 "dir/..foo/bam.rm" ""
+UserInfo ""
+Normalize
+CheckState "http" "www.real.com" 543 "dir/..foo/bam.rm" ""
+
+HXURLRep(url) "http://www.real.com:543/."
+IsValid 1  
+CheckState "http" "www.real.com" 543 "." ""
+UserInfo ""
+Normalize
+CheckState "http" "www.real.com" 543 "./" ""
+
+HXURLRep(url) "http://www.real.com:543/.."
+IsValid 1  
+CheckState "http" "www.real.com" 543 ".." ""
+UserInfo ""
+Normalize
+CheckState "http" "www.real.com" 543 "../" ""
+
+# this is technically invalid (path '\' should be escaped), but path can still be obtained
+HXURLRep(url) "file:///c:\\foo\\bar.rm"
+IsValid 0  
+Normalize
+IsValid 1
+CheckState "file" "" 0 "c:/foo/bar.rm" ""
+
+HXURLRep(url) "file:///c:%5cfoo%5Cbar.rm"
+IsValid 1  
+CheckState "file" "" 0 "c:%5cfoo%5Cbar.rm" ""
+UserInfo ""
+Normalize
+CheckState "file" "" 0 "c:%5cfoo%5Cbar.rm" ""
+
+HXURLRep(url) "file:///c:%5cfoo%5Cbar/foo/foo.rm"
+IsValid 1  
+CheckState "file" "" 0 "c:%5cfoo%5Cbar/foo/foo.rm" ""
+UserInfo ""
+Normalize
+CheckState "file" "" 0 "c:%5cfoo%5Cbar/foo/foo.rm" ""
+
+HXURLRep(url) "file:///c:/foo/bar.rm"
+IsValid 1  
+CheckState "file" "" 0 "c:/foo/bar.rm" ""
+UserInfo ""
+Normalize
+CheckState "file" "" 0 "c:/foo/bar.rm" ""
+
+
+HXURLRep(url) "data:image/gif,any_non_gif_junk"
+IsValid 1  
+CheckState "data" "" 0 "image/gif,any_non_gif_junk" ""
+UserInfo ""
+Normalize
+CheckState "data" "" 0 "image/gif,any_non_gif_junk" ""
+
+# test that we do not alter opaque-form urls
+HXURLRep(url) "foo:bar/bim/../../bat/boo/."
+IsValid 1
+Path "bar/bim/../../bat/boo/."
+Normalize # should not alter 
+IsValid 1
+Path "bar/bim/../../bat/boo/."
+
+# test that we do not alter opaque-form urls
+HXURLRep(url) "foo:bar\\bim\\..\\..\\bat\\boo\\."
+IsValid 1
+Path "bar\\bim\\..\\..\\bat\\boo\\."
+Normalize # should not alter 
+IsValid 1
+Path "bar\\bim\\..\\..\\bat\\boo\\."
+
+HXURLRep(url) "scheme://myhost.com/./foo.txt"
+IsValid 1
+Path "./foo.txt"
+Normalize
+String "scheme://myhost.com/foo.txt"
+IsValid 1
+Path "foo.txt"
+
+HXURLRep(url) "scheme://myhost.com/./foo.txt"
+IsValid 1
+PathOffset 20
+Normalize
+PathOffset 20
+
+HXURLRep(url) "scheme:/myhost.com/./foo.txt"
+IsValid 1
+PathOffset 8
+Normalize
+PathOffset 8
+
+HXURLRep(url) "scheme:myhost.com/./foo.txt"
+IsValid 1
+PathOffset 7
+Normalize
+PathOffset 7
+
+HXURLRep(url) ":myhost.com/./foo.txt"
+IsValid 0 #empty scheme invalid
+PathOffset 1
+
+#rel url form
+HXURLRep(url) "myhost.com/./foo.txt"
+IsValid 1
+PathOffset 0
+Normalize
+PathOffset 0
+
+HXURLRep(url) "/path/foo.txt"
+IsValid 1
+PathOffset 1
+Normalize
+PathOffset 1
+
+HXURLRep(url) "//myhost.com/./foo.txt"
+IsValid 1
+PathOffset 13
+Normalize
+PathOffset 13
+
+#invalid scheme
+HXURLRep(url) "-tsp://foo.com/foo.rm"
+IsValid 0
+
+#invalid scheme
+HXURLRep(url) "1tsp://foo.com/foo.rm"
+IsValid 0
+
+#valid scheme
+HXURLRep(url) "a1sp://foo.com/foo.rm"
+IsValid 1
+
+#valid scheme
+HXURLRep(url) "a-.+p://foo.com/foo.rm"
+IsValid 1
+
+# test port
+HXURLRep(url) "rtsp://example.com:badport/foo.rm"
+IsValid 0 # port is bad
+String "rtsp://example.com:badport/foo.rm"
+Normalize
+String "rtsp://example.com/foo.rm"
+IsValid 1
+
+# valid port, even though may be invalid for scheme
+HXURLRep(url) "rtsp://example.com:65535/foo.rm"
+IsValid 1
+String "rtsp://example.com:65535/foo.rm"
+Normalize
+String "rtsp://example.com:65535/foo.rm"
+IsValid 1
+
+# still a valid port even though invalid for ipv4 ipv6
+HXURLRep(url) "rtsp://example.com:2147483647/foo.rm"
+IsValid 1
+String "rtsp://example.com:2147483647/foo.rm"
+Normalize
+String "rtsp://example.com:2147483647/foo.rm"
+IsValid 1
+
+# XXXLCM technically valid port per rfc but exceeds our max based on INT_MAX
+HXURLRep(url) "rtsp://example.com:2147483648/foo.rm"
+IsValid 0
+String "rtsp://example.com:2147483648/foo.rm"
+Normalize
+String "rtsp://example.com/foo.rm"
+IsValid 1
+

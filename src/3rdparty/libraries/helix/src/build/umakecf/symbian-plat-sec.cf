@@ -1,0 +1,251 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian-plat-sec.cf,v 1.8 2006/10/27 17:55:09 damann Exp $  
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Building with the symbian platform security"""
+
+project.AddDefines('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY')
+project.RemoveDefines('__DLL__')
+project.AddDefines('__EXE__')
+
+
+class PlatSecUtils:
+  
+    def __init__(self):
+        #  Define a Symbian SDK configuration file
+        #  The call to SetConfigFile() from the Symbian version specific 
+        #  config file will set it to bldvariant.hrh if it exists.  If 
+        #  not, it will be set to the default value for that version.
+        self.configFile = ""
+     
+    def generate_ordinal_info(self):
+        # Add info for the symbol to ordinal function.
+        # It should always have ordinal 1 assigned to it
+        # FreeGlobal function should be at 2
+        info = [(1, "GetSymbolOrdinal"), (2, "FreeGlobal")]
+
+        # Assign ordinals to the exported functions
+        ordinal = 3
+        for func in project.exported_func:
+            info.append((ordinal, func))
+            ordinal = ordinal + 1
+
+        return info
+
+    def generate_dll_stub_code(self, ordinalInfo, armv5Exports=None, winscwExports=None):
+        stubSourceName = "%s_dll_stub.c" % project.target_name
+
+        # find ordinal 1's function name
+        symbol2OrdinalFunc = "GetSymbolOrdinal"
+        symbol2XOrdinalFunc = "FreeGlobal"
+
+        dllStub = open(stubSourceName, "w")
+        dllStub.write("#include <e32std.h>\n")
+        dllStub.write("#include <string.h>\n")
+        if(not project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB')):
+                dllStub.write("#include \"hxglobalmgr.h\"\n\n")
+
+ 
+        dllStub.write("struct SymbolEntry {\n")
+        dllStub.write("    const char* m_pSymbolName;\n")
+        dllStub.write("    int m_ordinal;\n")
+        dllStub.write("};\n")
+        dllStub.write("\n")
+        dllStub.write("static const struct SymbolEntry z_symbolTable[] = {\n")
+        dllStub.write("    {\"%s\", %d}" % (ordinalInfo[0][1], ordinalInfo[0][0]))
+
+        for x in ordinalInfo[1:] :
+            dllStub.write(",\n")
+            dllStub.write("    {\"%s\", %d}" % (x[1], x[0]))
+       
+        ## 
+        ##   Check if there are exports that are platform specific
+        ## 
+        armv5OrdinalIndex  = x[0] + 1
+        winscwOrdinalIndex = x[0] + 1
+
+        if armv5Exports:
+            firstPass = 1
+            dllStub.write(",\n")
+            dllStub.write("#if defined(__MARM_ARMV5__)\n")
+            for x in armv5Exports:
+                ##
+                ##  The common and newline should not be added on the 
+                ##  first pass
+                ##
+                if firstPass != 1:
+                    dllStub.write(",\n")
+                dllStub.write("    {\"%s\", %d}" % (x, armv5OrdinalIndex))
+                armv5OrdinalIndex += 1
+                firstPass = 0
+            ##
+            ##  If there are winscw exports, add a common and new line
+            ##
+            if winscwExports:
+                dllStub.write(",\n")
+            else:
+                dllStub.write("\n")
+
+            dllStub.write("#endif")
+
+        if winscwExports:
+            firstPass = 1
+            if armv5Exports:
+                dllStub.write("\n")
+            else:
+                dllStub.write(",\n")
+            dllStub.write("#if defined(__CW32__)\n")
+            for x in winscwExports:
+                if firstPass != 1:
+                    dllStub.write(",\n")
+                dllStub.write("    {\"%s\", %d}" % (x, winscwOrdinalIndex))
+                winscwOrdinalIndex += 1
+                firstPass = 0
+            dllStub.write("\n")
+            dllStub.write("#endif")
+
+        dllStub.write("\n};\n")
+        dllStub.write("\n")
+
+        dllStub.write("extern \"C\"\n")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+            dllStub.write("EXPORT_C\n")
+
+        if(project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB')):
+            dllStub.write("int %s(const SymbolEntry*& pMap, int& magic)\n" % symbol2OrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    magic = 0x23aaff42;\n")
+            dllStub.write("    pMap = z_symbolTable;\n")
+            dllStub.write("    return sizeof(z_symbolTable) / sizeof(SymbolEntry);\n")
+            dllStub.write("}\n")
+        else:
+            dllStub.write("int %s(const char* pSymbolName)\n" % symbol2OrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    int ret = 0;\n")
+            dllStub.write("    int numSymbols = sizeof(z_symbolTable) / sizeof(struct SymbolEntry);\n")
+            dllStub.write("    int i;\n")
+            dllStub.write("    if( NULL != pSymbolName )\n")
+            dllStub.write("    {\n")
+            dllStub.write("       for(i = 0; !ret && (i < numSymbols); i++)\n")
+            dllStub.write("       {\n")
+            dllStub.write("           if (!strcmp(pSymbolName, z_symbolTable[i].m_pSymbolName))\n")
+            dllStub.write("           {\n");
+            dllStub.write("               ret = z_symbolTable[i].m_ordinal;\n")
+            dllStub.write("               break;\n")
+            dllStub.write("           }\n")
+            dllStub.write("       }\n")
+            dllStub.write("    }\n")
+            dllStub.write("    return ret;\n")
+            dllStub.write("}\n")
+
+        dllStub.write("\n")
+        dllStub.write("extern \"C\"\n")
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+            dllStub.write("EXPORT_C\n")
+        if project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB'):
+            dllStub.write("int %s(const SymbolEntry*& pMap, int& magic)\n" % symbol2XOrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    magic = 0x23aaff42;\n")
+            dllStub.write("    pMap = z_symbolTable;\n")
+            dllStub.write("    return sizeof(z_symbolTable) / sizeof(SymbolEntry);\n")
+            dllStub.write("}\n")
+        else:
+            dllStub.write("int %s(int reason)\n" % symbol2XOrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    if (reason == 1) \n")
+            dllStub.write("    {\n")
+            dllStub.write("        HXGlobalManager* pGM = HXGlobalManager::Instance();\n")
+            dllStub.write("        if (pGM)\n")
+            dllStub.write("        {\n")
+            dllStub.write("            pGM->Shutdown();\n")
+            dllStub.write("        }\n")
+            dllStub.write("    }\n")
+            dllStub.write("    return(KErrNone);\n")
+            dllStub.write("}\n")
+
+        ##
+        ## Stub to get around symbian mmp / winscw link bug
+        ## linker will pick this up first and import ESTLIB higher in link other
+        ## so we won't mistakeningly imported MSL copy as collateral effect of
+        ## linking runtime internals
+        ##
+        dllStub.write("\n#if defined(__CW32__)\n")
+        dllStub.write("#include <stdio.h>\n")
+        dllStub.write("#include <ctype.h>\n")
+        dllStub.write("#include <stdlib.h>\n")
+        dllStub.write("extern \"C\"\n")
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+            dllStub.write("EXPORT_C\n")
+        dllStub.write("void winscw_workaround()\n")
+        dllStub.write("{\n")
+        dllStub.write("    fread(0,0,0,0);\n")
+        dllStub.write("    iscntrl(0);\n")
+        dllStub.write("    realloc(0,0);\n")
+        dllStub.write("    calloc(0,0);\n")
+        dllStub.write("}\n")
+        dllStub.write("#endif\n")
+
+        dllStub.close()
+
+        # Add the stub to the source list
+        project.AddSources(stubSourceName)
+
+    def setConfigFile(self, defFile):
+        #  Set the config file to bldvariant.hrh if it exists
+        #  If it doesn't exist, use the filename passed in
+        configFile = "%s\\epoc32\\include\\oem\\bldvariant.hrh" % ( GetSDKPath('SYMBIANSDK') )
+
+        if os.path.isfile(configFile):
+            self.configFile = configFile
+        else:
+            self.configFile = defFile
+
+
+## Create a global instance to use.
+project.PlatSecUtils = PlatSecUtils()

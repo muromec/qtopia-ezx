@@ -1,0 +1,215 @@
+/* ***** BEGIN LICENSE BLOCK *****
+ * Source last modified: $Id: dcoreres.rc,v 1.9 2005/11/01 00:02:28 rishimathew Exp $
+ *
+ * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+ *
+ * The contents of this file, and the files included with this file,
+ * are subject to the current version of the RealNetworks Public
+ * Source License (the "RPSL") available at
+ * http://www.helixcommunity.org/content/rpsl unless you have licensed
+ * the file under the current version of the RealNetworks Community
+ * Source License (the "RCSL") available at
+ * http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+ * will apply. You may also obtain the license terms directly from
+ * RealNetworks.  You may not use this file except in compliance with
+ * the RPSL or, if you have a valid RCSL with RealNetworks applicable
+ * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+ * the rights, obligations and limitations governing use of the
+ * contents of the file.
+ *
+ * Alternatively, the contents of this file may be used under the
+ * terms of the GNU General Public License Version 2 or later (the
+ * "GPL") in which case the provisions of the GPL are applicable
+ * instead of those above. If you wish to allow use of your version of
+ * this file only under the terms of the GPL, and not to allow others
+ * to use your version of this file under the terms of either the RPSL
+ * or RCSL, indicate your decision by deleting the provisions above
+ * and replace them with the notice and other provisions required by
+ * the GPL. If you do not delete the provisions above, a recipient may
+ * use your version of this file under the terms of any one of the
+ * RPSL, the RCSL or the GPL.
+ *
+ * This file is part of the Helix DNA Technology. RealNetworks is the
+ * developer of the Original Code and owns the copyrights in the
+ * portions it created.
+ *
+ * This file, and the files included with this file, is distributed
+ * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+ * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+ * ENJOYMENT OR NON-INFRINGEMENT.
+ *
+ * Technology Compatibility Kit Test Suite(s) Location:
+ *    http://www.helixcommunity.org/content/tck
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+STRINGTABLE DISCARDABLE
+BEGIN
+    IDS_UNKNOWN_STRING      "Unknown string code was used."
+    IDS_ERR_GENERAL_ERROR   "General error. An error occurred."
+    IDS_ERR_MEMORY_ERROR    "Out of memory. You may need to close some other applications to play this content."
+    IDS_ERR_INVALID_PARAMETER "Invalid parameter. Unable to process request."
+    IDS_ERR_NOT_INITIALIZED_ERROR "Not initialized."
+    IDS_ERR_INVALID_FILE    "Unsupported document type."
+    IDS_ERR_INVALID_VERSION "Invalid file version number."
+    IDS_ERR_DOC_MISSING_ERROR
+                            "Requested file not found. The link you followed may be outdated or inaccurate."
+    IDS_ERR_FORMAT_ERROR    "Unknown data format."
+    IDS_ERR_NET_SOCKET_INVALID "Invalid socket error."
+    IDS_ERR_NET_CONNECT_ERROR
+                            "Connection to server could not be established. You may be experiencing network problems."
+    IDS_ERR_BIND_ERROR      "An error occurred binding to network socket."
+    IDS_ERR_SOCKET_CREATE_ERROR
+                            "An error occurred while creating a network socket."
+    IDS_ERR_INVALID_HOST    "Unable to establish a connection with the server."
+    IDS_ERR_INVALID_PATH    "Requested URL is not valid."
+
+    IDS_ERR_MULTICAST_JOIN_ERROR
+                            "An error occurred attempting to join multicast session."
+    IDS_ERR_MULTICAST_UDP_ERROR
+                            "Cannot receive audio data from this multicast session. You may wish to try the TCP data option in the Network Preferences. Please contact your system administrator for more information."
+    IDS_ERR_NO_CODECS       "No codecs have been installed on your system."
+    IDS_ERR_SLOW_MACHINE    "Your CPU is unable to decode this content in real time. Try closing other applications, or setting your bandwidth preference lower to receive less complex content."
+    IDS_ERR_INVALID_HTTP_PROXY_HOST "Invalid hostname for HTTP proxy."
+    IDS_ERR_INVALID_METAFILE "Invalid Metafile"
+    IDS_ERR_BAD_TRANSPORT   "Bad transport, check player preferences to ensure all network transports are selected"
+    IDS_ERR_UNSUPPORTED_VIDEO
+                            "The file contains an unsupported video format. The needed codec is not installed on your system."
+    IDS_ERR_UNSUPPORTED_AUDIO
+                            "The file contains an unsupported audio format. The needed codec is not installed on your system."
+    IDS_ERR_MISSING_COMPONENTS
+                            "Some components are not available to provide playback of this presentation on your system."
+    IDS_ERR_TRY_AUTOCONFIG  "Unable to connect to server.  Check network transport settings or run auto-configure."
+    IDS_ERR_NOTENOUGH_BANDWIDTH
+                            "You cannot receive this content.  You do not have enough network bandwidth."
+
+    IDS_ERR_NET_READ_ERROR  "An error occurred while reading data from the network."
+    IDS_ERR_NET_WRITE_ERROR "An error occurred while writing data to the network."
+    IDS_ERR_NET_UDP_ERROR   "Cannot receive UDP data packets. You may wish to try the TCP data option in Network Preferences. You may also want to configure firewall proxy settings in Proxy Preferences. Please contact your system administrator for more information."
+    IDS_ERR_SERVER_TIMEOUT  "Connection to server has timed out. You may be experiencing network problems."
+    IDS_ERR_SERVER_DISCONNECTED
+                            "Connection to server has been lost. You may be experiencing network problems."
+    IDS_ERR_DNR_ERROR       "Unable to locate server. This server does not have a DNS entry. Please check the server name in the URL and try again."
+    IDS_ERR_OPEN_DRIVER_ERROR "Cannot open the network drivers."
+    IDS_ERR_BAD_SERVER_ERROR "This server is not using a recognized protocol."
+    IDS_ERR_ADVANCED_SERVER_ERROR
+                            "You need a newer version of this product to access the requested server. Please upgrade."
+    IDS_ERR_OLD_SERVER_ERROR
+                            "Connection closed. The host's version of the RealNetworks server is too old for this client."
+    IDS_ERR_DEC_NOT_FOUND   "File compression not supported. Cannot locate the requested decoder."
+    IDS_ERR_DEC_INVALID     "The requested decoder is not valid."
+    IDS_ERR_DEC_TYPE_MISMATCH
+                            "Decoder type mismatch. Cannot load the requested decoder."
+    IDS_ERR_DEC_INIT_FAILED "Requested decoder cannot be found or cannot be used on this machine."
+    IDS_ERR_DEC_NOT_INITED  "Decoder was not initialized before attempting to use it."
+
+    IDS_ERR_DEC_DECOMPRESS_ERROR
+                            "Unable to decompress this content."
+    IDS_ERR_SERVER_ALERT    "Server alert."
+    IDS_ERR_PROXY_ERROR     "Proxy status error."
+    IDS_ERR_PROXY_RESPONSE_ERROR "Proxy invalid response error."
+    IDS_ERR_OLD_PROXY_ERROR "Connection closed. The proxy is too old for this client."
+    IDS_ERR_AUDIO_DRIVER_ERROR
+                            "Cannot open the audio device. Another application may be using it."
+    IDS_ERR_INVALID_PROTOCOL_ERROR
+                            "Invalid protocol specified in URL. URLs should typically start with ""rtsp://"", ""pnm://"", or ""http://"""
+    IDS_ERR_INVALID_URL_OPTION_ERROR "Invalid option specified in URL."
+    IDS_ERR_INVALID_URL_HOST "Invalid host string in requested URL."
+    IDS_ERR_INVALID_URL_PATH "Invalid resource path string in requested URL."
+    IDS_ERR_GENERAL_NONET   "Cannot find winsock services. Please remove old Internet software from your system and try again."
+    IDS_ERR_NEED_256_COLORS "A minimum of 256 colors is required to properly display video.  If you would like to enable video, please modify your display settings and restart."
+    IDS_ERR_CLV_NOT_SUPPORTED "ClearVideo not supported in this OS."
+    IDS_ERR_CANNOTGOFULLSCREEN
+                            "Microsoft DirectDraw (tm) and updated video drivers are required to view this content in full screen mode."
+
+    IDS_ERR_ADVANCED_PROXY_ERROR2
+                            "You need a newer version of this product to access the requested proxy. Please upgrade."
+    IDS_ERR_UPGRADE_NO_RESPONSE "Upgrade site is not responding"
+    IDS_ERR_AC_DNS_TIMEOUT  "No response from the Domain Name Server. Please re-check your Internet connection and try again."
+    IDS_ERR_HTTP_NOTAVAIL   "Content not available by HTTP"
+    IDS_ERR_HTTP_CONNECT_ERROR "Could not connect to Server using HTTP"
+    IDS_ERR_WIN32_INVALID_SOCKET
+                            "Unsupported Internet Software. This product requires Internet software built for Windows 95/NT or later. Be sure you have the latest software from your Internet Service Provider."
+    IDS_ERR_AUTHENTICATION_FAILED
+                            "The User Name and Password entered are not valid.  Would you like to try again?"
+    IDS_ERR_VFW_NOT_SUPPORTED "Video for Windows not supported by the OS."
+    IDS_ERR_PERFECTPLAY_NOT_SUPPORTED
+                            "Requested server does not support PerfectPlay."
+    IDS_ERR_NO_LIVE_PERFECTPLAY " PerfectPlay not supported for live streams."
+    IDS_ERR_NOT_AUTHORIZED  "Access Denied"
+    IDS_ERR_RIGHTS_EXPIRED  "Your rights to view this content have expired."
+    IDS_ERR_CHECK_RIGHTS    "Viewing time for this playback has expired. Check for more plays in View Content Rights."
+    IDS_ERR_RESTORE_SERVER_DENIED  "Server has denied your restore request."
+    IDS_ERR_DEBUGGER_DETECTED  "Please quit any debuggers before attempting to play secure content."
+    IDS_ERR_RESTORE_SERVER_CONNECT  "Connection to restoration server could not be established. You may be experiencing network problems."
+    IDS_ERR_RESTORE_SERVER_TIMEOUT  "Connection to restoration server has timed out. You may be experiencing network problems."
+    IDS_ERR_REVOKE_SERVER_CONNECT  "Connection to revocation server to get the updated revocation list could not be established. You may be experiencing network problems. Playback cannot continue until a connection is established."
+    IDS_ERR_REVOKE_SERVER_TIMEOUT  "Connection to revocation server to get the updated revocation list has timed out. You may be experiencing network problems. Playback cannot continue until a connection is established."
+    IDS_ERR_RESTORATION_COMPLETE   "Your rights have been restored successfully."
+    IDS_ERR_BACKUP_COMPLETE	   "Your rights have been backed up successfully."
+    IDS_ERR_TLC_NOT_CERTIFIED	   "This application is not certified to play secure content."
+    IDS_ERR_CORRUPTED_BACKUP_FILE  "The backup file is invalid."
+    IDS_ERR_PERFECTPLAY_NOT_ALLOWED "PerfectPlay not allowed on this clip."
+    IDS_ERR_GENERAL_MULTICAST_ERROR
+                            "An error occurred accessing a multicast session."
+    IDS_ERR_PROXY_DNR_ERROR "Unable to locate proxy server. This proxy server does not have a DNS entry. Please check the proxy server name and try again"
+    IDS_ERR_PROXY_NET_CONNECT_ERROR
+                            "Connection to proxy server could not be established. You may be experiencing network problems."
+
+    IDS_STATUS_CONTACTING   "Contacting"
+    IDS_ERR_VIEW_SOURCE_NOCLIP
+			    "No clip is available."
+    IDS_ERR_VIEW_SOURCE_DISSABLED
+			    "The provider of this content has not granted permission to view the source."
+    IDS_ERR_VIEW_RIGHTS_NODRM
+			    "None of the installed Digital Rights Managers support viewing rights."
+    IDS_ERR_VSRC_DISABLED   "Select More Info to learn about viewing clip source."
+    IDS_ERR_VSRC_NOCLIP	    "Select More Info to learn about viewing clip source."
+    IDS_ERR_VSRC_NODRM	    "Play some secure content to upgrade to a secure DRM."
+    IDS_ERR_WINDRAW_EXCEPTION   "An error occurred with the video subsystem. Click More Info for possible solutions to the problem.  Playback may continue with decreased performance."
+    IDS_ERR_END_WITH_REASON "The playback is aborted by the server."
+    IDS_ERR_INVALID_OPERATION   "You performed an unsupported operation."
+    IDS_ERR_WM_OPL_NOT_SUPPORTED "The content requires an output protection level that is not supported by this application."
+    IDS_ERR_PROTOCOL_DOES_NOT_SUPPORT_DATATYPE "Protocol does not support this datatype."
+	
+	IDS_ERR_PE_BAD_REQUEST				"Bad Request"
+	IDS_ERR_PE_UNAUTHORIZED				"Unauthorized"
+	IDS_ERR_PE_PAYMENT_REQUIRED			"Payment Required"
+	IDS_ERR_PE_FORBIDDEN				"Forbidden"
+	IDS_ERR_PE_NOT_FOUND				"Not Found"
+	IDS_ERR_PE_METHOD_NOT_ALLOWED		"Method Not Allowed"
+	IDS_ERR_PE_NOT_ACCEPTABLE			"Not Acceptable"
+	IDS_ERR_PE_PROXY_AUTHENTICATION_REQUIRED	"Proxy Authentication Required"
+	IDS_ERR_PE_REQUEST_TIMEOUT			"Request Time-out"
+	IDS_ERR_PE_GONE					"Gone"
+	IDS_ERR_PE_LENGTH_REQUIRED			"Length Required"
+	IDS_ERR_PE_PRECONDITION_FAILED			"Precondition Failed"
+	IDS_ERR_PE_REQUEST_ENTITY_TOO_LARGE		"Request Entity Too Large"
+	IDS_ERR_PE_REQUESTURI_TOO_LARGE			"Request-URI Too Large"
+	IDS_ERR_PE_UNSUPPORTED_MEDIA_TYPE		"Unsupported Media Type"
+	IDS_ERR_PE_PARAMETER_NOT_UNDERSTOOD		"Parameter Not Understood"
+	IDS_ERR_PE_CONFERENCE_NOT_FOUND			"Conference Not Found"
+	IDS_ERR_PE_NOT_ENOUGH_BANDWIDTH			"Not Enough Bandwidth"
+	IDS_ERR_PE_SESSION_NOT_FOUND			"Session Not Found"
+	IDS_ERR_PE_METHOD_NOT_VALID_IN_THIS_STATE	"Method Not Valid in This State"
+	IDS_ERR_PE_HEADER_FIELD_NOT_VALID_FOR_RESOURCE	"Header Field Not Valid for Resource"
+	IDS_ERR_PE_INVALID_RANGE			"Invalid Range"
+	IDS_ERR_PE_PARAMETER_IS_READONLY		"Parameter Is Read-Only"
+	IDS_ERR_PE_AGGREGATE_OPERATION_NOT_ALLOWED	"Aggregate operation not allowed"
+	IDS_ERR_PE_ONLY_AGGREGATE_OPERATION_ALLOWED	"Only aggregate operation allowed"
+	IDS_ERR_PE_UNSUPPORTED_TRANSPORT		"Unsupported transport"
+	IDS_ERR_PE_DESTINATION_UNREACHABLE		"Destination unreachable"
+	IDS_ERR_PE_INTERNAL_SERVER_ERROR		"Internal Server Error"
+	IDS_ERR_PE_NOT_IMPLEMENTED			"Not Implemented"
+	IDS_ERR_PE_BAD_GATEWAY				"Bad Gateway"
+	IDS_ERR_PE_SERVICE_UNAVAILABLE			"Service Unavailable"
+	IDS_ERR_PE_GATEWAY_TIMEOUT			"Gateway Time-out"
+	IDS_ERR_PE_RTSP_VERSION_NOT_SUPPORTED		"RTSP Version not supported"
+	IDS_ERR_PE_OPTION_NOT_SUPPORTED			"Option not supported"
+    IDS_ERR_FULL_DOWNLOAD_NEEDED  "This file is not optimized for Progressive Download."
+
+END

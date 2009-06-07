@@ -1,0 +1,1 @@
+server\fs\adminfs\rel32\adminfs.dll	0x600e0000	0x20000 ;

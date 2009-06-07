@@ -1,0 +1,147 @@
+# ***** BEGIN LICENSE BLOCK *****  
+# Source last modified: $Id: Umakefil,v 1.22 2005/08/05 01:09:26 atin Exp $ 
+#   
+# Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
+#       
+# The contents of this file, and the files included with this file, 
+# are subject to the current version of the RealNetworks Public 
+# Source License (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the current version of the RealNetworks Community 
+# Source License (the "RCSL") available at 
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+# will apply. You may also obtain the license terms directly from 
+# RealNetworks.  You may not use this file except in compliance with 
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+# the rights, obligations and limitations governing use of the 
+# contents of the file. 
+#   
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the 
+# portions it created. 
+#   
+# This file, and the files included with this file, is distributed 
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY 
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS 
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES 
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET 
+# ENJOYMENT OR NON-INFRINGEMENT. 
+#  
+# Technology Compatibility Kit Test Suite(s) Location:  
+#    http://www.helixcommunity.org/content/tck  
+#  
+# Contributor(s):  
+#   
+# ***** END LICENSE BLOCK *****  
+
+UmakefileVersion(2,1)
+
+
+project.AddModuleIncludes(
+	"common/include"
+	, "protocol/rtsp/include"
+	, "protocol/transport/common/system/pub"
+	, "server/include"
+	, "server/protocol/rttp/pub"
+	, "server/protocol/dataflow/include"
+	, "server/broadcast/common/context/pub"
+	, "server/protocol/rtsp/pub"
+	, "server/protocol/http/pub"
+	, "server/protocol/cloaked/pub"
+	, "server/protocol/sap/pub"
+	, "server/protocol/sdp"
+	, "server/protocol/transport/rdt/pub"
+	, "server/protocol/common/pub"
+	, "server/datatype/asf/common/pub"
+	, "server/engine/config/pub"
+	, "server/engine/context/pub"
+	, "server/engine/core/pub"
+	, "server/engine/core"
+	, "server/engine/registry/pub"
+	, "server/engine/dataflow/pub"
+	, "server/engine/session/pub"
+	, "server/engine/dataflow/pub"
+	, "server/engine/netio/pub"
+	, "server/common/util/pub"
+	, "server/common/netio/pub"
+	, "server/common/struct/pub"
+	, "server/protocol/http/pub"
+	, "server/qos/core/pub"
+        , "server/capex/pub"
+	, "protocol/http/pub"
+	, "protocol/rtsp/pub"
+	, "protocol/sdp/pub"
+	, "protocol/transport/common/system/pub"
+	, "protocol/transport/rtp/pub"
+	, "protocol/common/util/pub"
+	, "common/lang/xml/pub"
+	, "common/dbgtool/pub"
+	, "common/fileio/pub"
+	, "common/import/zlib/pub"
+	, "common/netio/pub"
+	, "common/fileio/pub"
+	, "common/system/pub"
+	, "common/container/pub"
+	, "common/util/pub"
+	, "common/runtime/pub"
+	)
+
+if "HELIX_FEATURE_RTSP_SERVER_CHALLENGE" in project.defines:
+    project.AddModuleIncludes("server_rn/protocol/challenge/pub")
+
+if "HELIX_FEATURE_RTSP_MIDBOX_CHALLENGE" in project.defines:
+    project.AddModuleIncludes("server_rn/protocol/challenge/pub")
+
+if "HELIX_FEATURE_SERVER_PNA_CHALLENGE" in project.defines:
+    project.AddModuleIncludes("server_rn/protocol/challenge/pub")
+
+# Known issue: Adding server_rn/protocol/wmt/mms/pub generates a warning.
+if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
+    project.AddModuleIncludes(
+          "server/protocol/wmt/http/pub"
+    	, "server_rn/protocol/wmt/mms/pub"
+	)
+
+
+project.AddSources(
+	  "_main.cpp"
+	, "aliveprot.cpp"
+	, "bcastmgr.cpp"
+        , "clientguid.cpp"
+	, "clientregtree.cpp"
+	, "core_proc.cpp"
+	, "dispatchq.cpp"
+	, "dist_lic_requester.cpp"
+	, "iids.cpp"
+	, "loadinfo.cpp"
+	, "malloc.cpp"
+	, "mem_cache.cpp"
+	, "memreap_proc.cpp"
+	, "misc_proc.cpp"
+	, "mutexlist.cpp"
+	, "hxprot.cpp"
+	, "hxprotmgr.cpp"
+	, "proc.cpp"
+	, "proc_container.cpp"
+	, "resolver_dispatch.cpp"
+	, "resolver_proc.cpp"
+	, "resolve_proc.cpp"
+	, "rssmgr.cpp"
+	, "server_context.cpp"
+	, "server_engine.cpp"
+	, "server_info.cpp"
+	, "sink_container.cpp"
+	, "source_container.cpp"
+	, "static_source_container.cpp"
+	, "stlicinf.cpp"
+	, "streamer_container.cpp"
+	, "streamer_proc.cpp"
+	, "sysinfo.cpp"
+	, "tsfob.cpp"
+        , "shregion.cpp"
+        , "shutdown.cpp"
+        , "osdetect.cpp"
+	)
+
+LibraryTarget('servenglib')

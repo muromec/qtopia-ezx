@@ -1,0 +1,151 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: multitarget.html,v 1.5 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>Multi-Target Umake files</title></head>
+<body bgcolor="#ffffff">
+
+<h1>Multi-Target Umake files</h1>
+<hr>
+
+<p>A Top-level Umakefil defines sub-targets in the module with the statement:</p>
+<pre>
+MultiTargetMake("target1", "target2", ...)
+</pre>
+
+<p>In addition to this, you can optionally call UseCommonObjects() before
+the MutiTargetMake() call.  UseCommonObjects() is a optimization hint
+which tells Umake it can use object files which may have been compiled
+by one of the other targets instead of compiling a separate copy.
+This can only be used if you are sure the objects from the two targets
+are compiled identically.  This means the same defines, include paths, 
+etc.</p>
+<pre>
+TODO: add something to multi-target specification to define what platforms
+      a target builds on; the problem with this is we will have
+      platform/target determination in two locations, the BIF file and
+      the Umakefil which isn't good either
+</pre>
+
+<p>Instead of listing *.pcf files in the Umakefil, the new MultiTargetMake
+acts more like single target Umake.  Let's review how single target
+Umake works for a target.  When Umake is invoked, a series of .pcf files
+are executed, ending with the Umakefil itself.  The .pcf files are
+determined by the platform Umake is being run on.  Under 
+linux-2.0-libc6-i386, the following files would be executed, if they exist:</p>
+<ol>
+  <li>unix.pcf</li>
+  <li>linux.pcf</li>
+  <li>linux2.pcf</li>
+  <li>Umakefil</li>
+</ol>
+
+<p>The old multi-target make syntax made it impossible to emulate 
+this .pcf file execution behavior for sub-targets.  This is now fixed.
+MultiTargetMake("target1", "target2") would exec the following .pcf files:</p>
+<ol>
+  <li>unix.pcf</li>
+  <li>target1_unix.pcf</li>
+  <li>linux2.pcf</li>
+  <li>target1_linux2.pcf</li>
+  <li>all.pcf</li>
+  <li>target1</li>
+  <li>unix.pcf</li>
+  <li>target2_unix.pcf</li>
+  <li>linux2.pcf</li>
+  <li>target2_linux2.pcf</li>
+  <li>all.pcf</li>
+  <li>target2</li>
+</ol>
+   
+<p>Remember these files are not mandatory -- the are only executed
+if they are there.</p>
+
+<p>You no longer have to list out the .pcf files for execution.  The .pcf 
+file names are the same as those used in single-target Umake, except
+for the <b>targetname</b>_ prepended to them.  Notice the single-target .pcf
+files are also executed for each target.  This is a mechanism for keeping
+platform data global to all the targets in one place.</p>
+
+<p>The new "all.pcf" file is executes for all sub-targets, no matter what
+platform you are on.  It's there to help keep only a single copy of 
+data which otherwise may have to be replicated in both the "target1" and
+"target2" umake files.</p>
+
+<p>If you want to want to know what files will be executed for a particular
+platform, look in the build/umake/*.cf files.  Near the top of the file,
+there's a line:</p>
+<pre>
+platform.pcf_prefix_list = [ ... ]
+</pre>
+
+<p>This lists the .pcf file execution in the correct order.  There are no
+problems adding to this list for a particular platform.  For example,
+the linux-2.0-libc6-i386 platform has:</p>
+<pre>
+platform.pcf_prefix_list = ['unix', 'linux2']
+</pre>
+
+<p>It may make be necessary to add "linux-i386" to all Linux/i386 platforms
+to include some set of assembly objects.</p>
+
+</body>
+</html>

@@ -1,0 +1,138 @@
+# 
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: wince-500-ppc-arm.cf,v 1.2 2007/01/05 10:22:14 daudrain33 Exp $
+# 
+# Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+# 
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+# 
+# Alternatively, the contents of this file may be used under the
+# terms of the GNU General Public License Version 2 or later (the
+# "GPL") in which case the provisions of the GPL are applicable
+# instead of those above. If you wish to allow use of your version of
+# this file only under the terms of the GPL, and not to allow others
+# to use your version of this file under the terms of either the RPSL
+# or RCSL, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by
+# the GPL. If you do not delete the provisions above, a recipient may
+# use your version of this file under the terms of any one of the
+# RPSL, the RCSL or the GPL.
+# 
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+# 
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+# 
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+# 
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+"""Wince using Visual Studio 2005 C++"""
+
+## include the common WinCE 5.0 Pocket PC info
+exec_config_file('wince-500-ppc.cf')
+
+## list of PCF files to run
+platform.pcf_prefix_list.append('wince-300-ppc-arm')
+platform.pcf_prefix_list.append('wince-500-ppc-arm')
+
+## WinCE Platform Defines
+project.AddDefines("_ARM",
+                   "ARM",
+                   "HELIX_CONFIG_FIXEDPOINT",
+                   "_ARM_",
+                   "_USE_NON_INTEL_COMPILER")
+
+
+ce_lib_dir = "\"%s\\lib\\ARMV4I\" /LIBPATH:\"%s\\atlmfc\\lib\\ARMV4I\" /LIBPATH:\"%s\\lib\\ARMV4I\"" % (pocket_pc_prefix,ce_commons_prefix,ce_commons_prefix)
+ce_include_dir = "%s\include\\Armv4i" % pocket_pc_prefix
+ce_atl_include_dir = "%s\\atlmfc\\include" % ce_commons_prefix
+ce_common_include_dir = "%s\\include" % ce_commons_prefix
+project.AddIncludes(ce_include_dir, ce_atl_include_dir,ce_common_include_dir)
+
+
+if project.BuildOption('release'):
+        project.AddSystemLibraries('atls.lib')
+	project.AddSystemLibraries('libcmt.lib')
+	project.AddSystemLibraries('msvcrt.lib')
+	project.AddSystemLibraries('MFC80U.lib')
+        project.AddSystemLibraries('UafxcW.lib')
+else:
+        project.AddSystemLibraries('atlsd.lib')
+	project.AddSystemLibraries('libcmtd.lib')
+	project.AddSystemLibraries('msvcrtd.lib')
+	project.AddSystemLibraries('MFC80Ud.lib')
+        project.AddSystemLibraries('UafxcWD.lib')
+
+
+
+project.AddSystemLibraries('atl.lib')
+project.AddSystemLibraries('atlosapis.lib')
+
+## Modify existing compiler
+cc.cmd = "\"%s\\cl\"" % evc_prefix
+
+class WinCE_ARM_Linker(WinCELinker):
+    def machine_option(self):
+        return  ["/MACHINE:THUMB"] + WinCELinker.machine_option(self)
+        
+    def LinkLIB(self, target_path, objects):
+        cmd_list = []
+
+        arg_list = [
+            "/LIB",  ## XXX: "/lib" must be the first argument! --JMP
+            "/NOLOGO",
+            "/OUT:%s" % (target_path),
+#           "/MACHINE:ARM /subsystem:windowsce,5.01",
+            objects]
+        arg_list.extend(self.machine_option())
+        arg_list.extend(self.subsystem_option())
+        cmd = "\"%s\\link\" %s" % (evc_prefix, string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+platform.link = WinCE_ARM_Linker()
+
+## compile assembly files
+class ARMAssembler(Compiler):
+    def __init__(self):
+        Compiler.__init__(self)
+
+    def setup_flags_var(self):
+        def_str = form_string(platform.form_var("ARMASMINCLUDES"))
+        return form_string(self.make_flags, '=', self.form_args(), def_str)
+
+platform.asm = ARMAssembler()
+asm = platform.asm
+asm.cmd = "\"%s\\armasm\"" % evc_prefix
+asm.source_arg = ' '
+asm.make_var = 'ARMASM'
+asm.make_flags = 'ARMASMFLAGS'
+asm.target_arg = '-o'
+asm.include_arg = '-I '
+asm.args['default'] = '-cpu StrongARM1 -arch 4 -pd "ARM_COTULLA SETA 0"'
+asm.args['debug'] = '-G -PD "_DEBUG SETA 0"'
+platform.build_rules['.s'] = BuildRule('.s', '.obj',  asm)

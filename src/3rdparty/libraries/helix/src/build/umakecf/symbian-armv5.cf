@@ -1,0 +1,612 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian-armv5.cf,v 1.16 2007/04/06 04:03:09 schaturvedi Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Generic symbian armv5 .cf file. Common stuff to all symbian armv5 builds."""
+
+exec_config_file('symbian.cf')
+
+def initialize_project_data():
+    ##
+    ##  Initialize all global project data
+    ##
+    if project.BuildOption("debug"):
+        project.output_dir = "armv5-dbg32"
+    else:
+        project.output_dir = "armv5-rel32"
+
+def initialize_platform_data():
+    ##
+    ##  Initialize all global platform data
+    ##
+    platform.include_arg = '-I'
+    platform.define_arg = '-D'
+    platform.object_suffix = 'o'
+    platform.shared_object_suffix = 'o'
+    platform.path_sep = '/'
+    platform.pcf_prefix_list[-1:-1] = ['symbian-armv5']
+
+def WriteArmv5Deffile(deffile, armv5Exports=[]):
+    ##
+    ##  Retrieve ordinal data from file
+    ##
+    ordinalFilename = "%s_ordinal.dat" % project.target_name
+
+    if project.BuildOption("ordinal") and os.path.isfile(ordinalFilename):
+        fil = open(deffile, 'w')
+        fil.write("EXPORTS\n")
+
+        for (symbol, ordinal) in read_ordinal_file(ordinalFilename):
+            fil.write("\t%s @ %s R3UNUSED\n" % (symbol, ordinal))
+
+        ordinalIndex = int(ordinal) + 1
+
+        for x in armv5Exports:
+            fil.write("\t%s @ %s R3UNUSED\n" % (x, ordinalIndex))
+            ordinalIndex += 1
+
+        fil.close()
+
+def GetArmv5ExtraDefines():
+    ## 
+    ##  Armv5 specific defines that are not included in the SDK
+    ##  
+    return ['_EPOC', 'ARM_ADS', '_ARM_', '_RVCT_', 'VA_LIST_IS_STRUCT']
+
+
+def GetArmv5SdkDefines():
+    ## 
+    ##  Armv5 specific defines that are included in the SDK
+    ##  Since the symbian build system is not used, we define
+    ##  the includes here
+    ##
+    return  [ '__MARM_ARMV5__',
+              '__MARM_INTERWORK__',
+              '__ARMCC__',
+              '__EPOC32__',
+              '__MARM__',
+              '__EABI__',
+              '__ARMCC_2__',
+              '__ARMCC_2_2__' ]
+
+def GetSymbianLibPath(libName):
+    if project.BuildOption("release"):
+        return os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\Release\ARMV5\UREL', libName)
+    else:
+        return os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\Release\ARMV5\UDEB', libName)
+
+def HandleSymbianARMIStuff(args):
+    new_sys_libraries = []
+    for x in project.sys_libraries:
+        new_path = GetSymbianLibPath(x)
+
+        if (os.path.isfile(new_path)):
+            new_sys_libraries.append("\"%s\"" % new_path)
+        else:
+            new_sys_libraries.append(x)
+            
+    project.sys_libraries = new_sys_libraries
+        
+def GetArmv5SystemIncludes():
+    incs = [ 'EPOC32\INCLUDE',
+             'EPOC32\INCLUDE\oem',
+             'EPOC32\INCLUDE\internal',
+             'EPOC32\INCLUDE\mmf',
+             'EPOC32\INCLUDE\mmf\common',
+             'EPOC32\INCLUDE\mmf\server',
+             'EPOC32\INCLUDE\VARIANT',
+             'EPOC32\INCLUDE\RVCT2_2' ]
+
+    return incs
+
+def GetArmv5CommonCompilerOptions():
+    ##
+    ##  When using a MMP file, additional compiler options 
+    ##  beyond the standard options provided by the SDK are 
+    ##  needed.  This function will return those options.
+    ##
+   return '--no_parse_templates --gnu --friend_injection -W --cpp'
+
+## 
+##  Symbian Armv5 Compiler Subclass
+##
+class SymbianARMV5Compiler(Compiler):
+    def __init__(self):
+        Compiler.__init__(self)
+        
+        project.AddDefines(GetArmv5SdkDefines())
+        project.AddDefines(GetArmv5ExtraDefines())
+
+        self.cmd         = 'armcc'
+        self.source_arg  = '-c'
+        self.target_arg  = '-o '
+        self.make_var    = 'CC'
+        self.include_arg = '-I'
+
+        ##
+        ## Compiler option --no_parse_template is for disabling parsing of non-class template 
+        ##                  if they are not actually instantiated.
+        if project.BuildOption("release"):
+             self.args['default'] = '-c --diag_suppress 3161,611,654,997,1152,1300 --diag_error 1267 --cpu 5T --enum_is_int -Ono_known_library --fpu softvfp --exceptions --exceptions_unwind --fpmode ieee_no_fenv --export_all_vtbl --no_vfe --apcs /interwork -g- -O2 --preinclude RVCT2_2.h -D__SUPPORT_CPP_EXCEPTIONS__' 
+             self.args['armi'] = '-c --diag_suppress 3161,611,654,997,1152,1300 --diag_error 1267  --cpu 5T --enum_is_int -Ono_known_library --fpu softvfp --exceptions --fpmode ieee_full --export_all_vtbl --no_vfe --apcs /interwork -W -g- -O2 --cpp --preinclude RVCT2_2.h -D__SUPPORT_CPP_EXCEPTIONS__'
+        else:
+             self.args['default'] = '-c --diag_suppress 3161,611,654,997,1152,1300 --diag_error 1267 --cpu 5T --enum_is_int -Ono_known_library --fpu softvfp --exceptions --exceptions_unwind --fpmode ieee_no_fenv --export_all_vtbl --no_vfe --apcs /interwork -g -O2 --preinclude RVCT2_2.h -D__SUPPORT_CPP_EXCEPTIONS__'
+
+        product_include = " -D__PRODUCT_INCLUDE__=\\\"%s\\\"" % project.PlatSecUtils.configFile
+
+        self.args['default'] += ' %s %s' % ( product_include, GetArmv5CommonCompilerOptions() )
+
+        ##
+        ##  Add system includes to the arg list
+        ##
+        system_includes=""
+        for inc in GetArmv5SystemIncludes():
+            system_includes += ('-J%s ' % os.path.join(GetSDKPath('SYMBIANSDK'), inc))
+
+        self.args['default'] += ' %s' % system_includes
+
+        self.args['debug'] = ''
+
+        ## 
+        ##  no optimization on release builds
+        ## 
+        if project.BuildOption('no_optimize'):
+            self.args['release'] = ''
+        else:
+            self.args['release'] = '-O2'
+
+    def execute(self, target_file, src_file):
+        extra_args = ''
+
+        return form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            extra_args,
+            self.target_arg + target_file,
+            self.source_arg,
+            src_file)
+
+
+class ARMAssembler(Compiler):
+    def __init__(self):
+        Compiler.__init__(self)
+
+        self.cmd = 'armasm'
+        self.source_arg = ' '
+        self.make_var = 'ARMASM'
+        self.make_flags = 'ARMASMFLAGS'
+        self.target_arg = '-o'
+        self.include_arg = '-I'
+        self.args['default'] = '--keep --fpu softvfp --apcs /interwork --cpu 5T'
+        self.args['debug'] = '-G -PD "_DEBUG SETA 0"'
+        self.args['release'] = ''
+
+    def setup_flags_var(self):
+        def_str = form_string('')
+        return form_string(self.make_flags, '=', self.form_args(), def_str)
+
+
+class SymbianARMILinker(Linker2):
+    def link_script_path(self):
+        return "%s.lnk" % (project.TargetName())
+
+    def write_link_script(self):
+        ## if there are no exported functions, die here
+        if len(project.exported_func) == 0:
+            umake_lib.fatal("dll target without exported functions") 
+
+        path=self.link_script_path()
+        ## create a gcc link script
+        fil = open(path, "w")
+
+        for export in project.exported_func:
+            fil.write("EXTERN(%s);\n" % (export))
+
+        fil.close()
+
+        return path
+
+    def __init__(self):
+        Linker2.__init__(self)
+
+        ## these are here to emulate the old linker class
+        ## for Umakefil/*.pcf files which do direct modification
+        ## of this class
+        self.def_file = ""
+        self.implib_file = ""
+
+        self.args = {}
+        self.args["default"] = ""
+        self.args["debug"] = "/debug"
+        self.args["release"] = "/OPT:REF"
+        self.args["dll"] = ""
+
+    def LinkLIB(self, target_path, objects):
+        cmd_list = []
+
+        cmd = '-rm %s' % target_path
+        cmd_list.append(cmd)
+        
+        arg_list = ["-r -v", target_path, objects]
+        cmd = 'armar.exe  %s' % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        cmd = 'armar.exe -s %s' % (target_path)
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanLIB(self, target_path):
+        return [target_path]
+
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        baseName = re.match("^(.+)\.dll$", target_path).group(1)
+
+        # Generate .def file for this DLL
+        defFileName = "%s{000a0000}.def" % project.target_name
+
+        WriteArmv5Deffile(defFileName)
+
+        # First link pass
+        #------------------------------------
+        #--- armlink -- generate .in file ---
+        #------------------------------------
+        arg_list = ["--diag_suppress 6331,6780",  
+                    "--partial", 
+                    "--output %s.in" % baseName,
+                    objects]
+                  
+        cmd = "armlink %s" % (string.join(arg_list))
+
+        cmd_list.append(cmd)
+
+        #------------------------------------
+        #--- armlink -- generate .dll from .def file ---
+        #------------------------------------        
+        arg_list = ["--absent _E32Dll",
+                    "--path=%s" % project.output_dir,
+                    "--export=%s{000a0000}" % project.target_name,
+                    "--deffile=%s" % defFileName,
+                    "--linkAs=%s{000a0000}.DLL" % project.target_name,
+                    "--inter"]
+        
+        cmd = "def2dll %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        if project.BuildOption("release"):
+            EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UREL" % GetSDKPath('SYMBIANSDK')
+        else:
+            EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UDEB" % GetSDKPath('SYMBIANSDK')
+        EpocLibDir  = "%s\EPOC32\Release\ARMV5\LIB" % GetSDKPath('SYMBIANSDK')
+        EpocLibs    = "efsrv.lib EUSER.LIB(VtblExports.o) EDLL.LIB ESTLIB.LIB(VtblExports.o) drtrvct2_2.lib usrt2_2.lib dfpaeabi.lib  drtaeabi.lib(VtblExports.o)"
+    
+        # Second link pass
+        arg_list = ["--diag_suppress 6331,6239,6780",
+                    "--shl",
+                    "--reloc",
+                    "--split",
+                    "--rw-base 0x400000",
+                    "--entry _E32Dll %s" % GetSymbianLibPath("EDLL.LIB(UC_DLL_.o)"),
+                    "%s{000a0000}.exp" % baseName,
+                    "--output %s" % target_path,
+                    "--symbols --list %s.map" % target_path,
+                    "%s.in" % baseName,
+                    "--userlibpath %s,%s" % (EpocUrelUdebDir, EpocLibDir),
+                    static_libs,
+                    dynamic_libs,
+                    EpocLibs ]
+ 
+        cmd = "armlink %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Create correpsonding .sym file in debug mode
+        if project.BuildOption("debug"):
+             arg_list = ["%s" % target_path, "%s.sym" % baseName ]
+              
+             cmd = "copy %s" % ( string.join(arg_list))
+             cmd_list.append(cmd)
+
+        # Translate DLL for use on the device
+	if project.IsDefined('HELIX_CONFIG_SYMBIAN_CAP_ECOM_PLUGIN'):
+        	cap_option = "ALL-Tcb"
+        else:
+		cap_option = "\"NetworkServices LocalServices Location ReadUserData WriteUserData ReadDeviceData WriteDeviceData SwEvent UserEnvironment\""
+	arg_list = ["-sid 0x%x" % project.symbianUtil.uid3,
+			"-version 10.0",
+                    "-nocall",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+                    "-capability %s" % cap_option,
+                    target_path,
+                    target_path ]
+                    
+        cmd = "elftran %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanDLL(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        
+        cmd_list = []
+
+        if (project.BuildOption('make-app')):
+            self.LinkSymbianPolyDll(target_path, "app", cmd_list, objects,
+                                static_libs, dynamic_libs)
+        elif (project.BuildOption('make-mdl')):
+            self.LinkSymbianPolyDll(target_path, "mdl", cmd_list, objects,
+                                static_libs, dynamic_libs)
+        elif (project.BuildOption('make-mmf')):
+            self.LinkSymbianPolyDll(target_path, "dll", cmd_list, objects,
+                                static_libs, dynamic_libs)
+        else:
+           self.LinkSymbianExe(target_path, cmd_list, objects,
+                            static_libs, dynamic_libs)
+
+
+        return cmd_list
+
+    def LinkSymbianPolyDll(self, target_path, dllExt, cmd_list, objects, static_libs, dynamic_libs):
+        
+        baseName = re.match("^(.+)\.%s$" % dllExt, target_path).group(1)
+
+        # Create .def file
+        if( dllExt == "app"):
+            exportLine = "_Z14NewApplicationv @ 1 R3UNUSED ; NewApplication(void)\n"
+        elif( dllExt == "mdl"):
+            exportLine = "_Z16CreateRecognizerv @ 1 R3UNUSED ; CreateRecognizer(void)\n"
+        elif( dllExt == "dll" ):
+            exportLine = "\t_Z24ImplementationGroupProxyRi @ 1 NONAME\n\n"
+        else:
+            raise "don't know what to export for dll type '%s'" % dllExt
+
+        defFileName = "%s{000a0000}.def" % project.target_name
+        defFile = open(defFileName, "w")
+        defFile.write("EXPORTS\n")
+        defFile.write(exportLine)
+        defFile.close()
+
+        #------------------------------------
+        #--- armlink -- generate .in file ---
+        #------------------------------------
+        arg_list = ["--diag_suppress 6331,6780",  
+                    "--partial", 
+                    "--output %s.in" % baseName,
+                    objects ]
+                  
+        cmd = "armlink %s" % (string.join(arg_list)) 
+        cmd_list.append(cmd)
+
+        #-----------------------------------------------
+        #--- armlink -- generate DLL from DEF file ---
+        #-----------------------------------------------        
+        arg_list = ["--absent _E32Dll",
+                    "--path=%s" % project.output_dir,
+                    "--export=%s{000a0000}" % project.target_name,
+                    "--deffile=%s" % defFileName,
+                    "--linkAs=%s{000a0000}[%x].%s" % (project.target_name, project.symbianUtil.uid3, dllExt),
+                    "--inter"]
+        
+        cmd = "def2dll %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        if project.BuildOption("release"):
+              EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UREL" % GetSDKPath('SYMBIANSDK')
+        else:
+              EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UDEB" % GetSDKPath('SYMBIANSDK')
+        EpocLibDir  = "%s\EPOC32\Release\ARMV5\LIB" % GetSDKPath('SYMBIANSDK')
+        EpocLibs    = "usrt2_2.lib dfpaeabi.lib dfprvct2_2.lib drtaeabi.lib \"drtaeabi.lib(VtblExports.o)\" scppnwdl.lib drtrvct2_2.lib efsrv.lib APMIME.LIB(VtblExports.o) EUSER.LIB(VtblExports.o) EDLL.LIB ESTLIB.LIB(VtblExports.o) "
+
+        # preelf_target_path is the output of armlink and will be the input to elftran
+        preelf_target_path = "%s_preelf.dll" % target_path
+
+        # Second link pass
+        arg_list = ["--diag_suppress 6331,6239,6780",
+                    "--shl",
+                    "--reloc",
+                    "--split",
+                    "--rw-base 0x400000",
+                    "--entry _E32Dll %s" % GetSymbianLibPath("EDLL.LIB(UC_DLL_.o)"),
+                    "%s{000a0000}.exp" % baseName,
+                    "--output %s" % preelf_target_path,
+                    "--symbols --list %s.map" % target_path,
+                    "%s.in" % baseName,
+                    "--userlibpath %s,%s" % (EpocUrelUdebDir, EpocLibDir),
+                    static_libs,
+                    dynamic_libs,
+                    EpocLibs ]
+ 
+        cmd = "armlink %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Create correpsonding .sym file in debug mode
+        if project.BuildOption("debug"):
+             arg_list = ["%s" % preelf_target_path, "%s.sym" % baseName]
+              
+             cmd = "copy %s" % (string.join(arg_list))
+             cmd_list.append(cmd)
+
+        # Translate DLL for use on the device
+	if project.IsDefined('HELIX_CONFIG_SYMBIAN_CAP_ECOM_PLUGIN'):
+		cap_option = "-capability ALL-Tcb",
+	else:
+		cap_option = ""
+        arg_list = ["-version 10.0",
+                    "-sid 0x%x" % project.symbianUtil.uid3,
+                    "-nocall",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+                    "-vid 0x101fb657",
+                    "%s" % cap_option,
+                    preelf_target_path,
+                    target_path]
+                    
+        cmd = "elftran %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+    
+    def LinkSymbianExe(self, target_path, cmd_list, objects, static_libs, dynamic_libs):
+
+        baseName = re.match("^(.+)\.exe$", target_path).group(1)
+
+        if project.BuildOption("release"):
+              EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UREL" % GetSDKPath('SYMBIANSDK')
+        else:
+              EpocUrelUdebDir = "%s\EPOC32\Release\ARMV5\UDEB" % GetSDKPath('SYMBIANSDK')
+        EpocLibDir = "%s\EPOC32\Release\ARMV5\LIB" % GetSDKPath('SYMBIANSDK')
+        EpocLibs   = "usrt2_2.lib dfpaeabi.lib dfprvct2_2.lib drtaeabi.lib \"drtaeabi.lib(VtblExports.o)\" scppnwdl.lib drtrvct2_2.lib efsrv.lib APMIME.LIB(VtblExports.o) EUSER.LIB(VtblExports.o) EDLL.LIB ESTLIB.LIB(VtblExports.o) AVKON.LIB(VtblExports.o) CONE.LIB(VtblExports.o) EEXE.LIB EFSRV.LIB(VtblExports.o)"
+
+        arg_list = ["--diag_suppress 6331,6239,6780",
+                    "--shl",
+                    "--reloc",
+                    "--split",
+                    "--entry _E32Startup %s" % GetSymbianLibPath("EEXE.LIB(UC_EXE_.o)"),
+                    "--output %s" % target_path,
+                    "--symbols --list %s.map" % target_path,
+                    "--userlibpath %s,%s" % (EpocUrelUdebDir, EpocLibDir),
+                    static_libs,
+                    dynamic_libs,
+                    EpocLibs ]
+
+        arg_list.append(objects)
+        cmd = "armlink %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Create correpsonding .sym file in debug mode
+        if project.BuildOption("debug"):
+             arg_list = ["%s" % target_path, "%s.sym" % baseName ]
+          
+             cmd = "copy %s" % (string.join(arg_list))
+             cmd_list.append(cmd)
+
+        # Translate EXE for use on the device
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_CAP_ECOM_PLUGIN'):
+        	cap_option = "-vid 0x101FB657" + " -capability ALL-Tcb"
+	else:
+		cap_option = "-vid 0x0" + " -capability \"NetworkServices LocalServices Location ReadUserData WriteUserData ReadDeviceData WriteDeviceData SwEvent UserEnvironment\""
+
+	arg_list = ["-sid 0x%x" % project.symbianUtil.uid3,
+			"-nocall ",
+                    "-uid1 0x%x" % project.symbianUtil.uid1,
+                    "-uid2 0x%x" % project.symbianUtil.uid2,
+                    "-uid3 0x%x" % project.symbianUtil.uid3,
+					"-heap 0x00100000 0x00800000",
+                    "%s" % cap_option,
+					"-fpu softvfp",
+					"-stack 0x00005000",
+                    target_path,
+                    target_path ]
+
+        cmd = "elftran %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+        
+        return cmd_list
+    
+    def CleanEXE(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+
+if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+    ##
+    ##  Initialize the armv5 specific project and platform data
+    ##
+    initialize_project_data()
+    initialize_platform_data()
+
+    ##
+    ##  Add the armv5 specific implementations to the platform
+    ##
+    platform.cc = SymbianARMV5Compiler()
+    platform.cxx = SymbianARMV5Compiler()
+    platform.asm = ARMAssembler()
+    platform.link = SymbianARMILinker()
+
+    ##
+    ##  Update the compiler options that differ from c/c++
+    ##
+    platform.cc.make_flags  = 'CCFLAGS'
+    platform.cxx.make_flags = 'CXXFLAGS'
+
+    platform.build_rules['.s'] = BuildRule('.s', '.obj', platform.asm)
+
+    AddUmakeCallback(HandleSymbianARMIStuff, None)
+
+
+
+
+
+
+
+
+
+

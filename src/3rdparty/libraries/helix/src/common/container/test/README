@@ -1,0 +1,23 @@
+This directory should build some unit test executables.
+
+Each test should be run with it's correspoding test case input file.
+For example, to run the 'tmap' test you would type 'tmap tmap.in'. If the
+test succeeds you will get a message that says 'Unit test PASSED'. If a
+test fails, information will be printed out about where the failure occured
+in the test. 
+
+tmap : Tests CHXMapPtrToPtr, CHXMapStringToOb, CHXMapStringToString, 
+       CHXMapLongToObj, and CHXMapGUIDToObj. It tests all of these maps at
+       the same time and insures that they are all behave in the same way.
+
+tptrarray : Tests CHXPtrArray
+
+tslist : Tests CHXSimpleList
+
+tstrlist : Tests CHXStringList
+
+tstring : Tests CHXString
+
+pmap : Started as a copy of 'tmap' whose intention is to run commands
+       against one map type or another in order to be able to profile the
+       execution time.  This program is incomplete!

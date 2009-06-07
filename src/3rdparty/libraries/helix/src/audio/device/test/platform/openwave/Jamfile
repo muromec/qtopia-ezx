@@ -1,0 +1,14 @@
+SubDir TOP src soundtest ;
+
+	ConfigureBuild ;
+
+	ImportShibumiPublicHeaders ;
+	ImportHeaders src shibumi ;
+
+	PUBLIC_SOUNDTEST_SRC =
+		soundtest.cpp
+		soundtest_launch.cpp
+		;
+
+	ShibumiLibrary public_soundtest_src : $(PUBLIC_SOUNDTEST_SRC) ;
+

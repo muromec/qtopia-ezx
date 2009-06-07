@@ -1,0 +1,3 @@
+# on Unix, we generally need to link against the math library
+
+project.AddSystemLibraries('m')

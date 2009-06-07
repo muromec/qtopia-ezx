@@ -1,0 +1,206 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: sunos-5.x-sparc-native-noultra.cf,v 1.7 2006/06/19 23:11:34 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""SunOS 5.x (solaris) using the native compiler.  This config file
+runs the C/C++ compiler to generate code that works on both old
+Sparc chips and UltraSparcs."""
+
+exec_config_file('unix.cf')
+
+project.AddDefines("_SUN", "_SOLARIS", "_BIG_ENDIAN", "_STRICT_ALIGNMENT")
+
+if project.build_choices.count("faacs"):
+    project.AddDefines(
+        "_REENTRANT",
+        "_UNIX_THREADS_SUPPORTED",
+        "_UNIX_THREADED_NETWORK_IO",
+        "_POSIX_PTHREAD_SEMANTICS")
+
+
+platform.suffix_list = ['.cpp', '.o']
+# suffix for intermeditate objects
+platform.shared_object_suffix = 'o'
+platform.make_lib.cmd         = 'CC -xar '
+platform.make_lib.target_arg  = '-o '
+
+platform.cc         = Compiler()
+cc                  = platform.cc
+cc.cmd              = 'cc'              
+cc.args['default']  = '-D__inline=static -xCC -Xt '     # accept C++-style comments
+#-xs: debugging with gdb?
+cc.args['debug']  = '-g -xs -xtarget=generic -DDEBUG -D_DEBUG '
+cc.args['release']  = '-fast -xtarget=generic -xO5'
+
+if not project.BuildOption("nopic"):
+        cc.args['dll']      = '-KPIC -DPIC'
+        cc.args['lib']      = '-KPIC -DPIC'
+        cc.args['default'] = cc.args['default'] + ' -KPIC '
+
+cc.args['profile']  = '-pg'
+cc.define_arg       = '-D'
+cc.include_arg      = '-I'
+cc.source_arg       = '-c'
+cc.target_arg       = '-o '
+cc.make_var         = 'CC'
+cc.make_flags       = 'CCFLAGS'
+
+
+#
+# Set up the C++ Compiler
+#
+platform.cxx        = Compiler()
+cxx                 = platform.cxx
+cxx.cmd             = 'CC' 
+cxx.args['default']  = '-features=%all,no%iddollar,no%localfor,no%strictdestrorder -D_ISO_CPP_14882_1998 -Xt -xnolib -Bstatic -lCstd -lCrun -Bdynamic ' 
+#-xs: debugging with gdb?
+cxx.args['debug']  = '-g -xs -xtarget=generic -DDEBUG -D_DEBUG '
+cxx.args['release'] = '-fast -xtarget=generic -xO5'
+
+if not project.BuildOption("nopic"):
+        cxx.args['dll']      = '-KPIC -DPIC'
+        cxx.args['lib']      = '-KPIC -DPIC'
+        cxx.args['default'] = cxx.args['default'] + ' -KPIC '
+
+
+cxx.args['profile'] = '-pg'
+cxx.define_arg      = '-D'
+cxx.include_arg     = '-I'
+cxx.source_arg      = '-c'
+cxx.target_arg      = '-o '
+cxx.make_var        = 'CXX'
+cxx.make_flags      = 'CXXFLAGS'
+
+project.AddSystemLibraries('socket', 'nsl', 'c')
+
+
+if "native" not in project.build_choices:
+        project.build_choices.append("native")
+
+#always use use_exports
+if "use_exports" not in project.build_choices:
+        project.build_choices.append("use_exports")
+
+
+#
+# Set up the Linker
+#
+class SunProLinker(Linker):
+    def __init__(self):
+        Linker.__init__(self)
+        self.make_var        = 'FOO'
+        self.make_flags      = 'LDFLAGS'
+        self.args['default'] = ''       
+        self.args['profile'] = '-pg'
+        self.args['static']  = '-static'
+        self.args['debug']  = '-xs -xtarget=generic '
+        self.args['release']  = ' -fast -xtarget=generic -xO5 '
+        self.target_arg      = '-o'
+        self.ldcmd           = 'CC' 
+        self.ldargs          = '-xnolib '
+        self.cmd             = 'CC'
+
+    def execute(self, target, objects, static_libs, dynamic_libs):
+        ##Note: when resolving symbols in an object or library, only libraries specified 
+        # later on the command line are searched
+        # Make sure libCrun is specified after all objects/libraries which use C++
+        link_str = platform.form_var(self.make_var) + ' ' +\
+                   platform.form_var(self.make_flags) + ' ' +\
+                   HandleExports(target, project.exported_func) +' ' +\
+                   self.target_arg + ' ' +\
+                   target + ' ' +\
+                   objects + ' ' +\
+                   dynamic_libs + ' ' +\
+                   static_libs +\
+                   ' -Bstatic -lCstd -lCrun -Bdynamic '
+        return link_str
+
+
+    def set_type(self):
+        self.cmd = self.ldcmd
+
+        if (project.getTargetType() == 'dll'):
+            self.args['default'] =  self.ldargs + '-G ' 
+        else:
+            self.args['default'] = self.ldargs
+
+
+platform.link = SunProLinker()
+
+def HandleExports (target, funcs, ttype="dll") :
+    if ttype != "dll" or project.build_choices.count("use_exports") == 0:
+        return ""
+    elflinkscript = 'elflink.' + os.path.basename(target)
+    out = open (elflinkscript, "w")
+    if not project.exported_func and ttype == "dll":
+        print "You must define an exported function list for this module"
+    out.write ("""
+           G2 {
+                global:
+                        %s
+                local:
+                        *;
+           };
+        \n""" % string.join(map (lambda x: x + ";\n\t\t", project.exported_func
+)))
+    out.close()
+    return " -M " + elflinkscript
+

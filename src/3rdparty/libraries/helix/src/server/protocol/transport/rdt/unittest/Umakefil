@@ -1,0 +1,94 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: Umakefil,v 1.5 2007/01/19 19:46:46 darrick Exp $
+#
+# Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved.
+#
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+#
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+#
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+#
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+#
+# Contributor(s):
+#
+# ***** END LICENSE BLOCK *****
+
+UmakefileVersion(2,1)
+
+project.AddSources(
+                    "ut_main.cpp"
+                  , "ut_rdtvptran.cpp"
+                  , "ut_rdtudptran.cpp"
+                  , "ut_rdttcptran.cpp"
+                  )
+
+project.AddModuleIncludes(
+          "common/include"
+        , "common/dbgtool/pub"
+        , "common/container/pub"
+        , "common/util/pub"
+        , "common/netio/pub"
+        , "common/system/pub"
+        , "cppunit/include"
+        , "protocol/common/util/pub"
+        , "protocol/transport/common/system/pub"
+        , "protocol/rtsp/pub"
+        , "protocol/rtsp/include"
+        , "server/include"
+        , "server/protocol/common/pub"
+        , "server/protocol/transport/common/pub"
+        , "server/tools/unittest/include"
+        , "server/tools/unittest/container/pub"
+        , "server/tools/unittest/netio/pub"
+        , "server/tools/unittest/services/pub"
+        )
+
+project.AddIncludes("pub", ".")
+
+project.AddModuleLibraries(
+	  "common/container[contlib]"
+	, "common/dbgtool[debuglib]"
+	, "common/fileio[fileiolib]"
+	, "common/netio[netiolib]"
+	, "common/fileio[fileiolib]"
+	, "common/util[utillib]"
+	, "common/runtime[runtlib]"        
+        , "common/system[syslib]"
+	, "protocol/rtsp[rtsplib]"
+	, "protocol/transport/common/system[systranlib]"
+	, "protocol/common/util[protutillib]"
+        , "server/common/struct[servstructlib]"
+        , "server/qos/core[servqoscore]"
+        , "server/qos/transport[servqostrnsprt]"
+        , "server/tools/unittest/container[utcontainerlib]"
+        , "server/tools/unittest/netio[utnetiolib]"
+        , "server/tools/unittest/services[utserviceslib]"
+        , "server/tools/unittest/utils[ututilslib]"
+        , "server/protocol/transport/common[servbasetranlib]"
+	, "server/protocol/transport/rdt[servrdtlib]"
+	)
+
+ProgramTarget('ut_rdttran')
+

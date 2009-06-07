@@ -1,0 +1,190 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: wince-420.cf,v 1.5 2006/07/06 19:28:06 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+"""Wince using EVC 4.2"""
+
+exec_config_file('win32.cf')
+
+# Signal that we want the linker to generate pdb files
+project.AddBuildOption("pdb")
+
+## list of PCF files to run
+platform.pcf_prefix_list = ['win', 'wince', 'wince-420']
+
+## Fixed point CODECs
+if project.BuildOption("fixed_point"):
+        project.AddDefines("HELIX_CONFIG_FIXEDPOINT")
+
+## WinCE platform defines
+project.AddDefines("UNICODE",
+                   "_UNICODE",
+                   "UNDER_CE=420",
+                   "_WIN32_WCE=420",
+                   "WIN32_PLATFORM_UNKNOWN",
+                   "WIN32_PLATFORM_PSPC=310")
+
+# Helix related defines
+project.AddDefines("THREADS_SUPPORTED",
+                   "_LITTLE_ENDIAN",
+                   "WINCE",
+                   "_WINCE",
+                   "USE_WINSOCK1",
+                   "RC_INVOKED",
+                   "HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS")
+
+
+project.AddSystemLibraries('corelibc.lib')
+project.AddSystemLibraries('coredll.lib')
+project.AddSystemLibraries('uuid.lib')
+
+
+# Get the WinCE tools path. In the EVC 4.2 installer this
+# defaults to C:\Program Files\Windows CE Tools
+ce_tools_prefix = GetSDKPath("windows_ce4_tools")
+
+wince_standard_prefix = "%s" % ce_tools_prefix
+ce_include_dir = "%s\\include" % wince_standard_prefix
+ce_atl_include_dir = "%s\\atl\\include" % wince_standard_prefix
+project.AddIncludes(ce_include_dir, ce_atl_include_dir)
+
+# Get the embedded visual tools path. In the EVC 4.2 installer
+# this defaults to C:\Program Files\Microsoft eMbedded C++ 4.0
+evc_prefix = GetSDKPath("evc4_visual_tools")
+
+## define base arguments for build modes
+cc.args['default'] = '/nologo /W3 /X'
+cc.args['debug'] = '/Od'
+
+def wincompiler_add_m_arg(extra_args):
+    return extra_args
+
+class WinCELinker(WinLinker):
+    def subsystem_option(self):
+        return ["/SUBSYSTEM:windowsce,4.20"]
+# + WinLinker.subsystem_option(self)
+
+    def machine_option(self):
+        return []
+
+    def extra_options(self):
+        return [ "/incremental:yes",
+                 "/NODEFAULTLIB",
+                 "/LIBPATH:\"%s\"" % ce_lib_dir ]
+        
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        global project
+        cmd_list = []
+
+        if project.BuildOption('debug'):
+            dbg = "debug"
+        else:
+            dbg = "release"
+        
+        arg_list = ["/DLL"] + self.option_arg_list()
+        if project.BuildOption("debug+"):
+            arg_list.append("/debug")
+        arg_list.append("/OUT:%s" % (target_path))
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+        cmd = "python %s -basefile:%s -basedir:%s /entry:_DllMainCRTStartup /base:0x00100000 /stack:0x10000,0x1000 %s" % (
+            os.path.join(BUILD_ROOT,"bin","pylink.py"),
+            os.path.join(project.src_root_path,dbg,"rebase.lst"),
+            project.module_directory(),
+            string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        arg_list = self.option_arg_list()
+        if project.BuildOption("console-app"):
+            arg_list.append("/entry:\"mainACRTStartup\"")
+        if project.BuildOption("debug+"):
+            arg_list.append("/debug")
+        arg_list.append("/OUT:%s" % (target_path))
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+        cmd = "\"%s\\EVC\\WCE420\\BIN\\link\" %s" % (evc_prefix,
+                                                     string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+# Make the linker object None so that
+# the specific WinCE platform MUST specify it
+platform.link = None
+
+platformDirStr = "wince"
+match = re.match("^wince-420-(.+)$", os.environ['SYSTEM_ID'])
+if (match):
+    platformDirStr = platformDirStr + "-%s" % match.group(1)
+    
+## target paths
+if project.BuildOption("debug"):
+    project.output_dir = "%s-dbg" % platformDirStr
+else:
+    project.output_dir = "%s-rel" % platformDirStr

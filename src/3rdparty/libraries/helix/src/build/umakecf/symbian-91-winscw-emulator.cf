@@ -1,0 +1,134 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian-91-winscw-emulator.cf,v 1.6 2007/04/05 04:59:46 gahluwalia Exp $  
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Building with the symbian 9.1 sdk for the winscw emulator on win-i386 """
+
+## Read in generic symbian config file.
+exec_config_file('symbian-91.cf')
+exec_config_file('symbian-emulator-winscw.cf')
+
+class PlatformDependentUtils:
+    def write_uid_file(self):
+        # first uid (what kind of binary image)
+        KDynamicLibraryUid  = 0x10000079
+        KExecutableImageUid = 0x1000007a
+
+        # second uid (what kind of dll or exe)
+        KUidApp             = 0x100039ce
+        KUidRecognizer      = 0x10003a19
+
+        # third uid = implementation uid
+
+        #
+        # for symbian, target_type is 'exe' for .app and .mdl and .mmf (misleading)
+        #
+        imageType = "unknown"
+        if( project.getTargetType() == "dll" ):
+            imageType = "dll"
+
+        elif ( project.getTargetType() == "exe" ):
+            # We have no longer make-app as dll 
+            if (project.BuildOption('make-mdl') or project.BuildOption('make-mmf')):
+                imageType = "dll"
+            else:
+                imageType = "exe"
+
+        if( project.symbianUtil.uid1 == 0 ):
+            # set to default value for target type
+            if (imageType == "exe"):
+                project.symbianUtil.uid1 = KExecutableImageUid
+            elif (imageType == "dll"):
+                project.symbianUtil.uid1 = KDynamicLibraryUid
+                
+        if( project.symbianUtil.uid2 == 0 ):
+            # set to default value for specific type of target
+            if (project.BuildOption('make-app')):
+                # app
+                project.symbianUtil.uid2 = KUidApp
+            elif (project.BuildOption('make-mdl')):
+                # recognizer
+                project.symbianUtil.uid2 = KUidRecognizer
+
+        uidpath = '%s.uid.cpp' %( project.target_name)
+
+        fil = open(uidpath, 'w')
+        fil.write('//Umake generated UID file.\n')
+        fil.write('#include <e32cmn.h>\n')
+        fil.write('#pragma data_seg(".SYMBIAN")\n')
+        #      __EMULATOR_IMAGE_HEADER2(aUid0,aUid1,aUid2,    aPriority           ,aCap0,      aCap1,    aSid,  aVid,          aVer,  aFlags)	
+        tmp = '__EMULATOR_IMAGE_HEADER2(0x%x, 0x%x, 0x%x, EPriorityForeground, 0x000ffffeu, 0x00000000u, 0x%x, 0x00000000u, 0x00010000, 0)\n' % (project.symbianUtil.uid1,
+                                            project.symbianUtil.uid2, project.symbianUtil.uid3, project.symbianUtil.uid3)   
+        fil.write(tmp)
+        fil.write('#pragma data_seg()\n')
+        fil.close()
+
+        project.AddSources(uidpath)
+
+    def create_mbm_file(self, mbmpath, headerpath, options, option, imagelist, iconlist):
+        i = 0
+        bitmaps = [] 
+        for image in iconlist:
+            bitmaps.append("%s%s " % (options[i], image) )
+            i = i + 1
+        for image in imagelist:
+            bitmaps.append("%s%s " % (option, image))
+
+        cmd = "bmconv /h%s %s %s" % (headerpath, mbmpath, string.join(bitmaps))
+        (status, output) = shell.run(cmd)
+        print output
+
+        if status:
+            raise "*** mbm generation failed (%s) ***" % status
+
+
+## Create a global instance to use.
+project.PlatformDependentUtil = PlatformDependentUtils()
+
+project.AddDefines('HELIX_CONFIG_SYMBIAN_SAMPLESPLAYED','HELIX_FEATURE_RMFF_MULTIRATE')
+project.RemoveDefines('HELIX_FEATURE_AUDIO_CODEC_SIPRO')

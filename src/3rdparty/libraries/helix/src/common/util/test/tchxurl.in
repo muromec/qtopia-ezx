@@ -1,0 +1,834 @@
+# Construct <string>
+# URL <expected>
+# FixedURL <expected>
+# PropURL <expected>
+# PropScheme <expectected>
+# PropHost <expectected>
+# PropPath <expectected> unescaped
+# PropFullPath <expectected> unescaped
+# PropResource <expectected>
+
+
+
+# interpretation depends on platform; need update to unittest
+# following is expected result on windows:
+Construct "file:////netshare/path/to/file"
+ParseError 0
+# add slash (file:/// + //netshare/path/to/file)
+FixedURL "file://///netshare/path/to/file"
+# non-Windows would expect following
+#FixedURL "file:////netshare/path/to/file"
+PropFullPath "//netshare/path/to/file"
+PropPath "//netshare/path/to/"
+PropResource "//netshare/path/to/file"
+PropScheme "file"
+
+# same as previous, but with windows-style path chars
+Construct "file://\\\\netshare\\path\\to\\file"
+ParseError 0
+# add slash to file://
+FixedURL "file://///netshare/path/to/file"
+# non-Windows would expect following
+#FixedURL "file:////netshare/path/to/file"
+PropFullPath "//netshare/path/to/file"
+PropPath "//netshare/path/to/"
+PropResource "//netshare/path/to/file"
+PropScheme "file"
+
+# interpretation depends on platform; need update to unittest
+# following is expected result on windows:
+Construct "file://///netshare/path/to/file"
+ParseError 0
+FixedURL "file://///netshare/path/to/file"
+# non-Windows would expect following (normalized path)
+#FixedURL "file:////netshare/path/to/file"
+PropFullPath "//netshare/path/to/file"
+PropPath "//netshare/path/to/"
+PropResource "//netshare/path/to/file"
+PropScheme "file"
+
+# same as previous, but with windows-style path chars
+Construct "file:///\\\\netshare\\path\\to\\file"
+ParseError 0
+FixedURL "file://///netshare/path/to/file"
+# non-Windows would expect following (normalized path)
+#FixedURL "file:////netshare/path/to/file"
+PropFullPath "//netshare/path/to/file"
+PropPath "//netshare/path/to/"
+PropResource "//netshare/path/to/file"
+PropScheme "file"
+
+
+# same as previous, but with mixed unix/windows-style path chars
+Construct "file:///\\/netshare/path/to/file"
+ParseError 0
+FixedURL "file://///netshare/path/to/file"
+# non-Windows would expect following (normalized path)
+#FixedURL "file:////netshare/path/to/file"
+PropFullPath "//netshare/path/to/file"
+PropPath "//netshare/path/to/"
+PropResource "//netshare/path/to/file"
+PropScheme "file"
+
+
+# ambiguous file name fixup
+Construct "file:///blah?foo=bar?something=else"
+ParseError 0
+# note: '?' is a valid query char
+FixedURL "file:///blah?foo=bar?something=else"
+PropFullPath "blah"
+PropPath ""
+PropResource "blah?foo=bar?something=else"
+
+# ambiguous file name fixup
+Construct "file:///path#with#frag/bar?query=foo?#oth?erdata"
+ParseError 0
+# fragment dropped
+FixedURL "file:///path%23with%23frag/bar?query=foo?%23oth?erdata"
+PropFullPath "path#with#frag/bar"
+PropPath "path#with#frag/"
+PropResource "path%23with%23frag/bar?query=foo?%23oth?erdata"
+
+
+Construct "file://c:\\my documents\\some path\\~file.rm"
+ParseError 0
+URL "file://c:\\my documents\\some path\\~file.rm"
+FixedURL "file:///c:/my%20documents/some%20path/~file.rm"
+PropFullPath "c:/my documents/some path/~file.rm"
+PropPath "c:/my documents/some path/"
+PropResource "c:/my%20documents/some%20path/~file.rm"
+
+# fix-up interprets '#' as unescaped path char, not frag
+Construct "file:///c:\\path\\file#name.ibr"
+ParseError 0
+PropScheme "file"
+PropFullPath "c:/path/file#name.ibr"
+FixedURL "file:///c:/path/file%23name.ibr"
+
+# same as above but with query
+Construct "file:///c:\\path\\file#name.ibr?start=now"
+ParseError 0
+PropScheme "file"
+PropFullPath "c:/path/file#name.ibr"
+PropResource "c:/path/file%23name.ibr?start=now"
+FixedURL "file:///c:/path/file%23name.ibr?start=now"
+
+# same as above but with query and fragment; the fragment
+# is interpreted as an unescaped query char since fragments
+# are illegal for file protocol
+Construct "file:///c:\\path\\file#name.ibr?start=now#otherdata"
+ParseError 0
+PropScheme "file"
+PropFullPath "c:/path/file#name.ibr"
+PropResource "c:/path/file%23name.ibr?start=now%23otherdata"
+FixedURL "file:///c:/path/file%23name.ibr?start=now%23otherdata"
+
+# same but no query; '#' is interpreted as query, not fragment
+Construct "file:///c:\\path\\file#name.ibr?#otherdata"
+ParseError 0
+PropScheme "file"
+PropFullPath "c:/path/file#name.ibr"
+PropPath "c:/path/"
+FixedURL "file:///c:/path/file%23name.ibr?%23otherdata"
+
+# non-file scheme: '#' not interpreted generically as fragment
+Construct "foo:///c:\\path\\file#name.ibr"
+ParseError 0
+PropScheme "foo"
+PropFullPath "c:/path/file"
+FixedURL "foo:///c:/path/file#name.ibr"
+
+# escape sequence not treated as such because other unescaped chars are present
+Construct "file:///c:\\pat%20h\\file"
+ParseError 0
+PropScheme "file"
+PropFullPath "c:/pat%20h/file"
+PropPath "c:/pat%20h/"
+PropResource "c:/pat%2520h/file"
+FixedURL "file:///c:/pat%2520h/file"
+
+# same but 'notfrag'fixed
+Construct "file:///c:\\pat%20h\\file#notfrag"
+ParseError 0
+PropScheme "file"
+PropResource "c:/pat%2520h/file%23notfrag"
+PropFullPath "c:/pat%20h/file#notfrag"
+FixedURL "file:///c:/pat%2520h/file%23notfrag"
+
+
+Construct "cont:///filename.ibr?file=internal.rec"
+URL "cont:///filename.ibr?file=internal.rec"
+PropFullPath "filename.ibr"
+ParseError 0
+PropScheme "cont"
+PropHost ""
+PropPath ""
+PropFullPath "filename.ibr"
+PropResource "filename.ibr?file=internal.rec"
+
+# invalid per CHXURL
+Construct "filename.ibr?file=internal.rec"
+URL "filename.ibr?file=internal.rec"
+ParseError 1 
+
+Construct "cont://c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+
+# absolute path component is invalid
+Construct "cont:/c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+URL "cont:/c:\\path\\filename.ibr?file=internal.rec"
+FixedURL "cont:/c:/path/filename.ibr?file=internal.rec"
+PropPath "c:/path/"
+PropFullPath "c:/path/filename.ibr"
+
+# opaque url form 
+Construct "cont:c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+PropScheme "cont"
+URL "cont:c:\\path\\filename.ibr?file=internal.rec"
+PropURL "cont:c:\\path\\filename.ibr?file=internal.rec"
+FixedURL "cont:c:\\path\\filename.ibr?file=internal.rec"
+PropFullPath ""
+
+# windows path mis-parsed scheme (c: = scheme)
+Construct "c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+PropScheme "c"
+PropFullPath ""
+
+# windows path
+Construct "file:///c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+PropScheme "file"
+#PropFullPath "c:\\path\\filename.ibr"
+PropFullPath "c:/path/filename.ibr"
+FixedURL "file:///c:/path/filename.ibr?file=internal.rec"
+
+# path component is invalid but fixable
+Construct "cont:///c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+URL "cont:///c:\\path\\filename.ibr?file=internal.rec"
+PropFullPath "c:/path/filename.ibr"
+PropPath "c:/path/"
+
+# path component above fixed via slash (valid)
+Construct "cont:///c:/path/filename.ibr?file=internal.rec"
+ParseError 0
+URL "cont:///c:/path/filename.ibr?file=internal.rec"
+PropFullPath "c:/path/filename.ibr"
+
+# no file fixup for non-file schemes - path is treated as opaque
+Construct "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+ParseError 0
+URL "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+FixedURL "cont:///c:%5cpath%5cfilename.ibr?file=internal.rec"
+PropFullPath "c:\\path\\filename.ibr"
+PropPath "" # opaque path
+
+# see previous; here we normalize os path component
+Construct "cont:///c:\\path\\filename.ibr?file=internal.rec"
+ParseError 0
+FixedURL "cont:///c:/path/filename.ibr?file=internal.rec"
+
+# url supplied already fixed
+Construct "cont:///c:/path/filename.ibr?file=internal.rec"
+ParseError 0
+URL "cont:///c:/path/filename.ibr?file=internal.rec"
+FixedURL "cont:///c:/path/filename.ibr?file=internal.rec"
+
+Construct "rtsp:"
+ParseError 0
+URL "rtsp:"
+PropScheme "rtsp"
+
+# opaque url form not parsed beyond scheme
+Construct "rtsp:somedir/blah.rm"
+ParseError 0
+URL "rtsp:somedir/blah.rm"
+PropFullPath ""
+
+# opaque url form not parsed beyond scheme
+Construct "rtsp:somedir/blah.rm?"
+ParseError 0
+URL "rtsp:somedir/blah.rm?"
+PropFullPath ""
+
+# invalid per chxurl (no host)
+Construct "rtsp://"
+ParseError 1
+URL "rtsp://"
+PropFullPath ""
+
+Construct "rtsp://example.com"
+ParseError 0
+URL "rtsp://example.com"
+PropFullPath ""
+PropResource ""
+
+Construct "rtsp://example.com:"
+ParseError 0
+
+Construct "rtsp://example.com?"
+ParseError 0
+URL "rtsp://example.com?"
+
+Construct "rtsp://example.com#"
+ParseError 0
+URL "rtsp://example.com#"
+
+Construct "rtsp://example.com?foo=bar"
+ParseError 0
+URL "rtsp://example.com?foo=bar"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345"
+ParseError 0
+URL "rtsp://example.com:2345"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345?"
+ParseError 0
+URL "rtsp://example.com:2345?"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345?foo=bar"
+ParseError 0
+URL "rtsp://example.com:2345?foo=bar"
+
+
+Construct "rtsp://example.com/"
+ParseError 0
+URL "rtsp://example.com/"
+PropFullPath ""
+
+Construct "rtsp://example.com/?"
+ParseError 0
+URL "rtsp://example.com/?"
+PropFullPath ""
+
+Construct "rtsp://example.com/?foo=bar"
+ParseError 0
+URL "rtsp://example.com/?foo=bar"
+PropFullPath ""
+
+Construct "rtsp://example.com:/"
+ParseError 0
+URL "rtsp://example.com:/"
+FixedURL "rtsp://example.com/"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345/"
+ParseError 0
+URL "rtsp://example.com:2345/"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345/?"
+ParseError 0
+URL "rtsp://example.com:2345/?"
+PropFullPath ""
+
+Construct "rtsp://example.com:2345/?foo=bar"
+ParseError 0
+URL "rtsp://example.com:2345/?foo=bar"
+PropFullPath ""
+
+Construct "rtsp://example.com/somedir/blah.rm"
+ParseError 0
+URL "rtsp://example.com/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com/somedir/blah.rm?"
+ParseError 0
+URL "rtsp://example.com/somedir/blah.rm?"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com/somedir/blah.rm?foo=bar"
+ParseError 0
+URL "rtsp://example.com/somedir/blah.rm?foo=bar"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:/somedir/blah.rm"
+ParseError 0
+URL "rtsp://example.com:/somedir/blah.rm"
+FixedURL "rtsp://example.com/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:/somedir/blah.rm?"
+ParseError 0
+URL "rtsp://example.com:/somedir/blah.rm?"
+PropFullPath "somedir/blah.rm"
+FixedURL "rtsp://example.com/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:/somedir/blah.rm?foo=bar"
+ParseError 0
+URL "rtsp://example.com:/somedir/blah.rm?foo=bar"
+PropFullPath "somedir/blah.rm"
+FixedURL "rtsp://example.com/somedir/blah.rm?foo=bar"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:2345/somedir/blah.rm"
+ParseError 0
+URL "rtsp://example.com:2345/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:2345/somedir/blah.rm?"
+ParseError 0
+URL "rtsp://example.com:2345/somedir/blah.rm?"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp://example.com:2345/somedir/blah.rm?foo=bar"
+ParseError 0
+URL "rtsp://example.com:2345/somedir/blah.rm?foo=bar"
+PropFullPath "somedir/blah.rm"
+
+# empty invalid
+Construct ""
+ParseError 1
+URL ""
+
+Construct "rtsp:/"
+ParseError 0
+URL "rtsp:/"
+PropFullPath ""
+
+Construct "rtsp:/?"
+ParseError 0
+URL "rtsp:/?"
+PropFullPath ""
+
+Construct "rtsp:/?foo=blah"
+ParseError 0
+URL "rtsp:/?foo=blah"
+PropFullPath ""
+
+Construct "rtsp:/somedir/blah.rm"
+ParseError 0
+URL "rtsp:/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp:/somedir/blah.rm?"
+ParseError 0
+URL "rtsp:/somedir/blah.rm?"
+PropFullPath "somedir/blah.rm"
+
+Construct "rtsp:/somedir/blah.rm?foo=bar"
+ParseError 0
+URL "rtsp:/somedir/blah.rm?foo=bar"
+PropFullPath "somedir/blah.rm"
+
+Construct rtsp://example.com:2554/blah.rm
+ParseError 0
+URL rtsp://example.com:2554/blah.rm
+PropFullPath blah.rm
+
+Construct rtsp://example.com:2554
+ParseError 0
+URL rtsp://example.com:2554
+PropFullPath ""
+
+Construct rtsp://example.com
+ParseError 0
+URL rtsp://example.com
+PropFullPath ""
+
+Construct file:///blah.rm
+ParseError 0
+URL file:///blah.rm
+PropFullPath "blah.rm"
+
+# already fixed:
+# properties are returned escaped
+Construct file:///the%20movie.rm?foo=%5bbar%5d
+ParseError 0
+URL file:///the%20movie.rm?foo=%5bbar%5d
+FixedURL file:///the%20movie.rm?foo=%5bbar%5d
+PropFullPath "the movie.rm"
+
+# already fixed:
+
+# in this case a character is escaped that need not
+# be escaped (fix url unescapes)
+Construct file:///%4Dovie.rm
+ParseError 0
+URL file:///%4Dovie.rm
+FixedURL file:///Movie.rm
+PropFullPath "Movie.rm"
+
+Construct "http://ab/b/c/d;p?q"
+ParseError 0
+URL "http://ab/b/c/d;p?q"
+PropFullPath "b/c/d;p"
+
+Construct "rt+-.sp1234://example.com/somedir/blah.rm"
+ParseError 0
+URL "rt+-.sp1234://example.com/somedir/blah.rm"
+PropFullPath "somedir/blah.rm"
+
+Construct "rt%2-.sp1234://example.com/somedir/blah.rm"
+ParseError 1
+URL "rt%2-.sp1234://example.com/somedir/blah.rm"
+
+
+Construct "rt[^2-.sp1234://example.com/somedir/blah.rm"
+ParseError 1
+URL "rt[^2-.sp1234://example.com/somedir/blah.rm"
+
+
+Construct "rtsp://example-host.234.com/blah.rm"
+ParseError 0
+URL "rtsp://example-host.234.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://123.235.23.42/blah.rm"
+ParseError 0
+URL "rtsp://123.235.23.42/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://a/blah.rm"
+ParseError 0
+URL "rtsp://a/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://-example.com/blah.rm"
+ParseError 0
+URL "rtsp://-example.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://.example.com/blah.rm"
+ParseError 0
+URL "rtsp://.example.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example./blah.rm"
+ParseError 0
+URL "rtsp://example./blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example-/blah.rm"
+ParseError 0
+URL "rtsp://example-/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://ex+%1ample.com/blah.rm"
+ParseError 0
+URL "rtsp://ex+%1ample.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://ex+[am]ple.com/blah.rm"
+ParseError 0
+URL "rtsp://ex+[am]ple.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/blah.rm"
+ParseError 0
+URL "rtsp://example.com/blah.rm"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/bB2134:@&=+$,-_.!*'()lah.rm"
+ParseError 0
+URL "rtsp://example.com/bB2134:@&=+$,-_.!*'()lah.rm"
+PropFullPath "bB2134:@&=+$,-_.!*'()lah.rm"
+
+# space in path needs fixing
+Construct "rtsp://example.com/b:@&=+$,la h.rm"
+ParseError 0
+URL "rtsp://example.com/b:@&=+$,la h.rm"
+# space is fixed
+FixedURL "rtsp://example.com/b:@&=+$,la%20h.rm"
+PropFullPath "b:@&=+$,la h.rm"
+
+# no fixing needed (already escaped)
+Construct "rtsp://example.com/b:@&=+$,la%20h.rm"
+ParseError 0
+# % is not escaped (matches escape sequence)
+URL "rtsp://example.com/b:@&=+$,la%20h.rm"
+FixedURL "rtsp://example.com/b:@&=+$,la%20h.rm"
+PropFullPath "b:@&=+$,la h.rm"
+
+# % needs fixing (doesn't look like escape sequence)
+Construct "rtsp://example.com/b:%h.rm"
+ParseError 0
+URL "rtsp://example.com/b:%h.rm"
+# % is escaped
+FixedURL "rtsp://example.com/b:%25h.rm"
+PropFullPath "b:%h.rm"
+
+Construct "rtsp://example.com/b:%2h.rm"
+ParseError 0
+URL "rtsp://example.com/b:%2h.rm"
+# % doesn't match escape sequence; fixed
+FixedURL "rtsp://example.com/b:%252h.rm"
+PropFullPath "b:%2h.rm"
+
+# half-escaped string escaped entirely
+# unescaped char detected (% not part of valid escape sequence)
+# everything escaped (even though there are some escape sequences, i.e. %20)
+Construct "rtsp://example.com/b:%%20h.rm"
+ParseError 0
+URL "rtsp://example.com/b:%%20h.rm"
+FixedURL "rtsp://example.com/b:%25%2520h.rm"
+PropFullPath "b:%%20h.rm"
+
+# needs escaping
+Construct "rtsp://example.com/b:[42h].rm"
+ParseError 0
+URL "rtsp://example.com/b:[42h].rm"
+FixedURL "rtsp://example.com/b:%5B42h%5D.rm"
+PropFullPath "b:[42h].rm"
+
+# space
+Construct "rtsp://example.com/the movie.rm"
+ParseError 0
+URL "rtsp://example.com/the movie.rm"
+FixedURL "rtsp://example.com/the%20movie.rm"
+PropFullPath "the movie.rm"
+PropPath ""
+
+Construct "rtsp://example.com/blah.rm?kdsf;/?:@&=+$,%20653hgdfDGFD-_.!*'()"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?:@&=+$,%20653hgdfDGFD-_.!*'()"
+PropFullPath "blah.rm"
+
+# Test invalid query strings
+Construct "rtsp://example.com/blah.rm?kdsf;/?foo bar"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?foo bar"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/blah.rm?kdsf;/?foo%xbar"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?foo%xbar"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/blah.rm?kdsf;/?foo%3xbar"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?foo%3xbar"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/blah.rm?kdsf;/?foo%3%xbar"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?foo%3%xbar"
+PropFullPath "blah.rm"
+
+Construct "rtsp://example.com/blah.rm?kdsf;/?foo[]xbar"
+ParseError 0
+URL "rtsp://example.com/blah.rm?kdsf;/?foo[]xbar"
+PropFullPath "blah.rm"
+
+# IPv6 host tests
+Construct "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"
+ParseError 0
+PropFullPath "index.html"
+
+# same as good url above, no port
+Construct "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/index.html"
+ParseError 0
+PropFullPath "index.html"
+
+# empty host parse error
+Construct "http://:80/index.html"
+ParseError 1
+FixedURL "http://:80/index.html"
+PropFullPath ""
+
+# IPv6 empty host parse error
+Construct "http://[]:80/index.html"
+ParseError 1
+URL "http://[]:80/index.html"
+FixedURL "http://:80/index.html"
+PropFullPath ""
+
+# other schemes do not reqiure path
+Construct "foo:///"
+ParseError 0
+
+# file url must have path
+Construct "file:///"
+ParseError 1
+
+# non IPv6 char in IPv6 host 
+Construct "http://[FEDC:BA98:765-4:3210:FEDC:BA98:7654:3210]:80/index.html"
+ParseError 0
+URL "http://[FEDC:BA98:765-4:3210:FEDC:BA98:7654:3210]:80/index.html"
+# port taken as junk after first ':' to '/' and discarded
+FixedURL "http://FEDC/index.html"
+
+# no resource
+Construct "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]"
+ParseError 0
+PropPath ""
+PropFullPath ""
+
+# missing right bracket (can't find enf of host)
+Construct "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:80/index.html"
+ParseError 1
+
+# missing opening bracket (mis-interpret ':'; port will be bad)
+Construct "http://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"
+ParseError 0
+
+Construct "http://[::192.9.5.5]:80/index.html"
+ParseError 0
+PropFullPath "index.html"
+
+Construct "http://user@www.real.com:543/dir/foo/../bam.rm"
+URL "http://user@www.real.com:543/dir/foo/../bam.rm"
+FixedURL "http://user@www.real.com:543/dir/bam.rm"
+ParseError 0
+PropFullPath "dir/bam.rm"
+#UserInfo "user"
+
+Construct "http://user:pw@www.real.com:543/dir/foo/../bam.rm"
+ParseError 0
+PropFullPath "dir/bam.rm"
+#UserInfo "user:pw"
+
+Construct "http://:pw@www.real.com:543/dir/foo/../bam.rm"
+ParseError 0
+#UserInfo ":pw"
+PropFullPath "dir/bam.rm"
+PropPath "dir/"
+
+# no user info (valid?)
+Construct "http://@www.real.com:543/dir/foo/../bam.rm"
+ParseError 0
+PropFullPath "dir/bam.rm"
+PropPath "dir/"
+
+Construct "http://www.real.com:543/dir/foo/../././../bam.rm"
+ParseError 0
+#PropFullPath "dir/foo/../././../bam.rm"
+PropFullPath "bam.rm"
+
+Construct "http://www.real.com:543/dir/foo/../bam.rm"
+ParseError 0
+#PropFullPath "dir/foo/../bam.rm"
+PropFullPath "dir/bam.rm"
+
+Construct "http://www.real.com:543/dir/..foo/bam.rm"
+ParseError 0
+PropFullPath "dir/..foo/bam.rm"
+
+Construct "http://www.real.com:543/."
+ParseError 0
+PropFullPath "./"
+
+Construct "http://www.real.com:543/.."
+ParseError 0
+PropFullPath "../"
+
+Construct "file:///c:\\foo\\bar.rm"
+ParseError 0
+PropFullPath "c:/foo/bar.rm"
+
+Construct "file:///c:%5cfoo%5Cbar.rm"
+ParseError 0
+PropFullPath "c:/foo/bar.rm"
+
+# mixed path yields bad (unexpected?) PropPath
+Construct "file:///c:%5cfoo%5Cbar/foo/foo.rm"
+URL "file:///c:%5cfoo%5Cbar/foo/foo.rm"
+FixedURL "file:///c:/foo/bar/foo/foo.rm"
+ParseError 0
+PropFullPath "c:/foo/bar/foo/foo.rm"
+PropPath "c:/foo/bar/foo/"
+
+Construct "file:///c:/foo/bar.rm"
+ParseError 0
+PropFullPath "c:/foo/bar.rm"
+
+
+# opaque
+Construct "data:image/gif,any_non_gif_junk"
+ParseError 0
+PropFullPath ""
+
+
+# localhost in file url special exception 
+Construct "file://localhost/./foo.rm"
+ParseError 0
+URL "file://localhost/./foo.rm"
+FixedURL "file://localhost/foo.rm"
+# normalized - may not be what is wanted?
+PropFullPath "foo.rm"
+PropPath ""
+
+
+# others not - 'host' assumed part of path
+Construct "file://host/foo.rm"
+ParseError 0
+URL "file://host/foo.rm"
+FixedURL "file:///host/foo.rm"
+PropFullPath "host/foo.rm"
+
+# windows exception (interpretation depends on platform; need update to unittest)
+# four slash file url (interpreted as net-share)
+Construct "file:////foo.rm"
+ParseError 0
+URL "file:////foo.rm"
+FixedURL "file://///foo.rm"
+PropFullPath "//foo.rm"
+# does not really make sense (corner case we don't care to address)
+PropPath "//"
+
+
+# non-Windows
+# valid file url (root kept as path)
+#Construct "file:////foo.rm"
+#ParseError 0
+#URL "file:////foo.rm"
+#FixedURL "file:////foo.rm"
+#PropFullPath "/foo.rm"
+#PropPath "/"
+
+
+# three slash file url (no root in path); handler may root
+Construct "file:///foo.rm"
+ParseError 0
+URL "file:///foo.rm"
+FixedURL "file:///foo.rm"
+PropFullPath "foo.rm"
+PropPath ""
+
+# one slash file url 
+Construct "file:/foo.rm"
+ParseError 0
+URL "file:/foo.rm"
+FixedURL "file:///foo.rm"
+PropFullPath "foo.rm"
+PropPath ""
+
+# zero slash file url
+Construct "file:foo.rm"
+ParseError 0
+URL "file:foo.rm"
+FixedURL "file:///foo.rm"
+PropFullPath "foo.rm"
+PropPath ""
+
+# one slash file url with #
+Construct "file:/foo#bar.rm"
+ParseError 0
+URL "file:/foo#bar.rm"
+FixedURL "file:///foo%23bar.rm"
+PropFullPath "foo#bar.rm"
+PropPath ""
+
+# two slash file url with # and query
+Construct "file://foo#bar.rm?time=now"
+ParseError 0
+URL "file://foo#bar.rm?time=now"
+FixedURL "file:///foo%23bar.rm?time=now"
+PropResource "foo%23bar.rm?time=now"
+PropFullPath "foo#bar.rm"
+PropPath ""
+
+# two slash file url with # and query
+Construct "file://foo#bar.rm?time=now"
+ParseError 0
+URL "file://foo#bar.rm?time=now"
+FixedURL "file:///foo%23bar.rm?time=now"
+PropFullPath "foo#bar.rm"
+PropPath ""

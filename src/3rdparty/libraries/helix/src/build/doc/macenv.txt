@@ -1,0 +1,51 @@
+##
+## Add the following to your .tcshrc, or put this in a separate
+## file to source before running the build system.
+##
+
+## Path to checked out build system
+setenv BUILD_ROOT $HOME/build
+
+## Put the build command in your $path
+set path = ( $path "$BUILD_ROOT/bin" )
+
+## The primary hard drive (/)
+setenv BUILD_VOL "MacOS X"
+
+# For Mac cvs
+setenv MACCVS_PATH '"MacOS X:Users:yourname:Applications:MacCVS Pro 2.7d3 (Carbon)"'
+setenv CVSSESSION_PATH '"MacOS X:Users:yourname:cvssession"'
+
+# Required
+setenv BUILD_SW '"MacOS X:Applications:Metrowerks CodeWarrior 8:Metrowerks CodeWarrior:CodeWarrior IDE 4.2.6"'
+
+# Select system to compile for
+setenv SYSTEM_ID macos-carbon-powerpc-cw8
+setenv TARGET_ARCHITECTURE mac-carbon
+setenv COMPILER_VERSION 8
+
+# Select system we are compiling on
+setenv BUILD_ON_PLATFORM MacOSX
+
+
+
+## If you use bash (you should), add the following to your .bash_profile
+##
+
+##
+## Helix Ribosome build system settings
+##
+export BUILD_ROOT=$HOME/build
+export PATH=$PATH:$BUILD_ROOT/bin
+export BUILD_VOL="MacOS X"
+export MACCVS_PATH='"MacOS X:Users:yourname:Applications:MacCVS Pro 2.7d3 (Carbon)"'
+export CVSSESSION_PATH='"MaOS X:Users:yourname:cvssession"'
+export BUILD_SW='"MacOS X:Applications:Metrowerks CodeWarrior 8:Metrowerks CodeWarrior:CodeWarrior IDE 4.2.6"'
+export SYSTEM_ID="macos-carbon-powerpc-cw8"
+export TARGET_ARCHITECTURE="mac-carbon"
+export COMPILER_VERSION=8"
+export BUILD_ON_PLATFORM="MacOSX"
+##
+## End of Helix settings
+##
+

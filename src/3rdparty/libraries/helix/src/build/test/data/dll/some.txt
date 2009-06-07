@@ -1,0 +1,4 @@
+# This is a text file,
+# not a dll.
+#
+# Used for testing dll.py

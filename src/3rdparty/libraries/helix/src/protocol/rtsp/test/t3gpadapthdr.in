@@ -1,0 +1,226 @@
+# Construct <A or B>
+
+Construct A
+
+# Call fails because the object doesn't have any values
+GetValues A 0x80004005 
+
+# Parse fails because the object is not initialized 
+Parse A 0x80040009 ""
+
+Init A 0x00000000
+Parse A 0x80070057 ""
+Parse A 0x80070057 "url"
+Parse A 0x80070057 "url="
+Parse A 0x80070057 "url=\"\""
+Parse A 0x00000000 "url=\"rtsp://foo.com\""
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com"
+GetStringProp blah 0x80004005 ""
+
+# Test the case where there is junk at the end
+Parse A 0x80070057 "url=\"rtsp://foo.com\"asdfklj"
+GetValues A 0x80004005
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";"
+GetValues A 0x80004005
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size"
+GetValues A 0x80004005
+
+# At least 1 digit must be preset
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size="
+GetValues A 0x80004005
+
+Parse A 0x00000000 "url=\"rtsp://foo.com\";size=1"
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com"
+GetULONG32Prop size 0x00000000 1
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=abc"
+GetValues A 0x80004005
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=1;"
+GetValues A 0x80004005
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=1;"
+GetValues A 0x80004005
+
+# Only 9 digits are allowed in an integer
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=1234567890"
+GetValues A 0x80004005
+
+# + sign is not allowed
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=+123"
+GetValues A 0x80004005
+
+# - sign is not allowed
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=-123"
+GetValues A 0x80004005
+
+Parse A 0x80070057 "url=\"rtsp://foo.com\";size=1asdf"
+GetValues A 0x80004005
+
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42;target-time=64"
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com/blah.rm"
+GetULONG32Prop size 0x00000000 42
+GetULONG32Prop target-time 0x00000000 64
+
+# test string parameter
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";someString=blah"
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com/blah.rm"
+GetStringProp someString 0x00000000 blah
+
+# test string and int param
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";someString=blah;size=35"
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com/blah.rm"
+GetULONG32Prop size 0x00000000 35
+GetStringProp someString 0x00000000 blah
+
+# test string and int param
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=53;someString2=foo"
+GetValues A 0x00000000
+GetStringProp url 0x00000000 "rtsp://foo.com/blah.rm"
+GetULONG32Prop size 0x00000000 53
+GetStringProp someString2 0x00000000 foo
+
+# test comparison
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\""
+Construct B
+Init B 0x00000000
+Parse B 0x00000000 "url=\"rtsp://foo.com/blah.rm\""
+Compare 1
+
+Parse B 0x00000000 "url=\"rtsp://foo.com/\""
+Compare 0
+
+Parse B 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42"
+Compare 0
+
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42"
+Compare 1
+
+Parse B 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=645"
+Compare 0
+
+Parse B 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42;someStr=blah"
+Compare 0
+
+Parse B 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42;target-time=3"
+Compare 0
+
+Parse A 0x00000000 "url=\"rtsp://foo.com/blah.rm\";size=42;target-time=3"
+Compare 1
+
+
+# test SetValues()
+Construct A
+GetValues A 0x80004005
+SetValues A 0x80070057
+
+CreateValues
+SetValues A 0x80070057
+
+# Test the case where a int property is specified as a string
+CreateValues
+SetStringProp url rtsp://foo.com
+SetStringProp size 234
+SetValues A 0x80070057
+
+# Test the case where a string property is specified as an int
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop url 234
+SetValues A 0x80070057
+
+# test unknown string and int properties
+CreateValues
+SetStringProp url rtsp://foo.com
+SetStringProp blah test
+SetULONG32Prop foo 1234
+SetValues A 0x00000000
+
+# Test a simple valid SetValues() case and compare it to an
+# object that got it's values via parsing a string
+CreateValues
+SetStringProp url rtsp://foo.com
+SetValues A 0x00000000
+Construct B
+Init B 0x00000000
+Parse B 0x00000000 "url=\"rtsp://foo.com\""
+Compare 1
+
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop size 234
+SetValues A 0x00000000
+Construct B
+Init B 0x00000000
+Parse B 0x00000000 "url=\"rtsp://foo.com\";size=234"
+Compare 1
+
+# Test GetString with an uninitialized object
+Construct A
+GetString A 0x80040009 ""
+
+# Test GetString with an initialized object with no values
+Construct A
+Init A 0x00000000
+GetString A 0x80040009 ""
+
+# Test GetString with only a URL
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetValues A 0x00000000
+GetString A 0x00000000 "url=\"rtsp://foo.com\""
+
+# Test GetString w/ an URL and a ULONG32 parameter
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop size 234
+SetValues A 0x00000000
+GetString A 0x00000000 "url=\"rtsp://foo.com\";size=234"
+
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop size 234
+SetULONG32Prop target-time 1234
+SetValues A 0x00000000
+GetString A 0x00000000 "url=\"rtsp://foo.com\";size=234;target-time=1234"
+
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop target-time 1234
+SetULONG32Prop size 234
+SetValues A 0x00000000
+GetString A 0x00000000 "url=\"rtsp://foo.com\";size=234;target-time=1234"
+
+# Test the case were size is too long
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetULONG32Prop size 1234567890
+SetValues A 0x00000000
+GetString A 0x80070057 ""
+
+# Test the case w/ string parameter
+Construct A
+Init A 0x00000000
+CreateValues
+SetStringProp url rtsp://foo.com
+SetStringProp blah foo
+SetULONG32Prop size 1234
+SetValues A 0x00000000
+GetString A 0x00000000 "url=\"rtsp://foo.com\";size=1234;blah=foo"

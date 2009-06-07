@@ -1,0 +1,156 @@
+# 
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: noplusumake,v 1.8 2006/08/17 17:16:36 ping Exp $
+# 
+# Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+# 
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+# 
+# Alternatively, the contents of this file may be used under the
+# terms of the GNU General Public License Version 2 or later (the
+# "GPL") in which case the provisions of the GPL are applicable
+# instead of those above. If you wish to allow use of your version of
+# this file only under the terms of the GPL, and not to allow others
+# to use your version of this file under the terms of either the RPSL
+# or RCSL, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by
+# the GPL. If you do not delete the provisions above, a recipient may
+# use your version of this file under the terms of any one of the
+# RPSL, the RCSL or the GPL.
+# 
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+# 
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+# 
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+# 
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+UmakefileVersion(2,2)
+CPPSuffixRule()
+
+project.AddIncludes('../../common/include',
+                    'pub',
+                    '.',
+                    '../../common/dbgtool/pub',
+                    '../../common/runtime/pub',
+                    '../../common/container/pub',
+                    '../../common/util/pub',
+                    '../include')
+
+project.AddModuleLibraries('common/dbgtool[debuglib]',
+                           'common/util[utillib]',
+                           'common/system[syslib]',
+                           'common/container[contlib]',
+                           'common/runtime[runtlib]',
+                           'video/vidutil[vidutillib]')
+
+project.AddSources('hxcolor.cpp', 'edge.cpp',
+                   'env.c', 'setpal.c', 'setclrs.c',
+                   'clip.c', 'rgb2rgb.c', 'rgb2yuv.c',
+                   'yuv2rgb.c', 'yuv2yuv.c', 'yuvalpha.c');
+
+project.defines.append('_FAT_HXCOLOR')
+project.defines.append('_8_BIT_SUPPORT')
+
+project.defines.append('HXCOLOR_SHRINK')
+project.defines.append('HXCOLOR_STRETCH')
+project.defines.append('HXCOLOR_STRETCH2X')
+project.defines.append('HXCOLOR_STRETCH2XPLUS')
+project.defines.append("HXCOLOR_ALLYUV2RGB")
+
+project.ExportFunction("GetHXColorGUID", "UCHAR* pGUID",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("InitColorConverter", "void")
+project.ExportFunction("GetColorAdjustments",
+                       "float* Brightness, float* Contrast, " \
+                       "float* Saturation, float* Hue")
+project.ExportFunction("SetColorAdjustments",
+                       "float Brightness, float Contrast, " \
+                       "float Saturation, float Hue")
+project.ExportFunction("SetChromaResamplingMode", "int nNewMode")
+project.ExportFunction("SuggestRGB8Palette", "int nColors, UINT32 *lpRGBVals",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("SetRGB8Palette", "int nColors, UINT32 *lpRGBVals, int *lpIndices",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("GetCompatibleColorFormats", "INT32 cidIn, INT32* pcidOut, UINT32* pnSize",
+						"common/include", "hxtypes.h")
+project.ExportFunction("GetColorConverter", "INT32 cidIn, INT32 cidOut",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("GetColorConverter2", "INT32 cidIn, INT32 cidOut",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("ScanCompatibleColorFormats",
+                       "INT32 cidIn, INT32 cidOutMask, void *pParam, " \
+                       "HXBOOL (*pfnTryIt) (void *pParam, INT32 cidOut, " \
+                       "LPHXCOLORCONVERTER pfnCC), INT32",
+                       "video/include", "coloracc.h")
+project.ExportFunction("ScanAllCompatibleColorFormats",
+                       "INT32 cidIn, void *pParam,HXBOOL (*pfnTryIt) (void " \
+                       "*pParam, INT32 cidOut, LPHXCOLORCONVERTER pfnCC), INT32",
+                       "video/include", "coloracc.h")
+project.ExportFunction("ConvertYUVtoRGB",
+                       "UCHAR* ySrc, UCHAR* uSrc, UCHAR* vSrc, INT32  nPitchSrc, " \
+                       "UCHAR* Dst, INT32  nWidth, INT32  nHeight, INT32  nPitchDst, " \
+                       "INT16  nFormat, INT16  nExpand",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("ConvertRGBtoYUV",
+                       "UCHAR* pInput, UCHAR* pOutput, INT32  nWidth, " \
+                       "INT32  nHeight, HXBOOL   bBGR",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("SetSharpnessAdjustments",
+                       "float Sharpness, INT16 nExpand",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("GetSharpnessAdjustments",
+                       "float *pSharpness, INT16* pnExpand",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("Enhance",
+                       "UCHAR *yuv420in, INT32 inheight, INT32  inwidth, " \
+                       "INT32 pitchSrc, float Sharpness",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("EnhanceUniform",
+                       "UCHAR *yuv420in, INT32 inheight, INT32  inwidth, " \
+                       "INT32 pitchSrc, float Sharpness",
+                       "common/include", "hxtypes.h")
+project.ExportFunction("I420andYUVA",
+                       "unsigned char *src1_ptr, int src1_pels, " \
+                       "int src1_lines,  int src1_pitch, int src1_startx, " \
+                       "int src1_starty, unsigned char *src2_ptr, " \
+                       "int src2_pels,   int src2_lines,  int src2_pitch, " \
+                       "int src2_startx, int src2_starty, unsigned char *dest_ptr, " \
+                       "int dest_pels,   int dest_lines,  int dest_pitch, " \
+                       "int dest_startx, int dest_starty, int width, " \
+                       "int height,  int color_format")
+project.ExportFunction("I420andI420toI420",
+                       "unsigned char *src1_ptr, int src1_pels, " \
+                       "int src1_lines,  int src1_pitch, int src1_startx, " \
+                       "int src1_starty, unsigned char *src2_ptr, int src2_pels, " \
+                       "int src2_lines,  int src2_pitch, int src2_startx, " \
+                       "int src2_starty, unsigned char *dest_ptr, int dest_pels, " \
+                       "int dest_lines,  int dest_pitch, int dest_startx, int dest_starty, " \
+                       "int width,  int height,  int alpha")
+
+project.SetDLLTypeCodec()
+DLLTarget('cvt1')
+DependTarget()

@@ -1,0 +1,39 @@
+//Microsoft Developer Studio generated resource script.
+//
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""hxcolor.rc2""  // non-Microsoft Visual C++ edited resources\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include "hxcolor.rc2"  // non-Microsoft Visual C++ edited resources
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED

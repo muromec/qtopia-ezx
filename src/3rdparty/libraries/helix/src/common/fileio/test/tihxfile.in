@@ -1,0 +1,188 @@
+# ************* DataFile Tests *************
+# *** Operations on unbound file ***
+GetLastErrorCode OK
+Delete FAIL
+Name FAIL
+IsOpen FALSE
+Close OK
+Flush FAIL
+Open "wb" FAIL
+Open "rb" FAIL
+Create "wb" FAIL
+Create "rb" FAIL
+Read 20 FAIL
+Write HelloWorld FAIL
+Stat FAIL
+Tell
+GetLastErrorCode FAIL
+
+# *** Bind ***
+Bind FakeFile.txt
+Name OK FakeFile.txt
+
+# *** Rebind ***
+Bind TestFile.txt
+Name OK TestFile.txt
+
+# *** Open-Create ***
+Create wb OK
+IsOpen TRUE
+Name OK TestFile.txt
+
+# *** Close and close again
+Close OK
+IsOpen FALSE
+Name OK TestFile.txt
+Close OK
+Close OK
+
+# *** Open ***
+Open rwb OK
+IsOpen TRUE
+Name OK TestFile.txt
+Close OK
+
+# *** Write on Closed File ***
+Write HelloWorld FAIL
+Write NeverSayNeverAgain FAIL
+
+# *** Open ***
+Open rwb OK
+IsOpen TRUE
+Name OK TestFile.txt
+
+# *** Write on Open File ***
+Write HelloWorld OK
+Write NeverSayNeverAgain OK
+Flush OK
+
+# *** Stat ***
+Stat OK 28
+
+# *** Seek/Read/Tell ***
+Seek 2 SET OK
+Read 3 OK llo
+Tell 5
+Seek 2 CUR OK
+Tell 7
+Read 3 OK rld
+Seek -5 CUR OK
+Tell 5
+Stat OK 28
+Read 5 OK World
+Tell 10
+Seek -5 END OK
+Tell 23
+Read 5 OK Again
+Tell 28
+Stat OK 28
+
+# *** Flush on Open File ***
+Flush OK
+Flush OK
+Flush OK
+Stat OK 28
+
+# *** EOF Read ***
+Read 3 FAIL
+Read 5 FAIL
+Read 23 FAIL
+
+# *** Partial EOF Read ***
+Seek -3 END OK
+Read 5 OK ain
+Tell 28
+Stat OK 28
+
+# *** Close ***
+Close OK
+IsOpen FALSE
+Name OK TestFile.txt
+
+# *** Stat unbound file ***
+Stat OK 28
+
+# *** Flush on Closed File ***
+Flush FAIL
+Flush FAIL
+Flush FAIL
+
+# *** Delete Closed File ***
+Delete OK
+
+# *** Open non-existent file ***
+Open rb FAIL
+Open rwb FAIL
+Open w FAIL
+
+# *** Open for read/write ***
+Create rwb OK
+
+# *** Write ***
+Write HelloWorld OK
+
+# *** Delete Open File ***
+Delete OK
+IsOpen FALSE
+
+# *** Open for read/write ***
+Open rwb FAIL
+IsOpen FALSE
+Create rwb OK
+Write HelloWorld OK
+Flush OK
+Stat OK 10
+
+# *** Re-open test ***
+Open rb OK
+Tell 0
+Stat OK 10
+GetLastErrorString
+Close OK
+Close OK
+
+# *** Create-NoTrunc test ***
+Create rwbn FAIL
+Create rwn FAIL
+Create rbn FAIL
+Create wbn FAIL
+Create rn FAIL
+Create wn FAIL
+
+# *** Blast test ***
+Create wb OK
+Stat OK 0
+Write HelloWorld OK
+Flush OK
+Stat OK 10
+Delete OK
+Open rb FAIL
+
+# *** CHX Data file tests ***
+# *** Get Temp File Name ***
+GetTempName
+Create rwb OK
+GetTempName
+Write HelloWorld OK
+Flush OK
+
+# *** Rewind Test ***
+Rewind OK
+Read 5 OK Hello
+Rewind OK
+Read 5 OK Hello
+Close OK
+Rewind FAIL
+Rewind FAIL
+
+# *** Delete name test ***
+Delete TestFile.txt OK
+Delete TestFile.txt FAIL
+Delete TestFIle.txt FAIL
+Open rb FAIL
+
+
+
+
+
+
