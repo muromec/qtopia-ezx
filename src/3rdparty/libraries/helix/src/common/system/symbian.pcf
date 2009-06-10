@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: symbian.pcf,v 1.19 2006/12/15 20:41:50 shy_ward Exp $
+# Source last modified: $Id: symbian.pcf,v 1.24 2009/04/24 17:48:02 asheesh Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -52,7 +52,9 @@
 project.AddIncludes( "pub/platform/symbian" )
 project.AddModuleIncludes( "common/system/platform/symbian")
 project.AddModuleIncludes( "common/log/logutil/pub")
+project.AddModuleIncludes( "common/log/logutil/pub/platform/symbian")
 project.AddModuleIncludes( "common/include")
+project.AddModuleIncludes( "client/common/container/pub")
 
 project.AddSources("platform/symbian/gettickcount.c",
                    "platform/symbian/new.cpp",
@@ -61,7 +63,9 @@ project.AddSources("platform/symbian/gettickcount.c",
                    "platform/symbian/symbian_string.cpp",
                    "platform/symbian/memorymonitor.cpp",
                    "platform/symbian/CActiveObj.cpp",
-                   "platform/symbian/symbianglobalvideoparameters.cpp")
+                   "platform/symbian/symbianglobalvideoparameters.cpp",
+                   "platform/symbian/symbian_error_mapper.cpp",
+                   "platform/symbian/symbian_tlc_context.cpp")
 
 # These files have non secure APIs depricated in symbian 9.0
 # so they are removed temporarily for symbian 9.0
@@ -69,6 +73,10 @@ if not project.IsDefined("_SYMBIAN_90_"):
     project.AddSources("platform/symbian/symbianthreads.cpp",
                    "platform/symbian/symbian_rtimer_at_imp.cpp",
                    "platform/symbian/symbian_thread_at_imp.cpp")
+
+if project.IsDefined("HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY"):
+    project.AddSources("platform/symbian/CHXSymbianServer.cpp")
+
 
 if (not project.BuildOption('nodll')) or (project.IsDefined("HELIX_CONFIG_CONSOLIDATED_CORE")):
     project.AddSources("platform/symbian/symbian_dll.cpp",

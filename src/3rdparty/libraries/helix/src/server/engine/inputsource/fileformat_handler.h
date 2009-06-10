@@ -113,7 +113,6 @@ public:
     /* PPM Support */
     /* IHXPSourcePackets */
     STDMETHOD(Init)             (THIS_ IHXPSinkPackets* pSink);
-    STDMETHOD_(UINT32, IsThreadSafe)     (THIS);
     IHXPSinkPackets*		m_pPullPacketSink;
 
 protected:

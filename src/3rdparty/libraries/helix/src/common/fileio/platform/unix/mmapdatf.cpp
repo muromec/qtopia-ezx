@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mmapdatf.cpp,v 1.15 2006/05/01 14:31:47 bobclark Exp $
+ * Source last modified: $Id: mmapdatf.cpp,v 1.19 2008/07/22 07:15:36 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,8 +68,10 @@
 #include "mmapmgr.h"
 #include "filespec.h"
 
-#if defined(_MAC_UNIX)
+#if defined(_MAC_UNIX) || defined(_UNIX)
 #include "filespecutils.h"
+// OSX handles 64/32 open automatically
+#define open64 open
 #endif
 
 /////////////////////////////////////////////////////////////////////////
@@ -187,7 +189,7 @@ MemoryMapDataFile::~MemoryMapDataFile()
 STDMETHODIMP_(void)
 MemoryMapDataFile::Bind(const char* pFilename)
 {
-#if defined(_MAC_UNIX)
+#if defined(_MAC_UNIX) || defined(_UNIX)
     // on OS X, memory mapping a file from an audio CD
     // causes a kernel panic. This has been reported
     // to Apple as radr://3730990 but we still need
@@ -197,12 +199,12 @@ MemoryMapDataFile::Bind(const char* pFilename)
     CHXDirSpecifier dirSpec = fileSpec.GetParentDirectory();
     
     bool bMemMappingOK = true;
-    
+#if defined(_MAC_UNIX)    
     if (CHXFileSpecUtils::IsDiskAudioCD(dirSpec))
     {
         bMemMappingOK = false;
     }
-    
+#endif   
     // if a windows share (smb) is shut down remotely then if
     // we're memory-mapping we crash. This happened with the
     // windows implementation of MemoryMapDataFile ages ago,
@@ -295,7 +297,7 @@ MemoryMapDataFile::Open(UINT16 uOpenMode)
     // open file
     m_ulLastError = HXR_OK;
 #define FILEPERM (S_IREAD | S_IWRITE)
-    if ((m_nFD = open((const char *)m_pFilename->GetBuffer(), 
+    if ((m_nFD = open64((const char *)m_pFilename->GetBuffer(), 
         mode, FILEPERM)) < 0)
     {
         m_ulLastError = errno;

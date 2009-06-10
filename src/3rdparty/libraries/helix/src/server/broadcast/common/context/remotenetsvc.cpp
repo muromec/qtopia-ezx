@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: remotenetsvc.cpp,v 1.7 2005/05/09 19:31:20 skharkar Exp $
+ * Source last modified: $Id: remotenetsvc.cpp,v 1.8 2008/07/03 21:54:16 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -34,6 +34,8 @@
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** */
+
+#include "hlxclib/signal.h"
 
 #include "hxtypes.h"
 #include "nettypes.h"

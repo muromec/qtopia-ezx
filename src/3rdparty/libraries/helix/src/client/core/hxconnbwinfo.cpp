@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxconnbwinfo.cpp,v 1.18 2006/08/01 22:02:32 gwright Exp $
+ * Source last modified: $Id: hxconnbwinfo.cpp,v 1.20 2007/08/03 10:23:46 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -317,7 +317,12 @@ HXConnectionBWInfo::AddABDInfo(THIS_ IHXAutoBWDetection* pABD,
         RemoveABDInfo(pABD);
 
         HXBOOL bABDEnabled = TRUE;
+
+#ifdef HELIX_FEATURE_DISABLE_AUTOBWDETECTION
+	bABDEnabled = FALSE;
+#else
         ReadPrefBOOL(m_pContext, "AutoBWDetection", bABDEnabled);
+#endif
         
         res = pABD->InitAutoBWDetection(bABDEnabled);
 
@@ -839,7 +844,11 @@ void HXConnectionBWInfo::recalc()
     //registry, if they are there. We will not do Dynamic ABD, back to
     //back packets or any other runtime determination of the
     //bandwidth.
+#ifdef HELIX_FEATURE_DISABLE_AUTOBWDETECTION
+    bABDSystemEnabled = FALSE;
+#else
     ReadPrefBOOL( m_pContext, "ABDSystemEnabled", bABDSystemEnabled);
+#endif
         
 
     // Check to see if there are any outstanding ABD callbacks
@@ -924,7 +933,12 @@ void HXConnectionBWInfo::recalc()
             else
             {
                 HXBOOL bABDEnabled = TRUE;
+
+#ifdef HELIX_FEATURE_DISABLE_AUTOBWDETECTION
+		bABDEnabled = FALSE;
+#else
                 ReadPrefBOOL(m_pContext, "AutoBWDetection", bABDEnabled);
+#endif
                 
                 if (bABDEnabled)
                 {

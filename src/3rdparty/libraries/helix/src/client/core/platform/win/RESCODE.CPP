@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: RESCODE.CPP,v 1.6 2005/11/01 00:02:28 rishimathew Exp $
+ * Source last modified: $Id: RESCODE.CPP,v 1.9 2008/01/31 22:23:20 cdunn Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -78,6 +78,7 @@ UINT32 ResCodeStr::LookupTable[_MAX_STRINGS][2] =
 	(UINT32)HXR_DOC_MISSING,	 	IDS_ERR_DOC_MISSING_ERROR,			// 14 "Requested file not found. The link you followed may be outdated or inaccurate."
 	(UINT32)HXR_BAD_FORMAT,         	IDS_ERR_FORMAT_ERROR,				// 15 "Unknown data format."
 	(UINT32)HXR_FULL_DOWNLOAD_NEEDED,   IDS_ERR_FULL_DOWNLOAD_NEEDED,				// 16 "This file is not optimized for Progressive Download."
+	(UINT32)HXR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS, IDS_ERR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS, // 17 "This file contains unsupported content."
 	
 	// server errors
 	(UINT32)HXR_NET_SOCKET_INVALID,	 	IDS_ERR_NET_SOCKET_INVALID,			// 18 "Invalid socket error."
@@ -163,7 +164,8 @@ UINT32 ResCodeStr::LookupTable[_MAX_STRINGS][2] =
 	(UINT32)HXR_UNSUPPORTED_AUDIO,	 	IDS_ERR_UNSUPPORTED_AUDIO,		// 106 "The file contains an unsupported audio format"
 	(UINT32)HXR_TRY_AUTOCONFIG,	 	IDS_ERR_TRY_AUTOCONFIG			// 107"AutoConfig needs to be performed"
 	(UINT32)HXR_VIEW_SOURCE_NOCLIP,		IDS_ERR_VIEW_SOURCE_NOCLIP,		// 80 "No clip is avalible."
-	(UINT32)HXR_VIEW_SOURCE_DISSABLED,	IDS_ERR_VIEW_SOURCE_DISSABLED		// 81 "The provider of this content has not granted permission to view the source."
+	(UINT32)HXR_VIEW_SOURCE_DISSABLED,	IDS_ERR_VIEW_SOURCE_DISSABLED,		// 81 "The provider of this content has not granted permission to view the source."
+	(UINT32)HXR_RAVE_UI_FAIL,		IDS_ERR_RAVE_UI				// ra/ve locked UI failed to load.
 };
 
 ResCodeStr::ResCodeStr()

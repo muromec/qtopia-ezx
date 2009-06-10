@@ -1,4 +1,0 @@
-DESCRIPTION	'RealMedia Player'
-HEAPSIZE	1024
-EXPORTS
-	RMACreateInstance

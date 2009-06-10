@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pckunpck.h,v 1.21 2007/02/26 22:08:58 ehyche Exp $
+ * Source last modified: $Id: pckunpck.h,v 1.26 2009/05/20 13:39:50 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -360,6 +360,8 @@ HX_RESULT UnpackUINT64LE(BYTE* pBuf, UINT32 ulLen, UINT64* pullVal);
 // Unpack a UINT64 in little-endian format and advance the buffer parsing
 HX_RESULT UnpackUINT64LEInc(BYTE** ppBuf, UINT32* pulLen, UINT64* pullVal);
 // Unpack a UINT32 in big-endian format
+HX_RESULT UnpackUINT24BE(BYTE* pBuf, UINT32 ulLen, UINT32* pulVal);
+// Unpack a UINT32 in big-endian format
 HX_RESULT UnpackUINT32BE(BYTE* pBuf, UINT32 ulLen, UINT32* pulVal);
 // Unpack a UINT32 in big-endian format and advance the buffer parsing
 HX_RESULT UnpackUINT32BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32* pulVal);
@@ -367,7 +369,7 @@ HX_RESULT UnpackUINT32BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32* pulVal);
 HX_RESULT UnpackUINT32LE(BYTE* pBuf, UINT32 ulLen, UINT32* pulVal);
 // Unpack a UINT32 in little-endian format and advance the buffer parsing
 HX_RESULT UnpackUINT32LEInc(BYTE** ppBuf, UINT32* pulLen, UINT32* pulVal);
-// Unpack an unsigned 24-bit valud in big-endian format
+// Unpack an unsigned 32-bit valud in big-endian format
 HX_RESULT UnpackUINT24BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32* pulVal);
 // Unpack a UINT16 in big-endian format
 HX_RESULT UnpackUINT16BE(BYTE* pBuf, UINT32 ulLen, UINT16* pusVal);
@@ -381,6 +383,8 @@ HX_RESULT UnpackUINT16LEInc(BYTE** ppBuf, UINT32* pulLen, UINT16* pusVal);
 HX_RESULT UnpackUINT8(BYTE* pBuf, UINT32 ulLen, UINT8* pucVal);
 // Unpack a UINT8 and advance the buffer parsing
 HX_RESULT UnpackUINT8Inc(BYTE** ppBuf, UINT32* pulLen, UINT8* pucVal);
+// Unpack a variable length (1, 2, 3, or 4 bytes) value in big-endian format
+HX_RESULT UnpackVariableBEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulNumBytes, UINT32* pulVal);
 // Pack a single byte and advance the counters
 HX_RESULT PackUINT8Inc(BYTE** ppBuf, UINT32* pulLen, BYTE ucVal);
 // Pack a UINT16 in big-endian format
@@ -392,6 +396,10 @@ HX_RESULT PackUINT16LE(BYTE* pBuf, UINT32 ulLen, UINT16 usVal);
 // Pack a UINT16 in little-endian format and advance the buffer
 HX_RESULT PackUINT16LEInc(BYTE** ppBuf, UINT32* pulLen, UINT16 usVal);
 // Pack a UINT32 in big-endian format
+HX_RESULT PackUINT24BE(BYTE* pBuf, UINT32 ulLen, UINT32 ulVal);
+// Pack a UINT32 in big-endian format and advance the buffer
+HX_RESULT PackUINT24BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal);
+// Pack a UINT32 in big-endian format
 HX_RESULT PackUINT32BE(BYTE* pBuf, UINT32 ulLen, UINT32 ulVal);
 // Pack a UINT32 in big-endian format and advance the buffer
 HX_RESULT PackUINT32BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal);
@@ -399,8 +407,12 @@ HX_RESULT PackUINT32BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal);
 HX_RESULT PackUINT32LE(BYTE* pBuf, UINT32 ulLen, UINT32 ulVal);
 // Pack a UINT32 in little-endian format and advance the buffer
 HX_RESULT PackUINT32LEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal);
+// Pack a UINT64 in big-endian format
+HX_RESULT PackUINT64BE(BYTE* pBuf, UINT32 ulLen, UINT64 ulVal);
 // Unpack an 8-byte double in big-endian format
 HX_RESULT UnpackDoubleBEInc(BYTE** ppBuf, UINT32* pulLen, double* pdVal);
+// Pack an 8-byte double in big-endian format
+HX_RESULT PackDoubleBEInc(BYTE** ppBuf, UINT32* pulLen, double dVal);
 // Unpack a certain number of bits
 HX_RESULT UnpackBits(BYTE** ppBuf, UINT32* pulLen, UINT32* pulBitPos, UINT32 ulNumBits, UINT32* pulVal);
 // Pack a certain number of bits
@@ -409,7 +421,13 @@ HX_RESULT PackBits(BYTE** ppBuf, UINT32* pulLen, UINT32* pulBitPos, UINT32 ulNum
 HX_RESULT CreateEventCCF(void** ppObject, IUnknown* pContext,
 			 const char* pszName, HXBOOL bManualReset);
 
-HX_RESULT CreateInstanceCCF(REFCLSID clsid, void** pObject, IUnknown* pContext);
+HX_RESULT CreateInstanceCCF(REFCLSID clsid, void** ppObject, IHXCommonClassFactory* pCCF);
+
+HX_RESULT CreateInstanceCCF_QI(REFCLSID clsid, REFIID iid, void** ppItf, IHXCommonClassFactory* pCCF);
+
+HX_RESULT CreateInstanceCCF(REFCLSID clsid, void** ppObject, IUnknown* pContext);
+
+HX_RESULT CreateInstanceCCF_QI(REFCLSID clsid, REFIID iid, void** ppItf, IUnknown* pContext);
 
 // Pack an array of strings together using
 // the supplied separator string and put the

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: livekeyframe.cpp,v 1.5 2006/04/10 19:38:44 seansmith Exp $ 
+ * Source last modified: $Id: livekeyframe.cpp,v 1.6 2008/03/28 05:00:44 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -209,4 +209,12 @@ IsRealEventStream(IHXRegistry* pReg, const char* szMimeType)
     }
 
     return FALSE;
+}
+
+BOOL IsRealVideoStream(const char* szMimeType)
+{
+    return  !strcasecmp(szMimeType, REALVIDEO_MIME_TYPE) ||
+            !strcasecmp(szMimeType, REALVIDEO_ENCRYPTED_MIME_TYPE) ||
+            !strcasecmp(szMimeType, REALVIDEO_MULTIRATE_MIME_TYPE) ||
+            !strcasecmp(szMimeType, REALVIDEO_ENCRYPTED_MULTIRATE_MIME_TYPE);
 }

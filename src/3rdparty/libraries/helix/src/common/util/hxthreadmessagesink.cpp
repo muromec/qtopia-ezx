@@ -43,6 +43,15 @@
 #include "hxtlogutil.h"
 #include "hxthreadmessagesink.h"
 #include "pckunpck.h"
+#include "hxmsgs.h"
+
+#if defined(_UNIX)
+#include "hxunixthreadmessagesink.h"
+#endif
+
+#if defined(_WINDOWS)
+#include "hxwinthreadmessagesink.h"
+#endif
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE             
@@ -54,6 +63,33 @@ static const char HX_THIS_FILE[] = __FILE__;
 
 // maps per-thread instances
 static CHXMapLongToObj m_instances;
+
+HX_RESULT HXThreadMessageSink::Create(HXThreadMessageSink*& pMsgSink, IUnknown* pContext)
+{
+    HX_RESULT hr = HXR_FAIL;
+
+#if defined(_WINDOWS)   
+    pMsgSink = new HXWinThreadMessageSink();
+#elif defined(_UNIX)
+    pMsgSink = new HXUnixThreadMessageSink();
+#endif
+
+    if( pMsgSink )
+    {
+        pMsgSink->AddRef();
+        hr = pMsgSink->Init(pContext);
+        if(HXR_OK != hr)
+        {
+            HX_ASSERT(false);
+            HX_RELEASE(pMsgSink);
+        }
+    }
+    else 
+    {
+        hr = HXR_OUTOFMEMORY;
+    }
+    return hr;
+}
 
 HX_RESULT HXThreadMessageSink::GetThreadInstance(HXThreadMessageSink*& pInstance, IUnknown* pContext)
     {
@@ -73,7 +109,7 @@ HX_RESULT HXThreadMessageSink::GetThreadInstance(HXThreadMessageSink*& pInstance
     }
     else
     {
-#if defined(_WINDOWS)
+#if defined(_WINDOWS) || defined(_UNIX)
         // create instance for this thread
         hr =  HXThreadMessageSink::Create(pStored, pContext);
 #else
@@ -112,6 +148,7 @@ HXThreadMessageSink::HXThreadMessageSink()
 , m_pMutex(NULL)
 , m_tid(HXGetCurrentThreadID())
 , m_pContext(NULL)
+, m_pThread(NULL)
 {
 }
 
@@ -121,6 +158,7 @@ HXThreadMessageSink::~HXThreadMessageSink()
     m_handlers.RemoveAll();
     HX_RELEASE(m_pMutex);
     HX_RELEASE(m_pContext);
+    HX_RELEASE(m_pThread);
 }
 
 HX_RESULT HXThreadMessageSink::Init(IUnknown* pContext)

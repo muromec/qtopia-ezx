@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servcallback.h,v 1.13 2005/09/02 20:21:10 seansmith Exp $ 
+ * Source last modified: $Id: servcallback.h,v 1.16 2009/04/28 16:33:42 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -44,8 +44,16 @@
 #  include <sys/devpoll.h>
 #endif // defined DEV_POLL_SUPPORT && defined _SOLARIS
 #if defined LINUX_EPOLL_SUPPORT
-#include <sys/epoll.h>
 #include <errno.h>
+#ifdef _LSB
+#include "hxepoll.h"
+extern HXEPoll g_ServerEPoll;
+#define epoll_create g_ServerEPoll.Create
+#define epoll_ctl    g_ServerEPoll.Control
+#define epoll_wait   g_ServerEPoll.Wait
+#else
+#include <sys/epoll.h>
+#endif //_LSB
 #endif //LINUX_EPOLL_SUPPORT
 
 enum SocketType
@@ -756,8 +764,10 @@ Callbacks::invoke_one_ts()
 		 * message (like the keep alive) is written to the socket
 		 * and it fails.
 		 */
-		if (pFDInfo->pReadCB)
+                if (pFDInfo->nPollMask & POLLIN && pFDInfo->pReadCB)
 		    pFDInfo->pReadCB->Func();
+                else if (pFDInfo->nPollMask & POLLOUT && pFDInfo->pWriteCB)
+                    pFDInfo->pWriteCB->Func();
                 remove(-1, pPollInfo->fd);
             }
             else
@@ -820,8 +830,10 @@ Callbacks::invoke_one_ts()
 		 * message (like the keep alive) is written to the socket
 		 * and it fails.
 		 */
-		if (pFDInfo->pReadCB)
+                if (pFDInfo->nPollMask & EPOLLIN && pFDInfo->pReadCB)
 		    pFDInfo->pReadCB->Func();
+                else if (pFDInfo->nPollMask & EPOLLOUT && pFDInfo->pWriteCB)
+                    pFDInfo->pWriteCB->Func();
                 remove(-1, pEvent->data.fd);
             }
             else

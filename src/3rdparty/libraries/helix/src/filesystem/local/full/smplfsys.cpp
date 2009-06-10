@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: smplfsys.cpp,v 1.44 2007/02/28 06:27:19 gahluwalia Exp $
+ * Source last modified: $Id: smplfsys.cpp,v 1.50 2009/03/04 15:10:25 qluo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -110,9 +110,10 @@
 #include "hxcbobj.h"
 
 #include "hxdir.h"
+#include "hlxclib/errno.h"
 
-#include <stdio.h>
-#include <string.h>
+#include "hlxclib/stdio.h"
+#include "hlxclib/string.h"
 
 #ifdef _MACINTOSH
 #include <fcntl.h>
@@ -154,6 +155,23 @@
 
 #include "hxerror.h"
 
+#ifdef _BREW
+
+#ifdef AEE_SIMULATOR
+#define _WIN32
+#endif
+
+#include "AEEShell.h"
+#include "AEEStdLib.h"
+#include "AEEFile.h"
+
+#ifdef AEE_SIMULATOR 
+#undef _WIN32
+#endif
+
+extern const IShell* g_pIShell;
+#endif
+
 #ifdef _AIX
 #include "hxtbuf.h"
 #include "dllpath.h"
@@ -179,7 +197,7 @@ const char* const CSimpleFileSystem::zm_pDescription	= "RealNetworks Local File 
 const char* const CSimpleFileSystem::zm_pCopyright	= HXVER_COPYRIGHT;
 const char* const CSimpleFileSystem::zm_pMoreInfoURL	= HXVER_MOREINFO;
 const char* const CSimpleFileSystem::zm_pShortName	= "pn-local";
-const char* const CSimpleFileSystem::zm_pProtocol	= "file|fileproxy";
+const char* const CSimpleFileSystem::zm_pProtocol	= "file|fileproxy|fd";
 
 /****************************************************************************
  *
@@ -768,11 +786,10 @@ STDMETHODIMP CSimpleFileObject::QueryInterface(REFIID riid, void** ppvObj)
 	{ GET_IIDHANDLE(IID_IHXFileRename), (IHXFileRename*) this },
 	{ GET_IIDHANDLE(IID_IHXFileRemove), (IHXFileRemove*) this },
 	{ GET_IIDHANDLE(IID_IHXFileMove), (IHXFileMove*) this },
-	{ GET_IIDHANDLE(IID_IHXThreadSafeMethods), (IHXThreadSafeMethods*) this },
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
 	{ GET_IIDHANDLE(IID_IHXPDStatusMgr), (IHXPDStatusMgr*) this },
 #endif // /HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS.
-
+        { GET_IIDHANDLE(IID_IHXNestedDirHandler), (IHXNestedDirHandler*) this },
     };
     return ::QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj);
 }
@@ -2148,6 +2165,119 @@ STDMETHODIMP CSimpleFileObject::ReadDir()
     return HXR_OK;
 }
 
+HX_RESULT
+CSimpleFileObject::DirCreatePath( CHXString strPath )
+{
+    if (strPath.GetLength() == 0) return HXR_FAILED;
+
+#if defined (_WINDOWS ) || defined (_WIN32)
+    // Trim off trailing slash - ::CreateDirectory() will crash if present
+    if ( strPath.ReverseFind( '\\' ) == strPath.GetLength() - 1 )
+        strPath = strPath.Left( strPath.GetLength() - 1 );
+#endif
+
+    // Try to create the directory as-is
+#if defined (_WINDOWS ) || defined (_WIN32)
+    if ( 0 != ::CreateDirectory( OS_STRING((const char*)strPath), NULL ) )
+        return HXR_OK;
+
+    DWORD dwErr = ::GetLastError();
+    if ( ERROR_ALREADY_EXISTS == dwErr )
+        return HXR_OK;
+    else if ( ERROR_ACCESS_DENIED == dwErr)
+        return HXR_ACCESSDENIED;
+
+#elif defined (_UNIX) || defined (_SOLARIS)
+    if (mkdir((const char*) strPath, 0755) == 0)
+        return HXR_OK;
+    else if(errno == EEXIST)
+        return HXR_OK;
+    else if(errno == EACCES)
+        return HXR_ACCESSDENIED;
+
+#else  //In any other case
+    return HXR_FAILED;
+
+#endif
+
+    // If that failed, trim off one sub dir and try to create that
+    int nPos = strPath.ReverseFind( OS_SEPARATOR_CHAR );
+    if ( -1 == nPos )
+        return HXR_FAILED;
+
+    CHXString szSubPath = strPath.Left( nPos + 1 );
+    HX_RESULT res = DirCreatePath( szSubPath );
+    if (HXR_OK != res)
+        return res;
+    // Creating the subdir succeeded, so now we should be able to create the original dir
+#if defined (_WINDOWS ) || defined (_WIN32)
+    if ( 0 != ::CreateDirectory( OS_STRING((const char*)strPath), NULL ) )
+        return HXR_OK;
+    else if (ERROR_ALREADY_EXISTS == ::GetLastError())
+        return HXR_OK;
+    else if ( ERROR_ACCESS_DENIED == ::GetLastError())
+        return HXR_ACCESSDENIED;
+    else
+        return HXR_FAILED;
+
+#elif defined (_UNIX) || defined (_SOLARIS)
+    if (mkdir((const char*) strPath, 0755) == 0)
+        return HXR_OK;
+    else if (errno == EEXIST)
+        return HXR_OK;
+    else if (errno == EACCES)
+        return HXR_ACCESSDENIED;
+    else
+        return HXR_FAILED;
+
+#else  //In other case
+    return HXR_FAILED;
+
+#endif
+}
+
+STDMETHODIMP
+CSimpleFileObject::InitNestedDirHandler
+(
+    IHXDirHandlerResponse*    /*IN*/  pDirResponse
+ )
+{
+    m_pDirResponse = pDirResponse;
+    m_pDirResponse->AddRef();
+    m_pDirResponse->InitDirHandlerDone(HXR_OK);
+
+    return HXR_OK;
+}
+
+STDMETHODIMP
+CSimpleFileObject::MakeNestedDir()
+{
+    CHXString strFileName;
+    HX_RESULT retVal = HXR_OK;
+
+    UpdateFileNameMember();
+    GetFullPathname(m_pFilename, &strFileName);
+
+    retVal = DirCreatePath(strFileName);
+
+    m_pDirResponse->MakeDirDone(retVal);
+    return HXR_OK;
+}
+
+STDMETHODIMP
+CSimpleFileObject::CloseNestedDirHandler()
+{
+    if (m_pDirResponse)
+    {
+        IHXDirHandlerResponse *pTmpDirResponse = m_pDirResponse;
+
+        m_pDirResponse = NULL;
+        pTmpDirResponse->CloseDirHandlerDone(HXR_OK);
+        pTmpDirResponse->Release();
+    }
+    return HXR_OK;
+}
+
 /************************************************************************
  * Method:
  *	IHXFileObject::Stat
@@ -2957,7 +3087,39 @@ STDMETHODIMP CSimpleFileObject::SetRequest
 
     UpdateFileNameMember();
 
-    return InitDataFile();
+    HX_RESULT res = InitDataFile();
+ 
+#if defined(HELIX_FEATURE_FILESYSTEM_LOCAL_FD)
+    // To support "fd" scheme, the m_pDataFile object must implement IHXRequestHandler
+    // to receive and parse the URL request for the file descriptor parameters.
+    if (res == HXR_OK)
+    {
+	const char* pszURL = NULL;
+	m_pRequest->GetURL(pszURL);
+	if (strncmp(pszURL, "fd://fileinput", 14) == 0)
+	{
+	    IHXRequestHandler* pRequestHandler = NULL;
+	    res = m_pDataFile->QueryInterface(IID_IHXRequestHandler, (void**)&pRequestHandler);
+	    if (HXR_OK == res)
+	    {
+		pRequestHandler->SetRequest(m_pRequest);
+	    }
+	    HX_RELEASE(pRequestHandler);
+	}
+	
+	if (res != HXR_OK)
+	{
+	    if (m_pDataFile)
+	    {
+		m_pDataFile->Close();
+		HX_RELEASE(m_pDataFile);
+	    }
+	    HX_RELEASE(m_pRequest);
+	}
+    }
+#endif // HELIX_FEATURE_FILESYSTEM_LOCAL_FD
+    
+    return res;
 }
 
 HX_RESULT
@@ -3002,6 +3164,11 @@ CSimpleFileObject::InitDataFile()
 
 	if (!m_bProxyMode)
 	{
+        if (m_pDataFile)
+        {
+            m_pDataFile->Close();
+            HX_RELEASE(m_pDataFile);
+        }
 	    IHXDataFileFactory* pDFFact = new HXDataFileFactory;;
 	    pDFFact->AddRef();
 	    DPRINTF(0x5d000000, ("CSFO::CSFO() -- after QI\n"));
@@ -3066,6 +3233,18 @@ static HXBOOL DoRename(const char* pOldName,
     {
 	ret = TRUE;
     }
+#elif defined(_BREW)
+    IShell*& pIShell =(IShell*&)HXGlobalPtr::Get(&::g_pIShell);
+    IFileMgr * pIFileMgr = NULL;
+    if (ISHELL_CreateInstance(pIShell, AEECLSID_FILEMGR, (void **)&pIFileMgr) == SUCCESS)
+    {			
+	if( IFILEMGR_Rename(pIFileMgr, pOldName, pNewName) == SUCCESS)
+	{
+	    ret = true;
+	}
+	IFILEMGR_Release(pIFileMgr);
+    }
+
 #else
     if (rename(pOldName, pNewName) == 0)
     {
@@ -3445,12 +3624,6 @@ CSimpleFileObject::ActualAsyncSeekDone(HX_RESULT result)
 
     return HXR_OK;
 #endif
-}
-
-STDMETHODIMP_(UINT32)
-CSimpleFileObject::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FS_READ;
 }
 
 #ifdef _MACINTOSH

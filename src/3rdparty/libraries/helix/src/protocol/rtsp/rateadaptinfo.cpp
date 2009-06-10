@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rateadaptinfo.cpp,v 1.20 2007/02/23 18:35:00 gwright Exp $
+ * Source last modified: $Id: rateadaptinfo.cpp,v 1.23 2008/05/01 20:36:41 rrajesh Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -61,6 +61,7 @@
 #include "pckunpck.h"
 #include "3gpadapthdr.h"
 #include "helixadapthdr.h"
+#include "hxbufctl.h" // IHXTransportBufferLimit
 
 static const char z_3GPPAdaptationHdr[]  = "3GPP-Adaptation";
 static const char z_HelixAdaptationHdr[] = "Helix-Adaptation";
@@ -490,7 +491,7 @@ CHXRateAdaptationInfo::OnStreamHeader(UINT16 uStreamNumber,
         }
         else if (m_pNADU && 
                  HXR_OK == pHdr->GetPropertyULONG32("3GPP-Adaptation-Support",
-                                                    ulReportFreq))
+                                                    ulReportFreq) && (ulReportFreq != 0))
         {
             hdrType = aht3GPP;
         }
@@ -604,6 +605,20 @@ CHXRateAdaptationInfo::OnRateAdaptResponse(UINT16 uStreamNumber,
                 {
                     m_bRateAdaptationUsed = TRUE;
                     hr = HXR_OK;
+
+                    IHXTransportBufferLimit* pBufLimit = NULL;
+                    IHXStreamSource* pSource = NULL;
+                    if (HXR_OK == m_pContext->QueryInterface(IID_IHXStreamSource, (void**)&pSource))
+                    {
+                        if (pSource && (HXR_OK == pSource->QueryInterface(IID_IHXTransportBufferLimit, (void**)&pBufLimit)))
+                        {
+                            pBufLimit->SetByteLimit(pInfo->StreamNumber(), pInfo->Get3gpBufferSize());
+                        }
+
+                        HX_RELEASE(pBufLimit);
+                    }
+
+                    HX_RELEASE(pSource);
                 }
             }
         }

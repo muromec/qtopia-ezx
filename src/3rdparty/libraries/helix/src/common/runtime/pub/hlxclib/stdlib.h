@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: stdlib.h,v 1.10 2004/07/09 18:21:09 hubbe Exp $
+ * Source last modified: $Id: stdlib.h,v 1.13 2008/01/18 19:18:40 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,10 +68,29 @@
 #undef _WIN32
 #undef STDLIB_UNDEF_WIN32
 #endif /* STDLIB_UNDEF_WIN32 */
+#elif defined(_BREW)
+#ifdef AEE_SIMULATOR
+#define _WIN32
+#else
+#define HLX_INLINE __inline
+#endif 
+#include "AEEStdLib.h"
+#ifdef _WIN32
+#undef _WIN32
+#endif
 
 // XXXSAB Define malloc()/free() wrappers for Openwave in here???
 #else
 #include <stdlib.h>
+#endif
+
+#if !defined(HLX_INLINE)
+#if (defined(_WINDOWS) || defined(_BREW) || defined(_OPENWAVE)) && \
+    !defined(__cplusplus) && defined(_MSC_VER)
+#define HLX_INLINE __inline
+#else
+#define HLX_INLINE inline
+#endif
 #endif
 
 char* __helix_itoa(int val, char *str, int radix);
@@ -154,6 +173,58 @@ atoi64(const char* str)
 #define putenv __helix_putenv
 
 #endif
+
+#if defined(_BREW)
+long int __helix_atol ( const char * str );
+void __helix_srand ( unsigned int seed );
+int __helix_rand();
+
+HLX_INLINE void *
+malloc(dword dwSize)
+{
+    return MALLOC(dwSize);
+}
+
+HLX_INLINE int 
+atoi ( const char * str )
+{
+    return ATOI(str);
+}
+
+HLX_INLINE int 
+atof ( const char * str )
+{
+    return ATOI(str);
+}
+
+HLX_INLINE long int
+atol ( const char * str )
+{
+    return ATOI(str);
+}
+
+#define i64toa(v,s,r) __helix_i64toa((v),(s),(r))
+#define itoa  __helix_itoa 
+#define srand __helix_srand
+#define rand __helix_rand
+#define RAND_MAX 0x7fff
+#define bsearch __helix_bsearch
+#define FLT_MAX	3.402823466e+38F
+#define FLT_MIN	1.175494351e-38F
+
+HLX_INLINE void
+qsort(void *base, size_t nmemb, size_t size, PFNQSORTCOMPARE pfn)
+{
+    QSORT(base, nmemb, size, pfn);	
+}
+
+HLX_INLINE void*
+realloc(void *pSrc, uint32 dwSize)
+{
+    return (char *)REALLOC(pSrc, dwSize);
+}
+
+#endif //_BREW
 
 #if defined(_OPENWAVE)
 

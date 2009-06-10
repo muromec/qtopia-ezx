@@ -193,7 +193,7 @@ protected:
     UINT32  GetULONG32Property(IHXValues*  pValues,
                                const char* pszName,
                                UINT32      ulDefault = 0);
-
+    virtual void InputAudioDiscardedNotification(UINT32 ulTimestamp, ULONG32 ulLastDeletedTimestamp);
     IUnknown* m_pContext;
     IHXCommonClassFactory* m_pCommonClassFactory;
     HXAudioFormat* m_pAudioFmt;

@@ -32,7 +32,8 @@
  * Contributor(s): 
  *  
  * ***** END LICENSE BLOCK ***** */ 
-
+#include "hxver.h"
+#include "mp4payload.ver"
 #include "hxtypes.h"
 
 #include "hxcom.h"
@@ -46,6 +47,11 @@
 #include "sdptools.h"
 #include "mp4desc.h"
 #include "rtptypes.h"
+#include "tsconvrt.h"
+
+/* config parsing */
+#include "bitstream.h"
+#include "gaConfig.h"
 
 #include "latmpacketizer.h"
 
@@ -54,8 +60,15 @@
 
 const char* MP4A_LICENSE_ERROR_STR = 
     "Packetizer: This Server is not licenced to use audio/MP4A-LATM Packetizer.";
+/****************************************************************************
+ * Constants
+ */
+const char* LATMPacketizer::zm_pDescription    = "RealNetworks AAC LATM Packetizer Plugin";
+const char* LATMPacketizer::zm_pCopyright      = HXVER_COPYRIGHT;
+const char* LATMPacketizer::zm_pMoreInfoURL    = HXVER_MOREINFO;
 
-LATMPacketizer::LATMPacketizer(UINT32 ulChannels, UINT32 ulSampleRate) :
+	
+LATMPacketizer::LATMPacketizer(UINT32 ulChannels, UINT32 ulTimeScale) :
     m_lRefCount(0),
     m_pClassFactory(NULL),
     m_pStreamHeader(NULL),
@@ -63,7 +76,10 @@ LATMPacketizer::LATMPacketizer(UINT32 ulChannels, UINT32 ulSampleRate) :
     m_bRTPPacketTested(FALSE),
     m_bFlushed(FALSE),
     m_ulChannels(ulChannels),
-    m_ulSampleRate(ulSampleRate)
+    m_ulInputTimeScale(ulTimeScale),
+    m_ulOutTimeScale(ulTimeScale),
+    m_pTSConverter(NULL),
+	m_pContext(NULL)
 {
 }
 
@@ -74,10 +90,139 @@ LATMPacketizer::~LATMPacketizer()
         IHXPacket* pPacket = (IHXPacket*)m_InputPackets.RemoveHead();
         HX_RELEASE(pPacket);
     }
-
+    HX_RELEASE(m_pContext); 
     HX_RELEASE(m_pClassFactory);
     HX_RELEASE(m_pStreamHeader);
+    HX_DELETE(m_pTSConverter);
 }
+HX_RESULT STDAPICALLTYPE LATMPacketizer::HXCreateInstance(IUnknown** ppIUnknown)
+{
+    *ppIUnknown = (IUnknown*)(IHXPlugin*) new LATMPacketizer();
+    if (*ppIUnknown)
+    {
+	(*ppIUnknown)->AddRef();
+	return HXR_OK;
+    }
+
+    return HXR_OUTOFMEMORY;
+}
+
+HX_RESULT STDAPICALLTYPE LATMPacketizer::CanUnload(void)
+{
+    return CanUnload2();
+}
+
+HX_RESULT STDAPICALLTYPE LATMPacketizer::CanUnload2(void)
+{
+    return ((CHXBaseCountingObject::ObjectsActive() > 0) ? HXR_FAIL : HXR_OK);
+}
+
+/************************************************************************
+ *  IHXPlugin methods
+ */
+/************************************************************************
+ *  Method:
+ *    IHXPlugin::InitPlugin
+ *  Purpose:
+ *    Initializes the plugin for use. This interface must always be
+ *    called before any other method is called. This is primarily needed
+ *    so that the plugin can have access to the context for creation of
+ *    IHXBuffers and IMalloc.
+ */
+STDMETHODIMP LATMPacketizer::InitPlugin(IUnknown* /*IN*/ pContext)
+{
+    HX_RESULT retVal = HXR_OK;
+
+    HX_ASSERT(pContext);
+
+    m_pContext = pContext;
+    m_pContext->AddRef();
+
+    retVal = m_pContext->QueryInterface(IID_IHXCommonClassFactory,
+					 (void**) &m_pClassFactory);
+
+    return retVal;
+}
+
+/************************************************************************
+ *  Method:
+ *    IHXPlugin::GetPluginInfo
+ *  Purpose:
+ *    Returns the basic information about this plugin. Including:
+ *
+ *    bLoadMultiple	whether or not this plugin DLL can be loaded
+ *			multiple times. All File Formats must set
+ *			this value to TRUE.
+ *    pDescription	which is used in about UIs (can be NULL)
+ *    pCopyright	which is used in about UIs (can be NULL)
+ *    pMoreInfoURL	which is used in about UIs (can be NULL)
+ */
+STDMETHODIMP LATMPacketizer::GetPluginInfo
+(
+    REF(HXBOOL)		bLoadMultiple,
+    REF(const char*)	pDescription,
+    REF(const char*)	pCopyright,
+    REF(const char*)	pMoreInfoURL,
+    REF(ULONG32)	ulVersionNumber
+)
+{
+    bLoadMultiple = TRUE;   // Must be true for file formats.
+
+    pDescription    = zm_pDescription;
+    pCopyright	    = zm_pCopyright;
+    pMoreInfoURL    = zm_pMoreInfoURL;
+    ulVersionNumber = TARVER_ULONG32_VERSION;
+
+    return HXR_OK;
+}
+
+/************************************************************************
+ *  Method:
+ *      IHXPluginProperties::GetProperties
+ */
+
+STDMETHODIMP
+LATMPacketizer::GetProperties(REF(IHXValues*) pIHXValuesProperties)
+{
+    IHXBuffer* pBuffer = NULL;
+    HX_RESULT res = HXR_FAIL;
+    HX_ASSERT(m_pClassFactory);
+    m_pClassFactory->CreateInstance(IID_IHXValues, (void**)&pIHXValuesProperties);
+
+    if (pIHXValuesProperties)
+    {
+	//plugin class
+        m_pClassFactory->CreateInstance(IID_IHXBuffer, (void**)&pBuffer);
+		if (pBuffer)
+		{
+		    pBuffer->Set((const unsigned char*)PLUGIN_PACKETIZER_TYPE, strlen(PLUGIN_PACKETIZER_TYPE)+1);
+		    pIHXValuesProperties->SetPropertyCString(PLUGIN_CLASS, pBuffer);
+		    HX_RELEASE(pBuffer);
+        }
+		else
+		{
+		    return HXR_OUTOFMEMORY;
+		}
+	//mime type
+        m_pClassFactory->CreateInstance(IID_IHXBuffer, (void**)&pBuffer);   
+		if (pBuffer)	
+		{		
+		    pBuffer->Set((const unsigned char*)LATM_MIME_TYPE, strlen(LATM_MIME_TYPE)+1);
+		    pIHXValuesProperties->SetPropertyCString(PLUGIN_PACKETIZER_MIME, pBuffer);
+		    HX_RELEASE(pBuffer);
+		}
+		else
+		{
+		    return HXR_OUTOFMEMORY;
+		}
+    }
+    else
+    {
+        return HXR_OUTOFMEMORY;
+    }
+    return HXR_OK;
+}
+
 
 STDMETHODIMP 
 LATMPacketizer::QueryInterface (THIS_ REFIID riid, void** ppvObj)
@@ -94,7 +239,18 @@ LATMPacketizer::QueryInterface (THIS_ REFIID riid, void** ppvObj)
         *ppvObj = (IHXPayloadFormatObject*)this;
         return HXR_OK;
     }
-
+	else if (IsEqualIID(riid, IID_IHXPluginProperties))
+    {
+        AddRef();
+        *ppvObj = (IHXPluginProperties*)this;
+        return HXR_OK;
+    } 
+    else if (IsEqualIID(riid, IID_IHXPlugin))
+    {
+        AddRef();
+        *ppvObj = (IHXPlugin*)this;
+        return HXR_OK;
+    }   
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -118,7 +274,7 @@ LATMPacketizer::Release()
 }
 
 STDMETHODIMP
-LATMPacketizer::Init(IUnknown* pContext, BOOL bPacketize)
+LATMPacketizer::Init(IUnknown* pContext, HXBOOL bPacketize)
 {
     if(!bPacketize || m_pClassFactory)
     {
@@ -154,6 +310,7 @@ LATMPacketizer::Close()
 
     HX_RELEASE(m_pClassFactory);
     HX_RELEASE(m_pStreamHeader);
+    HX_DELETE(m_pTSConverter);
 
     m_bFlushed = FALSE;
     m_bUsesRTPPackets = FALSE;
@@ -185,11 +342,21 @@ LATMPacketizer::SetStreamHeader(IHXValues* pHeader)
     m_pStreamHeader = pHeader;
     m_pStreamHeader->AddRef();
 
-    HX_RESULT res;
-    res = AddHeaderMimeType();
-    if(SUCCEEDED(res))
+    HX_RESULT res = GetHeaderProperties();
+    
+    if (SUCCEEDED(res))
+    {
+        res = AddHeaderMimeType();
+    }
+
+    if (SUCCEEDED(res))
     {
         res = AddHeaderSDPData();
+    }
+
+    if (SUCCEEDED(res))
+    {
+        res = InitializeResampling();
     }
 
     return res;
@@ -224,6 +391,11 @@ LATMPacketizer::SetPacket(IHXPacket* pPacket)
             (void**) &pRTPPacket)))
         {
             m_bUsesRTPPackets = TRUE;
+            if (m_pTSConverter)
+            {
+			    m_pTSConverter->SetOffset(pRTPPacket->GetRTPTime(), FALSE);
+            }
+
             pRTPPacket->Release();
         }
 
@@ -290,8 +462,12 @@ LATMPacketizer::GetPacket(REF(IHXPacket*) pPacket)
                 (void**)&pPacket);
         if(SUCCEEDED(res))
         {
+            UINT32 ulRTPTimeIn = ((IHXRTPPacket*)pInPacket)->GetRTPTime();
+            UINT32 ulRTPTimeOut = m_pTSConverter ? 
+                m_pTSConverter->Convert(ulRTPTimeIn) : ulRTPTimeIn;
+
             res = ((IHXRTPPacket*)pPacket)->SetRTP(pPayloadBuf,
-                    ulTime, ((IHXRTPPacket*)pInPacket)->GetRTPTime(), 
+                    ulTime, ulRTPTimeOut,
                     unStreamNumber, unASMFlags, unASMRuleNumber);
         }
     }
@@ -338,6 +514,28 @@ LATMPacketizer::CreateSampleHeader(UINT8 *pHeader, UINT32 ulSampleSize)
     *pHeader = (UINT8) ulSampleSize;
 }
 
+HX_RESULT
+LATMPacketizer::GetHeaderProperties()
+{
+    // If we weren't passed the number of channels and sample rate,
+    // see if they are in the header
+    if (m_ulInputTimeScale == 0)
+    {
+        m_pStreamHeader->GetPropertyULONG32("SamplesPerSecond", m_ulInputTimeScale);
+    }
+    
+    if (FAILED(m_pStreamHeader->GetPropertyULONG32("Channels", m_ulChannels)))
+    {
+        // Add Channels if it was passed to us but is not in the header
+        if(m_ulChannels != 0)
+        {
+            m_pStreamHeader->SetPropertyULONG32("Channels", m_ulChannels);
+        }
+    }
+
+    return HXR_OK;
+}
+
 HX_RESULT 
 LATMPacketizer::AddHeaderMimeType()
 {
@@ -375,21 +573,7 @@ LATMPacketizer::AddHeaderSDPData()
     UINT32 ulRTPPayloadType;
     const char* pOldSDPBuf = NULL;
     UINT32 ulOldSDPLen;
-
-    // If we weren't passed the number of channels and sample rate,
-    // see if they are in the header
-    if (m_ulChannels == 0 && 
-        FAILED(m_pStreamHeader->GetPropertyULONG32("Channels", 
-        m_ulChannels)))
-    {
-        m_ulChannels = 0;
-    }
-    if (m_ulSampleRate == 0 && 
-        FAILED(m_pStreamHeader->GetPropertyULONG32("SamplesPerSecond", 
-        m_ulSampleRate)))
-    {
-        m_ulSampleRate = 0;
-    }
+    CAudioSpecificConfig audioConfig;
 
     // Get the decoder config info
     res = m_pStreamHeader->GetPropertyBuffer("OpaqueData", pOpaque);
@@ -401,7 +585,7 @@ LATMPacketizer::AddHeaderSDPData()
         res = ESDesc.Unpack(pESDescData, ulESDescSize);
         pOpaque->Release();
     }
-    if(SUCCEEDED(res))
+    if (SUCCEEDED(res))
     {
         DecoderConfigDescriptor* pDCDesc = ESDesc.m_pDecConfigDescr;
         if (pDCDesc && pDCDesc->m_pDecSpecificInfo)
@@ -414,9 +598,39 @@ LATMPacketizer::AddHeaderSDPData()
             res = HXR_INVALID_PARAMETER;
         }
     }
-
-    if(SUCCEEDED(res))
+    if (SUCCEEDED(res))
     {
+        // parse the audio specific config
+        BITSTREAM* pBS;
+        int nRes = newBitstream(&pBS, ulConfigSize*8);
+        if (nRes == 0)
+        {
+            nRes = feedBitstream(pBS, pConfig, ulConfigSize*8);
+        }
+        if (nRes == 0)
+        {
+            nRes = setAtBitstream(pBS, 0, 1);
+        }
+        if (nRes == 0)
+        {
+            res = audioConfig.Read(*pBS);
+        }
+
+        if (pBS)
+        {
+            deleteBitstream(pBS);
+        }
+        if (nRes != 0)
+        {
+            res = HXR_FAIL;
+        }
+    }
+    if (SUCCEEDED(res))
+    {
+        // Set the output time scale to the core audio sample rate 
+        // (not the extended rate!)
+        m_ulOutTimeScale = audioConfig.GetCoreSampleRate();
+
         // Look for any existing SDP data
         // I don't think this should ever really happen
         if(SUCCEEDED(m_pStreamHeader->GetPropertyCString("SDPData", pOldSDP)))
@@ -425,18 +639,15 @@ LATMPacketizer::AddHeaderSDPData()
             ulOldSDPLen = pOldSDP->GetSize();
             ulSDPBufSize += ulOldSDPLen;
         }
-    }
 
-    // Create SDP data Buffer
-    if(SUCCEEDED(res))
-    {
+        // Create SDP data Buffer
         res = m_pClassFactory->CreateInstance(IID_IHXBuffer, 
                 (void**)(&pSDPData));
-        if(SUCCEEDED(res))
-        {
-            res = pSDPData->SetSize(ulSDPBufSize);
-            pSDPBuf = (char*)pSDPData->GetBuffer();
-        }
+    }
+    if (SUCCEEDED(res))
+    {
+        res = pSDPData->SetSize(ulSDPBufSize);
+        pSDPBuf = (char*)pSDPData->GetBuffer();
     }
 
     if(SUCCEEDED(res))
@@ -456,11 +667,13 @@ LATMPacketizer::AddHeaderSDPData()
         {
             ulRTPPayloadType = RTP_PAYLOAD_RTSP;
         }
+    }
 
+    if (SUCCEEDED(res))
+    {
         // Write the a=fmtp data to the sdp
-        int nSize = WriteFMTP(pSDPBuf, ulSDPBufSize, pConfig, 
-                              ulConfigSize, ulRTPPayloadType, 
-                              m_ulChannels, m_ulSampleRate);
+        int nSize = WriteFMTP(pSDPBuf, ulSDPBufSize, pConfig, ulConfigSize, 
+                               ulRTPPayloadType, audioConfig);
 
         // Set the buffer size to the actual size
         if (nSize > 0)
@@ -472,10 +685,10 @@ LATMPacketizer::AddHeaderSDPData()
             res = HXR_FAIL;
         }
     }
-
-    // Add the SDPData to the stream header
+ 
     if(SUCCEEDED(res))
     {
+        // Add the SDPData to the stream header
         res = m_pStreamHeader->SetPropertyCString("SDPData", pSDPData);
     }
 
@@ -485,23 +698,36 @@ LATMPacketizer::AddHeaderSDPData()
     return res;
 }
 
+HX_RESULT
+LATMPacketizer::InitializeResampling()
+{
+    // If the output RTP time scale differs from the input scale, initialize
+    // a timestamp converter
+    if (m_ulInputTimeScale != m_ulOutTimeScale)
+    {
+        m_pTSConverter = new CTSConverter(m_ulInputTimeScale, m_ulOutTimeScale);
+    }
+
+    // Make sure the rate is set in the stream header
+    return m_pStreamHeader->SetPropertyULONG32("SamplesPerSecond", m_ulOutTimeScale);
+}
+
 int
 LATMPacketizer::WriteFMTP(char* pBuf, UINT32 ulSize, UINT8* pConfig, 
                           UINT32 ulConfigSize, UINT32 ulRTPPayloadType,
-                          UINT32 ulChannels, UINT32 ulSampleRate)
+                          CAudioSpecificConfig& audioConfig)
 {
-    if(ulConfigSize == 0)
-    {
-        return -1;
-    }
-
-    UINT8 uAudioObjectType = ((pConfig[0] >> 3) & 0x1F);
+    UINT32 ulAudioObjectType = audioConfig.GetObjectType();
+    UINT32 ulSampleRate = audioConfig.GetSampleRate();
+    UINT32 ulChannels = audioConfig.GetNChannels();
+    UINT32 ulBaseConfigSize = audioConfig.GetCoreConfigSize() >> 3;
+    HXBOOL bSBR = audioConfig.GetIsSBR();
 
     // 3GPP requires profile-level-id 15 for AAC-LC (object 2)
     // and AAC-LTP (object 4) streams fitting level 15 criteria
     // so check if it fits and set the level
     UINT32 ulProfileLevelId = 
-            (uAudioObjectType == 2 || uAudioObjectType == 4) &&
+            (ulAudioObjectType == 2 || ulAudioObjectType == 4) &&
             (ulChannels == 1 || ulChannels == 2) && 
             (ulSampleRate > 0 && ulSampleRate <= 48000) 
             ? 15 : 0;
@@ -509,7 +735,7 @@ LATMPacketizer::WriteFMTP(char* pBuf, UINT32 ulSize, UINT8* pConfig,
     char* pWriter = pBuf;
     int nWritten = SafeSprintf(pWriter, ulSize, 
         "a=fmtp:%u object=%u; cpresent=0;",
-        ulRTPPayloadType, uAudioObjectType);
+        ulRTPPayloadType, ulAudioObjectType);
 
     // Write the profile-level-id if known and start the config
     if (nWritten >= 0)
@@ -536,7 +762,15 @@ LATMPacketizer::WriteFMTP(char* pBuf, UINT32 ulSize, UINT8* pConfig,
         ulSize -= nWritten;
 
         nWritten = FormatStreamMuxConfig(pWriter, ulSize, pConfig,
-            ulConfigSize, 1);
+            ulBaseConfigSize, 1);
+    }
+
+    // Add SBR-enabled flag
+    if(nWritten >= 0 && audioConfig.GetIsSBR())
+    {
+        pWriter += nWritten;
+        ulSize -= nWritten;
+        nWritten = SafeSprintf(pWriter, ulSize, "; SBR-enabled=1");
     }
 
     // terminate the line

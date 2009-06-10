@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdrm.h,v 1.4 2007/04/05 03:47:31 sfu Exp $
+ * Source last modified: $Id: hxdrm.h,v 1.6 2008/03/21 06:26:22 gbajaj Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -74,6 +74,31 @@
 #define HXDRM_ID_WMDRM   "WMRM"
 
 
+/****************************************************************************
+ * 
+ *  Interface:
+ * 
+ *	IHXDRMLicenseStore
+ * 
+ *  Purpose:
+ * 
+ *	Interface supplied by DRM plugin to delete all unusable licenses from 
+ *	the license store and performs maintenance functions on the data store file.
+ * 
+ *	{CA914140-3B63-4f69-BE5A-91432CB3BA45}
+ * 
+ */
+DEFINE_GUID(IID_IHXDRMLicenseStore, 
+0xca914140, 0x3b63, 0x4f69, 0xbe, 0x5a, 0x91, 0x43, 0x2c, 0xb3, 0xba, 0x45);
+#undef  INTERFACE
+#define INTERFACE   IHXDRMLicenseStore
+
+DECLARE_INTERFACE_(IHXDRMLicenseStore , IUnknown)
+{
+    STDMETHOD(PurgeStaleLicenses)	(THIS_ 
+				void* pUserData) PURE;	
+};
+	
 /****************************************************************************
  * 
  *  Interface:
@@ -322,6 +347,73 @@ DECLARE_INTERFACE_(IHXDRMTrigger, IUnknown)
     STDMETHOD(ProcessTrigger)	(THIS_ 
 				IHXBuffer*	 /*IN*/	pTrigger,
 				IHXDRMResponse*  /*IN*/	pResponse) PURE;
+};
+
+ /****************************************************************************
+ * 
+ *  Interface:
+ * 
+ *	IHXDRMHTTPMetering
+ * 
+ *  Purpose: (WMDRM Specific)
+ * 
+ *	Interface to collect device metering data for a specific metering ID and 
+ *	to clear device metering data and reset the metering store for the metering IDs
+ *	specified in the metering response
+ * 
+ * 
+ *	{337034B0-BBD4-4990-B499-C0E57F87AB8B}
+ * 
+ */
+DEFINE_GUID(IID_IHXDRMHTTPMetering, 
+0x337034b0, 0xbbd4, 0x4990, 0xb4, 0x99, 0xc0, 0xe5, 0x7f, 0x87, 0xab, 0x8b);
+
+#undef  INTERFACE
+#define INTERFACE   IHXDRMHTTPMetering
+
+DECLARE_INTERFACE_(IHXDRMHTTPMetering, IUnknown)
+{
+
+    STDMETHOD(GetMeteringReport)	(THIS_ 
+				IHXBuffer*	 /*IN*/	pMeteringCert,
+				REF(IHXValues*) /*OUT*/ pMeteringReport) PURE;
+
+    STDMETHOD(SetMeteringReportAck)	(THIS_ 
+				IHXBuffer*	 /*IN*/	pMeterReportACK,
+				REF(INT32) fFlagsOut) PURE;	
+};
+
+ /****************************************************************************
+ * 
+ *  Interface:
+ * 
+ *	IHXDRMHTTPSecureClock
+ * 
+ *  Purpose:(WMDRM Specific)
+ * 
+ *	Interface to create secure clock challenge, which is sent over the Internet directly from a device or by a proxy application on a computer and 
+ *	to processes the response received from the clock service, verifying and storing the clock packet, and to set the clock time
+ * 
+ * 
+ *	{A4B6B36E-3E27-4d25-B79A-2DBBC239642C}
+ * 
+ */
+ 
+DEFINE_GUID(IID_IHXDRMHTTPSecureClock, 
+0xa4b6b36e, 0x3e27, 0x4d25, 0xb7, 0x9a, 0x2d, 0xbb, 0xc2, 0x39, 0x64, 0x2c);
+
+#undef  INTERFACE
+#define INTERFACE   IHXDRMHTTPSecureClock
+
+DECLARE_INTERFACE_(IHXDRMHTTPSecureClock, IUnknown)
+{
+
+    STDMETHOD(GetSecureClockRequest)	(THIS_ 
+				IHXValues* pSecureClock) PURE;
+
+    STDMETHOD(SetSecureClockResponse)	(THIS_ 
+				IHXBuffer* pClockResponse,
+				REF(INT32) fFlagsOut) PURE;	
 };
 
  /****************************************************************************

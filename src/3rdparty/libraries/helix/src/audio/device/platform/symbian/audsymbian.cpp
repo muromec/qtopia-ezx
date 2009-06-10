@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audsymbian.cpp,v 1.43 2007/04/03 18:24:49 rrajesh Exp $
+ * Source last modified: $Id: audsymbian.cpp,v 1.46 2008/10/19 05:13:35 gajia Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,7 +64,6 @@
 
 #include "audsymbian.h"
 #include "hxerror.h"
-#include "hxmon.h"
 
 static UINT32 Scale(UINT32 v, UINT32 f0, UINT32 f1, UINT32 t0, UINT32 t1);
 
@@ -84,7 +83,10 @@ CHXAudioDevice::CHXAudioDevice()
       m_uMaxDevVolume(100),
       m_pPrioritySettings(NULL),
       m_pContext(NULL),
-      m_pErrorMessages(NULL)
+      m_pErrorMessages(NULL),
+	  m_bSecureOutputChanged(FALSE),
+	  m_uSecureOutputChangeTime(0),
+	  m_pPropWatch(NULL)
 {
     CActiveScheduler::Add(this);
     TInt err = KErrNone;
@@ -126,6 +128,12 @@ HX_RESULT CHXAudioDevice::QueryInterface(REFIID riid, void** ppvObj)
         return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IUnknown))
+    {
+        AddRef();
+        *ppvObj = this;
+        return HXR_OK;
+    }
+	else if (IsEqualIID(riid, IID_IHXPropWatchResponse))
     {
         AddRef();
         *ppvObj = this;
@@ -197,6 +205,9 @@ HX_RESULT CHXAudioDevice::Write(const HXAudioData* pAudioData)
 
 HX_RESULT CHXAudioDevice::Reset()
 {
+    //reset SecureOutput settings
+    m_bSecureOutputChanged = FALSE;
+    
     if (m_pAudioStream)
     {
         if (!m_pAudioStream->Stopped())
@@ -242,7 +253,30 @@ HX_RESULT CHXAudioDevice::GetCurrentAudioTime( ULONG32& ulCurrentTime )
     if( m_pAudioStream )
     {
         ulCurrentTime = m_pAudioStream->GetTime();
+		TInt rv = 0;
+#if defined(HELIX_FEATURE_DRM_SECURE_OUTPUT)
+		if(m_bSecureOutputChanged) 
+		{
+			if (ulCurrentTime>=m_uSecureOutputChangeTime) 
+			{
+				//Send new secure output settings to audio device
+				rv = m_pAudioStream->SetSecureOutput(m_lSecureOutputSetting & 0x1);
+				m_bSecureOutputChanged = FALSE;
+			}
+		}
+#endif
+		if(rv == KErrNotSupported)
+		{
+			res = HXR_SET_SECURE_OUT_FAIL;
+			if(m_pErrorMessages != NULL)
+			{
+				m_pErrorMessages->Report(HXLOG_INFO, res, 0, NULL, NULL);
+			}
+		}
+		else
+		{
         res = HXR_OK;
+		}
     }
 
     return res;
@@ -448,7 +482,14 @@ HX_RESULT CHXAudioDevice::InitDevice(const HXAudioFormat* pFormat)
 
         if (m_pContext->QueryInterface(IID_IHXRegistry, (void**)&pReg) == HXR_OK)
         {
+            HX_RELEASE(m_pPropWatch);
             pReg->GetIntByName("MMF.SecureOutput", lSecureAudio);
+			res = pReg->CreatePropWatch(m_pPropWatch);  //watching for secure output changes on the fly
+            if (SUCCEEDED(res))
+            {
+                m_pPropWatch->SetWatchByName("MMF.SecureOutput");
+                m_pPropWatch->Init(this);
+            }
 
             HX_RELEASE(pReg);
         }
@@ -503,6 +544,11 @@ void CHXAudioDevice::OnAudDevStatusChange(TInt AudDevStatus)
         HX_ASSERT(m_pErrorMessages != NULL);
         m_pErrorMessages->Report(HXLOG_INFO, HXR_AUDIODEVICETAKEN, 0, NULL, NULL);
     }
+	else
+	{
+		HX_ASSERT(m_pErrorMessages != NULL);
+        m_pErrorMessages->Report(HXLOG_ERR, HXR_AUDIO_DRIVER, 0, NULL, NULL);
+	}
 }
 
 //
@@ -568,6 +614,38 @@ void CHXAudioDevice::GetPrioritySettings()
 
     HXLOGL2( HXLOG_ADEV, "    -- priority values (%d, %d) from registry",
         m_pPrioritySettings->iPriority, m_pPrioritySettings->iPref);
+}
+
+//IHXPropWatchResponse methods
+STDMETHODIMP
+CHXAudioDevice::AddedProp(const UINT32 ulId, const HXPropType propType, const UINT32 ulParentID)
+{
+	//No need to implement
+    return HXR_OK;
+}
+
+STDMETHODIMP
+CHXAudioDevice::ModifiedProp(const UINT32 ulId, const HXPropType propType, const UINT32 ulParentID)
+{
+	IHXRegistry* pReg = NULL;
+	if (m_pContext->QueryInterface(IID_IHXRegistry, (void**)&pReg) == HXR_OK)
+	{
+		INT32 lSecureOutputChangeTime;
+		pReg->GetIntByName("MMF.SecureOutputTime", lSecureOutputChangeTime);
+		m_uSecureOutputChangeTime = (UINT32)lSecureOutputChangeTime;
+		pReg->GetIntByName("MMF.SecureOutput", m_lSecureOutputSetting);
+		HX_RELEASE(pReg);
+		m_bSecureOutputChanged = TRUE;
+	}
+
+    return HXR_OK;
+}
+
+STDMETHODIMP
+CHXAudioDevice::DeletedProp(const UINT32	ulId, const UINT32 ulParentID)
+{
+    HX_RELEASE(m_pPropWatch);
+    return HXR_OK;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -44,6 +44,9 @@
 #include "cklicense.h"
 
 #include "qtatmmgs.h"
+#include "hxver.h"
+#include "h263pack.ver"
+
 
 #define D_H263 D_INFO
 //#define H263PKT_RANDOM_PKT_SIZE 0;
@@ -54,6 +57,12 @@ const UINT32 SDP_SIZE = 128;
 const char* LICENSE_ERROR_STR = 
     "Packetizer: This Server is not licenced to use video/H263-2000 Packetizer.";
 
+/****************************************************************************
+ * Constants
+ */
+const char* CH263Packetizer::zm_pDescription    = "RealNetworks H263 Packetizer Plugin";
+const char* CH263Packetizer::zm_pCopyright      = HXVER_COPYRIGHT;
+const char* CH263Packetizer::zm_pMoreInfoURL    = HXVER_MOREINFO;
 
 // Genaral H.263+ Payload Header (RFC 2429)
 typedef struct tagRTP_H263PLUS_PAYLOAD_HEADER 
@@ -109,10 +118,15 @@ STDMETHODIMP CH263Packetizer::Init(IUnknown* pContext, BOOL bPacketize)
     }
 
     
-    HX_RESULT theErr = CheckLicense(pContext, 
+    HX_RESULT theErr = HXR_OK;
+
+#ifdef HELIX_FEATURE_SERVER
+        theErr = CheckLicense(pContext, 
 	REGISTRY_3GPPPACKETIZER_ENABLED, 
 	LICENSE_3GPPPACKETIZER_ENABLED,
 	LICENSE_ERROR_STR);
+#endif
+
     if (HXR_OK != theErr)
     {
 	return theErr;
@@ -323,12 +337,14 @@ CH263Packetizer::HandleMaxPacketSize(IHXValues* pHeader)
      * 3) "MaxPacketSize" in stream header
      * 4) hard coded value
      */
-    HX_RESULT theErr;
+    HX_RESULT theErr = HXR_FAIL;
     UINT32 ulMaxPktSize = 0;
-    
+
+#ifdef HELIX_FEATURE_SERVER
     theErr = GetConfigDefaultMaxPacketSize(m_pContext, 
-	"config.Datatypes.video/h263-2000.MaxPacketSize",
-	ulMaxPktSize);
+	                                "config.Datatypes.video/h263-2000.MaxPacketSize",
+	                                 ulMaxPktSize);
+#endif
 	
     if (HXR_OK == theErr)
     {
@@ -350,6 +366,7 @@ CH263Packetizer::HandleMaxPacketSize(IHXValues* pHeader)
 	    {
 		m_ulCurMaxPktSize = m_ulMaxPktSize = ulMaxPktSize;
 	    }
+        theErr = HXR_OK;
 	}
 	else
 	{
@@ -536,8 +553,10 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
     UINT8* pBuffer	    = pData->GetBuffer();	
     UINT32 ulBufferSize     = pData->GetSize();
 
+    UINT32 uiIterations = 0;
     // Makes no sense to packetize less than one byte.
     const UINT32 ulMinPacketSize = 3;
+    HXBOOL bIterationOver = TRUE;
 
     if (ulBufferSize < ulMinPacketSize)
     {
@@ -567,9 +586,13 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
             return HXR_FAILED;
         }
 
+     
+
 	// Split large frame into smaller packets at GOB/Slice boundaries 
 	while (pPacket = (UINT8*)memchr(pNextPacket, 0x00, ulSearchSize)) 
 	{
+        // We are currently splitting GOB/Slices, hence iteration is not over.
+        bIterationOver = FALSE;
 	    ulSearchSize = ulBufferSize - (pPacket - pBuffer);
 	    
 	    // Check for valid H.263+ GOB/Slice header and at least one byte
@@ -591,13 +614,14 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
 			    return HXR_FAILED;
 			}
 
-			GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_FALSE);
+			GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_FALSE, uiIterations, bIterationOver);
+            ++uiIterations;
 			HX_ASSERT(bGenerated = 1);
 			break;
 		    }
 		}
-		
-		// Search completed
+        
+        // Search completed
 		if (!pNextPacket)
 		{
 		    break;
@@ -620,13 +644,16 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
 		    return HXR_FAILED;
 		}
 
+        // We are either at the last packet or orignial packet without GOB/Slice Headers.
+        // Iteration is over from our perspective.
+        bIterationOver = TRUE;
 		if ((ulDataSize + zm_ulRTP263PlusHdrSize) > m_ulCurMaxPktSize) 
 		{
-		    GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_UNKNOWN);
+		    GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_UNKNOWN, uiIterations, bIterationOver);
 		}		    
 		else
 		{
-		    GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_TRUE);   
+		    GeneratePacket(pPacket+2, ulDataSize, pInHXPkt, MARKER_TRUE, uiIterations, bIterationOver);   
 		}
 		HX_ASSERT(bGenerated = 1);
 	    }
@@ -638,7 +665,9 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
 	if ((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00) && (pBuffer[2] & 0x80) && 
 	    ((pBuffer[2] & 0x7C) == 0)) 
 	{
-	    GeneratePacket(pBuffer+2, ulDataSize, pInHXPkt, MARKER_TRUE);
+        // This frame will fit in one packet
+        bIterationOver = TRUE;
+	    GeneratePacket(pBuffer+2, ulDataSize, pInHXPkt, MARKER_TRUE, uiIterations, bIterationOver);
 	    HX_ASSERT(bGenerated = 1);
 	}
     }
@@ -656,7 +685,7 @@ CH263Packetizer::PacketizeRFC2429(IHXPacket* pInHXPkt)
  * Add a hx packet to a outpkt list
  */
 HX_RESULT 
-CH263Packetizer::GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInHXPkt, RTPMarkerBit mBit)
+CH263Packetizer::GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInHXPkt, RTPMarkerBit mBit, UINT32 uiIterationsSoFar, HXBOOL bIterationOverForGOBSplit)
 {
 #ifdef H263DUMP 
     printf("\tGeneratePacket: ");
@@ -679,6 +708,7 @@ CH263Packetizer::GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInH
     IHXBuffer* pHXBuf = NULL;    
 
     BOOL    bMBit = FALSE;    
+    HXBOOL bIterationOver = TRUE;
     if (MARKER_TRUE == mBit)
     {
 	bMBit = TRUE;
@@ -695,10 +725,23 @@ CH263Packetizer::GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInH
 	printf(" %u[P:%u ", ulIteration, bPBit);
 #endif	
 
-	ulNewDataSize = min(ulDataSize, m_ulCurMaxPktSize - zm_ulRTP263PlusHdrSize);
+	ulNewDataSize = HX_MIN(ulDataSize, m_ulCurMaxPktSize - zm_ulRTP263PlusHdrSize);
 	HX_ASSERT((!bTest &&  bPBit && (ulNewDataSize == ulDataSize)) || // only once
 		  ( bTest && (ulNewDataSize != ulDataSize)) || 
 		  ( bTest && !bPBit && (ulNewDataSize == ulDataSize))); // the last one
+
+    if(bPBit && (ulNewDataSize == ulDataSize)) //only once
+    {
+        bIterationOver = TRUE;
+    }
+    else if((ulNewDataSize != ulDataSize)) // fragmentation in process
+    {
+        bIterationOver = FALSE;
+    }
+    else if(!bPBit && (ulNewDataSize == ulDataSize)) // last one
+    {
+        bIterationOver = TRUE;
+    }
 
 	pPktData = MakeBuffer(pHXBuf, ulNewDataSize + zm_ulRTP263PlusHdrSize);
 	if (!pPktData)
@@ -735,9 +778,21 @@ CH263Packetizer::GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInH
 #ifdef H263DUMP	
 	printf("M:%u]", bMbit);
 #endif	
+
+    // The calling function ::PacketizeRFC2429 handles splitting across GOB/Slice boundaries. Even though the iteration might be
+    // over in here, if ::PacketizeRFC2429 did not inform that this function is called for the last GOB/Slice, we really cannot say 
+    // the iteration is over. 
 	
+    if(bIterationOver)
+    {
+        if(!bIterationOverForGOBSplit)
+        {
+            bIterationOver = FALSE;
+        }
+    }
 	// AddOutPkt
-	theErr = (this->*m_pOutPktQueue)(pHXBuf, pInHXPkt, bMBit);
+	theErr = (this->*m_pOutPktQueue)(pHXBuf, pInHXPkt, bMBit, uiIterationsSoFar, bIterationOver);
+    ++uiIterationsSoFar;
 	HX_RELEASE(pHXBuf);
 
 	if (HXR_OK != theErr)
@@ -790,8 +845,95 @@ CH263Packetizer::MakeBuffer(REF(IHXBuffer*)pOutBuf, UINT32 ulSize)
     return NULL;
 }
 
-HX_RESULT
-CH263Packetizer::AddOutHXPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit)
+UINT32 CH263Packetizer::PrepareOutPktASMFlags(IHXPacket* pInPkt, UINT32 uiIterations, HXBOOL bIterationOver)
+{
+     UINT32 uiASMFlags = pInPkt->GetASMFlags();
+     UINT32 uiOutPktASMFlags = 0;
+     
+    if(uiASMFlags & HX_ASM_SWITCH_ON) // Keyframe check
+    {
+        // Iterations are zero based. 
+        if(uiIterations == 0) // First fragment of a keyframe or the entire keyframe
+        {
+            //set the HX_ASM_SWITCH_ON and HX_ASM_SWITCH_OFF flags
+            uiOutPktASMFlags = HX_ASM_SWITCH_ON | HX_ASM_SWITCH_OFF;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SIDE_EFFECT;           
+        }
+        else if(uiIterations > 0 && bIterationOver) // last fragment of a split KEYFRAME
+        {      
+            /*
+
+            Explanation for HX_ASM_SIDE_EFFECT flag:
+
+            Initially ASM_SWITCH_ON signifies that it is a first packet of a keyframe.
+            In case of RTP, the marker bit is set to 1 for the last packet of a frame.
+           
+            For 3GP, the way the ASM rule book is designed is if the marker bit is 1, 
+            the rule number is odd number and it is 0 the rule number is even number. 
+            This design implies, since the market bit changes according to the RTP protocol
+            (0 for all packets except last and 1 for the last packet of a frame), so does
+            the rule number.
+
+            Since the rule number changes, within the same keyframe (when it is fragmented), 
+            the ASM_SWITCH_ON flag should be set for the last fragment of the keyframe. This 
+            is due to the original design of ASM rulebook that a packet pertaining to a particular 
+            rule is sent (out by the server) only when the server has seen a ASM_SWITCH_ON 
+            for that rule from any of the previous packets.
+
+            So in case of the fragmented keyframe I0, I1, I2 the rule for each of the 
+            packet will be 0,0 and 1 respectively. Ideally the I2 packet needs to be 
+            sent inorder to complete the delivery of that keyframe. Since the rule becomes 1, 
+            if ASM_SWITCH_ON is *not* set the Server will not send the packet out. Hence 
+            the need for setting ASM_SWITCH_ON.
+
+            The side effect of setting ASM_SWITCH_ON flag for the last fragment of the 
+            keyframe is that when a switch is requested by the client, the server might 
+            send the last fragment as the first packet since the switch. But the last 
+            fragment is useless without the other fragments. Hence the ASM_SIDE_EFFECT
+            informs the server not to send this packet as first packet after a switch 
+            request.
+            
+            */
+
+            uiOutPktASMFlags = HX_ASM_SWITCH_ON | HX_ASM_SIDE_EFFECT;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_OFF;            
+        }
+        else // If keyframe is split as I0, I1, I2......In-2, In-1, In, this case covers I1 ...... In-1
+        {
+            // reset HX_ASM_SWITCH_ON and HX_ASM_SWITCH_OFF and  HX_ASM_SIDE_EFFECT flags
+            HX_ASSERT(uiIterations > 0);
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_ON;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_OFF;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SIDE_EFFECT;           
+        }
+    }
+    else
+    {
+        // Not a keyframe
+        // If the non-keyframe is fragmented reset all ASM flags from the second fragment on
+        // For the first fragment set the ASM_SWITCH_OFF.
+        if(uiIterations == 0 )
+        {
+            uiOutPktASMFlags = uiOutPktASMFlags | HX_ASM_SWITCH_OFF;     
+
+            // reset other flags
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_OFF;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SIDE_EFFECT; 
+        }
+        else if (uiIterations >0 )
+        {
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_ON;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SWITCH_OFF;
+            uiOutPktASMFlags = uiASMFlags & ~HX_ASM_SIDE_EFFECT;
+        }
+
+    }
+
+    return uiOutPktASMFlags;
+}
+
+HX_RESULT 
+CH263Packetizer::AddOutHXPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit, UINT32 uiIterations, HXBOOL bIterationOver)
 {
 //    HX_ASSERT((H263PK_IN_PKT_TYPE_HX == m_inPktType));
     HX_RESULT theErr;
@@ -803,11 +945,13 @@ CH263Packetizer::AddOutHXPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit)
     {
 	return theErr;
     }
-
+   
+    UINT32 uiOutPktASMFlags = PrepareOutPktASMFlags(pInPkt, uiIterations, bIterationOver);
+   
     theErr = pNewPkt->Set(pBuf, 
 			  pInPkt->GetTime(), 
-			  pInPkt->GetStreamNumber(),
-			  bMBit ? pInPkt->GetASMFlags() : HX_ASM_SWITCH_OFF,
+			  pInPkt->GetStreamNumber(),			  
+              uiOutPktASMFlags, 
 			  bMBit ? pInPkt->GetASMRuleNumber() : 0);
     if (HXR_OK == theErr)
     {
@@ -823,7 +967,7 @@ CH263Packetizer::AddOutHXPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit)
 
 
 HX_RESULT
-CH263Packetizer::AddOutHXRTPPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit)
+CH263Packetizer::AddOutHXRTPPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit, UINT32 uiIterations, HXBOOL bIterationOver)
 {
 //    HX_ASSERT((H263PK_IN_PKT_TYPE_RTP == m_inPktType));
     HX_RESULT theErr;
@@ -834,12 +978,14 @@ CH263Packetizer::AddOutHXRTPPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit)
     {
 	return theErr;
     }
+    
+    UINT32 uiOutPktASMFlags = PrepareOutPktASMFlags(pInPkt, uiIterations, bIterationOver);
 
     theErr = pNewPkt->SetRTP(pBuf, 
 			     ((IHXRTPPacket*)pInPkt)->GetTime(), 
 			     ((IHXRTPPacket*)pInPkt)->GetRTPTime(),
-			     ((IHXRTPPacket*)pInPkt)->GetStreamNumber(),
-			     bMBit ? ((IHXRTPPacket*)pInPkt)->GetASMFlags() : HX_ASM_SWITCH_OFF,
+			     ((IHXRTPPacket*)pInPkt)->GetStreamNumber(),			     
+                 uiOutPktASMFlags, 
 			     bMBit ? ((IHXRTPPacket*)pInPkt)->GetASMRuleNumber() : 0);
     if (HXR_OK == theErr)
     {
@@ -929,6 +1075,18 @@ STDMETHODIMP CH263Packetizer::QueryInterface(REFIID riid,
 	*ppvObj = (IHXPayloadFormatObject*)this;
 	res = HXR_OK;
     }
+    else if (IsEqualIID(riid, IID_IHXPluginProperties))
+    {
+    AddRef();
+    *ppvObj = (IHXPluginProperties*)this;
+    res = HXR_OK;
+    } 
+    else if (IsEqualIID(riid, IID_IHXPlugin))
+    {
+    AddRef();
+    *ppvObj = (IHXPlugin*)this;
+    res = HXR_OK;
+    } 
 
     return res;
 }
@@ -949,3 +1107,134 @@ STDMETHODIMP_(ULONG32) CH263Packetizer::Release()
     return 0;
 }
 
+
+HX_RESULT 
+STDAPICALLTYPE CH263Packetizer::HXCreateInstance(IUnknown** ppIUnknown)
+{
+    *ppIUnknown = (IUnknown*)(IHXPlugin*) new CH263Packetizer();
+    if (*ppIUnknown)
+    {
+        (*ppIUnknown)->AddRef();
+        return HXR_OK;
+    }
+
+    return HXR_OUTOFMEMORY;
+}
+
+HX_RESULT 
+STDAPICALLTYPE CH263Packetizer::CanUnload(void)
+{
+    return CanUnload2();
+}
+
+HX_RESULT 
+STDAPICALLTYPE CH263Packetizer::CanUnload2(void)
+{
+    return ((CHXBaseCountingObject::ObjectsActive() > 0) ? HXR_FAIL : HXR_OK);
+}
+
+/************************************************************************
+ *  IHXPlugin methods
+ */
+/************************************************************************
+ *  Method:
+ *    IHXPlugin::InitPlugin
+ *  Purpose:
+ *    Initializes the plugin for use. This interface must always be
+ *    called before any other method is called. This is primarily needed
+ *    so that the plugin can have access to the context for creation of
+ *    IHXBuffers and IMalloc.
+ */
+STDMETHODIMP CH263Packetizer::InitPlugin(IUnknown* /*IN*/ pContext)
+{
+    HX_RESULT retVal = HXR_OK;
+
+    HX_ASSERT(pContext);
+
+    m_pContext = pContext;
+    m_pContext->AddRef();
+
+    retVal = m_pContext->QueryInterface(IID_IHXCommonClassFactory,
+					 (void**) &m_pCCF);
+
+    return retVal;
+}
+
+/************************************************************************
+ *  Method:
+ *    IHXPlugin::GetPluginInfo
+ *  Purpose:
+ *    Returns the basic information about this plugin. Including:
+ *
+ *    bLoadMultiple	whether or not this plugin DLL can be loaded
+ *			multiple times. All File Formats must set
+ *			this value to TRUE.
+ *    pDescription	which is used in about UIs (can be NULL)
+ *    pCopyright	which is used in about UIs (can be NULL)
+ *    pMoreInfoURL	which is used in about UIs (can be NULL)
+ */
+STDMETHODIMP CH263Packetizer::GetPluginInfo
+(
+    REF(HXBOOL)		    bLoadMultiple,
+    REF(const char*)	pDescription,
+    REF(const char*)	pCopyright,
+    REF(const char*)	pMoreInfoURL,
+    REF(ULONG32)	    ulVersionNumber
+)
+{
+    bLoadMultiple = TRUE;   // Must be true for file formats.
+
+    pDescription    = zm_pDescription;
+    pCopyright	    = zm_pCopyright;
+    pMoreInfoURL    = zm_pMoreInfoURL;
+    ulVersionNumber = TARVER_ULONG32_VERSION;
+
+    return HXR_OK;
+}
+
+/************************************************************************
+ *  Method:
+ *      IHXPluginProperties::GetProperties
+ */
+
+STDMETHODIMP
+CH263Packetizer::GetProperties(REF(IHXValues*) pIHXValuesProperties)
+{
+    IHXBuffer* pBuffer = NULL;
+    HX_RESULT res = HXR_FAIL;
+    HX_ASSERT(m_pCCF);
+    m_pCCF->CreateInstance(IID_IHXValues, (void**)&pIHXValuesProperties);
+
+    if (pIHXValuesProperties)
+    {
+	//plugin class
+        m_pCCF->CreateInstance(IID_IHXBuffer, (void**)&pBuffer);
+		if (pBuffer)
+		{
+		    pBuffer->Set((const unsigned char*) PLUGIN_PACKETIZER_TYPE, strlen(PLUGIN_PACKETIZER_TYPE)+1);
+		    pIHXValuesProperties->SetPropertyCString(PLUGIN_CLASS, pBuffer);
+		    HX_RELEASE(pBuffer);
+        }
+		else
+		{
+		    return HXR_OUTOFMEMORY;
+		}
+	//mime type
+        m_pCCF->CreateInstance(IID_IHXBuffer, (void**)&pBuffer);   
+		if (pBuffer)	
+		{		
+		    pBuffer->Set((unsigned char*)H263_MIME_TYPE, strlen(H263_MIME_TYPE)+1);
+		    pIHXValuesProperties->SetPropertyCString(PLUGIN_PACKETIZER_MIME, pBuffer);
+		    HX_RELEASE(pBuffer);
+		}
+		else
+		{
+		    return HXR_OUTOFMEMORY;
+		}
+    }
+    else
+    {
+        return HXR_OUTOFMEMORY;
+    }
+    return HXR_OK;
+}

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxver.h,v 1.20 2006/10/18 15:22:20 jwei Exp $
+ * Source last modified: $Id: hxver.h,v 1.24 2009/03/10 19:24:54 jeffl Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef HXVER_H
 #define HXVER_H
 
-#if defined(HELIX_FEATURE_USE_RNVER)
+#if defined(HELIX_FEATURE_USE_RNVER) || defined(HELIX_CONFIG_USE_RNVER)
 
 #include "rnver.h"
 
@@ -111,8 +111,8 @@
 
 #define         HXVER_COMMUNITY                 "Helix"
 #define         HXVER_COMPANY                   " " // the resource parsing code in client\xres does not handle empty values. Use space for empty.
-#define         HXVER_COPYRIGHT                 "Copyright(c) RealNetworks, Inc. 1995-2006. All rights reserved. Source code for this program is available under the RealNetworks Public Source License.\0" 
-#define         HXVER_RN_COPYRIGHT              "Copyright(c) RealNetworks, Inc. 1995-2006, All rights reserved.\0"
+#define         HXVER_COPYRIGHT                 "Copyright(c) RealNetworks, Inc. 1995-2008. All rights reserved. Source code for this program is available under the RealNetworks Public Source License.\0" 
+#define         HXVER_RN_COPYRIGHT              "Copyright(c) RealNetworks, Inc. 1995-2008, All rights reserved.\0"
 #define         HXVER_TRADEMARKS                " " // see above
 #define         HXVER_MOREINFO                  "http://www.helixcommunity.org\0" 
 #define         HXVER_PRODUCTNAME               "Helix DNA Client\0"

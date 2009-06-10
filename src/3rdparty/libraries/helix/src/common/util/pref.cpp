@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pref.cpp,v 1.14 2006/02/07 19:21:28 ping Exp $
+ * Source last modified: $Id: pref.cpp,v 1.16 2008/01/18 04:54:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -77,6 +77,8 @@
 #include "symbian_pref.h"
 #elif defined(_OPENWAVE)
 #include "openwave_pref.h"
+#elif defined (_BREW)
+#include "brew_pref.h" 
 #else
 #error Undefined platform!
 #endif
@@ -118,7 +120,12 @@ CPref * CPref::open_pref(const char* pCompanyName, const char* pProductName, int
                                                      nProdMajorVer,
                                                      nProdMinorVer,
 						     pContext);
-
+#elif defined(_BREW)
+	pPref =	( CPref *) CBrewPref::open_pref	(   pCompanyName,
+						    pProductName,
+						    nProdMajorVer,
+						    nProdMinorVer,
+						    pContext);
 #elif defined( _WIN32 ) || defined( _WINDOWS )
 	pPref = CWinPref::open_pref(pCompanyName, pProductName, nProdMajorVer, nProdMinorVer, bCommon, pContext);
 #endif

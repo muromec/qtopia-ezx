@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: string.cpp,v 1.9 2005/07/22 22:47:54 albertofloyd Exp $
+ * Source last modified: $Id: string.cpp,v 1.11 2008/01/18 09:17:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -48,6 +48,8 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "hlxclib/string.h"
+#include "hxassert.h"
+#include "globals/hxglobals.h"
 
 char * __helix_strrev(char * str)
 {
@@ -192,3 +194,90 @@ __helix_strnchr(const char* sc, const char c, size_t n)
     return NULL;
 }
 
+#if defined(_BREW)
+
+unsigned long __helix_strspn (const char* str1, const char* str2)
+{
+    int count = 0;
+    while (str1=='\0')	
+    {
+	if (strchr(str2, *str1)!=0)
+	{
+	    break;
+	}
+	str1++;
+    }
+    return count;
+}
+
+unsigned long __helix_strcspn (const char* str1, const char* str2)
+{
+    int count = 0;
+    char* sstr1 = STRLOWER((char*)str1);
+    char* sstr2 = STRLOWER((char*)str2);
+    while (sstr1=='\0')	
+    {
+	if (strchr(sstr2, *sstr1)!=0)
+	{
+	    break;
+	}
+	sstr1++;
+    }
+    return count;	
+}
+
+int __helix_tolower (int c)
+{
+    return (c+32*(c>='A' && c<='Z'));
+}
+
+int __helix_toupper ( int c )
+{
+    return (c-32*(c>='a' && c<='z'));
+}
+
+char* __helix_strncat ( char * destination, const char * source, size_t num )
+{
+    STRLCAT(destination, source, num);	
+    return destination;
+}	
+
+static const  char* const g_lastcharsttok = NULL;
+char * __helix_strtok ( char * str, const char * delimiters )
+{
+    char*& lp = (char*&)HXGlobalPtr::Get(&g_lastcharsttok);
+    if (str)
+    {
+	char* k = strstr(str, delimiters);
+	lp = k;
+	if (lp)
+	{
+	    *lp = 0;
+	    lp++;
+	}
+	return str;
+    }
+    else
+    {
+	char* lpo = lp;
+	if (lp)
+	{
+	    lp = strstr(lp, delimiters);
+	    if (lp)
+	    {
+		*lp = 0;
+		lp++;
+	    }
+	}
+	return lpo;
+    }
+    return NULL;
+}
+
+char* __helix_strpbrk (const char * str1, const char * str2 )
+{
+    HX_ASSERT(0);
+    return NULL;
+}
+
+#endif //_BREW

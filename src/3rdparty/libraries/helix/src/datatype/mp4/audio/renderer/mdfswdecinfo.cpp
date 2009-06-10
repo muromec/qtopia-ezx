@@ -39,6 +39,7 @@
 #include "aacdecinfo.h"
 #include "amrdecinfo.h"
 #include "amrwbdecinfo.h"
+#include "mp3decinfo.h"
 #include "mdfswdecinfo.h"
 
 CMDFSWDecInfo::CMDFSWDecInfo(CMP4ADecoder* decoder)
@@ -77,6 +78,11 @@ HXBOOL CMDFSWDecInfo::IsMatch(const char* pMimeType, IMP4APayloadFormat* pRssm)
     if(m_AMRWBDecInfo.IsMatch(pMimeType, pRssm))
     {
         m_pDecInfo = &m_AMRWBDecInfo;
+        return TRUE;
+    }
+    if(m_MP3DecInfo.IsMatch(pMimeType, pRssm))
+    {
+        m_pDecInfo = &m_MP3DecInfo;
         return TRUE;
     }
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxfsmgr.cpp,v 1.16 2006/10/06 21:03:39 ping Exp $
+ * Source last modified: $Id: hxfsmgr.cpp,v 1.18 2008/11/14 21:42:54 yuryrp Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -778,7 +778,9 @@ HXFileSystemManager::ProcessGetRelativeFileObjectPending()
     
     if (!m_pOriginalObject)
     	goto exit;
-
+    
+    HX_RELEASE(m_pSamePool);
+    
     if(HXR_OK != m_pOriginalObject->QueryInterface(IID_IHXGetFileFromSamePool,
 					       (void**)&m_pSamePool))
     {

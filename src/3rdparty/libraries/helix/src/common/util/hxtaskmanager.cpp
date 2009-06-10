@@ -71,6 +71,16 @@ HXTaskManager::Task::~Task()
 
 IHXThread* HXTaskManager::Task::GetResponseThread()
 {
+#if defined(_UNIX)
+    if(!m_pResponseThread)
+    {
+    	if(m_pMsgSink)
+    	{
+    		m_pResponseThread = (IHXThread*)m_pMsgSink->GetThread();
+    		m_pResponseThread->AddRef();
+    	}
+    }
+#endif	
     return m_pResponseThread;
 }
 
@@ -236,6 +246,7 @@ HX_RESULT HXTaskManager::AddTask(Task* pTask)
     if (SUCCEEDED(hr))
     {
         pTask->AddRef();
+        pTask->SetMessageSink(pMsgSink);
         if (!pTask->GetResponseThread())
         {
             IHXThread* pResponseThread = NULL;
@@ -248,7 +259,6 @@ HX_RESULT HXTaskManager::AddTask(Task* pTask)
             }
         }
         
-        pTask->SetMessageSink(pMsgSink);
 
         // add to pending task list and tell a task thread to start working
         HXScopeLock lock(m_pTaskMutex);

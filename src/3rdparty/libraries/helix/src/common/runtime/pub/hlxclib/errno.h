@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: errno.h,v 1.9 2005/02/01 20:06:48 liam_murray Exp $
+ * Source last modified: $Id: errno.h,v 1.11 2008/01/18 09:17:27 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,7 +57,7 @@
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
 
-#if !defined(WIN32_PLATFORM_PSPC)
+#if !defined(WIN32_PLATFORM_PSPC) && !defined (_BREW)
 #include <errno.h>
 #endif /* !defined(WIN32_PLATFORM_PSPC) */
 
@@ -81,6 +81,13 @@ extern int errno;
 #define EWOULDBLOCK 1
 #define EINPROGRESS 2
 #endif /* _SYMBIAN */
+
+#if defined(_BREW)
+#include "AEEError.h"
+#define EWOULDBLOCK AEE_NET_EWOULDBLOCK
+#define EINPROGRESS AEE_NET_EINPROGRESS
+#define EINVAL AEE_NET_EINVAL
+#endif /* _BREW */
 
 #if defined(_OPENWAVE)
 #ifndef EAGAIN

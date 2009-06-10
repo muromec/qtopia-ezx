@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: limiter.c,v 1.7 2005/10/14 22:47:14 gwright Exp $
+ * Source last modified: $Id: limiter.c,v 1.9 2007/11/29 05:29:38 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -115,7 +115,7 @@ TcToMs(double tc, double samprate) {
 }
 
 double
-Log2(double x) {
+Log2Limit(double x) {
 	HX_ASSERT(x > 0.0);
 	return (log(x) / log(2.0));
 }
@@ -136,7 +136,7 @@ LimiterSetGain(double dbgain, LIMSTATE *lim)
 	outgain = DbToGain(def_outceil) * mkupgain * cicgain;
 
 	/* normalize outgain into shift and fraction */
-	lim->outshift = (int) (ceil(Log2(outgain)));
+	lim->outshift = (int) (ceil(Log2Limit(outgain)));
 	lim->outshift = MAX(lim->outshift, 0);
 	lim->outfract = (int) ((outgain / (1 << lim->outshift)) * FLT_ONE);
 	HX_ASSERT(lim->outfract >= 0);	/* should never overflow */

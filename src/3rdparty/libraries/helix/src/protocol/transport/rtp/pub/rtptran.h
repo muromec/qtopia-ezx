@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtptran.h,v 1.54 2006/11/16 22:30:58 milko Exp $
+ * Source last modified: $Id: rtptran.h,v 1.57 2008/06/11 22:23:06 amsaleem Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -185,7 +185,7 @@ public:
     void SetFirstTSLive                 (RTSPStreamData* pStreamData, UINT32 ulTS, HXBOOL bIsRaw);
     void SetFirstTSStatic               (RTSPStreamData* pStreamData, UINT32 ulTS, HXBOOL bIsRaw);
 
-    void setPlayRange                   (UINT32 ulFrom, UINT32 ulTo);
+    virtual void  setPlayRange          (UINT32 ulFrom, UINT32 ulTo, HXBOOL bOnPauseResume = FALSE);
     HX_RESULT setFirstPlayTime          (Timeval* pTv);
     void OnPause			(Timeval* pTV);
 
@@ -269,6 +269,7 @@ protected:
     UINT32				m_ulWaitQueueBytes;
     HXBOOL				m_bWaitForStartInfo;
     HXBOOL				m_bAbortWaitForStartInfo;
+    HXBOOL				m_bFirstSeqNumLocked;
 
     HXBOOL                                m_bSSRCDetermined;
     UINT32                              m_ulSSRCDetermined;
@@ -356,6 +357,7 @@ protected:
 
 private:
     HX_RESULT _handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime);
+    INT16 CompareRTPTimestamp(ULONG32 x, ULONG32 y);
 };
 
 /*

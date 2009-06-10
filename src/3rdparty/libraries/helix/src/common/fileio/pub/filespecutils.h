@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: filespecutils.h,v 1.12 2006/05/19 05:56:13 pankajgupta Exp $
+ * Source last modified: $Id: filespecutils.h,v 1.15 2008/08/06 06:11:55 qluo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -141,6 +141,11 @@ public:
 	static CHXDirSpecifier GetCurrentApplicationDir(void);
 
 	static CHXDirSpecifier GetAppDataDir(const char* szAppName);
+
+#if defined(_WIN32)
+	static CHXDirSpecifier GetLocalAppDataLowDir(const char* szAppName);
+	static CHXFileSpecifier GetModuleFileSpecByAddress(void* addr);
+#endif	// _WIN32
 
 	// Macintosh-specific utilities
 #if defined(_MACINTOSH) || defined(_MAC_UNIX)

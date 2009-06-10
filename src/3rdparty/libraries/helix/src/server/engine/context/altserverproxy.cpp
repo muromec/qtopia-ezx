@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: altserverproxy.cpp,v 1.4 2003/09/04 22:35:34 dcollins Exp $ 
+ * Source last modified: $Id: altserverproxy.cpp,v 1.5 2009/01/06 19:01:47 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -71,9 +71,12 @@ AltServerProxy::AltServerProxy(Process* pProc)
 
 AltServerProxy::~AltServerProxy()
 {
-    HX_RELEASE(m_pCfgHandler);
-
+    if (m_pCfgHandler)
+    {
     m_pCfgHandler->ClearResponse(this);
+       m_pCfgHandler->Release();
+       m_pCfgHandler = 0;
+    }
 
     CHXMapStringToOb::Iterator i;
     for (i = m_pServerAltMap->Begin(); i != m_pServerAltMap->End(); ++i)

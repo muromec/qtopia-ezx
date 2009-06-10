@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstrfmt.cpp,v 1.19 2007/01/26 15:19:18 rrajesh Exp $
+ * Source last modified: $Id: hxstrfmt.cpp,v 1.21 2007/07/06 20:34:58 jfinnecy Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -600,7 +600,7 @@ static const int FormatFudgeFactor = 128;
 
 void CHXString::FormatV(const char* pFmt, va_list args)
 {
-#ifdef __amd64__
+#if defined(__amd64__) || defined(__linuxppc64__)
     va_list argList;
 
     va_copy(argList, args);

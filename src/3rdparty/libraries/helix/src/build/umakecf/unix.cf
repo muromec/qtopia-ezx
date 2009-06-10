@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: unix.cf,v 1.9 2007/02/26 09:27:36 lovish Exp $ 
+#  Source last modified: $Id: unix.cf,v 1.10 2007/06/13 01:12:50 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -171,7 +171,7 @@ class UnixMakeDepend(MakeDepend):
         list.append("-m%s" % (project.makefile_name))
 
         cmd = "%s %s %s %s" % (
-            os.path.join(os.environ["BUILD_ROOT"],"bin","mkdepend.py"),
+            os.path.join("$(BUILD_ROOT)","bin","mkdepend.py"),
             string.join(list),
             platform.form_var("INCLUDES"),
             sources)

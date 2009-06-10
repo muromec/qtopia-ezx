@@ -63,5 +63,6 @@ project.ExportFunction("RMACreateInstance",
                        "common/include",
                        "hxcom.h")
 project.ExportFunction("CanUnload", "void")
+project.ExportFunction("CanUnload2", "void")
 
 DLLTarget("avifformat")

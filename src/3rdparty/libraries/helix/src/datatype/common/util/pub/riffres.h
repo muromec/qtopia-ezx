@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: riffres.h,v 1.3 2004/07/09 18:30:56 hubbe Exp $
+ * Source last modified: $Id: riffres.h,v 1.5 2008/11/14 21:46:45 yuryrp Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef __RIFFRES_H__
 #define __RIFFRES_H__
 
-class CRIFFResponse
+class CRIFFResponse : public IUnknown
 {
 public:
     STDMETHOD(RIFFOpenDone)(HX_RESULT) PURE;
@@ -79,9 +79,6 @@ public:
     /* Called with the data from a GetChunk request */
     STDMETHOD(RIFFGetChunkDone)(HX_RESULT, UINT32, IHXBuffer*) PURE;
 
-    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef) (THIS) PURE;
-    STDMETHOD_(ULONG32,Release) (THIS) PURE;
 };
 
 #endif  /* __RIFFRES_H_ */

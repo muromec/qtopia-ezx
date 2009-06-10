@@ -1,5 +1,8 @@
 UmakefileVersion(2,2)
 
+if project.IsDefined("HELIX_CONFIG_MOBLIN"):
+    project.AddDefines('HW_VIDEO_MEMORY_FRONTEND')
+
 project.AddModuleIncludes("common/include",
                           "client/include",
                           "datatype/common/container/pub",

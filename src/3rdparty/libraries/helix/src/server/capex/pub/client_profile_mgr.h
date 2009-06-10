@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: client_profile_mgr.h,v 1.5 2003/07/31 06:04:01 jgordon Exp $
+ * Source last modified: $Id: client_profile_mgr.h,v 1.6 2007/09/28 06:19:03 npatil Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -97,7 +97,6 @@ protected:
                                      IHXPSSProfileData*& pDefaultProfile,
                                      UINT32& ulMergeRule);
     HX_RESULT CacheStaticProfile    (IHXBuffer* pKey, 
-                                     IHXBuffer* pRequestURI,
                                      UINT32 ulMergeRule);
     HX_RESULT StoreURIs             (ProfileRequestHandler* pRequest);
 

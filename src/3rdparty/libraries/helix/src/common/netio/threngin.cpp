@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: threngin.cpp,v 1.13 2006/08/16 17:28:19 gwright Exp $
+ * Source last modified: $Id: threngin.cpp,v 1.16 2008/02/29 20:05:39 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -703,12 +703,17 @@ void* NetworkThreadMainLoop(void* pArg)
                break;
         }
     }
+    
 #if defined( _WIN32 ) || defined( _UNIX_THREADED_NETWORK_IO ) || defined(THREADS_SUPPORTED)
-#endif
-    
-    pEngine->m_pQuitEvent->SignalEvent();
-    
+    if (ulTimerId > 0)
+    {
+        pAsyncTimer->KillTimer(ulTimerId);
+        ulTimerId = 0;
+    }
     HX_RELEASE(pAsyncTimer);
+#endif
+
+    pEngine->m_pQuitEvent->SignalEvent();
     
     return (void*) 0;
 }

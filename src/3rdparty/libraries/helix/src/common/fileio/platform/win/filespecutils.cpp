@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: filespecutils.cpp,v 1.12 2006/05/19 17:19:55 ping Exp $
+ * Source last modified: $Id: filespecutils.cpp,v 1.19 2009/01/06 10:38:51 lijunreal Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -73,6 +73,7 @@ typedef HXBOOL (HXEXPORT_PTR FPGetFreeSpace) (LPCTSTR lpDir,PULARGE_INTEGER lpFr
 typedef HRESULT (HXEXPORT_PTR FPSHGetSpecialFolderLocation) (HWND hwndOwner, int nFolder, LPITEMIDLIST *ppidl);  
 typedef HRESULT (HXEXPORT_PTR FPSHGetPathFromIDList)(LPCITEMIDLIST pidl, LPSTR pszPath);
 typedef	HRESULT (HXEXPORT_PTR FPSHGetMalloc)(LPMALLOC *ppMalloc);
+typedef HRESULT (HXEXPORT_PTR FPSHGetKnownFolderPath)(const GUID& rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath );
 
 //******************************************************************************
 HX_RESULT CHXFileSpecUtils::GetFreeSpaceOnDisk(const CHXDirSpecifier& volSpec, 
@@ -410,6 +411,25 @@ CHXDirSpecifier CHXFileSpecUtils::GetCurrentApplicationDir(void)
 }
 
 //******************************************************************************
+CHXFileSpecifier CHXFileSpecUtils::GetModuleFileSpecByAddress(void* addr)
+{
+    CHXFileSpecifier fileSpec;
+    fileSpec.Unset();
+    MEMORY_BASIC_INFORMATION mbi;
+
+    if(VirtualQuery(addr, &mbi, sizeof(mbi)) != 0)
+    {
+	char szModule[_MAX_PATH]; /* Flawfinder: ignore */
+	DWORD hMod = (DWORD)mbi.AllocationBase;
+	if(GetModuleFileName((HMODULE)hMod, OS_STRING2(szModule,_MAX_PATH), _MAX_PATH) > 0)
+	{
+	    fileSpec.SetFromPersistentString(szModule);
+	}
+    }
+    return fileSpec;
+}
+
+//******************************************************************************
 HXBOOL CHXFileSpecUtils::FileExists(const CHXFileSpecifier& fileSpec, IUnknown* pContext)
 {
     HXBOOL bRet = FALSE;
@@ -555,9 +575,9 @@ CHXDirSpecifier CHXFileSpecUtils::GetSystemTempDirectory()
 {
 	char szBuf[MAX_PATH] = ""; /* Flawfinder: ignore */
 
-#if !defined(WIN32_PLATFORM_PSPC)
-	::GetTempPath(MAX_PATH,szBuf);
-#endif /* !defined(WIN32_PLATFORM_PSPC) */
+#if !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 211)
+	::GetTempPath(MAX_PATH,OS_STRING2(szBuf,MAX_PATH));
+#endif /* !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 211) */
 
 	CHXDirSpecifier retSpec(szBuf);
 	return retSpec;
@@ -633,7 +653,7 @@ CHXFileSpecUtils::GetAppDataDir(const char* szAppName)
 	goto exit;
     }
 
-#if !defined(WIN32_PLATFORM_PSPC)
+#if !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 212)
     ITEMIDLIST* pidl;
     pidl = NULL;
     if(fpSHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, &pidl) == NOERROR)
@@ -652,6 +672,7 @@ CHXFileSpecUtils::GetAppDataDir(const char* szAppName)
 
 	strPath.ReleaseBuffer();
     }
+#if !defined(_WINCE)
     else
     {
 	// In Win95 OSR2 SHGetSpecialFolderLocation() fails on CSIDL_APPDATA.
@@ -668,7 +689,8 @@ CHXFileSpecUtils::GetAppDataDir(const char* szAppName)
 	    RegCloseKey(hKey);
 	}
     }
-#endif /* !defined(WIN32_PLATFORM_PSPC) */
+#endif /* !defined(_WINCE) */
+#endif /* !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 212) */
 
     if(!strPath.IsEmpty())
     {
@@ -698,6 +720,72 @@ exit:
 }
 
 //******************************************************************************
+CHXDirSpecifier 
+CHXFileSpecUtils::GetLocalAppDataLowDir(const char* szAppName)
+{
+    CHXDirSpecifier dirResult;
+
+#ifndef WINCE
+    OSVERSIONINFOEX kInfoEx = { 0 };
+    kInfoEx.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    if(GetVersionEx((LPOSVERSIONINFO)&kInfoEx))
+    {
+	if(kInfoEx.dwMajorVersion < 6)
+	{
+	    return dirResult;
+	}
+    }
+
+    FPSHGetKnownFolderPath  fpSHGetKnownFolderPath  = NULL;
+    CHXString strPath;
+
+    HINSTANCE hShell = ::LoadLibrary(OS_STRING("shell32.dll"));
+    if (hShell)
+    {
+	fpSHGetKnownFolderPath = (FPSHGetKnownFolderPath) GetProcAddress(hShell,OS_STRING("SHGetKnownFolderPath"));
+	if (fpSHGetKnownFolderPath)
+	{
+	    // FOLDERID_LocalAppDataLow is defined in Windows SDK for Vista, KnownFolders.h
+	    GUID folderid_localappdatalow = {0xA520A1A4, 0x1780, 0x4FF6, {0xBD, 0x18, 0x16, 0x73, 0x43, 0xC5, 0xAF, 0x16}};
+	    PWSTR pstr = NULL;
+	    if(fpSHGetKnownFolderPath(folderid_localappdatalow, 0, NULL, &pstr) == NOERROR)
+	    {
+		// set CHXString from PWSTR
+		int count = WideCharToMultiByte(CP_ACP, 0, pstr, -1, 0, 0, NULL, NULL);
+		WideCharToMultiByte(CP_ACP, 0, pstr, -1, strPath.GetBuffer(count + 1),  count + 1 , NULL, NULL);
+		strPath.ReleaseBuffer();
+	    }
+	}
+    }
+
+    if(!strPath.IsEmpty())
+    {
+	dirResult = strPath;
+	if(!DirectoryExists(dirResult))
+	    CreateDir(dirResult);
+
+	dirResult = dirResult.SpecifyChildDirectory("Real");
+	if(!DirectoryExists(dirResult))
+	    CreateDir(dirResult);
+
+	if(szAppName)
+	{
+	    dirResult = dirResult.SpecifyChildDirectory(szAppName);
+	    if(!DirectoryExists(dirResult))
+		CreateDir(dirResult);
+	}
+    }
+
+    if (hShell)
+    {
+	::FreeLibrary(hShell);
+    }
+#endif
+
+    return dirResult;
+}
+
+//******************************************************************************
 
 HX_RESULT CHXFileSpecUtils::ReadBinaryFile(const CHXFileSpecifier& fileSpec, IHXBuffer*& pOutBuffer)
 {
@@ -709,12 +797,15 @@ HX_RESULT CHXFileSpecUtils::ReadBinaryFile(const CHXFileSpecifier& fileSpec, IHX
     CHXString strFilename = fileSpec.GetPathName();
     FILE* pFile = NULL;
     struct stat aStatBuf;
+#ifndef UNDER_CE
     int nRet;
+#endif //!UNDER_CE
     HX_RESULT retVal = HXR_OK;
 
     pFile = fopen(strFilename, "rb");
     if(!pFile)
     {
+#ifndef UNDER_CE
         if(errno == EACCES || errno == ENOENT)
         {
             retVal = HXR_DOC_MISSING;
@@ -723,15 +814,20 @@ HX_RESULT CHXFileSpecUtils::ReadBinaryFile(const CHXFileSpecifier& fileSpec, IHX
         {
             retVal = HXR_FAIL;
         }                        
+#else  //!UNDER_CE
+                        retVal = HXR_FAIL;
+#endif //!UNDER_CE
     }
 
     if(SUCCEEDED(retVal))
     {
-        nRet = fstat((int)fileno(pFile), &aStatBuf);
+#ifndef UNDER_CE
+                nRet = fstat(fileno(pFile), &aStatBuf);
         if(nRet != 0)
         {
             retVal = HXR_FAIL;
         }
+#endif //!UNDER_CE
     }
 
     if(SUCCEEDED(retVal))
@@ -816,6 +912,10 @@ HX_RESULT CHXFileSpecUtils::WriteBinaryFile(CHXFileSpecifier& fileSpec, IHXBuffe
         void* pBufferData = inBuffer->GetBuffer();
 
         nWritten = fwrite(pBufferData, 1, nBufferSize, pFile);
+        if (nWritten == nBufferSize)
+        {
+            res = HXR_OK;
+        }
         fclose(pFile);
     }
 

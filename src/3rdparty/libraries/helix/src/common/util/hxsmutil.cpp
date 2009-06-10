@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsmutil.cpp,v 1.5 2006/05/04 00:12:50 milko Exp $
+ * Source last modified: $Id: hxsmutil.cpp,v 1.7 2008/01/18 04:54:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -58,6 +58,7 @@
 #include "safestring.h" /* SafeSprintf */
 #include "asmrulep.h"	/* ASMRuleBook */
 #include "pckunpck.h"
+#include "hlxclib/stdlib.h"
 
 static 
 HX_RESULT AddVarBuffer(IUnknown* pContext, IHXValues* pVars, const char* pVarName)

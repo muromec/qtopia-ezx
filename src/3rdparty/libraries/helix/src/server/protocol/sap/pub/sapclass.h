@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sapclass.h,v 1.3 2004/05/03 19:02:50 tmarshall Exp $ 
+ * Source last modified: $Id: sapclass.h,v 1.4 2007/08/18 00:21:16 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -199,7 +199,6 @@ private:
     *	number of other SAP msg on the trafic.
     */
     class CSDPResponseHandler : public IHXUDPResponse
-                              , public IHXThreadSafeMethods
     {
     	~CSDPResponseHandler() {}
     	
@@ -223,9 +222,6 @@ private:
 			    	IHXBuffer*	pBuffer,
 			    	ULONG32		ulAddr,
 			    	UINT16		nPort);  
-
-        /* IHXThreadSafeMethods */
-        STDMETHOD_(UINT32,IsThreadSafe)         (THIS);
 
     private:
 	BOOL			ValidSapDatagram(BYTE* off, UINT32 len);

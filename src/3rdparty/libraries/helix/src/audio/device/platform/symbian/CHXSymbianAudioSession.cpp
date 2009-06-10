@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXSymbianAudioSession.cpp,v 1.1 2007/04/03 18:24:49 rrajesh Exp $
+ * Source last modified: $Id: CHXSymbianAudioSession.cpp,v 1.3 2008/10/19 05:13:54 gajia Exp $
  * 
  * Copyright Notices: 
  *  
@@ -219,6 +219,10 @@ void CHXSymbianAudioSession::CancelDeviceTakenNotification()
     m_pAudDevStatusObserver = NULL;
 }
 
+TInt CHXSymbianAudioSession::SetSecureOutput(HXBOOL bSecureAudio)
+{
+    return CHXBaseAudioSession::SetSecureOutput(bSecureAudio);
+}
 
 //
 // CHXSymbianAudioSession::InitializeComplete
@@ -275,6 +279,10 @@ void CHXSymbianAudioSession::PlayError(TInt aError)
                 break;
             }
         default:
+            if(m_pAudDevStatusObserver != NULL)
+            {
+                m_pAudDevStatusObserver->OnAudDevStatusChange(aError);
+            }
             break;
         }
     } // End of if (aError != KErrNone)

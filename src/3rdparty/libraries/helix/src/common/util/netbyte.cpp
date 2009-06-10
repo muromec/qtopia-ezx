@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: netbyte.cpp,v 1.17 2005/12/22 20:12:04 jrmoore Exp $
+ * Source last modified: $Id: netbyte.cpp,v 1.20 2009/01/19 22:45:43 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,6 +50,8 @@
 #include "hxcom.h"
 #include "hlxclib/ctype.h"
 #include "hlxclib/sys/socket.h" // for AF_INET6, struct sockaddr, etc.
+#include "hlxclib/limits.h"
+#include "hlxclib/stdlib.h"
 #include "safestring.h"
 #include "netbyte.h"
 #include "hxtypes.h"
@@ -605,7 +607,7 @@ NetAddressToAscii(const struct sockaddr* pAddr, IHXBuffer* pBuffer)
             }
             break;
 
-#if !defined(_SYMBIAN) && !defined(_WINCE)
+#if !defined(_SYMBIAN) && !defined(_WINCE) &&!defined(_BREW) && !defined(ANDROID)
         case AF_INET6:
             {
                 const struct sockaddr_in6* psa = reinterpret_cast<const struct sockaddr_in6*>(pa);

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxassert.cpp,v 1.21 2005/03/14 19:36:27 bobclark Exp $
+ * Source last modified: $Id: hxassert.cpp,v 1.25 2008/01/18 04:12:08 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -113,10 +113,14 @@
 #include <aknglobalmsgquery.h> 
 #endif
 
-#if defined(_SYMBIAN) || defined(_OPENWAVE)
+#if defined(_SYMBIAN) || defined(_OPENWAVE) || defined(_BREW)
 #include "hlxclib/stdarg.h"
 #define IDIGNORE	0
 #define IDRETRY		1
+#endif
+
+#ifdef HELIX_FEATURE_SERVER_PRINTF_ASSERT
+#include "servertrace.h"
 #endif
 
 #include "hxheap.h"
@@ -350,7 +354,11 @@ HXBOOL STDMETHODCALLTYPE HXAssertFailedLine(const char* pszExpression, const cha
 #if defined(_WIN32) || defined(_WINDOWS)
 
 	// active popup window for the current thread
+#ifdef WINCE
+	HWND hWndParent = GetForegroundWindow();
+#else
 	HWND hWndParent = GetActiveWindow();
+#endif
 #if !defined(WIN32_PLATFORM_PSPC)
 	if (hWndParent != NULL)
 	{
@@ -379,6 +387,9 @@ HXBOOL STDMETHODCALLTYPE HXAssertFailedLine(const char* pszExpression, const cha
 	if (bQuit)
 	    PostQuitMessage(msg.wParam);
 #else /* !defined(WIN32_PLATFORM_PSPC) */
+# ifdef _ARM_	// UI is hurting on SP/PPC
+	int nCode = IDIGNORE;
+# else //_ARM_
 	int nCode = ::MessageBox
             (
                 hWndParent, 
@@ -386,12 +397,20 @@ HXBOOL STDMETHODCALLTYPE HXAssertFailedLine(const char* pszExpression, const cha
                 OS_STRING("Assertion Failed!"),
                 MB_ICONHAND|MB_ABORTRETRYIGNORE
                 );
+# endif //_ARM_
 #endif /* !defined(WIN32_PLATFORM_PSPC) */
 
 #elif defined (_MACINTOSH)
         int nCode = HXCRT_ASSERT(z_szAssertMessage);
 
 #elif defined (_UNIX)
+#ifdef HELIX_FEATURE_SERVER_PRINTF_ASSERT
+        int nCode = IDIGNORE;
+        //ServerTrace("HX_ASSERT failed at " __FILE__ ":" __LINE__, "HX_ASSERT failed: %s\n", z_szAssertMessage);
+        ServerTrace::Print("Assert Fail", "HX_ASSERT failed: %s\n", z_szAssertMessage);
+        //fprintf(stderr, "HX_ASSERT failed: %s\n", z_szAssertMessage );
+        //abort();
+#else
         const char *debugopts;
         int debuglevel = 0;
         int nCode = IDIGNORE;
@@ -453,11 +472,16 @@ HXBOOL STDMETHODCALLTYPE HXAssertFailedLine(const char* pszExpression, const cha
            }
         }
 #endif
+#endif
 
 #if defined(_SYMBIAN)
     int nCode = IDRETRY;
     TRAPD(err, nCode = QueryAssertActionL(z_szAssertMessage));
 #endif //_SYMBIAN        
+       
+#if defined(_BREW)
+    int nCode = IDIGNORE;
+#endif
        
 #if defined(_OPENWAVE)
         int nCode = IDIGNORE;
@@ -558,6 +582,10 @@ HXBOOL STDMETHODCALLTYPE HXIsValidAddress(const void* lp, ULONG32 nBytes, HXBOOL
 #  ifdef _OPENWAVE
 		return lp != NULL;
 #  endif
+#  ifdef _BREW
+		return lp != NULL;
+#  endif
+
 #endif
 //
 // END: Platform specific portion of HXIsValidAddress(). The rest 
@@ -602,6 +630,15 @@ void HXDebugBreak()
 void HXDebugBreak()
 {
     #error Figure out if HXDebugBreak() makes sense on target device...
+}
+#elif defined(_UNIX) && defined(HELIX_FEATURE_SERVER_PRINTF_ASSERT)
+#include <pthread.h>
+void HXDebugBreak() 
+{
+    printf ("HXDebugBreak called\n");
+    //pthread_kill(pthread_self(), SIGSTOP);
+    //kill(getpid(), SIGSTOP);
+    return;
 }
 #elif defined(_UNIX)
 void HXDebugBreak() 

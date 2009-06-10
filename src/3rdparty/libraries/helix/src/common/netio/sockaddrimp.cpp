@@ -41,6 +41,7 @@
 #include "hxassert.h"
 #include "pckunpck.h"
 #include "sockaddrimp.h"
+#include "hlxclib/sys/socket.h"
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE
@@ -785,10 +786,13 @@ CHXSockAddrIN6::GetAddrClass(void)
     {
         return HX_IN6_CLASS_ANY;
     }
+//Android has no IN6_IS_ADDR_LOOPBACK
+#if !defined(ANDROID)
     if (IN6_IS_ADDR_LOOPBACK(&m_addr.sin6_addr))
     {
         return HX_IN6_CLASS_LOOPBACK;
     }
+#endif
     if (IN6_IS_ADDR_MULTICAST(&m_addr.sin6_addr))
     {
         return HX_IN6_CLASS_MULTICAST;
@@ -836,7 +840,7 @@ CHXSockAddrIN6::GetScopeId(void)
 #ifdef MISSING_SOCKADDR_IN6_SCOPE_ID
     return 0;
 #else
-    return hx_ntohl(m_addr.sin6_scope_id);
+    return m_addr.sin6_scope_id;
 #endif
 }
 
@@ -847,7 +851,7 @@ CHXSockAddrIN6::SetScopeId(UINT32 uScopeId)
 #ifdef MISSING_SOCKADDR_IN6_SCOPE_ID
     return HXR_UNEXPECTED;
 #else
-    m_addr.sin6_scope_id = hx_htonl(uScopeId);
+    m_addr.sin6_scope_id = uScopeId;
     return HXR_OK;
 #endif
 }

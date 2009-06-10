@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: inetwork.cpp,v 1.19 2005/06/30 00:20:25 dcollins Exp $
+ * Source last modified: $Id: inetwork.cpp,v 1.21 2007/08/30 17:25:50 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -54,7 +54,6 @@
 #include "access_ctrl.h"
 #include "proc.h"
 #include "proc_container.h"
-#include "lbound_listenresp.h"  //for lbound connections
 #include "servbuffer.h"
 #include "shared_udp.h"
 #include "nettypes.h" // for IOV_MAX
@@ -128,15 +127,6 @@ static char HX_THIS_FILE[] = __FILE__;
 const int UDP_CHUNK_SIZE = 1024;
 const UINT32 MAX_UNDO_BYTES = 1024;
 
-const char* LBOUNDSTR_CLIENT = "Client";
-const char* LBOUNDSTR_SERVER = "Server";
-const char* LBOUNDSTR_NOTLBOUND = "Not localbound";
-
-const UINT32 MAX_LBOUND_READ_DEPTH = 100;
-
-#define LBTYPE(x) \
-    ( ((x) == LBOUNDT_CLIENT) ? LBOUNDSTR_CLIENT : ( ((x) == LBOUNDT_SERVER) ? LBOUNDSTR_SERVER : LBOUNDSTR_NOTLBOUND )  )
-#define LBOUND_DEBUG 0x00200000
 
 IHXNetworkServicesContext::IHXNetworkServicesContext() :
     m_lRefCount(0),
@@ -174,12 +164,6 @@ IHXNetworkServicesContext::QueryInterface(REFIID riid, void** ppvObj)
     {
         AddRef();
         *ppvObj = (IHXNetworkServices*)this;
-        return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXNetworkServices2))
-    {
-        AddRef();
-        *ppvObj = (IHXNetworkServices2*)this;
         return HXR_OK;
     }
 
@@ -244,22 +228,6 @@ IHXNetworkServicesContext::CreateUDPSocket(IHXUDPSocket** ppUDPSocket)
     (*ppUDPSocket)->AddRef();
     return HXR_OK;
 }
-
-STDMETHODIMP
-IHXNetworkServicesContext::CreateLBoundTCPSocket(IHXTCPSocket** ppTCPSocket)
-{
-    *ppTCPSocket = new IHXLBoundTCPSocketContext(m_pEngine);
-
-    if(*ppTCPSocket == NULL)
-    {
-        return HXR_OUTOFMEMORY;
-    }
-
-    (*ppTCPSocket)->AddRef();
-
-    return HXR_OK;
-}
-
 
 STDMETHODIMP
 IHXNetworkServicesContext::CreateListenSocket(
@@ -421,7 +389,6 @@ IHXTCPSocketContext::IHXTCPSocketContext(Engine* pEngine,
     m_ulPacketSize(1200),
     m_ulFlushCount(0),
     m_bSupportsBufferedSocket(TRUE),
-    m_bUseThreadSafeReadDone(TRUE),
     m_pVectorBuffers(NULL),
     m_pWriteVectors(NULL)
 {
@@ -476,7 +443,6 @@ IHXTCPSocketContext::IHXTCPSocketContext(Engine* pEngine,
     m_ulPacketSize(1200),
     m_ulFlushCount(0),
     m_bSupportsBufferedSocket(TRUE),
-    m_bUseThreadSafeReadDone(TRUE),
     m_pVectorBuffers(NULL),
     m_pWriteVectors(NULL)
 {
@@ -555,14 +521,7 @@ IHXTCPSocketContext::~IHXTCPSocketContext()
 
     if (m_nEnableReadID > 0)
     {
-        if (m_bUseThreadSafeReadDone)
-        {
-            m_pEngine->ischedule.remove(m_nEnableReadID);
-        }
-        else
-        {
-            m_pEngine->schedule.remove(m_nEnableReadID);
-        }
+        m_pEngine->ischedule.remove(m_nEnableReadID);
         m_nEnableReadID = 0;
     }
 
@@ -707,19 +666,6 @@ IHXTCPSocketContext::Init(IHXTCPResponse* pTCPResponse)
         m_pTCPResponse->Release();
     }
     m_pTCPResponse = pTCPResponse;
-
-    IHXThreadSafeMethods* pTSMethods;
-    if (HXR_OK == m_pTCPResponse->QueryInterface(IID_IHXThreadSafeMethods,
-                                                 (void**)&pTSMethods))
-    {
-        m_bUseThreadSafeReadDone = HX_THREADSAFE_METHOD_SOCKET_READDONE &
-                                   pTSMethods->IsThreadSafe();
-        HX_RELEASE(pTSMethods);
-    }
-    else
-    {
-        m_bUseThreadSafeReadDone = FALSE;
-    }
 
     Process* proc = (Process*)m_pEngine->get_proc();
 
@@ -1193,8 +1139,7 @@ IHXTCPSocketContext::init()
     m_pReadCallback->AddRef();
     m_pReadCallback->m_pContext = this;
     // setup select callback
-    m_pEngine->callbacks.add(HX_READERS, m_pCtrl,
-    m_pReadCallback, m_bUseThreadSafeReadDone);
+    m_pEngine->callbacks.add(HX_READERS, m_pCtrl, m_pReadCallback, TRUE);
     m_pEngine->callbacks.disable(HX_READERS, m_pCtrl);
 
     m_pWriteCallback = new TCPSocketWriteCallback;
@@ -1325,7 +1270,7 @@ INetworkTCPSocketContext::Read(UINT16   Size)
     if (!m_bReadCallbackEnabled)
     {
         m_bReadCallbackEnabled = TRUE;
-        m_pEngine->callbacks.enable(HX_READERS, m_pCtrl, m_bUseThreadSafeReadDone);
+        m_pEngine->callbacks.enable(HX_READERS, m_pCtrl, TRUE);
     }
     HX_RESULT ret = HXR_OK;
 #endif
@@ -1825,7 +1770,7 @@ INetworkTCPSocketContext::DoRead()
             if (!m_bReadCallbackEnabled)
             {
                 m_bReadCallbackEnabled = TRUE;
-                m_pEngine->callbacks.enable(HX_READERS, m_pCtrl, m_bUseThreadSafeReadDone);
+                m_pEngine->callbacks.enable(HX_READERS, m_pCtrl, TRUE);
             }
             return HXR_OK;
         }
@@ -2017,29 +1962,15 @@ INetworkTCPSocketContext::enableRead()
 
     if (m_nEnableReadID > 0)
     {
-        if (m_bUseThreadSafeReadDone)
-        {
-            m_pEngine->ischedule.remove(m_nEnableReadID);
-        }
-        else
-        {
-            m_pEngine->schedule.remove(m_nEnableReadID);
-        }
+        m_pEngine->ischedule.remove(m_nEnableReadID);
     }
 
     TCPSocketEnableReadCallback* pCB = new TCPSocketEnableReadCallback;
     pCB->m_pContext = this;
 
-    if (m_bUseThreadSafeReadDone)
-    {
-        //callback is threadsafe so put it on the scheduler that
-        //won't lock the mutex before making the callback
-        m_nEnableReadID = m_pEngine->ischedule.enter(0.0, pCB);
-    }
-    else
-    {
-        m_nEnableReadID = m_pEngine->schedule.enter(0.0, pCB);
-    }
+    //callback is threadsafe so put it on the scheduler that
+    //won't lock the mutex before making the callback
+    m_nEnableReadID = m_pEngine->ischedule.enter(0.0, pCB);
 }
 
 void
@@ -2070,7 +2001,7 @@ INetworkTCPSocketContext::reconnect(Engine* pEngine)
 
     m_pEngine->callbacks.add(HX_WRITERS, m_pCtrl, m_pWriteCallback);
     m_pEngine->callbacks.disable(HX_WRITERS, m_pCtrl);
-    m_pEngine->callbacks.add(HX_READERS, m_pCtrl, m_pReadCallback, m_bUseThreadSafeReadDone);
+    m_pEngine->callbacks.add(HX_READERS, m_pCtrl, m_pReadCallback, TRUE);
     m_pEngine->callbacks.disable(HX_READERS, m_pCtrl);
     m_pEngine->RegisterSock();
 }
@@ -2457,7 +2388,6 @@ IHXUDPSocketContext::IHXUDPSocketContext(Engine* pEngine):
     m_bSocketIsConnected(FALSE),
     m_bSocketShouldBeConnected(TRUE),
     m_pSharedUDPReader(0),
-    m_bUseThreadSafeReadDone(FALSE),
     m_pReg(NULL),
     m_pVio (NULL),
     m_pWriteVectors (NULL),
@@ -2491,7 +2421,6 @@ IHXUDPSocketContext::IHXUDPSocketContext(Engine* pEngine, UDPIO* pUDPIO):
     m_bSocketIsConnected(FALSE),
     m_bSocketShouldBeConnected(TRUE),
     m_pSharedUDPReader(0),
-    m_bUseThreadSafeReadDone(FALSE),
     m_pReg(NULL),
     m_pWriteVectors (NULL),
     m_pVectorBuffers (NULL),
@@ -2670,20 +2599,6 @@ IHXUDPSocketContext::Init(ULONG32 ulAddr,
         HX_RELEASE(m_pUDPResponse);
         m_pUDPResponse = pUDPResponse;
         m_pUDPResponse->AddRef();
-
-    IHXThreadSafeMethods* pTSMethods;
-    if (HXR_OK == m_pUDPResponse->QueryInterface(IID_IHXThreadSafeMethods, (void**)&pTSMethods))
-    {
-        m_bUseThreadSafeReadDone = HX_THREADSAFE_METHOD_SOCKET_READDONE &
-                               pTSMethods->IsThreadSafe();
-
-        HX_RELEASE(pTSMethods);
-    }
-    else
-    {
-        m_bUseThreadSafeReadDone = FALSE;
-    }
-
     }
 
     m_sockAddr.sin_family = AF_INET;
@@ -2984,7 +2899,7 @@ IHXUDPSocketContext::Read(UINT16 nBytes)
     UINT32 ul;
     for (ul = 0; ul < m_ulNumUDPIO; ul++)
     {
-        m_pEngine->callbacks.enable(HX_READERS, m_ppUDPIO[ul], m_bUseThreadSafeReadDone);
+        m_pEngine->callbacks.enable(HX_READERS, m_ppUDPIO[ul], TRUE);
     }
     m_bReadCallbackPending = TRUE;
     }
@@ -3469,7 +3384,7 @@ IHXUDPSocketContext::GetReadData()
         if(m_ppUDPIO[ul]->error() == EWOULDBLOCK)
         {
         m_bReadCallbackPending = TRUE;
-        m_pEngine->callbacks.enable(HX_READERS, m_ppUDPIO[ul], m_bUseThreadSafeReadDone);
+        m_pEngine->callbacks.enable(HX_READERS, m_ppUDPIO[ul], TRUE);
         }
     }
 
@@ -3525,8 +3440,7 @@ IHXUDPSocketContext::init()
     {
     m_ppUDPIO[ul]->nonblocking();
 
-    m_pEngine->callbacks.add(HX_READERS, m_ppUDPIO[ul],
-        m_pReadCallback, m_bUseThreadSafeReadDone);
+    m_pEngine->callbacks.add(HX_READERS, m_ppUDPIO[ul], m_pReadCallback, TRUE);
     m_pEngine->callbacks.disable(HX_READERS, m_ppUDPIO[ul]);
     }
 }
@@ -3811,395 +3725,5 @@ IHXUDPSocketContext::GetSharedPort()
     {
     return 0;
     }
-}
-
-IHXLBoundTCPSocketContext::IHXLBoundTCPSocketContext(Engine* pEngine, LBOUND_TYPE etype /*= LBOUNDT_CLIENT*/)
-:  INetworkTCPSocketContext(pEngine, NULL),
-    m_eLBoundType(etype),
-    m_nLBoundReadSize(-1),
-    m_bLBoundRequestClose(FALSE),
-    m_bLBoundReadEnabled(FALSE),
-    m_pLBRemoteSocket(NULL),
-    m_bLBoundWriteEnabled(FALSE),
-    m_ulRecursionLevel(0)
-{
-    m_bSupportsBufferedSocket = FALSE;
-    m_lLBoundAddress=DwToHost(inet_addr("127.0.0.1"));
-    DPRINTF(LBOUND_DEBUG, ("%p LBSC::IHXLBoundTCPSocketContext\n", this));
-}
-
-IHXLBoundTCPSocketContext::~IHXLBoundTCPSocketContext()
-{
-    DPRINTF(LBOUND_DEBUG, ("%p %s LBSC::~IHXLBoundTCPSocketContext\n", this, LBTYPE(m_eLBoundType)));
-
-    LBoundClose();
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::QueryInterface(REFIID riid, void** ppvObj)
-{
-    if (IsEqualIID(riid, IID_IHXPLocalBoundSocket))
-    {
-        AddRef();
-        *ppvObj = (IUnknown*)(IHXTCPSocket*)this;
-        return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXWouldBlockResponse))
-    {
-        AddRef();
-        *ppvObj = (IHXWouldBlockResponse*)this;
-        return HXR_OK;
-    }
-
-    return INetworkTCPSocketContext::QueryInterface(riid, ppvObj);
-}
-
-STDMETHODIMP_(ULONG32)
-IHXLBoundTCPSocketContext::AddRef()
-{
-    return InterlockedIncrement(&m_lRefCount);
-}
-
-STDMETHODIMP_(ULONG32)
-IHXLBoundTCPSocketContext::Release()
-{
-    if (InterlockedDecrement(&m_lRefCount) > 0)
-    {
-        return m_lRefCount;
-    }
-
-    delete this;
-    return 0;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::Read(UINT16  Size)
-{
-    HX_RESULT ret = HXR_OK;
-
-#ifdef _DEBUG
-    Process* proc = (Process*)m_pEngine->get_proc();
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::Read--size:%d, procnum=%d\n",
-          this, LBTYPE(m_eLBoundType), Size, m_eLBoundType,proc->procnum() ) );
-#endif
-    m_nLBoundReadSize = Size;
-    m_bLBoundReadEnabled = TRUE;
-
-    if(m_ulRecursionLevel > MAX_LBOUND_READ_DEPTH)
-    {
-        LBoundTCPSocketServerReadCallback* pCB = new LBoundTCPSocketServerReadCallback;
-        pCB->AddRef();
-        this->AddRef();
-        pCB->m_pContext = this;
-        m_pEngine->schedule.enter(0.0, pCB);
-    }
-    else
-    {
-        LBoundCheckRead();
-    }
-
-    return ret;
-}
-
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::Write(IHXBuffer* pBuffer)
-{
-    HX_RESULT hr = HXR_OK;
-    UINT16 nPort=0;
-
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::Write, size: %d\n", this,
-          LBTYPE(m_eLBoundType), pBuffer->GetSize() ));
-
-    if ( m_pLBRemoteSocket == NULL )
-        return HXR_UNEXPECTED;
-
-    if (m_bLBoundWriteEnabled)
-    {
-        pBuffer->AddRef();   //addref for lbound4
-        m_pLBRemoteSocket->m_LBoundToRead.AddTail(pBuffer);
-
-        if(m_eLBoundType == LBOUNDT_SERVER)
-        {
-            m_pLBRemoteSocket->LBoundCheckRead();
-        }
-        else if(m_eLBoundType == LBOUNDT_CLIENT)
-        {
-            LBoundTCPSocketServerReadCallback* pCB = new LBoundTCPSocketServerReadCallback;
-            pCB->AddRef();
-            m_pLBRemoteSocket->AddRef();
-            pCB->m_pContext = m_pLBRemoteSocket;
-            m_pEngine->schedule.enter(0.0, pCB);
-        }
-
-    }
-    else
-    {
-        // must have gotten closed
-        DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::Write - discarding packet\n",
-           this, LBTYPE(m_eLBoundType)));
-
-        return HXR_UNEXPECTED;
-    }
-
-    return HXR_OK;
-}
-
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::WantWrite()
-{
-    if (m_pTCPResponse)
-        m_pTCPResponse->WriteReady(HXR_OK);
-
-    return HXR_OK;
-}
-
-void
-IHXLBoundTCPSocketContext::enableRead()
-{
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::enableRead entered\n",
-                this, LBTYPE(m_eLBoundType) ));
-
-    HX_ASSERT(0);
-}
-
-void
-IHXLBoundTCPSocketContext::disableRead()
-{
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::disableRead entered\n",
-                this, LBTYPE(m_eLBoundType) ));
-
-    HX_ASSERT(0);
-}
-
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::Bind(UINT32 ulLocalAddr, UINT16 nPort)
-{
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::Connect(const char*  pDestination,UINT16 nPort)
-{
-    HX_RESULT hr = HXR_OK;
-
-    if (m_pLBRemoteSocket)
-    { //already connected
-        return HXR_FAIL;
-    }
-
-    m_eLBoundType = LBOUNDT_CLIENT;
-
-    Process* proc = (Process*)m_pEngine->get_proc();
-
-    IHXLBoundTCPSocketContext* pConn = new IHXLBoundTCPSocketContext( (Engine*) proc->pc->engine, LBOUNDT_SERVER);
-
-    pConn->m_bLBoundWriteEnabled = TRUE;
-    m_bLBoundWriteEnabled = TRUE;
-
-    m_pLBRemoteSocket = pConn;
-    pConn->m_pLBRemoteSocket = this;
-
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::Connect (proc %p) - to server socket %p\n",
-           this, LBTYPE(m_eLBoundType), proc, pConn));
-
-    //XXXTDM: this is busted
-    HX_ASSERT(FALSE);
-    proc->pc->lbound_tcp_listenRTSPResponse->OnConnection(NULL, NULL);
-
-    m_pTCPResponse->ConnectDone(HXR_OK);
-
-    return hr;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::GetForeignAddress(UINT32& lAddress)
-{
-    lAddress=m_lLBoundAddress;
-    DPRINTF(LBOUND_DEBUG, ("%p LBSC::GetForeignAddress: %x\n", this, lAddress));
-
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::GetLocalAddress(UINT32& lAddress)
-{
-    lAddress=m_lLBoundAddress;
-
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::GetForeignPort(UINT16& port)
-{
-    port = 0;
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::GetLocalPort(UINT16& port)
-{
-    port = 0;
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::WouldBlock(UINT32 id)
-{
-    if(m_pLBRemoteSocket->m_pWouldBlockResponse)
-    {
-        return m_pLBRemoteSocket->m_pWouldBlockResponse->WouldBlock(
-            m_pLBRemoteSocket->m_ulWouldBlockResponseID);
-    }
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::WouldBlockCleared(UINT32 id)
-{
-    if(m_pLBRemoteSocket->m_pWouldBlockResponse)
-    {
-        return m_pLBRemoteSocket->m_pWouldBlockResponse->WouldBlockCleared(
-            m_pLBRemoteSocket->m_ulWouldBlockResponseID);
-    }
-    return HXR_OK;
-}
-
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::SetOption(HX_SOCKET_OPTION option, UINT32 ulValue)
-{
-    return HXR_OK;
-}
-
-STDMETHODIMP
-IHXLBoundTCPSocketContext::LBoundTCPSocketServerReadCallback::Func(void)
-{
-    if (m_pContext)
-    {
-        m_pContext->LBoundCheckRead();
-        m_pContext->Release();
-        Release();               //corresponding AddRef()'s are in ::Write()
-    }
-
-    return HXR_OK;
-}
-
-void
-IHXLBoundTCPSocketContext::LBoundCheckRead()
-{
-    if ( m_nLBoundReadSize > 0 )
-    {  //there's a local bound pending read, so kick off read
-         LBoundProcessReadQueue();
-    }
-}
-
-
-HX_RESULT
-IHXLBoundTCPSocketContext::LBoundProcessReadQueue()
-{
-    if ( !m_bLBoundReadEnabled )
-         return HXR_UNEXPECTED;
-
-    LISTPOSITION pos = m_LBoundToRead.GetHeadPosition();
-    if (pos)
-    {
-        // just send it, we send already parsed messages, don't worry about
-        // the read size, server has to ask for more by design
-
-        IHXBuffer* pBuf= (IHXBuffer*) m_LBoundToRead.RemoveHead();
-
-        DPRINTF(LBOUND_DEBUG, ("-%p %s-LBSC::LBoundProcessReadQueue.  buf size: %d\n",
-                  this, LBTYPE(m_eLBoundType), pBuf->GetSize() ));
-
-#ifdef _DEBUG
-        char buf[20];
-        memset(buf, 20, 0);
-        strncpy(buf, (const char*) pBuf->GetBuffer(), 19 );
-        DPRINTF(LBOUND_DEBUG, ("-%p %s-LBSC::LBoundProcessReadQueue, ReadDone size %d, (%s...)\n",
-                    this, LBTYPE(m_eLBoundType), pBuf->GetSize(), buf));
-#endif
-
-        m_nLBoundReadSize = -1;
-
-        m_ulRecursionLevel++;
-        m_pTCPResponse->ReadDone( HXR_OK, pBuf );
-        m_ulRecursionLevel--;
-        pBuf->Release();
-    }
-    else
-    {
-        return HXR_FAIL;
-    }
-
-    return HXR_OK;
-}
-
-
-HX_RESULT
-IHXLBoundTCPSocketContext::LBoundClose()
-{
-    HX_RESULT hr = HXR_OK;
-
-    if ( m_eLBoundType == LBOUNDT_NONE )
-        return HXR_UNEXPECTED;
-
-    if (m_pLBRemoteSocket)
-        m_pLBRemoteSocket->LBoundRequestClose();
-
-    m_bLBoundWriteEnabled = FALSE;
-    m_bLBoundReadEnabled = FALSE;
-
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::LBoundClose-Set LBoundState=CLOSED; empty ToRead and ToWrite tables\n",
-        this, LBTYPE(m_eLBoundType)));
-
-    CHXSimpleList::Iterator i;
-
-    for (i = m_LBoundToRead.Begin(); i != m_LBoundToRead.End(); ++i)
-        ((IUnknown*)(*i))->Release();
-    m_LBoundToRead.RemoveAll();
-
-    m_pLBRemoteSocket = 0;
-    return hr;
-}
-
-
-HX_RESULT
-IHXLBoundTCPSocketContext::LBoundRequestClose()
-{
-    HX_RESULT hr = HXR_OK;
-
-    // remote socket is closing me and will be deleted
-    m_pLBRemoteSocket = 0;
-
-    if ( ! m_bLBoundRequestClose )
-    {
-        if (m_bLBoundReadEnabled)
-            m_pTCPResponse->ReadDone(HXR_FAILED, 0);
-        else
-            m_bLBoundRequestClose=TRUE;
-    }
-    return hr;
-}
-
-
-void
-IHXLBoundTCPSocketContext::disconnect()
-{
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::disconnect\n", this, LBTYPE(m_eLBoundType) ));
-
-    HX_ASSERT(0);
-}
-
-
-void
-IHXLBoundTCPSocketContext::reconnect(Engine* pEngine)
-{
-    DPRINTF(LBOUND_DEBUG, ("%p %s-LBSC::reconnect from procnum: %d to procnum: %d\n",
-                this,  LBTYPE(m_eLBoundType), ((Process*)m_pEngine->get_proc())->procnum(), ((Process*)pEngine->get_proc())->procnum() ));
-
-    HX_ASSERT(0);
 }
 

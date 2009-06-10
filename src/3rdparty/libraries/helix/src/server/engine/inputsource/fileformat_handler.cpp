@@ -54,7 +54,6 @@
 #include "streamgroupmgr.h"
 
 const UINT32 zm_dprintf = 0x0400022;
-extern BOOL g_bForceThreadSafePlugins;
 static const UINT32 DEFAULT_PREROLL = 1000;
 const UINT16 MAX_RULE_COUNT = 0xffff;
 
@@ -464,10 +463,7 @@ CHeaderHandler::GetFileHeader(IHXPSinkControl* pSink)
 
     if (m_pFileHeader)
     {
-        m_pFileHeader->AddRef();
         m_pHeaderSink->FileHeaderReady(HXR_OK, m_pFileHeader);
-        m_pFileHeader->Release();
-
         return HXR_OK;
     }
 
@@ -500,6 +496,7 @@ CHeaderHandler::GetStreamHeader(IHXPSinkControl* pSink, UINT16 unStreamNumber)
 STDMETHODIMP
 CHeaderHandler::Seek(UINT32 ulSeekTime)
 {
+    DPRINTF(D_PLMINFO, ("CHeaderHandler::Seek(%u)\n", ulSeekTime));
     HX_RESULT theErr = HXR_OK;
 
     // some fileformats(asf) needs the subscription information to
@@ -887,22 +884,6 @@ CHeaderHandler::Init(IHXPSinkPackets* pSink)
 	return HXR_OK;
     }
     return HXR_INVALID_PARAMETER;
-}
-STDMETHODIMP_(UINT32)
-CHeaderHandler::IsThreadSafe()
-{
-    HX_ASSERT(m_pFileFormat);
-
-    IHXThreadSafeMethods* pThreadSafe;
-    UINT32 ulThreadSafeFlags = g_bForceThreadSafePlugins ? 0xffffffff : 0;
-    if (HXR_OK == m_pFileFormat->QueryInterface(IID_IHXThreadSafeMethods,
-             (void**)&pThreadSafe))
-    {
-        ulThreadSafeFlags = pThreadSafe->IsThreadSafe();
-        pThreadSafe->Release();
-    }
-    return ulThreadSafeFlags;
-
 }
 
 
@@ -1557,6 +1538,14 @@ CPacketHandler::PacketReady(HX_RESULT status, IHXPacket* pPacket)
         status = m_ppPacketSinks[ulStreamNo]->PacketReady(pPacket);
     }
 
+    //short-circuit here. "this" might be delted at this point for mdpshim switch.
+    if(status == HXR_CLOSED)
+    {
+        //we can't return HXR_CLOSED, because it will cause ff to do extra work, but ff 
+        //might be deleted as well.
+        return HXR_OK;
+    }
+
     if (HXR_OK == status)
     {
         Fetch(ulStreamNo);
@@ -1993,7 +1982,7 @@ CPacketHandler::CSingleStreamPush::TransmitPacket(ServerPacket* pPacket)
 
 
     HX_RESULT theErr = m_pPacketSink->PacketReady(pPacket);
-    if (HXR_OK == theErr)
+    if (HXR_OK == theErr || HXR_CLOSED == theErr)
     {
     }
     else if (HXR_BLOCKED == theErr)

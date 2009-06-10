@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: basecloak.h,v 1.4 2005/09/01 19:08:34 srobinson Exp $
+ * Source last modified: $Id: basecloak.h,v 1.6 2007/06/22 12:57:04 rasher Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -53,10 +53,9 @@ class HTTPGetMessage;
 class HTTPPostMessage;
 class HTTPRequestMessage;
 class HTTPResponseMessage;
-class Player;
 class Process;
 class HTTPProtocolMgr;
-class CloakedGUIDDict;
+class CHXThreadSafeMap;
 class CloakConn;
 
 struct IHXBuffer;
@@ -127,7 +126,7 @@ protected:
 
     UINT32                      m_ulCGSCHandle;
     BOOL                        m_bOnClosedCalled;
-    CloakedGUIDDict*            m_pCloakedGUIDDict;
+    CHXThreadSafeMap*           m_pCloakedGUIDDict;
     char*                       m_szCloakSessionId;
 };
 
@@ -190,7 +189,7 @@ protected:
     IHXBuffer*                  m_pPendingData;
     UINT32                      m_ulCPSCHandle;
     BOOL                        m_bOnClosedCalled;
-    CloakedGUIDDict*            m_pCloakedGUIDDict;
+    CHXThreadSafeMap*           m_pCloakedGUIDDict;
     char*                       m_szCloakSessionId;
 };
 

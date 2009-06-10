@@ -75,6 +75,9 @@ public:
     void        GetId3v2Values(UINT8 *pBuf,
                                UINT32 ulSize,
                                int nVersion);
+    void        GetId3v2_4Entry(UINT8 *pBuf,
+                                UINT8 *pEntry,
+                                UINT32 &count);
     void        GetId3v2_3Entry(UINT8 *pBuf,
                                 UINT8 *pEntry,
                                 UINT32 &count);
@@ -141,5 +144,6 @@ protected:
 #define MP3_TAG_TALB 0x54414C42  // 'T' 'A' 'L' 'B'
 #define MP3_TAG_TYER 0x54594552  // 'T' 'Y' 'E' 'R'
 #define MP3_TAG_TCON 0x54434F4E  // 'T' 'C' 'O' 'N'
+#define MP3_TAG_TDRC 0x54445243  // 'T' 'D' 'R' 'C'
 
 #endif

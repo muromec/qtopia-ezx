@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtcputil.cpp,v 1.21 2006/05/19 06:06:59 pankajgupta Exp $
+ * Source last modified: $Id: rtcputil.cpp,v 1.23 2008/03/09 12:17:34 npatil Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -278,7 +278,7 @@ ReportHandler::MakeSR(RTCPPacket* pPkt, REF(Timeval) tvNow)
     HX_ASSERT(m_pSenderMe);
     HX_ASSERT(pPkt);    
 
-    if (!m_pSenderMe->m_bWeSent)
+    if (!(m_pSenderMe && m_pSenderMe->m_bWeSent) || !pPkt)
     {
 	// no pkt has been sent, wait!
 	return HXR_UNEXPECTED;
@@ -305,15 +305,17 @@ ReportHandler::MakeSR(RTCPPacket* pPkt, REF(Timeval) tvNow)
      */
     INT64 nRTPNow = m_nRTPTSBase;
 
-    if (m_pTSConverter)
+    if(m_pNTPBase)
     {
-	nRTPNow += m_pTSConverter->hxa2rtp((UINT32)(ntpNow - *m_pNTPBase));
+        if (m_pTSConverter)
+        {
+	    nRTPNow += m_pTSConverter->hxa2rtp((UINT32)(ntpNow - *m_pNTPBase));
+        }
+        else
+        {
+	    nRTPNow += (UINT32)(ntpNow - *m_pNTPBase);
+        }
     }
-    else
-    {
-	nRTPNow += (UINT32)(ntpNow - *m_pNTPBase);
-    }
-
 
     HX_ASSERT(nRTPNow >= 0);
 

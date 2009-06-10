@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpprot.h,v 1.19 2006/07/21 23:42:19 jrmoore Exp $
+ * Source last modified: $Id: httpprot.h,v 1.22 2007/08/29 23:26:03 athakwani Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -38,20 +38,23 @@
 #ifndef _HTTPPROT_H_
 #define _HTTPPROT_H_
 
+
+#include "httpbaseproto.h"
 #include "client.h"
-#include "player.h"
 #include "hxprot.h"
 #include "hxstring.h"
 #include "hxslist.h"
 #include "httpmsg.h"
 #include "qos_tranadapt_info.h"
 
+
 class HTTPParser;
 class CByteQueue;
 class BWCalculator;
 class BaseCallback;
+class HTTP;
 
-class HTTPProtocol : public IHXHTTPDemuxResponse,
+class HTTPProtocol : public HTTPBaseProtocol,
                      public IHXClientProfileManagerResponse
 {
 public:
@@ -83,6 +86,7 @@ public:
                                             IHXBuffer* pRequestURI,
                                             IHXValues* pRequestHeaders);
 
+
     BOOL                    statComplete(HX_RESULT status,
                                          UINT32 ulSize,
                                          UINT32 ulCreationTime,
@@ -99,20 +103,6 @@ public:
     void                    SetStatus(UINT32 ulCode);
 
 private:
-    class ShutdownCallback : public BaseCallback
-    {
-    public:
-	ShutdownCallback(HTTPProtocol* pHTTPP)
-	    : m_pHTTPP(pHTTPP)
-	{
-	    m_pHTTPP->AddRef();
-	}
-	~ShutdownCallback();
-	STDMETHOD(Func) (THIS);
-
-	HTTPProtocol* m_pHTTPP;
-    };
-
     void                    sendRequest(HTTPRequestMessage* pMsg);
     void                    sendData(IHXBuffer* pBuf);
     int                     init_request(HTTPRequestMessage* pMsg);
@@ -124,11 +114,8 @@ private:
     BOOL                    getMimeType(const char* extension,
                                         const char*& mime_type);
     int                     post(IHXBuffer* pBuf);
-    void                    getRFC822Headers(HTTPMessage* pMsg,
-                                             IHXValues* pRFC822Headers);
 
     void                    init_stats();
-    void                    init_registry();
     void                    SetMimeTypeInRegistry(const char* pMimeType);
     void                    SetStatusInRegistry(const INT32 nStatus);
 

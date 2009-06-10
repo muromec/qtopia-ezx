@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: proc_container.h,v 1.24 2005/05/10 22:04:17 atin Exp $
+ * Source last modified: $Id: proc_container.h,v 1.30 2009/02/25 21:16:50 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -57,6 +57,7 @@ class ServerIScheduler;
 class ErrorSinkProc;
 class ServerLicense;
 class Config;
+class UASConfig;
 class StreamerInfo;
 class ServerRegistry;
 class CHXTSID;
@@ -73,12 +74,10 @@ class ServerFork;
 class CAsyncIOSelection;
 class XMLConfig;
 class ServerControl;
-class LBoundRTSPListenResponse;
-class CLBListener;
 class MulticastManager;
 class ServerAccessControl;
 class MulticastAccessControl;
-class CloakedGUIDDict;
+class CHXThreadSafeMap;
 class Dict;
 class CHXMapLongToObj;
 class BroadcastManager;
@@ -180,6 +179,7 @@ public:
     // One instance per server
     ServerLicense*              license;
     Config*                     config;
+    UASConfig*                  uasconfig;
     StreamerInfo*               streamer_info;
     ServerRegistry*             registry;
     CHXTSID*                    conn_id_table;
@@ -200,9 +200,10 @@ public:
     MulticastAccessControl*     mcast_ctrl;
     char***                     HTTP_deliver_paths;
     char***                     HTTP_postable_paths;
-    CloakedGUIDDict*            cloaked_guid_dict;
+    CHXThreadSafeMap*           cloaked_guid_dict;
+    CHXThreadSafeMap*           fcs_session_map;
+    CHXThreadSafeMap*           sspl_session_map;
     Dict*                       mime_type_dict;
-    LBoundRTSPListenResponse*   lbound_tcp_listenRTSPResponse;
     BroadcastManager*           broadcast_manager;
     LoadBalancedListenerManager*load_listen_mgr;
     MulticastAddressPool*       mcst_addr_pool;
@@ -210,7 +211,6 @@ public:
     GlobalServerControl*        global_server_control;
     DataConvertController*      data_convert_con;
     AltServerProxyConfigHandler* alt_server_proxy_cfg_mgr;
-    DistributedLicenseRequester* license_requester;
     ClientStatsManager*         client_stats_manager;
     QoSProfileSelector*          qos_prof_select;
     QoSSignalBusController*      qos_bus_ctl;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audUnix.cpp,v 1.11 2006/02/23 22:32:48 ping Exp $
+ * Source last modified: $Id: audUnix.cpp,v 1.16 2009/05/01 14:19:46 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -73,7 +73,10 @@
 #include "hxprefs.h"
 #endif 
 
-
+#include "hxtlogutil.h"
+#include "ihxtlogsystem.h"
+#include "baseobj.h"
+#include "nestbuff.h"
 
 //-1 is usually considered to be no file descriptor.
 const int CAudioOutUNIX::NO_FILE_DESCRIPTOR = -1;
@@ -102,7 +105,13 @@ CAudioOutUNIX::CAudioOutUNIX() :
     m_audioThread(NULL),
     m_bUserWantsThreads(TRUE),
     m_ulSleepTime(0),
+    m_pAvailableDataEvent(NULL),
 #endif
+    m_ulALSAPeriodSize(0),
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+    m_ulByteCount(0),
+    m_pCCF(NULL),
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE    
     m_pRollbackBuffer(NULL)
 {
 
@@ -114,11 +123,15 @@ CAudioOutUNIX::CAudioOutUNIX() :
     //Allco our write buffer list. Want to throw from here? You will, like
     //it or not.
     m_pWriteList = new CHXSimpleList();
-    
 }
 
 void CAudioOutUNIX::_initAfterContext()
 {
+
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+    m_pContext->QueryInterface(IID_IHXCommonClassFactory, (void**)&m_pCCF);
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE 
+
 #if defined(_THREADED_AUDIO) && defined(_UNIX_THREADS_SUPPORTED)
     HX_ASSERT( m_pContext );
     
@@ -142,7 +155,12 @@ void CAudioOutUNIX::_initAfterContext()
 	CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_mtxWriteListPlayStateLock, m_pContext);
 	CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_mtxDeviceStateLock, m_pContext);
 	CreateInstanceCCF(CLSID_IHXThread, (void**)&m_audioThread, m_pContext);
+	CreateInstanceCCF(CLSID_IHXEvent, (void**)&m_pAvailableDataEvent, m_pContext);
     }
+	if(m_pAvailableDataEvent)
+	{
+		m_pAvailableDataEvent->Init("Audio_wait",0);
+	}
 #endif    
 
 }
@@ -194,9 +212,13 @@ CAudioOutUNIX::~CAudioOutUNIX()
         HX_RELEASE( m_mtxWriteListPlayStateLock );
         HX_RELEASE( m_mtxDeviceStateLock );
         HX_RELEASE( m_audioThread );
+        HX_RELEASE( m_pAvailableDataEvent );
     }
 #endif    
 
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+    HX_RELEASE(m_pCCF);
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE    
 }
 
 UINT16 CAudioOutUNIX::_Imp_GetVolume()
@@ -336,6 +358,10 @@ HX_RESULT CAudioOutUNIX::_Imp_Open( const HXAudioFormat* pFormat )
     }
 #endif
     m_wLastError = retCode;
+
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+	m_ulALSAPeriodSize = _GetPeriodSize();
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
     return m_wLastError;
 }
 
@@ -353,6 +379,8 @@ HX_RESULT CAudioOutUNIX::_Imp_Close()
     //Wait for it to do so and clean up.
     if( m_bUserWantsThreads )
     {
+        HXLOGL4 (HXLOG_ADEV, "CAudioUnixOUT::_Imp_Close signaling event..."); 
+        m_pAvailableDataEvent->SignalEvent();
         m_audioThread->Exit(0);
     }
     
@@ -778,8 +806,21 @@ void* CAudioOutUNIX::AudioThread(void *thisPointer )
         that->m_mtxDeviceStateLock->Unlock();
         that->m_mtxWriteListPlayStateLock->Unlock();
 
-        //OK, sleep the amount of time it takes to play 1/4 of the device's buffer.
-        microsleep(that->m_ulSleepTime/4); 
+        if(bReadyToExit == FALSE) 
+	{
+	    if (that->m_pWriteList->GetCount() == 0 || that->m_wState == RA_AOS_OPEN_PAUSED)
+	    {
+	        HXLOGL4 (HXLOG_ADEV, "CAudioUnixOUT::AudioThread() waiting for audio data..."); 
+	        that->m_pAvailableDataEvent->Wait(ALLFS);
+            } 
+            else
+	    {
+#if !defined(HELIX_FEATURE_ALSA)
+	        // OK, sleep the amount of time it takes to play 1/4 of the device's buffer.
+	        microsleep(that->m_ulSleepTime/4); 
+#endif
+	    }
+	}
     }
 
     //Signal the parent thread that we are done.
@@ -833,6 +874,7 @@ ULONG32 CAudioOutUNIX::_PushBits()
     }
 
     UNLOCK(m_mtxWriteListPlayStateLock);
+    HXLOGL4 (HXLOG_ADEV, "CAudioUnixOUT::_PushBits() writing %i bits", (int)ulBufLen);
     _WriteBytes(pData, ulBufLen, lCount);
     LOCK(m_mtxWriteListPlayStateLock);
 
@@ -938,6 +980,20 @@ HX_RESULT CAudioOutUNIX::_Imp_Write( const HXAudioData* pAudioOutHdr )
         // In heap-optimized mode, this is where we set the value of 
         // m_ulDeviceBufferSize, and malloc the buffer.
 #ifdef HELIX_CONFIG_MIN_ROLLBACK_BUFFER
+
+        //OPTIMIZED_MIXING conflicts with MIN_ROLLBACK_BUFFER feature.
+        //This is because the logic here assumes that the audio device
+        //Write() method is always called with a constant size -- the block size,
+        //while in OPTIMIZED_MIXING mode, session will write partial blocks to avoid
+        ///memory copying.
+        //TODO: MIN_ROLLBACK_BUFFER logic should be improved so that it gets
+        //the block size from audio session through a new API and reduce the rollback size 
+        //to the block size, rather than second guessing it from Write() call here.
+        //Error out for now if both features are defined.
+#ifdef HELIX_FEATURE_OPTIMIZED_MIXING
+#error "Can not have both HELIX_FEATURE_OPTIMIZED_MIXING and HELIX_CONFIG_MIN_ROLLBACK_BUFFER"
+#endif
+
 	if( m_ulDeviceBufferSize != nBuffSize )
 	{
             m_ulDeviceBufferSize = nBuffSize;
@@ -946,6 +1002,8 @@ HX_RESULT CAudioOutUNIX::_Imp_Write( const HXAudioData* pAudioOutHdr )
 	}
 #endif // HELIX_CONFIG_MIN_ROLLBACK_BUFFER
 	// Shouldn't this be ">=" and not ">"?
+        if (m_ulALSAPeriodSize == 0)
+	{
         if( m_ulDeviceBufferSize >= nBuffSize )
         {
             //No need to break it up.
@@ -986,6 +1044,66 @@ HX_RESULT CAudioOutUNIX::_Imp_Write( const HXAudioData* pAudioOutHdr )
                 nPtr += nBuffSize;
             }
         }
+	}
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE	
+	else
+	{
+		if (nBuffSize % m_ulALSAPeriodSize == 0 && m_bufferList.IsEmpty())
+		{
+			//m_bufferList will be empty after creating a buffer equal to the m_ulALSAPeriodSize;
+			//if next packet is just equal to the m_ulALSAPeriodSize then add it to the write list
+			IHXBuffer* pTmpBuff = pAudioOutHdr->pData;
+			m_pWriteList->AddTail(pTmpBuff);
+			pTmpBuff->AddRef();
+		}
+		else
+		{
+			UCHAR* pData  = pAudioOutHdr->pData->GetBuffer();
+			int  nLimit  = pAudioOutHdr->pData->GetSize();		
+			if(nLimit > 0 && (nLimit + m_ulByteCount) < m_ulALSAPeriodSize)
+			{
+				AddToBufferList(pAudioOutHdr->pData);
+			}
+			else         
+        		{
+				//(((nLimit+m_ulByteCount) % m_ulALSAPeriodSize ) >= 0)
+				IHXBuffer* pBuf = NULL;
+				int ulremainder = (nLimit+m_ulByteCount) % m_ulALSAPeriodSize;
+				int ulNewValue = (nLimit+m_ulByteCount) - ulremainder;
+				if ((HXR_OK == m_pCCF->CreateInstance(CLSID_IHXBuffer, (void**)&pBuf)) &&
+				(HXR_OK == pBuf->SetSize(ulNewValue)))
+				{
+					UCHAR* pCurPos = pBuf->GetBuffer();
+            
+					/* Copy the buffers in the buffer list */
+					LISTPOSITION pos = m_bufferList.GetHeadPosition();
+					while(pos)
+					{
+						IHXBuffer* pTmpBuf = (IHXBuffer*)m_bufferList.GetNext(pos);
+						memcpy(pCurPos, pTmpBuf->GetBuffer(), pTmpBuf->GetSize());
+						pCurPos += pTmpBuf->GetSize();
+					}
+
+					if (pData != NULL)
+					{	
+					    memcpy(pCurPos, pData, nLimit-ulremainder);  // nLimit-ulRemainder
+					    pCurPos += nLimit;						
+					}
+					pBuf->AddRef();
+					m_pWriteList->AddTail(pBuf);
+					ClearBufferList();
+				}	
+				HX_RELEASE(pBuf);
+				IHXBuffer* pRemBufffer = NULL;
+				if (ulremainder && pAudioOutHdr->pData && HXR_OK == CHXNestedBuffer::CreateNestedBuffer(pAudioOutHdr->pData, (nLimit-ulremainder),ulremainder, pRemBufffer))
+				{
+					AddToBufferList(pRemBufffer);	
+				}
+				HX_RELEASE(pRemBufffer);
+			}
+		}
+	}
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
         UNLOCK(m_mtxWriteListPlayStateLock);
     }
 
@@ -995,6 +1113,8 @@ HX_RESULT CAudioOutUNIX::_Imp_Write( const HXAudioData* pAudioOutHdr )
     //grab the data and write it to the device.
     if( m_bUserWantsThreads )
     {
+        HXLOGL4 (HXLOG_ADEV, "CAudioUnixOUT::_Imp_Write signaling event..."); 
+        m_pAvailableDataEvent->SignalEvent();
         return RA_AOE_NOERR;
     }
 #endif    
@@ -1085,3 +1205,34 @@ HX_RESULT CAudioOutUNIX::_CheckFormat( const HXAudioFormat* pFormat )
 {
     return RA_AOE_NOERR;
 }
+
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+HX_RESULT CAudioOutUNIX::AddToBufferList(IHXBuffer* pBuf)
+{
+    if (pBuf)
+    {
+        pBuf->AddRef();    
+        m_ulByteCount += pBuf->GetSize();
+        
+        /* Transfering ownership here.
+         * We don't need to call HX_RELEASE()
+         * on pBuf
+         */
+        m_bufferList.AddTail(pBuf);
+    }
+
+    return HXR_OK;
+}
+
+void CAudioOutUNIX::ClearBufferList()
+{
+    while(!m_bufferList.IsEmpty())
+    {
+        IHXBuffer* pBuf = (IHXBuffer*)m_bufferList.RemoveHead();
+        HX_RELEASE(pBuf);
+    }
+
+    m_ulByteCount = 0;
+}
+#endif // HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+

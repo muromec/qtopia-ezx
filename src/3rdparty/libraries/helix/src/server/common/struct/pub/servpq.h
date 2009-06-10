@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servpq.h,v 1.7 2004/12/02 22:08:52 atin Exp $ 
+ * Source last modified: $Id: servpq.h,v 1.9 2007/09/20 14:18:06 rdolas Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -89,6 +89,7 @@ public:
 
     int		execute(Timeval now);
     ServPQElem*	get_execute_list(Timeval now);
+    ServPQElem*	execute_locked_element(ServPQElem* pElem);
     ServPQElem*	execute_element(ServPQElem* pElem);
 
     ServPQElem*	new_elem(void)  { return (new(m_pFastAlloc) ServPQElem); }
@@ -107,6 +108,7 @@ public:
 
     Timeval	head_time() { return m_HeadTime; }
     BOOL	exists(UINT32 handle);
+    void        crash_recovery();
 
     IHXFastAlloc*	m_pFastAlloc;
 
@@ -115,6 +117,10 @@ private:
 
     ServPQElem*		m_pBuckets[SERVPQ_NUM_BUCKETS];
     ServPQElem*		m_pHead;
+    ServPQElem*	        m_pOutlist;
+    ServPQElem*	        m_pCurrent;
+    ServPQElem*	        m_pRestoreHead;
+    ServPQElem*	        m_pPrevHead;
     ServPQElem*		m_pNextZeroInsertion;
     LONG32		m_lListElementCount;
     LONG32		m_lZeroElementCount;
@@ -128,6 +134,11 @@ private:
     UINT16		m_uBucket0Index;
 
     BOOL		m_bCleanFinish;
+    UINT16              m_uCrashCount;
+    UINT16              m_uCurrentBucketNum;
+
+    enum _CrashState { SPQ_BUCKETS, SPQ_ZERO_LIST, SPQ_OVERFLOW_LIST, SPQ_HANDLING_CRASH, NONE };
+        _CrashState m_CrashState;
 };
 
 #endif

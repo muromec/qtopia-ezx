@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpfsys.cpp,v 1.104 2007/03/30 23:36:40 gwright Exp $
+ * Source last modified: $Id: httpfsys.cpp,v 1.132 2009/06/01 19:43:18 jzamora Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -79,6 +79,8 @@
 #include "hxcbobj.h"
 #include "pckunpck.h"
 #include "hxsockutil.h"
+#include "hxcore.h"     // IHXPlayer
+#include "statinfo.h"
 
 #include "chxpckts.h"
 
@@ -113,6 +115,7 @@
 #include "httpfsys.h"
 #include "ihxcookies2.h"
 #include "hxtlogutil.h"
+#include "hxdir.h"
 
 #ifdef _MACINTOSH
 //#include "../dcondev/dcon.h"
@@ -168,7 +171,9 @@ ENABLE_MULTILOAD_DLLACCESS_PATHS(Httpfsys);
 
 #include <string.h>
 
+#if !defined(HELIX_CONFIG_NOSTATICS) 
 UINT32 g_ulDefTtl;
+#endif
 
 #ifndef USE_TEMP_CACHE_LOCATION
 #define DEF_CACHE_DB            "cache_db"
@@ -179,8 +184,10 @@ UINT32 g_ulDefTtl;
 
 #define HTTP_MAX_BUFFER_BEFORE_PROCESSIDLE (64 * 1024)
 
+#if !defined(HELIX_CONFIG_NOSTATICS) 
 CCacheEntry*   g_pCacheEntry = NULL;
 IHXBuffer*    CreateBufferFromValues (IHXValues *pHeaderValues);
+#endif
 
 // default if no timeouts in preferences.
 #define DEF_HTTP_SERVER_TIMEOUT     (20 * MILLISECS_PER_SECOND)
@@ -193,6 +200,35 @@ IHXBuffer*    CreateBufferFromValues (IHXValues *pHeaderValues);
 // just wait for old-fashioned reading to catch up
 #define BYTE_RANGE_SEEK_THRESHHOLD (4 * 1024)
 
+// #define HELIX_FEATURE_HTTP_MEMCACHE
+
+// MemCache Setting
+#if defined(HELIX_FEATURE_HTTP_MEMCACHE)
+#if defined(HELIX_FEATURE_MIN_HEAP)
+#define DFLT_MEM_CACHE_SIZE	0x00080000  // 0.5MB
+#define MIN_MEM_CACHE_SIZE	0x00010000  //  64KB
+#else	// HELIX_FEATURE_MIN_HEAP
+#define DFLT_MEM_CACHE_SIZE	0x00400000  //   4MB
+#define MIN_MEM_CACHE_SIZE	0x00040000  // 256KB
+#endif	// HELIX_FEATURE_MIN_HEAP
+#else	// HELIX_FEATURE_HTTP_MEMCACHE
+#define DFLT_MEM_CACHE_SIZE	0x00000000
+#define MIN_MEM_CACHE_SIZE	0x00000000
+#endif	// HELIX_FEATURE_HTTP_MEMCACHE
+
+#define MEM_CACHE_TRIM_THRESHOLD_DENOM	    4	    // Denominator indicating fraction of the
+						    // mem cache capacity that needs to be
+						    // present in direct path of data read
+						    // to avoid trimming the memory to make
+						    // room for additional data.
+						    // It also indicates the fraction by which
+						    // the mem-cache will be trimmed when
+						    // more room is needed.
+						    // Must be >= 2  (>= 50% of mem cache capacity).
+						    
+#define DFLT_MEM_CACHE_CONTIG_LENGTH_TRIM_THRESHOLD (DFLT_MEM_CACHE_SIZE / MEM_CACHE_TRIM_THRESHOLD_DENOM)
+#define DFLT_MEM_CACHE_TRIM_SIZE		    (DFLT_MEM_CACHE_SIZE / MEM_CACHE_TRIM_THRESHOLD_DENOM)
+
 // Tresholds for the amount of data to receive before attempting to make
 // sense of the response and associated headers
 #define HTTP_MIN_STARTUP_LENGTH_NEEDED              5       // bytes
@@ -201,10 +237,10 @@ IHXBuffer*    CreateBufferFromValues (IHXValues *pHeaderValues);
 #define ICECAST_META_SIZE_MULTIPLE                  16      // bytes
 
 
-const char* CHTTPFileSystem::zm_pDescription    = "RealNetworks HTTP File System with CHTTP Support";
-const char* CHTTPFileSystem::zm_pCopyright      = HXVER_COPYRIGHT;
-const char* CHTTPFileSystem::zm_pMoreInfoURL    = HXVER_MOREINFO;
-const char* CHTTPFileSystem::zm_pShortName      = "pn-http";
+const char* const CHTTPFileSystem::zm_pDescription    = "RealNetworks HTTP File System with CHTTP Support";
+const char* const CHTTPFileSystem::zm_pCopyright      = HXVER_COPYRIGHT;
+const char* const CHTTPFileSystem::zm_pMoreInfoURL    = HXVER_MOREINFO;
+const char* const CHTTPFileSystem::zm_pShortName      = "pn-http";
 
 /// This name is used to indicate the http server is
 /// actually RealServer. If the server team changes
@@ -215,22 +251,26 @@ const char* CHTTPFileSystem::zm_pShortName      = "pn-http";
 //#define SUPPORT_SECURE_SOCKETS
 //#define CREATE_LOG_DUMP
 //#define LOG_DUMP_FILE "c:/temp/avi.txt"
-
-#ifdef SUPPORT_SECURE_SOCKETS
-const char* CHTTPFileSystem::zm_pProtocol       = "http|chttp|https";
+#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)
+#if (defined (SUPPORT_SECURE_SOCKETS) || defined(HELIX_FEATURE_SECURE_SOCKET))
+const char* const CHTTPFileSystem::zm_pProtocol       = "http|chttp|https";
 #else
-const char* CHTTPFileSystem::zm_pProtocol       = "http|chttp";
+const char* const CHTTPFileSystem::zm_pProtocol       = "http|chttp";
 #endif
+#else
+#if(defined (SUPPORT_SECURE_SOCKETS) || defined(HELIX_FEATURE_SECURE_SOCKET))
+const char* const CHTTPFileSystem::zm_pProtocol       = "http|https";
+#else
+const char* const CHTTPFileSystem::zm_pProtocol       = "http";
+#endif //SUPPORT_SECURE_SOCKETS
+#endif //HELIX_FEATURE_HTTP_ENABLE_CACHE
 
+#if !defined(HELIX_CONFIG_NOSTATICS) 
 HXBOOL CHTTPFileSystem::m_bSaveNextStream = FALSE;
 //CHXString CHTTPFileSystem::m_SaveFileName( "" );
 CHXString CHTTPFileSystem::m_SaveFileName;
-
-
-static INT32 g_nRefCount_http  = 0;
-
 static CChunkyResMap g_ChunkyResMap;
-
+#endif //_SYMBIAN
 
 #define WWW_AUTHENTICATION_RECENT_KEY "authentication.http.realm.recent"
 #define PROXY_AUTHENTICATION_RECENT_KEY "proxy-authentication.http.realm.recent"
@@ -248,6 +288,24 @@ static void SetBufferToCacheFilePath(IHXBuffer* pBuffer)
     CHXString strCachePath = cacheFileSpec.GetPathName();
 
     pBuffer->Set((UINT8*) (const char *) strCachePath, 1 + strCachePath.GetLength());
+}
+#endif
+
+#if defined(HELIX_CONFIG_NOSTATICS)
+static CChunkyResMap*& GetGlobalCChunkyResMap()
+{
+
+ static const int key = 0; // address of static var (we hope) comprises unique key id
+
+ CChunkyResMap*& g_p = (CChunkyResMap*&)HXGlobalPtr::Get(&key);
+
+ if(! g_p)
+ {
+     g_p = new CChunkyResMap();
+ }
+
+ return g_p;
+
 }
 #endif
 
@@ -373,14 +431,14 @@ HX_RESULT STDAPICALLTYPE CHTTPFileSystem::HXShutdown(void)
     {
         return HXR_OK;
     }
-
+#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE) 
     if (g_pCacheEntry)
     {
         g_pCacheEntry->close();
         delete g_pCacheEntry;
         g_pCacheEntry = NULL;
     }
-
+#endif
     return HXR_OK;
 }
 
@@ -398,14 +456,17 @@ HX_RESULT STDAPICALLTYPE CHTTPFileSystem::HXShutdown(void)
  */
 HX_RESULT CHTTPFileSystem::CanUnload(void)
 {
-    return (g_nRefCount_http ? HXR_FAIL : HXR_OK);
+    HX_RESULT result = (CHXBaseCountingObject::ObjectsActive() > 0) ? HXR_FAIL : HXR_OK;
+    return (result);
 }
 
 
 BEGIN_INTERFACE_LIST(CHTTPFileSystem)
     INTERFACE_LIST_ENTRY(IID_IHXPlugin, IHXPlugin)
     INTERFACE_LIST_ENTRY(IID_IHXFileSystemObject, IHXFileSystemObject)
+#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)    
     INTERFACE_LIST_ENTRY(IID_IHXFileSystemCache, IHXFileSystemCache)
+#endif    
     INTERFACE_LIST_ENTRY(IID_IHXHTTPAutoStream, IHXHTTPAutoStream)
 END_INTERFACE_LIST
 
@@ -413,12 +474,17 @@ CHTTPFileSystem::CHTTPFileSystem() :
     m_pContext(NULL)
     , m_pOptions(NULL)
 {
-    g_nRefCount_http++;
 }
 
 CHTTPFileSystem::~CHTTPFileSystem()
 {
-    g_nRefCount_http--;
+#if defined(HELIX_CONFIG_NOSTATICS)    
+    CChunkyResMap*& pChunkyResMap = GetGlobalCChunkyResMap();
+	if ( pChunkyResMap )
+	{
+        HX_DELETE(pChunkyResMap);
+	}
+#endif	
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pOptions);
 }
@@ -556,7 +622,7 @@ STDMETHODIMP CHTTPFileSystem::CreateDir
 
 
 
-
+#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)
 /////////////////////////////////////////////////////////////////////////
 //  Method:
 //      CHTTPFileSystem::RefreshCache
@@ -693,7 +759,7 @@ CHTTPFileSystem::MoveCache(const char *path)
 
     return HXR_OK;
 }
-
+#endif //_SYMBIAN
 
 STDMETHODIMP_(void)
 CHTTPFileSystem::SetDestinationFile( const char *pFilename )
@@ -804,9 +870,10 @@ CHTTPFileObject::QueryInterface(REFIID riid, void** ppvObj)
     {
         AddRef();
         *ppvObj = (IHXPendingStatus*)(this);
-
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE
         //FNH This is probably not needed
         ProcessCacheCompletions(FALSE);
+#endif        
         return HXR_OK;
     }
     if (IsEqualIID(IID_IHXRequestHandler, riid))
@@ -868,6 +935,9 @@ CHTTPFileObject::CHTTPFileObject()
     , m_pPreferences(NULL)
     , m_pScheduler(NULL)
     , m_pRegistry(NULL)
+    , m_pPlayerRegId(NULL)
+    , m_pTitle(NULL)
+    , m_pAuthor(NULL)
     , m_pContext(NULL)
     , m_pOptions(NULL)
     , m_pInterruptState(NULL)
@@ -943,6 +1013,9 @@ CHTTPFileObject::CHTTPFileObject()
     , m_bConvertFailedSeeksToLinear(TRUE)
     , m_bHaltSocketReadTemporarily(FALSE)
     , m_ulMaxBufSize(MAX_CHUNK_SIZE)
+    , m_ulMemCacheSize(DFLT_MEM_CACHE_SIZE)
+    , m_ulMemCacheContigLengthTrimThreshold(DFLT_MEM_CACHE_CONTIG_LENGTH_TRIM_THRESHOLD)
+    , m_ulMemCacheTrimSize(DFLT_MEM_CACHE_TRIM_SIZE)
 
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     , m_bDownloadCompleteReported(FALSE)
@@ -1040,6 +1113,7 @@ CHTTPFileObject::CHTTPFileObject()
     , m_nPostDataSize(0)
     , m_bPartialData(FALSE)
     , m_bUseHTTPS(FALSE)
+    , m_pMetaDataBuffer(NULL)
 
 #ifdef _IIS_HTTP_SERVER_NO_SEEK_SUPPORT_BUG
     , m_bSupportsByteRanges(FALSE)
@@ -1058,6 +1132,7 @@ CHTTPFileObject::CHTTPFileObject()
     , m_ulIgnoreBytesYetToBeDownloaded(0)
     , m_ulLastHeaderSize(0)
     , m_bDiscardOrphanLFInChunkedData(FALSE)
+    , m_bShoutcastSupportOnly(FALSE)
 /*************************/
 {
     SetSupportsByteRanges(m_bSupportsByteRanges);
@@ -1088,6 +1163,7 @@ CHTTPFileObject::SetSupportsByteRanges(HXBOOL bSupportsByteRanges)
 void
 CHTTPFileObject::SetReadContentsDone(HXBOOL bReadContentsDone)
 {
+    HXLOGL4(HXLOG_HTTP, "CHTTPFileObject::SetReadContentsDone");
     m_bReadContentsDone = bReadContentsDone;
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     if (m_pBytesToDur  &&  bReadContentsDone)
@@ -1206,6 +1282,7 @@ CHTTPFileObject::InitObject
                 pRegistry->Release();
             }
         }
+        ReadPrefBOOL(m_pPreferences, "HTTPShoutcastSupportOnly", m_bShoutcastSupportOnly);
 
         // if the language pref is an empty string, we're not
         // interested
@@ -1272,11 +1349,21 @@ CHTTPFileObject::InitObject
 
 //      if (szBaseURL && ::strncmp (szBaseURL, "http:", 5) == 0)
         {
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE            
             CacheSupport_InitObject();
+#endif            
         }
 
         // buffer ahead amount for throttling download if desired
         ReadPrefUINT32(m_pPreferences, "HTTPBufferAheadAmount", m_ulBufferAheadAmount);
+	
+	// Use memory cache only if desired of indicated size
+        ReadPrefUINT32(m_pPreferences, "HTTPMemCacheSize", m_ulMemCacheSize);
+    }
+    
+    if ((m_ulMemCacheSize != 0) && (m_ulMemCacheSize < MIN_MEM_CACHE_SIZE))
+    {
+	m_ulMemCacheSize = MIN_MEM_CACHE_SIZE;
     }
 
     if (m_pCallback && m_pCallback->IsCallbackPending())
@@ -1289,6 +1376,46 @@ CHTTPFileObject::InitObject
     {
         m_pCallback->AddRef();
     }
+
+#if defined(HELIX_FEATURE_REGISTRY)
+#if defined(HELIX_FEATURE_STATS)
+    // Get the player's base registry name
+    IHXPlayer  *pPlayer = NULL;
+    m_pContext->QueryInterface(IID_IHXPlayer, (void**)&pPlayer);
+    if (pPlayer)
+    {
+        // Get the player's registry
+        IHXRegistryID *pRegistryId = NULL;
+        pPlayer->QueryInterface(IID_IHXRegistryID, (void**)&pRegistryId);
+
+        UINT32 ulPlayerRegistryID = 0;
+        if (pRegistryId)
+        {
+            // Get the player's base registry name
+            pRegistryId->GetID(ulPlayerRegistryID);
+            HX_RELEASE(pRegistryId);
+        }
+#endif //HELIX_FEATURE_STATS
+        // Get the core's registry
+        // m_pContext->QueryInterface(IID_IHXRegistry, (void**)&m_pRegistry);
+        if (m_pRegistry)
+        {
+#if defined(HELIX_FEATURE_STATS)             
+            if (ulPlayerRegistryID)
+            {
+                m_pRegistry->GetPropName(ulPlayerRegistryID, m_pPlayerRegId);
+            }
+#else 
+            m_pTitle = new CStatisticEntry(m_pRegistry, "Title", REG_TYPE_STRING);
+            m_pAuthor = new CStatisticEntry(m_pRegistry, "Author", REG_TYPE_STRING);
+#endif //HELIX_FEATURE_STATS
+#if defined(HELIX_FEATURE_STATS)            
+        }
+        HX_RELEASE(pPlayer);
+#endif //HELIX_FEATURE_STATS        
+    }
+#endif // #if defined(HELIX_FEATURE_REGISTRY)
+
 }
 
 CHTTPFileObject::~CHTTPFileObject()
@@ -1486,10 +1613,19 @@ STDMETHODIMP CHTTPFileObject::Close()
         m_bGetProxyInfoPending = FALSE;
         m_pPAC->AbortProxyInfo(this);
     }
-
+#if !defined(HELIX_CONFIG_NOSTATICS) 
     g_ChunkyResMap.RelinquishChunkyRes(m_pChunkyRes, this);
+#else    
+    CChunkyResMap *pChunkyResMap  = GetGlobalCChunkyResMap();
+	if ( pChunkyResMap )
+	{
+		pChunkyResMap->RelinquishChunkyRes(m_pChunkyRes, this);
+	}
+#endif    
+    
     m_pChunkyRes = NULL;
-
+    HX_DELETE(m_pTitle);
+    HX_DELETE(m_pAuthor);
     HX_RELEASE(m_pFileSystem);
     HX_RELEASE(m_pRequest);
     HX_RELEASE(m_pRequestHeadersOrig);
@@ -1498,12 +1634,14 @@ STDMETHODIMP CHTTPFileObject::Close()
     HX_RELEASE(m_pCacheFile);
     HX_RELEASE(m_pInterruptState);
     HX_RELEASE(m_pRegistry);
+    HX_RELEASE(m_pPlayerRegId);
     HX_RELEASE(m_pCookies);
     HX_RELEASE(m_pCookies2);
     HX_RELEASE(m_pPAC);
     HX_RELEASE(m_pMangledCookies);
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pOptions);
+    HX_RELEASE(m_pMetaDataBuffer);
 
     // If there is a pending callback, be sure to remove it!
     if (m_pCallback &&
@@ -1538,6 +1676,7 @@ STDMETHODIMP CHTTPFileObject::Close()
         HX_RELEASE(m_pSocket);
     }
     
+    _ClearPreprocessedBuffers();
 
     HX_RELEASE(m_pMimeMapperResponse);
     HX_RELEASE(m_pFileExistsResponse);
@@ -1667,15 +1806,18 @@ CHTTPFileObject::CallReadDone(HX_RESULT status, IHXBuffer* pBuffer)
  */
 STDMETHODIMP CHTTPFileObject::Read(ULONG32 ulCount)
 {
+    HXLOGL4(HXLOG_HTTP, "CHTTPFileObject::Read");
     HXScopeLock lock(m_pMutex);
 
     HX_RESULT           lResult      = HXR_OK;
-    static UINT32       ulReadCount  = 0;
     HX_RESULT           lSocketReadResult = HXR_OK;
     UINT32              ulCurrentContig = 0;
 
+#if !defined(HELIX_CONFIG_NOSTATICS)
+    static UINT32       ulReadCount  = 0;
     HXLOGL3(HXLOG_HTTP, "Read #%03lu, Pos is %lu, Size is %4lu, Recurs is %2u, FileObj is '%s'",
             ++ulReadCount, m_ulCurrentReadPosition, ulCount, m_ulRecursionCount + 1, NULLOK(m_pFilename));
+#endif
 
     if (m_LastError)
     {
@@ -1736,7 +1878,9 @@ STDMETHODIMP CHTTPFileObject::Read(ULONG32 ulCount)
 
         while (ulCount > ulCurrentContig && lSocketReadResult == HXR_OK)
         {
-            lSocketReadResult = _DoSomeReadingFromSocket(TRUE);
+            HX_UNLOCK(m_pMutex);
+			lSocketReadResult = _DoSomeReadingFromSocket(TRUE);
+            HX_LOCK(m_pMutex);
 
             if (SUCCEEDED(lSocketReadResult))
             {
@@ -1826,6 +1970,8 @@ STDMETHODIMP CHTTPFileObject::Seek(ULONG32 ulOffset, HXBOOL bRelative)
     {
         _SetCurrentReadPos(ulOffset);
     }
+    
+    TrimMemCacheIfNeeded();
 
     /* check if there were any pending reads */
     if (m_bSeekPending || m_bReadPending)
@@ -2320,17 +2466,43 @@ STDMETHODIMP CHTTPFileObject::GetStatus(REF(UINT16) uStatusCode,
  */
 HX_RESULT CHTTPFileObject::_InitializeChunkyRes(const char* url)
 {
+    HXLOGL4(HXLOG_HTTP, "CHTTPFileObject::_InitializeChunkyRes");
+    HX_RESULT theErr = HXR_OK;
+    
     if (!m_pChunkyRes)
     {
+#if !defined(HELIX_CONFIG_NOSTATICS) 
         m_pChunkyRes = g_ChunkyResMap.GetChunkyResForURL(url, this, m_pContext);
-
+#else        
+        CChunkyResMap *pChunkyResMap  = GetGlobalCChunkyResMap();
+    	if ( pChunkyResMap )
+    	{
+    		m_pChunkyRes  = pChunkyResMap->GetChunkyResForURL(url, this, m_pContext);
+        }
+#endif
+        if(m_pChunkyRes)
+        {
         HXLOGL1(HXLOG_HTTP, "_InitializeChunkyRes(%s) ==> %lx", NULLOK(url), m_pChunkyRes);
 
-        if (m_bOnServer)
+        if (m_bOnServer || (m_ulMemCacheSize != 0))
         {
             m_pChunkyRes->DisableDiskIO();
+	    
+	    if (m_ulMemCacheSize != 0)
+	    {
+		// We set here by how much to trim the memory cache once trimming is needed
+		m_ulMemCacheTrimSize = (m_ulMemCacheSize / MEM_CACHE_TRIM_THRESHOLD_DENOM);
+					
+		// Also set when to trigger the mem cache trimming
+		m_ulMemCacheContigLengthTrimThreshold = (m_ulMemCacheSize / MEM_CACHE_TRIM_THRESHOLD_DENOM);
+	    }
         }
-
+        }
+        else
+        {
+            HXLOGL1(HXLOG_HTTP, "_InitializeChunkyRes(%s) ==> %lx FAILED", NULLOK(url), m_pChunkyRes);
+            theErr = HXR_OUTOFMEMORY;
+        }
 #if defined(HELIX_FEATURE_HTTP_GZIP)
         m_pDecoder = new CDecoder;
         if (m_pDecoder && m_pChunkyRes)
@@ -2340,7 +2512,7 @@ HX_RESULT CHTTPFileObject::_InitializeChunkyRes(const char* url)
 #endif
 
     }
-    return HXR_OK;
+    return theErr;
 }
 
 /************************************************************************
@@ -2354,7 +2526,7 @@ HX_RESULT CHTTPFileObject::_OpenFile(const char* url,
 {
     HX_RESULT       theErr  = HXR_OK;
     HX_RESULT       lResult = HXR_OK;
-    UINT16          un16Temp = 0;
+    UINT16          un16Temp = 1;
     char*           pTemp   = NULL;
     IHXBuffer*      pBuffer = NULL;
     IHXBuffer*      pProxyName = NULL;
@@ -2598,9 +2770,9 @@ HX_RESULT
 CHTTPFileObject::_OpenFileExt()
 {
     HX_RESULT   theErr = HXR_OK;
-
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE
     CacheSupport_OpenFile();
-
+#endif
     if (m_bCached)
     {
         m_bInitPending = FALSE;
@@ -2724,10 +2896,11 @@ HX_RESULT CHTTPFileObject::ProcessIdle()
         }
     }
 
-
-    _DoSomeReadingFromSocket(TRUE);
+    TrimMemCacheIfNeeded();
 
     HX_UNLOCK(m_pMutex);
+    _DoSomeReadingFromSocket(TRUE);
+
     HX_RESULT ReadErr = ProcessPendingReads();
     HX_LOCK(m_pMutex);
 
@@ -2745,7 +2918,7 @@ HX_RESULT CHTTPFileObject::ProcessIdle()
     {
         _EnsureThatWeAreReadingWisely();
     }
-
+    
     /* Do we need to read more data */
     if (!theErr && !m_bReadContentsDone && m_pCallback && !m_pCallback->IsCallbackPending())
     {
@@ -3539,7 +3712,7 @@ HX_RESULT CHTTPFileObject::BeginGet(ULONG32 ulOffsetStart)
 
 
     m_strRequest += "\r\n\r\n";
-
+    m_nTotalRequestSize = (UINT16)m_strRequest.GetLength();
     HX_VECTOR_DELETE(pOutBuffer);
 
     if (!m_pSocket)
@@ -3586,8 +3759,7 @@ HX_RESULT CHTTPFileObject::BeginGet(ULONG32 ulOffsetStart)
             m_pCallback->ScheduleRelative(m_pScheduler, 0);
         }
     }
-
-    m_nTotalRequestSize = (UINT16)m_strRequest.GetLength();
+    
 
     HXLOGL2(HXLOG_HTTP, "BeginGet: request size is %lu",m_nTotalRequestSize);
 
@@ -3642,7 +3814,7 @@ STDMETHODIMP CHTTPFileObject::GetAddrInfoDone(HX_RESULT status,
     HXLOGL1(HXLOG_HTTP, "GetAddrInfoDone status %08x (going to create socket)", status);
     HX_RESULT retVal = HXR_FAIL;
 
-    if (ppAddrVec && nVecLen && m_pContext && m_pTCPResponse)
+    if (m_pContext && m_pTCPResponse)
     {
         // Clear the return value
         retVal = HXR_OK;
@@ -3650,7 +3822,7 @@ STDMETHODIMP CHTTPFileObject::GetAddrInfoDone(HX_RESULT status,
         if (!m_bConnTimedOut)
         {
             // Did the resolve succeed?
-            if (SUCCEEDED(status))
+            if (SUCCEEDED(status) && ppAddrVec && nVecLen)
             {
                 // Get the IHXNetServices interface
                 IHXNetServices* pNetServices = NULL;
@@ -3668,8 +3840,94 @@ STDMETHODIMP CHTTPFileObject::GetAddrInfoDone(HX_RESULT status,
                     // confusingly appear to be coming from this brand new socket unless
                     // we clear them out first.
                     _ClearPreprocessedBuffers();
+#if defined HELIX_FEATURE_SECURE_SOCKET
+                    if (m_bUseHTTPS)
+                    {
+                        IHXSecureNetServices* pSecureNetServices = NULL;
+                        retVal = pNetServices->QueryInterface(IID_IHXSecureNetServices, (void**)&pSecureNetServices);
+                        if(pSecureNetServices)
+                        {
+                            IHXSecureSocket* pSecureSocket = NULL;
+                            retVal = pSecureNetServices->CreateSecureSocket(&pSecureSocket);
+                            if (pSecureSocket)
+                            {
+                                IUnknown*   pCertUnk = NULL;
+                                IHXCertificateManager*   pCertMgr = NULL;
+                                IHXRequestContext* pReqContext = NULL;
 
+                                m_pRequest->QueryInterface(IID_IHXRequestContext, (void**)&pReqContext);
+                                if(pReqContext)
+                                {
+                                    pReqContext->GetUserContext(pCertUnk);// Get Certificate Manager from Request
+                                }
+                                HX_RELEASE(pReqContext);
+                                // Initialize SSL
+                                if(pCertUnk)
+                                {
+                                    pCertUnk->QueryInterface(IID_IHXCertificateManager, (void**)&pCertMgr);
+                                }
+                                retVal = pSecureSocket->InitSSL(pCertMgr);
+                                HX_RELEASE(pCertUnk);
+                                HX_RELEASE(pCertMgr);
+                                IHXValues* pVal = NULL;
+                                if(SUCCEEDED(retVal) && (m_pRequest->GetRequestHeaders(pVal) == HXR_OK))
+                                {
+                                    IHXBuffer*   pClntCer = NULL;
+                                    IHXBuffer*   pClntKey = NULL;
+                                    IHXBuffer*   pSessionInfo = NULL;
+                                    IHXList* plist = NULL;
+                                    pVal->GetPropertyBuffer("ClientCertificate", pClntCer);
+                                    pVal->GetPropertyBuffer("ClientKey", pClntKey);
+                                    pVal->GetPropertyBuffer("SessionInfo", pClntCer);
+                                    retVal = CreateInstanceCCF(CLSID_IHXList, (void**)&plist, m_pContext);
+                                    if(pClntCer && pClntKey && plist)
+                                    {
+                                        IHXBuffer* pTempBuff = NULL;
+                                        int totalsize = pClntCer->GetSize();
+                                        UINT8* pPtr = pClntCer->GetBuffer();
+                                        //ClientCertificate Buffer may have multiple certificates(certificate chain)
+                                        //Each Certificate starts with the size of the certificate which is of 4 bytes in length
+                                        //All the certificates are copied and moved into the list, with CA root certificate at end
+                                        while(totalsize>0)
+                                        {
+                                            UINT32 size = 0;
+                                            memcpy(&size, pPtr, 4);
+                                            pPtr+=4;
+                                            totalsize-=4;
+                                            if(size>totalsize)
+                                            {
+                                                retVal = HXR_FAIL;
+                                                break;
+                                            }
+                                            CreateAndSetBufferCCF(pTempBuff, pPtr, size, m_pContext);
+                                            pPtr+=size;
+                                            totalsize-= size;
+                                            plist->InsertHead(pTempBuff);
+                                            HX_RELEASE(pTempBuff);
+                                        }
+                                        if(SUCCEEDED(retVal))
+                                        {
+                                            retVal = pSecureSocket->SetClientCertificate(plist, pClntKey);
+                                        }
+                                    }
+                                    if(SUCCEEDED(retVal) && pSessionInfo)
+                                    {
+                                        pSecureSocket->SetSessionID(pSessionInfo);
+                                    }
+                                    retVal = pSecureSocket->QueryInterface(IID_IHXSocket, (void**) &m_pSocket);
+                                    HX_RELEASE(pSecureSocket);
+                                }
+                            }
+                            HX_RELEASE(pSecureNetServices);
+                        }
+                    }
+                    else
+                    {
+                        retVal = pNetServices->CreateSocket(&m_pSocket);
+                    }
+#else
                     retVal = pNetServices->CreateSocket(&m_pSocket);
+#endif
                     if (SUCCEEDED(retVal))
                     {
 #if defined(SUPPORT_SECURE_SOCKETS)
@@ -3746,6 +4004,8 @@ STDMETHODIMP CHTTPFileObject::GetAddrInfoDone(HX_RESULT status,
                 {
                     ReportConnectionFailure();
                 }
+
+		IssueImmediateCallback();
             }
         }
     }
@@ -3778,9 +4038,11 @@ STDMETHODIMP CHTTPFileObject::EventPending(UINT32 uEvent, HX_RESULT status)
                 {
                     bHandleReadImmediately = TRUE;
                 }
-                
+
+                HX_UNLOCK(m_pMutex); 
                 _DoSomeReadingFromSocket(bHandleReadImmediately);
-                
+
+                HX_LOCK(m_pMutex);
                 if (bHandleReadImmediately)
                 {
                     HX_UNLOCK(m_pMutex);
@@ -3817,18 +4079,7 @@ STDMETHODIMP CHTTPFileObject::EventPending(UINT32 uEvent, HX_RESULT status)
                         {
                             // Set the flag saying we connected
                             m_bConnectDone = TRUE;
-                            if (m_pCallback)
-                            {
-                                // Remove the connection time-out callback
-                                if (m_pCallback->IsCallbackPending())
-                                {
-                                    m_pCallback->Cancel(m_pScheduler);
-                                }
-
-                                // Add an immediate callback
-                                m_pCallback->ScheduleRelative(m_pScheduler, 0);
-                            }
-
+                            IssueImmediateCallback();
                             _WriteRequestChunk();
                         }
                         
@@ -3858,6 +4109,7 @@ STDMETHODIMP CHTTPFileObject::EventPending(UINT32 uEvent, HX_RESULT status)
                         {
                             ReportConnectionFailure();
                         }
+			IssueImmediateCallback();
                     }
                 }
             }
@@ -3969,6 +4221,8 @@ CHTTPFileObject::_HandleRedirect(HTTPResponseMessage* pMessage)
 
         if(m_pRequest)
         {
+            ResetRequestHeader(m_pRequest);
+
             m_pRequest->SetURL(sLocation);
 
             // Keep the request alive..
@@ -4033,8 +4287,9 @@ CHTTPFileObject::_HandleRedirect(HTTPResponseMessage* pMessage)
             theErr = _ReOpen();
         }
     }
-
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE
     ProcessCacheCompletions(TRUE);
+#endif    
     return theErr;
 }
 
@@ -4357,13 +4612,6 @@ CHTTPFileObject::_DoSomeReadingFromSocket(HXBOOL bHandleBuffersImmediately)
 
     bShouldReadSocket = FALSE;
 
-    if (bHandleBuffersImmediately && ulPreProcessedAmount > 0)
-    {
-        // as we're being called from Process Idle, we'll
-        // go ahead and process accumulated preprocessed content.
-        bShouldReadSocket = TRUE;
-    }
-
     if (m_ulBufferAheadAmount > 0)
     {
         // if m_ulBufferAheadAmount is nonzero, that will tell how
@@ -4386,6 +4634,11 @@ CHTTPFileObject::_DoSomeReadingFromSocket(HXBOOL bHandleBuffersImmediately)
         bShouldReadSocket = TRUE;
     }
 
+    if (bShouldReadSocket)
+    {
+	bShouldReadSocket = (!IsMemCacheFull());
+    }
+    
     if (bShouldReadSocket && !bHandleBuffersImmediately)
     {
         // if it's NOT processidle and we're starting to accrue too
@@ -4409,7 +4662,6 @@ CHTTPFileObject::_DoSomeReadingFromSocket(HXBOOL bHandleBuffersImmediately)
             bShouldReadSocket = FALSE;
         }
     }
-
 
     HXLOGL4(HXLOG_HTTP, "Network: _DoSomeReadingFromSocket %s",
         bShouldReadSocket?"WILL try socket read":"will NOT try socket read");
@@ -4568,21 +4820,89 @@ CHTTPFileObject::_DoSomeReadingFromSocket(HXBOOL bHandleBuffersImmediately)
         // we read from the socket but didn't process everything.
         // So we set up the callback to ensure that the preprocessed
         // read buffers get dealt with quickly.
-        if (m_pCallback->IsCallbackPending())
-        {
-            // we don't want to trust the existing callback to
-            // be called back in a timely manner, since it may be
-            // the lengthy connection timeout callback.
-            m_pCallback->Cancel(m_pScheduler);
-        }
 
-        m_pCallback->ScheduleRelative(m_pScheduler, 0);
+        // we don't want to trust the existing callback to
+        // be called back in a timely manner, since it may be
+        // the lengthy connection timeout callback.
+	IssueImmediateCallback();
     }
 
     return retVal;
 }
 
+HXBOOL
+CHTTPFileObject::IsMemCacheFull(void)
+{
+    HXBOOL bRetVal = FALSE;
+    
+    if (m_ulMemCacheSize)
+    {
+	bRetVal = ((!m_pChunkyRes) ||
+		   (m_pChunkyRes->GetCurrentMemoryUsage() >= m_ulMemCacheSize));
+    }
+    
+    return bRetVal;
+}
 
+HXBOOL
+CHTTPFileObject::TrimMemCacheIfNeeded(void)
+{
+    HXBOOL bRetVal = FALSE;
+    
+    if (m_pChunkyRes && IsMemCacheFull())
+    {
+	UINT32 ulCurrentContigLength = _GetContiguousLength();
+	UINT32 ulCursorCount = (UINT32) m_pChunkyRes->CountCursors();
+	
+	if (ulCursorCount == 0)
+	{
+	    ulCursorCount = 1;
+	}
+
+	if ((ulCurrentContigLength < (m_ulMemCacheContigLengthTrimThreshold / ulCursorCount)) &&
+	    ((!m_bKnowContentSize) ||
+	     ((m_ulCurrentReadPosition + ulCurrentContigLength) < m_nContentSize)))
+	{
+	    // We do not have enogh contiguous length ahead of the current read positions
+	    // and mem-cache is full thus disallowing more data to be read.
+	    // We must trim the mem-cache
+	    
+	    // First - make sure to make data ahead of read positions most recent
+	    // to prevent deletion of this data
+	    if (ulCursorCount == 1)
+	    {
+		m_pChunkyRes->TouchRange(m_ulCurrentReadPosition, m_ulMemCacheTrimSize);
+	    }
+	    else
+	    {
+		UINT32 ulCursorIndex;
+		void* pCursorOwner;
+		UINT32 ulCursorLocation;
+	    
+		for (ulCursorIndex = 0; ulCursorIndex < ulCursorCount; ulCursorIndex++)
+		{
+		    ulCursorLocation = 0;
+		    if (SUCCEEDED(m_pChunkyRes->GetNthCursorInformation(ulCursorIndex, pCursorOwner, ulCursorLocation)))
+		    {
+			m_pChunkyRes->TouchRange(ulCursorLocation, m_ulMemCacheTrimSize / ulCursorCount);
+			if (pCursorOwner)
+			{
+			    CHTTPFileObject* pHTTPFileObject = (CHTTPFileObject*) pCursorOwner;
+			    pHTTPFileObject->m_ulLastKnownEndOfValidContiguousRange = 0;
+			}
+		    }
+		}
+	    }
+	    
+	    m_pChunkyRes->SetMemUsageThreshold(m_ulMemCacheSize - m_ulMemCacheTrimSize);
+	    m_ulLastKnownEndOfValidContiguousRange = 0;
+	    
+	    bRetVal = TRUE;
+	}
+    }
+    
+    return bRetVal;
+}
 
 void
 CHTTPFileObject::_SetCurrentReadPos(UINT32 ulNewCurrentReadPosition)
@@ -5194,7 +5514,9 @@ CHTTPFileObject::_HandleSuccess
 
         if (m_pCacheEntry)
         {
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE          
             CacheSupport_HandleSuccess(pMessage);
+#endif            
         }
 
         // Find the mime type to support mime reporting...
@@ -5456,6 +5778,7 @@ CHTTPFileObject::_ReOpen()
     m_strRequest = "";
 
     m_bTCPReadPending = FALSE;
+    _ClearPreprocessedBuffers();
 
     if (m_pCallback && m_pCallback->IsCallbackPending())
     {
@@ -5568,6 +5891,7 @@ CHTTPFileObject::SetRequest
 #endif // /HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS.
     }
 
+#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE) 
     // Set if URL is cachable
     if (m_bCacheEnabled && m_pCacheFile && m_pFilename &&
         strncasecmp(m_pFilename, "chttp://", 8) == 0)
@@ -5575,6 +5899,7 @@ CHTTPFileObject::SetRequest
         LOGX((szDbgTemp, "    m_pFilename='%s'", m_pFilename));
         LOGX((szDbgTemp, "    m_pCacheFile='%s'", (char *)m_pCacheFile->GetBuffer()));
 
+#if !defined(HELIX_CONFIG_NOSTATICS)
         // Create the cache database if need be
         if (g_pCacheEntry == NULL)
         {
@@ -5585,7 +5910,9 @@ CHTTPFileObject::SetRequest
         }
         if (m_pCacheEntry == NULL)
             m_pCacheEntry = g_pCacheEntry;
+#endif        
     }
+#endif /* HELIX_FEATURE_HTTP_ENABLE_CACHE */
 
     // Strip off any URL parameters and store them
     HX_RELEASE(m_pParams);
@@ -5910,6 +6237,7 @@ STDMETHODIMP HTTPTCPResponse::EventPending(UINT32 uEvent, HX_RESULT status)
 /*
  * This supplies the bulk of processing needed by the _OpenFile method
  */
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE
 STDMETHODIMP_(void)
 CHTTPFileObject::CacheSupport_InitObject (void)
 {
@@ -6584,7 +6912,7 @@ CHTTPFileObject::ProcessCacheCompletions (HXBOOL bRedirected)
     return HXR_OK;
 }
 
-
+#endif //_SYMBIAN
 STDMETHODIMP_( void )
 CHTTPFileObject::SetDestinationFile( const char *pFilename )
 {
@@ -7809,7 +8137,9 @@ HX_RESULT CHTTPFileObject::HandleSocketRead(HX_RESULT status, IHXBuffer* pBuffer
 
         if (m_pCacheEntry)
         {
+#if defined HELIX_FEATURE_HTTP_ENABLE_CACHE        
             CacheSupport_ReadDone();
+#endif            
         }
 
         // Saving a copy of the file if appropriate
@@ -7841,9 +8171,9 @@ cleanup:
         {
             m_LastError = retVal;
 
-            if (FAILED(retVal) && m_pCallback && !m_pCallback->IsCallbackPending())
+            if (FAILED(retVal))
             {
-                m_pCallback->ScheduleRelative(m_pScheduler, 0);
+		IssueImmediateCallback();
             }
         }
 
@@ -7905,6 +8235,7 @@ HX_RESULT CHTTPFileObject::HandleHeaderRead(IHXBuffer* pBuffer)
             m_bShoutcast = FALSE;
             m_ulMinStartupLengthNeeded = HTTP_MIN_STARTUP_LENGTH_NEEDED;
             m_ulMetaDataGap = 0;
+            HX_RELEASE(m_pMetaDataBuffer);
         }
 
         // Concatenate previous header data with new
@@ -7970,6 +8301,15 @@ HX_RESULT CHTTPFileObject::HandleHeaderRead(IHXBuffer* pBuffer)
             {
                 m_bShoutcast = TRUE;
                 m_ulMinStartupLengthNeeded = HTTP_NONSTANDARD_MIN_STARTUP_LENGTH_NEEDED;
+            }
+            else
+            {
+                // some implementations only want to use httpfsys for Shoutcast support, 
+                // and want to fail out on all other cases
+                if(m_bShoutcastSupportOnly)
+                {
+                    m_LastError = HXR_NOT_SUPPORTED;
+                }
             }
         }
 
@@ -8128,16 +8468,16 @@ HX_RESULT CHTTPFileObject::HandleHeaderRead(IHXBuffer* pBuffer)
                         pResponseHeaders->AddKeyValue(pHeader->name(),pTmpBuffer);
 
                         // Disable http 1.1 support if the server explicitly says to
-                        if (!strcmpi(pHeader->name(), "Accept-Ranges"))
+                        if (!stricmp(pHeader->name(), "Accept-Ranges"))
                         {
-                            if (!strcmpi((const char*)pTmpBuffer->GetBuffer(), "none"))
+                            if (!stricmp((const char*)pTmpBuffer->GetBuffer(), "none"))
                             {
                                 bNotAcceptRanges = TRUE;
                             }
                         }
-                        else if (!strcmpi(pHeader->name(), "Server"))
+                        else if (!stricmp(pHeader->name(), "Server"))
                         {
-                            if (!strcmpi((const char*)pTmpBuffer->GetBuffer(), REALSERVER_RESPONSE_NAME))
+                            if (!stricmp((const char*)pTmpBuffer->GetBuffer(), REALSERVER_RESPONSE_NAME))
                             {
                                 bRealServer = TRUE;
                             }
@@ -8235,7 +8575,33 @@ HX_RESULT CHTTPFileObject::HandleHeaderRead(IHXBuffer* pBuffer)
                 // mangle all received Set-Cookie values
                 MangleAllSetCookies(m_pRequest);
             }
-
+#if defined HELIX_FEATURE_SECURE_SOCKET
+            if (m_bUseHTTPS)
+            {
+                IHXSecureSocket* pSecureSocket = NULL;
+                retVal = m_pSocket->QueryInterface(IID_IHXSecureSocket, (void**) &pSecureSocket);
+                if(pSecureSocket)
+                {
+                    IHXBuffer* pBuff = NULL;
+                    IHXValues* pValues = NULL;
+                    pSecureSocket->GetSessionID(&pBuff);
+                    m_pRequest->GetResponseHeaders(pValues);
+                    if(pValues == NULL)
+                    {
+                        if(CreateValuesCCF(pValues, m_pContext) == HXR_OK)
+                        {
+                            m_pRequest->SetResponseHeaders(pValues);
+                        }
+                    }
+                    if(pBuff && pValues)
+                    {
+                        pValues->SetPropertyBuffer("SessionInfo", pBuff);
+                    }
+                    HX_RELEASE(pValues);
+                    HX_RELEASE(pSecureSocket);
+                }
+            }
+#endif            
             UINT32 ulHTTPStatus = atoi(pMessage->errorCode());
 
             HXLOGL1(HXLOG_HTTP, "HandleHeaderRead: HTTP header status ==> %lu", ulHTTPStatus);
@@ -8333,6 +8699,7 @@ HX_RESULT CHTTPFileObject::HandleHeaderRead(IHXBuffer* pBuffer)
                         break;
                     case 301: // Redirect
                     case 302: // Redirect
+                    case 307: // Redirect(Successor to 302)
                         {
                             retVal = _HandleRedirect(pMessage);
                         }
@@ -8375,6 +8742,25 @@ cleanup:
     m_bInHandleHeaderRead = FALSE;
     
     return retVal;
+}
+
+void
+CHTTPFileObject::ResetRequestHeader(IHXRequest* pRequest)
+{
+    IHXValues* pReqHeaders = NULL;
+
+    // reset/remove prior properties(i.e. Cookie) during redirect
+    if (pRequest && SUCCEEDED(pRequest->GetRequestHeaders(pReqHeaders)))
+    {
+        IHXValues2* pValues2 = NULL;
+        if (SUCCEEDED(pReqHeaders->QueryInterface(IID_IHXValues2, (void**)&pValues2)))
+        {
+            pValues2->Remove("Cookie");
+            pValues2->Remove("PlayerCookie");
+        }
+        HX_RELEASE(pValues2);
+    }
+    HX_RELEASE(pReqHeaders);
 }
 
 void
@@ -8507,6 +8893,18 @@ CHTTPFileObject::ReportGeneralFailure()
     }
 }
 
+void
+CHTTPFileObject::IssueImmediateCallback()
+{
+    if (m_pCallback)
+    {
+	if (m_pCallback->IsCallbackPending())
+	{
+	    m_pCallback->Cancel(m_pScheduler);
+	}
+	m_pCallback->ScheduleRelative(m_pScheduler, 0);
+    }
+}
 
 // consolidated from a couple places (HandleSocketRead and HandleSuccess)
 // that both perform an identical task...
@@ -8643,14 +9041,181 @@ CHTTPFileObject::_SetMetaData(const char* pMetaDataSegmentBuffer,
                               UINT32 ulMetaDataSegmentReach,
                               UINT32 ulMetaDataSize)
 {
+    HX_RESULT res = HXR_OK;
     HXLOGL4(HXLOG_HTTP,
         "Network: _SetMetaData at %ld, segment size %ld, segment reach %ld, chunk size %ld",
         m_nContentRead, ulMetaDataSegmentSize, ulMetaDataSegmentReach, ulMetaDataSize);
-    // To do: assable, parse and report meta data
-    return HXR_OK;
+    
+    // Meta data buffer format: {AAC data}{length byte}{meta data}{AAC data}
+    // {meta data} = "StreamTitle='[Artist] - [Title]';StreamUrl='';"
+    // ulMetaDataLength = {length byte} * 16 + 1;
+    
+    if (pMetaDataSegmentBuffer == NULL || pMetaDataSegmentBuffer[0] == 0 || 
+        m_pRegistry == NULL)
+    {
+        return HXR_OK;
+    }
+    
+    // Allocate the meta data buffer
+    if (m_pMetaDataBuffer == NULL && ulMetaDataSize)
+    {
+        m_pCommonClassFactory->CreateInstance(CLSID_IHXBuffer, (void**)&m_pMetaDataBuffer);
+    }
+    
+    // Accumulate the meta data segments
+    if (ulMetaDataSegmentSize && m_pMetaDataBuffer)
+    {
+        m_pMetaDataBuffer->SetSize(ulMetaDataSize);
+        HX_ASSERT(ulMetaDataSegmentReach <= m_pMetaDataBuffer->GetSize() && 
+                  ulMetaDataSegmentReach >= ulMetaDataSegmentSize);
+        memcpy(m_pMetaDataBuffer->GetBuffer() + (ulMetaDataSegmentReach - ulMetaDataSegmentSize),
+                        pMetaDataSegmentBuffer,
+                        ulMetaDataSegmentSize);
+    }
+    
+    // Full metadata buf reached, set title
+    if (ulMetaDataSegmentReach == ulMetaDataSize && m_pMetaDataBuffer && m_pCommonClassFactory)
+    {
+            UINT32 ulBufferSize = ulMetaDataSegmentSize;
+            const char *pBuf = NULL;         // Beginning of the meta data
+            const char *pMetaStart = NULL;    // Start of the meta data, after StreamTitle
+            const unsigned char* pMeta = 0;
+            int nBytes = ulBufferSize;
+            const char *pScan;
+            const char *p = NULL;
+            
+            pBuf = (const char *)m_pMetaDataBuffer->GetBuffer();
+            pScan = pBuf;
+            
+            // Look for "StreamTitle" in the binary buffer.  Since meta
+            // data is text inside of a binary stream, we can not use
+            // string functions.
+            while (nBytes > 0)
+            {
+                p = (const char*)memchr(pScan, 'S', nBytes);
+                if (p)
+                {
+                    nBytes -= p - pScan;
+                    
+                    if (nBytes > 10 && !strncmp(p, "StreamTitle", 11))
+                    {
+                        // Meta data starts one byte before "StreamTitle"
+                        // set pBuf to the start of the meta packet
+                        
+                        pBuf += ((PTR_INT)p - (PTR_INT)pBuf - 1);
+                        pMetaStart = (pBuf + 1 + strlen("StreamTitle='"));
+                        
+                        break;
+                    }
+                    
+                    pScan = p+1;
+                    --nBytes;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
+            if (pMetaStart)
+            {
+                // Length of the meta packet, calculated from the first char
+                UINT32 ulMetaLength = pBuf[0] * 16 + 1; 
+                
+                // Update player's gui with the new song title
+                if (ulMetaLength > 1)
+                {
+                        const char *pTemp = NULL;
+                        size_t nLen;
+                        
+                        // Get the length of just the song title
+                        pTemp = HXFindCharN(pMetaStart, ';', ulMetaLength);
+                        
+                        if (pTemp)
+                        {
+                            nLen = (pTemp - 1) - (pMetaStart);
+                        }
+                        else
+                        {
+                            // Not good metadata
+                            ulMetaLength = 0;
+                        }
+                        
+                        if (ulMetaLength)
+                        {
+                            // Set the author and title
+                            int authorLen = nLen;
+                            if ((p = strstr(pMetaStart, " - ")) != NULL)
+                            {
+                                authorLen = p - pMetaStart;
+                            }
+#if defined(HELIX_FEATURE_STATS)                             
+                            _SetRegistryValue("Author", pMetaStart, authorLen);
+#else
+                            char* pAuthor = new char[authorLen+1];
+                            SafeStrCpy( pAuthor, pMetaStart, authorLen+1 );
+                            pAuthor[authorLen] = '\0';
+                            
+                            m_pAuthor->SetStr(pAuthor);
+                            HX_DELETE(pAuthor);
+#endif //HELIX_FEATURE_STATS                            
+
+                            if (p)
+                            {
+                                nLen = nLen - authorLen - strlen(" - ");
+                                pMetaStart = p + strlen(" - ");
+                            }
+#if defined(HELIX_FEATURE_STATS)                            
+                            _SetRegistryValue("Title", pMetaStart, nLen);
+#else
+                            char* pTitle = new char[nLen+1];
+                            SafeStrCpy( pTitle, pMetaStart, nLen+1 );
+                            pTitle[nLen] = '\0';
+                            m_pTitle->SetStr(pTitle);
+                            HX_DELETE(pTitle);
+#endif //HELIX_FEATURE_STATS                            
+                        }
+                }
+            }
+            
+            HX_RELEASE(m_pMetaDataBuffer);
+    }
+    return res;
 }
-    
-    
+
+HX_RESULT
+CHTTPFileObject::_SetRegistryValue(const char* pKeyName, const char* pValue, int nLen)
+{
+    HX_RESULT res = HXR_OK;
+
+#if defined(HELIX_FEATURE_REGISTRY)
+
+    if (m_pRegistry)
+    {
+        IHXBuffer* pBuffer=NULL;
+        m_pCommonClassFactory->CreateInstance(CLSID_IHXBuffer, (void**)&pBuffer);
+        if (pBuffer)
+        {
+            char szKey[128]; 
+            if(m_pPlayerRegId)
+            {
+                SafeSprintf(szKey, 128, "%s.%s", m_pPlayerRegId->GetBuffer(), pKeyName);
+            }
+
+            pBuffer->Set((const UCHAR*)pValue, nLen + 1);
+            pBuffer->GetBuffer()[nLen] = '\0';
+
+            m_pRegistry->SetStrByName(szKey, pBuffer);
+
+            HX_RELEASE(pBuffer);
+        }
+    }
+
+#endif // #if defined(HELIX_FEATURE_REGISTRY)
+
+    return res;
+}
+
 HX_RESULT
 CHTTPFileObject::_SetDataGzipEncoded(const char* pRawBuf, UINT32 ulLength)
 {
@@ -8737,16 +9302,26 @@ CHTTPFileObject::DecodeChunkedEncoding(HTTPChunkedEncoding*&    pChunkedEncoding
         if (CE_HEADER_READY == pChunkedEncoding->state)
         {
             // parse the chunk head
-            pChunkedEncoding->size = strtoul(pChunkedEncoding->buf, &errstr, 16);
-            HX_ASSERT(pChunkedEncoding->size <= pChunkedEncoding->maxChunkSizeAccepted);
-            if (pChunkedEncoding->size > pChunkedEncoding->maxChunkSizeAccepted)
+            INT32 lSize = (INT32) strtol(pChunkedEncoding->buf, &errstr, 16);
+            if (lSize >= 0)
             {
-                // It is not reasonable to accept chunks of arbitrary size.
-                // Although RFC 2616 sets no limits on it, we do. But since
-                // the limit was chosen arbitrarily, we can revise it if required.
-                rc = HXR_UNEXPECTED;
+                pChunkedEncoding->size = (unsigned long) lSize;
+                HX_ASSERT(pChunkedEncoding->size <= pChunkedEncoding->maxChunkSizeAccepted);
+                if (pChunkedEncoding->size > pChunkedEncoding->maxChunkSizeAccepted)
+                {
+                    // It is not reasonable to accept chunks of arbitrary size.
+                    // Although RFC 2616 sets no limits on it, we do. But since
+                    // the limit was chosen arbitrarily, we can revise it if required.
+                    rc = HXR_UNEXPECTED;
+                    break;
+                }
+            }
+            else
+            {
+                // Chunk size was set to < 0, which is an error.
+                rc = HXR_FAILED;
                 break;
-            };
+            }
 
             if (pChunkedEncoding->size > 0)
             {
@@ -8930,48 +9505,64 @@ CHTTPFileObject::DecodeChunkedEncoding(HTTPChunkedEncoding*&    pChunkedEncoding
             pChunkedEncoding->size = 0;
             if( pChunkedEncoding->buf )
             {
-                pChunkedEncoding->size = (unsigned long)strtol(pChunkedEncoding->buf, &errstr, 16);
-                if( errstr != pChunkedEncoding->buf )
+                char* pszTmp = new char[pChunkedEncoding->read + 1];
+                if( pszTmp )
                 {
-                    if( pChunkedEncoding->size > 0 )
+                    strncpy(pszTmp, pChunkedEncoding->buf, pChunkedEncoding->read );
+		    pszTmp[pChunkedEncoding->read] = 0;
+		    INT32 lSize = (INT32) strtol(pszTmp, &errstr, 16);
+                    if( lSize < 0 || errstr == pszTmp )
                     {
-                        if (pChunkedEncoding->size >= pChunkedEncoding->buf_size)
-                        {
-                            HX_VECTOR_DELETE(pChunkedEncoding->buf);
-
-                            pChunkedEncoding->buf_size = pChunkedEncoding->size+1;
-                            pChunkedEncoding->buf = new char[pChunkedEncoding->buf_size];
-                        }
-                
-                        if( pChunkedEncoding->buf )
-                        {
-                            memset(pChunkedEncoding->buf, 0, pChunkedEncoding->buf_size);
-                            pChunkedEncoding->read = 0;
-                            pChunkedEncoding->state = CE_BODY_PENDING;
-                        }
-                        else
-                        {
-                            rc = HXR_OUTOFMEMORY;
-                            pChunkedEncoding->buf_size = 0;
-                            break;
-                        }
+                        //Bad chunk size.
+                        HX_ASSERT("Illegal chunk size format"==NULL);
+                        rc = HXR_UNEXPECTED;
                     }
-                    else
-                    {
-                        pChunkedEncoding->lastchunk = TRUE;
-                        pChunkedEncoding->read = 0;
-                        pChunkedEncoding->state = CE_BODY_PENDING;
-                    }
-                    bProcessStateChange = FALSE; // we've processed the header
+		    else
+		    {
+			pChunkedEncoding->size = (unsigned long) lSize;
+		    }
+                    HX_VECTOR_DELETE(pszTmp);
                 }
                 else
                 {
-                    //There was an illegal hex string where we
-                    //expected to find the chunk size.
-                    HX_ASSERT("Illegal chunk size format"==NULL);
-                    rc = HXR_UNEXPECTED;
+                    //malloc failure
+                    rc = HXR_OUTOFMEMORY;
+                }
+                if( !SUCCEEDED(rc) )
+                {
                     break;
                 }
+
+                if( pChunkedEncoding->size > 0 )
+                {
+                    if (pChunkedEncoding->size >= pChunkedEncoding->buf_size)
+                    {
+                        HX_VECTOR_DELETE(pChunkedEncoding->buf);
+
+                        pChunkedEncoding->buf_size = pChunkedEncoding->size+1;
+                        pChunkedEncoding->buf = new char[pChunkedEncoding->buf_size];
+                    }
+                
+                    if( pChunkedEncoding->buf )
+                    {
+                        memset(pChunkedEncoding->buf, 0, pChunkedEncoding->buf_size);
+                        pChunkedEncoding->read = 0;
+                        pChunkedEncoding->state = CE_BODY_PENDING;
+                    }
+                    else
+                    {
+                        rc = HXR_OUTOFMEMORY;
+                        pChunkedEncoding->buf_size = 0;
+                        break;
+                    }
+                }
+                else
+                {
+                    pChunkedEncoding->lastchunk = TRUE;
+                    pChunkedEncoding->read = 0;
+                    pChunkedEncoding->state = CE_BODY_PENDING;
+                }
+                bProcessStateChange = FALSE; // we've processed the header
             }
             else
             {

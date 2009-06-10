@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: tcpio.h,v 1.3 2006/02/14 21:35:27 bobclark Exp $ 
+ * Source last modified: $Id: tcpio.h,v 1.4 2008/07/03 21:53:48 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -40,6 +40,10 @@
 
 #include "sockio.h"
 #include <netinet/tcp.h>
+#if defined(_LSB)
+#define TCP_MAXSEG 2
+#endif
+
 
 class TCPIO: public SocketIO
 {

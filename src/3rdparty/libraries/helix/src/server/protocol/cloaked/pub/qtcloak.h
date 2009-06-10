@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: qtcloak.h,v 1.5 2005/07/19 00:41:10 darrick Exp $
+ * Source last modified: $Id: qtcloak.h,v 1.6 2007/05/23 18:58:21 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -52,7 +52,6 @@ class HTTPGetMessage;
 class HTTPPostMessage;
 class HTTPRequestMessage;
 class HTTPResponseMessage;
-class Player;
 class Process;
 class HTTPProtocolMgr;
 

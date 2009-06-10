@@ -256,6 +256,11 @@ HX_RESULT
 CHXDatagramWriteQueue::Enqueue(UINT32 nVecLen, IHXBuffer** ppBufVec,
                 IHXSockAddr* pAddr)
 {
+    if(*ppBufVec == NULL)
+    {
+        return HXR_UNEXPECTED; 
+    }
+
     if (m_uQueueLen-m_uQueueUsed < nVecLen)
     {
         return HXR_SOCK_WOULDBLOCK;

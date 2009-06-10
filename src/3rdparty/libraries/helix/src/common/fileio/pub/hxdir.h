@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdir.h,v 1.8 2004/07/09 18:20:29 hubbe Exp $
+ * Source last modified: $Id: hxdir.h,v 1.10 2008/02/05 06:06:09 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,6 +57,8 @@
 #include "platform/symbian/symbhxdir.h"
 #elif defined(_OPENWAVE)
 #include "platform/openwave/hxdir.h"
+#elif defined(_BREW)
+#include "platform/brew/hxdir.h"
 #else
 #error Unsupported platform!
 #endif /* defined(_UNIX) */

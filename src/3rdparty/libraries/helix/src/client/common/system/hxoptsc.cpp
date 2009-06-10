@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxoptsc.cpp,v 1.15 2006/09/08 20:53:31 gwright Exp $
+ * Source last modified: $Id: hxoptsc.cpp,v 1.17 2008/09/07 11:07:07 pbasic Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -85,6 +85,7 @@ HXOptimizedScheduler::HXOptimizedScheduler(IUnknown* pContext) :
      m_lRefCount (0)
     ,m_pPQ(0)
     ,m_pID(NULL)
+    ,m_pPQMutex(NULL)
     ,m_pContext(pContext)
     ,m_pScheduler(NULL)
     ,m_ulLastUpdateTime(0)
@@ -96,8 +97,10 @@ HXOptimizedScheduler::HXOptimizedScheduler(IUnknown* pContext) :
     ,m_ulCurrentGranularity(MINIMUM_GRANULARITY)
     ,m_bIsDone(FALSE)
 {
+    CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pPQMutex, m_pContext);
+
     m_pID    = new CHXID(50);
-    m_pPQ    = new ClientPQ(pContext, m_pID);
+    m_pPQ    = new ClientPQ(pContext, m_pID, m_pPQMutex);
 
     CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pMutex, m_pContext);  
 
@@ -116,6 +119,7 @@ HXOptimizedScheduler::~HXOptimizedScheduler()
 
     HX_DELETE(m_pPQ);
     HX_DELETE(m_pID);
+    HX_RELEASE(m_pPQMutex);
     HX_RELEASE(m_pMutex);
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pScheduler);

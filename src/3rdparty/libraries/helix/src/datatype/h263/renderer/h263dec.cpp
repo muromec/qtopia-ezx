@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: h263dec.cpp,v 1.14 2005/04/27 13:57:39 ehyche Exp $
+ * Source last modified: $Id: h263dec.cpp,v 1.16 2009/04/16 17:18:25 gahluwalia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -127,6 +127,7 @@ CH263Decoder::CloseDecoder()
 HX_RESULT
 CH263Decoder::InitDecoder(HXxSize* pSize)
 {
+    HX_RESULT ret = HXR_OK;
     // Build the module name if none is supplied
     char pLibName[16]; /* Flawfinder: ignore */
 
@@ -147,30 +148,48 @@ CH263Decoder::InitDecoder(HXxSize* pSize)
         if (LoadCodecFunctions())
         {
             // We found a codec and could get its symbols
-            break;
+            if (m_pDecoderState)
+            {
+                m_fpH263Free(m_pDecoderState);
+            }
+
+            m_InitParams.outtype    = T_YUV420_NOCOPY;
+            m_InitParams.pels	    = (UINT16)pSize->cx;
+            m_InitParams.lines	    = (UINT16)pSize->cy;
+            m_InitParams.nPadWidth    = 0;	/* number of columns of padding on right to get 16 x 16 block*/
+            m_InitParams.nPadHeight   = 0;/* number of rows of padding on bottom to get 16 x 16 block*/
+
+            m_InitParams.ulInvariants = 0;
+            // ulInvariants specifies the invariant picture header bits
+            m_InitParams.packetization = TRUE;
+            m_InitParams.ulStreamVersion = HX_ENCODE_PROD_VERSION(4,4,0,0);
+            m_InitParams.pContext = m_pContext;
+            
+            HX_ADDREF(m_InitParams.pContext);
+            ret = m_fpH263Init(&m_InitParams, &m_pDecoderState);
+            HX_RELEASE(m_InitParams.pContext); 
+            if(SUCCEEDED(ret))
+            {           
+                break;
+            }
+            else
+            {
+                if (m_pDecoderState)
+                {
+	                m_fpH263Free(m_pDecoderState);
+	                m_pDecoderState = NULL;
+                }
+                m_fpH263Init = NULL;
+                m_fpH263Free = NULL;
+                m_fpH263Transform = NULL;
+            }
         }
         
         // We could not get the codec's symbols so look for another one
         HX_DELETE(m_pCodecAccess);
     }
 
-    if (m_pDecoderState)
-    {
-	m_fpH263Free(m_pDecoderState);
-    }
-
-    m_InitParams.outtype    = T_YUV420_NOCOPY;
-    m_InitParams.pels	    = (UINT16)pSize->cx;
-    m_InitParams.lines	    = (UINT16)pSize->cy;
-    m_InitParams.nPadWidth    = 0;	/* number of columns of padding on right to get 16 x 16 block*/
-    m_InitParams.nPadHeight   = 0;/* number of rows of padding on bottom to get 16 x 16 block*/
-
-    m_InitParams.ulInvariants = 0;
-	// ulInvariants specifies the invariant picture header bits
-    m_InitParams.packetization = TRUE;
-    m_InitParams.ulStreamVersion = HX_ENCODE_PROD_VERSION(4,4,0,0);
-
-    return m_fpH263Init(&m_InitParams, &m_pDecoderState);
+    return ret;
 }
 
 
@@ -282,19 +301,23 @@ HXBOOL CH263Decoder::OS_BuildLibName(char *pLibName,
     // Priority scheme for loading h263 backend
     switch (nIndex)
     {
+        //try omx decoder first 
+         case 0:
+            SafeStrCpy(pLibName, "omxv", ulLibNameBufLen);
+            break;
         // mpeg4/h263/rv7 combo decoder
-        case 0:
+        case 1:
             SafeStrCpy(pLibName, "dmp4", ulLibNameBufLen);
             break;
         
         // g2 decoder
-        case 1:
         case 2:
+        case 3:
             SafeStrCpy(pLibName, "drv2", ulLibNameBufLen);
             break;
         
         // h263 backend
-        case 3:
+        case 4:
             SafeStrCpy(pLibName, "d263", ulLibNameBufLen);
             break;
         default:

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: server_info.cpp,v 1.18 2007/03/30 19:08:37 tknox Exp $ 
+ * Source last modified: $Id: server_info.cpp,v 1.19 2007/05/24 08:36:37 ckarusala Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -447,6 +447,7 @@ HX_RESULT
 ServerInfo::UsageCallback::Func(Process* pProc)
 {
     SharedMemory::UpdateBytesInUse();
+    m_pServerInfo->UpdateBandwidthUsage(pProc);
 
     UINT32 ulInterval = 10;
 

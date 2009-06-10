@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rdt_udp.cpp,v 1.10 2007/03/22 19:16:56 tknox Exp $
+ * Source last modified: $Id: rdt_udp.cpp,v 1.13 2009/02/25 01:14:03 atin Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -328,7 +328,7 @@ RDTUDPTransport::SignalBusReady (HX_RESULT hResult, IHXQoSSignalBus* pBus,
         m_pTransportInfoCallback = new TransportInfoCallback (this);
         m_pTransportInfoCallback->AddRef();
 
-        if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_TRAN_RDT_RTT, lTemp)))
+        if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_RTT_PROBE_FREQUENCY, lTemp)))
         {
             m_ulRTTProbeFrequency = (UINT32)lTemp;
         }
@@ -339,7 +339,7 @@ RDTUDPTransport::SignalBusReady (HX_RESULT hResult, IHXQoSSignalBus* pBus,
     }
 
     lTemp = 0;
-    if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_TRAN_RDT_PKT_AGG_ENABLE, lTemp)))
+    if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_RDT_PKT_AGG_ENABLE, lTemp)))
     {
         m_bPktAggregationEnabled = lTemp != 0 ? TRUE : FALSE;
     }
@@ -734,23 +734,28 @@ RDTUDPTransport::VectorPacket(BasePacket* pBasePacket, IHXBuffer** ppWriteHere)
     UINT16 streamNumber = pPacket->GetStreamNumber();
     RTSPStreamData* pStreamData = m_pStreamHandler->getStreamData(streamNumber);
 
-    if (pPacket->IsLost())
-    {
-        return HXR_FAIL;
-    }
-
     if(!pStreamData)
     {
         return HXR_UNEXPECTED;
     }
 
-    IHXBuffer* pPayload = pPacket->GetBuffer();
-    UINT32 bufLen = pPayload->GetSize();
-    SmallBuffer* pHeaderBuffer = new SmallBuffer(TRUE);
+    BOOL bIsLost = pPacket->IsLost();
+    IHXBuffer* pPayload = 0;
+    UINT32 bufLen = 0;
+    if (!bIsLost)
+    {
+	pPayload = pPacket->GetBuffer();
+	bufLen = pPayload->GetSize();
+    }
 
     m_pQoSMetrics->Enqueue (streamNumber,
                           pBasePacket->m_uSequenceNumber,
-                          bufLen);
+                          bufLen, bIsLost);
+
+    if (bIsLost)
+    {
+        return HXR_FAIL;
+    }
 
     if (!pStreamData->m_packetSent)
     {
@@ -765,6 +770,7 @@ RDTUDPTransport::VectorPacket(BasePacket* pBasePacket, IHXBuffer** ppWriteHere)
         pResendBuffer->DiscardExpiredPackets(FALSE, pBasePacket->GetTime());
     }
 
+    SmallBuffer* pHeaderBuffer = new SmallBuffer(TRUE);
     if (FAILED(MakeRDTHeader(pBasePacket, pHeaderBuffer, ppWriteHere != NULL)))
     {
         HX_ASSERT(0);
@@ -1010,8 +1016,10 @@ RDTUDPTransport::sendMulticastPacket(BasePacket* pBasePacket)
      */
 
     // writePacket will call pSendBuffer->Release()
+    // resetting the size of pSendBuffer as the total size of physical packet.
+    pSendBuffer->SetSize(packetLen + report_offset);
     hresult = writePacket(pSendBuffer);
-
+    
 #ifdef DEBUG
 TNGsendContinue:
 #endif

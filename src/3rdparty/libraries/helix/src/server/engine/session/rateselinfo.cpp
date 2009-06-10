@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rateselinfo.cpp,v 1.3 2007/05/01 18:17:21 darrick Exp $
+ * Source last modified: $Id: rateselinfo.cpp,v 1.4 2007/05/23 00:43:01 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -313,6 +313,27 @@ RateSelectionInfo::GetRegisteredLogicalStreamIds(UINT16 ulArraySize,
     return HXR_OK;
 }
 
+
+
+void
+RateSelectionInfo::Dump()
+{
+    printf("************** RATESELINFO DUMP ***************\n");
+    printf("---Aggregate Info---\n");
+    printf("bandwidth: %u   gbw: %u   ir: %u\n",
+           m_Info[RSI_BANDWIDTH], m_Info[RSI_LINKCHAR_GBW], m_Info[RSI_QUERYPARAM_IR]);
+    CHXMapLongToObj::Iterator i;
+    for (i = m_StreamMap.Begin(); 
+         i != m_StreamMap.End();
+         ++i)
+    {        
+        StreamRateSelectionInfo* pInfo = (StreamRateSelectionInfo*)*i;
+        printf("---Stream %u Info---\n", (UINT16)i.get_key());
+        pInfo->Dump();
+    }    
+    fflush(stdout);
+}
+
 StreamRateSelectionInfo::StreamRateSelectionInfo()
 : m_bGotTrackId(FALSE)
 {
@@ -493,3 +514,16 @@ StreamRateSelectionInfo::GetSubscribedRules(UINT16 ulArraySize,
     return HXR_OK;
 }
 
+void 
+StreamRateSelectionInfo::Dump()
+{
+    CHXSimpleList::Iterator i;
+    printf("gbw %u   def rule: %u   avg bitrate: %u   rules: [ ",
+           m_Info[RSI_LINKCHAR_GBW], m_Info[RSI_DEFAULT_RULE], m_Info[RSI_AVGBITRATE]);
+    for (i = m_RuleSubs.Begin(); i != m_RuleSubs.End(); ++i)
+    {
+        printf("%u ", (UINT32)*i);
+    }
+    printf("]\n");
+
+}

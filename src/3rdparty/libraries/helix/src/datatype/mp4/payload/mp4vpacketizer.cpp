@@ -71,7 +71,7 @@ CMP4VPacketizer::~CMP4VPacketizer()
 }
 
 STDMETHODIMP 
-CMP4VPacketizer::Init(IUnknown* pContext, BOOL bPacketize)
+CMP4VPacketizer::Init(IUnknown* pContext, HXBOOL bPacketize)
 {
     if (!pContext)
     {

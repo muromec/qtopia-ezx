@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servresolvimp.h,v 1.1 2004/11/15 22:39:58 tmarshall Exp $
+ * Source last modified: $Id: servresolvimp.h,v 1.2 2007/08/30 17:29:50 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -48,7 +48,6 @@
 #include "mem_cache.h"
 
 #include "hxnet.h"
-#include "hxservnet.h"
 #include "netdrv.h"
 #include "sockimp.h"
 

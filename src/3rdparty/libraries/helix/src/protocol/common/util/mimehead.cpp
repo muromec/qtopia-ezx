@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mimehead.cpp,v 1.6 2005/03/10 20:59:16 bobclark Exp $
+ * Source last modified: $Id: mimehead.cpp,v 1.9 2007/07/06 20:51:32 jfinnecy Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -336,6 +336,13 @@ MIMEHeader::clearHeaderValueList()
 void
 MIMEHeader::asString(CHXString& msgStr)
 {
+    makeString(msgStr);
+    msgStr += "\r\n";
+}
+
+void
+MIMEHeader::makeString(CHXString& msgStr)
+{
     MIMEHeaderValue* pHeaderValue = (MIMEHeaderValue*)getFirstHeaderValue();
     int firstValue = 1;
     while(pHeaderValue)
@@ -354,5 +361,4 @@ MIMEHeader::asString(CHXString& msgStr)
 	msgStr += tmpStr;
 	pHeaderValue = (MIMEHeaderValue*)getNextHeaderValue();
     }
-    msgStr += "\r\n";
 }

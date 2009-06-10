@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstack.cpp,v 1.4 2004/07/09 18:21:35 hubbe Exp $
+ * Source last modified: $Id: hxstack.cpp,v 1.7 2009/05/19 12:29:42 jain_1982s Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -88,4 +88,28 @@ CHXStack::TopOfStack()
 	pPtr = ElementAt(top - 1);
     }
     return pPtr;
+}
+
+extern "C"
+{
+    void* CreateHXStack()
+    {
+        return (void*)new CHXStack();
+    }
+    void PushOnHXStack(void* pobjStack, UINT32 ulData)
+    {   
+        ((CHXStack*)pobjStack)->Push((void*)ulData);
+    }
+    UINT32 PopFromHXStack(void* pobjStack)
+    {
+        return (UINT32 )((CHXStack*)pobjStack)->Pop();
+    }
+    void HXStack_Delete(void* pobjStack)
+    {
+        if (pobjStack)
+        {
+            CHXStack* temp = (CHXStack*)pobjStack;
+            HX_DELETE(temp);
+        }
+    }
 }

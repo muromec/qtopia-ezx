@@ -38,7 +38,7 @@
 #include "amr_toc.h"
 #include "amr_rs_itr.h"
 #include "bitstream.h"
-
+#include "hxtlogutil.h"
 
 AMRDepack::AMRDepack() :
     m_flavor(NarrowBand),
@@ -164,39 +164,70 @@ HXBOOL AMRDepack::OnPacket(ULONG32 ulTime,
 
     Bitstream bs;
 
-    bs.SetBuffer(pData);
+    bs.SetBuffer(pData, ulSize);
 
+    UINT32 ulLeft = bs.BitsLeft();
     // Skip the CMR since we don't care about it
     if (m_bOctetAlign)
     {
+        if (ulLeft < 8)
+        {
+            bFailed =TRUE;
+        }
 	// 3GPP TS26.235 v5.0.0 Annex B Section B.4.4.1
-	bs.GetBits(8);
+        else
+        {
+            bs.GetBits(8);
+        }
     }
     else
     {
+	if (ulLeft < 4)
+	{
+	    bFailed =TRUE;
+	}
 	// 3GPP TS26.235 v5.0.0 Annex B Section B.4.3.1
-	bs.GetBits(4);
+	else
+	{
+	    bs.GetBits(4);
+	}
     }
 
-    if (m_ulMaxInterleave > 0)
+    if (m_ulMaxInterleave > 0 && !bFailed)
     {
-	// 3GPP TS26.235 v5.0.0 Annex B Section B.4.4.1
-	ULONG32 ulILL = bs.GetBits(4);
-	ULONG32 ulILP = bs.GetBits(4);
+	ulLeft = bs.BitsLeft();   	
+	if (ulLeft < 8)
+	{
+	    bFailed =TRUE;
+	}
+	else
+	{
+	    // 3GPP TS26.235 v5.0.0 Annex B Section B.4.4.1
+	    ULONG32 ulILL = bs.GetBits(4);
+	    ULONG32 ulILP = bs.GetBits(4);
 
-	bFailed = !UpdateIleavInfo(ulILL, ulILP, ulTime);
+	    bFailed = !UpdateIleavInfo(ulILL, ulILP, ulTime);
+	}
     }
     
     if (bFailed == FALSE)
     {
 	AMRTOCInfo tocInfo;
 
-	GetTOCInfo(bs, tocInfo);
+	if (!GetTOCInfo(bs, tocInfo))
+	{
+	    HXLOGL1(HXLOG_GENE, "Failed GetTOCInfo()");
+	    return FALSE;
+	}
 
 	if (m_bHasCRC)
 	{
 	    // 3GPP TS26.235 v5.0.0 Annex B Section B.4.4.2.1
-	    SkipCRCInfo(bs, tocInfo);
+	    if (!SkipCRCInfo(bs, tocInfo))
+	    {
+	        HXLOGL1(HXLOG_GENE, "Failed SkipCRCInfo()");
+	        return FALSE;
+	    }
 	}
 
 	// Update the block count to make sure we have
@@ -218,12 +249,18 @@ HXBOOL AMRDepack::OnPacket(ULONG32 ulTime,
 	if (m_bRobustSort)
 	{
 	    // Copy robust sorted frame data to m_blockBuf
-	    SortedCopy(bs, ulStartBlock, ulBlockInc, tocInfo);
+	    if (!SortedCopy(bs, ulStartBlock, ulBlockInc, tocInfo))
+	    {
+	        return FALSE;
+	    }
 	}
 	else
 	{
 	    // Copy linear frame data to m_blockBuf
-	    LinearCopy(bs, ulStartBlock, ulBlockInc, tocInfo);
+	    if (!LinearCopy(bs, ulStartBlock, ulBlockInc, tocInfo))
+	    {
+	        return FALSE;
+	    }
 	}
 
 	if (m_ulMaxInterleave > 0)
@@ -320,13 +357,14 @@ HXBOOL AMRDepack::UpdateIleavInfo(ULONG32 ulILL, ULONG32 ulILP, ULONG32 ulTime)
     return !bFailed;
 }
 
-void AMRDepack::GetTOCInfo(Bitstream& bs, AMRTOCInfo& tocInfo)
+HXBOOL AMRDepack::GetTOCInfo(Bitstream& bs, AMRTOCInfo& tocInfo)
 {
     ULONG32 ulTocBits;
     ULONG32 ulTocMask;
     
     ULONG32 ulShift;
-
+    HXBOOL bFailed = FALSE;
+	
     if (m_bOctetAlign)
     {
 	// This header is defined in
@@ -363,29 +401,47 @@ void AMRDepack::GetTOCInfo(Bitstream& bs, AMRTOCInfo& tocInfo)
     }
     
     HXBOOL bDone = FALSE;
-
+    UINT32 ulLeft = 0;
     while(!bDone)
     {
-	ULONG32 entry = bs.GetBits(ulTocBits);
-	UINT8 type = (UINT8)(entry >> (ulShift + 1)) & 0x0f;
-	UINT8 quality = (UINT8)(entry >> ulShift) & 0x01;
+        ulLeft = bs.BitsLeft();
+        if (ulLeft < ulTocBits) 
+        {
+            bFailed =TRUE;
+            break;
+        }
+        ULONG32 entry =  bs.GetBits(ulTocBits);
+        UINT8 type = (UINT8)(entry >> (ulShift + 1)) & 0x0f;
+        UINT8 quality = (UINT8)(entry >> ulShift) & 0x01;
 	
-	tocInfo.AddInfo(type, quality);
+        tocInfo.AddInfo(type, quality);
 	
-	if ((entry & ulTocMask) == 0)
-	    bDone = TRUE;
+        if ((entry & ulTocMask) == 0)
+            bDone = TRUE;
     }    
+    return !bFailed;
 }
 
-void AMRDepack::SkipCRCInfo(Bitstream& bs, const AMRTOCInfo& tocInfo)
+HXBOOL AMRDepack::SkipCRCInfo(Bitstream& bs, const AMRTOCInfo& tocInfo)
 {
+    HXBOOL bFailed = FALSE;
     // Skip CRCs if they are present since we don't
     // care about them.
     for (ULONG32 i = 0; i < tocInfo.EntryCount(); i++)
     {
 	if (tocInfo.GetType(i)  < 14)
+	{
+	    UINT32 ulLeft = bs.BitsLeft();
+	    if (ulLeft < 8)
+	    {
+	        bFailed =TRUE;
+	        break;
+	    }
 	    bs.GetBits(8);
+	}
     }
+    return !bFailed;
+
 }
 
 
@@ -410,10 +466,11 @@ void AMRDepack::UpdateBlockCount(ULONG32 ulBlockCount)
     }
 }
 
-void AMRDepack::LinearCopy(Bitstream& bs, 
+HXBOOL AMRDepack::LinearCopy(Bitstream& bs, 
 			   ULONG32 ulStartBlock, ULONG32 ulBlockInc,
 			   const AMRTOCInfo& tocInfo)
 {
+    HXBOOL bFailed = FALSE;
     ULONG32 ulBlockIndex = ulStartBlock;
     ULONG32 ulFrameIndex = 0;
     
@@ -421,10 +478,14 @@ void AMRDepack::LinearCopy(Bitstream& bs,
     {
 	UINT8* pStart = m_blockBuf.GetBlockBuf(ulBlockIndex);
 	
-	ULONG32 ulFrameSize = GetFrameBlock(bs,
+	ULONG32 ulFrameSize = 0;
+	if (!GetFrameBlock(bs,
 					    pStart, 
 					    tocInfo, ulFrameIndex,
-					    m_ulChannels);
+					    m_ulChannels, ulFrameSize))
+	{
+	    return FALSE;
+	}
 	
 	if (ulFrameSize)
 	{
@@ -439,23 +500,28 @@ void AMRDepack::LinearCopy(Bitstream& bs,
 	    ulFrameIndex += m_ulChannels;
 	}
 	else
+	{
+	    bFailed = TRUE;
 	    break;
+	}
     }
+    return !bFailed;
 }
 
-ULONG32 AMRDepack::GetFrameBlock(Bitstream& bs,
+HXBOOL AMRDepack::GetFrameBlock(Bitstream& bs,
 				 UINT8* pStart, 
 				 const AMRTOCInfo& tocInfo,
 				 ULONG32 ulStartEntry,
-				 ULONG32 ulChannels)
+				 ULONG32 ulChannels,
+				 ULONG32& ulRet)
 {
-    ULONG32 ulRet = 0;
+    ulRet = 0;
+    HXBOOL bFailed = FALSE;
 
     ULONG32 ulEnd = ulChannels + ulStartEntry;
 
     if (ulEnd <= tocInfo.EntryCount())
     {
-	HXBOOL bFailed = FALSE;
 	UINT8* pCurrent = pStart;
 
 	for (ULONG32 i = ulStartEntry; i < ulEnd; i++)
@@ -493,6 +559,12 @@ ULONG32 AMRDepack::GetFrameBlock(Bitstream& bs,
 		    pCurrent[ulFrameBytes - 1] = 0;
 		    
 		    // Copy frame bits into the buffer
+		    UINT32 ulLeft = bs.BitsLeft();
+		    if (ulLeft < ulFrameBits)	
+		    {
+		        bFailed = TRUE;
+		        break;
+		    }
 		    bs.GetBits(ulFrameBits, pCurrent);
 
 		    // Move current pointer to just past this frame
@@ -510,13 +582,14 @@ ULONG32 AMRDepack::GetFrameBlock(Bitstream& bs,
 	    ulRet = pCurrent - pStart;
     }
 
-    return ulRet;
+    return !bFailed;
 }
 
-void AMRDepack::SortedCopy(Bitstream& bs, 
+HXBOOL AMRDepack::SortedCopy(Bitstream& bs, 
 			   ULONG32 ulStartBlock, ULONG32 ulBlockInc,
 			   const AMRTOCInfo& tocInfo)
 {
+    HXBOOL bFailed = FALSE;
     // This function copies robust sorted data from the packet.
     // Unfortunately this is not very efficient because the bytes
     // of each frame are interleaved with eachother. The
@@ -532,8 +605,15 @@ void AMRDepack::SortedCopy(Bitstream& bs,
 	UINT8* pDest = m_blockBuf.GetBlockBuf(itr.Block()) + itr.Offset();
 
 	// Copy the byte
+	UINT32 ulLeft = bs.BitsLeft();
+	if (ulLeft < 8)
+	{
+	    bFailed = TRUE;
+	    break;
+	}
 	*pDest = (UINT8)bs.GetBits(8);
     }
+    return !bFailed;
 }
 
 void AMRDepack::DispatchFrameBlock(ULONG32 ulTimestamp,

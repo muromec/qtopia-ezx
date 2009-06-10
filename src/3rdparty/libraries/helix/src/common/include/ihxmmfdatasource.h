@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxmmfdatasource.h,v 1.2 2006/09/20 00:00:23 gashish Exp $
+ * Source last modified: $Id: ihxmmfdatasource.h,v 1.8 2008/03/14 18:32:30 gajia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -51,9 +51,48 @@
 #define _IHXMMFDATASOURCE_H_
 
 
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *  IHXMMFDataSourceObserver
+ *
+ *  Purpose:
+ *
+ *  Data source observer interface. Used for asynchronous data transfer.
+ *  object ownership is best managed through COM style reference
+ *  counting. 
+ *
+ *  IID_IHXMMFDataSourceObserver:
+ *
+ *  {75887012-4FA7-473b-9714-B908E4EE9D99}
+ */
+
+DEFINE_GUID(IID_IHXMMFDataSourceObserver, 0x75887012, 0x4fa7, 0x473b, 0x97, 0x14, 0xb9, 0x8, 0xe4, 0xee, 0x9d, 0x99);
+
+#undef  INTERFACE
+#define INTERFACE   IHXMMFDataSourceObserver
+
+DECLARE_INTERFACE_(IHXMMFDataSourceObserver, IUnknown)
+{
+ /*
+  *  IUnknown methods
+  */
+ STDMETHOD(QueryInterface)       (THIS_
+                 REFIID riid,
+                 void** ppvObj) PURE;
+
+ STDMETHOD_(ULONG32,AddRef)      (THIS) PURE;
+
+ STDMETHOD_(ULONG32,Release)     (THIS) PURE;
+ /*
+    Informs datasource observer once read request is complete.
+ */
+ virtual void ReadDone(IHXBuffer* pBuffer, UINT32 byteCount) PURE;
+};
+
 // warnning: This interface and related functionality is under development.
 // IHXMMFDataSource API can change anytime.
-
 
 /****************************************************************************
  *
@@ -94,7 +133,7 @@ DECLARE_INTERFACE_(IHXMMFDataSource, IUnknown)
 
 
  STDMETHOD(Open)         (THIS_
-                    IHXRequest *pRequest, const char *mode
+                    IHXRequest *pRequest, const char *mode, IHXMMFDataSourceObserver* pObserver = NULL
                  ) PURE;
 
  STDMETHOD(Close)        (THIS_) PURE;
@@ -122,6 +161,36 @@ DECLARE_INTERFACE_(IHXMMFDataSource, IUnknown)
                             INT32 &ulValue) PURE;
  
  STDMETHOD(GetSize)  (THIS_ UINT32 &ulSize) PURE;
+
+ STDMETHOD(GetLastError)  (THIS_) PURE;
+
+//enable multi read/write 
+ STDMETHOD(Open2)         (THIS_
+                    IHXRequest *pRequest, const char *mode, IHXMMFDataSourceObserver* pObserver, IHXFileObject* pFileObject
+                 ) PURE;
+
+ STDMETHOD(Close2)        (THIS_ IHXFileObject* pFileObject) PURE;
+
+    /*
+        reads "count" elements each of size "size".
+    */
+ virtual UINT32 Read2(THIS_
+                   IHXBuffer* pBuffer, IHXFileObject* pFileObject
+                 ) PURE;
+
+    /*
+        writes "count" elements each of size "size".
+    */
+ virtual UINT32 Write2(THIS_
+                   void *buf, ULONG32 size, ULONG32 count, IHXFileObject* pFileObject
+                 ) PURE;
+
+ STDMETHOD(Seek2)    (THIS_ UINT32, INT32 fromWhere, IHXFileObject* pFileObject) PURE;
+
+ STDMETHOD(GetLastError2)  (THIS_ IHXFileObject* pFileObject) PURE;
+ 
+ virtual HXBOOL AsyncReadSupported(THIS_) PURE;
+
 };
 
 #endif // _IHXMMFDATASOURCE_H_

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: io.h,v 1.6 2004/07/09 18:21:09 hubbe Exp $
+ * Source last modified: $Id: io.h,v 1.8 2008/01/18 09:17:27 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef HLXSYS_IO_H
 #define HLXSYS_IO_H
 
-#if !defined(WIN32_PLATFORM_PSPC) && !defined(_UNIX) && !defined(_MACINTOSH) && !defined(_SYMBIAN) && !defined(_OPENWAVE)
+#if !defined(WIN32_PLATFORM_PSPC) && !defined(_UNIX) && !defined(_MACINTOSH) && !defined(_SYMBIAN) && !defined(_OPENWAVE) && !defined(_BREW)
 #include <io.h>
 #endif /* !defined(WIN32_PLATFORM_PSPC) */
 

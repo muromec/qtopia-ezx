@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxuuid.cpp,v 1.13 2005/05/03 16:14:29 albertofloyd Exp $
+ * Source last modified: $Id: chxuuid.cpp,v 1.15 2008/01/18 04:54:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -93,8 +93,8 @@
 #include "netbyte.h"
 #include "md5.h"
 
-#include <ctype.h>
-#if !defined(_VXWORKS) && !defined(_SYMBIAN) && !defined(_OPENWAVE)
+#include "hlxclib/ctype.h"
+#if !defined(_VXWORKS) && !defined(_SYMBIAN) && !defined(_OPENWAVE) && !defined(_BREW)
 #include <memory.h>
 #endif
 #include <stdarg.h>

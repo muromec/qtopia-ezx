@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdatasource.h,v 1.2 2006/09/19 23:56:33 gashish Exp $
+ * Source last modified: $Id: hxdatasource.h,v 1.8 2008/03/14 18:29:08 gajia Exp $
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
  * The contents of this file, and the files included with this file,
@@ -54,6 +54,7 @@
 #include "hxstring.h"
 #include "hxfiles.h"
 #include "ihxmmfdatasource.h"
+#include "ihxpckts.h" //IHXBuffer
 
 // warnning: This interface and related functionality is under development.
 // IHXMMFDataSource API can change anytime.
@@ -71,7 +72,7 @@ public:
 
     STDMETHOD_(ULONG32,Release)     (THIS);
 
-    STDMETHOD(Open)    (THIS_ IHXRequest *pRequest, const char *mode);
+    STDMETHOD(Open)    (THIS_ IHXRequest *pRequest, const char *mode, IHXMMFDataSourceObserver* pObserver = NULL);
     STDMETHOD(Seek)    (THIS_ UINT32 offset, INT32 fromWhere);
     STDMETHOD(Stat)    (THIS_ struct stat *buf);
     STDMETHOD(GetStringAttribute)(THIS_ UINT32 ulAttibute,
@@ -83,11 +84,35 @@ public:
     virtual UINT32  Read(THIS_  void *, ULONG32 size, ULONG32 count) PURE;
     virtual UINT32  Write(THIS_ void *, ULONG32 size, ULONG32 count) PURE;
     STDMETHOD(GetSize)  (THIS_ UINT32 &ulSize) PURE;
+    STDMETHOD(GetLastError)   (THIS_);
+    HXBOOL AsyncReadSupported(THIS_);
+public: //enable multi read/write
+    STDMETHOD(Open2)    (THIS_ IHXRequest *pRequest, const char *mode, IHXMMFDataSourceObserver* pObserver, IHXFileObject* pFileObject);
+    STDMETHOD(Seek2)    (THIS_ UINT32 offset, INT32 fromWhere, IHXFileObject* pFileObject);
+    STDMETHOD(Close2)   (THIS_ IHXFileObject* pFileObject);
+    virtual UINT32  Read2(THIS_  IHXBuffer* pBuffer, IHXFileObject* pFileObject);
+    virtual UINT32  Write2(THIS_ void *, ULONG32 size, ULONG32 count, IHXFileObject* pFileObject);
+    STDMETHOD(GetLastError2)   ( THIS_ IHXFileObject* pFileObject);
+
+protected: //enable multi read/write
+    HX_RESULT RestoreFileObject( IHXFileObject* pFileObject );
+    HX_RESULT FindFileObjectIndex( TInt& index, const IHXFileObject* pFileObject ) const;
+    HX_RESULT UpdateFileObject( TInt index, UINT32 position );
+
+protected:
+    inline void SetLastError(HX_RESULT lErr) {m_ulLastError = lErr;}
 
 protected:
     ULONG32              m_ulRefCount;
     ULONG32              m_ulPosition; // current offset for the data
+    UINT32               m_ulLastError;
     IHXRequest*          m_pRequest;
+    IHXBuffer*           m_pHXBuffer;
+
+protected: //enable multi read/write
+    RPointerArray<IHXFileObject> m_FileObjectList;
+    RArray< TUint >      m_FileObjectPosition;
+    TInt                 m_lLastFileObjectIndex;
 };
 
 #endif // _HX_DATASOURCE_H_

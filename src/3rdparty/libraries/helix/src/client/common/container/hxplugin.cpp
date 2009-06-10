@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxplugin.cpp,v 1.10 2006/08/17 17:15:54 ping Exp $
+ * Source last modified: $Id: hxplugin.cpp,v 1.12 2007/12/13 18:13:39 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -381,13 +381,13 @@ HX_RESULT HXPlugin::GetInstance(IUnknown*& pUnknown, IUnknown* pIUnkOuter )
     {
         hr = HXR_FAIL;
 
+	if( SUCCEEDED( pUnkPlugin->QueryInterface( IID_IHXComponentPlugin, (void**) &pComponentPlugin ) ) )
+	{
         if( SUCCEEDED( pUnkPlugin->QueryInterface(IID_IHXPlugin, (void**)&pIHXPlugin ) ) )
         {
             pIHXPlugin->InitPlugin(m_pContext);
         }
 
-	if( SUCCEEDED( pUnkPlugin->QueryInterface( IID_IHXComponentPlugin, (void**) &pComponentPlugin ) ) )
-	{
 	    // Ask for the correct object by CLSID
 	    IHXBuffer* pCLSID = NULL;
 	    if( SUCCEEDED( m_pValues->GetPropertyBuffer( PLUGIN_COMPONENT_CLSID, pCLSID ) ) )

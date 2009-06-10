@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_tran_aimd.h,v 1.5 2005/01/18 21:33:51 damonlan Exp $ 
+ * Source last modified: $Id: qos_tran_aimd.h,v 1.7 2007/07/31 06:24:18 yphadke Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -79,9 +79,9 @@ class QoSCongestionEqn_AIMD : public IHXQoSCongestionEquation
 
     STDMETHOD (SetMediaPacketSize) (THIS_ UINT32 ulMediaPacketSize);
 
-    STDMETHOD (SetMaximumRate) (THIS_ UINT32 ulMaxRate);
-
     STDMETHOD (GetRate) (THIS_ REF(UINT32) /* OUT */ ulRate);
+
+    STDMETHOD (SetRate) (THIS_ REF(UINT32) ulRate);
 
     STDMETHOD (GetEquationType) (THIS_ REF(HX_QOS_CC_TYPE) /* OUT */ cType);
 
@@ -92,7 +92,6 @@ class QoSCongestionEqn_AIMD : public IHXQoSCongestionEquation
 
     UINT32    m_ulRate;
     UINT32    m_ulMediaRate;
-    UINT32    m_ulMaxRate;
     
     BOOL      m_bSlowStart;
 };

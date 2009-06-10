@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: tparse.c,v 1.9 2004/07/09 18:23:51 hubbe Exp $
+ * Source last modified: $Id: tparse.c,v 1.11 2007/10/17 15:53:01 praveenkumar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,6 +68,7 @@ static const char HX_THIS_FILE[] = __FILE__;
 unsigned long TimeParse(const char *s) {
 	int colons = 0;
 	char *cat;
+	char *str;
 	const char *ts;
 	unsigned long result = 0;
 	/* Count colons */
@@ -99,7 +100,16 @@ unsigned long TimeParse(const char *s) {
 		result *= 10;
 		cat = strchr(s, '.');
 		if (cat) {
-			/* GR 4/5/02 warning, this is easily fooled, like by $xxx.3 in a filename */
+			/* take care of filename $xxx.3 case */
+			str = cat+1;
+			while(*str) {
+			    if(isalpha(*str)) {
+			        return 0;
+			    }
+			    else {
+			        str++;
+			    }
+			} // end of while
 			s = cat+1;
 			if (*s) {
 				/* Quietly drop anything beyond tenths */

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chunkres.cpp,v 1.26 2006/02/16 23:03:01 ping Exp $
+ * Source last modified: $Id: chunkres.cpp,v 1.29 2008/02/05 06:06:08 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -78,6 +78,10 @@
 
 #ifdef _SYMBIAN
 #include <unistd.h> //for unlink
+#endif
+
+#ifdef _BREW
+#include "hlxclib/sys/types.h" //for SEEK_SET
 #endif
 
 #include "hxheap.h"
@@ -572,15 +576,9 @@ HX_RESULT CChunkyRes::DiscardRange( ULONG32 offset, ULONG32 count )
 	CChunkyResChunk* pChunk = (CChunkyResChunk*)m_Chunks[ulWhichChunk];
 
 	// if the chunk doesn't (yet?) exist, then it's considered invalid.
-	
+
 	if (pChunk)
-	{
-	    ULONG32 ulTempOffset = pChunk->GetTempFileOffset();
-	    if (ulTempOffset)
-	    {
-		m_FreeDiskOffsets.AddHead((void*)ulTempOffset);
-	    }
-	    
+	{	    
 	    delete pChunk;
 	    m_Chunks[ulWhichChunk] = NULL;
 	}
@@ -589,6 +587,76 @@ HX_RESULT CChunkyRes::DiscardRange( ULONG32 offset, ULONG32 count )
     return theErr;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+//
+//	Method:
+//
+//		CChunkyRes::TouchRange(ULONG32 offset, ULONG32 count)
+//
+//	Purpose:
+//
+//		Touches the specified range of the file thus making the
+//	the range most recently used.  The end of the range is
+//	is made more recently used over the start of the range.
+//
+//	Parameters:
+//		The location and length of the range to be touched.
+//
+//
+void CChunkyRes::TouchRange(ULONG32 ulOffset, ULONG32 ulCount)
+{
+    ULONG32 ulFirstChunk = ulOffset / DEF_CHUNKYRES_CHUNK_SIZE;
+    ULONG32 ulLastChunk  = (ulOffset + ulCount) / DEF_CHUNKYRES_CHUNK_SIZE;
+    ULONG32 ulWhichChunk;
+    
+    if (ulCount == 0)
+    {
+	return;
+    }
+    
+    if (((ulOffset + ulCount) % DEF_CHUNKYRES_CHUNK_SIZE) == 0)
+    {
+	ulLastChunk--;
+    }
+    
+    // Easier to deal with count than index
+    ulLastChunk++;
+    
+    Lock();
+    
+    if (m_Chunks.GetSize() < ulLastChunk)
+    {
+	ulLastChunk = m_Chunks.GetSize();
+    }
+    
+    for (ulWhichChunk = ulFirstChunk; ulWhichChunk < ulLastChunk; ulWhichChunk++)
+    {
+	CChunkyResChunk* pChunk = (CChunkyResChunk*) m_Chunks[ulWhichChunk];
+	
+	if (pChunk)
+	{
+	    LISTPOSITION pos = m_ChunksMemoryMRU->Find(pChunk);
+	    
+	    if (pos)
+	    {
+		// Move the chunk in range to the front of the List 
+		m_ChunksMemoryMRU->RemoveAt(pos);		    
+		m_ChunksMemoryMRU->AddHead(pChunk);
+	    }
+	    else
+	    {
+		pos = m_ChunksDiskMRU->Find(pChunk);
+		if (pos)
+		{
+		    // Move to memory will move to the front of memory MRU list
+		    pChunk->MakeSureChunkIsInMemory();
+		}
+	    }
+	}
+    }
+		
+    Unlock();
+}
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -762,22 +830,18 @@ HX_RESULT CChunkyRes::GetData(ULONG32 offset, char* buf, ULONG32 count, ULONG32*
 	if (m_bDiscardUsedData)
 	{
 		nLastChunk = (int)(m_ulUsedBytes/DEF_CHUNKYRES_CHUNK_SIZE);
-		for (ndx = m_ulFirstChunkIdx; ndx < nLastChunk - 1; ndx++)
+		for (ndx = ((int) m_ulFirstChunkIdx); ndx < nLastChunk - 1; ndx++)
 		{
 			CChunkyResChunk* pChunk = (CChunkyResChunk*)m_Chunks[ndx];
-			HX_ASSERT_VALID_PTR(pChunk);
-
-			UINT32 ulTempOffset = pChunk->GetTempFileOffset();
-			pChunk->DiscardDiskData();
+			
+			if (pChunk)
+			{
+			    delete pChunk;
+			    m_Chunks[ndx] = NULL;
+			}
 
 			// Increment the first valid chunk index
 			m_ulFirstChunkIdx++;
-
-			if (ulTempOffset)
-			{
-			    // Add the disk space to the free space list
-			    m_FreeDiskOffsets.AddHead((void*)ulTempOffset);
-			}
 		}
 	}
 
@@ -885,6 +949,11 @@ HX_RESULT CChunkyRes::SetData(ULONG32 offset, const char* buf, ULONG32 count, vo
 	ULONG32 chunkOffset = offset - (ulFirstChunk*DEF_CHUNKYRES_CHUNK_SIZE);
 	ULONG32 chunkCount  = count;
 	ULONG32 baseOffset  = 0;
+	
+	if (nFirstChunk < m_ulFirstChunkIdx)
+	{
+	    m_ulFirstChunkIdx = nFirstChunk;
+	}
 
 	for (int ndx = nFirstChunk; ndx <= nLastChunk; ndx++)
 	{
@@ -940,17 +1009,27 @@ void CChunkyRes::TrimDownMemoryMRU()
 			CChunkyResChunk* pChunk = (CChunkyResChunk*)m_ChunksMemoryMRU->GetTail();
 			HX_ASSERT_VALID_PTR(pChunk);
 
-			// Discount its usage.
-			m_CurMemUsage -= pChunk->GetSize();
+			if (pChunk)
+			{
+			    if (m_bDisableDiskIO)
+			    {
+				pChunk->DiscardDiskData();
+			    }
+			    else
+			    {
+				// Discount its usage.
+				m_CurMemUsage -= pChunk->GetSize();
+			    
+				// Remove the chunk from the end of the Memory MRU
+				m_ChunksMemoryMRU->RemoveTail();
+			    
+				// Spill this chunk to disk...
+				pChunk->SpillToDisk();
 
-			// Spill this chunk to disk...
-			pChunk->SpillToDisk();
-
-			// Remove the chunk from the end of the Memory MRU
-			m_ChunksMemoryMRU->RemoveTail();
-
-			// And add the chunk to the front of the Disk MRU
-			m_ChunksDiskMRU->AddHead(pChunk);
+				// And add the chunk to the front of the Disk MRU
+				m_ChunksDiskMRU->AddHead(pChunk);
+			    }
+			}
 		}
 
 		// How can this be?!?! Did you really mean to set the memory usage such
@@ -1085,7 +1164,7 @@ CChunkyRes::CChunkyRes(IUnknown* pContext)
 	, m_strTempFileName()
 	, m_ulNextTempFileChunk(DEF_START_CHUNK_OFFSET)
 	, m_bHasBeenOpened(FALSE)
-	, m_bDisableDiskIO(FALSE)
+	, m_bDisableDiskIO(TRUE)
 	, m_bDiscardUsedData(FALSE)
 	, m_ulFirstChunkIdx(0)
 	, m_ulUsedBytes(0)
@@ -1238,6 +1317,10 @@ HX_RESULT CChunkyResChunk::MakeSureChunkIsInMemory()
 		m_pChunkRes->m_CurMemUsage += GetSize();
 
 		// Make sure we don't have to much info in memory...
+		// If DiskIO is disabled, leave trimming up to the caller
+		// as trim will purge data instead of paging it out
+		// to the disk.  That requires more precision which we
+		// leave to the caller.
 		if (!m_bDisableDiskIO)
 		{
 		    m_pChunkRes->TrimDownMemoryMRU();
@@ -1312,6 +1395,7 @@ ULONG32 CChunkyResChunk::GetValidLength(ULONG32 offset /* = 0 */) const
 				&& offset <= pRange->offset + pRange->length)
 			{
 			    ulValidLength = pRange->offset + pRange->length - offset;
+			    break;  // Once we find the encompasing range - there will be no more
 			}
 		}
 		while (rangePos);
@@ -1488,7 +1572,7 @@ HX_RESULT CChunkyResChunk::AddValidRange(ULONG32 offset, ULONG32 length, HXBOOL 
 			
             HXBOOL bNeedToMerge = FALSE;
 
-            // See if this range element overlaps the front end of the
+            // See if this range element overlaps or adjoins the front end of the
             // new range element.
             if (pRange->offset <= pNewRange->offset
 	            && pRange->offset + pRange->length >= pNewRange->offset)
@@ -1496,7 +1580,7 @@ HX_RESULT CChunkyResChunk::AddValidRange(ULONG32 offset, ULONG32 length, HXBOOL 
 	            bNeedToMerge = TRUE;
             }
 
-            // see if this range element overlaps the back end of the
+            // see if this range element overlaps or adjoins the back end of the
             // new range element.
 
             if (pRange->offset <= pNewRange->offset + pNewRange->length
@@ -2003,7 +2087,10 @@ HX_RESULT CChunkyResChunk::DiscardDiskData()
 
 	if (posDisk)
 	{
+		ULONG32 ulTempOffset = GetTempFileOffset();
+		
 		m_pChunkRes->m_ChunksDiskMRU->RemoveAt(posDisk);
+		m_pChunkRes->m_FreeDiskOffsets.AddHead((void*) ulTempOffset);
 	}
 
 	// Reset a bunch of our members in case someone tries
@@ -2052,6 +2139,8 @@ HX_RESULT CChunkyRes::DiscardDiskData()
 		int nRet = 0;				
 #if defined (_MACINTOSH) || defined (_UNIX) || defined(_SYMBIAN) || defined(_OPENWAVE)
 		nRet = unlink(pFileName);	
+#elif defined(_BREW)
+		theErr = HXR_NOTIMPL;
 #else
 		nRet =-1;					
 		if (DeleteFile(OS_STRING(pFileName)))

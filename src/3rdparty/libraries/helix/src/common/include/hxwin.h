@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxwin.h,v 1.10 2007/04/04 19:15:57 milko Exp $
+ * Source last modified: $Id: hxwin.h,v 1.12 2007/10/12 19:22:09 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -711,8 +711,8 @@ DECLARE_INTERFACE_(IHXSiteWatcher2, IHXSiteWatcher)
 {
    /***************************************************************************
     * Method:
-    *      IHXSiteWatcher2::FullScreenEntered
-    *      IHXSiteWatcher2::FullScreenExited
+    *      IHXSiteWatcher2::EnteringFullScreen
+    *      IHXSiteWatcher2::ExitingFullScreen
     *
     * New watcher to receive status from IHXSiteFullScreenExt. If status is HXR_OK,
     * then it means pending FullScreen operation has been successfully completed.
@@ -721,11 +721,11 @@ DECLARE_INTERFACE_(IHXSiteWatcher2, IHXSiteWatcher)
     * supports IHXSiteWatcher2 must also support IHXSiteWatcher.
     *
     */
-    STDMETHOD(FullScreenEntered)    (THIS_
-				     HX_RESULT status) PURE;
+    STDMETHOD(EnteringFullScreen)    (THIS_
+                                     HXBOOL&    bAllow) PURE;
 
-    STDMETHOD(FullScreenExited)	    (THIS_
-                                     HX_RESULT status) PURE;
+    STDMETHOD(ExitingFullScreen)    (THIS_
+                                     HXBOOL&    bAllow) PURE;
 };
 
 /****************************************************************************

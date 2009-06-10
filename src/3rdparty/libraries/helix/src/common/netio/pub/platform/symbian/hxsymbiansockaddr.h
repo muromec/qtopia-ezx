@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,13 +53,16 @@
 #include "hxcom.h"
 #include "hxccf.h"
 #include "in_sock.h"
+#include "nettypes.h"
 
 
 /* CHXSockAddr
    Provides a base class for IN4 and IN6 specific address classes
 */
 
-class CHXInetSockAddr  :  public IHXSockAddr
+class CHXInetSockAddr  
+	:  public IHXSockAddrNative // WM-RTSP uses sockaddr_storage for addresses
+	,  public IHXSockAddr
 {
 private:    
     // Unimplemented
@@ -73,6 +76,8 @@ public:
     STDMETHOD_(ULONG32,AddRef)      (THIS) PURE;
     STDMETHOD_(ULONG32,Release)     (THIS) PURE;
 
+    // IHXSockAddrNative override
+    STDMETHOD_(void,Get)            (THIS_ sockaddr** ppsa, size_t* psalen) PURE; 
 
     // IHXSockAddr functions
     STDMETHOD_(HXSockFamily,GetFamily)      (void);
@@ -120,9 +125,13 @@ public:
     // IHXSockAddrIN4 functions
     STDMETHOD_(HXIN4AddrClass,GetAddrClass) (THIS);
 
+    // IHXSockAddrNative override
+    STDMETHOD_(void,Get)            (THIS_ sockaddr** ppsa, size_t* psalen); 
     // CHXInetSockAddr override
     STDMETHOD(Clone)                        (THIS_ IHXSockAddr** ppNew);
 protected:
+    // used for ::Get
+    sockaddr_in	m_nativeAddr; 
 };
 
 class CHXSockAddrIN6  :  public IHXSockAddrIN6
@@ -141,6 +150,8 @@ public:
     CHXSockAddrIN6(IUnknown *pContext);
     virtual ~CHXSockAddrIN6();
 
+    // IHXSockAddrNative override
+    STDMETHOD_(void,Get)           (THIS_ sockaddr** ppsa, size_t* psalen); 
     // CHXInetSockAddr
     STDMETHOD(Clone)                        (THIS_ IHXSockAddr** ppNew);
 
@@ -155,6 +166,8 @@ public:
     STDMETHOD_(UINT32,GetScopeId)           (THIS);
     STDMETHOD(SetScopeId)                   (THIS_ UINT32 uScopeId);
 protected:
+    // used for ::Get
+    sockaddr_in6	m_nativeAddr;
 };
 
 #endif /* ndef _SYMBIAN_SOCKADDR_H_ */

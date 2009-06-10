@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pcktflowwrap.h,v 1.6 2005/09/30 19:47:51 jc Exp $
+ * Source last modified: $Id: pcktflowwrap.h,v 1.9 2008/03/24 06:58:39 manvendras Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,7 +41,7 @@
 class PPM;
 class PacketFlowManager;
 class DataConvertShim;
-class Player;
+class Client;
 class Process;
 
 _INTERFACE IHXPSourceControl;
@@ -56,16 +56,7 @@ public:
     PacketFlowWrapper(Process* pProc, BOOL bIsRTP);
     virtual ~PacketFlowWrapper();
 
-    HX_RESULT RegisterSource(IHXPSourceControl* pSourceCtrl,
-                             REF(IHXPacketFlowControl*) pSessionControl,
-                             IHXSessionStats* pSessionStats,
-                             UINT16 unStreamCount,
-                             BOOL bUseMDP,
-                             BOOL bIsLive,
-                             BOOL bIsMulticast,
-                             DataConvertShim* pDataConv);
-    
-    HX_RESULT RegisterSource(IHXPSourceControl* pSourceCtrl,
+    HX_RESULT RegisterSource(IUnknown* pSourceCtrl,
                              REF(IHXPacketFlowControl*) pSessionControl,
                              IHXSessionStats* pSessionStats,
                              UINT16 unStreamCount,
@@ -73,8 +64,19 @@ public:
                              BOOL bIsLive,
                              BOOL bIsMulticast,
                              DataConvertShim* pDataConv,
-                             Player* pPlayerCtrl,
-                             const char* szPlayerSessionId);
+                             BOOL bIsFCS = FALSE);
+    
+    HX_RESULT RegisterSource(IUnknown* pSourceCtrl,
+                             REF(IHXPacketFlowControl*) pSessionControl,
+                             IHXSessionStats* pSessionStats,
+                             UINT16 unStreamCount,
+                             BOOL bUseMDP,
+                             BOOL bIsLive,
+                             BOOL bIsMulticast,
+                             DataConvertShim* pDataConv,
+                             Client* pClient,
+                             const char* szPlayerSessionId,
+                             BOOL bIsFCS = FALSE);
 
 private:
     PPM* m_pPPM;

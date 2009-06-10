@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxtick.h,v 1.9 2004/07/15 23:21:34 ping Exp $
+ * Source last modified: $Id: hxtick.h,v 1.11 2008/01/18 07:35:20 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -93,7 +93,7 @@ UINT32 GetTickCountInUSec(void);
 }
 # endif /* __cplusplus */ /* SYMBIAN */
 
-#elif defined(_OPENWAVE)
+#elif defined(_OPENWAVE) || defined(_BREW)
 # ifdef __cplusplus
 extern "C"
 {

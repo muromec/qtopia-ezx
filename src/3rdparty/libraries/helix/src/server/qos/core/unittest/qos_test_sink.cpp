@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_test_sink.cpp,v 1.3 2003/04/08 19:26:47 damonlan Exp $ 
+ * Source last modified: $Id: qos_test_sink.cpp,v 1.4 2007/10/11 06:38:37 yphadke Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -47,25 +47,25 @@
 
 #include "qos_signal.h"
 #include "qos_sig_bus_ctl.h"
-#include "qos_sig_bus.h"
+//#include "qos_sig_bus.h"
 #include "qos_test_sink.h"
 #include "qos_test_engine.h"
 
 QoSTestSink::QoSTestSink(IHXQoSSignalSource* pSrc, IHXBuffer* pId) :
-    m_pSource(pSrc),
+    //m_pSource(pSrc),
     m_pSessionId(pId),
     m_pSignal(NULL),
     m_lRefCount(0),
     m_ulFilter(0)
 {
-    HX_ASSERT(m_pSource);
-    HX_ASSERT(m_pSessionId);
+    //HX_ASSERT(m_pSource);
+    //HX_ASSERT(m_pSessionId);
 
-    m_pSource->AddRef();
-    m_pSessionId->AddRef();
+    //m_pSource->AddRef();
+    //m_pSessionId->AddRef();
 
-    m_pSignal = (IHXQoSSignal*)(new QoSSignal());
-    m_pSignal->AddRef();
+    //m_pSignal = (IHXQoSSignal*)(new QoSSignal());
+    //m_pSignal->AddRef();
 
     srand((unsigned)this);
     UINT32 ulLayer = (rand() % HX_QOS_SIGNAL_LAYER_COUNT);
@@ -74,12 +74,12 @@ QoSTestSink::QoSTestSink(IHXQoSSignalSource* pSrc, IHXBuffer* pId) :
     m_ulFilter = MAKE_HX_QOS_SIGNAL_ID( (1 << ulLayer), 
 					(1 << ulRel), 0);
 
-    HX_ASSERT(SUCCEEDED(m_pSource->Attach(m_pSessionId, m_ulFilter, (IHXQoSSignalSink*)this)));
+    //HX_ASSERT(SUCCEEDED(m_pSource->Attach(m_pSessionId, m_ulFilter, (IHXQoSSignalSink*)this)));
 }
 
 QoSTestSink::~QoSTestSink()
 {
-    HX_RELEASE(m_pSource);
+    //HX_RELEASE(m_pSource);
     HX_RELEASE(m_pSignal);
     HX_RELEASE(m_pSessionId);
 }
@@ -100,7 +100,7 @@ QoSTestSink::TestSignal(IHXQoSSignalBus* pBus)
 HX_RESULT
 QoSTestSink::Close()
 {
-    HX_ASSERT(SUCCEEDED(m_pSource->Dettach(m_pSessionId, m_ulFilter, (IHXQoSSignalSink*)this)));
+    //HX_ASSERT(SUCCEEDED(m_pSource->Dettach(m_pSessionId, m_ulFilter, (IHXQoSSignalSink*)this)));
     return HXR_OK;
 }
 
@@ -154,12 +154,12 @@ QoSTestSink::Signal(IHXQoSSignal* pSignal, IHXBuffer* pSessionId)
 STDMETHODIMP 
 QoSTestSink::ChannelClosed (IHXBuffer* pSessionId)
 {
-    HX_ASSERT(pSessionId);
-    HX_ASSERT(m_pSource);
+    //HX_ASSERT(pSessionId);
+    //HX_ASSERT(m_pSource);
 
-    HX_ASSERT((memcmp((const void*)pSessionId->GetBuffer(), 
-		      (const void*)m_pSessionId->GetBuffer(),
-		      pSessionId->GetSize()) == 0));
+    //HX_ASSERT((memcmp((const void*)pSessionId->GetBuffer(), 
+		  //    (const void*)m_pSessionId->GetBuffer(),
+		  //    pSessionId->GetSize()) == 0));
 
     return HXR_OK;
 }

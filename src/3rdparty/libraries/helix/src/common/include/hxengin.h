@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxengin.h,v 1.33 2006/09/13 00:24:33 milko Exp $
+ * Source last modified: $Id: hxengin.h,v 1.40 2009/05/05 16:26:33 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -62,12 +62,10 @@ typedef _INTERFACE	IHXBuffer			IHXBuffer;
 typedef _INTERFACE	IHXCallback			IHXCallback;
 typedef _INTERFACE	IHXScheduler			IHXScheduler;
 typedef _INTERFACE	IHXTCPResponse			IHXTCPResponse;
-typedef _INTERFACE	IHXLBoundTCPSocket		IHXLBoundTCPSocket;
 typedef _INTERFACE	IHXTCPSocket			IHXTCPSocket;
 typedef _INTERFACE	IHXListenResponse		IHXListenResponse;
 typedef _INTERFACE	IHXListenSocket		        IHXListenSocket;
 typedef _INTERFACE	IHXNetworkServices		IHXNetworkServices;
-typedef _INTERFACE	IHXNetworkServices2		IHXNetworkServices2;
 typedef _INTERFACE	IHXUDPResponse		    	IHXUDPResponse;
 typedef _INTERFACE	IHXUDPSocket			IHXUDPSocket;
 typedef _INTERFACE	IHXResolver			IHXResolver;
@@ -123,6 +121,9 @@ typedef void (*TIMERPROC)( void* , UINT32 , UINT32, ULONG32 );
 #define PNAIO_READ 1
 #define PNAIO_WRITE 2
 #define PNAIO_EXCEPTION 4
+
+/* This UINT32 value means wait forever in an IHXEvent */
+#define HX_EVENT_WAIT_FOREVER 0xFFFFFFFF
 
 /****************************************************************************
  * 
@@ -188,10 +189,14 @@ DECLARE_INTERFACE_(IHXCallback, IUnknown)
  *  IID_IHXScheduler:
  * 
  *	{00000101-0901-11d1-8B06-00A024406D59}
+ * IID_IHXScheduler3
+ *    {1daef68a-6bbb- 498f- a608-0330d26cbafb);
  * 
  */
 DEFINE_GUID(IID_IHXScheduler, 0x00000101, 0x901, 0x11d1, 0x8b, 0x6, 0x0, 
 			0xa0, 0x24, 0x40, 0x6d, 0x59);
+DEFINE_GUID(IID_IHXScheduler3,0x1daef68a, 0x6bbb, 0x498f, 0xa6, 0x8, 0x3, 
+	        0x30, 0xd2, 0x6c, 0xba, 0xfb);
 
 #undef  INTERFACE
 #define INTERFACE   IHXScheduler
@@ -263,8 +268,8 @@ DECLARE_INTERFACE_(IHXScheduler, IUnknown)
     STDMETHOD_(HXTimeval,GetCurrentSchedulerTime)	(THIS) PURE;
 };
 
-DEFINE_GUID(IID_IHXScheduler2, 0x00000101, 0x901, 0x11d1, 0x8b, 0x6, 0x0, 
-			       0xa0, 0x24, 0x40, 0x6d, 0x5a);
+DEFINE_GUID(IID_IHXScheduler2, 0x9a26d8bf, 0xeb28, 0x4989, 0xb2, 0xbd, 0x47, 
+		               0x2a, 0xbb, 0xd7, 0x6a, 0x16);
 
 #undef  INTERFACE
 #define INTERFACE   IHXScheduler2
@@ -304,6 +309,51 @@ DECLARE_INTERFACE_(IHXScheduler2, IUnknown)
 					    ULONG32 ulTimeout) PURE;
     STDMETHOD_(ULONG32, GetThreadID)	    (THIS) PURE;
     STDMETHOD_(HXBOOL, AreImmediatesPending)(THIS) PURE;
+};
+
+DECLARE_INTERFACE_(IHXScheduler3, IUnknown)
+{
+    /*
+     *  IUnknown methods
+     */
+    STDMETHOD(QueryInterface)		(THIS_
+					REFIID riid,
+					void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)		(THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release)		(THIS) PURE;
+
+    STDMETHOD(PauseScheduler)	    (THIS_) PURE;    
+
+    STDMETHOD(ResumeScheduler)	    (THIS_) PURE;
+
+	STDMETHOD_(HXBOOL, IsPaused)      (THIS_) PURE;
+};
+
+//3aa88541-304b-4ccb-b4e0-500128237da4
+DEFINE_GUID(IID_IHXSchedulerInterruptSupport, 0x3aa88541, 0x304b, 0x4ccb, 0xb4, 0xe0, 0x50, 
+		               0x01, 0x28, 0x23, 0x7d, 0xa4);
+#undef  INTERFACE
+#define INTERFACE   IHXSchedulerInterruptSupport
+
+DECLARE_INTERFACE_(IHXSchedulerInterruptSupport, IUnknown)
+{
+    /*
+     *  IUnknown methods
+     */
+    STDMETHOD(QueryInterface)		(THIS_
+					REFIID riid,
+					void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)		(THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release)		(THIS) PURE;
+
+    /*
+     *	IHXSchedulerInterruptSupport methods
+     */
+    STDMETHOD_(HXBOOL, IsInterruptEnabled)   (THIS) PURE;
 };
 
 /****************************************************************************
@@ -820,43 +870,6 @@ DECLARE_INTERFACE_(IHXNetworkServices, IUnknown)
     STDMETHOD(CreateResolver)  	(THIS_
 			    	IHXResolver**    /*OUT*/     ppResolver) PURE;
 };
-
-
-/****************************************************************************
- * 
- *  Interface:
- * 
- *	IHXNetworkServices2
- * 
- *  Purpose:
- * 
- *	This is a factory interface for the various types of networking
- *	interfaces described above.
- * 
- *  IID_IHXNetworkServices:
- * 
- *	{17951551-5683-11d3-B6BA-00C0F031C237}
- * 
- */
-
-// {17951551-5683-11d3-B6BA-00C0F031C237}
-DEFINE_GUID(IID_IHXNetworkServices2, 0x17951551, 0x5683, 0x11d3, 0xb6, 0xba, 0x0, 0xc0, 0xf0, 0x31, 0xc2, 0x37);
-
-#undef  INTERFACE
-#define INTERFACE   IHXNetworkServices2
-
-DECLARE_INTERFACE_(IHXNetworkServices2, IHXNetworkServices)
-{
-    /************************************************************************
-     *	Method:
-     *	    IHXNetworkServices2::CreateLBoundTCPSocket
-     *	Purpose:
-     *	    Create a new local bound TCP socket.
-     */
-    STDMETHOD(CreateLBoundTCPSocket)	(THIS_
-				IHXTCPSocket**    /*OUT*/  ppTCPSocket) PURE;
-};
-
 
 
 /****************************************************************************
@@ -1539,6 +1552,7 @@ DECLARE_INTERFACE_(IHXOptimizedScheduler2, IUnknown)
 DEFINE_GUID(IID_IHXThreadSafeScheduler, 0x00000120, 0x901, 0x11d1, 0x8b, 0x6, 0x0,
                        0xa0, 0x24, 0x40, 0x6d, 0x59);
 
+
 #undef  INTERFACE
 #define INTERFACE   IHXThreadSafeScheduler
 
@@ -1849,154 +1863,12 @@ DECLARE_INTERFACE_(IHXSetSocketOption, IUnknown)
 					 UINT32 ulValue) PURE;					 
 };
 
-#define HX_THREADSAFE_METHOD_FF_GETPACKET		0x00000001
-/*
- * FileFormat::GetPacket() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     FS->Read(), FS->Close(), FS->Seek(),
- *     FFR->PacketReady(), FFR->StreamDone()
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-
-#define HX_THREADSAFE_METHOD_FS_READ			0x00000002
-/*
- * FileSystem::Read()/Seek()/Close() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     FS->Read(), FS->Close(), FS->Seek(),
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_FSR_READDONE		0x00000004
-/*
- * FileFormat::ReadDone()/SeekDone()/CloseDone() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     FS->Read(), FS->Close(), FS->Seek(),
- *     FFR->PacketReady(), FFR->StreamDone()
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_CACHE_FILE		0x00000008
-/*
- * FileSystem::Read()/Seek()/Close() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     FS->Read(), FS->Close(), FS->Seek(),
- *     IHXCacheFile->*, IHXCacheFileResponse->*,
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_CACHE_FILE_RESPONSE	0x00000010
-/*
- * FileSystem::Read()/Seek()/Close() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     FS->Read(), FS->Close(), FS->Seek(),
- *     IHXCacheFile->*, IHXCacheFileResponse->*,
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-
-/*
- * Thread Safe flags for IHXDataConvert
- */
-#define HX_THREADSAFE_METHOD_CONVERT_HEADERS		0x00000020
-/*
- * IHXDataConvert::ConvertXXX()/CtrlBufferReady() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     IHXDataConvertResponse->*
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_CONVERT_DATA		0x00000040
-/*
- * IHXDataConvert::ConvertXXX()/CtrlBufferReady() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     IHXDataConvertResponse->*
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_CONVERT_CTRL_BUFFER_READY	0x00000080
-/*
- * IHXDataConvert::ConvertXXX()/CtrlBufferReady() only calls:
- *     CCF->CI(Buffer), CCF->CI(Packet), CCF->CI(Values), *Alloc, *Free, 
- *     IHXDataConvertResponse->*
- *     Context->Scheduler->*,
- *     CCF->CI(Mutex), Mutex->*
- *     Context->ErrorMessages
- *
- * XXXSMPNOW
- */
-#define HX_THREADSAFE_METHOD_SOCKET_READDONE 		0x00000100
-
-#define HX_THREADSAFE_METHOD_ALL 			(~0)
-
-/****************************************************************************
- * 
- *  Interface:
- * 
- *	IHXThreadSafeMethods
- * 
- *  Purpose:
- * 
- *	XXXSMPNOW
- * 
+/* depricated:
  *  IID_IHXThreadSafeMethods:
  * 
  *	{00000115-0901-11d1-8B06-00A024406D59}
  * 
  */
-DEFINE_GUID(IID_IHXThreadSafeMethods, 0x00000115, 0x901, 0x11d1, 0x8b, 0x6, 0x0, 
-			0xa0, 0x24, 0x40, 0x6d, 0x59);
-
-#undef  INTERFACE
-#define INTERFACE   IHXThreadSafeMethods
-
-DECLARE_INTERFACE_(IHXThreadSafeMethods, IUnknown)
-{
-    /*
-     *	IUnknown methods
-     */
-    STDMETHOD(QueryInterface)		(THIS_
-					REFIID riid,
-					void** ppvObj) PURE;
-
-    STDMETHOD_(ULONG32,AddRef)		(THIS) PURE;
-
-    STDMETHOD_(ULONG32,Release)		(THIS) PURE;
-
-    /*
-     *	IHXThreadSafeMethods methods
-     */
-
-    /************************************************************************
-     *	Method:
-     *	    IHXThreadSafeMethods::IsThreadSafe
-     *	Purpose:
-     *	    XXXSMPNOW
-     */
-    STDMETHOD_(UINT32,IsThreadSafe)	    (THIS) PURE;
-};
-
 
 /****************************************************************************
  * 
@@ -3244,7 +3116,6 @@ DEFINE_SMART_PTR(IHXBufferedSocket)
 DEFINE_SMART_PTR(IHXListenResponse)
 DEFINE_SMART_PTR(IHXListenSocket)
 DEFINE_SMART_PTR(IHXNetworkServices)
-DEFINE_SMART_PTR(IHXNetworkServices2)
 DEFINE_SMART_PTR(IHXUDPResponse)
 DEFINE_SMART_PTR(IHXUDPSocket)
 DEFINE_SMART_PTR(IHXResolver)
@@ -3261,7 +3132,6 @@ DEFINE_SMART_PTR(IHXProcess)
 DEFINE_SMART_PTR(IHXLoadBalancedListen)
 DEFINE_SMART_PTR(IHXOverrideDefaultServices)
 DEFINE_SMART_PTR(IHXSetSocketOption)
-DEFINE_SMART_PTR(IHXThreadSafeMethods)
 DEFINE_SMART_PTR(IHXMutex)
 DEFINE_SMART_PTR(IHXFastPathNetWrite)
 DEFINE_SMART_PTR(IHXWouldBlockResponse)

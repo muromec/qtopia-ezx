@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: debug.cpp,v 1.4 2005/07/20 21:37:03 dcollins Exp $
+ * Source last modified: $Id: debug.cpp,v 1.6 2008/01/18 04:12:09 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -157,7 +157,7 @@ vdprintf(int print_line_header, int err, const char* fmt, va_list args)
         if (len < 0) len = 0;
 	vsprintf(&buf[len], fmt, args);
 
-#elif defined(_WINDOWS) && (!defined(WIN32) || defined(WIN32_PLATFORM_PSPC))
+#elif defined(_WINDOWS) && (!defined(WIN32) || defined(WIN32_PLATFORM_PSPC)) || defined(_BREW)
 // for the win 16 implementation we just skip line headers to avoid linking
 // in a library that messes up the client core for win 16.
 	vsprintf(buf, fmt, args);

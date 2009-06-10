@@ -43,6 +43,7 @@
 
 #include "hlxclib/string.h"		/* for memmove, memcpy (can replace with different implementations if desired) */
 #include "mp3common.h"	/* includes mp3dec.h (public API) and internal, platform-independent API */
+#include "hxthreadyield.h"
 
 /**************************************************************************************
  * Function:    MP3InitDecoder
@@ -282,7 +283,8 @@ int MP3Decode(HMP3Decoder hMP3Decoder, unsigned char **inbuf, int *bytesLeft, sh
 	int prevBitOffset, sfBlockBits, huffBlockBits;
 	unsigned char *mainPtr;
 	MP3DecInfo *mp3DecInfo = (MP3DecInfo *)hMP3Decoder;
-
+	ULONG32 ulTime;
+	StartYield(&ulTime); 
 	if (!mp3DecInfo)
 		return ERR_MP3_NULL_POINTER;
 
@@ -393,6 +395,7 @@ int MP3Decode(HMP3Decoder hMP3Decoder, unsigned char **inbuf, int *bytesLeft, sh
 			mainPtr += offset;
 			mainBits -= (8*offset - prevBitOffset + bitOffset);
 		}
+		YieldIfRequired(&ulTime);
 		/* dequantize coefficients, decode stereo, reorder short blocks */
 		if (Dequantize(mp3DecInfo, gr) < 0) {
 			MP3ClearBadFrame(mp3DecInfo, outbuf);

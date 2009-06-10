@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: aacdecdll.cpp,v 1.5 2005/09/27 20:30:02 jrecker Exp $ 
+ * Source last modified: $Id: aacdecdll.cpp,v 1.6 2009/01/29 05:39:34 vkathuria Exp $ 
  *   
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -282,9 +282,9 @@ STDMETHODIMP CAACDec::Reset()
 STDMETHODIMP CAACDec::Conceal(UINT32 nSamples)
 {
 #ifdef AAC_ENABLE_SBR
-    m_ulSamplesToConceal = (nSamples + 2*AAC_MAX_NSAMPS - 1) / (2*AAC_MAX_NSAMPS);
+    m_ulSamplesToConceal = ((nSamples + 2*AAC_MAX_NSAMPS - 1) / (2*AAC_MAX_NSAMPS)) * (2*AAC_MAX_NSAMPS);
 #else
-    m_ulSamplesToConceal = (nSamples + AAC_MAX_NSAMPS - 1) / AAC_MAX_NSAMPS;
+    m_ulSamplesToConceal = ((nSamples + AAC_MAX_NSAMPS - 1) / AAC_MAX_NSAMPS) * AAC_MAX_NSAMPS;
 #endif
 
     return HXR_OK;

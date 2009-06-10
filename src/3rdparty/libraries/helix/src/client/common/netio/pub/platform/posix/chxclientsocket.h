@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxclientsocket.h,v 1.8 2005/03/14 20:28:53 bobclark Exp $
+ * Source last modified: $Id: chxclientsocket.h,v 1.9 2008/08/27 10:36:40 lovish Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -57,7 +57,7 @@ public:
     ~CHXClientSocket();
 
     // HXSocketSelector::EventHandler
-    void OnSelectEvent(sockobj_t fd, UINT32 event, HX_RESULT err);
+    HX_RESULT OnSelectEvent(sockobj_t fd, UINT32 event, HX_RESULT err);
 
     // IHXSocket
     STDMETHOD(Init)  (THIS_ HXSockFamily f, HXSockType t, HXSockProtocol p);

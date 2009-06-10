@@ -39,10 +39,7 @@
 
 #include "source.h"
 
-#include "proc.h"
 #include "hxassert.h"
-
-#define DEBUG_FLAG 0x02100000
 
     
 CPhysicalStream::CPhysicalStream(UINT32 ulBandwidth):
@@ -105,8 +102,6 @@ CRateDescription::CRateDescription(UINT32 ulBandwidth)
     , m_aulBandwidthAllocation(NULL)
     , m_bIsThinningStream(FALSE)
 {
-    DPRINTF(DEBUG_FLAG, ("CRateDescription::~CRateDescription()\n"));
-
     memset(m_abExcludeFromSwitching, 0, sizeof(BOOL)*HX_SWI_NUM_REASONS);
     memset(m_abExcludeFromSelection, 0, sizeof(BOOL)*HX_SEL_NUM_REASONS);
 }

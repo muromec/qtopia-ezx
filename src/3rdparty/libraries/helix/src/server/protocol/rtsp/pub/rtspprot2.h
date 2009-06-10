@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspprot2.h,v 1.9 2006/12/21 19:05:06 tknox Exp $
+ * Source last modified: $Id: rtspprot2.h,v 1.10 2007/08/18 00:21:16 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -45,8 +45,7 @@ _INTERFACE IHXTransport;
 
 class CRTSPProtocol : public IHXRTSPProtocol2,
                       public IHXResolveResponse,
-                      public IHXSocketResponse,
-                      public IHXThreadSafeMethods
+                      public IHXSocketResponse
 {
 public:
     CRTSPProtocol( IHXFastAlloc* pFastAlloc );
@@ -81,9 +80,6 @@ public:
     STDMETHOD(ReadDone)             (THIS_ HX_RESULT status, IHXBuffer* pbuf);
     STDMETHOD(WriteReady)           (THIS_ HX_RESULT status);
     STDMETHOD(Closed)               (THIS_ HX_RESULT status);
-
-    // IHXThreadSafeMethods
-    STDMETHOD_(UINT32,IsThreadSafe) (THIS);
 
 private:
     struct request_tag

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dbcs.h,v 1.10 2005/03/14 19:36:40 bobclark Exp $
+ * Source last modified: $Id: dbcs.h,v 1.12 2008/03/25 19:46:19 praveenkumar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -97,6 +97,12 @@ HXFindChar(const char* pStart, char CharToFind)
     return (char*)strchr(pStart, CharToFind);
 }
 
+inline const char*
+HXFindCharN(const char* pStart, char CharToFind, size_t maxlen)
+{
+    return (const char*)memchr(pStart, CharToFind, maxlen);
+}
+
 inline char*
 HXReverseFindChar(const char* pStart, char CharToFind)
 {
@@ -153,6 +159,7 @@ char*  HXGetNextChar(const char* pChar);
 char*  HXGetPrevChar(const char* pStart, const char* pChar);
 HXBOOL   HXIsEqual(const char* pChar, char CharToCompare);
 char*  HXFindChar(const char* pStart, char CharToFind);
+const char* HXFindCharN(const char* pStart, char CharToFind, size_t maxlen);
 char*  HXReverseFindChar(const char* pStart, char CharToFind);
 char*  HXFindString(const char* pStart, const char* pString);
 int    HXCompareStrings(const char* pString1, const char* pString2, size_t count);

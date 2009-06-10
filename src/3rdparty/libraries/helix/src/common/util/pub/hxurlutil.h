@@ -70,10 +70,12 @@ struct HXURLUtil
 
     static ProtocolInfo GetProtocolInfo(const char* pszScheme);
 
-    static HX_RESULT GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValues*& pVal /* out*/);
+    static HX_RESULT GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValues*& pVal /* out*/,
+                                HXBOOL bAllBufferProperties = FALSE);
     static HX_RESULT ParseOptions(const char* pszEscapedQuery, 
                          IHXCommonClassFactory* pFactory,
-                         IHXValues*& pVal /*out*/);
+                         IHXValues*& pVal /*out*/,
+                         HXBOOL bAllBufferProperties = FALSE);
     static void DoDollarFixup(CHXString& url);
     static void DoFileURLFixup(HXURLRep& url);
 };

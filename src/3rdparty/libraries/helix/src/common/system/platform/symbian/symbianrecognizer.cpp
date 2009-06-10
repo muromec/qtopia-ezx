@@ -38,9 +38,17 @@ static HXBOOL Is3GPPHeader(const TDesC& fileName,
     _LIT8(K3GPRel6 , "ftyp3gp6" );  // Release 6
     _LIT8(K3GPProg , "ftyp3gr6" );  // Progressive Download.
     _LIT8(K3GPStrm , "ftyp3gs6" );  // streaming
+    _LIT8(K3GPRel4 , "ftyp3gp4" );  // Release 4
+    _LIT8(K3GPRel5 , "ftyp3gp5" );  // Release 5
     _LIT8(KMP4Type , "ftypmp4"  );  // mp4 format
     _LIT8(KM4AType , "ftypM4A"  );  // mp4 audio
+    _LIT8(KM4VType , "ftypM4V"  );  // mp4 video
     _LIT8(K3G2Type , "ftyp3g2"  );  // 3g2 format
+    _LIT8(KMmp4Type ,"ftypmmp4" );  // mp4 format
+    _LIT8(KIsomType ,"ftypisom" );  // isom format
+    _LIT8(KMp42Type ,"ftypmp42" );  // mp42 format
+    _LIT8(KMSNVType ,"ftypMSNV" );  // mp4 MSNV format
+    _LIT8(KAvc1Type ,"ftypavc1" );  // avc1 format
 
     // mime types can be returned
     _LIT8(K3GPPVideo    ,  "video/3gpp"   );  
@@ -66,11 +74,16 @@ static HXBOOL Is3GPPHeader(const TDesC& fileName,
         || buffer.FindF(K3GPRel6) != KErrNotFound
         || buffer.FindF(K3GPProg) != KErrNotFound
         || buffer.FindF(K3GPStrm) != KErrNotFound
+        || buffer.FindF(K3GPRel4) != KErrNotFound
+        || buffer.FindF(K3GPRel5) != KErrNotFound		
        )
     {
         type = TDataType(K3GPPVideo);
     }
-    else if(buffer.FindF(KMP4Type) != KErrNotFound)
+    else if(buffer.FindF(KMP4Type) != KErrNotFound || buffer.FindF(KMmp4Type) != KErrNotFound
+    				|| buffer.FindF(KIsomType) != KErrNotFound || buffer.FindF(KMp42Type) != KErrNotFound || buffer.FindF(KM4VType) != KErrNotFound
+                    || buffer.FindF(KMSNVType) != KErrNotFound
+                    || buffer.FindF(KAvc1Type) != KErrNotFound)
     {
         type = TDataType(KMP4Video);
     }
@@ -119,6 +132,103 @@ static HXBOOL IsRealMediaHeader(const TDesC& fileName,
     return bRet;
 }
 
+static HXBOOL IsASFHeader(const TDesC& fileName,
+                          const TDesC8& fileBuf,
+                          TDataType &type)
+{
+    // known GUID header for ASF file.
+
+   _LIT8(KASF_HEADER_GUID, 
+        "\x30\x26\xB2\x75\x8E\x66\xCF\x11\xA6\xD9\x00\xAA\x00\x62\xCE\x6C");
+
+    // mime type to be returned.
+    _LIT8(KASFMimeType , "application/vnd.ms-asf" );
+
+    if (fileBuf.Length() < 16)
+    {
+        return FALSE;
+    }
+
+    
+    HXBOOL bRet = TRUE;
+    
+    TPtrC8 buffer = fileBuf.Mid(0, 16);
+    if (buffer.Compare(KASF_HEADER_GUID) == 0) 
+    {
+        type = TDataType(KASFMimeType);
+    }
+    else
+    {
+        bRet = FALSE;
+    }
+    return bRet;
+}
+
+#ifdef HELIX_FEATURE_NGT
+static HXBOOL IsNGTHeader(const TDesC& fileName,
+                               const TDesC8& fileBuf,
+                               TDataType &type)
+{
+    //  known header.
+    _LIT8(KNGType , "NUGT" );  
+
+    // mime types can be returned.
+    _LIT8(KNGTMedia , "application/x-hx-nugt" );
+
+    if (fileBuf.Length() < 4)
+    {
+        return FALSE;
+    }
+
+    HXBOOL bRet = TRUE;
+    
+    TPtrC8 buffer = fileBuf.Mid(0, 4);
+    if (fileBuf.FindF(KNGType) != KErrNotFound) 
+    {
+        type = TDataType(KNGTMedia);
+    }
+    else
+    {
+        bRet = FALSE;
+    }
+    return bRet;
+}
+#endif
+
+static HXBOOL IsAVIHeader(const TDesC& fileName,
+                               const TDesC8& fileBuf,
+                               TDataType &type)
+{
+    //  known header for AVI file.  
+    //  we are looking for "RIFF????AVI" pattern
+    _LIT8(KRIFFType , "RIFF" );  
+    _LIT8(KAVIType , "AVI" );
+
+    // mime types can be returned.
+    _LIT8(KAVIFile , "application/x-pn-avi-plugin" );
+
+    if (fileBuf.Length() < 11)
+    {
+        return FALSE;
+    }
+
+    HXBOOL bRet = TRUE;
+    
+    TPtrC8 riffBuffer = fileBuf.Mid(0, 4);
+    TPtrC8 aviBuffer = fileBuf.Mid(8, 3);
+    
+    if ((riffBuffer.FindF(KRIFFType) != KErrNotFound) &&
+        (aviBuffer.FindF(KAVIType) != KErrNotFound))
+    {  
+        type = TDataType(KAVIFile);
+    }
+    else
+    {
+        bRet = FALSE;
+    }
+    return bRet;
+}
+
 static TInt DoGetMimeType(const TDesC& fileName, 
                           const TDesC8& fileBuf,
                           TDataType &type,
@@ -130,7 +240,21 @@ static TInt DoGetMimeType(const TDesC& fileName,
     {
         return ret;
     }
+#ifdef HELIX_FEATURE_NGT	
+    else if(IsNGTHeader(fileName, fileBuf, type))
+    {
+        return ret;
+    }
+#endif	
     else if (IsRealMediaHeader(fileName, fileBuf, type))
+    {
+        return ret;
+    }
+    else if (IsASFHeader(fileName, fileBuf, type))
+    {
+        return ret;
+    }
+    else if (IsAVIHeader(fileName, fileBuf, type))
     {
         return ret;
     }

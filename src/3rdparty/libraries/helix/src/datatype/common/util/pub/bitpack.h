@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bitpack.h,v 1.3 2004/07/09 18:30:56 hubbe Exp $
+ * Source last modified: $Id: bitpack.h,v 1.5 2008/11/11 15:16:00 alokjain Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,14 +51,14 @@
 #define BITPACK_H
 
 #include "hxtypes.h"
-
+#include "hxresult.h"
 class BitPacker
 {
 public:
     BitPacker(UINT8* pBuf, ULONG32 ulBufSize);
 
     void PackBits(UINT32 bits, ULONG32 bitCount);
-    void PackBits(const UINT8* pBuf, ULONG32 bitCount, 
+    HX_RESULT PackBits(const UINT8* pBuf, ULONG32 bitCount, 
 		  ULONG32 ulStartOffset);
     UINT32 ByteAlign();
 

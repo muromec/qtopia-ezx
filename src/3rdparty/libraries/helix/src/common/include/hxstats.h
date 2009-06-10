@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstats.h,v 1.19 2006/12/04 18:05:31 gwright Exp $
+ * Source last modified: $Id: hxstats.h,v 1.35 2009/03/06 21:10:51 svaidhya Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -60,6 +60,7 @@
 
 #include <limits.h>
 
+#define MAX_CLIENT_STATS_ID 32767
 
 ///////////////////////////////////////////////////////////////////////////////
 // ClientStatsEvent
@@ -72,7 +73,8 @@ typedef enum
     CSEVENT_CLIENT_DISCONNECT,
     CSEVENT_SESSION_DONE,
     CSEVENT_TIMER,
-    CSEVENT_SESSION_SETURL
+    CSEVENT_SESSION_SETURL,
+    CSEVENT_CLIP_DONE
 } ClientStatsEvent;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -85,11 +87,159 @@ _INTERFACE      IHXQoSSessionAdaptationInfo;
 _INTERFACE      IHXQoSApplicationAdaptationInfo;
 _INTERFACE      IHXClientProfileInfo;
 
+_INTERFACE      IHXClipStats;
 _INTERFACE      IHXClientStats;
 _INTERFACE      IHXSessionStats;
 _INTERFACE      IHXClientStatsSink;
+_INTERFACE      IHXClientStatsSink2;
 _INTERFACE      IHXClientStatsManager;
 
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface: 
+//
+//      IHXClipStats
+//
+// Purpose:
+//
+//      Allows access to clip statistics. 
+//
+// IID_IHXClipStats:
+//
+//      {2772B170-3DD4-43f9-9EC6-89A50B338389}
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// {2772B170-3DD4-43f9-9EC6-89A50B338389}
+DEFINE_GUID(IID_IHXClipStats, 0x2772b170, 0x3dd4, 0x43f9, 0x9e, 
+            0xc6, 0x89, 0xa5, 0xb, 0x33, 0x83, 0x89);
+
+#define CLSID_IHXClipStats     IID_IHXClipStats
+
+#undef  INTERFACE
+#define INTERFACE   IHXClipStats
+
+DECLARE_INTERFACE_(IHXClipStats, IUnknown)
+{
+
+    // IUnknown methods
+
+    STDMETHOD(QueryInterface)               (THIS_
+                                            REFIID riid,
+                                            void** ppvObj) PURE;
+
+    STDMETHOD_(UINT32,AddRef)               (THIS) PURE;
+
+    STDMETHOD_(UINT32,Release)              (THIS) PURE;
+    
+    // IHXClipStats methods
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Statistics accessor/mutator methods.
+    //
+    // Purpose:
+    //      All used to either acquire a property value or set it.
+    //
+    // Arguments:
+    //      Mutators take an IN parameter, the new value to set the property
+    //      to. Accessors take nothing.
+    ///////////////////////////////////////////////////////////////////////////
+
+    STDMETHOD_(IHXSessionStats*, GetSession) (THIS) PURE;
+    STDMETHOD(SetSession)                   (THIS_ IHXSessionStats* pSession) PURE;
+
+    STDMETHOD_(UINT32, GetStatus)           (THIS) PURE;
+    STDMETHOD(SetStatus)                    (THIS_ UINT32 ulHTTPStatus) PURE;
+
+    STDMETHOD_(IHXBuffer*, GetURL)          (THIS) PURE;
+    STDMETHOD(SetURL)                       (THIS_ IHXBuffer* pURL) PURE;
+
+    STDMETHOD_(IHXBuffer*, GetLogURL)       (THIS) PURE;
+    STDMETHOD(SetLogURL)                    (THIS_ IHXBuffer* pLogURL) PURE;
+
+    STDMETHOD_(IHXBuffer*, GetPlayerRequestedURL)   (THIS) PURE;
+    STDMETHOD(SetPlayerRequestedURL)                (THIS_ IHXBuffer* pPlayerRequestedURL) PURE;
+
+    STDMETHOD_(UINT64, GetBytesSent)        (THIS) PURE;
+    STDMETHOD(SetBytesSent)                 (THIS_ UINT64 ulBytesSent) PURE;
+
+    STDMETHOD_(UINT32, GetSuccessfulResends)(THIS) PURE;
+    STDMETHOD(SetSuccessfulResends)         (THIS_ UINT32 ulSuccessfulResends) PURE;
+
+    STDMETHOD_(UINT32, GetFailedResends)    (THIS) PURE;
+    STDMETHOD(SetFailedResends)             (THIS_ UINT32 ulFailedResends) PURE;
+
+    STDMETHOD_(UINT32, GetPacketsSent)      (THIS) PURE;
+    STDMETHOD(SetPacketsSent)               (THIS_ UINT32 ulPacketsSent) PURE;
+
+    STDMETHOD_(UINT32, GetPacketLoss)       (THIS) PURE;
+    STDMETHOD(SetPacketLoss)                (THIS_ UINT32 ulPacketLoss) PURE;
+
+    STDMETHOD_(UINT64, GetFileSize)         (THIS) PURE;
+    STDMETHOD(SetFileSize)                  (THIS_ UINT64 ulFileSize) PURE;
+
+    STDMETHOD_(IHXBuffer*, GetStartTime)    (THIS) PURE;
+    STDMETHOD(SetStartTime)                 (THIS_ IHXBuffer* pStartTime) PURE;
+
+    STDMETHOD_(UINT32, GetNPTStartTime)     (THIS) PURE;
+    STDMETHOD(SetNPTStartTime)              (THIS_ UINT32 ulStartTime) PURE;
+
+    STDMETHOD_(UINT32, GetNPTEndTime)       (THIS) PURE;
+    STDMETHOD(SetNPTEndTime)                (THIS_ UINT32 ulEndTime) PURE;
+
+    STDMETHOD_(UINT32, GetDuration)         (THIS) PURE;
+    STDMETHOD(SetDuration)                  (THIS_ UINT32 ulDuration) PURE;
+
+    STDMETHOD_(UINT32, GetSendingTime)      (THIS) PURE;
+    STDMETHOD(SetSendingTime)               (THIS_ UINT32 ulSendingTime) PURE;
+
+    STDMETHOD_(UINT32, GetPlayTime)         (THIS) PURE;
+    STDMETHOD(SetPlayTime)                  (THIS_ UINT32 ulPlayTime) PURE;
+
+    STDMETHOD_(UINT32, GetAvgBitrate)       (THIS) PURE;
+    STDMETHOD(SetAvgBitrate)                (THIS_ UINT32 ulAvgBitrate) PURE;
+
+    STDMETHOD_(UINT32, GetSwitchCount)          (THIS) PURE;
+    STDMETHOD(SetSwitchCount)                   (THIS_ UINT32 ulSwitchCount) PURE;
+    
+    STDMETHOD_(HXBOOL, GetEndFlag)          (THIS) PURE;
+    STDMETHOD(SetEndFlag)                   (THIS_ HXBOOL bEndFlag) PURE;
+
+    STDMETHOD_(UINT32, GetEstPlayerBufferUnderruns) (THIS) PURE;
+    STDMETHOD(SetEstPlayerBufferUnderruns)          (THIS_
+                                                     UINT32 ulEstPlayerBufferUnderruns) PURE;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface:
+//
+//      IHXClipStats2
+//
+// Purpose:
+//      New interface for storing OriginPlaylist. Inherits
+//      IHXClipStats interface.
+//      
+//
+// IID_IHXClipStats2:
+//
+//      8813473D-EB0B-42A4-99A7-F07843A96686
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// {8813473D-EB0B-42A4-99A7-F07843A96686}
+DEFINE_GUID(IID_IHXClipStats2, 0x8813473d, 0xeb0b, 0x42a4, 0x99,
+            0xa7, 0xf0, 0x78, 0x43, 0xa9, 0x66, 0x86);
+
+#define CLSID_IHXClipStats2     IID_IHXClipStats2
+
+#undef  INTERFACE
+#define INTERFACE   IHXClipStats2
+
+DECLARE_INTERFACE_(IHXClipStats2, IHXClipStats)
+{
+    STDMETHOD_(IHXBuffer*, GetOriginPlaylist)          (THIS) PURE;
+    STDMETHOD(SetOriginPlaylist)                       (THIS_ IHXBuffer* pOriginPlaylist) PURE;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Interface: 
@@ -162,7 +312,7 @@ typedef enum
     // indeterminate errors
     SSES_UNKNOWN_ERROR=0xC0000000,
 
-    SSES_NOT_ENDED=0xffffffff	// session still active, no end status yet
+    SSES_NOT_ENDED=0xffffffff   // session still active, no end status yet
 } SessionStatsEndStatus;
 
 DECLARE_INTERFACE_(IHXSessionStats, IUnknown)
@@ -241,8 +391,6 @@ DECLARE_INTERFACE_(IHXSessionStats, IUnknown)
     STDMETHOD(SetInterfaceAddr)                 (THIS_
                                                 IHXBuffer* pInterfaceAddr) PURE;
 
-
-
     STDMETHOD_(UINT64, GetFileSize)         (THIS) PURE;
     STDMETHOD(SetFileSize)                  (THIS_
                                             UINT64 ulFileSize) PURE;
@@ -274,6 +422,11 @@ DECLARE_INTERFACE_(IHXSessionStats, IUnknown)
     STDMETHOD_(HXBOOL, IsUDP)                 (THIS) PURE;
     STDMETHOD(SetUDP)                       (THIS_
                                              HXBOOL bIsUDP) PURE;
+
+    
+    STDMETHOD_(HXBOOL, IsUseMDP)                  (THIS) PURE;
+    STDMETHOD(SetUseMDP)                        (THIS_
+                                                 HXBOOL bUseMDP) PURE;
 
     STDMETHOD_(HXBOOL, IsRVStreamFound)                 (THIS) PURE;
     STDMETHOD(SetRVStreamFound)                       (THIS_
@@ -381,6 +534,77 @@ DECLARE_INTERFACE_(IHXSessionStats2, IHXSessionStats)
 
     STDMETHOD(DumpStartupInfo)               (THIS) PURE;
 };
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface: 
+//
+//      IHXSessionStats3
+//
+// Purpose:
+//      New interface adds switching statistics and get/set method
+//      for ClipStats object
+//
+// IID_IHXSessionStats3:
+//
+//      {82249CC6-F020-44cb-B280-334E6274299C}
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// {82249CC6-F020-44cb-B280-334E6274299C}
+DEFINE_GUID(IID_IHXSessionStats3, 0x82249cc6, 0xf020, 0x44cb, 0xb2, 
+            0x80, 0x33, 0x4e, 0x62, 0x74, 0x29, 0x9c);
+
+#define CLSID_IHXSessionStats3     IID_IHXSessionStats3
+
+#undef  INTERFACE
+#define INTERFACE   IHXSessionStats3
+
+DECLARE_INTERFACE_(IHXSessionStats3, IHXSessionStats2)
+{
+    // IHXSessionStats3 methods
+    
+    STDMETHOD_(IHXClipStats*, GetClip)          (THIS) PURE;
+    STDMETHOD(SetClip)                          (THIS_ IHXClipStats* pClip) PURE;
+
+    STDMETHOD_(IHXBuffer*, GetSessionControlId) (THIS) PURE;
+    STDMETHOD(SetSessionControlId)              (THIS_ IHXBuffer* pSessionControlId) PURE;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface:
+//
+//      IHXSessionStats4
+//
+// Purpose:
+//      New interface which adds SwitchCount and ClipCount as Session Properties
+//
+// IID_IHXSessionStats4:
+//
+//      {E1B63CD1-7FA6-4370-A068-3B8423217C59}  
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// {E1B63CD1-7FA6-4370-A068-3B8423217C59}
+DEFINE_GUID(IID_IHXSessionStats4, 0xe1b63cd1, 0x7fa6, 0x4370, 0xa0,
+            0x68, 0x3b, 0x84, 0x23, 0x21, 0x7c, 0x59);
+
+#define CLSID_IHXSessionStats4     IID_IHXSessionStats4
+
+#undef  INTERFACE
+#define INTERFACE   IHXSessionStats4
+
+DECLARE_INTERFACE_(IHXSessionStats4, IHXSessionStats3)
+{
+  // IHXSessionStats4 methods
+
+  STDMETHOD_(UINT32, GetSwitchCount)          (THIS) PURE;
+  STDMETHOD(SetSwitchCount)                   (THIS_ UINT32 ulSwitchCount) PURE;
+
+  STDMETHOD_(UINT32, GetClipCount)          (THIS) PURE;
+  STDMETHOD(SetClipCount)                   (THIS_ UINT32 ulClipCount) PURE;
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Interface: 
@@ -747,8 +971,8 @@ DECLARE_INTERFACE_(IHXClientStatsSink, IUnknown)
     //      Notify sinks of a Client/Session stats event
     // Arguments:
     //      nEvent      the id of the triggering event 
-    //      pClient     IHXStats object 
-    //      pSession    IHX stats object (== NULL for client connect/disconnect, 
+    //      pClient     IHXClientStats object 
+    //      pSession    IHXSessiontats object (== NULL for client connect/disconnect, 
     //                  and timer events)
     ///////////////////////////////////////////////////////////////////////////
 
@@ -769,6 +993,54 @@ DECLARE_INTERFACE_(IHXClientStatsSink, IUnknown)
 
     STDMETHOD_(UINT32, GetStatsTimerInterval)    (THIS) PURE;
 
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Interface: 
+//
+//      IHXClientStatsSink2
+//
+// Purpose:
+//      Adds ability to pass along ClipStats information.
+//
+// IID_IHXClientStatsSink2:
+//
+//      {1D4518E8-A1FB-4f97-B3F4-09EF6DF42B40}
+//
+///////////////////////////////////////////////////////////////////////////////
+
+// {1D4518E8-A1FB-4f97-B3F4-09EF6DF42B40}
+DEFINE_GUID(IID_IHXClientStatsSink2, 0x1d4518e8, 0xa1fb, 0x4f97, 0xb3, 
+            0xf4, 0x9, 0xef, 0x6d, 0xf4, 0x2b, 0x40);
+
+#define CLSID_IHXClientStatsSink2     IID_IHXClientStatsSink2
+
+#undef  INTERFACE
+#define INTERFACE   IHXClientStatsSink2
+
+DECLARE_INTERFACE_(IHXClientStatsSink2, IHXClientStatsSink)
+{
+    // IHXClientStatsSink2 methods
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Method: 
+    //      IHXClientStatsSink::OnStatsEvent()
+    // Purpose:
+    //      Notify sinks of a Client/Session stats event
+    // Arguments:
+    //      nEvent      the id of the triggering event 
+    //      pClient     IHXClientStats object 
+    //      pSession    IHXSessiontats object (== NULL for client connect/disconnect, 
+    //                  and timer events)
+    //      pClip       IHXClipStats object
+    ///////////////////////////////////////////////////////////////////////////
+
+    STDMETHOD(OnStatsEvent)             (THIS_
+                                        ClientStatsEvent nEvent,
+                                        IHXClientStats* pClient,
+                                        IHXSessionStats* pSession,
+                                        IHXClipStats* pClip) PURE;
 };
 
 
@@ -914,6 +1186,7 @@ DECLARE_INTERFACE_(IHXClientStatsManager, IUnknown)
     // Arguments:
     //      ulClientId - IN - Conn id of client. 
     //      pClient    - IN - Pointer to clientstats object to add.
+    //      pSession   - IN - Pointer to sessionstats object to add.
     ///////////////////////////////////////////////////////////////////////////
 
     STDMETHOD(ScheduleSinkNotifications)(THIS_

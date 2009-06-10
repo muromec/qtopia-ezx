@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: transport.h,v 1.5 2007/03/30 19:08:39 tknox Exp $ 
+ * Source last modified: $Id: transport.h,v 1.8 2009/05/04 18:13:37 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2007 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -62,6 +62,7 @@
 #include "rtspmsg.h"
 #include "rtsptran.h"
 #include "ihxtrans.h"
+#include "hxservinfo.h"
 
 #include "sink.h" // IHXServerPacketSink
 
@@ -209,7 +210,7 @@ public:
     STDMETHOD(Flush)                    (THIS) { return HXR_NOTIMPL; }
     STDMETHOD(SourceDone)               (THIS) { return HXR_NOTIMPL; }
 
-    void SetSessionStatsObj(IHXSessionStats* pSessionStats) { HX_RELEASE(m_pSessionStats); m_pSessionStats = pSessionStats; m_pSessionStats->AddRef(); }
+    virtual void SetSessionStatsObj(IHXSessionStats* pSessionStats); 
 
     // XXXGo
     virtual HX_RESULT              SubscriptionDone(BYTE* bRuleOn,
@@ -243,6 +244,7 @@ public:
     virtual const char*         getMimeType() {return NULL;}
 
     IHXSessionStats*            m_pSessionStats;
+    IHXClipStats*               m_pClipStats;
 
     // From RTSPTransport
 public:
@@ -398,15 +400,19 @@ public:
     STDMETHOD_(UINT32,GetCapabilities)  (THIS);
     STDMETHOD(HandlePacket)             (THIS_ IHXBuffer* pBuffer);
     STDMETHOD(SetFirstPlayTime)         (THIS_ Timeval* pTv);
+    HX_RESULT IncrProtocolCount();
 
 protected:
+    HX_RESULT GetProtocolType(ServerInfoCounters *protType);
+    HX_RESULT DecrProtocolCount();
     void destroyABDPktInfo();
     HX_RESULT handleABDPktInfo(TransportMode mode, UINT32 uSeq, 
                                UINT32 uSendTime, UINT32 uRecvTime, 
                                UINT32 uPktSize);
     void UpdatePacketStats (BasePacket* pPacket);
 
-    IUnknown*                           m_pContext;
+    RTSPTransportTypeEnum               m_eTransType;
+	IUnknown*                           m_pContext;
     IHXCommonClassFactory*              m_pCommonClassFactory;
     IHXScheduler*                       m_pScheduler;
     IHXRTSPTransportResponse*           m_pResp;

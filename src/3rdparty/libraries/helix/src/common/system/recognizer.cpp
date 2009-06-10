@@ -4,21 +4,164 @@
 
 #include "recognizer.h"
 
+// file mime-types our recognizer might return
+#define HX_MIMETYPE_RM		    "application/x-pn-realmedia"
+#define HX_MIMETYPE_MP3		    "audio/mp3"
+#define HX_MIMETYPE_MP4AUDIO	    "audio/mp4"
+#define HX_MIMETYPE_MP4VIDEO	    "video/mp4"
+#define HX_MIMETYPE_3GPAUDIO	    "audio/3gpp"
+#define HX_MIMETYPE_3GPVIDEO	    "video/3gpp"
+#define HX_MIMETYPE_MPEG	    "video/x-mpeg"
+#define HX_MIMETYPE_WM		    "application/vnd.ms-asf"
+#define HX_MIMETYPE_AVI		    "application/x-pn-avi-plugin"
+#define HX_MIMETYPE_OGG		    "application/ogg"
+#define HX_MIMETYPE_MIDI	    "application/x-midi"
+#define HX_MIMETYPE_WAVE	    "audio/x-wav"
+#define HX_MIMETYPE_QT		    "application/x-pn-quicktime-stream"
+#define HX_MIMETYPE_SDP		    "application/sdp"
+
+// length of buffer read from file and passed to recognizer
+static const int KRecogLength = 512;
+
 #if !defined (_SYMBIAN)
 HX_RESULT CHXFileRecognizer::GetMimeType(const char* pFileName, IHXBuffer* pBuffer, REF(IHXBuffer*) pMimeType)
 {
-    if (IsSDPFile(pBuffer))
+    HX_RESULT retVal = HXR_FAILED;
+    char* pMimeTypeString = NULL;
+    char* pFileExtension = NULL;
+    UCHAR* pData = NULL;
+    UINT32 ulSize = 0;
+    HXBOOL bContinue = TRUE;
+
+    // get file extension
+    if (pFileName)
     {
-	if (HXR_OK == CreateBufferCCF(pMimeType, m_pContext))
+	CHXString strExtension = pFileName;
+	INT32 lPeriod = strExtension.ReverseFind('.');
+	if (lPeriod >= 0)
 	{
-            int len = strlen("application/sdp");
-	    pMimeType->Set((const UCHAR*)"application/sdp", len + 1);
-	    ((char*)pMimeType->GetBuffer())[len] = '\0';
-	    return HXR_OK;
+	    strExtension = strExtension.Right(strExtension.GetLength() - lPeriod - 1);
+	    if (strExtension.GetLength() > 0)
+	    {
+		strExtension.MakeLower();
+		pFileExtension = (char*)(const char*)strExtension;
+	    }
 	}
     }
 
-    return HXR_FAILED;
+    // data at the begining of the media file
+    if (pBuffer)
+    {
+	ulSize = pBuffer->GetSize();
+	pData = pBuffer->GetBuffer();
+    }
+
+    // check SDP
+    if (IsSDPFile(pBuffer))
+    {
+	pMimeTypeString = HX_MIMETYPE_SDP;
+	bContinue = FALSE;
+    }
+
+    //XXXqluo to minimize the risk, the following format check is for ANDROID platform only
+#if defined(ANDROID) 
+    // skip checking if the file name has an extension.
+    if (bContinue && (pFileExtension || ulSize != KRecogLength))
+    {
+	bContinue = FALSE;
+    }
+
+    // RealMedia
+    if (bContinue && IsRMFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_RM;
+	bContinue = FALSE;
+    }
+
+    // 3GPP
+    if (bContinue && Is3GPPFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_3GPAUDIO;
+	bContinue = FALSE;
+    }
+
+    // WM
+    if (bContinue && IsWMFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_WM;
+	bContinue = FALSE;
+    }
+
+    // AVI
+    if (bContinue && IsAVIFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_AVI;
+	bContinue = FALSE;
+    }
+
+    // OGG
+    if (bContinue && IsOGGFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_OGG;
+	bContinue = FALSE;
+    }
+
+    // MIDI
+    if (bContinue && IsMIDIFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_MIDI;
+	bContinue = FALSE;
+    }
+
+    // WAVE
+    if (bContinue && IsWAVEFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_WAVE;
+	bContinue = FALSE;
+    }
+
+    // MP4
+    if (bContinue && IsMP4File(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_MP4AUDIO;
+	bContinue = FALSE;
+    }
+
+    // QuickTime
+    if (bContinue && IsQuickTimeFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_QT;
+	bContinue = FALSE;
+    }
+
+    // MPEG
+    if (bContinue && IsMPEGFile(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_MPEG;
+	bContinue = FALSE;
+    }
+
+    // MP3
+    if (bContinue && IsMP3File(pData, ulSize))
+    {
+	pMimeTypeString = HX_MIMETYPE_MP3;
+	bContinue = FALSE;
+    }
+
+#endif // ANDROID
+
+    if (pMimeTypeString)
+    {
+	retVal = CreateBufferCCF(pMimeType, m_pContext);
+	if (HXR_OK == retVal)
+	{
+            int len = strlen(pMimeTypeString);
+	    pMimeType->Set((const UCHAR*)pMimeTypeString, len + 1);
+	    ((char*)pMimeType->GetBuffer())[len] = '\0';
+	}
+    }
+
+    return retVal;
 }
 #endif
 
@@ -38,9 +181,246 @@ CHXFileRecognizer::IsSDPFile(IHXBuffer* pBuffer)
     return bResult;
 }
 
-// length of buffer read from file and passed to recognizer
-static const int KRecogLength = 512;
+HXBOOL
+CHXFileRecognizer::IsRMFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    UCHAR pRAMagic[4] = {'.', 'r', 'a', 0xFD};
+    if (pData && ulSize > 4)
+    {
+        if (0 == strncmp((const char*)pData, ".RMF", 4) ||		// .RMF
+	    0 == strncmp((const char*)pData, ".RMS", 4) ||		// .RMS
+	    0 == memcmp(pData, pRAMagic, 4))				// .ra\0xFD
+        {
+            bResult = TRUE;
+        }
+    }
+    return bResult;
+}
 
+HXBOOL
+CHXFileRecognizer::IsMP4File(UCHAR* pData, UINT32 ulSize)
+{
+    if (IsISOMediaFile(pData, ulSize, "M4A") ||
+	IsISOMediaFile(pData, ulSize, "mp4"))
+    {
+	return TRUE;
+    }
+    else
+    {
+	return FALSE;
+    }
+}
+
+HXBOOL
+CHXFileRecognizer::IsQuickTimeFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 8)
+    {
+	// check atom types
+	pData += 4;
+	if (0 == strncmp((const char*)pData, "moov", 4) ||
+	    0 == strncmp((const char*)pData, "free", 4) ||
+	    0 == strncmp((const char*)pData, "skip", 4) ||
+	    0 == strncmp((const char*)pData, "mdat", 4) ||
+	    0 == strncmp((const char*)pData, "wide", 4) ||
+	    0 == strncmp((const char*)pData, "pnot", 4))
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::Is3GPPFile(UCHAR* pData, UINT32 ulSize)
+{
+    return IsISOMediaFile(pData, ulSize, "3gp");
+}
+
+HXBOOL
+CHXFileRecognizer::IsWMFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 16)
+    {
+	UCHAR pMagic[16] = {0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11, 0xA6, 0xD9, 0x00, 0xAA, 0x00, 0x62, 0xCE, 0x6C};
+	if (memcmp(pData, pMagic, 16) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::IsAVIFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 16)
+    {
+	UCHAR pMagic1[4] = {'R', 'I', 'F', 'F'};			// RIFF
+	UCHAR pMagic2[8] = {'A', 'V', 'I', ' ', 'L', 'I', 'S', 'T'};	// AVI LIST chunk
+	if (memcmp(pData, pMagic1, 4) == 0 ||
+	    memcmp(pData+8, pMagic2, 8) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::IsOGGFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 4)
+    {
+	UCHAR pMagic[4] = {'O', 'g', 'g', 'S'};				// page magic "OggS"
+	if (memcmp(pData, pMagic, 4) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+
+HXBOOL
+CHXFileRecognizer::IsMIDIFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 4)
+    {
+	UCHAR pMagic[4] = {'M', 'T', 'h', 'd'};				// MIDI header chunk ID
+	if (memcmp(pData, pMagic, 4) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::IsWAVEFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 12)
+    {
+	UCHAR pMagic1[4] = {'R', 'I', 'F', 'F'};			// Chunk ID
+	UCHAR pMagic2[4] = {'W', 'A', 'V', 'E'};			// Format
+	if (memcmp(pData, pMagic1, 4) == 0 ||
+	    memcmp(pData+8, pMagic2, 4) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::IsMPEGFile(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize > 4)
+    {
+	UCHAR pMagic[4] = {0x00, 0x00, 0x01, 0xb3};			// MPEG sequence header start code
+	if (memcmp(pData, pMagic, 4) == 0)
+	{
+	    bResult = TRUE;
+	}
+    }
+    return bResult;
+}
+
+HXBOOL
+CHXFileRecognizer::IsMP3File(UCHAR* pData, UINT32 ulSize)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize)
+    {
+	UCHAR* pStart = pData;
+	
+	// check for valid frame header
+	UINT32 ulHdr;
+	UCHAR* pEnd = pData + ulSize - 4;
+	do
+	{
+	    ulHdr = LoadMP3Header(pData);
+	    if (IsValidMP3Header(ulHdr))
+	    {
+		bResult = TRUE;
+		break;
+	    }
+	    pData += 4;
+	}
+	while(pData < pEnd);
+	
+	// check for ID3 tags
+	if (bResult == FALSE)
+	{
+	    if (0 == strncmp((const char*)pStart, "ID3", 3))
+	    {
+		bResult = TRUE;
+	    }
+	}
+    }
+    return bResult;
+}
+
+UINT32
+CHXFileRecognizer::LoadMP3Header(UCHAR* p)
+{
+    return (UINT32)(((p[0] & 255) << 24) | ((p[1] & 255) << 16) | ((p[2] & 255) <<  8) | ((p[3] & 255)));
+}
+
+HXBOOL
+CHXFileRecognizer::IsValidMP3Header(UINT32 ulHdr)
+{
+    return (((getFrameSync(ulHdr)      & 2047)==2047) &&
+            ((getVersionIndex(ulHdr)   &    3)!=   1) &&
+            ((getLayerIndex(ulHdr)     &    3)!=   0) && 
+            ((getBitrateIndex(ulHdr)   &   15)!=   0) &&
+            ((getBitrateIndex(ulHdr)   &   15)!=  15) &&
+            ((getFrequencyIndex(ulHdr) &    3)!=   3) &&
+            ((getEmphasisIndex(ulHdr)  &    3)!=   2)    );
+}
+
+HXBOOL
+CHXFileRecognizer::IsISOMediaFile(UCHAR* pData, UINT32 ulSize, const char* pBrand)
+{
+    HXBOOL bResult = FALSE;
+    if (pData && ulSize)
+    {
+	UCHAR* pEnd = (pData + ulSize - 4);
+
+	// locate file type box
+	pData += 4;
+	HXBOOL bFound = FALSE;
+	while (pData < pEnd)
+	{
+	    // scan for "ftyp"
+	    if ((*pData == 'f' && *(pData+1) == 't' && *(pData+2) == 'y' && *(pData+3) == 'p'))
+	    {
+		bFound = TRUE;
+		break;
+	    }
+	    pData++;
+	}
+
+	// match for the given type(pBrand)
+	if (bFound)
+	{
+	    pData += 4;
+	    if (0 == strncmp((const char*)pData, pBrand, strlen(pBrand)))
+	    {
+		bResult = TRUE;
+	    }
+	}
+    }
+    return bResult;
+}
 
 CHXFileRecognizer::CHXFileRecognizer(IUnknown* pContext)
     : m_lRefCount(0),
@@ -169,7 +549,7 @@ STDMETHODIMP CHXFileRecognizer::ReadDone(HX_RESULT status,
 {
     if (FAILED(status) && m_pResponse)
     {
-	m_pResponse->GetMimeTypeDone(HXR_FAIL, NULL);
+	m_pResponse->GetMimeTypeDone(status, NULL);
     }
     else
     {

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: proc.h,v 1.13 2007/03/05 23:24:06 atin Exp $ 
+ * Source last modified: $Id: proc.h,v 1.16 2009/05/27 17:45:08 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -64,16 +64,21 @@ class ProcessContainer;
 #endif
 
 #ifdef _WIN32
+extern __declspec(thread) Process* g_pTLSProc;
 extern __declspec(thread) int g_nTLSProcnum;
 //need the LINUX_EPOLL_SUPPORT check to fix a Producer rembrdcst plugin build-buster
 #elif ((defined _LINUX && LINUX_EPOLL_SUPPORT) || (defined _SOLARIS && defined DEV_POLL_SUPPORT)) && defined PTHREADS_SUPPORTED
+extern __thread Process* g_pTLSProc;
 extern __thread int g_nTLSProcnum;
 #else
+extern Process* g_pTLSProc;
 extern int g_nTLSProcnum;
 #endif // _WIN32
 
 #if defined _LINUX || defined PTHREADS_SUPPORTED
-#    define SHARED_FD_SUPPORT
+#ifndef SHARED_FD_SUPPORT
+#define SHARED_FD_SUPPORT
+#endif
 extern UINT32 g_ulThreadStackSize;
 #endif // _LINUX || _SOLARIS
 
@@ -165,7 +170,10 @@ public:
     int			    procnum()			{ return _procnum;    }
     static VOLATILE int	    numprocs()			{ return *_numprocs;  }
     PROCID_TYPE VOLATILE    procid(int pn)		{ return _procid[pn]; }
+
+    // see the proc.cpp file for an explanation of why these are non-inline.
     static int              get_procnum();
+    static Process*         get_proc(); 
 
 #ifdef _UNIX
     static int		    translate_procnum(int pid);

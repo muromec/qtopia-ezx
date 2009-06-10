@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxbrdcst.h,v 1.8 2005/08/24 21:20:01 ebala Exp $
+ * Source last modified: $Id: hxbrdcst.h,v 1.10 2008/08/20 21:05:49 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -422,6 +422,15 @@ DECLARE_INTERFACE_(IHXRemoteBroadcastStatisticsReport, IUnknown)
     STDMETHOD(ReportStatistics)         (THIS_
                                         IHXBuffer* pStatistics) PURE;
 };
+
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXRemoteBroadcastServices)
+DEFINE_SMART_PTR(IHXRemoteBroadcastServices2)
+DEFINE_SMART_PTR(IHXAuthResponse)
+DEFINE_SMART_PTR(IHXRemoteBroadcastConfiguration)
+DEFINE_SMART_PTR(IHXRemoteBroadcastConfigurationResponse)
+DEFINE_SMART_PTR(IHXRemoteBroadcastStatisticsReport)
+
 #endif /* _HXBRDCST_H_ */
 
 

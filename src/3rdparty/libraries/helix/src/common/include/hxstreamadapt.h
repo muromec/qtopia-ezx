@@ -5,7 +5,6 @@
 
 #define MAX_EXCLUDE_RULES 256
 
-#define CONFIG_ENTRY_LINK_CHAR_RATE_SHIFTING "config.3GPPStreamAdaptation.EnableLinkCharRateShifting"
 typedef enum _StreamAdaptationSchemeEnum
 {   ADAPTATION_ANNEXG,
     ADAPTATION_REL6_PER_STREAM,
@@ -205,7 +204,7 @@ DECLARE_INTERFACE_(IHXQoSRateMgrClassFactory, IUnknown)
 	 *      Scheme passed and the profile for which you are creating the objects.
      */
     STDMETHOD(CreateInstance)           (THIS_
-                                         IHXQoSProfileConfigurator* pConfig,
+                                         IHXQoSSignalBus* pSignalBus,
                                          StreamAdaptationSchemeEnum enumAdaptScheme,
                                          REFCLSID    /*IN*/  rclsid,
                                          void**     /*OUT*/ ppUnknown) PURE;

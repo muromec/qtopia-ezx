@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rdt_udp.h,v 1.4 2007/01/06 00:12:04 seansmith Exp $
+ * Source last modified: $Id: rdt_udp.h,v 1.5 2009/02/25 01:14:20 atin Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -236,7 +236,6 @@ protected:
     // For unit testing
     HX_RESULT virtual VectorPacket (BasePacket* pPacket,
                                     IHXBuffer** ppCur = NULL);
-
 private:
     HX_RESULT m_udpOutputStatus;
     typedef struct _BitmapDataItem

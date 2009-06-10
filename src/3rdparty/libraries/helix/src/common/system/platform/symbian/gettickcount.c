@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: gettickcount.c,v 1.7 2004/07/15 21:43:41 ping Exp $
+ * Source last modified: $Id: gettickcount.c,v 1.10 2008/03/27 15:38:25 gajia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -49,15 +49,37 @@
 
 #include <sys/time.h>
 #include <unistd.h>
+#ifdef HELIX_CONFIG_USE_NTICKCOUNT
+#include <hal.h>
+#endif
 #include "hxtypes.h"
 #include "hxtick.h"
 #include "globals/hxglobals.h"
 
 ULONG32 GetTickCount()
 {
+#ifdef HELIX_CONFIG_USE_NTICKCOUNT
+    TInt nanokernel_tick_period;
+    //call HAL::Get to get the number of USeconds in one tick, it's hardware related
+    HAL::Get(HAL::ENanoTickPeriod, nanokernel_tick_period);
+    //we need re-visit using the NTickCount in the future, currently only the period=1000 is taking this.
+    //For other cases the NTickCount can overflow faster/slower than 2^32 ms. Period=1000 is true on most of the hardwares
+    if (nanokernel_tick_period==1000)
+    {
+        //This is the current value of the machine's millisecond tick counter.
+        return User::NTickCount();
+    }
+    else
+    {
+        struct timeval tv;
+        gettimeofday( &tv, NULL );
+        return (ULONG32)((tv.tv_sec) * 1000 + tv.tv_usec / 1000);
+    }
+#else
     struct timeval tv;
     gettimeofday( &tv, NULL );
     return (ULONG32)((tv.tv_sec) * 1000 + tv.tv_usec / 1000);
+#endif
 }
 
 // return microseconds

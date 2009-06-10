@@ -74,7 +74,7 @@ CQTAtom* CreateQTAtom(QTAtomType AtomType,
     case QT_name:
         return new CQT_name_Atom(ulOffset, ulSize, pParent);
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
     // 3GPP Asset Info atom types
     case QT_titl:
         return new CQT_titl_Atom(ulOffset, ulSize, pParent);
@@ -97,6 +97,10 @@ CQTAtom* CreateQTAtom(QTAtomType AtomType,
         return new CQT_kywd_Atom(ulOffset, ulSize, pParent);
     case QT_loci:
         return new CQT_loci_Atom(ulOffset, ulSize, pParent);
+    case QT_albm:
+        return new CQT_albm_Atom(ulOffset, ulSize, pParent);
+    case QT_yrrc:
+        return new CQT_yrrc_Atom(ulOffset, ulSize, pParent);
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
 	
@@ -157,6 +161,14 @@ CQTAtom* CreateQTAtom(QTAtomType AtomType,
 	return new CQT_rtp_Atom(ulOffset, ulSize, pParent);
     case QT_iods:
 	return new CQT_iods_Atom(ulOffset, ulSize, pParent);
+    case QT_rmra:
+	return new CQT_rmra_Atom(ulOffset, ulSize, pParent);
+    case QT_rmda:
+	return new CQT_rmda_Atom(ulOffset, ulSize, pParent);
+    case QT_rdrf:
+	return new CQT_rdrf_Atom(ulOffset, ulSize, pParent);
+    case QT_rmdr:
+	return new CQT_rmdr_Atom(ulOffset, ulSize, pParent);
 #endif	// QTCONFIG_3GPPCLIENT_ATOMSET_ONLY
 
     /***
@@ -282,4 +294,17 @@ CQT_stsd_Atom::FontTableBox::~FontTableBox()
 	pFontEntries = NULL;
     }
 #endif // /defined(NEED_DATA_IN_TEXTSAMPLEENTRY_FOR_MP4FF)
+}
+
+
+void ExtractLanguageEncoding(UINT8* pPadAndLang, char out[3])
+{
+    HX_ASSERT(pPadAndLang);
+    if(pPadAndLang)
+    {
+        UINT16 uLang = CQTAtom::GetUI16(pPadAndLang);
+        out[0] = char(UINT8((uLang >> 10) & 0x001F) + 0x60);
+        out[1] = char(UINT8((uLang >> 5) & 0x001F) + 0x60);
+        out[2] = char(UINT8((uLang >> 0) & 0x001F) + 0x60);
+    }
 }

@@ -1,6 +1,6 @@
 # -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.6 2005/08/31 02:57:37 jc Exp $ 
+# Source last modified: $Id: Umakefil,v 1.8 2009/04/07 19:05:10 jgordon Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -39,30 +39,32 @@
 UmakefileVersion(2,1)
 
 project.AddModuleIncludes(
-	"common/include"
-	, "common/container/pub"
-	, "common/dbgtool/pub"
-	, "common/system/pub"
-	, "common/util/pub"
-	, "common/runtime/pub"
-	, "server/include"
-	, "server/common/config/pub"
-	, "server/common/struct/pub"
-	, "server/common/util/pub"
-	, "server/engine/context/pub"
-	, "server/engine/core/pub"
-	, "server/engine/reg/pub"
-	)
+        "common/include"
+        , "common/container/pub"
+        , "common/dbgtool/pub"
+        , "common/system/pub"
+        , "common/util/pub"
+        , "common/runtime/pub"
+        , "server/include"
+        , "server/common/config/pub"
+        , "server/common/struct/pub"
+        , "server/common/util/pub"
+        , "server/engine/context/pub"
+        , "server/engine/core/pub"
+        , "server/engine/reg/pub"
+        )
 
 project.AddSources(
-	"queue.cpp"
-	, "servbuffer.cpp"
-	, "smallbuffer.cpp"
-	, "servlist.cpp"
-	, "servpckts.cpp"
-	, "servpq.cpp"
-	, "tsdict.cpp"
-	)
+          "queue.cpp"
+        , "servbuffer.cpp"
+        , "smallbuffer.cpp"
+        , "servlist.cpp"
+        , "servpckts.cpp"
+        , "servpq.cpp"
+        , "tsdict.cpp"
+        , "tsmap.cpp"
+        , "bitbucket.cpp"
+        )
 
 LibraryTarget('servstructlib')
 

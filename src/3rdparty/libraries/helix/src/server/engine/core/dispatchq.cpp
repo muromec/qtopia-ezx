@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: dispatchq.cpp,v 1.8 2006/03/16 20:15:06 atin Exp $ 
+ * Source last modified: $Id: dispatchq.cpp,v 1.9 2007/05/24 08:36:37 ckarusala Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -136,12 +136,10 @@ DispatchQueue::send(Process* from_proc, SimpleCallback* m, int to_procnum)
     
     if (size[to_procnum] == QUEUE_SIZE)
     {
-#ifdef _DEBUG
         fprintf(stderr, "DispatchQueue::send: size == QUEUE_SIZE "
                 "(to_procnum=%d, bottom=%d, top=%d) on message from %d to %d\n",
                 to_procnum, bottom[to_procnum], top[to_procnum],
                 from_tid, to_tid);
-#endif
 	HXMutexUnlock(m_pMutex[to_procnum]);
 	return -1;
     }

@@ -1,5 +1,5 @@
  /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_prof_mgr.h,v 1.6 2007/04/24 05:11:08 npatil Exp $ 
+ * Source last modified: $Id: qos_prof_mgr.h,v 1.15 2007/12/13 06:10:52 yphadke Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -37,21 +37,29 @@
 #ifndef _QOS_PROF_MGR_H_
 #define _QOS_PROF_MGR_H_
 
+#include "uasconfigtree.h"
+
 /* Example Config: 
 <List Name="MediaDelivery"> 
-   <List Name="UserAgentProfiles"> 
+   <List Name="UserAgentSettings"> 
       <List Name="Helix DNA"> 
-         <Var UserAgent="HelixDNAClient"/> 
+         <List Name="MatchUserAgents">
+            <Var UserAgent_1="HelixDNAClient"/> 
+         </List>
          <Var StaticPush="0"/> 
          <Var UseFlowManager="0"/> 
+         <List Name=\"RateControl\">\n");
+            <Var RTCPRRrate=\"2%\"/>\n");
+            <Var RTCPRSrate=\"1%\"/>\n");
+         </List>\n");
+         <List Name="RateControl"> 
+            <Var UDPCongestionControlType="TFRC"/> 
+            <Var MaxBurst="5"/> 
+            <Var MaxOversendRate="125"/> 
+         </List> 
          <List Name="Transport"> 
-            <Var RtcpRRratio="200"/> 
-            <Var RtcpRSratio="100"/> 
             <List Name="CongestionControl"> 
-               <Var UDPType="TFRC"/> 
-               <Var MaxBurst="5"/> 
                <List Name="TFRC"> 
-                  <Var MaxOversendRate="125"/> 
                   <Var EnableIIRForRTT="1"/> 
                </List> 
             </List> 
@@ -59,10 +67,12 @@
         <List Name="Session"> 
            <List Name="RateManager"> 
               <Var BufferModel="ANNEXG"/> 
-              <Var Type="ANNEXG"/> 
               <Var LowMark="200"/> 
               <Var HighMark="200"/> 
            </List> 
+        </List> 
+        <List Name="RateAdaptation"> 
+              <Var RateManagerType="ANNEXG"/> 
         </List> 
       </List> 
       <!-- If there is no matching User-Agent: --> 
@@ -90,6 +100,8 @@ class QoSProfileSelector : public IHXQoSProfileSelector
  public:
     QoSProfileSelector (Process* pProc);
     ~QoSProfileSelector ();
+
+    void UpdateProfiles();
     
     /* IHXUnknown methods */
     STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj);
@@ -102,17 +114,20 @@ class QoSProfileSelector : public IHXQoSProfileSelector
     STDMETHOD (SelectProfile)   (THIS_ IHXBuffer* pUserAgent,
 				 IHXBuffer* pTransportMime,
 				 IHXBuffer* pMediaMime,
-				 REF(INT32) /*OUT*/ ulConfigID);
+				 REF(IHXUserAgentSettings*) /*OUT*/ pUAS);
+
+    STDMETHOD_(CHXMapStringToOb::Iterator,GetBegin)( THIS );
+
+    STDMETHOD_(CHXMapStringToOb::Iterator,GetEnd)( THIS );
+
+
  private:
-    void                         UpdateProfiles();
 
     LONG32                        m_lRefCount;
     Process*                      m_pProc;
 
-    UserAgentProfile**            m_pProfiles;
-    UINT32                        m_ulNumProfiles;
-    UINT32                        m_ulProfileRoot;
-    UINT32                        m_ulDefaultProfile;
+    UserAgentSettings*              m_pDefaultUAS;
+    UASConfigTree*                  m_pUASConfigTree;
 };
 
 #endif /*_QOS_PROF_MGR_H_ */

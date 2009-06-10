@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtp_tcp.h,v 1.11 2007/03/22 19:16:57 tknox Exp $
+ * Source last modified: $Id: rtp_tcp.h,v 1.12 2007/11/13 21:16:15 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -52,7 +52,7 @@ class ServerRTPTCPTransport : public ServerRTPBaseTransport
                             , public IHXSocketResponse
 {
 public:
-    ServerRTPTCPTransport               (BOOL bIsSource);
+    ServerRTPTCPTransport               (BOOL bIsSource, HXBOOL bOldTS = FALSE);
     virtual ~ServerRTPTCPTransport      ();
 
     /* IUnknown: */

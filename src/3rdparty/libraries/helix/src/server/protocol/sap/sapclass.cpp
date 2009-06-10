@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sapclass.cpp,v 1.5 2003/09/04 22:35:37 dcollins Exp $ 
+ * Source last modified: $Id: sapclass.cpp,v 1.6 2007/08/18 00:21:16 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -1657,12 +1657,6 @@ CSapManager::CSDPResponseHandler::QueryInterface
 	*ppInterfaceObj = (IHXUDPResponse*)this;
 	return HXR_OK;
     }
-    else if (IsEqualIID(interfaceID, IID_IHXThreadSafeMethods))
-    {
-        AddRef();
-        *ppInterfaceObj = (IHXThreadSafeMethods*)this;
-        return HXR_OK;
-    }
     
     // No other interfaces are supported
     *ppInterfaceObj = NULL;
@@ -1742,16 +1736,6 @@ CSapManager::CSDPResponseHandler::ValidSapDatagram(BYTE* off, UINT32 len)
 
     return TRUE;
 }
-
-
-// The server will QI for IHXThreadSafeMethods and call ReadDone outside
-// it's mutex if this returns HX_THREADSAFE_METHOD_SOCKET_READDONE.
-STDMETHODIMP_(UINT32)
-CSapManager::CSDPResponseHandler::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_SOCKET_READDONE;
-}
-
 
 
 /////////////////////////////////////////////////////////////////////////////

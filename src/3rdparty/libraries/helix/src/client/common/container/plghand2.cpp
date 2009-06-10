@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: plghand2.cpp,v 1.54 2006/10/07 00:05:28 milko Exp $
+ * Source last modified: $Id: plghand2.cpp,v 1.62 2009/06/03 22:11:51 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -115,7 +115,7 @@
 #include <fcntl.h>
 #endif
 
-#include <stdio.h>
+#include "hlxclib/stdio.h"
 
 #include "hlxclib/sys/stat.h"
 #include "hxresult.h"
@@ -153,6 +153,8 @@
 #include "chxuuid.h"
 #include "md5.h"
 #include "pckunpck.h"
+#define HELIX_FEATURE_LOGLEVEL_NONE // uncomment to disable all logging in this file
+#include "hxtlogutil.h"
 
 #include "dllacces.h"
 #include "dllpath.h"
@@ -213,6 +215,7 @@ const char* const Plugin2Handler::zm_pszFileExtension = OS_DLL_PATTERN_STRING;
 const char* const Plugin2Handler::zm_pszDirectorySeperator = OS_SEPARATOR_STRING;
 const char Plugin2Handler::zm_cDirectorySeperator = OS_SEPARATOR_CHAR;
 
+#define PLUGINHANDLER_RESCAN_CCFPLUGIN_REGNAME  "MountPoints\\ReScanCCFPlugins"
 
 // XXXHP - temporary changes to track PR70528
 #ifdef REALPLAYER_PLUGIN_HANDLER_RESEARCH_
@@ -299,11 +302,24 @@ Plugin2Handler::Plugin2Handler() :
     ,   m_pIScheduler(NULL)
     ,   m_hScheduler( 0 )
     ,   m_bStatDllsOnStartup(TRUE)
+    ,   m_bReScanCCFPlugins(TRUE)
 {
+#if defined(_DEBUG) && defined(_WINDOWS)
+    char szDbgStr[256];
+    sprintf(szDbgStr, "CON Plugin2Handler[%p]\n", this);
+    OutputDebugString(szDbgStr);
+#endif
+    HXLOGL4(HXLOG_GENE, "CON Plugin2Handler[%p]", this);
 }
 
 Plugin2Handler::~Plugin2Handler()
 {
+#if defined(_DEBUG) && defined(_WINDOWS)
+    char szDbgStr[256];
+    sprintf(szDbgStr, "DES Plugin2Handler[%p]\n", this);
+    OutputDebugString(szDbgStr);
+#endif
+    HXLOGL4(HXLOG_GENE, "DES Plugin2Handler[%p]", this);
     // Make sure Close() got called
     if( m_pContext )
     {
@@ -568,6 +584,7 @@ Plugin2Handler::Errors Plugin2Handler::LoadDLL( char* pszDllName,
                 {
                     pPlugin->GetValuesFromDLL(pIHXPlugin);
                     m_PluginList.AddTail(pPlugin);
+                    AddPluginToIndices(pPlugin);
 
                     // Print out some log info about the plugin we just loaded
                 {
@@ -936,6 +953,24 @@ HX_RESULT Plugin2Handler::ReloadPluginsNoPropagate( PluginMountPoint* pMountPoin
         pszDllName = pFileFinder->FindNext();
 
     }
+
+    // Check preference to see whether there is any unfulfilled re-scan CCF Plugin request 
+    // left from prior run. This could happen if the app is aborted(crash) before the re-scan
+    // can be fulfilled.
+    BOOL bReScanCCFPlugins = TRUE;
+    if (SUCCEEDED(ReadPrefBOOL(m_pContext, PLUGINHANDLER_RESCAN_CCFPLUGIN_REGNAME, bReScanCCFPlugins)))
+    {
+        m_bReScanCCFPlugins = bReScanCCFPlugins;
+    }
+
+    // We will also re-scan CCF Plugins if we detect plugin is dirty(added/modified) in 
+    // any one of the MountPoints
+    m_bReScanCCFPlugins = (m_bReScanCCFPlugins || bDLLIsDirty);
+ 
+    // Save the re-scan status to persistent storage(Preference) so that we can verify 
+    // its status the next time app is launched
+    WritePrefUINT32(m_pContext, PLUGINHANDLER_RESCAN_CCFPLUGIN_REGNAME, m_bReScanCCFPlugins);
+
     // now get the bandwidth data on all renderer plugins
     IHXValues* pVal = NULL;
     IHXBuffer* pBuffer = NULL;
@@ -1421,7 +1456,6 @@ Plugin2Handler::RegisterContext( IUnknown* pContext )
 
     }
 #endif /* #if !defined(HELIX_CONFIG_NOSTATICS) */
-#endif /* HELIX_FEATURE_PREFERENCES */
 
     //StatDllsOnStartup
     //
@@ -1437,6 +1471,7 @@ Plugin2Handler::RegisterContext( IUnknown* pContext )
             WritePrefUINT32( m_pContext, "StatDllsOnStartup", 0 );
         }
     }
+#endif /* HELIX_FEATURE_PREFERENCES */
     return HXR_OK;
 }
 
@@ -2049,7 +2084,18 @@ HX_RESULT Plugin2Handler::FindImplementationFromClassIDInternal(
     IHXPlugin* pIHXPluginCurrent = NULL;
     IHXObjectConfiguration* pIHXObjectConfigurationCurrent = NULL;
 
-    AddSupportedIID(IID_IHXCommonClassFactory);
+    // We only rescan the CCF plugins if we detected plugins are dirty.
+    // Otherwise, we'll assume CCF plugins have been scanned.
+    //
+    // This prevents plugins from being un-necessary loaded and reduce
+    // startup time.
+    if (m_bReScanCCFPlugins)
+    {
+        m_bReScanCCFPlugins = FALSE;
+        AddSupportedIID(IID_IHXCommonClassFactory);
+        // Save the status to persistent storage(Preference)
+        WritePrefUINT32(m_pContext, PLUGINHANDLER_RESCAN_CCFPLUGIN_REGNAME, m_bReScanCCFPlugins);
+    }
     
     hxRes = GetNumPluginsSupporting( IID_IHXCommonClassFactory, ulNumClassFactories );
     
@@ -2485,7 +2531,7 @@ HX_RESULT Plugin2Handler::WritePluginInfoFast( PluginMountPoint* pMountPoint )
 
     IHXBuffer* pName = pMountPoint->Name();
 
-    if (m_PluginDLLList.GetCount())
+    if (m_PluginDLLList.GetCount() && pName)
     {
         ConstructRegKeyPath(&szRegKey[0], PLUGIN_REGKEY_MOUNTPOINT, (const char*)pName->GetBuffer(),
                             PLUGIN_REGKEY_ROOT, PLUGIN_FILENAMES);
@@ -2509,7 +2555,7 @@ HX_RESULT Plugin2Handler::WritePluginInfoFast( PluginMountPoint* pMountPoint )
      *  Now write the Plugin info to the reg.
      */
 
-    if (m_PluginList.GetCount())
+    if (m_PluginList.GetCount() && pName)
     {
         ConstructRegKeyPath(&szRegKey[0], PLUGIN_REGKEY_MOUNTPOINT, (const char*)pName->GetBuffer(),
                             PLUGIN_REGKEY_ROOT, PLUGIN_PLUGININFO);
@@ -2533,7 +2579,7 @@ HX_RESULT Plugin2Handler::WritePluginInfoFast( PluginMountPoint* pMountPoint )
      *  Now write the non-RMA DLL info to the reg.
      */
 
-    if (m_MiscDLLList.GetCount())
+    if (m_MiscDLLList.GetCount() && pName)
     {
         ConstructRegKeyPath(&szRegKey[0], PLUGIN_REGKEY_MOUNTPOINT, (const char*)pName->GetBuffer(),
                             PLUGIN_REGKEY_ROOT, PLUGIN_NONHXINFO);
@@ -2566,7 +2612,7 @@ HX_RESULT Plugin2Handler::WritePluginInfoFast( PluginMountPoint* pMountPoint )
     // format of GUID info:
     // {GUID, filename, index, filename, index, etc}{GUID, filename, index, filename, index}
 
-    if (m_GUIDtoSupportList.GetCount())
+    if (m_GUIDtoSupportList.GetCount() && pName)
     {
         ConstructRegKeyPath(&szRegKey[0], PLUGIN_REGKEY_MOUNTPOINT, (const char*)pName->GetBuffer(),
                             PLUGIN_REGKEY_ROOT, PLUGIN_GUIDINFO);
@@ -5019,6 +5065,16 @@ Plugin2Handler::Errors Plugin2Handler::Plugin::GetInstance(REF(IUnknown*) pUnkno
     Plugin2Handler::Errors retVal = GetPlugin( pIUnkPlugin );
     if( retVal == NO_ERRORS )
     {
+        // Does the component plugin support IHXPlugin?
+        IHXPlugin* pIHXPlugin = NULL;
+        HX_RESULT rv = pIUnkPlugin->QueryInterface(IID_IHXPlugin, (void**) &pIHXPlugin);
+        if (SUCCEEDED(rv))
+        {
+            // Call IHXPlugin::InitPlugin on the component plugin
+            pIHXPlugin->InitPlugin(m_pContext);
+        }
+        HX_RELEASE(pIHXPlugin);
+        // Get the IHXComponentPlugin interface
         IHXComponentPlugin* pIComp = NULL;
         if( SUCCEEDED( pIUnkPlugin->QueryInterface( IID_IHXComponentPlugin, (void**) &pIComp ) ) )
         {

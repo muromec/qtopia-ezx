@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: time.cpp,v 1.11 2004/07/09 18:21:24 hubbe Exp $
+ * Source last modified: $Id: time.cpp,v 1.13 2008/01/18 09:17:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,7 +52,7 @@
 #include "hlxclib/limits.h"
 #include "hlxclib/stdio.h"
 
-#ifndef _WINCE
+#if !defined(_WINCE) && !defined(_BREW)
 struct tm* __helix_localtime(time_t* timep)
 {
     assert(!"__helix_localtime(): Not implemented\n");
@@ -411,4 +411,94 @@ char * __helix_ctime(const time_t *timer)
 }
 #endif /* _OPENWAVE */
 
+#if defined(_BREW)
 
+time_t time(time_t *t) 
+{
+    return __helix_time((long *)t);
+}
+
+long __helix_time(long *pTime)
+{
+    HX_ASSERT(0);
+    return 0; 
+}
+
+long __helix_mktime(struct tm* pTm)
+{
+    long t;
+    SYSTEMTIME s;
+
+    if (!pTm)
+	return 0;
+
+    s.wYear = pTm->tm_year+1900;
+    s.wMonth = pTm->tm_mon+1;
+    s.wDay = pTm->tm_mday;
+    s.wHour = pTm->tm_hour;
+    s.wMinute = pTm->tm_min;
+    s.wSecond = pTm->tm_sec;
+    t = __helix_convertTime(&s,&pTm->tm_yday);
+    pTm->tm_wday = s.wDayOfWeek;
+
+    return t;
+}
+
+int SECONDS_IN_MONTH[12] = {
+    31*24*60*60		// jan
+    ,28*24*60*60 	// feb
+    ,31*24*60*60	// mar
+    ,30*24*60*60	// apr
+    ,31*24*60*60	// may
+    ,30*24*60*60	// jun
+    ,31*24*60*60	// jul
+    ,31*24*60*60	// aug
+    ,30*24*60*60	// sep
+    ,31*24*60*60	// oct
+    ,30*24*60*60	// nov
+    ,31*24*60*60	// dec
+};
+
+long __helix_convertTime(SYSTEMTIME *pS, int *pDayOfYear)
+{
+    long t = 0;
+    int y = pS->wYear;
+
+    for (int i = 0; i < pS->wMonth-1; i++)
+	t += SECONDS_IN_MONTH[i];
+
+    if ((pS->wYear & 3) == 0 && pS->wMonth > 2)
+	t += 24*60*60;
+
+    t += (pS->wDay - 1)*24*60*60; 
+    t += pS->wHour * 60*60;
+    t += pS->wMinute * 60;
+    t += pS->wSecond;
+
+    *pDayOfYear = t/(24L * 60L * 60L); //day of the year
+
+    while (y > 1970)
+    {
+	--y;
+	t += 365*24*60*60;
+	if ((y & 3) == 0)
+	    t += 24*60*60;
+    }
+    pS->wDayOfWeek = (t/(24*60*60) + 4) % 7; // day of the week
+
+    return t;
+}
+
+struct tm *__helix_gmtime(long *pTime)
+{
+    HX_ASSERT(0);
+    return 0; 
+}
+
+size_t __helix_strftime(char *ptr,size_t maxsize,const char *format,const struct tm *timeptr)
+{
+    HX_ASSERT(0);
+    return 0;
+}
+
+#endif/*_BREW */

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: ml_allowance_mgr.h,v 1.6 2005/04/26 03:55:13 jc Exp $ 
+ * Source last modified: $Id: ml_allowance_mgr.h,v 1.9 2009/03/07 00:26:39 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -42,40 +42,39 @@
 #include "hxcom.h"
 #include "hxauth.h"
 #include "proc.h"
-#include "player.h"
 
 
 class MLAllowanceMgr : public AllowanceMgr
 {
 public:
-    STDMETHOD        (QueryInterface)    (THIS_ REFIID riid, void** ppvObj);
-    STDMETHOD_        (ULONG32, AddRef)   (THIS);
-    STDMETHOD_        (ULONG32, Release)  (THIS);
-    STDMETHOD        (AllowanceMgrDone)  (THIS);
+    STDMETHOD   (QueryInterface)    (THIS_ REFIID riid, void** ppvObj);
+    STDMETHOD_  (ULONG32, AddRef)   (THIS);
+    STDMETHOD_  (ULONG32, Release)  (THIS);
+    STDMETHOD   (AllowanceMgrDone)  (THIS);
 
     MLAllowanceMgr(Process* pProc, 
-                   Player::Session* pSession,
+                   ClientSession* pSession,
                    IHXPlayerConnectionAdviseSink* pPCAdviseSink);
 
 
     // *** IHXPlayerConnectionAdviseSink methods *** //
 
-    STDMETHOD (OnConnection)            (THIS_ IHXPlayerConnectionResponse* pResponse);
+    STDMETHOD (OnConnection)        (THIS_ IHXPlayerConnectionResponse* pResponse);
     STDMETHOD (SetPlayerController) (THIS_ IHXPlayerController* pPlayerController);
     STDMETHOD (SetRegistryID)       (THIS_ UINT32 ulPlayerRegistryID);
-    STDMETHOD (OnURL)                    (THIS_ IHXRequest* pRequest);
-    STDMETHOD (OnBegin)                    (THIS);
-    STDMETHOD (OnPause)                    (THIS);
-    STDMETHOD (OnStop)                    (THIS);
-    STDMETHOD (OnDone)                    (THIS);
+    STDMETHOD (OnURL)               (THIS_ IHXRequest* pRequest);
+    STDMETHOD (OnBegin)             (THIS);
+    STDMETHOD (OnPause)             (THIS);
+    STDMETHOD (OnStop)              (THIS);
+    STDMETHOD (OnDone)              (THIS);
 
-    BOOL      IsPlaybackAllowed        ();
+    BOOL      IsPlaybackAllowed     ();
 
     STDMETHOD (OnConnectionDone)    (THIS_ HX_RESULT status);
-    STDMETHOD (OnURLDone)            (THIS_ HX_RESULT status);
-    STDMETHOD (OnBeginDone)            (THIS_ HX_RESULT status);
-    STDMETHOD (OnStopDone)            (THIS_ HX_RESULT status);
-    STDMETHOD (OnPauseDone)            (THIS_ HX_RESULT status);
+    STDMETHOD (OnURLDone)           (THIS_ HX_RESULT status);
+    STDMETHOD (OnBeginDone)         (THIS_ HX_RESULT status);
+    STDMETHOD (OnStopDone)          (THIS_ HX_RESULT status);
+    STDMETHOD (OnPauseDone)         (THIS_ HX_RESULT status);
 
     // added as part of Startup Optimization work
     STDMETHOD_ (void, PrintDebugInfo)  (THIS_);
@@ -86,8 +85,10 @@ private:
     virtual ~MLAllowanceMgr();
 
     LONG32                          m_lRefCount;
-    Player::Session*                m_pSession;
-    IHXMidBoxNotify*               m_pMidBoxNotify;
+    ClientSession*                  m_pSession;
+    IHXMidBoxNotify*                m_pMidBoxNotify;
+    BOOL	m_bDone;
+    BOOL	m_bURLDoneWaiting;
 };
 
 #endif // _ALLOWANCE_MGR_H_

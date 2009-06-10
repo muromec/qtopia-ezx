@@ -89,6 +89,7 @@
 #include "qtoffsetmpr.h"
 
 #include "metainfokeys.h"
+#include "hxurl.h"
 
 /****************************************************************************
  * Constants
@@ -108,19 +109,21 @@ const char* const CQTFileFormat::zm_pMoreInfoURL    = HXVER_MOREINFO;
 
 #define EXT_3GP	    "3gp"
 #define EXT_3G2	    "3g2"
-#define EXT_MP4	    "mp4"
+#define EXT_MP4	    "mp4", "m4v"
 #define EXT_M4A	    "m4a"
 #define EXT_MOV	    "mov", "qt"
+#define EXT_F4V     "f4v" 
 
 #define ONM_3GP	    "3GPP-MP4 Files (*.3gp, *.3g2)"
 #define ONM_MP4	    "MP4 Files (*.mp4)"
 #define ONM_MOV	    "QuickTime Files (*.mov, *.qt)"
+#define ONM_F4V	    "F4V Files (*.f4v)"
 
 const char* const CQTFileFormat::zm_pFileMimeTypes[]  = {"application/x-pn-quicktime-stream", "audio/3gpp", "video/3gpp", "audio/x-m4a", "video/mp4", "audio/mp4", "video/3gpp2", NULL};
 
-const char* const CQTFileFormat::zm_pFileExtensions[] = {EXT_MOV, EXT_MP4, EXT_3GP, EXT_3G2, EXT_M4A, NULL};
+const char* const CQTFileFormat::zm_pFileExtensions[] = {EXT_MOV, EXT_MP4, EXT_3GP, EXT_3G2, EXT_M4A,EXT_F4V, NULL};
 
-const char* const CQTFileFormat::zm_pFileOpenNames[] = {ONM_MOV, ONM_MP4, ONM_3GP, NULL};
+const char* const CQTFileFormat::zm_pFileOpenNames[] = {ONM_MOV, ONM_MP4, ONM_3GP, ONM_F4V, NULL};
 
 const char* const CQTFileFormat::zm_pPacketFormats[]  = {"rtp", "rdt", NULL};
 
@@ -185,6 +188,7 @@ CQTFileFormat::CQTFileFormat()
     , m_pOffsetToTimeMapper(NULL)
     , m_pFileObject(NULL)
     , m_ulNextPacketTime(0)
+    , m_pRedirectFFObject(NULL)
 {
     g_nRefCount_qtff++;
 }
@@ -513,7 +517,7 @@ CQTFileFormat::ExtractAcceptMetaInfo(IHXBuffer* pRequestedInfoBuffer)
 }
 
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
 HX_RESULT CQTFileFormat::SetPropertyOnHeader(HX_RESULT status,
                                              IHXValues* pHeader,
                                              const char* key,
@@ -521,11 +525,11 @@ HX_RESULT CQTFileFormat::SetPropertyOnHeader(HX_RESULT status,
                                              ULONG32 valueLength)
 {
     // ignore empty property values rather than failing
-    if (SUCCEEDED(status) && value)
+    if (SUCCEEDED(status) && value && valueLength)
     {
         // Check for BYTE_ORDER_MARK (0xFEFF) and, if it exists, indicate UTF16 encoding type
         // Note: All meta-info strings should be set as buffer properties
-        if (valueLength >= 2 && value[0] == 0xFE && value[1] == 0xFF)
+        if (valueLength >= 2 && UCHAR(value[0]) == UCHAR(0xFE) && UCHAR(value[1]) == UCHAR(0xFF))
         {
             status = SetCStringPropertyWithNullTermEx(pHeader, 
                                           key,
@@ -537,11 +541,12 @@ HX_RESULT CQTFileFormat::SetPropertyOnHeader(HX_RESULT status,
         }
         else
         {
-            status = SetCStringPropertyCCFWithNullTerm(pHeader, 
+            status = SetCStringPropertyWithNullTermEx(pHeader, 
                                            key,
                                            (BYTE*)value,
                                            (UINT32)valueLength,
                                            m_pContext,
+                                           HX_TEXT_ENCODING_TYPE_UTF8,
                                            SET_AS_BUFFER_PROPERTY);
         }
     }
@@ -575,7 +580,7 @@ HX_RESULT CQTFileFormat::Set3GPPAssetInfoOnHeader(HX_RESULT status,
                  m_MovieInfo.GetGenreLength());
 
     // 3GP Asset Info: Rating
-    status = SetPropertyOnHeader(status, pHeader, _3GPP_META_INFO_RATING_KEY,
+    status = SetPropertyOnHeader(status, pHeader, _3GPP_META_INFO_RATING_CRITERIA_KEY,
                  (const char*) (m_MovieInfo.GetRatingCriteria()),
                  m_MovieInfo.GetRatingCriteriaLength());
     status = SetPropertyOnHeader(status, pHeader, _3GPP_META_INFO_RATING_ENTITY_KEY,
@@ -629,18 +634,21 @@ HX_RESULT CQTFileFormat::Set3GPPAssetInfoOnHeader(HX_RESULT status,
                  _3GPP_META_INFO_LOCATION_NAME_KEY,
                  (const char*) m_MovieInfo.GetLocationName(),
                  m_MovieInfo.GetLocationNameLength());
+
     status = SetPropertyOnHeader(status, pHeader,
                  _3GPP_META_INFO_LOCATION_ASTRONOMICAL_BODY_KEY,
-                 (const char*) m_MovieInfo.GetAstronomicalBody(),
-                 m_MovieInfo.GetAstronomicalBodyLength());
+                 (const char*) m_MovieInfo.GetLocationAstronomicalBody(),
+                 m_MovieInfo.GetLocationAstronomicalBodyLength());
+
     status = SetPropertyOnHeader(status, pHeader,
                  _3GPP_META_INFO_LOCATION_ADDITIONAL_NOTES_KEY,
                  (const char*) m_MovieInfo.GetLocationAdditionalNotes(),
                  m_MovieInfo.GetLocationAdditionalNotesLength());
+
     if (SUCCEEDED(status))
     {
         INT16 locationRole = m_MovieInfo.GetLocationRole();
-        if (locationRole > (INT16) 0)
+        if (locationRole >= (INT16) 0)
             pHeader->SetPropertyULONG32(_3GPP_META_INFO_LOCATION_ROLE_KEY, 
                          (ULONG32) locationRole);
     }
@@ -675,6 +683,33 @@ HX_RESULT CQTFileFormat::Set3GPPAssetInfoOnHeader(HX_RESULT status,
         status = SetPropertyOnHeader(status, pHeader,
                     _3GPP_META_INFO_LOCATION_ALTITUDE_KEY, strPos, strlen(strPos));
     }
+
+    // 3GP Asset Info: Album
+    status = SetPropertyOnHeader(status, pHeader, _3GPP_META_INFO_ALBUM_TITLE_KEY,
+                   (const char*)m_MovieInfo.GetAlbumTitle(), m_MovieInfo.GetAlbumTitleLength());
+
+    // track number is optional
+    if(SUCCEEDED(status) && m_MovieInfo.HasTrackNumber())
+    {
+        pHeader->SetPropertyULONG32(_3GPP_META_INFO_TRACK_NUMBER_KEY, (ULONG32) m_MovieInfo.GetTrackNumber());
+    }
+
+    // 3GP Asset Info: Recording Year
+    if(SUCCEEDED(status) && m_MovieInfo.HasRecordingYear())
+    {
+        status = pHeader->SetPropertyULONG32(_3GPP_META_INFO_RECORDING_YEAR_KEY, (ULONG32) m_MovieInfo.GetRecordingYear());
+    }
+    
+    // 3GP language encoding, extract as global property for all atoms
+    if(SUCCEEDED(status))
+    {
+        char globalLangEnc[4] = { 0, 0, 0, 0 };
+        if(m_MovieInfo.GetGlobalLanguageEncoding(globalLangEnc))
+        {
+            status = SetCStringPropertyWithNullTermEx(pHeader, _3GPP_META_INFO_GLOBAL_LANGUAGE_ENCODING_KEY,
+                      (BYTE*)globalLangEnc, 3, m_pContext, HX_TEXT_ENCODING_TYPE_UTF8, SET_AS_BUFFER_PROPERTY);
+        }
+    }
 #endif // HELIX_FEATURE_3GPP_METAINFO
 
     return status;
@@ -688,7 +723,7 @@ HX_RESULT CQTFileFormat::MakeFileHeader(HX_RESULT status)
 
     // Check the license
 #ifdef QTCONFIG_SERVER
-    if (SUCCEEDED(status))
+    if (SUCCEEDED(status) && (m_TrackManager.GetEType() == QT_ETYPE_SERVER))
     {
         switch (m_TrackManager.GetFType())
         {
@@ -750,7 +785,7 @@ HX_RESULT CQTFileFormat::MakeFileHeader(HX_RESULT status)
     }
 
     // Reject unsupported brands
-    if (SUCCEEDED(status))
+    if (SUCCEEDED(status) && (m_TrackManager.GetEType() == QT_ETYPE_SERVER))
     {
 	UINT32 ulBrand = 0;
 	HX_RESULT resBrand = m_TrackManager.GetMajorBrand(&ulBrand);
@@ -839,7 +874,7 @@ HX_RESULT CQTFileFormat::MakeFileHeader(HX_RESULT status)
 						 (void**) &pHeader);
     }
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
     // Set Title (if it's available)
     if (SUCCEEDED(status) && m_MovieInfo.GetName())
     {
@@ -1021,7 +1056,7 @@ HX_RESULT CQTFileFormat::MakeFileHeader(HX_RESULT status)
     // Broadcast Receiver plug-in to check and see if the RealServer is actually
     // licensed to receive this content
 #ifdef QTCONFIG_SERVER
-    if(SUCCEEDED(status) && (!m_bViewSourceRequest))
+    if (SUCCEEDED(status) && (!m_bViewSourceRequest) && (m_TrackManager.GetEType() == QTCONFIG_SERVER))
     {
         switch(m_TrackManager.GetFType())
         {
@@ -1555,7 +1590,23 @@ HX_RESULT CQTFileFormat::MakeASMUberRuleBook(IHXValues* pHeader,
 HX_RESULT CQTFileFormat::GetSessionIdentity(IHXValues* pHeader,
 					    CQT_MovieInfo_Manager* pMovieInfo)
 {
-    return HXR_OK;
+    HX_RESULT retVal = HXR_OK;
+
+#ifdef QTCONFIG_HINTTRACKS
+    // Set SDP Header
+    if (SUCCEEDED(retVal) && (m_MovieInfo.GetSDPLength() > 0))
+    {
+        retVal = SDPParseChunk(
+                    (char*) m_MovieInfo.GetSDP(),
+                    m_MovieInfo.GetSDPLength(),
+                    pHeader,
+                    m_pClassFactory,
+                    SDPCTX_Session,
+                    TRUE);
+    }
+#endif  // QTCONFIG_HINTTRACKS
+
+    return retVal;
 }
 
 /************************************************************************
@@ -1571,6 +1622,12 @@ HX_RESULT CQTFileFormat::GetSessionIdentity(IHXValues* pHeader,
  */
 STDMETHODIMP CQTFileFormat::GetPacket(UINT16 unStreamNumber)
 {
+    if(m_pRedirectFFObject)
+    {
+        m_State = QTFF_GetPacket;
+        return m_pRedirectFFObject->GetPacket(unStreamNumber);
+    }
+
     HX_RESULT retVal;
 
     if (unStreamNumber < m_TrackManager.GetNumStreams())
@@ -1703,6 +1760,12 @@ STDMETHODIMP CQTFileFormat::GetPacket(UINT16 unStreamNumber)
  */
 STDMETHODIMP CQTFileFormat::Seek(ULONG32 ulOffset)
 {
+    if(m_pRedirectFFObject && m_State == QTFF_Ready)
+    {
+        m_State = QTFF_SeekPending;
+        return m_pRedirectFFObject->Seek(ulOffset);
+    }
+
     UINT16 uStreamNum;
     HX_RESULT retVal = HXR_OK;
 
@@ -1761,6 +1824,11 @@ STDMETHODIMP CQTFileFormat::WriteDone(HX_RESULT status)
  */
 STDMETHODIMP CQTFileFormat::SeekDone(HX_RESULT status)
 {
+    if(m_pRedirectFFObject && m_State == QTFF_SeekPending)
+    {
+        m_State = QTFF_Ready;
+        return m_pFFResponse->SeekDone(status);
+    }
     return HXR_UNEXPECTED;
 }
 
@@ -1805,7 +1873,11 @@ STDMETHODIMP CQTFileFormat::Close()
 	m_pFileObject->Close();
 	HX_RELEASE(m_pFileObject);
     }
-
+    if(m_pRedirectFFObject)
+    {
+        m_pRedirectFFObject->Close();
+        HX_RELEASE(m_pRedirectFFObject);
+    }
     m_TrackManager.CloseTracks();
 
     return HXR_OK;
@@ -1829,6 +1901,12 @@ STDMETHODIMP CQTFileFormat::Close()
 STDMETHODIMP CQTFileFormat::InitDone(HX_RESULT status)
 {
     HX_RESULT retVal = HXR_OK;
+
+    if(m_pRedirectFFObject && m_State == QTFF_Init)
+    {	
+        m_State = QTFF_Atomize;
+        return m_pRedirectFFObject->GetFileHeader();
+    }
 
     switch (m_State)
     {
@@ -1973,6 +2051,53 @@ HX_RESULT CQTFileFormat::AtomReady(HX_RESULT status, CQTAtom* pRootAtom)
 	
 	if (SUCCEEDED(status))
 	{
+        CQT_moov_Atom *pMoovAtom = NULL;
+        pMoovAtom = (CQT_moov_Atom *)pRootAtom->FindPresentChild(QT_moov);
+        if(pMoovAtom)
+        {
+            HX_RESULT retVal = HXR_OK;
+            CQT_mvhd_Atom *pMovieHeaderAtom = NULL;
+            pMovieHeaderAtom = (CQT_mvhd_Atom*)pMoovAtom->FindPresentChild(QT_mvhd);
+            CQT_rmra_Atom *pRmraHeaderAtom = NULL;
+            pRmraHeaderAtom = (CQT_rmra_Atom*)pMoovAtom->FindPresentChild(QT_rmra);
+            if(!pMovieHeaderAtom && pRmraHeaderAtom)
+            {
+                status = m_MovieInfo.Init(pMoovAtom, &m_TrackManager);
+                if (SUCCEEDED(status))
+                {
+                    status = HXR_FAIL;
+                    // Get the Reference Url
+                    const char* pszReferenceURL = NULL;
+                    pszReferenceURL = m_MovieInfo.GetRefURL();
+                    if(pszReferenceURL)
+                    {
+                        CHXString szURL="";
+                        CHXURL purl(pszReferenceURL,m_pContext);
+                        if(purl.IsRelativeURL())
+                        {
+                            //If the URL is relative, then this code changes it to absolute URL.
+                            const char *poriginal_url = NULL;
+                            m_pRequest->GetURL(poriginal_url);
+                            const char *prel = strrchr(poriginal_url,'/');
+                            szURL = poriginal_url;
+                            szURL = szURL.Left(prel-poriginal_url+1);
+                            szURL += pszReferenceURL;
+                        }
+                        else
+                        {
+                            szURL = pszReferenceURL;
+                        }
+                        status = CreateNewFileFormatObject((const char*)szURL);
+                    }
+                }
+                if(FAILED(status))
+                {						
+                    status = MakeFileHeader(status);
+                }
+                return status;
+                
+            }
+        }
 	    HXBOOL bIgnoreHintTracks = FALSE;
 	    do
 	    {
@@ -2082,6 +2207,17 @@ HX_RESULT CQTFileFormat::AtomReady(HX_RESULT status, CQTAtom* pRootAtom)
 STDMETHODIMP CQTFileFormat::Subscribe(UINT16 uStreamNum,
 				      UINT16 uRuleNumber)
 {
+    if(m_pRedirectFFObject)
+    {
+        IHXASMSource* pASMSource=NULL;
+        HX_RESULT retVal = HXR_FAIL;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface(IID_IHXASMSource,(void **)&pASMSource)))
+        {	
+            retVal = pASMSource->Subscribe(uStreamNum,uRuleNumber);
+            HX_RELEASE(pASMSource);
+        }
+        return retVal;
+    }
     return m_TrackManager.Subscribe(uStreamNum, uRuleNumber);
 }
 
@@ -2091,6 +2227,17 @@ STDMETHODIMP CQTFileFormat::Subscribe(UINT16 uStreamNum,
 STDMETHODIMP CQTFileFormat::Unsubscribe(UINT16 uStreamNum,
 					UINT16 uRuleNumber)
 {
+    if(m_pRedirectFFObject)
+    {
+        IHXASMSource* pASMSource=NULL;
+        HX_RESULT retVal = HXR_FAIL;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface(IID_IHXASMSource,(void **)&pASMSource)))
+        {	
+            retVal = pASMSource->Unsubscribe(uStreamNum,uRuleNumber);
+            HX_RELEASE(pASMSource);
+        }
+        return retVal;
+    }
     return m_TrackManager.Unsubscribe(uStreamNum, uRuleNumber);
 }
 
@@ -2106,6 +2253,17 @@ STDMETHODIMP CQTFileFormat::GetSupportedPacketFormats
     REF(const char**) /*OUT*/ pPacketFormats
 )
 {
+    if(m_pRedirectFFObject)
+    {					
+        HX_RESULT retVal = HXR_FAIL;
+        IHXPacketFormat* pPacketFormat = 0;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface (IID_IHXPacketFormat,(void**)&pPacketFormat)))
+        {
+            retVal = pPacketFormat->GetSupportedPacketFormats(pPacketFormats);
+            HX_RELEASE(pPacketFormat);
+        }
+        return retVal;
+    }
     pPacketFormats = (const char**) zm_pPacketFormats;
     return HXR_OK;
 }
@@ -2121,6 +2279,17 @@ STDMETHODIMP CQTFileFormat::SetPacketFormat
     const char* pPacketFormat
 )
 {
+    if(m_pRedirectFFObject)
+    {					
+        HX_RESULT retVal = HXR_FAIL;
+        IHXPacketFormat* pPktFormat = 0;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface(IID_IHXPacketFormat,(void**)&pPktFormat)))
+        {
+            retVal = pPktFormat->SetPacketFormat(pPacketFormat);
+            HX_RELEASE(pPktFormat);
+        }
+        return retVal;
+    }
     if (strcasecmp(pPacketFormat, "rtp") == 0)
     {
         m_ulPacketFormat = QTFF_RTP_FORMAT;
@@ -2169,6 +2338,17 @@ CQTFileFormat::ConvertFileOffsetToDur(UINT32 /*IN*/ ulLastReadOffset,
                                       UINT32 /*IN*/ ulCompleteFileSize,
                                       REF(UINT32) /*OUT*/ ulREFDur)
 {
+    if(m_pRedirectFFObject)
+    {					
+        HX_RESULT retVal = HXR_FAIL;
+        IHXMediaBytesToMediaDur* pMediaBytesToMediaDur = 0;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface (IID_IHXMediaBytesToMediaDur,(void**)&pMediaBytesToMediaDur)))
+        {
+            retVal = pMediaBytesToMediaDur->ConvertFileOffsetToDur(ulLastReadOffset,ulCompleteFileSize,ulREFDur);
+            HX_RELEASE(pMediaBytesToMediaDur);
+        }
+        return retVal;
+    }
     HX_RESULT retVal = HXR_OK;
     UINT32 ulDurOut = HX_PROGDOWNLD_UNKNOWN_DURATION;
 
@@ -2252,6 +2432,17 @@ STDMETHODIMP
 CQTFileFormat::GetFileDuration(UINT32 /*IN*/ ulCompleteFileSize,
                                REF(UINT32) /*OUT*/ ulREFDur)
 {
+    if(m_pRedirectFFObject)
+    {					
+        HX_RESULT retVal = HXR_FAIL;
+        IHXMediaBytesToMediaDur* pMediaBytesToMediaDur = 0;
+        if(SUCCEEDED(m_pRedirectFFObject->QueryInterface (IID_IHXMediaBytesToMediaDur,(void**)&pMediaBytesToMediaDur)))
+        {
+            retVal = pMediaBytesToMediaDur->GetFileDuration(ulCompleteFileSize,ulREFDur);
+            HX_RELEASE(pMediaBytesToMediaDur);
+        }
+        return retVal;
+    }
     HX_RESULT retVal = HXR_OK;
     UINT32 ulDuration = HX_PROGDOWNLD_UNKNOWN_DURATION;
 
@@ -2306,12 +2497,15 @@ HX_RESULT CQTFileFormat::PacketReady(UINT16 uStreamNum,
 	AddRef();   // Make Sure we do not die as a result of PacketReady
 
 	m_pPacketCache[uStreamNum].bPending = FALSE;
-	retVal = m_pFFResponse->PacketReady(status, pPacketToSend);
-
 	if (pPacketToSend)
 	{
+	    retVal = m_pFFResponse->PacketReady(HXR_OK, pPacketToSend);
 	    pPacketToSend->Release();
 	}
+    else
+    {
+	    retVal = m_pFFResponse->PacketReady(status, NULL);
+    }
 
 	// Make sure the state did not change as result of PacketReady()
 	// The possible change is due to invocation of Close on PacketReady
@@ -2803,15 +2997,6 @@ void CQTFileFormat::WarnIfNotHinted(HX_RESULT status, HXBOOL bIgnoreHintTracks)
 
 #endif	// IFDEF QTCONFIG_SERVER
 
-/************************************************************************
- *	Method:
- *	    IHXThreadSafeMethods::IsThreadSafe
- */
-STDMETHODIMP_(UINT32) CQTFileFormat::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FF_GETPACKET |
-	   HX_THREADSAFE_METHOD_FSR_READDONE;
-}
 
 /************************************************************************
  *  IUnknown methods
@@ -2824,6 +3009,7 @@ STDMETHODIMP CQTFileFormat::QueryInterface(REFIID riid, void** ppvObj)
     {
 	{ GET_IIDHANDLE(IID_IUnknown), (IUnknown*) (IHXPlugin*) this},
 	{ GET_IIDHANDLE(IID_IHXPlugin), (IHXPlugin*) this},
+	{ GET_IIDHANDLE(IID_IHXFormatResponse), (IHXFormatResponse*) this},
 	{ GET_IIDHANDLE(IID_IHXFileFormatObject), (IHXFileFormatObject*) this},
 	{ GET_IIDHANDLE(IID_IHXAtomizerResponse), (IHXAtomizerResponse*) this},
 	{ GET_IIDHANDLE(IID_IHXAtomizationCommander), (IHXAtomizationCommander*) this},
@@ -2922,18 +3108,203 @@ STDMETHODIMP CQTFileFormat::GetFileHeader()
  */
 STDMETHODIMP CQTFileFormat::GetStreamHeader(UINT16 unStreamNumber)
 {
+    if(m_pRedirectFFObject && m_State == QTFF_Ready)
+    {
+        return m_pRedirectFFObject->GetStreamHeader(unStreamNumber);
+    }
+
     HX_RESULT retVal;
     IHXValues* pHeader;
 
     retVal = ObtainStreamHeader(unStreamNumber, pHeader);
 
-    if (SUCCEEDED(retVal))
-    {
-	retVal = m_pFFResponse->StreamHeaderReady(retVal, pHeader);
-    }
+    m_pFFResponse->StreamHeaderReady(retVal, pHeader);
 
     HX_RELEASE(pHeader);
 
+    return retVal;
+}
+
+HX_RESULT CQTFileFormat::CreateNewFileFormatObject(const char* purl)
+{
+    HX_RESULT theErr = HXR_FAIL;
+    char*   pExtension = "mov"; //rmra can only contain QuickTime movie reference
+    IHXPluginHandler3* pPlugin2Handler3 = NULL;
+    IHXPlugin*  pPlugin      = NULL;
+    IUnknown* pCurrentFileFormatUnk = NULL;
+    IHXPluginSearchEnumerator* pFileFormatEnumerator = NULL;
+    IHXFileObject* pFileObject = NULL;
+    IHXRequest* pRequest = NULL;
+    IUnknown*	    pUnknown = NULL;
+    IUnknown*	    pObject = NULL;
+    IHXFileSystemObject* pFSObject = NULL;
+    IHXPlugin2Handler* pPlugin2Handler = NULL;
+    IHXPlugin *pHXPlugin = NULL;
+    IHXRequestHandler* pRequestHandler=NULL;
+
+    const char* pProtocolEnd = HXFindChar(purl,':');
+    if (!pProtocolEnd)
+    {
+        return HXR_UNEXPECTED;
+    }
+
+    int nLength = pProtocolEnd - purl;
+    CHXString strProtocol(purl,nLength);
+
+    if (FAILED(m_pContext->QueryInterface(IID_IHXPlugin2Handler, (void**)&pPlugin2Handler)))
+    {
+        goto exit;
+    }
+
+    if (FAILED( pPlugin2Handler->FindPluginUsingStrings(PLUGIN_CLASS, PLUGIN_FILESYSTEM_TYPE, 
+        PLUGIN_FILESYSTEMPROTOCOL, (char*)(const char*)strProtocol, NULL, NULL, pUnknown)))
+    {
+        goto exit;
+    }
+
+    if(FAILED(pUnknown->QueryInterface(IID_IHXFileSystemObject, (void**) &pFSObject)))
+    {
+        goto exit;
+    }
+
+    if (FAILED (pFSObject->QueryInterface(IID_IHXPlugin,(void**)&pHXPlugin)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pHXPlugin->InitPlugin(m_pContext)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pFSObject->CreateFile(&pObject)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pObject->QueryInterface(IID_IHXFileObject, (void**)&pFileObject)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pObject->QueryInterface(IID_IHXRequestHandler, (void**)&pRequestHandler)))
+    {
+        goto exit;
+    }
+
+    if(m_pClassFactory && (HXR_OK !=m_pClassFactory->CreateInstance(CLSID_IHXRequest, (void**) &pRequest)))
+    {
+        goto exit;
+    }
+
+    if (pRequest)
+    {
+        IHXValues* pRequestHeaders = NULL;
+        pRequest->SetURL((const char*)purl); // Set the reference URL
+        if (SUCCEEDED(m_pRequest->GetRequestHeaders(pRequestHeaders)) && pRequestHeaders)
+        {
+            pRequest->SetRequestHeaders(pRequestHeaders);
+            pRequestHeaders->Release();
+        }
+        pRequestHandler->SetRequest(pRequest);
+    }
+	
+    if(m_pContext && (HXR_OK != m_pContext->QueryInterface(IID_IHXPluginHandler3, (void**) &pPlugin2Handler3)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pPlugin2Handler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS, PLUGIN_FILEFORMAT_TYPE, 
+            PLUGIN_FILEEXTENSIONS, pExtension, 0 ,0, pFileFormatEnumerator)))
+    {
+        goto exit;
+    }
+
+    if (pFileFormatEnumerator)
+    {
+        pFileFormatEnumerator->GetNextPlugin(pCurrentFileFormatUnk, NULL);
+        HX_ASSERT(pCurrentFileFormatUnk != NULL);
+    }
+
+    if (FAILED( pCurrentFileFormatUnk->QueryInterface(IID_IHXFileFormatObject, (void**) &m_pRedirectFFObject)))
+    {
+        goto exit;
+    }
+    m_State = QTFF_Offline; 
+    if (FAILED(m_pRedirectFFObject->QueryInterface(IID_IHXPlugin,(void**)&pPlugin)))
+    {
+        goto exit;
+    }
+
+    if (FAILED(pPlugin->InitPlugin(m_pContext)))
+    {
+        goto exit;
+    }
+    m_State = QTFF_Init;
+    theErr = m_pRedirectFFObject->InitFileFormat(pRequest,(IHXFormatResponse*)this,pFileObject);
+
+exit:
+    HX_RELEASE(pPlugin2Handler);
+    HX_RELEASE(pUnknown);
+    HX_RELEASE(pFSObject);
+    HX_RELEASE(pHXPlugin);
+    HX_RELEASE(pObject);
+    HX_RELEASE(pFileObject);
+    HX_RELEASE(pRequestHandler);
+    HX_RELEASE(pRequest);
+    HX_RELEASE(pPlugin2Handler3);
+    HX_RELEASE(pFileFormatEnumerator);
+    HX_RELEASE(pCurrentFileFormatUnk);
+    HX_RELEASE(pPlugin);
+    return theErr;
+}
+
+STDMETHODIMP CQTFileFormat::PacketReady(THIS_
+				HX_RESULT	status,
+				IHXPacket*	pPacket)
+{
+    HX_RESULT retVal = HXR_FAIL;
+    if(m_pRedirectFFObject)
+    {
+        m_State = QTFF_Ready;		
+        retVal = m_pFFResponse->PacketReady(status,pPacket);
+    }
+    return retVal;
+}
+
+STDMETHODIMP CQTFileFormat::FileHeaderReady	(THIS_
+				HX_RESULT	status,
+				IHXValues*	pHeader) 
+{
+    HX_RESULT retVal = HXR_FAIL;
+    if(m_pRedirectFFObject && m_State==QTFF_Atomize)
+    {
+        m_State = QTFF_Ready;
+        retVal = m_pFFResponse->FileHeaderReady(status,pHeader);
+    }
+    return retVal;
+}
+
+STDMETHODIMP CQTFileFormat::StreamHeaderReady	(THIS_
+				HX_RESULT	status,
+				IHXValues*	pHeader) 
+{
+    HX_RESULT retVal = HXR_FAIL;
+    if(m_pRedirectFFObject && m_State == QTFF_Ready)
+    {
+        retVal = m_pFFResponse->StreamHeaderReady(status,pHeader);
+    }
+    return retVal;
+}
+
+STDMETHODIMP CQTFileFormat::StreamDone(THIS_
+				UINT16		unStreamNumber)
+{
+    HX_RESULT retVal = HXR_FAIL;
+    if(m_pRedirectFFObject)
+    {
+        retVal = m_pFFResponse->StreamDone(unStreamNumber);
+    }
     return retVal;
 }
 

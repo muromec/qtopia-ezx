@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pcktflowmgr.h,v 1.13 2006/12/21 05:06:58 tknox Exp $
+ * Source last modified: $Id: pcktflowmgr.h,v 1.16 2008/03/24 06:58:39 manvendras Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -61,7 +61,6 @@ class BWCalculator;
 class PacketStreamDoneCallback;
 class PacketStream;
 class DataConvertShim;
-class Player;
 class PacketFlowTimeCallback;
 class BasicPacketFlow;
 
@@ -75,23 +74,25 @@ public:
     PacketFlowManager(Process* pProc, BOOL bIsRTP);
     ~PacketFlowManager();
 
-    void RegisterSource(IHXPSourceControl* pSourceCtrl,
-                        IHXPacketFlowControl** ppPacketFlowControl,
-                        IHXSessionStats* pSessionStats,
-                        UINT16 unStreamCount,
-                        BOOL bIsLive,
-                        BOOL bIsMulticast,
-                        DataConvertShim* pDataConv);
-    
-    void RegisterSource(IHXPSourceControl* pSourceCtrl,
+    void RegisterSource(IUnknown* pSourceCtrl,
                         IHXPacketFlowControl** ppPacketFlowControl,
                         IHXSessionStats* pSessionStats,
                         UINT16 unStreamCount,
                         BOOL bIsLive,
                         BOOL bIsMulticast,
                         DataConvertShim* pDataConv,
-                        Player* pPlayerCtrl,
-                        const char* szPlayerSessionId);
+                        BOOL bIsFCS = FALSE);
+    
+    void RegisterSource(IUnknown* pSourceCtrl,
+                        IHXPacketFlowControl** ppPacketFlowControl,
+                        IHXSessionStats* pSessionStats,
+                        UINT16 unStreamCount,
+                        BOOL bIsLive,
+                        BOOL bIsMulticast,
+                        DataConvertShim* pDataConv,
+                        Client* pClient,
+                        const char* szPlayerSessionId,
+                        BOOL bIsFCS = FALSE);
 
     void SessionDone(BasicPacketFlow* pFlow);
 

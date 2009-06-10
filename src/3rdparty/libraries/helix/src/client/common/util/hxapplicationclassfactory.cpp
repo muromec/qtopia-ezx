@@ -17,7 +17,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -72,7 +72,9 @@ namespace HXApplicationClassFactory
 
 	HX_ASSERT(g_spAppClassFactory);
 
-#ifdef _WINDOWS
+      //Windows CE does not have the concept of environment variables or the Win32 API
+      // methods of GetEnvironmentVariable and SetEnvironmentVariable.
+#if defined(_WINDOWS) && !defined(_WINCE)
 	//under normal circumstances, this type of thing would be a big 'no, no'. The environment variable
 	//system, however, is quite convenient in that it makes data available process wide. Once the DLL requests
 	//the classfactory, it owns a ref count that won't be released until the DLL unloads- BE SURE TO UNLOAD
@@ -99,7 +101,7 @@ namespace HXApplicationClassFactory
 	if (g_bThisModuleInitedTheClassFactory)
 	{
 	    g_spAppClassFactory.Clear();
-#ifdef _WINDOWS
+#if defined (_WINDOWS) && !defined(WINCE)
 	    SetEnvironmentVariable(kApplicationEnvName, "");
 #endif
 	    return HXR_OK;
@@ -112,7 +114,7 @@ namespace HXApplicationClassFactory
     HX_RESULT Get(IHXCommonClassFactory **ppIHXCommonClassFactory)
     {
 	HX_RESULT outResult = HXR_FAIL;
-#ifdef _WINDOWS
+#if defined(_WINDOWS) && !defined(WINCE)
 	if (!g_spAppClassFactory)
 	{
 	    const DWORD *kpPointerSize;
@@ -124,7 +126,7 @@ namespace HXApplicationClassFactory
 		//system, however, is quite convenient in that it makes data available process wide. Once the DLL requests
 		//the classfactory, it owns a ref count that won't be released until the DLL unloads- BE SURE TO UNLOAD
 		//THE DLL BEFORE UNLOADING THE CLASSFACTORY! Failure to observe this rule will cause a crash on shutdown.
-		g_spAppClassFactory = (IHXCommonClassFactory *) atoi(szClassFactoryPointer);
+		g_spAppClassFactory = (IHXCommonClassFactory *) strtol(szClassFactoryPointer, NULL, 16);
 	    }
 	}
 #endif

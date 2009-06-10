@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: h264pyld.h,v 1.5 2007/01/11 16:32:08 aperiquet Exp $
+ * Source last modified: $Id: h264pyld.h,v 1.7 2009/01/15 17:18:51 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -101,13 +101,15 @@ public:
     virtual const UINT8* GetBitstreamHeader(void) { return m_pBitstreamHeader; }
 
     virtual HX_RESULT CreateHXCodecPacket(UINT32* &pHXCodecDataOut);
-    virtual const char* GetCodecId(void) { return m_pCodecId; }
+    virtual const char* GetCodecId(void);
+    virtual HX_RESULT   SetNextCodecId();
+    virtual void        ResetCodecId();
     virtual HX_RESULT SetTimeAnchor(UINT32 ulTime)
     {
         m_TSConverter.SetOffset(ulTime);
         return HXR_OK;
     }
-    virtual void SetAllocator(CHXBufferMemoryAllocator*	pAllocator);
+    virtual void      SetAllocator(CHXBufferMemoryAllocator*	pAllocator);
 
 private:
 
@@ -188,7 +190,7 @@ private:
     UINT8* pData;
     CNALUnit(void)
     : pData(NULL)
-	, usSize(0)
+        , usSize(0)
     {
         ;
     }
@@ -216,12 +218,12 @@ private:
     HX_RESULT ProducePackets(void);
 
     H264PayloadFormat::CNALUPacket* H264PayloadFormat::AllocNALUPacket(IHXBuffer* pBuffer);
-  	HX_RESULT ParsePacket(IHXPacket* pPacket);
+        HX_RESULT ParsePacket(IHXPacket* pPacket);
 
     HX_RESULT DeinterleavePackets(void);
 
     HX_RESULT DeinterleavePacket(CNALUPacket* pAUPacket);
-	
+        
     HX_RESULT ReapMediaPacket(void);
 
     inline UINT32 GetPacketTime(IHXPacket* pPacket);
@@ -275,7 +277,8 @@ private:
     UINT32              m_ulPrevDON;
     UINT32              m_ulSequenceNumber;
     UINT32              m_ulCodecDataSeqNumber;
-    static const char* const  m_pCodecId;
+    UINT32              m_ulCodecIDIndex;
+    static const char* const  m_ppszCodecId[];
 
     PayloadID           m_PayloadID;
     CTSConverter        m_TSConverter;
@@ -326,18 +329,18 @@ inline HXBOOL H264PayloadFormat::MayNALUPacketPrecede(CNALUPacket* pCandidate,
         if((pCandidate->usDON < pResident->usDON) && 
            ((pResident->usDON - pCandidate->usDON) >= 32768))
         {
-			uDon_diff = -(pCandidate->usDON + 65536 - pResident->usDON);
+                        uDon_diff = -(pCandidate->usDON + 65536 - pResident->usDON);
         }
         if((pCandidate->usDON > pResident->usDON) && 
            ((pCandidate->usDON - pResident->usDON) < 32768))
         {
-			uDon_diff = -(pCandidate->usDON - pResident->usDON);
+                        uDon_diff = -(pCandidate->usDON - pResident->usDON);
         }
         return (uDon_diff > 0);
     }
     else
     {
-	    return (pCandidate->usDON > pResident->usDON);
+            return (pCandidate->usDON > pResident->usDON);
     }
 }
 

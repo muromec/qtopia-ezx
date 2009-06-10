@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxthread.cpp,v 1.17 2006/12/06 10:35:07 gahluwalia Exp $
+ * Source last modified: $Id: hxthread.cpp,v 1.19 2008/01/18 07:35:17 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -78,6 +78,12 @@
 #else
 #include "macthrd.h"
 #endif
+#endif
+
+#if defined( _BREW)
+#include "AEECallbackUtil.h"
+#include "AEEShell.h"
+#include "brewasynctimer.h"
 #endif
 
 #include "hxheap.h"
@@ -268,6 +274,9 @@ UINT32 HXAsyncTimer::SetTimer(ULONG32 ulTimeOut, HXThread* pReceivingThread, IUn
     return HXUnixAsyncTimer::SetTimer(ulTimeOut, pReceivingThread );
 #elif defined _SYMBIAN
     return HXSymbianAsyncTimer::SetTimer(pContext, ulTimeOut, (IHXThread*)pReceivingThread );
+#elif defined _BREW
+    HX_ASSERT(!"HXAsyncTimer::SetTimer with threads not supported on BREW");
+    return 0;
 #else
     return 0;
 //#   error HXAsyncTimer::SetTimer not defined on this platform.
@@ -282,6 +291,8 @@ UINT32 HXAsyncTimer::SetTimer(ULONG32 ulTimeOut, TIMERPROC pfExecFunc, IUnknown*
     return HXUnixAsyncTimer::SetTimer(ulTimeOut, pfExecFunc );
 #elif defined _SYMBIAN
     return HXSymbianAsyncTimer::SetTimer(pContext, ulTimeOut, pfExecFunc );
+#elif defined _BREW
+    return HXBrewAsyncTimer::SetTimer(ulTimeOut, pfExecFunc );
 #else
     return 0;
 //#   error HXAsyncTimer::SetTimer not defined on this platform.
@@ -296,6 +307,8 @@ HXBOOL HXAsyncTimer::KillTimer(UINT32 ulTimerID )
     return HXUnixAsyncTimer::KillTimer(ulTimerID );
 #elif defined _SYMBIAN
     return HXSymbianAsyncTimer::KillTimer(ulTimerID);
+#elif defined _BREW
+    return HXBrewAsyncTimer::KillTimer(ulTimerID);
 #else
     return TRUE;
 //#   error HXAsyncTimer::KillTimer not defined on this platform.

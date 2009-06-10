@@ -33,6 +33,7 @@
  *  
  * ***** END LICENSE BLOCK ***** */ 
 
+#include "hlxclib/ctype.h"
 #include "hxcom.h"
 #include "hxccf.h"
 #include "ihxpckts.h"
@@ -70,6 +71,7 @@ HXURLUtil::ProtocolInfo HXURLUtil::GetProtocolInfo(const char* pszScheme)
         {"helix-sdp",   {ProtocolInfo::SCHEME_HELIX_SDP,   DEFAULT_RTSP_PORT}  },
         {"https",       {ProtocolInfo::SCHEME_HTTPS,       DEFAULT_HTTPS_PORT} },
         {"file",        {ProtocolInfo::SCHEME_FILE,                         0} },
+        {"fd",          {ProtocolInfo::SCHEME_FILE,                         0} },
 	{"prod",        {ProtocolInfo::SCHEME_PROD,                         0} },
     };
 
@@ -88,7 +90,8 @@ HXURLUtil::ProtocolInfo HXURLUtil::GetProtocolInfo(const char* pszScheme)
 }
 
 
-HX_RESULT HXURLUtil::GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValues*& pVal /* out*/)
+HX_RESULT HXURLUtil::GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValues*& pVal /* out*/,
+                                HXBOOL bAllBufferProperties)
 {
     HX_RESULT hr = HXR_FAIL;
 
@@ -103,7 +106,7 @@ HX_RESULT HXURLUtil::GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValu
         hr = pContext->QueryInterface(IID_IHXCommonClassFactory, (void**)&pFactory);
         if (HXR_OK == hr)
         {
-            hr = ParseOptions(url.Query(), pFactory, pVal);
+            hr = ParseOptions(url.Query(), pFactory, pVal, bAllBufferProperties);
             HX_RELEASE(pFactory);
         }
     }
@@ -112,25 +115,6 @@ HX_RESULT HXURLUtil::GetOptions(IUnknown* pContext, const HXURLRep& url, IHXValu
 }
 
 
-static void ScanToken(const char*& pData, char term, CHXString& token /*out*/)
-{
-    HX_ASSERT(pData);
-
-    const char* pEnd = ::HXFindChar(pData, term);
-    if(!pEnd)
-    {
-        // end is null term
-        pEnd = pData + strlen(pData);
-    }
-
-    HX_ASSERT(pEnd >= pData);
-    token = CHXString(pData, pEnd - pData);
-    token.TrimLeft();
-    token.TrimRight();
-
-    pData = pEnd;
-   
-}
 //XXXLCM move
 inline
 bool IsNumber(const char* pszValue)
@@ -148,7 +132,8 @@ bool IsNumber(const char* pszValue)
 
 HX_RESULT HXURLUtil::ParseOptions(const char* pszEscapedQuery, 
                          IHXCommonClassFactory* pFactory,
-                         IHXValues*& pVal /*out*/)
+                         IHXValues*& pVal /*out*/,
+                         HXBOOL bAllBufferProperties)
 {
     HX_ASSERT(pFactory);
 
@@ -160,69 +145,43 @@ HX_RESULT HXURLUtil::ParseOptions(const char* pszEscapedQuery,
 
     // look for <key>="<value>" or <key>=<value>
 
-    const char* pBegin = pszEscapedQuery;
-    const char* pEnd = pszEscapedQuery + strlen(pszEscapedQuery);
-    
-    while(pBegin != pEnd)
+    CHXString strEscapedQuery = pszEscapedQuery;
+    UINT32 nNumOptions = strEscapedQuery.CountFields('&');
+    for(UINT32 nIndex = 1; nIndex <= nNumOptions; nIndex++)
     {
-        
-        //
-        // key
-        //
-        CHXString key;
-        ScanToken(pBegin, '=', key);
-        if(*pBegin != '=')
-        {
+	CHXString strOption = strEscapedQuery.NthField('&', nIndex);
+	INT32 nPos = strOption.Find('=');
+	if(nPos == -1)
+	{
             // error: expected key termination '='
             hr = HXR_FAIL;
             break;
-        }
+	}
 
-        // set begin to position past '='
-        ++pBegin;
+	CHXString key = strOption.Left(nPos);
+	key.TrimRight();
+	key.TrimLeft();
 
-        // skip space
-        while(*pBegin == ' ')
-        {
-            ++pBegin;
-        }
+        CHXString value = strOption.Mid(nPos + 1);
+	value.TrimRight();
+	value.TrimLeft();
 
-        // 
-        // value
-        //
-        CHXString value;
-
-        bool valueIsQuoted = (*pBegin == '"');
-        if(valueIsQuoted)
-        {
-            //"value"
-            ++pBegin;
-            ScanToken(pBegin, '"', value);
-            if(*pBegin != '"')
-            {
-                // error: expected closing quote
-                hr = HXR_FAIL;
-                break;
-            }
-
-            // advance to end of value delimiter '&' or EOS
-            pBegin = ::HXFindChar(pBegin, '&');
-        }
-        else
-        {
-            ScanToken(pBegin, '&', value);
-        }
-
-        if(*pBegin == '&')
-        {
-            ++pBegin;
-        }
-        
         // escape possibly URL-encoded query string values
         key = HXEscapeUtil::UnEscape(key);
         value = HXEscapeUtil::UnEscape(value);
 
-        // add key value to collection
+	HXBOOL valueIsQuoted = FALSE;
+	// remove surrounding ""
+	UINT32 nValueLength = value.GetLength();
+	if(nValueLength >= 2 && value.GetAt(0) == '"' && value.GetAt(nValueLength - 1) == '"')
+	{
+	    valueIsQuoted = TRUE;
+	    value = value.Mid(1, nValueLength - 2);
+	    value.TrimRight();
+	    value.TrimLeft();
+	}
+
+	// add key value to collection
         if (!key.CompareNoCase("Start")
 	    || !key.CompareNoCase("End")
 	    || !key.CompareNoCase("Delay")
@@ -232,7 +191,7 @@ HX_RESULT HXURLUtil::ParseOptions(const char* pszEscapedQuery,
         }
         else
         {
-            if(valueIsQuoted || !IsNumber(value))
+            if(valueIsQuoted || !IsNumber(value) || bAllBufferProperties)
             {
                 IHXBuffer* pBuffer = 0;
                 hr = pFactory->CreateInstance(CLSID_IHXBuffer, (void**)&pBuffer);

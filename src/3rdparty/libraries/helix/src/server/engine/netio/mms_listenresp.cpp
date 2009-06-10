@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  $Id: mms_listenresp.cpp,v 1.9 2005/01/25 22:55:21 jzeng Exp $
+ *  $Id: mms_listenresp.cpp,v 1.10 2008/07/28 22:56:07 dcollins Exp $
  *
  *  Copyright (C) 1995-2002 RealNetworks, Inc.
  *  All rights reserved.
@@ -56,7 +56,7 @@ STDMETHODIMP
 MMSListenResponse::OnConnection(IHXSocket* pNewSock, IHXSockAddr* pSource)
 {
     HXSocketConnection* pConn;
-    pConn = new HXSocketConnection(pNewSock, HXPROT_MMS);
+    pConn = new HXSocketConnection(pNewSock, HXPROT_MMS, m_pMessages);
     // NB: We do not AddRef the connection, the socket does
 
     return HXR_OK;

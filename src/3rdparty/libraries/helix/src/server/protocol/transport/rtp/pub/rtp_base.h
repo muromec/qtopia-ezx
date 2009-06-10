@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtp_base.h,v 1.8 2006/12/21 19:16:13 tknox Exp $
+ * Source last modified: $Id: rtp_base.h,v 1.12 2009/02/01 00:28:32 jgordon Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -129,7 +129,7 @@ struct ServerLSRRecord
 class ServerRTPBaseTransport: public Transport
 {
 public:
-    ServerRTPBaseTransport                    (HXBOOL bIsSource);
+    ServerRTPBaseTransport                    (HXBOOL bIsSource, HXBOOL bOldTS = FALSE);
     ~ServerRTPBaseTransport                   (void);
 
     // IUnknown
@@ -211,14 +211,6 @@ protected:
     void messageFormatDebugFileOut(const char* fmt, ...);
 #endif  // RTP_MESSAGE_DEBUG
 
-    /*
-     * Marker Bit Handling Routine
-     */
-    typedef void (ServerRTPBaseTransport::*HandleMBitFunc)(REF(UINT8),IHXPacket*,UINT16);
-    inline void MBitRTPPktInfo (REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRuleNo);
-    inline void MBitASMRuleNo  (REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRuleNo);
-
-
     IHXTransportSyncServer*             m_pSyncServer;
     UINT16                              m_streamNumber;
     UINT8                               m_rtpPayloadType;
@@ -239,7 +231,6 @@ protected:
      UINT32                             m_ulPayloadWirePacket;
      UINT16                             m_RTCPRuleNumber;
 
-    INT32                               m_lTimeOffsetRTP;
     INT32                               m_lSyncOffsetHX;
     INT32                               m_lSyncOffsetRTP;
     INT32                               m_lNTPtoHXOffset;
@@ -258,7 +249,7 @@ protected:
     HXBOOL                                m_bSeqNoSet;
     /* m_bRTPTimeSet is used differently on the server and the client */
     HXBOOL                                m_bRTPTimeSet;
-
+    
 
     Timeval*                            m_pFirstPlayTime;
     Timeval*                m_pLastPauseTime;
@@ -284,11 +275,6 @@ protected:
      * Support for PV Emulation
      */
     HXBOOL                m_bEmulatePVSession;
-
-    /*
-     * Markerbit Handling
-     */
-    HandleMBitFunc      m_pMBitHandler;
 
     /*
      * Reflector RTP-Info
@@ -320,7 +306,11 @@ protected:
     ServerLSRRecord m_LSRHistory [LSR_HIST_SZ];
     UINT32          MapLSR(UINT32 ulSourceLSR);
 
-    IHXQoSTransportAdaptationInfo*      m_pQoSInfo;
+    IHXQoSTransportAdaptationInfo*  m_pQoSInfo;
+
+    HXBOOL                          m_bOldTSStatic;
+    HXBOOL                          m_bFirstTSSet;
+    HXBOOL                          m_bReportHandlerReady;
 
     friend class ServerRTCPBaseTransport;
     friend class ServerRTCPUDPTransport;

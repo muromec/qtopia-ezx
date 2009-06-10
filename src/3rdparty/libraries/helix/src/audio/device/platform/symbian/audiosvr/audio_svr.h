@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audio_svr.h,v 1.8 2007/04/03 18:24:49 rrajesh Exp $
+ * Source last modified: $Id: audio_svr.h,v 1.10 2009/02/27 22:58:43 shivnani Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -61,7 +61,7 @@
 #include <stdio.h>
 #include <e32base.h>
 #include <bacntf.h>
-#include <mmf\common\Mmfbase.h>
+#include <mmf/common/Mmfbase.h>
 
 #include "hxcom.h"
 #include "hxausvc.h"

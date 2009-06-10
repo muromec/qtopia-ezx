@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtppkt.h,v 1.20 2005/12/14 02:58:55 jgordon Exp $
+ * Source last modified: $Id: rtppkt.h,v 1.24 2007/09/21 05:23:30 rdolas Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -58,7 +58,7 @@ struct buffer {
 #endif/*PMC_PREDEFINED_TYPES*/
 
 
-/* $Id: rtppkt.h,v 1.20 2005/12/14 02:58:55 jgordon Exp $ */
+/* $Id: rtppkt.h,v 1.24 2007/09/21 05:23:30 rdolas Exp $ */
 
 #ifndef _RTPPKT_H_
 #define _RTPPKT_H_
@@ -94,6 +94,7 @@ const int APP_EOS       = 1;
 const int APP_BUFINFO   = 2;
 
 #include "hxinline.h"
+#include "bufnum.h"
 
 class RTPPacketBase
 {
@@ -329,6 +330,11 @@ ReceptionReport::unpack(UINT8* buf, UINT32 len)
         lost  = (UINT32)(*off++ << 16);
         lost |= (UINT16)(*off++ << 8);
         lost |= *off++;
+
+        if (lost >= 0x00800000)
+        {
+            lost = 0;
+        }
     }
     {
         last_seq = GetDwordFromBufAndInc(off);

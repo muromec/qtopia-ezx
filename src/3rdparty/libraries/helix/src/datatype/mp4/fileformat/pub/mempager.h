@@ -67,8 +67,7 @@ typedef _INTERFACE IHXFileSwitcher   IHXFileSwitcher;
  *	Enables paging of file sections into memory
  *
  */
-class CMemPager : public IHXFileResponse,
-		  public IHXThreadSafeMethods
+class CMemPager : public IHXFileResponse
 {
 public:
     /*
@@ -143,11 +142,6 @@ public:
 
     STDMETHOD(SeekDone)		(THIS_ 
 				HX_RESULT status);
-
-    /*
-     *  IHXThreadSafeMethods method
-     */
-   STDMETHOD_(UINT32,IsThreadSafe) (THIS);
 
 private:
     typedef enum

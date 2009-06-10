@@ -9,6 +9,9 @@ UmakefileVersion(2,1)
 if not project.IsDefined("HELIX_FEATURE_PARTIALPLAYBACK"):
 	project.AddDefines("_IGNORE_UNSUPPORTED")
 
+if project.IsDefined("HELIX_CONFIG_MOBLIN"):
+    project.AddDefines('HW_VIDEO_MEMORY_FRONTEND')
+
 project.AddModuleIncludes("common/include",
 			  "common/runtime/pub",
 			  "common/dbgtool/pub",

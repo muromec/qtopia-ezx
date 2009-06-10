@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxmedpltfm.h,v 1.17 2007/04/14 04:38:51 ping Exp $
+ * Source last modified: $Id: chxmedpltfm.h,v 1.28 2009/04/24 14:10:15 jiau Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,13 +53,23 @@
 #include "unkimp.h"
 #include "ihxmedpltfm.h"
 #include "ihxobjectmanagerprivate.h"
+#ifdef HELIX_FEATURE_PROGDOWN
+    #include "ihxdownloadmgr.h"
+#endif
+
+#ifdef HELIX_FEATURE_AUTOUPGRADE
+    #include "ihxautoupgrademgr.h"
+    #include "upgrdcol.h"
+#endif
 #include "hxccf.h"
 #include "hxslist.h"
 #include "hxprefs.h"
 #include "hxsched.h"
 #include "hxclreg.h"
 #include "hxnet.h"
+#ifdef HELIX_FEATURE_NETINTERFACES
 #include "hxnetif.h"
+#endif
 #include "hxwintyp.h"
 #include "hxwin.h"
 #include "hxplugn.h"
@@ -67,6 +77,13 @@
 #include "thrhypnv.h"
 #include "chxmedpltfmkicker.h"
 #include "hxthreadsync.h"
+#include "ihxcookies.h"
+#include "cookhlpr.h"
+#include "cookies.h"
+
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
+#include "ihxtlogsystem.h"
+#endif
 
 #if defined(_STATICALLY_LINKED) || !defined(HELIX_FEATURE_PLUGINHANDLER2)
 #if defined(HELIX_CONFIG_CONSOLIDATED_CORE)
@@ -98,6 +115,7 @@ struct PluginPathInfo
 
 class CHXMediaPlatform : public CUnknownIMP
 		       , public IHXMediaPlatform
+		       , public IHXMediaPlatformQuery
 		       , public IHXCommonClassFactory
 		       , public IHXObjectManagerPrivate
 {
@@ -128,9 +146,22 @@ protected:
     IHXMutex*		    m_pMutex;
     IHXRegistry*	    m_pRegistry;
     IHXNetServices*	    m_pNetServices;
+
+#ifdef HELIX_FEATURE_PROGDOWN
+    IHXDownloadManager*     m_pDownloadMgr;
+#endif
+
+#ifdef HELIX_FEATURE_AUTOUPGRADE
+    IHXAutoUpgradeManager*  m_pAutoUpgdMgr;
+#endif
+
     IHXHyperNavigate*       m_pHyperNavigate;
     CHXMediaPlatformKicker* m_pKicker;
+#ifdef HELIX_FEATURE_NETINTERFACES	
     HXNetInterface*         m_pNetInterfaces;
+#endif
+    HXCookiesHelper*	    m_pCookiesHelper;
+    HXCookies*		    m_pCookies;
 #if defined(HELIX_FEATURE_VIDEO)    
     IHXSiteEventHandler*    m_pSiteEventHandler;
 #endif	// HELIX_FEATURE_VIDEO
@@ -140,6 +171,9 @@ protected:
 #if defined(HELIX_FEATURE_HYPER_NAVIGATE)
     HXThreadHyperNavigate*  m_pDefaultHyperNavigate;
 #endif /* HELIX_FEATURE_HYPER_NAVIGATE */
+#if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
+    IHXLogSystemManager*    m_pLogSystemManager;
+#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) */
 
     IHXScheduler*	    m_pExtScheduler;
     IHXMediaPlatformKicker* m_pExtKicker;
@@ -165,8 +199,12 @@ protected:
     HX_RESULT		    CreateInstanceFromPluginHandler(REFCLSID rclsid, void** ppUnknown, IUnknown *pUnkOuter, IUnknown* pContext);
 
     HX_RESULT		    InitDefaultPreferences(void);
+    HX_RESULT               InitLogging();
 
     HX_RESULT		    _InternalQI(REFIID riid, void** ppvObj);
+    
+	HX_RESULT			InsertValuesToList(const char* pszTypeValue, UINT32 ulPropertyValue, const char* pszTypeId, const char* pszPropertyId, IHXList* pTypeList);
+
 
 public:
     static CHXMediaPlatform* CreateInstance(CHXMediaPlatform* pParent = NULL, 
@@ -211,6 +249,26 @@ public:
 					     REFCLSID	    rclsid,
 					     REF(IUnknown*) ppUnknown,
 					     IUnknown*	    pUnkOuter);
+
+		/*
+     *	IHXMediaPlatformQuery methods
+     */
+
+		STDMETHOD(GetSupportedMIMETypes) (THIS_  
+							UINT32 ulMimeTypePurposeMask, 
+							REF(IHXList*) rpMimeTypeList);
+							
+		STDMETHOD(GetSupportedProtocols) (THIS_
+							UINT32 ulProtocolPurposeMask, 
+							REF(IHXList*) rpProtocolList);
+		
+		STDMETHOD(GetSupportedDevices) (THIS_ 
+							UINT32 ulDeviceTypeMask, 
+							REF(IHXList*) rpDeviceList);
+		
+		STDMETHOD(GetDeviceInfo) (THIS_ 
+							const char* szDeviceId, 
+							REF(IHXValues*) rpPropertiesValue);
 
     // IHXObjectManagerPrivate methods
     STDMETHOD(ObjectFromCLSIDPrivate) (THIS_ REFCLSID clsid,REF(IUnknown *)pObject, 

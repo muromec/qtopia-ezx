@@ -14,13 +14,14 @@ project.AddModuleIncludes(
     , "server/common/struct/pub"
     , "server/engine/core/pub"
     , "server/engine/context/pub"
+    , "server/qos/core/pub"
 	)
 
 if "HELIX_FEATURE_SERVER_CAPEX" in project.defines:
-    project.AddModuleIncludes("server_rn/capex/common/pub")
+    project.AddModuleIncludes("server-restricted/capex/common/pub")
 
 if "HELIX_FEATURE_SERVER_CAPEX" in project.defines:
-    project.AddModuleLibraries("server_rn/capex/common[servcapexlib_rn]")
+    project.AddModuleLibraries("server-restricted/capex/common[servcapexlib_rn]")
 
 project.AddSources(
      "client_profile_mgr.cpp"

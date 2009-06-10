@@ -240,7 +240,7 @@ typedef struct
                     bSequenceHeader,
                     bStillFrame;
 
-    tMPEG_SEQ_HDR   seqHdr;
+    struct tMPEG_SEQ_HDR   seqHdr;
 
 } tFrameObj;
 

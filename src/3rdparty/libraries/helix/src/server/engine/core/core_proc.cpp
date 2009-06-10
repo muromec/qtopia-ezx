@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: core_proc.cpp,v 1.61 2007/03/05 23:24:05 atin Exp $
+ * Source last modified: $Id: core_proc.cpp,v 1.79 2009/02/25 21:16:50 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -84,7 +84,6 @@
 #include "hxprot.h"
 #include "listenresp.h"
 #include "rtsp_listenresp.h"
-#include "lbound_listenresp.h"
 #include "http_listenresp.h"
 #include "core_container.h"
 #include "core_controller_cont.h"
@@ -96,6 +95,7 @@
 #include "_main.h"
 #include "fdpass_socket.h"
 #include "config.h"
+#include "uasconfig.h"
 #include "servreg.h"
 #include "server_prefs.h"
 #include "server_info.h"
@@ -116,11 +116,11 @@
 #include "misc_plugin.h"
 
 #include "mcast_ctrl.h"
-#include "cloaked_guid_dict.h"
 #include "tsdict.h"
 #include "bcastmgr.h"
 #include "hdprefctrl.h"
 #include "mimetpref.h"
+#include "tsmap.h"
 
 #include "hxqossig.h"
 #include "hxqos.h"
@@ -136,7 +136,6 @@
 #include "sapclass.h"       // CSapManager
 #include "server_control.h" // GlobalServerControl
 #include "hxdtcvt.h"        // IHXDataConvert
-#include "dist_lic_requester.h"
 #include "dtcvtcon.h"       // DataConvertController
 #include "altserverproxycfg.h"      // AltServerProxyConfigHandler
 
@@ -601,7 +600,6 @@ void
 CoreProcessInitCallback::func(Process* proc)
 {
     Config*         config   = NULL;
-    DistributedLicenseRequester* license_requester = NULL;
     ServerRegistry* registry = NULL;
     int backlog = 0;
     int setegid_err = 0;
@@ -613,8 +611,6 @@ CoreProcessInitCallback::func(Process* proc)
 
     proc->pc = new CoreContainer(proc);
     proc->pc->process_type = PTCore;
-
-    proc->pc->lbound_tcp_listenRTSPResponse = NULL;
 
     proc->pc->dispatchq = dispatch_queue;
     proc->pc->dispatchq->init(proc);
@@ -654,6 +650,12 @@ CoreProcessInitCallback::func(Process* proc)
         terminate(1);
     }
 
+    //Load user agent settings from .uas files into the registry
+    UASConfig* pUasConfig = new UASConfig(proc);
+    pUasConfig->AddRef();
+    pUasConfig->Load();
+    proc->pc->uasconfig = pUasConfig;
+
     proc->pc->client_stats_manager = new ClientStatsManager;
     //proc->pc->client_stats_manager->AddRef();
 
@@ -664,7 +666,6 @@ CoreProcessInitCallback::func(Process* proc)
         proc->pc->client_stats_manager->SetUseRegistryForStats(nUseRegistryForStats ? TRUE : FALSE);
     }
 
-    proc->pc->license_requester = new DistributedLicenseRequester;
 
 
     /*
@@ -880,17 +881,6 @@ CoreProcessInitCallback::func(Process* proc)
     // setting StreamerCount is the way to do this now.
     *g_pCPUCount = g_bSkipCPUTest ? 1 : CPUDetect();
 
-    //
-    // This just gives the "Linux22Compat" code a platform-neutral
-    // name for testing/debugging on other platforms.
-    //
-    UINT32 ulLessParallel = config->GetInt(proc, "config.LessParallel");
-    if (ulLessParallel)
-    {
-        printf("Note: Configuration specified LessParallel mode.\n");
-        *g_bLimitParallelism = TRUE;
-    }
-
 
 #ifdef _UNIX
     const char* pPIDPath;
@@ -1002,9 +992,25 @@ CoreProcessInitCallback::func(Process* proc)
 
     SharedMemory::SetTimePtr(&proc->pc->engine->now);
 
+    // Set the SingleMaxMemoryAllocation from config.
+    // Default to 64 MB, if not configured or if the
+    // configured value is less than 64 MB.
+    INT32 nTmp;
+
+    if (FAILED(registry->GetInt("config.SingleMaxMemoryAllocation", &nTmp, proc)) ||
+        nTmp < SINGLE_MAX_MEMORY_ALLOCATION)
+    {
+        nTmp = SINGLE_MAX_MEMORY_ALLOCATION;
+    }
+
+    SharedMemory::SetSingleMaxAllocation(nTmp);
+
 #ifdef PAULM_LEAKCHECK
     if (g_bLeakCheck)
+    {
+        proc->pc->registry->AddInt("server.LeakCheckEnabled", 1, proc);
         new MemChecker(proc);
+    }
 #endif /* PAULM_LEAKCHECK */
 
     proc->pc->misc_plugins      = new CHXMapPtrToPtr();
@@ -1043,9 +1049,11 @@ CoreProcessInitCallback::func(Process* proc)
     new HTTPDeliverablePrefController(proc, (char*)"config.HTTPPostable",
                                       proc->pc->HTTP_postable_paths);
 
-    proc->pc->cloaked_guid_dict = new CloakedGUIDDict();
+    proc->pc->cloaked_guid_dict = new CHXThreadSafeMap();
     proc->pc->broadcast_manager = new BroadcastManager();
-    proc->pc->load_listen_mgr = new LoadBalancedListenerManager(proc);
+    proc->pc->load_listen_mgr   = new LoadBalancedListenerManager(proc);
+    proc->pc->fcs_session_map   = new CHXThreadSafeMap();
+    proc->pc->sspl_session_map  = new CHXThreadSafeMap();
 
     /*
      * Setup the global mimetype dictionary.
@@ -1174,7 +1182,7 @@ CoreProcessInitCallback::func(Process* proc)
     // operations. g_pMemoryMappedDataSize is used to report the amount of
     // mmapped data that is read via the local file system (smplfsys).
     registry->AddIntRef("server.MMappedDataSize",
-	(INT32 *)g_pMemoryMappedDataSize, proc);
+    (INT32 *)g_pMemoryMappedDataSize, proc);
 
     proc->pc->engine->mainloop();
 
@@ -1194,6 +1202,45 @@ ReportListenErrorAndExit()
     terminate(1);
     /* NOTREACHED */
     HX_ASSERT(FALSE);
+}
+
+/**
+ * The bShareSamePort variable, if TRUE,  specifies that the process can share the same 
+ * the same port value as another process. If this variable is FALSE, the function would 
+ * report an error. Mainly introduced for SSPL, FCS and FileSys Port Sharing.
+ */
+void CoreProcessInitCallback::InitHTTPControlPort(char* szConfigString,
+                                                  Process* proc,
+                                                  Config* config,
+                                                  ServerRegistry* registry,
+                                                  HXBOOL bShareSamePort)
+{
+    IHXActivePropUser* pActiveUser = NULL;
+    UINT32 uPort = config->GetInt(proc, szConfigString);
+
+    if(uPort == 0)
+    {
+        //not found
+        return;
+    }
+
+    HTTPListenResponse* pResponse = new HTTPListenResponse(proc);
+    if (pResponse->Init(uPort) != HXR_OK)
+    {
+        if(bShareSamePort && (hx_lastsockerr() == SOCKERR_ADDRINUSE))
+            return;
+
+        ReportListenErrorAndExit();
+    }
+
+    if (HXR_OK == pResponse->QueryInterface(IID_IHXActivePropUser,
+        (void**)&pActiveUser) && pActiveUser)
+    {
+        registry->SetAsActive(szConfigString, pActiveUser, proc);
+        HX_RELEASE(pActiveUser);
+    }
+    pResponse->AddRef();
+    ((CoreContainer*)proc->pc)->m_pListenResponseList->AddTail(pResponse);
 }
 
 void
@@ -1226,47 +1273,27 @@ CoreProcessInitCallback::_initializeListenRespObjects(
     pRTSPResponse->AddRef();
     ((CoreContainer*)proc->pc)->m_pListenResponseList->AddTail(pRTSPResponse);
 
-    uPort = config->GetInt(proc, "config.HTTPPort");
+    InitHTTPControlPort("config.HTTPPort", proc, config, registry, FALSE);
 
-    HTTPListenResponse* pHTTPResponse = new HTTPListenResponse(proc);
-    if (pHTTPResponse->Init(uPort) != HXR_OK)
-    {
-        ReportListenErrorAndExit();
-    }
+#if defined(HELIX_FEATURE_SERVER_FCS)
+    //ChannelControlPort for FCS.
+    InitHTTPControlPort("config.ChannelControlPort", proc, config, registry, TRUE);
+#endif //HELIX_FEATURE_SERVER_FCS
 
-    /* Set the HTTP port as active. */
-    if (HXR_OK == pHTTPResponse->QueryInterface(IID_IHXActivePropUser,
-        (void**)&pActiveUser) && pActiveUser)
-    {
-        registry->SetAsActive("config.HTTPPort", pActiveUser, proc);
-        HX_RELEASE(pActiveUser);
-    }
-    pHTTPResponse->AddRef();
-    ((CoreContainer*)proc->pc)->m_pListenResponseList->AddTail(pHTTPResponse);
+#if defined(HELIX_FEATURE_SERVER_SSPL)
+    //sspl control port
+    InitHTTPControlPort("config.PlaylistControlPort", proc, config, registry, TRUE);
+#endif //HELIX_FEATURE_SERVER_SSPL
+
+#if defined(HELIX_FEATURE_SERVER_CONTENT_MGMT)
+    //content management port
+    InitHTTPControlPort("config.FileSystemControlPort", proc, config, registry, TRUE);
+#endif //HELIX_FEATURE_SERVER_CONTENT_MGMT
 
     /*
      *  If they specified an AdminPort, then we need to open that too.
      */
-    HX_RESULT res;
-    res = registry->GetInt("config.AdminPort", (INT32*)&uPort, proc);
-    if (res == HXR_OK)
-    {
-        HTTPListenResponse* pAdminHTTPResponse = new HTTPListenResponse(proc);
-        if (pAdminHTTPResponse->Init(uPort) != HXR_OK)
-        {
-            ReportListenErrorAndExit();
-        }
-
-        /* Set the admin port as active */
-        if (HXR_OK == pAdminHTTPResponse->QueryInterface(IID_IHXActivePropUser,
-                (void**)&pActiveUser) && pActiveUser)
-        {
-            registry->SetAsActive("config.AdminPort", pActiveUser, proc);
-            HX_RELEASE(pActiveUser);
-        }
-        pAdminHTTPResponse->AddRef();
-        ((CoreContainer*)proc->pc)->m_pListenResponseList->AddTail(pAdminHTTPResponse);
-    }
+    InitHTTPControlPort("config.AdminPort", proc, config, registry, FALSE);
 
 #ifdef HELIX_FEATURE_SERVER_WMT_MMS
     uPort = config->GetInt(proc, "config.MMSPort");
@@ -1291,11 +1318,6 @@ CoreProcessInitCallback::_initializeListenRespObjects(
     pMMSResponse->AddRef();
     ((CoreContainer*)proc->pc)->m_pListenResponseList->AddTail(pMMSResponse);
 #endif
-
-    //local bound stuff.  set the listening response
-    LBoundRTSPListenResponse* pLBResponse;
-    pLBResponse = new LBoundRTSPListenResponse(proc);
-    proc->pc->lbound_tcp_listenRTSPResponse = pLBResponse;
 }
 
 void

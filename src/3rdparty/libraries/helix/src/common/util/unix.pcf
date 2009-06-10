@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: unix.pcf,v 1.4 2004/07/09 18:23:51 hubbe Exp $
+# Source last modified: $Id: unix.pcf,v 1.6 2008/08/27 10:18:49 lovish Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 or later (the
+# terms of the GNU General Public License Version 2 (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -54,6 +54,7 @@ project.AddSources("platform/unix/unix_hurl.cpp",
                    "platform/unix/unix_misc.cpp",
                    "platform/unix/unix_pref.cpp",
                    "platform/unix/cunixprefutils.cpp",
-                   "platform/unix/uproc.cpp")
+                   "platform/unix/uproc.cpp",
+                   "platform/unix/hxunixthreadmessagesink.cpp")
 
 project.AddIncludes("pub/platform/unix")

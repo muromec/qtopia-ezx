@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxwsasocketselector.cpp,v 1.4 2006/02/23 22:31:01 ping Exp $ 
+ * Source last modified: $Id: hxwsasocketselector.cpp,v 1.6 2007/09/21 09:01:51 anshuman Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 or later (the 
+ * terms of the GNU General Public License Version 2 (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -72,6 +72,15 @@
 static const char HX_THIS_FILE[] = __FILE__;
 #endif									 
 
+#ifdef _WINCE
+// Wince does have an implementation for WSAAsyncSelect but not documented
+extern "C" int WSAAsyncSelect(
+  SOCKET s,
+  HWND hWnd,
+  unsigned int wMsg,
+  long lEvent
+);
+#endif //_WINCE
 
 HXSocketSelector* HXSocketSelector::AllocInstance()
 {

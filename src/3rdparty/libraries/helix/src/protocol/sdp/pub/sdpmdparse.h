@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdpmdparse.h,v 1.16 2006/05/15 18:49:24 damann Exp $
+ * Source last modified: $Id: sdpmdparse.h,v 1.19 2009/03/14 01:35:32 ckarusala Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -115,6 +115,7 @@ private:
                           IHXValues* pHdr) const;
     HX_RESULT HandleCLine(char* pLine, IHXValues* pHdr) const;
     HX_RESULT HandleBLine(char* pLine, IHXValues* pHdr) const;
+    HX_RESULT HandleOLine(char* pLine, IHXValues* pHdr) const;
 
     HX_RESULT ParseFieldValue(char*& pValue, FieldType& fieldType) const;
     HX_RESULT HandleSpecialFields(SDPParseState* pState,
@@ -145,6 +146,7 @@ private:
 
     HX_RESULT  HandleFramesizeField(char* pFieldValue, IHXValues* pHdr) const;
     HX_RESULT  HandleFramerateField(char* pFieldValue, IHXValues* pHdr) const;
+    HX_RESULT  HandleClipRectField(char* pFieldValue, IHXValues* pHdr) const;
 
     HX_RESULT  Handle3GPPAssetInformationField(char* pFieldValue,
                                                IHXValues* pHdr) const;

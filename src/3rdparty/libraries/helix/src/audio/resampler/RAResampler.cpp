@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: RAResampler.cpp,v 1.17 2004/11/02 22:54:22 jchaney Exp $
+ * Source last modified: $Id: RAResampler.cpp,v 1.19 2007/07/19 19:05:29 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -646,6 +646,7 @@ HX_RESULT RAExactResampler::Create(RAExactResampler** pRes, int inrate, int outr
 
     /* only instantiate the MMX resampler if we are compiling on an x86 architecture
        and running on a machine with MMX */
+#ifndef HELIX_CONFIG_NIMBUS
 #if defined(_M_IX86) /* || defined(__i386__) */ /* no unix mmx code yet */
     
     CPUInformation info ;
@@ -659,6 +660,7 @@ HX_RESULT RAExactResampler::Create(RAExactResampler** pRes, int inrate, int outr
         res = RAMMXResampler::Create(pRes, inrate, outrate, chans, intype, atten, passband, stopband, dcgain) ;
     }
 #endif
+#endif /* HELIX_CONFIG_NIMBUS */
 
     if (FAILED(res))
     {

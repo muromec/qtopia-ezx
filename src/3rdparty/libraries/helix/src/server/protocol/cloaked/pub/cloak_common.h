@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cloak_common.h,v 1.4 2005/07/19 00:41:10 darrick Exp $
+ * Source last modified: $Id: cloak_common.h,v 1.7 2009/05/13 21:03:48 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -41,11 +41,10 @@
 #include "hxtypes.h"
 #include "hxnet.h"
 #include "servsockimp.h"
-#include "servlbsock.h"
 #include "hxslist.h"
 
 class CHXList;
-class RTSPProtocol;
+class RTSPServerProtocol;
 class CBaseCloakPOSTHandler;
 class CBaseCloakGETHandler;
 
@@ -139,6 +138,9 @@ public:
     UINT32                      GetCloakMode();
     void                        SetCloakMode(UINT32 ulMode);
 
+    inline void                 SetProcNum(int nProcNum) { m_nProcNum = nProcNum; };
+    inline int                  GetProcNum(void) { return m_nProcNum; }
+
 
 private:
 
@@ -146,7 +148,7 @@ private:
 
     CHXSimpleList               m_ReadQueue;
 
-    RTSPProtocol*               m_pRTSPProt;    // for initializing RTSP stack
+    RTSPServerProtocol*         m_pRTSPServProt;// for initializing RTSP stack
     IHXSocketResponse*          m_pRTSPSvrProt; // for communication w/ RTSP stack
 
     IHXSocket*                  m_pRefSock;     // reference socket, for addr info, etc.
@@ -154,11 +156,11 @@ private:
 
     UINT32                      m_ulCloakMode;  // Cloaking mode.
 
-public:
+    int                         m_nProcNum;     // Streamer for the connection
 
-    int                         m_iProcNum;     // Streamer for the connection
     CHXSimpleList               m_POSTHandlers; // Associated POST connections
-    HX_MUTEX                    m_pMutex;       // functional mutex protection
+    HX_MUTEX                    m_pPOSTHandlersLock; // Lock for m_POSTHandlers
+
 };
 
 

@@ -97,9 +97,14 @@ public:
     virtual const char* GetCodecId(void);
     ULONG32 GetBitstreamHeaderSize(void);
     const UINT8* GetBitstreamHeader(void);
+    HX_RESULT    GetStreamHeader(REF(IHXValues*) rpValues);
 
     ULONG32 m_ulMaxDecodedFrames;
     CMP4VideoRenderer* m_pMP4VideoRenderer;
+
+    HXBOOL m_bDecoderMemMgt;
+    void _KillOutputBuffer(void* pBuffer);
+    void DecoderReleaseBuffer(UINT8* pBuff) ;
     
 protected:
     /*
@@ -108,6 +113,7 @@ protected:
     virtual CMediaPacket* CreateAssembledPacket(IHXPacket* pCodecData);
     virtual CMediaPacket* CreateDecodedPacket(CMediaPacket* pFrameToDecode);
     virtual CMP4VDecoder* CreateDecoder();
+    virtual void          OnPacketsEnded();
     virtual void ProcessAssembledFrame(CMediaPacket* pAssembledFrame) {};
 
     virtual ULONG32 GetMaxDecodedFrames(void);
@@ -121,6 +127,7 @@ private:
 
     HX_RESULT SetupOutputFormat(HX_MOF* pMof);
     HX_RESULT CreateAllocators(void);
+    CMediaPacket* CreateFinalDummyFrame();
 
     void FlushDecodedRngBuf(void);
 

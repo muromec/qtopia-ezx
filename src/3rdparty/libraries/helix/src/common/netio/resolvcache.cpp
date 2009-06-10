@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: resolvcache.cpp,v 1.7 2005/09/01 23:03:34 seansmith Exp $
+ * Source last modified: $Id: resolvcache.cpp,v 1.8 2007/09/21 08:54:13 anshuman Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -407,10 +407,12 @@ CResolverCache::ReadConfig(void)
 #if defined(_UNIX)
     fp = fopen("/etc/hosts", "r");
 #elif defined(_WIN32)
+#ifndef UNDER_CE
     char szPath[255];
     ExpandEnvironmentStrings("%windir%\\system32\\drivers\\etc\\hosts",
                     szPath, sizeof(szPath));
     fp = fopen(szPath, "r");
+#endif //!UNDER_CE
 #else
 #error "Don't know how to open platform hosts file"
 #endif

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: limits.h,v 1.3 2004/07/09 18:21:09 hubbe Exp $
+ * Source last modified: $Id: limits.h,v 1.5 2008/01/18 09:17:27 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,8 +57,24 @@
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
 
-#include <limits.h>
+#ifdef _BREW
+#ifndef UINT_MAX
+#define LONG_MAX 0x7FFFFFFF
+#define LONG_MIN 0x7FFFFFFE
+#define UINT_MAX 0xffffffffU
+#define UCHAR_MAX 0xffU
+#define INT_MAX 0x7FFFFFFF
+#define INT_MIN 0x7FFFFFFE
+#define SHRT_MAX 0x7FFF
+#define SHRT_MIN 0x7FFE
+#define ULONG_MAX   0xffffffffUL
+#define CHAR_BIT    8	/* number of bits in a char */
+#endif
+#endif
 
+#if !defined(_BREW)
+#include <limits.h>
+#endif
 #ifdef LIMITS_UNDEF_WIN32
 #undef _WIN32
 #undef LIMITS_UNDEF_WIN32

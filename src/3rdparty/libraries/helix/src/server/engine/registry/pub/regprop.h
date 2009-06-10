@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regprop.h,v 1.3 2003/03/19 21:30:14 gwright Exp $ 
+ * Source last modified: $Id: regprop.h,v 1.4 2009/05/30 19:11:00 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -63,11 +63,9 @@ public:
 class ServRegProperty
 {
 public:
-    REGISTRY_CACHE_MEM
-
     ServRegProperty();
-    ServRegProperty(ServRegKey* n, HXPropType t, RegistryMemCache* pCache);
-    ServRegProperty(char* n, HXPropType t, RegistryMemCache* pCache);
+    ServRegProperty(ServRegKey* n, HXPropType t);
+    ServRegProperty(char* n, HXPropType t);
     virtual ~ServRegProperty();
 
     // mutator methods
@@ -119,7 +117,6 @@ public:
 
 private:
     ServRegKey*         _prop_name;
-    RegistryMemCache*   _reg_mem_cache;
     HXPropType         _prop_type;
     // (in bytes) mainly for strings/binary blobs
     INT32               _prop_size;
@@ -137,7 +134,6 @@ private:
 inline
 ServRegProperty::ServRegProperty()
     : _prop_name(0)
-    , _reg_mem_cache(0)
     , _prop_type(PT_UNKNOWN)
     , _prop_size(0)
     , _deleted(FALSE)
@@ -154,10 +150,8 @@ ServRegProperty::ServRegProperty()
 
 inline
 ServRegProperty::ServRegProperty(ServRegKey* k,
-                                 HXPropType t,
-                                 RegistryMemCache* pMem) 
+                                 HXPropType t)
     : _prop_name(k)
-    , _reg_mem_cache(pMem)
     , _prop_type(t)
     , _prop_size(0)
     , _deleted(FALSE)
@@ -174,10 +168,8 @@ ServRegProperty::ServRegProperty(ServRegKey* k,
 
 inline
 ServRegProperty::ServRegProperty(char* n,
-                                 HXPropType t,
-                                 RegistryMemCache* pMem)
-    : _prop_name(new(pMem) ServRegKey(n, pMem))
-    , _reg_mem_cache(pMem)
+                                 HXPropType t)
+    : _prop_name(new ServRegKey(n))
     , _prop_type(t)
     , _prop_size(0)
     , _deleted(FALSE)
@@ -205,8 +197,8 @@ ServRegProperty::~ServRegProperty()
         m_lWatchCount--;
     }
     delete m_pWatchList;
-
     delete _prop_name;
+
     switch (_prop_type)
     {
         case PT_COMPOSITE:
@@ -223,6 +215,13 @@ ServRegProperty::~ServRegProperty()
         default:
             break;
     }
+    _prop_val.t_int = 0;
+    _prop_type = (HXPropType)0;
+    _read_only = 0;
+    _alternate_string_access_ok = 0;
+    _owner_db = 0;
+    _owner_node = 0;
+    _id = 0;
 }
 
 inline HX_RESULT

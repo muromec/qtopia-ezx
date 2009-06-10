@@ -54,7 +54,7 @@ public:
     /*
      *	IHXPayloadFormatObject methods
      */
-    STDMETHOD(Init)		(THIS_ IUnknown* pContext, BOOL bPacketize);
+    STDMETHOD(Init)		(THIS_ IUnknown* pContext, HXBOOL bPacketize);
     STDMETHOD(SetStreamHeader)	(THIS_ IHXValues* pHeader);
 
 protected:

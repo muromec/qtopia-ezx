@@ -35,24 +35,59 @@
 
 #ifndef _LATMPACKETIZER_H_
 #define _LATMPACKETIZER_H_
+#include "baseobj.h"
+#include "hxplugn.h"
+#include "hxplgns.h"
 
 #define LATM_MIME_TYPE "audio/MP4A-LATM"
 #define LATM_SDP_SIZE 128
 
-class LATMPacketizer	: public IHXPayloadFormatObject
+class CAudioSpecificConfig;
+class CTSConverter;
+
+class LATMPacketizer : public IHXPlugin,
+		    public IHXPluginProperties,
+		    public IHXPayloadFormatObject,
+			public CHXBaseCountingObject
 {   
 public:
-    LATMPacketizer(UINT32 ulChannels = 0, UINT32 ulSampleRate = 0);
+    static HX_RESULT STDAPICALLTYPE HXCreateInstance(IUnknown** ppIUnknown);
+    static HX_RESULT STDAPICALLTYPE CanUnload(void);
+    static HX_RESULT STDAPICALLTYPE CanUnload2(void);
+	
+public:
+    LATMPacketizer(UINT32 ulChannels = 0, UINT32 ulTimeScale = 0);
     ~LATMPacketizer();
-
-    /*
+  /*
      *	IUnknown methods
      */
     STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj);
     STDMETHOD_(ULONG32,AddRef)  (THIS);
     STDMETHOD_(ULONG32,Release) (THIS);
+   
+   /*
+     *	IHXPlugin methods
+     */
+ 
+    STDMETHOD(InitPlugin)	(THIS_
+				IUnknown*   /*IN*/  pContext);
 
-    /*
+    STDMETHOD(GetPluginInfo)	(THIS_
+				REF(HXBOOL) bLoadMultiple,
+				REF(const char*) pDescription,
+				REF(const char*) pCopyright,
+				REF(const char*) pMoreInfoURL,
+				REF(ULONG32) ulVersionNumber
+				);
+
+  /*
+     *	IHXPluginProperties
+     */
+    STDMETHOD(GetProperties)  (THIS_
+			       REF(IHXValues*) pIHXValuesProperties
+			      );		
+				  
+  /*
      *	IHXPayloadFormatObject methods
      */
     STDMETHOD(Init)             (THIS_ IUnknown* pContext, BOOL bPacketize);
@@ -63,22 +98,24 @@ public:
     STDMETHOD(SetPacket)        (THIS_ IHXPacket* pPacket);
     STDMETHOD(GetPacket)        (THIS_ REF(IHXPacket*) pPacket);
     STDMETHOD(Flush)            (THIS);
-
+   
+ 	
 private:
     inline static UINT32 SampleHeaderSize  (UINT32 ulSize) 
         { return ulSize/0xFF + 1; }
     static void CreateSampleHeader  (UINT8 *pHeader, UINT32 ulSampleSize);
 
+    HX_RESULT GetHeaderProperties   ();
     HX_RESULT AddHeaderMimeType     ();
     HX_RESULT AddHeaderSDPData      ();
+    HX_RESULT InitializeResampling  ();
 
-    static int WriteFMTP            (char* pBuf, 
+    static int WriteFMTP            (char* pBuf,
                                      UINT32 ulSize, 
                                      UINT8* pConfig, 
                                      UINT32 ulConfigSize,
                                      UINT32 ulRTPPayloadType,
-                                     UINT32 ulChannels,
-                                     UINT32 ulSampleRate);
+                                     CAudioSpecificConfig& audioConfig);
     static int FormatStreamMuxConfig(char* pConfigString, 
                                      UINT32 ulSize,
                                      UINT8* pConfig, 
@@ -88,16 +125,23 @@ private:
                                      UINT32 ulTargetBitOffset,
                                      UINT8* pSource,
                                      UINT32 ulSourceSize);
+									 
+    static const char* zm_pDescription;
+    static const char* zm_pCopyright;
+    static const char* zm_pMoreInfoURL;
 
     INT32                   m_lRefCount;
+    IUnknown*               m_pContext;
     IHXCommonClassFactory*  m_pClassFactory;
     IHXValues*              m_pStreamHeader;
     CHXSimpleList           m_InputPackets;
-    BOOL                    m_bUsesRTPPackets;
-    BOOL                    m_bRTPPacketTested;
-    BOOL                    m_bFlushed;
+    HXBOOL                  m_bUsesRTPPackets;
+    HXBOOL                  m_bRTPPacketTested;
+    HXBOOL                  m_bFlushed;
     UINT32                  m_ulChannels;
-    UINT32                  m_ulSampleRate;
+    UINT32                  m_ulInputTimeScale;
+    UINT32                  m_ulOutTimeScale;
+    CTSConverter*           m_pTSConverter;
 };
 
 #endif /* _LATMPACKETIZER_H_ */

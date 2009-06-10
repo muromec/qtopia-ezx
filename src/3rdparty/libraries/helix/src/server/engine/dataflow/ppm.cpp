@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ppm.cpp,v 1.89 2007/02/14 19:21:54 jrmoore Exp $
+ * Source last modified: $Id: ppm.cpp,v 1.129 2009/05/14 21:51:05 ckarusala Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -37,7 +37,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <new.h>
 
 #include "hxtypes.h"
 #include "hxcom.h"
@@ -80,8 +79,7 @@
 #include "hxpiids.h"
 #include "globals.h"
 #include "tsconvrt.h"
-#include "rtpinfosync.h"
-#include "player.h"
+#include "tscalc.h"
 #include "ppm.h"
 #include "rsdpacketq.h"
 
@@ -115,6 +113,9 @@
 #define RSD_MAX_QUEUE_LENGTH_IN_SECOND 60
 //#define RSD_LIVE_DEBUG
 //#define FORCE_MOBILE_LIVE_RSD_LOGIC
+
+#define CONFIG_TURBOPLAY_BUFFER_OVERHEAD "config.ChannelSwitching.TurboPlayBufferOverhead"
+#define DEFAULT_TURBOPLAY_BUFFER_OVERHEAD 2000
 
 char* g_userAgentOS[] = 
 {
@@ -245,11 +246,12 @@ PPM::~PPM()
 }
 
 void
-PPM::RegisterSource(IHXPSourceControl* pSourceCtrl,
+PPM::RegisterSource(IUnknown* pSourceCtrl,
                     IHXPacketFlowControl** ppSessionControl,
                     UINT16 unStreamCount,
                     BOOL bIsLive, BOOL bIsMulticast,
-                    DataConvertShim* pDataConv)
+                    DataConvertShim* pDataConv,
+                    BOOL bIsFCS)
 {
     if (bIsLive)
     {
@@ -287,7 +289,7 @@ PPM::RegisterSource(IHXPSourceControl* pSourceCtrl,
         {
             /* For Static Content */
             Session* pSession = new Session(m_pProc, unStreamCount, this,
-                                            pSourcePackets, NULL, bIsLive, bIsMulticast);
+                                            pSourcePackets, NULL, bIsLive, bIsMulticast, bIsFCS);
             pSession->AddRef();
             if (pDataConv)
             {
@@ -299,8 +301,6 @@ PPM::RegisterSource(IHXPSourceControl* pSourceCtrl,
             *ppSessionControl = pSession;
             pSession->AddRef();
             pSourcePackets->Init(pSession);
-            pSession->m_bThreadSafeGetPacket = (pSourcePackets->IsThreadSafe() &
-                                                HX_THREADSAFE_METHOD_FF_GETPACKET) ? TRUE : FALSE;
         }
         else
         {
@@ -310,24 +310,25 @@ PPM::RegisterSource(IHXPSourceControl* pSourceCtrl,
 }
 
 void
-PPM::RegisterSource(IHXPSourceControl* pSourceCtrl,
+PPM::RegisterSource(IUnknown* pSourceCtrl,
                     IHXPacketFlowControl** ppSessionControl,
                     UINT16 unStreamCount,
                     BOOL bIsLive, BOOL bIsMulticast,
                     DataConvertShim* pDataConv,
-                    Player* pPlayerCtrl,
+                    Client* pClient,
                     const char* szPlayerSessionId,
-                    IHXSessionStats* pSessionStats)
+                    IHXSessionStats* pSessionStats, 
+                    BOOL bIsFCS)
 {
 
-    HX_ASSERT(pPlayerCtrl);
+    HX_ASSERT(pClient);
     RegisterSource(pSourceCtrl, ppSessionControl, unStreamCount, bIsLive,
-                   bIsMulticast, pDataConv);
+                   bIsMulticast, pDataConv, bIsFCS);
 
     if (*ppSessionControl)
     {
         Session *pSession = (Session*)(*ppSessionControl);
-        pSession->SetPlayerInfo(pPlayerCtrl, szPlayerSessionId, pSessionStats);
+        pSession->SetPlayerInfo(pClient, szPlayerSessionId, pSessionStats);
     }
 }
 
@@ -516,6 +517,7 @@ PPMStreamData::PPMStreamData()
     m_pRules                        = 0;
     m_lNumRules                     = 0;
     m_unSequenceNumber              = 0;
+    m_unStartingSeqNum              = 0;
     m_ulExpectedInSeqNo             = 0;
     m_bFirstPacket                  = TRUE;
     m_unReliableSeqNo               = 0;
@@ -545,10 +547,18 @@ PPMStreamData::PPMStreamData()
     m_bSetEncoderOffset             = TRUE;
     m_bGotSubscribe = FALSE;
     m_bStreamRegistered             = FALSE;
+    m_bSwitchGroupRegistered        = FALSE;
+    m_ulSwitchGroupID               = 0;
+    m_unRegisteredStream            = 0;
+    m_nPacketType                   = HX_PACKET_UNKNOWN;
 
     m_ulEncoderTimeMinusPlayerTimeOffset = 0L;
     m_ulFirstPacketTS = 0;
     m_bFirstPacketTSSet = FALSE;
+    m_bSyncReady = FALSE;
+    m_ulFirstMediaTS = 0;
+    m_ulFirstRTPTS = 0;
+    m_ulFirstDeliveryTime = 0;
     m_pTSConverter = NULL;
 
     m_pLinkCharParams = NULL;
@@ -560,7 +570,7 @@ PPMStreamData::~PPMStreamData()
 #ifdef PAULM_STREAMDATATIMING
     g_StreamDataTimer.Remove(this);
 #endif
-    delete[] m_pRules;
+    HX_VECTOR_DELETE(m_pRules);
 
     if (m_uTimeStampScheduledSendID)
     {
@@ -624,6 +634,27 @@ PPMStreamData::IsDependOk(BOOL bOn, UINT16 unRule)
         {
             return FALSE;
         }
+    }
+
+    return TRUE;
+}
+
+HXBOOL
+PPMStreamData::IsInterDependOk(UINT16 unRule)
+{
+    HX_ASSERT(unRule < m_lNumRules);
+
+    INT16 lInterDependRule = m_pRules[unRule].m_lInterDepends;
+
+    if (lInterDependRule >= (INT32)m_lNumRules)
+    {
+        return TRUE;
+    }
+
+    if (lInterDependRule == -1 ||
+        m_pRules[lInterDependRule].m_PendingAction != NONE)
+    {
+        return FALSE;
     }
 
     return TRUE;
@@ -1301,10 +1332,10 @@ PPM::Session::StreamDone(UINT16 unStreamNumber, BOOL bForce /* = FALSE */)
 void
 PPM::Session::SetStreamStartTime(UINT32 ulStreamNum, UINT32 ulTS)
 {
-    if (m_pPlayerControl && m_pPlayerSessionId)
+    if (m_pClient && m_pPlayerSessionId)
     {
         const char* szSessionID = (const char*)m_pPlayerSessionId->GetBuffer();
-        m_pPlayerControl->SetStreamStartTime(szSessionID, ulStreamNum, ulTS);
+        m_pClient->SetStreamStartTime(szSessionID, ulStreamNum, ulTS);
     }
 }
 
@@ -1321,6 +1352,7 @@ PPMStreamData::RuleInfo::RuleInfo()
     , m_PendingAction(NONE)
     , m_pOnDepends(0)
     , m_pOffDepends(0)
+    , m_lInterDepends(-1)
     , m_bActivateOnSeek(FALSE)
 {
 }
@@ -1423,7 +1455,8 @@ PPM::Session::Session(Process* p, UINT16 unStreamCount, PPM* pPPM,
                       IHXPSourcePackets* pSourcePackets,
                       IHXPSourceLivePackets* pSourceLivePackets,
                       BOOL bIsLive,
-                      BOOL bIsMulticast)
+                      BOOL bIsMulticast,
+                      BOOL bIsFCS)
     : m_bStallPackets(FALSE)
       , m_bNeedStreamStartTime(FALSE)
       , m_tvBankedPlayTime(0,0)
@@ -1432,6 +1465,24 @@ PPM::Session::Session(Process* p, UINT16 unStreamCount, PPM* pPPM,
       , m_uFirstStreamRegistered(0xFFFF)
       , m_uNumStreamsRegistered(0)
       , m_bEnableRSDPerPacketLog(FALSE)
+      , m_bIsLLL(FALSE)
+      , m_lExtraMediaRateAmount(DEFAULT_EXTRA_MEDIARATE_AMOUNT)
+      , m_ulExtraPrerollInPercentage(DEFAULT_EXTRA_PREROLL_IN_PERCENTAGE)
+      , m_lCPUThresholdForRSD(DEFAULT_CPU_THRESHOLD_TO_DISABLE_RSD)
+      , m_bIsWireline(FALSE)
+      , m_bIsMobileCBR(FALSE)
+      , m_ulInitialQDuration(0)
+      , m_ulBrecvDebugLevel(0)
+      , m_unKeyframeStream(MAX_UINT16)
+      , m_unKeyframeRule(0)
+      , m_lCPUUsage(0)
+      , m_ulTBFBandwidth(0)
+      , m_ulRSDDebugTS(0)
+      , m_ulFirstPacketTS(0)
+      , m_bOversend(FALSE)
+      , m_bRTPInfoRequired(FALSE)
+      , m_unSyncStream(HX_INVALID_STREAM)
+      , m_unSyncReadyStreams(0)
 {
     m_pProc                     = p;
     m_pPPM                      = pPPM;
@@ -1463,7 +1514,7 @@ PPM::Session::Session(Process* p, UINT16 unStreamCount, PPM* pPPM,
 
     m_bIsLive                   = bIsLive;
     m_uEndPoint                 = 0;
-    m_bIsPausePointSet   = FALSE;
+    m_bIsPausePointSet          = FALSE;
     m_bIsDone                   = FALSE;
     m_ulResendIDPosition        = 0;
     m_bSubscribed               = FALSE;
@@ -1471,63 +1522,73 @@ PPM::Session::Session(Process* p, UINT16 unStreamCount, PPM* pPPM,
     m_bWouldBlockAvailable      = FALSE;
     m_pConvertShim              = 0;
     m_pConvertingPacket         = NULL;
-    m_bThreadSafeGetPacket      = FALSE;
     m_bPlayPendingOnSeek        = FALSE;
-    m_pASMSource          = NULL;
-    m_pPlayerControl      = NULL;
-    m_pPlayerSessionId    = NULL;
-    m_bSeekPacketPending  = FALSE;
-    m_bSessionPlaying     = FALSE;
-    m_pRTPInfoSynch       = NULL;
-    m_unRTPSynchStream    = 0;
+    m_pASMSource                = NULL;
+    m_pClient                   = NULL;
+    m_pPlayerSessionId          = NULL;
+    m_bSeekPacketPending        = FALSE;
+    m_bSessionPlaying           = FALSE;
 
-    m_pPacketBufferProvider = NULL;
-    m_pServerTBF = NULL;
-    m_ulClientBandwidth = 0;
-    m_ulPacketSent = 0;
-    m_bPktBufQProcessed = FALSE;
-    m_pRSDPacketQueue = NULL;
+    m_pPacketBufferProvider     = NULL;
+    m_pServerTBF                = NULL;
+    m_ulClientBandwidth         = 0;
+    m_ulPacketSent              = 0;
+    m_bPktBufQProcessed         = FALSE;
+    m_pRSDPacketQueue           = NULL;
 
-    m_ulPreData = 0;
-    m_ulTotalBytesSent = 0;
-    m_bSentPredata = FALSE;
-    m_ulIteration = MAX_ITER;
-    m_bCheckLiveRSD = FALSE;
-    m_bEnableLiveRSDLog = FALSE;
-    m_bQueueDebugLog = FALSE;
-    m_ulQueueDebugTS = 0;
+    m_ulPreData                 = 0;
+    m_ulTotalBytesSent          = 0;
+    m_bSentPredata              = FALSE;
+    m_ulIteration               = MAX_ITER;
+    m_bCheckLiveRSD             = FALSE;
+    m_bEnableLiveRSDLog         = FALSE;
+    m_bQueueDebugLog            = FALSE;
+    m_ulQueueDebugTS            = 0;
 
-    m_bIsReflector = FALSE;
-    m_unRTCPRule = 0xffff;
-    m_bFirstPacket = TRUE;
-    m_bAdjustingQLength = FALSE;
-    m_pTSDCB = NULL;
-    m_RSDCBhandle = 0;
-    m_pCBRCB = NULL;
-    m_pBRDetector = NULL;
+    m_bIsReflector              = FALSE;
+    m_unRTCPRule                = 0xffff;
+    m_bFirstPacket              = TRUE;
+    m_bAdjustingQLength         = FALSE;
+    m_pTSDCB                    = NULL;
+    m_RSDCBhandle               = 0;
+    m_pCBRCB                    = NULL;
+    m_pBRDetector               = NULL;
 
 #ifdef RSD_LIVE_DEBUG
-    m_ulPrevTotalBytesSent = 0;
-    m_ulLastTS = 0;
-    m_uPacketListStart = 0;
+    m_ulPrevTotalBytesSent      = 0;
+    m_ulLastTS                  = 0;
+    m_uPacketListStart          = 0;
 #endif
+
+#ifdef HELIX_FEATURE_SERVER_FCS
+    m_bFCSUpdateBandwidth       = bIsFCS;
+    m_bIsFCSRequest             = bIsFCS;
+#endif
+
+    m_ulPreBufferOverhead       = DEFAULT_TURBOPLAY_BUFFER_OVERHEAD;
+    m_ulPreBuffer               = 0;
+
     memset(m_pResendIDs, 0, sizeof(UINT32) * MAX_RESENDS_PER_SECOND);
     m_pBlockedQ = new CHXRingBuffer(NULL);
     m_pBlockedQ->AddRef();
-    m_uBlockedBytes = 0;
-    m_ulHeadTSDTime = 0;
-    m_ulLastTSDTime = 0;
-    m_uMaxBlockedBytes = 100000;
-    m_uMaxBlockedQInMsecs = 4000;
+
+    m_uBlockedBytes             = 0;
+    m_ulHeadTSDTime             = 0;
+    m_ulLastTSDTime             = 0;
+    m_uMaxBlockedBytes          = 100000;
+    m_uMaxBlockedQInMsecs       = 4000;
 
     m_pBlockedTSDQ = new CHXRingBuffer(NULL);
     m_pBlockedTSDQ->AddRef();
 
     m_pSessionAggrLinkCharParams = NULL;
-    m_bStreamLinkCharSet = FALSE;
+    m_bStreamLinkCharSet        = FALSE;
 
-    m_enumStreamAdaptScheme = ADAPTATION_NONE;
-    m_pAggRateAdaptParams = NULL;
+    m_enumStreamAdaptScheme     = ADAPTATION_NONE;
+    m_pAggRateAdaptParams       = NULL;
+
+    //m_tCBRCheckQStartingTime = m_pPPM->m_pProc->pc->engine->now;
+    m_tCBRCheckQStartingTime = Timeval(0,0);
 
     ((CHXRingBuffer *)m_pBlockedQ)->SetSize(256);
     ((CHXRingBuffer *)m_pBlockedQ)->SetGrow(256);
@@ -1580,6 +1641,19 @@ PPM::Session::Session(Process* p, UINT16 unStreamCount, PPM* pPPM,
         AddRef();
         m_pAccurateClock = (IHXAccurateClock*) this;
     }
+
+#ifdef HELIX_FEATURE_SERVER_FCS
+    if (bIsFCS)
+    {
+        INT32 nTmp = 0;
+        if (SUCCEEDED(m_pProc->pc->registry->GetInt(
+            CONFIG_TURBOPLAY_BUFFER_OVERHEAD, &nTmp, m_pProc)) &&
+            nTmp >= 0)
+        {
+            m_ulPreBufferOverhead = (UINT32)nTmp;
+        }
+    }
+#endif
 
     // for safety, initialize this to current time, although we really
     // set it in Play().
@@ -1677,13 +1751,6 @@ PPM::Session::Done()
     HX_RELEASE(m_pSourceLivePackets);
     HX_VECTOR_DELETE(m_pStreamData);
 
-    if (m_pRTPInfoSynch)
-    {
-        m_pRTPInfoSynch->Done();
-        HX_RELEASE(m_pRTPInfoSynch);
-    }
-
-
     HX_RELEASE(m_pBlockedQ);
     HX_RELEASE(m_pBlockedTSDQ);
     m_ulHeadTSDTime = 0;
@@ -1711,7 +1778,7 @@ PPM::Session::Done()
     }
     HX_RELEASE(m_pConvertingPacket);
 
-    HX_RELEASE(m_pPlayerControl);
+    HX_RELEASE(m_pClient);
     HX_RELEASE(m_pPlayerSessionId);
     HX_RELEASE(m_pSessionStats);
     HX_RELEASE(m_pSessionStats2);
@@ -1789,7 +1856,7 @@ PPM::Session::JumpStart(UINT16 uStreamNumber)
 
             if (m_fDeliveryRatio != 0.0)
             {
-                ulPacketTimeStamp = ulPacketTimeStamp / m_fDeliveryRatio;
+                ulPacketTimeStamp = (UINT32) ((float)ulPacketTimeStamp / m_fDeliveryRatio);
             }
 
             tTimeStamp.tv_sec  = ulPacketTimeStamp / 1000;
@@ -1823,7 +1890,15 @@ PPM::Session::JumpStart(UINT16 uStreamNumber)
                 UINT32 ulCurrentBitRate = pStreamData->m_pRules[pNextPacket->m_uASMRuleNumber].
                     m_BitRate.GetAverageBandwidth();
 
+                //XXXJJ for fcs/sspl, ulCurrentBitRate sometimes drops to 0 for video because
+                //the gap between a/v. So here I preserve the old behavior for regular playbacks,
+                //but send the packets out right away for fcs/sspl
+
+#ifdef HELIX_FEATURE_SERVER_FCS
+                if ( ((ulCurrentBitRate != 0) || m_bIsFCSRequest) &&
+#else 
                 if ( (ulCurrentBitRate != 0) &&
+#endif
                      (ulCurrentBitRate <= pStreamData->m_ulMaxBitRate) )
                 {
                     pStreamData->m_uTimeStampScheduledSendID =
@@ -1877,6 +1952,11 @@ PPM::Session::JumpStart(UINT16 uStreamNumber)
 void
 PPM::Session::SendTimeStampedPacket(UINT16 unStreamNumber)
 {
+    if(m_bIsDone)
+    {
+        return; 
+    }
+
     PPMStreamData* pSD = m_pStreamData + unStreamNumber;
     HX_ASSERT(pSD->m_bStreamRegistered);
 
@@ -1948,7 +2028,7 @@ PPM::Session::SendTimeStampedPacket(UINT16 unStreamNumber)
 
                 m_pStreamData [i].m_pTransport->setTimeStamp(i, ulRTPInfoTime, TRUE);
                 m_pStreamData [i].m_pTransport->setSequenceNumber(i, 
-                                                                  m_pStreamData [i].m_unSequenceNumber);
+                                                                  m_pStreamData [i].m_unStartingSeqNum);
 
                 SetStreamStartTime(i, pPacket->GetTime());
             }
@@ -2003,23 +2083,63 @@ PPM::Session::HandleTimeLineStateChange(BOOL bState)
     else if ((!m_bTimeLineSuspended) && (bState == FALSE))
     {
         m_bTimeLineSuspended = TRUE;
+        m_unSyncStream = HX_INVALID_STREAM;
+        m_unSyncReadyStreams = 0;
         for (UINT16 i = 0; i < m_unStreamCount; i++)
         {
-            if (!m_pStreamData[i].m_bStreamRegistered)
-            {
-                continue;
-            }
-
-            m_pStreamData[i].m_tLastScheduledTime = m_tTimeLineStart;
-                m_pStreamData[i].m_ulFirstPacketTS = 0 ;
-                m_pStreamData[i].m_bFirstPacketTSSet = FALSE;
-        }
-        
-        if (m_pRTPInfoSynch)
-        {
-            m_pRTPInfoSynch->RTPSynch(0);
+            m_pStreamData[i].SuspendTimeline(m_tTimeLineStart);
         }
     }
+}
+
+void
+PPM::Session::InitializeSwitchGroups()
+{
+    IHXSyncHeaderSource* pHeaderSource = NULL;
+
+    // Only for live sources
+    // Check if we have switch groups
+    if (!m_bIsLive || !m_pSourceLivePackets ||
+        FAILED(m_pSourceLivePackets->QueryInterface(IID_IHXSyncHeaderSource, 
+                (void**)&pHeaderSource)))
+    {
+        HX_RELEASE(pHeaderSource);
+        return;
+    }
+    
+    // Get the SwitchGroupIDs from all the unregistered stream headers
+    IHXValues* pHeader = NULL;
+    UINT32 ulSwitchGroup = 0;
+
+    for (UINT16 i = 0; i < m_unStreamCount; ++i)
+    {
+        if (!m_pStreamData[i].m_bSwitchGroupRegistered &&
+            SUCCEEDED(pHeaderSource->GetStreamHeader(i, pHeader)) &&
+            SUCCEEDED(pHeader->GetPropertyULONG32("SwitchGroupID", ulSwitchGroup)) &&
+            ulSwitchGroup != 0)
+        {
+            m_pStreamData[i].m_ulSwitchGroupID = ulSwitchGroup;
+
+            // Now check if we have registered any streams on this switch group
+            // If yes, then map this (incoming) stream to the registered 
+            // (outgoing) one
+            for (UINT16 j = 0; j < m_unStreamCount; ++j)
+            {
+                if (m_pStreamData[j].m_bStreamRegistered && 
+                    m_pStreamData[j].m_ulSwitchGroupID == ulSwitchGroup)
+                {
+                    m_pStreamData[i].m_bSwitchGroupRegistered = TRUE;
+                    m_pStreamData[i].m_unRegisteredStream = j;
+
+                    break;
+                }
+            }
+        }
+
+        HX_RELEASE(pHeader);
+    }
+
+    HX_RELEASE(pHeaderSource);
 }
 
 void
@@ -2073,6 +2193,8 @@ PPM::Session::Play(BOOL bWouldBlock)
     if (!m_bInitialPlayReceived)
     {
         m_bInitialPlayReceived = TRUE;
+
+        InitializeSwitchGroups();
 
         // Until now, we have not added the bandwidth for this session to
         // the overall total, because we didn't know if the content was
@@ -2260,7 +2382,7 @@ PPM::Session::Play(BOOL bWouldBlock)
 
     for (UINT16 i = 0; i < m_unStreamCount; i++)
     {
-        if (!m_pStreamData[i].m_bStreamRegistered)
+        if (!m_pStreamData[i].m_bSwitchGroupRegistered)
         {
             continue;
         }
@@ -2308,7 +2430,7 @@ PPM::Session::StartSeek(UINT32 ulTime)
 
     for (i = 0; i < m_unStreamCount; i++)
     {
-        if (m_pStreamData[i].m_bStreamRegistered)
+        if (m_pStreamData[i].m_bSwitchGroupRegistered)
         {
             m_pStreamData[i].Reset();
         }
@@ -2379,7 +2501,7 @@ PPM::Session::Pause(BOOL bWouldBlock, UINT32 ulPausePoint)
         {
             for (UINT16 i = 0; i < m_unStreamCount; i++)
             {
-                if (m_pStreamData[i].m_bStreamRegistered)
+                if (m_pStreamData[i].m_bSwitchGroupRegistered)
                 {
                     m_pSourceLivePackets->StopPackets(i);
                 }
@@ -2644,11 +2766,10 @@ HX_RESULT
 PPM::Session::HandleDefaultSubscription()
 {
     HX_ASSERT(!m_bSubscribed);
-    HX_RESULT theErr = HXR_OUTOFMEMORY;
 
-    if (m_pPlayerControl && m_pPlayerSessionId)
+    if (m_pClient && m_pPlayerSessionId)
     {
-        return m_pPlayerControl->HandleDefaultSubscription((const char*)m_pPlayerSessionId->GetBuffer());
+        return m_pClient->HandleDefaultSubscription((const char*)m_pPlayerSessionId->GetBuffer());
     }
 
     return HXR_UNEXPECTED;
@@ -2672,7 +2793,7 @@ PPM::Session::HandleSubscribe(INT32 lRuleNumber,
 
     if (m_pASMSource)
     {
-        m_pASMSource->Subscribe(unStreamNumber, lRuleNumber);
+        m_pASMSource->Subscribe(unStreamNumber, (UINT16)lRuleNumber);
     }
 
     if (m_bInitialSubscriptionDone)
@@ -2736,7 +2857,7 @@ PPM::Session::HandleUnSubscribe(INT32 lRuleNumber,
 
     if (m_pASMSource)
     {
-        m_pASMSource->Unsubscribe(unStreamNumber, lRuleNumber);
+        m_pASMSource->Unsubscribe(unStreamNumber, (UINT16)lRuleNumber);
     }
 
     pStreamData->m_pRules[lRuleNumber].m_bRuleOn = FALSE;
@@ -2803,9 +2924,10 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
     pStreamData->m_pTransport->AddRef();
     pStreamData->m_pTimeStampCallback->m_unStreamNumber = uStreamNumber;
     pStreamData->m_bStreamRegistered = TRUE;
+    pStreamData->m_bSwitchGroupRegistered = TRUE;
+    pStreamData->m_unRegisteredStream = uStreamNumber;
 
     // See if transport has a pause advise
-
     pStreamData->m_pTransport->QueryInterface(IID_IHXServerPauseAdvise,
                                               (void**) &pStreamData->m_pPauseAdvise);
 
@@ -2846,41 +2968,6 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
         {
             m_bIsReflector = TRUE; 
             HX_VERIFY(SUCCEEDED(pStreamData->m_pTransport->getRTCPRule(m_unRTCPRule)));
-            if (!m_pRTPInfoSynch)
-            {
-                RTPInfoSynch* pInfoSynch = new RTPInfoSynch;
-                pInfoSynch->QueryInterface(IID_IHXRTPInfoSynch, (void**)& m_pRTPInfoSynch);
-                m_pRTPInfoSynch->InitSynch(m_unStreamCount);
-            }
-
-            HX_ASSERT(m_pRTPInfoSynch);
-
-            if (m_pRTPInfoSynch)
-            {
-                IHXBuffer* pMimeType = NULL;
-
-                if (pStreamData->m_pTSConverter)
-                {
-                    m_pRTPInfoSynch->SetTSConverter(pStreamData->m_pTSConverter->
-                                                    GetConversionFactors(),
-                                                    uStreamNumber);
-                }
-
-                if (pHeader && (SUCCEEDED(pHeader->
-                                          GetPropertyCString ("MimeType", pMimeType)) &&
-                                pMimeType && pMimeType->GetBuffer()))
-                {
-                    if (RTSPMEDIA_TYPE_AUDIO ==
-                        SDPMapMimeToMediaType ((const char*)pMimeType->GetBuffer()))
-                    {
-                        m_unRTPSynchStream = uStreamNumber;
-                    }
-                }
-
-                HX_RELEASE(pMimeType);
-
-                m_pRTPInfoSynch->RTPSynch(m_unRTPSynchStream);
-            }
         }
     }
 
@@ -2888,6 +2975,10 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
 
     if (pHeader)
     {
+        pHeader->GetPropertyULONG32("SwitchGroupID", ulTemp);
+        pStreamData->m_ulSwitchGroupID = ulTemp;
+        ulTemp = 0;
+
         pHeader->GetPropertyULONG32("AvgBitRate", ulTemp);
         pStreamData->m_ulAvgBitRate = ulTemp;
         ulTemp = 0;
@@ -2910,6 +3001,31 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
             pHeader->GetPropertyULONG32("Preroll", ulTemp);
             pStreamData->m_ulPreroll = ulTemp;
             ulTemp = 0;
+        }
+
+        // Required pre-buffering data is content preroll plus client overhead
+        UINT32 ulPrebuff = pStreamData->m_ulPreroll + m_ulPreBufferOverhead;
+        if (ulPrebuff > m_ulPreBuffer)
+        {
+            m_ulPreBuffer = ulPrebuff;
+        }
+
+        IHXBuffer* pMimeType = NULL;
+        if (SUCCEEDED(pHeader->GetPropertyCString ("MimeType", pMimeType)) && pMimeType)
+        {
+            const char* szMimeType = (const char*)pMimeType->GetBuffer();
+            if (szMimeType)
+            {
+                if(strncmp(szMimeType, "video/", 6) == 0)
+                {
+                    m_unKeyframeStream = uStreamNumber;
+                }
+                else if((strncmp(szMimeType, "audio/", 6) == 0) && m_unKeyframeStream == 0xFFFF)
+                {
+                    m_unKeyframeStream = uStreamNumber;
+                }
+            }
+            HX_RELEASE(pMimeType);
         }
     }
 
@@ -2974,7 +3090,12 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
                     (pBuffer->GetBuffer()[0] == 't');
                 pBuffer->Release();
             }
-
+#ifdef HELIX_FEATURE_SERVER_FCS
+            if(m_bIsFCSRequest)
+            {
+                pStreamData->m_pRules[i].m_bTimeStampDelivery = TRUE;
+            }
+#endif
             pBuffer = 0;
             pRuleProps->GetPropertyCString("WaitForSwitchOff", pBuffer);
             if (pBuffer)
@@ -3057,6 +3178,15 @@ PPM::Session::RegisterStream(Transport* pTransport, UINT16 uStreamNumber,
                 pStreamData->m_pRules[i].m_pOffDepends[ulNum] = 0xffff;
 
                 pBuffer->Release();
+            }
+
+            pBuffer = 0;
+            if (HXR_OK == pRuleProps->GetPropertyCString("InterDepend", pBuffer) && pBuffer)
+            {
+                INT16 lInterDepend = atoi((const char*)pBuffer->GetBuffer());
+                HX_ASSERT(lInterDepend < pRuleBook->GetNumRules());
+                pStreamData->m_pRules[i].m_lInterDepends = lInterDepend;
+                HX_RELEASE(pBuffer);
             }
 
             pBuffer = 0;
@@ -3226,7 +3356,6 @@ PPM::Session::PacketReady(HX_RESULT              ulStatus,
                         char szTime[128];
                         Timeval tNow = m_pProc->pc->engine->now;
                         struct tm localTime;
-                        time_t tTime = 0;
                         hx_localtime_r(&tNow.tv_sec, &localTime);
                         strftime(szTime, 128, "%d-%b-%y %H:%M:%S", &localTime);
                         
@@ -3269,15 +3398,12 @@ PPM::Session::PacketReady(HX_RESULT              ulStatus,
 
 HX_RESULT PPM::Session::ProcessLivePacket(HX_RESULT ulStatus, IHXPacket* pPacket)
 {
-    UINT32 ulQSize = 0;
-    UINT32 ulLoopIterations = 0;
-    IHXBroadcastDistPktExt* pPacketExt = NULL;
-    HX_RESULT rc = HXR_OK;
+    IHXServerPacketExt* pPacketExt = NULL;
     IHXLivePacketBufferQueue* pQueue = NULL;
 
     if(!m_bCheckLiveRSD)
     {
-        pPacket->QueryInterface(IID_IHXBroadcastDistPktExt,
+        pPacket->QueryInterface(IID_IHXServerPacketExt,
                                 (void **)&pPacketExt);
 
         if (pPacketExt)
@@ -3294,42 +3420,33 @@ HX_RESULT PPM::Session::ProcessLivePacket(HX_RESULT ulStatus, IHXPacket* pPacket
         }
         HX_RELEASE(pPacketExt);
 
-        for(UINT16 i = 0; i < m_unStreamCount; i++)
-        {
-            PPMStreamData* pSD = m_pStreamData + i;
-            if (!pSD->m_bStreamRegistered)
-            {
-                continue;
-            }
-
-            for(UINT16 j = 0; j < pSD->m_lNumRules; j++)
-            {
-                if(pSD->m_pRules[j].m_bRuleOn)
-                {
-                     m_pPacketBufferProvider->GetPacketBufferQueue(i, j, pQueue);
-                }
-
-                if(pQueue)
-                {
-                    m_unKeyframeStream = i;
-                    m_unKeyframeRule = j;
-                    break; // break out of rule loop
-                }
-            }
-
-            if(pQueue)
-            {
-                 break; // break out of stream loop
-            }
-        }
+        m_pPacketBufferProvider->GetPacketBufferQueue(pQueue);
        
         if (pQueue == NULL)
         {
             //Something is wrong here, we better not process the buffer queue
             m_bPktBufQProcessed = TRUE;
+            // 
             return LiveSessionPacketReady(ulStatus, pPacket);
         }
         m_bCheckLiveRSD = TRUE;
+
+        // This should not happen if at least one of the video or audio streams are
+        // Registered.
+        if (m_unKeyframeStream == MAX_UINT16)
+        {
+            for (int i=0; i < m_unStreamCount; i++)
+            {
+                PPMStreamData* pSD = m_pStreamData + i;
+                if (!pSD->m_bStreamRegistered)
+                {
+                    continue;
+                }
+                
+                m_unKeyframeStream = i;
+                break;
+            }
+        }
 
         // okay here we are sure that we have a Queue to process, it is time to get all the 
         // the config variables.  
@@ -3352,6 +3469,17 @@ HX_RESULT PPM::Session::ProcessLivePacket(HX_RESULT ulStatus, IHXPacket* pPacket
                         "the threshold(%d)\n", m_lCPUUsage, m_lCPUThresholdForRSD);
                 fflush(0);
             }
+            HX_RELEASE(pQueue);
+            m_bPktBufQProcessed = TRUE;
+            return LiveSessionPacketReady(ulStatus, pPacket);
+        }
+
+        /* As Part of fix for "PR 204575: poor quyality for back channel multicast"
+         * we are disabling the RSD for the multicast delivery.
+         */
+        PPMStreamData* pSD = m_pStreamData + m_unKeyframeStream;
+        if (pSD->m_pTransport->isRTSPMulticast())
+        {
             HX_RELEASE(pQueue);
             m_bPktBufQProcessed = TRUE;
             return LiveSessionPacketReady(ulStatus, pPacket);
@@ -3406,10 +3534,10 @@ HX_RESULT PPM::Session::ProcessLivePacket(HX_RESULT ulStatus, IHXPacket* pPacket
     if(m_pRSDPacketQueue->GetQueueDuration() > RSD_MAX_QUEUE_LENGTH_IN_SECOND*1000)
     {
         //if the queue length accumulates over 60 seconds, which mean the bandwidth or
-        //network condition are not good for RSD oversending, we should clear up RSD(by
-        //calling Pause) and do it the legacy way.
-        Pause(TRUE);
-        return HXR_OK;
+        //network condition are not good for RSD oversending, we should clear up RSD
+        //and continue the legacy way.
+        m_bPktBufQProcessed = TRUE;
+        return LiveSessionPacketReady(ulStatus, pPacket);
     }
     pPacket = NULL;
 
@@ -3794,8 +3922,8 @@ HX_RESULT PPM::Session::SendAndScheduleTSDPacket()
             ulPacketTimeStamp = 0;
 #ifdef RSD_LIVE_DEBUG
             m_pRSDPacketQueue->PeekPacket(pPacket);
-            IHXBroadcastDistPktExt* pPacketExt = NULL;
-            pPacket->QueryInterface(IID_IHXBroadcastDistPktExt,
+            IHXServerPacketExt* pPacketExt = NULL;
+            pPacket->QueryInterface(IID_IHXServerPacketExt,
                         (void **)&pPacketExt);
 
             UINT32 ulStrmSeqNo= 0;
@@ -3898,7 +4026,6 @@ STDMETHODIMP PPM::Session::CBRCallback::Func()
 
 HX_RESULT PPM::Session::WirelineLivePacketReady()
 {
-    UINT32 ulQSize = 0;
     UINT32 ulLoopIterations = 0;
     HX_RESULT rc = HXR_OK;
 
@@ -3936,7 +4063,7 @@ HX_RESULT PPM::Session::WirelineLivePacketReady()
     while(m_ulWouldBlocking == 0 && m_pRSDPacketQueue)
     {
         IHXPacket* pQPacket = NULL;
-        rc = m_pRSDPacketQueue->GetPacket(pQPacket); ;
+        rc = m_pRSDPacketQueue->GetPacket(pQPacket);
 
         if(!SUCCEEDED(rc))
         {
@@ -3975,6 +4102,220 @@ HX_RESULT PPM::Session::WirelineLivePacketReady()
     return HXR_OK;
 }
 
+inline HXPacketType
+PPM::Session::CheckPacketType(IHXPacket* pPacket)
+{
+    IHXRTPPacket* pRTPPacket = NULL;
+
+    /* This is a travesty of justice, but it's REALLY fast */
+    if (SUCCEEDED(pPacket->QueryInterface(IID_ServerPacket, 
+        (void **)HX_SERVER_PACKET_CONST)))
+    {
+        if (SUCCEEDED(pPacket->QueryInterface(IID_IHXRTPPacket, 
+            (void**) &pRTPPacket)))
+        {
+            pRTPPacket->Release();
+            return HX_SERVER_RTP_PACKET;
+        }
+        return HX_SERVER_PACKET;
+    }
+    
+    PANIC(("Old-Style IHXPacket Wrapping Used\n"));
+
+    if (SUCCEEDED(pPacket->QueryInterface(IID_IHXRTPPacket, 
+        (void**) &pRTPPacket)))
+    {
+        pRTPPacket->Release();
+        return HX_RTP_PACKET;
+    }
+
+    return HX_PACKET;
+}
+
+/*
+ For live ingress we need to find the earliest time-stamped
+ packet, which is not necessarily the first delivered packet
+ clients tend to get confused with the packets timestamped 
+ earlier than the RTP-Info start. This can still happen 
+ occassionally for datatypes with out-of-order RTP timestamps, 
+ where packets after the first one in the stream could be 
+ earlier that the first packet and than the RTP-Info time... 
+ we can't really do anything about that here, clients really 
+ need to handle that case to play such content
+
+ We can't just throw away packets on other streams earlier than 
+ the first one because we could easily be throwing out the key 
+ frame and killing start-up QoS (defeating RSD live)
+ 
+ We can't just wait for a packet being sent on every stream
+ because we don't bother sending a stream until we hit a key-frame
+ so if there's no the RSD queue it can be quite a while before we
+ hit a key frame on the video stream, and we would be waiting waaay
+ too long before sending the PLAY response
+
+ We can't just take the earliest time from all packets including
+ ones that won't be sent, because we would be setting a time from
+ a packet we arent even sending and it winds up being too early
+
+ Thus we wait until each stream has a key frame OR has passed at
+ least one other stream's media timeline.
+ Once we have received on all streams EITHER a key frame (which will 
+ be sent) OR a non-key frame with a later media time than the key-
+ frame time of another stream, then the lowest key-frame media time
+ is the starting media time.
+*/
+// XXXJDG what about sparse streams?? We need to have a time-out or 
+// something. This sucks.
+HXBOOL
+PPM::Session::PrepareRTPInfo(UINT16 uStreamNumber, IHXPacket* pPacket,
+                             HXBOOL bSentPacket)
+{
+    PPMStreamData* pSD = m_pStreamData + uStreamNumber;
+
+    // If this stream is not registered or already handled, just return
+    if(!pSD->m_bStreamRegistered || pSD->m_bSyncReady)
+    {
+        return m_unSyncReadyStreams >= m_uNumStreamsRegistered;
+    }
+
+    UINT32 ulBaseTime = 0;
+    UINT32 ulTimeStamp = 0;
+    UINT32 ulDeliveryTime = 0;
+    UINT16 i = 0;
+    HXBOOL bStrmSyncReady = bSentPacket;
+    HXBOOL bStreamsReady = FALSE;
+
+    if (pSD->m_nPacketType == HX_SERVER_RTP_PACKET)
+    {
+        ServerRTPPacket* pServerPacket = (ServerRTPPacket*)pPacket;
+        ulBaseTime = pServerPacket->GetMediaTimeInMs();
+        ulTimeStamp = pServerPacket->GetRTPTime();
+        ulDeliveryTime = pServerPacket->GetTime();
+    }
+    else
+    {
+        HX_ASSERT(pSD->m_nPacketType == HX_SERVER_PACKET);
+        ulBaseTime = ulTimeStamp = ulDeliveryTime = pPacket->GetTime();
+    }
+
+    // First packet or earliest media time received so far 
+    if (m_unSyncStream == HX_INVALID_STREAM || DiffTimeStamp(ulBaseTime, 
+        m_pStreamData[m_unSyncStream].m_ulFirstMediaTS) < 0)
+    {
+        pSD->m_ulFirstMediaTS = ulBaseTime;
+        m_unSyncStream = uStreamNumber;
+    }
+    // else if the packet is not being sent, 
+    // check if it's past another stream's key frame time
+    else if (!bSentPacket)
+    {
+        // If the earliest one is on a different stream that's already set 
+        // Then we are done with this stream
+        if (m_pStreamData[m_unSyncStream].m_bSyncReady)
+        {
+            bStrmSyncReady = TRUE;
+        }
+
+        // else the low time we past was either this stream or another
+        // that's waiting for key frame. check against all the other streams 
+        // to see if we've passed any key frames or need to keep looking
+        else
+        {
+            PPMStreamData* pSD2 = NULL;
+            for (i = 0; i < m_unStreamCount && !bStrmSyncReady; ++i)
+            {
+                pSD2 = m_pStreamData + i;
+                // If the stream is sync ready and starts earlier than this
+                // packet, then the current stream is also ready
+                if (i!= uStreamNumber && pSD2 && 
+                    pSD2->m_bStreamRegistered && pSD2->m_bSyncReady && 
+                    DiffTimeStamp(ulBaseTime, pSD2->m_ulFirstMediaTS) >= 0)
+                {
+                    bStrmSyncReady = TRUE;
+                }
+            }
+        }
+    }
+
+    if (bStrmSyncReady)
+    {
+        pSD->m_bSyncReady = TRUE;
+        pSD->m_ulFirstMediaTS = ulBaseTime;
+        pSD->m_ulFirstRTPTS = ulTimeStamp;
+        pSD->m_ulFirstDeliveryTime = ulDeliveryTime;
+        ++m_unSyncReadyStreams;
+    }
+
+    // Have we gotten a packet from each stream yet?
+    if (m_unSyncReadyStreams >= m_uNumStreamsRegistered)
+    {
+        bStreamsReady = TRUE;
+        PPMStreamData* pSD = NULL;
+        
+        for (i = 0; i < m_unStreamCount; i++)
+        {
+            pSD = m_pStreamData + i;
+            // Set the stream with lowest media time as the sync stream
+            if (i != m_unSyncStream && pSD && 
+                pSD->m_bStreamRegistered && pSD->m_bSyncReady &&
+                DiffTimeStamp(pSD->m_ulFirstMediaTS, m_pStreamData[m_unSyncStream].m_ulFirstMediaTS) < 0)
+            {
+                m_unSyncStream = i;
+            }
+        }
+    }
+
+    return bStreamsReady;
+}
+
+void
+PPM::Session::CommitRTPInfo()
+{
+    UINT32 ulRTPInfoTime = 0;
+    UINT16 unSeqNum = 0;
+    UINT16 i = 0;
+    HXBOOL bRTP = FALSE;
+    PPMStreamData* pSD;
+    UINT32 ulMediaStartTime = m_pStreamData[m_unSyncStream].m_ulFirstMediaTS;
+
+    for (i = 0; i < m_unStreamCount; i++)
+    {
+        pSD = m_pStreamData + i;
+
+        if (!pSD || !pSD->m_bStreamRegistered)
+        {
+            continue;
+        }
+
+        bRTP = pSD->m_nPacketType == HX_SERVER_RTP_PACKET;
+
+        // From the sync stream, take the precise RTP packet time
+        if (i == m_unSyncStream)
+        {
+            ulRTPInfoTime = pSD->m_ulFirstRTPTS;
+        }
+        // Else convert the media start time 
+        else if (pSD->m_pTSConverter)
+        {
+            // Anchor the converter to an actual timestamp from this stream
+            pSD->m_pTSConverter->setAnchor(pSD->m_ulFirstMediaTS, 
+                                            pSD->m_ulFirstRTPTS);
+
+            // And convert the overall media time to the streams's RTP timeline
+            ulRTPInfoTime = pSD->m_pTSConverter->hxa2rtp(ulMediaStartTime);
+        }
+        // If there is no converter then timestamp is the same as media time
+        else
+        {
+            ulRTPInfoTime = ulMediaStartTime;
+        }
+
+        pSD->m_pTransport->setTimeStamp(i, ulRTPInfoTime, bRTP);
+        pSD->m_pTransport->setSequenceNumber(i, pSD->m_unStartingSeqNum);
+        SetStreamStartTime(i, pSD->m_ulFirstDeliveryTime);
+    }
+}
+
 HX_RESULT
 PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
                                      IHXPacket* pPacket)
@@ -3995,37 +4336,48 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
     PPMStreamData*      pSD;
     ServerPacket*       pServerPacket = NULL;
     UINT16              uStreamNumber;
-    UINT16              unRule;
-    UINT8               ucFlags;
+    UINT16              unRule = 0;
+    UINT8               ucFlags = 0;
     UINT8               i = 0;
-    BOOL                bStreamDone = FALSE;
-    BOOL                bIsSynched = FALSE;
+    HXBOOL              bStreamDone = FALSE;
+    HXBOOL              bIsSynched = FALSE;
     HX_RESULT           rc = HXR_OK;
-    IHXBroadcastDistPktExt* pPacketExt = NULL;
+    IHXServerPacketExt* pPacketExt = NULL;
 
     UINT16              unNewSeq;
+    HXBOOL              bIsLost = pPacket->IsLost();
 
-    if (pPacket->IsLost())
+    // Get ingress stream info...
+    uStreamNumber = pPacket->GetStreamNumber();
+    pSD = m_pStreamData + uStreamNumber;
+
+    // If the switch group was not registered we should not even get this
+    // packet, but during RSD queue handling we will. So just drop it.
+    // This should probably be handled higher up the RSD dataflow
+    if (!pSD->m_bSwitchGroupRegistered)
     {
-        uStreamNumber = pPacket->GetStreamNumber();
-        unRule = 0;
-        ucFlags = 0;
-        pSD = m_pStreamData + uStreamNumber;
-        pSD->m_bPacketRequested = FALSE;
-    }
-    else
-    {
-        uStreamNumber = pPacket->GetStreamNumber();
-        unRule = pPacket->GetASMRuleNumber();
-        ucFlags = pPacket->GetASMFlags();
-        pSD = m_pStreamData + uStreamNumber;
-        pSD->m_bPacketRequested = FALSE;
+        return HXR_OK;
     }
 
-    DPRINTF(0x02000000, ("Live Session %p: sent packet. stream: %d time %ld "
-                         "asm rule: %d\n", this, uStreamNumber,
-                         pPacket->GetTime(), unRule));
+    // Send and handle the packet on whichever stream it is registered on
+    uStreamNumber = pSD->m_unRegisteredStream;
+    HX_ASSERT(uStreamNumber < m_unStreamCount);
+    pSD = m_pStreamData + uStreamNumber;
+    pSD->m_bPacketRequested = FALSE;
 
+    // If it's the first packet, check the packet type. Only check once,
+    // the source MUST use the same packet type for all packets in a stream!!
+    if (pSD->m_nPacketType == HX_PACKET_UNKNOWN)
+    {
+        pSD->m_nPacketType = CheckPacketType(pPacket);
+    }
+
+    if (m_bIsLLL)
+    {
+        pPacket->QueryInterface(IID_IHXServerPacketExt, (void **)&pPacketExt);
+        HX_ASSERT(pPacketExt);
+    }
+    
     if (pSD->m_bStreamDone)
     {
         /*
@@ -4037,94 +4389,34 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
         return HXR_FAIL;
     }
 
-    //
-    // the rule is outside of our rulebook so the packet is bad
-    //
-    if (unRule >= pSD->m_lNumRules)
-    {
-        DPRINTF(0x02000000, ("Live Session %p: dropped packet with bad rule. stream:"
-                             " %d time %ld asm rule: %d\n", this, uStreamNumber,
-                             pPacket->GetTime(), unRule));
-        return HXR_FAIL;
-    }
+    // XXXJDG assuming rule info on lost packets if and only if
+    // live RTP packets used. 
+    HXBOOL bHasRuleInfo = !bIsLost || pSD->m_nPacketType == HX_SERVER_RTP_PACKET;
 
-    if (m_bIsLLL)
+    if (bHasRuleInfo)
     {
-        pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void **)&pPacketExt);
-        HX_ASSERT(pPacketExt);
-    }
+        unRule = pPacket->GetASMRuleNumber();
+        ucFlags = pPacket->GetASMFlags();
 
-    if (pPacket->IsLost())
-    {
-        goto SkipAllASMProcessing;
-    }
+        DPRINTF(0x02000000, ("Live Session %p: sent packet. stream: %d time %ld "
+                            "asm rule: %d\n", this, uStreamNumber,
+                            pPacket->GetTime(), unRule));
 
-    /*
-     * Synch RTPInfo data:
-     * see: protocol/transport/rtp/include/rtpinfosync.h
-     */
-    if (m_pRTPInfoSynch)
-    {
-        HX_VERIFY(SUCCEEDED(m_pRTPInfoSynch->IsStreamSynched(uStreamNumber,
-                                                             bIsSynched)));
-        if (!bIsSynched)
+        //
+        // the rule is outside of our rulebook so the packet is bad
+        //
+        if (unRule >= pSD->m_lNumRules)
         {
-            Transport* pTransport = pSD->m_pTransport;
-            HX_ASSERT(pTransport->isReflector());
-            
-            HX_VERIFY(SUCCEEDED(pTransport->getRTCPRule(m_unRTCPRule)));
-            
-            IHXBuffer* pPktBuf = pPacket->GetBuffer();
-            if (unRule == m_unRTCPRule)
-            {
-                HX_VERIFY(SUCCEEDED(m_pRTPInfoSynch->OnRTCPPacket(pPktBuf,
-                                                                  uStreamNumber)));
-            }
-            else
-            {
-                UINT32 ulSequenceNumber = 0;
-                UINT32 ulTimestamp = 0;
-                BOOL bSynched = FALSE;
-                
-                HX_VERIFY(SUCCEEDED(m_pRTPInfoSynch->OnRTPPacket(pPktBuf, 
-                                                                 uStreamNumber,
-                                                                 bSynched,
-                                                                 ulSequenceNumber,
-                                                                 ulTimestamp)));
-                
-                if (!bSynched)
-                {
-                    //not enough info to synch yet. drop this packet
-
-                    if (m_bIsLLL)
-                    {
-                        pSD->HandleSequence(pPacketExt->GetStreamSeqNo(), 
-                                            uStreamNumber,
-                                            unRule, 
-                                            pPacketExt->GetRuleSeqNoArray(),
-                                            unNewSeq, 
-                                            FALSE);
-
-                        pPacketExt->Release();
-                    }
-
-                    HX_RELEASE(pPktBuf);
-                    return HXR_OK;
-                }
-                else 
-                {
-                    //tell RTSP to send the play response.
-                    //the play response won't be constructed until start times
-                    //for all streams have been set:
-                    pTransport->setSequenceNumber(uStreamNumber, ulSequenceNumber);
-                    pTransport->setTimeStamp(uStreamNumber, ulTimestamp, TRUE);
-                    
-                    SetStreamStartTime(uStreamNumber, pPacket->GetTime());
-                    pSD->SetFirstPacketTS(pPacket->GetTime());
-                }
-            }
-            HX_RELEASE(pPktBuf);
+            DPRINTF(0x02000000, ("Live Session %p: dropped packet with bad rule. stream:"
+                                " %d time %ld asm rule: %d\n", this, uStreamNumber,
+                                pPacket->GetTime(), unRule));
+            return HXR_FAIL;
         }
+    }
+    else
+    {
+        // For lost packets that don't include rule info, skip rule handling
+        goto SkipAllASMProcessing;
     }
 
     /*
@@ -4133,11 +4425,13 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
 
     if (!pSD->m_pRules[unRule].m_bSyncOk)
     {
+        // If this rule is not subscribed, just toss it
+        // And turn off the pending sync, it's as done as it
+        // needs to be!
         if (!pSD->m_pRules[unRule].m_bRuleOn)
         {
             pSD->m_pRules[unRule].m_bSyncOk = TRUE;
             pSD->m_pRules[unRule].m_PendingAction = NONE;
-
 
             if (m_bIsLLL)
             {
@@ -4149,20 +4443,33 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
 
             return HXR_OK;
         }
+        // Else if this packet is a valid starting point, send it
+	/*
+	 * XXX AAK: part of the fix for pr# 215519 - where the server was
+	 * incorrectly syncing on the end of the keyframe (in addition to
+	 * the correct sync at the start of the keyframe).
+	 * the new flag HX_ASM_SIDE_EFFECT signifies the end of the
+	 * keyframe, so make sure that we find HX_ASM_SWITCH_ON and
+	 * NOT HX_ASM_SIDE_EFFECT to indicate the start of the keyframe.
+	 */
         else if (pSD->IsDependOk(TRUE, unRule) &&
-                 (ucFlags & HX_ASM_SWITCH_ON))
+	    (ucFlags & HX_ASM_SWITCH_ON) && !(ucFlags & HX_ASM_SIDE_EFFECT))
         {
             //fprintf(stderr, "got keyframe (%u, %u)\n", uStreamNumber, unRule);
             //fflush(stderr);
-            pSD->m_pRules[unRule].m_bSyncOk = TRUE;
-            pSD->m_pRules[unRule].m_PendingAction = NONE;
+            for (INT32 i = 0; i < pSD->m_lNumRules; i++)
+            {
+                pSD->m_pRules[i].m_bSyncOk = TRUE;
+                pSD->m_pRules[i].m_PendingAction = NONE;
+            }
+                
+            // XXXJDG log will fail for multi-rate
             if(m_bEnableLiveRSDLog && !m_bPktBufQProcessed && !m_bIsWireline 
-                && uStreamNumber == m_unKeyframeStream && unRule == m_unKeyframeRule)
+                && uStreamNumber == m_unKeyframeStream)
             {
                 char szTime[128];
                 Timeval tNow = m_pProc->pc->engine->now;
                 struct tm localTime;
-                time_t tTime = 0;
                 hx_localtime_r(&tNow.tv_sec, &localTime);
                 strftime(szTime, 128, "%d-%b-%y %H:%M:%S", &localTime);
                 
@@ -4174,39 +4481,24 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
                 fflush(0);
             }
         }
+        // Else we can't start with this packet, so don't send it
         else
         {
-#ifdef XXXTDM_GENERATE_EMPTY_PACKETS
-            IHXBuffer*     ppktBuf;
-            UINT32          npktTime;
-            UINT16          npktStream;
-            UINT8           npktFlags;
-            UINT16          npktRule;
-            ServerPacket*   pNewPacket;
-            IHXBuffer*     pEmptyBuf;
+            // But we still check its time stamp for the RTP-Info start 
+            // times comparison
+            if (m_bRTPInfoRequired && !bIsLost)
+            {
+                bIsSynched = PrepareRTPInfo(uStreamNumber, pPacket, FALSE);
+            }
 
-            pPacket->Get(ppktBuf, npktTime, npktStream, npktFlags, npktRule);
-            ppktBuf->Release();
-            pPacket->Release();
-            pNewPacket = new ServerPacket;
-            pEmptyBuf = new ServerBuffer;
-            // Force a memory alloc so GetBuffer does not return NULL
-            pEmptyBuf->SetSize(1);
-            pEmptyBuf->SetSize(0);
-            pNewPacket->Set(pEmptyBuf, npktTime, npktStream, npktFlags, npktRule);
-            pNewPacket->QueryInterface(IID_IHXPacket, (void**)&pPacket);
-
-            goto SkipAllASMProcessing;
-#else
             if (m_bIsLLL)
             {
                 pSD->HandleSequence(pPacketExt->GetStreamSeqNo(), 
                                  uStreamNumber, unRule, pPacketExt->GetRuleSeqNoArray(), unNewSeq, FALSE);
-                pPacketExt->Release();
+                pPacketExt->Release(); 
             }
  
             return HXR_OK;
-#endif
         }
     }
 
@@ -4249,19 +4541,9 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
          */
         if (pSD->m_pRules[unRule].m_PendingAction == ACTION_ON)
         {
-            if ((!(ucFlags & HX_ASM_SWITCH_ON)) ||
-                (!pSD->IsDependOk(TRUE, unRule)))
-            {
-                if (m_bIsLLL)
-                {
-                    pSD->HandleSequence(pPacketExt->GetStreamSeqNo(), 
-                                     uStreamNumber, unRule, pPacketExt->GetRuleSeqNoArray(), unNewSeq, FALSE);
-                    pPacketExt->Release();
-                }
-
-                return HXR_OK;
-            }
-            else
+            if ((pSD->IsDependOk(TRUE, unRule) &&
+                 (ucFlags & HX_ASM_SWITCH_ON) && !(ucFlags & HX_ASM_SIDE_EFFECT)) ||
+                pSD->IsInterDependOk(unRule))
             {
                 // Update Delivery rate
                 if (!pSD->m_pRules[unRule].m_bBitRateReported)
@@ -4278,6 +4560,17 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
                     pSD->m_pRules[unRule].m_bBitRateReported = TRUE;
                 }
                 pSD->m_pRules[unRule].m_PendingAction = NONE;
+            }
+            else
+            {
+                if (m_bIsLLL)
+                {
+                    pSD->HandleSequence(pPacketExt->GetStreamSeqNo(), 
+                                     uStreamNumber, unRule, pPacketExt->GetRuleSeqNoArray(), unNewSeq, FALSE);
+                    pPacketExt->Release();
+                }
+
+                return HXR_OK;
             }
         }
         else if (pSD->m_pRules[unRule].m_PendingAction == ACTION_OFF)
@@ -4339,22 +4632,25 @@ PPM::Session::LiveSessionPacketReady(HX_RESULT ulStatus,
      * machine, but the state machine must be messed up somehow.
      * In this case, don't queue the packet!
      */
-    IHXBuffer* pTmpBuffer;
-    pTmpBuffer = pPacket->GetBuffer();
-    if (pTmpBuffer != NULL)
+    if (!bIsLost)
     {
-        pTmpBuffer->Release();
-    }
-    else
-    {
-        if (m_bIsLLL)
+        IHXBuffer* pTmpBuffer;
+        pTmpBuffer = pPacket->GetBuffer();
+        if (pTmpBuffer != NULL)
         {
-            pSD->HandleSequence(pPacketExt->GetStreamSeqNo(),
-                              uStreamNumber, unRule, pPacketExt->GetRuleSeqNoArray(), unNewSeq, FALSE);
-            pPacketExt->Release();
+            pTmpBuffer->Release();
         }
+        else
+        {
+            if (m_bIsLLL)
+            {
+                pSD->HandleSequence(pPacketExt->GetStreamSeqNo(),
+                                uStreamNumber, unRule, pPacketExt->GetRuleSeqNoArray(), unNewSeq, FALSE);
+                pPacketExt->Release();
+            }
 
-        return HXR_OK;
+            return HXR_OK;
+        }
     }
 
 SkipAllASMProcessing:
@@ -4380,48 +4676,42 @@ SkipAllASMProcessing:
         return HXR_OK;
     }
 
-    /* This is a travesty of justice, but it's REALLY fast */
-    if (HXR_OK ==
-        pPacket->QueryInterface(IID_ServerPacket, (void **)0xffffd00d))
+     /*
+     * This is a live stream so we need to make sure to wrap the packet,
+     * else the SAME packet could come up into another session
+     * and trash the sequence number while sitting in the queue for this
+     * session
+     */
+    if (pSD->m_nPacketType == HX_SERVER_RTP_PACKET)
     {
-        /*
-         * This is a live stream so we need to make sure to wrap the packet,
-         * else the SAME packet could come up into another session
-         * and trash the sequence number while sitting in the queue for this
-         * session
-         */
-        pServerPacket = new (m_pProc->pc->mem_cache) ServerPacket();
-        pServerPacket->SetPacket((ServerPacket*)pPacket);
-        pServerPacket->AddRef();
+        pServerPacket = new ServerRTPPacket(TRUE);
+        ((ServerRTPPacket*)pServerPacket)->SetData((ServerRTPPacket*)pPacket);
+    }
+    else if (pSD->m_nPacketType == HX_SERVER_PACKET)
+    {
+        pServerPacket = new ServerPacket(TRUE);
+        pServerPacket->SetData((ServerPacket*)pPacket);
+    }
+    else if (pSD->m_nPacketType == HX_RTP_PACKET)
+    {
+        pServerPacket = new ServerRTPPacket(TRUE);
+        pServerPacket->SetPacket(pPacket);
     }
     else
     {
-        IHXRTPPacket *pRTPPacket;
-
-        PANIC(("Old-Style IHXPacket Wrapping Used\n"));
-        if (pPacket->QueryInterface(IID_IHXRTPPacket,
-                                    (void**) &pRTPPacket) == HXR_OK)
-        {
-            pServerPacket = new ServerRTPPacket();
-            pRTPPacket->Release();
-        }
-        else
-        {
-            pServerPacket = new (m_pProc->pc->mem_cache) ServerPacket();
-        }
-
+        pServerPacket = new ServerPacket(TRUE);
         pServerPacket->SetPacket(pPacket);
-        pServerPacket->AddRef();
     }
     
+    pServerPacket->SetStreamNumber(uStreamNumber);
+
     //If AverageBandwidth is not available in the ASMRule book calculate BandwidthUsage using 
     //BWCalculator.
     if (pSD->m_pRules[unRule].m_ulAvgBitRate == 0 && pSD->m_pRules[unRule].m_pBWCalculator != NULL)
     {
         pSD->m_pRules[unRule].m_pBWCalculator->BytesSent(pServerPacket->GetSize());
     }
-    pServerPacket->m_uPriority =
-        pSD->m_pRules[unRule].m_ulPriority;
+    pServerPacket->m_uPriority = pSD->m_pRules[unRule].m_ulPriority;
 
     pServerPacket->m_uASMRuleNumber = unRule;
 
@@ -4435,6 +4725,7 @@ SkipAllASMProcessing:
         if (hRes != HXR_OK)
         {
             pPacketExt->Release();
+            pServerPacket->Release();
             return HXR_OK;
         }
 
@@ -4450,7 +4741,6 @@ SkipAllASMProcessing:
         // oh so simple sequence number management assumes in-order guaranteed (no gap)
         // delivery of packets.
         pServerPacket->m_uSequenceNumber = pSD->m_unSequenceNumber++;
-
         if (pSD->m_unSequenceNumber >=
             pSD->m_pTransport->wrapSequenceNumber())
         {
@@ -4467,65 +4757,20 @@ SkipAllASMProcessing:
         pServerPacket->m_uReliableSeqNo = pSD->m_unReliableSeqNo;
     }
 
-                    //Require RTPInfoSynch for the relfector case
-                    //This should have been setup in ::RegisterStream()
-                    //and the RTP-Info data should have been set at the
-                    //begining of ::LiveSesisonPacketReady()
-    HX_ASSERT(!pSD->m_pTransport->isReflector() ||
-              (pSD->m_pTransport->isReflector() && m_pRTPInfoSynch));
-    
+    // If we need to generate RTP Info still, check if we are ready 
+    // and get initiated
     if ((m_bRTPInfoRequired) &&
         (!m_bIsMulticast) &&
         (!pSD->m_pTransport->isReflector()))
     {
-        IHXRTPPacket* pRTPPacket = NULL;
-        UINT32 ulBaseTime = 0;
-        UINT16 i = 0;
-
-        if(pPacket->QueryInterface(IID_IHXRTPPacket, 
-                                    (void**) &pRTPPacket) == HXR_OK)
+        if (bIsSynched || 
+            PrepareRTPInfo(uStreamNumber, pServerPacket, TRUE) ||
+            !m_pPPM->m_bIsRTP)
         {
-            UINT32 ulRTPTime = pRTPPacket->GetRTPTime();
-            
-            ulBaseTime =  (pSD->m_pTSConverter) ?
-                pSD->m_pTSConverter->rtp2hxa_raw(ulRTPTime)
-                : ulRTPTime;
-
-            pSD->m_pTransport->setTimeStamp(uStreamNumber, 
-                                            ulRTPTime, 
-                                            TRUE);
-            HX_RELEASE(pRTPPacket);
-            }
-            else
-            {
-            ulBaseTime = pPacket->GetTime();
-            pSD->m_pTransport->setTimeStamp(uStreamNumber, ulBaseTime);
+            CommitRTPInfo();
+            m_bRTPInfoRequired = FALSE;
         }
-
-        pSD->m_pTransport->setSequenceNumber(uStreamNumber, pServerPacket->m_uSequenceNumber);
-        SetStreamStartTime(uStreamNumber, pPacket->GetTime());
-
-        for (i = 0; i < m_unStreamCount; i++)
-        {
-            if (i != uStreamNumber)
-            { 
-                UINT32 ulRTPInfoTime =         (m_pStreamData [i].m_pTSConverter) ?
-                    m_pStreamData [i].m_pTSConverter->hxa2rtp_raw(ulBaseTime) :
-                    ulBaseTime;
-                
-                if (m_pStreamData [i].m_pTransport)
-                {
-                    m_pStreamData[i].m_pTransport->setTimeStamp(i, ulRTPInfoTime, TRUE);
-                    m_pStreamData [i].m_pTransport->setSequenceNumber(i, 
-                                                  m_pStreamData [i].m_unSequenceNumber);
-                
-                    SetStreamStartTime(i, pPacket->GetTime());
-                }
-        }
-        }
-
-        m_bRTPInfoRequired = FALSE;
-    }  
+    }
 
     if (m_bWouldBlockAvailable)
     {
@@ -4707,7 +4952,7 @@ SkipAllASMProcessing:
                         fEDT = (float)m_ulPreData*8.0/(float)ulDR;
                     }
 
-                    snprintf(szDR, sizeof(szDR), "%d", ulDR);
+                    snprintf(szDR, sizeof(szDR), "%ld", ulDR);
                     snprintf(szEDT, sizeof(szEDT), "%f", fEDT);
 
                     if(m_bWouldBlockAvailable)
@@ -4733,7 +4978,6 @@ SkipAllASMProcessing:
                     char szTime[128];
                     Timeval tNow = m_pProc->pc->engine->now;
                     struct tm localTime;
-                    time_t tTime = 0;
                     hx_localtime_r(&tNow.tv_sec, &localTime);
                     strftime(szTime, sizeof(szTime), "%d-%b-%y %H:%M:%S", &localTime);
                     
@@ -4908,10 +5152,15 @@ PPM::Session::GetAllRSDConfigure()
     LimitRange(m_lExtraMediaRateAmount, 1, 100, DEFAULT_EXTRA_MEDIARATE_AMOUNT, 100);
 
     m_ulExtraPrerollInPercentage = 0;
-    m_pProc->pc->registry->GetInt(EXTRA_PREROLL_IN_PERCENTAGE,
-                                &m_ulExtraPrerollInPercentage, m_pProc);
-
-    LimitRange(m_ulExtraPrerollInPercentage, 0, 500, DEFAULT_EXTRA_MEDIARATE_AMOUNT, 500);
+    if (FAILED(m_pProc->pc->registry->GetInt(EXTRA_PREROLL_IN_PERCENTAGE,
+                                &m_ulExtraPrerollInPercentage, m_pProc)))
+    {
+        m_ulExtraPrerollInPercentage = DEFAULT_EXTRA_PREROLL_IN_PERCENTAGE;
+    }
+    else
+    {
+        LimitRange(m_ulExtraPrerollInPercentage, 0, 500, DEFAULT_EXTRA_PREROLL_IN_PERCENTAGE, 500);
+    }
 
     m_lMinTokenBucketCeiling = 0;
     m_pProc->pc->registry->GetInt(MIN_TOKEN_BUCKET_CEILING,
@@ -5004,6 +5253,12 @@ PPM::Session::DoesUseWirelineLogic()
         return FALSE;
     }
 
+    if (strcasecmp(szUserAgent, "RealNetworks Broadcast Receiver") == 0)
+    {
+        //Use WireLine logic for proxy splitter
+        return TRUE;
+    }
+
     if(strncmp(szUserAgent, "RealMedia", 9) == 0 || 
        strncmp(szUserAgent, "RealOnePlayer", 13) == 0)
     {
@@ -5084,11 +5339,11 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
 {
     if (!pPacket)
     {
-    return;
+        return;
     }
 
     PPMStreamData* pStreamData = m_pStreamData + pPacket->GetStreamNumber();
-    UINT16     unRule             = 0;
+    UINT16         unRule             = 0;
     UINT32         ulAggregateTo      = 0;
     UINT32         ulAggregateHighest = 0;
     UINT32         ulPacketSize       = 0;
@@ -5101,23 +5356,15 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
         SetStreamStartTime(pPacket->GetStreamNumber(), pPacket->GetTime());
     }
 
-    if (pPacket->IsLost())
-    {
-        unRule = 0;
-        pStreamData->m_bPacketRequested = FALSE;
-    }
-    else
-    {
-        unRule = pPacket->GetASMRuleNumber();
-        ulPacketSize = pPacket->GetSize();
-        pStreamData->m_bPacketRequested = FALSE;
-    }
+    unRule = pPacket->GetASMRuleNumber();
+    ulPacketSize = pPacket->GetSize();
+    pStreamData->m_bPacketRequested = FALSE;
 
     /* Do Back-to-Back and Packet Aggregation */
 
     /* TimeStamp delivered sources don't currently support BackToBack pkts */
     if (!m_pPPM->m_bIsRTP &&
-    pStreamData->m_pRules[unRule].m_bTimeStampDelivery == FALSE)
+        pStreamData->m_pRules[unRule].m_bTimeStampDelivery == FALSE)
     {
         m_pPPM->m_ulBackToBackCounter++;
         if (m_pPPM->m_ulBackToBackCounter >= m_pPPM->m_ulBackToBackFreq)
@@ -5133,7 +5380,7 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
      * aggregated packets (and turn off aggregation if it's not supported).
      */
     if (pStreamData->m_bSupportsPacketAggregation &&
-    g_bDisablePacketAggregation == FALSE)
+        g_bDisablePacketAggregation == FALSE)
     {
         _ServerState State = m_pProc->pc->loadinfo->GetLoadState();
     
@@ -5153,7 +5400,6 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
 
 
     /*
-
      * In addition to packet aggregation, we use the PacketQueue for handling
      * back-to-back packets.  The second of any back-to-back packet pair MUST
      * not be aggregated (the client's RTSP layer can't handle that).
@@ -5169,14 +5415,13 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
     {
         m_pPacketQueue[m_ucPacketQueuePos - 1]->m_bBackToBack = TRUE;
 
+        // Send queued packet
         UINT32 ulQueueSize = SendPacketQueue(pStreamData->m_pTransport);
 
+        // and the current packet
         pStreamData->m_pTransport->sendPacket(pPacket);
         *g_pBytesServed += ulPacketSize;
-
         (*g_pPPS)++;
-
-        ulPacketSize = ulQueueSize + ulPacketSize;
 
         m_bAttemptingBackToBack = FALSE;
     }
@@ -5191,8 +5436,11 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
          * case means that a single packet from the file format is larger
          * then ulAggregateHighest.  In this case, we allow the else code
          * to correctly handle this.
+         * 
+         * Also don't do this if we are not aggregating (e.g. RTP)
          */
-        if (m_bAttemptingBackToBack == FALSE && m_ulPacketQueueSize &&
+        if (ulAggregateTo != 0 && m_bAttemptingBackToBack == FALSE && 
+            m_ulPacketQueueSize &&
             m_ulPacketQueueSize + ulPacketSize > ulAggregateHighest)
         {
             UINT32 ulQueueSize = SendPacketQueue(pStreamData->m_pTransport);
@@ -5201,7 +5449,6 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
             /* QueuePacket will take control of pPacket (Screw COM) */
             pPacket->AddRef();
             QueuePacket(pPacket, ulPacketSize, pStreamData->m_pTransport);
-            ulPacketSize = ulQueueSize;
         }
         else
         {
@@ -5213,11 +5460,10 @@ PPM::Session::TransmitPacket(ServerPacket* pPacket)
              * Flush the aggregation queue, if we have reached the target
              * size and we aren't trying to do any back-to-back-packets.
              */
-            if (m_ulPacketQueueSize > ulAggregateTo &&
-            m_bAttemptingBackToBack == FALSE)
+            if (m_ulPacketQueueSize >= ulAggregateTo && 
+                m_bAttemptingBackToBack == FALSE)
             {
-            ulPacketSize = SendPacketQueue(pStreamData->m_pTransport);
-            ASSERT(ulPacketSize);
+                SendPacketQueue(pStreamData->m_pTransport);
             }
         }
     }
@@ -5475,11 +5721,32 @@ SkipAllASMProcessing:
         }
         else
         {
-            pServerPacket = new (m_pProc->pc->mem_cache) ServerPacket();
+            pServerPacket = new ServerPacket();
         }
 
         pServerPacket->SetPacket(pPacket);
     }
+
+#ifdef HELIX_FEATURE_SERVER_FCS
+    // In FCS case client is sending an initial SDB to oversend but then not sending an updated SDB to back off
+    // Hence internally calling SetDeliveryBandwidth when data required for preroll is already sent.
+    if (m_bFCSUpdateBandwidth && (m_ulPreBuffer < pPacket->GetTime()))
+    {
+        PPMStreamData* pSD = NULL;
+        UINT32 ulAvgBitRateAllStreams = 0;
+        for(int i = 0; i < m_unStreamCount; i++)
+        {
+            pSD = m_pStreamData + i;
+            if (pSD->m_bStreamRegistered)
+            {
+                ulAvgBitRateAllStreams += pSD->m_ulAvgBitRate;
+            }
+        }
+
+        SetDeliveryBandwidth(0, ulAvgBitRateAllStreams);
+        m_bFCSUpdateBandwidth = FALSE;
+    }
+#endif
 
     pServerPacket->m_uPriority =
         pStreamData->m_pRules[unRule].m_ulPriority;
@@ -5770,8 +6037,11 @@ PPM::SendNextPacket(Session* pFixedSession)
             if (pPacket && !pSD->m_pRules[pPacket->m_uASMRuleNumber].
                     m_bTimeStampDelivery)
             {
-                pSD->m_lStreamRatioTemp = (INT32)(((double)pSD->m_lBytesDueTimes10
-                    * 10000 / (double)ulScaledAvgBitRate));
+                if (ulScaledAvgBitRate)
+                {
+                    pSD->m_lStreamRatioTemp = (INT32)(((double)pSD->m_lBytesDueTimes10
+                        * 10000 / (double)ulScaledAvgBitRate));
+                }
 
                 ulSessionBitRate += ulScaledAvgBitRate;
                 ulTotalBytesDueTimes10 += pSD->m_lBytesDueTimes10;
@@ -5899,6 +6169,11 @@ PPM::SendNextPacket(Session* pFixedSession)
     ServerPacket* pPacket= pBestStream->m_pPackets.GetPacket();
     pBestSession->m_ulPacketsOutstanding--;
     pBestStream->m_ulPacketsOutstanding--;
+    if (pBestStream->m_uTimeStampScheduledSendID)
+    {
+        m_pProc->pc->engine->ischedule.remove(pBestStream->m_uTimeStampScheduledSendID);
+        pBestStream->m_uTimeStampScheduledSendID = 0;    
+    }
 
     /*
      * Notify the player if this is the first packet for the most recent
@@ -5981,7 +6256,7 @@ PPM::SendNextPacket(Session* pFixedSession)
  
                  pSession->m_pStreamData [i].m_pTransport->setTimeStamp(i, ulRTPInfoTime, TRUE);
                  pSession->m_pStreamData [i].m_pTransport->
-                     setSequenceNumber(i, pSession->m_pStreamData [i].m_unSequenceNumber);
+                     setSequenceNumber(i, pSession->m_pStreamData [i].m_unStartingSeqNum);
  
                  pSession->SetStreamStartTime(i, pPacket->GetTime());
              }
@@ -6142,25 +6417,7 @@ DoItFromHere:
         pPacket->Release();
     }
 
-    if (pBestSession->m_bThreadSafeGetPacket == FALSE &&
-        m_pProc->pc->engine->m_bMutexProtection == FALSE)
-    {
-        /* XXXSMP Can't get a lock? Schedule GNP */
-        HXMutexLock(g_pServerMainLock);
-        m_pProc->pc->engine->m_bMutexProtection = TRUE;
-        m_bDidLock = TRUE;
-        pBestSession->GetNextPacket(unBestStreamNumber);
-        if (m_bDidLock)
-        {
-            m_pProc->pc->engine->m_bMutexProtection = FALSE;
-            HXMutexUnlock(g_pServerMainLock);
-            m_bDidLock = FALSE;
-        }
-    }
-    else
-    {
-        pBestSession->GetNextPacket(unBestStreamNumber);
-    }
+    pBestSession->GetNextPacket(unBestStreamNumber);
 
     return bAgain;
 }
@@ -6236,13 +6493,14 @@ PPM::Session::ResendCallback::Func()
     (*g_pResends)++;
     HX_RELEASE(m_pPacket);
     *m_pZeroMe = 0;
-
+    HX_RELEASE(m_pTransport);
     return HXR_OK;
 }
 
 PPM::Session::ResendCallback::~ResendCallback()
 {
     HX_RELEASE(m_pPacket);
+    HX_RELEASE(m_pTransport);
 }
 
 STDMETHODIMP
@@ -6295,6 +6553,7 @@ PPM::Session::OnPacket(UINT16 uStreamNumber, BasePacket** ppPacket)
 #endif
                 pResendCB->AddRef();
                 pResendCB->m_pTransport   = pSD->m_pTransport;
+                pResendCB->m_pTransport->AddRef();
                 pResendCB->m_pPacket      = pPacket;
                 pResendCB->m_pPacket->AddRef();
                 pResendCB->m_pZeroMe      = m_pResendIDs + m_ulResendIDPosition;
@@ -6528,9 +6787,18 @@ PPM::Session::WouldBlock(UINT32 id)
     {
         pSD->m_bWouldBlocking = TRUE;
         m_ulWouldBlocking++;
-        if (m_ulWouldBlocking == 1 && m_bPktBufQProcessed)
+        if (m_ulWouldBlocking == 1)
         {
-            Pause(TRUE);
+            if(m_bIsLive && m_bPktBufQProcessed == FALSE)
+            {
+                //Do nothing
+                return HXR_OK;
+            }
+            else
+            {
+                Pause(TRUE);
+            }
+            
         }
     }
     return HXR_OK;
@@ -6547,9 +6815,17 @@ PPM::Session::WouldBlockCleared(UINT32 id)
     {
         pSD->m_bWouldBlocking = FALSE;
         m_ulWouldBlocking--;
-        if (m_ulWouldBlocking == 0 && m_bPktBufQProcessed)
+        if (m_ulWouldBlocking == 0)
         {
-            Play(TRUE);
+            if(m_bIsLive && m_bPktBufQProcessed == FALSE)
+            {
+                //Do nothing
+                return HXR_OK;
+            }
+            else
+            {
+                Play(TRUE);
+            }
         }
     }
     return HXR_OK;
@@ -6613,17 +6889,17 @@ PPM::Session::SendControlBuffer(IHXBuffer* pBuffer)
 }
 
 void
-PPM::Session::SetPlayerInfo(Player* pPlayerControl,
+PPM::Session::SetPlayerInfo(Client* pClient,
                             const char* szSessionId,
                             IHXSessionStats* pSessionStats)
 {
-    HX_RELEASE(m_pPlayerControl);
+    HX_RELEASE(m_pClient);
     HX_RELEASE(m_pPlayerSessionId);
     HX_RELEASE(m_pSessionStats);
     HX_RELEASE(m_pSessionStats2);
 
-    m_pPlayerControl = pPlayerControl;
-    m_pPlayerControl->AddRef();
+    m_pClient = pClient;
+    m_pClient->AddRef();
 
     m_pSessionStats = pSessionStats;
     if (m_pSessionStats)
@@ -6811,4 +7087,17 @@ PPMStreamData::SetStreamAdaptation (StreamAdaptationSchemeEnum enumAdaptScheme,
 	*m_pStreamAdaptParams = *pStreamAdaptParams;
 
 	return HXR_OK;
+}
+
+void
+PPMStreamData::SuspendTimeline(Timeval& tvTimelineStart)
+{
+    if (m_bStreamRegistered)
+    {
+        m_tLastScheduledTime = tvTimelineStart;
+        m_ulFirstPacketTS = 0;
+        m_bFirstPacketTSSet = FALSE;
+        m_bSyncReady = FALSE;
+        m_unStartingSeqNum = m_unSequenceNumber;
+    }
 }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: xmlccf.cpp,v 1.9 2006/11/21 18:29:13 ping Exp $
+ * Source last modified: $Id: xmlccf.cpp,v 1.10 2007/07/06 20:43:45 jfinnecy Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,7 +46,7 @@
  * Contributor(s):
  * 
  * ***** END LICENSE BLOCK ***** */
-//  $Id: xmlccf.cpp,v 1.9 2006/11/21 18:29:13 ping Exp $
+//  $Id: xmlccf.cpp,v 1.10 2007/07/06 20:43:45 jfinnecy Exp $
 
 /****************************************************************************
  *  hxxml plugin

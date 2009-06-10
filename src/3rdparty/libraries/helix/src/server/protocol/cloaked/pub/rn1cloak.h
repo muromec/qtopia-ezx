@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rn1cloak.h,v 1.8 2005/07/23 01:58:27 darrick Exp $
+ * Source last modified: $Id: rn1cloak.h,v 1.9 2007/05/23 18:58:21 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -53,7 +53,6 @@ class HTTPGetMessage;
 class HTTPPostMessage;
 class HTTPRequestMessage;
 class HTTPResponseMessage;
-class Player;
 class Process;
 class HTTPProtocolMgr;
 class CloakedGUIDDict;

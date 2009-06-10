@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudev.cpp,v 1.33 2006/10/11 21:25:06 milko Exp $
+ * Source last modified: $Id: hxaudev.cpp,v 1.39 2009/01/22 21:27:26 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -97,6 +97,9 @@ extern IHXPreferences* z_pIHXPrefs;
 #  if defined(HELIX_FEATURE_ALSA)
 #    include "audlinux_alsa.h"
 #  endif
+#  if defined(ANDROID)
+#    include "audAndroid.h"
+#  endif
 #endif
 
 #if defined(HELIX_FEATURE_USOUND)
@@ -137,6 +140,10 @@ extern IHXPreferences* z_pIHXPrefs;
 
 #if defined(_OPENWAVE)
 #include "audopwave.h"
+#endif
+
+#if defined(_BREW)
+#include "audbrew.h"
 #endif
 
 #include "hxheap.h"
@@ -248,14 +255,16 @@ CHXAudioDevice* CHXAudioDevice::Create(IHXPreferences* pPrefs)
 #endif
     
 #if defined(_LINUX) ||  defined(_FREEBSD) || defined(_NETBSD)
+# if defined(HELIX_FEATURE_OLPC) || defined(HELIX_CONFIG_MOBLIN)
+    UINT16 nSoundDriver = kALSA;
+#elif defined(ANDROID)
+    UINT16 nSoundDriver = kAndroidAudio;
+# else
     UINT16 nSoundDriver = kOSS;
-    HX_RESULT hxcr = ReadPrefUINT16(z_pIHXPrefs, "SoundDriver", nSoundDriver );
+# endif
 
-#if defined(HELIX_FEATURE_ALSA)
-    if (hxcr == HXR_FAILED)     // if haven't overridden in prefs make alsa default
-        nSoundDriver = kALSA;
-#endif
-
+    ReadPrefUINT16(z_pIHXPrefs, "SoundDriver", nSoundDriver );
+    
 #if defined(HELIX_FEATURE_USOUND)
     //Only use USound if it is available. If it isn't, drop to
     //OSS for now.
@@ -282,6 +291,11 @@ CHXAudioDevice* CHXAudioDevice::Create(IHXPreferences* pPrefs)
 #if defined(HELIX_FEATURE_ALSA)
        case kALSA:
            pAudioDevice = new CAudioOutLinuxAlsa();
+           break;
+#endif
+#if defined(ANDROID)
+       case kAndroidAudio:
+           pAudioDevice = new CAudioOutAndroid();
            break;
 #endif
        case kOSS:              //fall through
@@ -313,6 +327,9 @@ CHXAudioDevice* CHXAudioDevice::Create(IHXPreferences* pPrefs)
     pAudioDevice = new CAudioOutOpenwave;
 #endif
 #endif
+#if defined(_BREW)
+    pAudioDevice = new CAudioOutBrew;
+#endif
 
 #if defined( _WINDOWS )
     
@@ -343,10 +360,11 @@ CHXAudioDevice* CHXAudioDevice::Create(IHXPreferences* pPrefs)
 
 #endif
 
-#if defined( _MAC_UNIX )
-    pAudioDevice = new CAudioOutOSX;
-#elif defined( _MACINTOSH )
+
+#if defined( _MACINTOSH ) || defined( HELIX_FEATURE_AUDIO_OUT_LEGACY_MAC )
     pAudioDevice = new CAudioOutMac;
+#elif defined( _MAC_UNIX )
+    pAudioDevice = new CAudioOutOSX;
 #endif
 #if defined _HPUX
     pAudioDevice = new CAudioOutHPUX;

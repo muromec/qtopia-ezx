@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fsio.cpp,v 1.11 2004/11/15 17:46:37 vanand Exp $
+ * Source last modified: $Id: fsio.cpp,v 1.13 2008/02/05 06:06:08 vkathuria Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,8 +68,9 @@ static const char HX_THIS_FILE[] = __FILE__;
 #include "sio.h"
 
 #include "fsio.h"
+#ifndef _BREW
 #include "fio.h"
-
+#endif
 #include "hxassert.h"
 
 #ifdef _MACINTOSH		// so we include it here

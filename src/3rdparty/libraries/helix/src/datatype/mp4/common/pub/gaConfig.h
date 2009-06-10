@@ -129,6 +129,7 @@ public:
 	~CAudioSpecificConfig() ;
 	HX_RESULT Read(struct BITSTREAM &bs) ;
 
+        UINT32 GetCoreConfigSize() const;
 	UINT32 GetNChannels() const {return GASpecificConfig.GetNChannels();}
 	UINT32 GetSampleRate() const ;
 	UINT32 GetCoreSampleRate() const ;
@@ -136,6 +137,8 @@ public:
 	UINT32 GetObjectType() const ;
 	UINT32 GetFrameLength() const {return GASpecificConfig.GetFrameLength();}
 	HXBOOL   GetIsSBR() const {return m_bSBR;}
+        INT16  GetSBRPresentFlag() const {return m_nSBRPresentFlag;}
+        INT16  GetPSPresentFlag() const {return m_nPSPresentFlag;}
 
 private:
 	CBitstreamInt AudioObjectType ;
@@ -147,6 +150,10 @@ private:
 	CGASpecificConfig GASpecificConfig ;
 	static const UINT32 aSampleRate[13] ;
 	HXBOOL m_bSBR ;
+        INT16 m_nSBRPresentFlag;
+        INT16 m_nPSPresentFlag;
+        UINT32 m_ulCoreConfigSize;
+        UINT32 m_ulExtendedSize;
 
 	enum AudioObjectType
 	{
@@ -156,7 +163,8 @@ private:
 		AACLTP  = 4,
 		AACSBR  = 5,
 		AACSCALABLE = 6,
-		TWINVQ  = 7
+		TWINVQ  = 7,
+		AACPS   = 29
 	} ;
 } ;
 

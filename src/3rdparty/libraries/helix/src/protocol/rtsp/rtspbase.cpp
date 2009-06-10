@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspbase.cpp,v 1.28 2006/10/03 21:38:29 jc Exp $
+ * Source last modified: $Id: rtspbase.cpp,v 1.30 2008/05/12 20:35:03 jwei Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -69,6 +69,7 @@
 #include "rtspbase.h"
 #include "dbcs.h" // for HXIsEqual
 #include "hxtlogutil.h"
+#include "hxescapeutil.h"  //HXEscapeUtil::EscapeSymbol
 
 #include "hxheap.h"
 #ifdef _DEBUG
@@ -332,7 +333,8 @@ RTSPBaseProtocol::handleDebug(const char* pszMsg, HXBOOL bInBound)
             fclose(fp);
         }
 
-        HXLOGL2(HXLOG_RTSP, pMsg);
+        CHXString pMsgString = HXEscapeUtil::EscapeSymbol(pMsg, '%');
+        HXLOGL2(HXLOG_RTSP, pMsgString);
     }
 }
 

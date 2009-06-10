@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: newclient.cpp,v 1.11 2004/07/31 15:17:41 dcollins Exp $ 
+ * Source last modified: $Id: newclient.cpp,v 1.13 2007/06/19 01:57:36 seansmith Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -69,11 +69,9 @@
 #include "rtsppars.h"
 #include "rtspserv.h"
 #include "rtspif.h"
-#include "rtspprot.h"
 #include "httpprot.h"
 #include "http.h"
 #include "client.h"
-#include "player.h"
 #include "server_info.h"
 #include "server_engine.h"
 #include "base_errmsg.h"
@@ -264,12 +262,12 @@ NewClientState::DispatchClient(Client* pClient)
 #endif
     pClient->LeavingCore();
     pClient->disconnect();
-    cb->proc = pClient->proc;
-    pClient->proc->pc->engine->ischedule.enter(0.0, cb);
+    cb->proc = pClient->m_pProc;
+    pClient->m_pProc->pc->engine->ischedule.enter(0.0, cb);
 #else
     pClient->LeavingCore();
     pClient->disconnect();
-    ((CoreContainer *)pClient->proc->pc)->cdispatch->Send(pClient);
+    ((CoreContainer *)pClient->m_pProc->pc)->cdispatch->Send(pClient);
 #endif
 }
 
@@ -403,7 +401,7 @@ int NewClientRBPState::handleInput(Byte* pMsg, int nMsgLen,
 
     hello_msg.unpack((Byte*)pMsg, nMsgLen);
 
-    ERRMSG(pClient->proc->pc->error_handler,
+    ERRMSG(pClient->m_pProc->pc->error_handler,
            "%ld: RTTP entity %d not implemented\n",
            pClient->conn_id, type);
     return -1;
@@ -420,7 +418,7 @@ int NewClientRBPState::handleInput(Byte* pMsg, int nMsgLen,
 
     if (pClient->output(msg, msg_len) != msg_len)
     {
-	ERRMSG(pClient->proc->pc->error_handler,
+	ERRMSG(pClient->m_pProc->pc->error_handler,
 	       "Write failed in newclient_rbp_hello\n");
         return -1;
     }
@@ -551,7 +549,7 @@ NewClientHTTPState::handleInput(Byte* pMsg, int nMsgLen,
     }
     else
     {
-	ERRMSG(pClient->proc->pc->error_handler,
+	ERRMSG(pClient->m_pProc->pc->error_handler,
 	       "%ld: Unrecognized protocol\n", pClient->conn_id);
 	return -1;
     }

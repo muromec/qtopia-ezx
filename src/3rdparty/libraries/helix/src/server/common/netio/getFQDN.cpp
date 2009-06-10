@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: getFQDN.cpp,v 1.2 2003/01/23 23:42:50 damonlan Exp $ 
+ * Source last modified: $Id: getFQDN.cpp,v 1.3 2008/07/03 21:54:16 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -83,6 +83,7 @@ char* GetFullyQualifiedDomainName()
 	{
 	    return new_string(pHostName);
 	}
+#if !defined(_LSB)
 	else if (0 == ::getdomainname(pDomainName, 2048))
 	{
 	    UINT16 len = strlen(pDomainName) + strlen(pHostName) + 1; 
@@ -91,6 +92,7 @@ char* GetFullyQualifiedDomainName()
 	    pFullyQualifiedDomainName[len] = '\0';
 	    return pFullyQualifiedDomainName;
 	}
+#endif
 	else
 	{
 	    return 0;

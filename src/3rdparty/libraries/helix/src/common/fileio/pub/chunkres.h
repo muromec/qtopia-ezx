@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chunkres.h,v 1.11 2006/05/19 05:55:38 pankajgupta Exp $
+ * Source last modified: $Id: chunkres.h,v 1.13 2007/08/22 20:45:29 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -98,10 +98,16 @@ class CChunkyResChunk;
 
 //#define DEF_CHUNKYRES_MEM_THRESHOLD		0x00008000		//  32 KB
 //#define DEF_CHUNKYRES_MEM_THRESHOLD		0x00080000		// 512 KB
+#if defined(HELIX_FEATURE_MIN_HEAP)
 #define DEF_CHUNKYRES_MEM_THRESHOLD			0x00040000		// 256 KB
+#define DEF_CHUNKYRES_CHUNK_SIZE			0x00008000		//  32 KB
+#else	// HELIX_FEATURE_MIN_HEAP
+#define DEF_CHUNKYRES_MEM_THRESHOLD			0x00400000		//   4 MB
+#define DEF_CHUNKYRES_CHUNK_SIZE			0x00010000		//  64 KB
+#endif	// HELIX_FEATURE_MIN_HEAP
 
 //#define DEF_CHUNKYRES_CHUNK_SIZE			0x00002000		//   8 KB
-#define DEF_CHUNKYRES_CHUNK_SIZE			0x00008000		//  32 KB
+
 
 ///////////////////////////////////////////////////////////////
 //
@@ -220,6 +226,7 @@ public:
 	void				DisableDiskIO	() { m_bDisableDiskIO = TRUE; };
 	void				DiscardUsedData	() { m_bDiscardUsedData = TRUE; };
 	HX_RESULT			DiscardRange( ULONG32 offset, ULONG32 count );
+	void				TouchRange(ULONG32 ulOffset, ULONG32 ulCount);
 	ULONG32				GetDiskUsage() const;
     ULONG32             GetCurrentMemoryUsage() const;
 	HX_RESULT			GetData

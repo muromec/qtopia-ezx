@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ppm.h,v 1.41 2007/02/02 07:09:54 jzeng Exp $
+ * Source last modified: $Id: ppm.h,v 1.53 2009/02/12 01:13:57 jgordon Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -58,6 +58,7 @@
 #include "hxpcktflwctrl.h"
 #include "pcktflowwrap.h"
 #include "isifs.h"
+#include "hxstats.h"
 //#define RSD_LIVE_DEBUG
 
 class Process;
@@ -67,13 +68,11 @@ class BWCalculator;
 class StreamDoneCallback;
 class PPMStreamData;
 class DataConvertShim;
-class Player;
 class CServerTBF;
 class CRSDPacketQueue;
 class BRDetector;
 
 _INTERFACE IHXPacketFlowControl;
-_INTERFACE IHXRTPInfoSynch;
 _INTERFACE IHXSessionStats2;
 
 #define MAX_RESENDS_PER_SECOND 256
@@ -86,20 +85,22 @@ public:
     PPM(Process* pProc, BOOL bIsRTP);
     ~PPM();
 
-    void            RegisterSource(IHXPSourceControl* pSourceCtrl,
-                                   IHXPacketFlowControl** ppSessionControl,
-                                   UINT16 unStreamCount,
-                                   BOOL bIsLive, BOOL bIsMulticast,
-                                   DataConvertShim* pDataConv);
-
-    void            RegisterSource(IHXPSourceControl* pSourceCtrl,
+    void            RegisterSource(IUnknown* pSourceCtrl,
                                    IHXPacketFlowControl** ppSessionControl,
                                    UINT16 unStreamCount,
                                    BOOL bIsLive, BOOL bIsMulticast,
                                    DataConvertShim* pDataConv,
-                                   Player* pPlayerCtrl,
+                                   BOOL bIsFCS = FALSE);
+
+    void            RegisterSource(IUnknown* pSourceCtrl,
+                                   IHXPacketFlowControl** ppSessionControl,
+                                   UINT16 unStreamCount,
+                                   BOOL bIsLive, BOOL bIsMulticast,
+                                   DataConvertShim* pDataConv,
+                                   Client* pClient,
                                    const char* szPlayerSessionId,
-                                   IHXSessionStats* pSessionStats);
+                                   IHXSessionStats* pSessionStats,
+                                   BOOL bIsFCS = FALSE);
 
     void            SessionDone(Session* pSession);
 
@@ -121,15 +122,19 @@ public:
     };
     friend class TimeCallback;
 
-    class Session : public IHXPSinkPackets, public IHXPSinkInfo,
-                    public IHXPacketFlowControl, public IHXPacketResend,
-                    public IHXWouldBlockResponse,
-                    public IHXDataConvertResponse, public HXListElem,
-                    public IHXAccurateClock, public IHXQoSLinkCharSetup,
-                    public IHXStreamAdaptationSetup
+    class Session : public IHXPSinkPackets
+                  , public IHXPSinkInfo
+                  , public IHXPacketFlowControl
+                  , public IHXPacketResend
+                  , public IHXWouldBlockResponse
+                  , public IHXDataConvertResponse
+                  , public HXListElem
+                  , public IHXAccurateClock
+                  , public IHXQoSLinkCharSetup
+                  , public IHXStreamAdaptationSetup
         {
         public:
-            class TimeStampCallback: public BaseCallback
+            class TimeStampCallback : public BaseCallback
             {
             public:
                 STDMETHOD(Func)     (THIS);
@@ -138,7 +143,7 @@ public:
             };
         friend class TimeStampCallback;
 
-        class ResendCallback: public BaseCallback
+        class ResendCallback : public BaseCallback
         {
         public:
 #ifndef _SOLARIS27
@@ -152,7 +157,7 @@ public:
             UINT32*         m_pZeroMe;
         };
 
-        class TSDCallback: public BaseCallback
+        class TSDCallback : public BaseCallback
         {
         public:
             ~TSDCallback() {};
@@ -161,7 +166,7 @@ public:
         };
         friend class TSDCallback;
 
-        class CBRCallback: public BaseCallback
+        class CBRCallback : public BaseCallback
         {
         public:
             ~CBRCallback() {};
@@ -175,7 +180,8 @@ public:
                 IHXPSourcePackets*,
                 IHXPSourceLivePackets*,
                 BOOL bIsLive,
-                BOOL bIsMulticast);
+                BOOL bIsMulticast,
+                BOOL bIsFCS = FALSE);
 
         void    SendTimeStampedPacket(UINT16 m_unStreamNumber);
 
@@ -283,13 +289,14 @@ public:
     private:
                                     ~Session();
         void                        HandleTimeLineStateChange(BOOL bState);
+        void                        InitializeSwitchGroups();
         void                        ResetSessionTimeline(ServerPacket* pNextPkt,
                                              UINT16 usStreamNumber,
                                              BOOL bIsPostSeekReset);
         void                        Play(BOOL);
         void                        Pause(BOOL bWouldBlock, UINT32 ulPausePoint = 0);
         void                        StartPackets();
-        void                        SetPlayerInfo(Player* pPlayerControl,
+        void                        SetPlayerInfo(Client* pClient,
                                                   const char* szPlayerSessionId,
                                                   IHXSessionStats* pSessionStats);
         void                        GetNextPacket(UINT16 unStreamNumber);
@@ -317,25 +324,30 @@ public:
         HX_RESULT                   HandleDefaultSubscription(void);
         HX_RESULT                   UpdatePlayTime(void);
 
-        HX_RESULT ProcessLivePacket(HX_RESULT ulStatus,
-                                    IHXPacket* pPacket);
-        void CalculateInitialSendingRate();
-        void CalculatePreDataAmount();
-        UINT32 GetRTPHeaderSize(IHXBuffer* pBuffer);
-        BOOL DoesUseWirelineLogic();
-        void GetAllRSDConfigure();
-        HX_RESULT MobileLiveCBRPacketReady();
-        HX_RESULT MobileLiveTSDPacketReady();
-        HX_RESULT WirelineLivePacketReady();
-        BOOL IsMobileCBR();
-        HX_RESULT SendAndScheduleTSDPacket();
-        HX_RESULT SendLiveCBRPacket();
-        void ResetAdjustingState();
+        HX_RESULT                   ProcessLivePacket(HX_RESULT ulStatus,
+                                        IHXPacket* pPacket);
+        void                        CalculateInitialSendingRate();
+        void                        CalculatePreDataAmount();
+        UINT32                      GetRTPHeaderSize(IHXBuffer* pBuffer);
+        BOOL                        DoesUseWirelineLogic();
+        void                        GetAllRSDConfigure();
+        HX_RESULT                   MobileLiveCBRPacketReady();
+        HX_RESULT                   MobileLiveTSDPacketReady();
+        HX_RESULT                   WirelineLivePacketReady();
+        BOOL                        IsMobileCBR();
+        HX_RESULT                   SendAndScheduleTSDPacket();
+        HX_RESULT                   SendLiveCBRPacket();
+        void                        ResetAdjustingState();
+
+        HXPacketType                CheckPacketType(IHXPacket* pPacket);
+        HXBOOL                      PrepareRTPInfo(UINT16 uStreamNumber, 
+                                        IHXPacket* pPacket,
+                                        HXBOOL bSendingPacket);
+        void                        CommitRTPInfo();
 
         Process*                    m_pProc;
         IHXPSourcePackets*          m_pSourcePackets;
         IHXPSourceLivePackets*      m_pSourceLivePackets;
-        UINT32                      m_bThreadSafeGetPacket;
         BOOL                        m_bIsLive;
         PPMStreamData*              m_pStreamData;
         ULONG32                     m_ulRefCount;
@@ -401,7 +413,7 @@ public:
     UINT16                       m_unRTCPRule;
 
     IHXASMSource*       m_pASMSource;
-    Player*             m_pPlayerControl;
+    Client*             m_pClient;
     IHXBuffer*          m_pPlayerSessionId;
     IHXSessionStats*    m_pSessionStats;
     IHXSessionStats2*   m_pSessionStats2;
@@ -418,7 +430,10 @@ public:
     UINT32              m_uMaxBlockedQInMsecs;
     ULONG32             m_ulHeadTSDTime;
     ULONG32             m_ulLastTSDTime;
+
     BOOL                m_bRTPInfoRequired;
+    UINT16              m_unSyncStream;
+    UINT32              m_unSyncReadyStreams;
 
     BOOL                m_bSubscribeCountersInRSS;
 
@@ -429,8 +444,6 @@ public:
                         // all elapsed time from prior play/pause cycles
     Timeval             m_tvBankedPlayTime;
     IHXAccurateClock*   m_pAccurateClock;
-    IHXRTPInfoSynch*    m_pRTPInfoSynch;
-    UINT16              m_unRTPSynchStream;
     UINT32              m_ulBrecvDebugLevel;
     UINT32              m_unKeyframeStream;
     UINT32              m_unKeyframeRule;
@@ -470,6 +483,14 @@ public:
 
     StreamAdaptationParams     *m_pAggRateAdaptParams;
     StreamAdaptationSchemeEnum  m_enumStreamAdaptScheme;
+
+    UINT32              m_ulPreBufferOverhead;
+    UINT32              m_ulPreBuffer;
+
+#ifdef HELIX_FEATURE_SERVER_FCS 
+    BOOL                m_bFCSUpdateBandwidth;
+    BOOL                m_bIsFCSRequest;
+#endif
 
         friend class PPM;
         friend class TimeCallback;
@@ -526,3 +547,4 @@ public:
 };
 
 #endif /* _PPM_H_ */
+

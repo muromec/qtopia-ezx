@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: source_finder.h,v 1.4 2004/05/03 19:02:49 tmarshall Exp $ 
+ * Source last modified: $Id: source_finder.h,v 1.5 2008/03/09 12:19:24 npatil Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -106,7 +106,7 @@ private:
     FSManager*			m_pFSManager;
     IHXBroadcastMapper*	m_pBroadcastMapper;
     Process*			m_pProc;
-    URL*			m_pURL;
+    IHXURL*                     m_pURL;
     IHXRequest*                m_pRequest;
     BOOL			m_bFindPending;
 

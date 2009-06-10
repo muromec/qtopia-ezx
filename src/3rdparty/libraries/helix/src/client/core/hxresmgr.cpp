@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxresmgr.cpp,v 1.17 2006/02/09 01:09:54 ping Exp $
+ * Source last modified: $Id: hxresmgr.cpp,v 1.20 2008/01/31 22:23:18 cdunn Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -99,6 +99,7 @@ static struct errorStringTable
     {HXR_DOC_MISSING,           IDS_ERR_DOC_MISSING_ERROR},             // 14 "Requested file not found. The link you followed may be outdated or inaccurate."
     {HXR_BAD_FORMAT,            IDS_ERR_FORMAT_ERROR},                  // 15 "Unknown data format."
     {HXR_FULL_DOWNLOAD_NEEDED,  IDS_ERR_FULL_DOWNLOAD_NEEDED},          // 16 "This file is not optimized for Progressive Download."
+    {HXR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS, IDS_ERR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS}, // 17 "This file contains unsupported content."
 
     // server errors
     {HXR_NET_SOCKET_INVALID,    IDS_ERR_NET_SOCKET_INVALID},            // 18 "Invalid socket error."
@@ -356,7 +357,9 @@ static struct errorStringTable
     {HXR_SOCK_HOST_NOT_FOUND,             IDS_SOCK_HOST_NOT_FOUND},
     {HXR_SOCK_TRY_AGAIN,                  IDS_SOCK_TRY_AGAIN},
     {HXR_SOCK_NO_RECOVERY,                IDS_SOCK_NO_RECOVERY},
-    {HXR_SOCK_NO_DATA,                    IDS_SOCK_NO_DATA}
+    {HXR_SOCK_NO_DATA,                    IDS_SOCK_NO_DATA},
+
+    {HXR_RAVE_UI_FAIL,                    IDS_ERR_RAVE_UI}
 };
 
 

@@ -68,9 +68,15 @@
 #include "hxxres.h"
 #include "hxxrsmg.h"
 #include "ihxlist.h"
+#include "ihxtlogsystem.h"
+#include "ihxtlogsystemcontext.h"
+#include "hxdllaccess.h"
+#include "hxiids.h"
 
 #include "qtffplin.h"
 #include "qtffrefcounter.h"
+#include "hxtbuf.h"
+#include "hxlistp.h"
 
 #ifdef _AIX
 #include "hxtbuf.h"

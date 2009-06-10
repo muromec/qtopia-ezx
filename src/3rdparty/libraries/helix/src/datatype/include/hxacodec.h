@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
 
- * Source last modified: $Id: hxacodec.h,v 1.7 2006/12/08 01:41:19 ping Exp $
+ * Source last modified: $Id: hxacodec.h,v 1.9 2008/08/20 21:10:42 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -19,7 +19,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -592,5 +592,13 @@ STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(RACreateDecoderInstance) (const CLSID &clsi
 #ifdef __cplusplus
 }
 #endif
+
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXAudioEncoderConfigurator)
+DEFINE_SMART_PTR(IHXAudioEncoder)
+DEFINE_SMART_PTR(IHXCodecOldStyleAuthenticate)
+DEFINE_SMART_PTR(IQueryDecoderUnit)
+DEFINE_SMART_PTR(IHXAudioDecoder)
+DEFINE_SMART_PTR(IHXAudioDecoderRenderer)
 
 #endif // _HXACODEC_H_

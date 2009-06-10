@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspclnt.h,v 1.95 2007/02/23 00:42:48 milko Exp $
+ * Source last modified: $Id: rtspclnt.h,v 1.102 2008/05/06 15:41:00 anshuman Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -78,7 +78,7 @@ class RTSPPlayMessage;
 class RTSPRedirectMessage;
 class RTSPParser;
 class RTSPClientProtocol;
-class CByteGrowingQueue;
+class CBigByteGrowingQueue;
 class HXMutex;
 class MIMEHeader;
 class PipelinedDescribeLogic;
@@ -410,7 +410,7 @@ private:
     IHXNetServices*                 m_pNetServices;
     IHXSocket*                      m_pSocket;
     UINT32                          m_ulLastSeqNo;
-    CByteGrowingQueue*              m_pInQueue;
+    CBigByteGrowingQueue*           m_pInQueue;
     RTSPParser*                     m_pParser;
     HXBOOL                          m_bSessionDone;
     HXBOOL                          m_bSetSessionCalled;
@@ -994,7 +994,8 @@ protected:
     HX_RESULT handleOptionsResponse     (RTSPResponseMessage* pMsg,
                                          RTSPOptionsMessage*  pOptionsMsg);
     HX_RESULT handleGetParamResponse    (RTSPResponseMessage* pMsg);
-    HX_RESULT handleSetParamResponse    (RTSPResponseMessage* pMsg);
+    HX_RESULT handleSetParamResponse    (RTSPResponseMessage* pMsg, 
+                                         RTSPSetParamMessage* pReqMsg);
     HX_RESULT handleTeardownResponse    (RTSPResponseMessage* pMsg);
     HX_RESULT handlePlayResponse        (RTSPResponseMessage* pMsg,
                                         RTSPPlayMessage* pPlayMsg);
@@ -1129,7 +1130,7 @@ protected:
                                       UINT16        unNumHeader,
                                       REF(UINT32)   ulNumStream);
 
-    HX_RESULT   CreateUDPSockets(UINT32 ulStream, UINT16 ulPort);
+    HX_RESULT   CreateUDPSockets(UINT32 ulStream, UINT32 ulBitRate, UINT16 ulPort);
     RTSPTransport* GetTransport(UINT16 idxStream);
 
     HXBOOL                IsRealDataType(void);
@@ -1174,8 +1175,8 @@ protected:
                                     const char* pMimeType, UINT32 seqNo);
 
     HXBOOL PipelineRTSP();
+    HXBOOL ServerProducesWallClockTS(void);	
     HXBOOL m_bPipelineRTSP; //defaults to TRUE.
-    HXBOOL m_bTrimTrailingSlashes;
 
     HX_RESULT   ReportSuccessfulTransport(void);
 
@@ -1312,11 +1313,16 @@ protected:
     HXBOOL                              m_bUseLegacyTimeOutMsg;
     UINT32                              m_ulServerTimeOut;
     UINT32                              m_ulCurrentTimeOut;
+#ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
+    UINT32				m_ulForceKeepAliveDuringPauseTimout;
+    HXBOOL				m_bKeepAliveTimeouToBeReset;
+#endif
     CHXRateAdaptationInfo*              m_pRateAdaptInfo;
     HXNetSourceBufStats*                m_pSrcBufStats;
     UINT32                              m_ulRegistryID;
     UINT32			        m_ulLastBWSent;	
     HXBOOL                              m_bHaveSentRemainingSetupRequests;
+    HXBOOL                              m_bSDBDisabled;
 
 #if defined(_MACINTOSH)
     RTSPClientProtocolCallback*         m_pCallback;

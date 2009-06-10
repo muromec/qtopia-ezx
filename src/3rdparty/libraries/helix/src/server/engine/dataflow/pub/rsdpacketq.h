@@ -1,6 +1,6 @@
 
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rsdpacketq.h,v 1.4 2006/10/16 21:34:18 dcollins Exp $
+ * Source last modified: $Id: rsdpacketq.h,v 1.5 2007/12/28 07:38:37 rasher Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -76,8 +76,8 @@ private:
     UINT32                              m_pTailPacketTS;
     BOOL                                m_bQueueDone;
     IHXPacket*                          m_pHeadPacket;
-    UINT32                              m_ulSize;
-    UINT32                              m_ulMaxSize;
+    INT32                               m_lSize;
+    INT32                               m_lMaxSize;
 
 
     IHXPacket* GetHeadPacket();

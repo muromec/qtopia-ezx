@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: server_engine.h,v 1.7 2004/06/18 18:05:25 tmarshall Exp $
+ * Source last modified: $Id: server_engine.h,v 1.8 2007/09/20 14:21:55 rdolas Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -178,7 +178,7 @@ private:
     sigjmp_buf m_JumpStartJumpBuffer;
 #endif // defined _LINUX || defined _SOLARIS
 
-    enum _CrashState { IN_LOOP, IN_DISPATCHQ, NONE };
+    enum _CrashState { IN_LOOP, IN_DISPATCHQ, IN_SERVERPQ, IN_ISERVERPQ, NONE };
     _CrashState m_CrashState;
 };
 

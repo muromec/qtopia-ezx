@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pcktstrm.cpp,v 1.24 2006/12/21 05:06:06 tknox Exp $
+ * Source last modified: $Id: pcktstrm.cpp,v 1.25 2007/05/23 19:03:42 seansmith Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -68,8 +68,6 @@
 #include "mem_cache.h"
 #include "hxpiids.h"
 #include "globals.h"
-#include "player.h"
-
 #include "servbuffer.h"
 #include "hxpcktflwctrl.h"
 #include "hxqossess.h"

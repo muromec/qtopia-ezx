@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudses.cpp,v 1.77 2007/02/23 20:31:16 milko Exp $
+ * Source last modified: $Id: hxaudses.cpp,v 1.83 2009/05/01 14:09:35 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -265,6 +265,7 @@ CHXAudioSession::CHXAudioSession()
     , m_bOpaqueMode(FALSE)
     , m_pOpaqueData(NULL)
     , m_pMPPSupport(NULL)
+    , m_pStreamBufferList(NULL)
     , m_ulTargetPushdown(TARGET_AUDIO_PUSHDOWN)
     , m_ulMinimumPushdown(MINIMUM_AUDIO_PUSHDOWN)
 #if defined(HELIX_FEATURE_TIMELINE_WATCHER)
@@ -431,6 +432,8 @@ CHXAudioSession::Close(void)
     HX_RELEASE(m_pMutex);
     HX_RELEASE(m_pFinalHook);
     HX_RELEASE(m_pMPPSupport);
+    
+    HX_DELETE(m_pStreamBufferList);
 }
 /////////////////////////////////////////////////////////////////////////
 //  Method:
@@ -692,8 +695,15 @@ HX_RESULT CHXAudioSession::Init(IUnknown* pContext)
 
         if (m_pPreferences)
         {
-            if (ReadPrefUINT16(m_pPreferences, "Volume", m_uVolume) != HXR_OK)
+            HXBOOL bRememberVolumeSettings = TRUE;
+            ReadPrefBOOL(m_pPreferences, "RememberVolumeSettings", 
+                                                bRememberVolumeSettings);
+
+            if (bRememberVolumeSettings)
             {
+                if (ReadPrefUINT16(m_pPreferences, "Volume", m_uVolume) 
+                                                            != HXR_OK)
+                {   
                 HXBOOL bUseDS = TRUE;
                 ReadPrefBOOL(m_pPreferences, "UseDirectSound", bUseDS);
                 if(bUseDS)
@@ -705,6 +715,7 @@ HX_RESULT CHXAudioSession::Init(IUnknown* pContext)
             ReadPrefBOOL(m_pPreferences, "Mute", m_bMute);
 #endif /* HELIX_FEATURE_MUTE_PREFERENCE */
 
+            }
         }
 #endif /* HELIX_FEATURE_PREFERENCES */
 
@@ -1039,6 +1050,17 @@ HX_RESULT CHXAudioSession::GetDeviceFormat()
         }
     }
 
+    //malformed content can cause /0 errors. Check here to make
+    //sure the format makes sense.
+    
+    if( (m_DeviceFmt.uChannels * m_DeviceFmt.ulSamplesPerSec) == 0 )
+    {
+        //One or the other are zero. Bad format.
+        theErr = HXR_BAD_FORMAT;
+        return theErr;
+    }
+    
+        
     // turn on the default upsampling to 44K only on IX86 platforms
     // which support MMX
     // XXXgfw this also uses more memory for each block we push down
@@ -1076,12 +1098,14 @@ HX_RESULT CHXAudioSession::GetDeviceFormat()
     //native format + user defined samplerate entry.
     const int      nTmp       = nNumberOfRates*4+2;
     unsigned short nTableSize = 0;
-    tableEntry* table = new tableEntry[nTmp];
+    tableEntry*    table      = new tableEntry[nTmp];
 
     HX_ASSERT(table);
-    if( NULL == table )
-        return HXR_OUTOFMEMORY;
 
+    if( NULL == table )
+    {
+        return HXR_OUTOFMEMORY;
+    }
 
     //First entry is always our native format from above with any
     //samplerate changes the user made via prefs.
@@ -1218,8 +1242,9 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
 {
     HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): %u blocks", this, uNumBlocks);
 
-    HX_RESULT theErr        = HXR_OK;
-    HXBOOL      bDisableWrite = FALSE;
+    HX_RESULT theErr = HXR_OK;
+    HXBOOL    bDisableWrite = FALSE;
+    UINT32    ulNumBytesWritten = 0;
 
     if ( !m_bInited )
         return theErr;
@@ -1245,6 +1270,7 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
         if (HXR_OK == ProcessAudioDevice(ACTION_CHECK, m_pAudioDev))
         {
             /* Try to stuff in as much backlog as possible */
+            ulNumBytesWritten = 0;
             while (!theErr && m_pAuxiliaryAudioBuffers->GetCount() > 0)
             {
                 HXAudioData* pAudioData =
@@ -1261,8 +1287,16 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
 
                 if (!theErr)
                 {
-                    m_ulBlocksWritten++;
-                    m_dNumBytesWritten  += pAudioData->pData->GetSize();
+                    //make sure we count by blocks
+                    //this also assume that audio device won't reject
+                    //data on non-block-boundary
+                    ulNumBytesWritten += pAudioData->pData->GetSize();
+                    if (ulNumBytesWritten == m_ulBytesPerGran)
+                    {
+                      m_ulBlocksWritten++;
+                      m_dNumBytesWritten  += ulNumBytesWritten;
+                      ulNumBytesWritten = 0;
+                    }
 
                     m_pAuxiliaryAudioBuffers->RemoveHead();
                     pAudioData->pData->Release();
@@ -1315,7 +1349,6 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
             m_uNumToBePushed      = uPush - i;
             m_bSessionBufferDirty = FALSE; // only used for multi-player case
 
-            UINT32  ulNumBytesWritten       = m_ulBytesPerGran;
             HXBOOL  bAtLeastOnePlayerActive = FALSE;
 
             theErr = m_pSessionBuf->SetSize(m_ulBytesPerGran);
@@ -1329,6 +1362,29 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
 
             // Zero session buffer.
             //memset(pSessionBuf, 0, HX_SAFESIZE_T(m_ulBytesPerGran));
+
+            //determine the special case of single player and single stream
+            HXBOOL bOptimizedMixing = FALSE;
+#ifdef HELIX_FEATURE_OPTIMIZED_MIXING
+
+            if (m_pPlayerList->GetCount() == 1 
+                && ((CHXAudioPlayer*)m_pPlayerList->GetHead())->GetStreamCount() == 1)
+            {
+                bOptimizedMixing = TRUE;
+                //this will hold the non-memcpy-ed buffers returned from stream object
+                if (m_pStreamBufferList == NULL)
+                {
+                   m_pStreamBufferList = new CHXSimpleList;
+                }
+                
+                //best efford. instead of quit with OUTOFMEMORY, we just go back to
+                //normal mode if failed
+                if (m_pStreamBufferList == NULL)
+                {
+                   bOptimizedMixing = FALSE;
+                }
+            }
+#endif
 
             // Get each player
             pPlayer = 0;
@@ -1346,7 +1402,7 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
                 }
 
                 bAtLeastOnePlayerActive = TRUE;
-
+                
                 if (m_pPlayerList->GetCount() == 1)
                 {
                     pMixIHXBuffer = m_pSessionBuf;
@@ -1395,8 +1451,10 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
                                 theErr = pStream->MixIntoBuffer( pMixBuffer,
                                                                  m_ulBytesPerGran,
                                                                  ulBufTime,
-                                                                 bIsMixBufferDirty);
-
+                                                                 bIsMixBufferDirty,
+                                                                 bOptimizedMixing,
+                                                                 m_pStreamBufferList 
+                                                                 );
                                 if (HXR_OK !=theErr)
                                 {
                                     HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): after mix: err = 0x%08x", this, theErr);
@@ -1561,96 +1619,141 @@ HX_RESULT CHXAudioSession::PlayAudio(UINT16 uNumBlocks)
 
             if (m_pAudioDev && !m_bDisableWrite)
             {
-                /* are we dealing with a messed up sound card */
-                if ((m_BeforeHookDeviceFmt.uChannels == 1 && m_DeviceFmt.uChannels == 2)||
-                    m_BeforeHookDeviceFmt.uBitsPerSample == 8)
+                // a bit ugly -- trying to use the same code here for optimized and non-optimized
+                // mixing cases
+                int count = 1; //non-optimized mixing case, only one buffer to write out 
+                if (bOptimizedMixing)
                 {
-                    ConvertTo8BitAndOrMono(&audioData);
+                   count = m_pStreamBufferList->GetCount();
                 }
-
-                if (m_pFinalHook && m_bUseFinalHook)
+                
+                ulNumBytesWritten = 0;
+                theErr = HXR_OK;
+                for (int i=0; i < count ; i++)
                 {
-                    if (HXR_OK == ProcessAudioHook(ACTION_CHECK, m_pFinalHook))
-                    {
-                        m_pOutDataPtr->pData            = NULL;
-                        m_pOutDataPtr->ulAudioTime      = audioData.ulAudioTime;
-                        m_pOutDataPtr->uAudioStreamType = audioData.uAudioStreamType;
+                   if (bOptimizedMixing)
+                   {
+                       audioData.pData = (IHXBuffer*) m_pStreamBufferList->RemoveHead();
+                       
+                       //FXD: this floating point math may be too heavy on certain platforms.
+                       //     currently only the win32 audio device cares about audioData.ulAudioTime value.
+                       //     we can disable this math operation for other platforms if we see a need.
+                       audioData.ulAudioTime = (ULONG32) m_dBufEndTime 
+                                              + m_dGranularity * (float)ulNumBytesWritten / m_ulBytesPerGran;
+                   }
+                    
+                   /* are we dealing with a messed up sound card */
+                   if ((m_BeforeHookDeviceFmt.uChannels == 1 && m_DeviceFmt.uChannels == 2)||
+                        m_BeforeHookDeviceFmt.uBitsPerSample == 8)
+                   {
+                       ConvertTo8BitAndOrMono(&audioData);
+                   }
 
-                        m_pFinalHook->OnBuffer(&audioData, m_pOutDataPtr);
+                   if (m_pFinalHook && m_bUseFinalHook)
+                   {
+                       if (HXR_OK == ProcessAudioHook(ACTION_CHECK, m_pFinalHook))
+                       {
+                           m_pOutDataPtr->pData            = NULL;
+                           m_pOutDataPtr->ulAudioTime      = audioData.ulAudioTime;
+                           m_pOutDataPtr->uAudioStreamType = audioData.uAudioStreamType;
 
-                        HX_ASSERT(m_pOutDataPtr->pData);
-                        if (m_pOutDataPtr->pData)
-                        {
-                            HX_RELEASE(audioData.pData);
-                            m_pSessionBuf = audioData.pData = m_pOutDataPtr->pData;
-                        }
-                        else
-                        {
-                            /* This is a screwed up Hook. Disable it */
-                            m_bUseFinalHook = FALSE;
-                        }
-                    }
-                }
+                           m_pFinalHook->OnBuffer(&audioData, m_pOutDataPtr);
 
-                if (m_pHookList && !m_bOpaqueMode)
+                           HX_ASSERT(m_pOutDataPtr->pData);
+                           if (m_pOutDataPtr->pData)
+                           {
+                               HX_RELEASE(audioData.pData);
+                               m_pSessionBuf = audioData.pData = m_pOutDataPtr->pData;
+                           }
+                           else
+                           {
+                               /* This is a screwed up Hook. Disable it */
+                               m_bUseFinalHook = FALSE;
+                           }
+                       }
+                   }
+
+                   if (m_pHookList && !m_bOpaqueMode)
+                   {
+                       ProcessHooks(&audioData);
+                   }
+
+                   if (theErr == HXR_OK)
+                   {
+                      ulNumBytesWritten += audioData.pData->GetSize();
+                      if (HXR_OK == ProcessAudioDevice(ACTION_CHECK, m_pAudioDev))
+                      {
+                          HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): writing [%p] %lu bytes", this, &audioData, ulNumBytesWritten);
+
+                          // Write session audio data to device.
+                          theErr = m_pAudioDev->Write(&audioData);
+
+                          if( theErr == HXR_OUTOFMEMORY )
+                          {
+                             goto exit;
+                          }
+                      }
+                   }
+
+                   if (theErr != HXR_OK)
+                   {
+                       HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): after write: err = 0x%08x", this, theErr);
+                   }
+
+                   if (theErr == HXR_WOULD_BLOCK)
+                   {
+                       // we assume that the audio device will not reject partial-block write
+                       // i.e, it can only return HXR_WOULD_BLOCK on block boundary
+                       // for platform that the audio device doesn't follow this rule
+                       // HELIX_FEATURE_OPTIMIZED_MIXING shouldn't be defined
+                       HX_ASSERT(ulNumBytesWritten % m_ulBytesPerGran == 0);
+                       
+                       HXAudioData* pAudioData     = new HXAudioData;
+                       pAudioData->pData           = audioData.pData;
+                       pAudioData->pData->AddRef();
+                       pAudioData->ulAudioTime     = audioData.ulAudioTime;
+                       pAudioData->uAudioStreamType= audioData.uAudioStreamType;
+
+                       // Create auxiliary buffer list, if one is not already created
+                       if (!m_pAuxiliaryAudioBuffers)
+                       {
+                           m_pAuxiliaryAudioBuffers = new CHXSimpleList;
+                       }
+                       
+                       if( NULL == m_pAuxiliaryAudioBuffers->AddTail(pAudioData) )
+                       {
+                           theErr = HXR_OUTOFMEMORY;
+                           goto exit;
+                       }
+                       
+                       HX_RELEASE(audioData.pData);
+                   }
+                   
+                   //make sure we've released the direct buffer from stream
+                   if (bOptimizedMixing)
+                   {
+                       HX_RELEASE(audioData.pData);
+                   }
+                   
+                   /* Any error from audio device other than memory error is
+                    * returned as HXR_AUDIO_DRIVER
+                    */
+                   if (theErr != HXR_OK && theErr != HXR_WOULD_BLOCK &&
+                       theErr != HXR_OUTOFMEMORY)
+                   {
+                       theErr = HXR_AUDIO_DRIVER;
+                   }
+                } // count loop
+                
+                HX_ASSERT(m_pStreamBufferList == NULL || m_pStreamBufferList->GetCount() == 0);
+
+                if (!theErr)
                 {
-                    ProcessHooks(&audioData);
+                    m_ulBlocksWritten++;
+                    HX_ASSERT(ulNumBytesWritten == m_ulBytesPerGran);
+                    m_dNumBytesWritten  += ulNumBytesWritten;
                 }
-
-                ulNumBytesWritten = audioData.pData->GetSize();
-                if (HXR_OK == ProcessAudioDevice(ACTION_CHECK, m_pAudioDev))
-                {
-                    HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): writing [%p] %lu bytes", this, &audioData, ulNumBytesWritten);
-
-                    // Write session audio data to device.
-                    theErr = m_pAudioDev->Write(&audioData);
-                    if( theErr == HXR_OUTOFMEMORY )
-                    {
-                        goto exit;
-                    }
-                }
-
-                if (theErr != HXR_OK)
-                {
-                    HXLOGL4(HXLOG_ADEV, "CHXAudioSession[%p]::PlayAudio(): after write: err = 0x%08x", this, theErr);
-                }
-
-                if (theErr == HXR_WOULD_BLOCK)
-                {
-                    HXAudioData* pAudioData     = new HXAudioData;
-                    pAudioData->pData           = audioData.pData;
-                    pAudioData->pData->AddRef();
-                    pAudioData->ulAudioTime     = audioData.ulAudioTime;
-                    pAudioData->uAudioStreamType= audioData.uAudioStreamType;
-
-                    // Create auxiliary buffer list, if one is not already created
-                    if (!m_pAuxiliaryAudioBuffers)
-                    {
-                        m_pAuxiliaryAudioBuffers = new CHXSimpleList;
-                    }
-                    if( NULL == m_pAuxiliaryAudioBuffers->AddTail(pAudioData) )
-                    {
-                        theErr = HXR_OUTOFMEMORY;
-                        goto exit;
-                    }
-
-                    HX_RELEASE(m_pSessionBuf);
-                }
-                /* Any error from audio device other than memory error is
-                 * returned as HXR_AUDIO_DRIVER
-                 */
-                if (theErr != HXR_OK && theErr != HXR_WOULD_BLOCK &&
-                    theErr != HXR_OUTOFMEMORY)
-                {
-                    theErr = HXR_AUDIO_DRIVER;
-                }
-            }
-
-            if (!theErr)
-            {
-                m_ulBlocksWritten++;
-                m_dNumBytesWritten  += ulNumBytesWritten;
-            }
+            }   
 
             // So this function is good in theory, but in practice we find in
             // heap-optimized mode it is not necessary, and it leads to
@@ -2039,6 +2142,14 @@ HX_RESULT CHXAudioSession::OpenAudio()
  */
 HX_RESULT CHXAudioSession::CreatePlaybackBuffer()
 {
+
+    //Check for good format.
+    if( (m_DeviceFmt.uChannels * m_DeviceFmt.ulSamplesPerSec) == 0 )
+    {
+        //One or the other are zero. Bad format.
+        return HXR_BAD_FORMAT;
+    }
+
     // Calculate the number of bytes per granularity.
     m_ulBytesPerGran = (ULONG32)
         (((m_DeviceFmt.uChannels * ((m_DeviceFmt.uBitsPerSample==8)?1:2) *  m_DeviceFmt.ulSamplesPerSec)
@@ -2167,7 +2278,7 @@ HX_RESULT CHXAudioSession::Resume(CHXAudioPlayer* pPlayerToExclude, HXBOOL bRewi
     if ((m_bPaused || m_bStoppedDuringPause) &&
         (!m_pLastPausedPlayer || (m_pLastPausedPlayer == pPlayerToExclude)))
     {
-	if (bRewindNeeded)
+	if (bRewindNeeded && (m_dNumBytesWritten != 0))
 	{
 	    RewindSession();
 	}
@@ -2932,7 +3043,7 @@ CHXAudioSession::CreateResampler(HXAudioFormat              inAudioFormat,
  */
 STDMETHODIMP CHXAudioSession::SetAudioPushdown(UINT32 ulMinimumPushdown)
 {
-    
+ 
     m_ulTargetPushdown = (ulMinimumPushdown<MINIMUM_AUDIO_PUSHDOWN) ?
         MINIMUM_AUDIO_PUSHDOWN : ulMinimumPushdown;
 
@@ -3027,6 +3138,11 @@ ULONG32 CHXAudioSession::GetBlocksRemainingToPlay()
         if( lMsInAudioDevice>0 )
         {
             ulRetVal = (ULONG32)floor(lMsInAudioDevice/m_dGranularity);
+            HXLOGL4(HXLOG_ADEV, "\tBlocksWritten(%lu) /MsWritten(%lu) /MsInDevice(%d) CurTime(%lu)",
+                    m_ulBlocksWritten,
+                    ulMsWritten,
+                    lMsInAudioDevice,
+                    ulCurTime);
         }
         else
         {
@@ -4154,7 +4270,7 @@ HXBOOL CHXAudioSession::GoingToUnderflow()
         bRetVal = (nBlocksRemaining < m_ulMinBlocksTobeQueued) ? TRUE : FALSE;
         if( bRetVal )
         {
-            HXLOGL2( "IsRebufferRequired: BlockRemaining: %d  BlockToStart: %lu",
+            HXLOGL2(HXLOG_ADEV, "IsRebufferRequired: BlockRemaining: %d  BlockToStart: %lu",
                      nBlocksRemaining,
                      m_ulMinBlocksTobeQueued
                      );

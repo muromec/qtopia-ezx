@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pthreadthreads.cpp,v 1.11 2005/03/02 20:38:54 grobbins Exp $
+ * Source last modified: $Id: pthreadthreads.cpp,v 1.13 2009/02/04 23:43:10 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -102,7 +102,12 @@ void HXPthreadThread::_thread_exit(UINT32 unExitCode)
 
 void HXPthreadThread::_thread_cancel(ULONG32 ulThreadID)
 {
+#ifdef ANDROID
+    // Android doesn't have pthread_cancel function
+    HX_ASSERT("_thread_cancel not implemented!\n");
+#else
     pthread_cancel( (pthread_t) ulThreadID );
+#endif
 }
 
 ULONG32 HXPthreadThread::_thread_join(ULONG32 ulThreadID)

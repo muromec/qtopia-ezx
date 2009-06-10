@@ -2,7 +2,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-client-s60-32-common.pfi,v 1.6 2007/04/05 18:40:48 aperiquet Exp $ 
+#  Source last modified: $Id: helix-client-s60-32-common.pfi,v 1.10 2007/08/08 00:19:04 rrajesh Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -65,9 +65,15 @@
 
 #Features in S60 3.2 platform
 
+project.AddDefines('HELIX_CONFIG_SYMBIAN_PCM_PUSHDOWN_BYTES')
 project.AddDefines('HELIX_FEATURE_DRM_SECURE_OUTPUT')
 project.AddDefines('HELIX_FEATURE_S60_PROGDOWN')
 project.AddDefines('HELIX_FEATURE_S60_VIDEO_CUSTOM_INTERFACE')
 project.AddDefines('HELIX_FEATURE_SYMBIAN_MDF_AUDIO_DSP_EAACPLUS')
+project.AddDefines('HELIX_CONFIG_INC_HIERARCHY_CHANGE')
+project.AddDefines('HELIX_FEATURE_HSDPA_BEARER_SUPPORT')
+
+# Reads & Writes specific configurations into Central Repository
+project.AddDefines("HELIX_CONFIG_CENREP_PREFS")
 
 exec_profile_file("helix-s60-metadataengine.pfi")

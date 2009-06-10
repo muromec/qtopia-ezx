@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: win32_dll.cpp,v 1.6 2004/07/09 18:19:14 hubbe Exp $
+ * Source last modified: $Id: win32_dll.cpp,v 1.8 2007/08/14 15:25:11 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -90,6 +90,10 @@ Win32DLLAccess::~Win32DLLAccess()
     }
 }
 
+#ifdef WINCE
+extern "C" void CompactAllHeaps(void);
+#endif //WINCE
+
 int Win32DLLAccess::Open(const char* dllName)
 {
     int ret = DLLAccess::NO_LOAD;
@@ -104,6 +108,30 @@ int Win32DLLAccess::Open(const char* dllName)
 #endif /* AVOID_LOADLIBRARY_FAILURE */
 
     m_handle = LoadLibrary(OS_STRING(dllName));
+
+#ifdef WINCE
+    if (!m_handle)
+    {
+	// Report the error
+	RETAILMSG( 1, (L"LoadLibrary('%S') failed with 0x%08X\r\n", dllName, GetLastError()) );
+
+	if (GetLastError() == 0x0000000E) // not enough storage memory available
+	{
+   	   // Lets try to repair the situation a little bit
+
+   	   // First, compact all availalble heaps
+           CompactAllHeaps();
+
+   	   // Now try to load the library one more time
+	   m_handle = LoadLibrary(OS_STRING(dllName));
+           if (!m_handle)
+           {
+		// Report the error
+		RETAILMSG( 1, (L"LoadLibrary('%S') failed again with 0x%08X\r\n", dllName, GetLastError()) );
+	   }
+	}
+    }
+#endif //WINCE
 
 #ifdef AVOID_LOADLIBRARY_FAILURE
     ::SetErrorMode(nOldMode);

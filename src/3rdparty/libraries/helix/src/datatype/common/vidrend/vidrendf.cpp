@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: vidrendf.cpp,v 1.31 2006/10/19 23:18:22 milko Exp $
+ * Source last modified: $Id: vidrendf.cpp,v 1.35 2009/05/07 16:03:40 gahluwalia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -347,10 +347,20 @@ void CVideoFormat::ReturnAssembledPacket(CMediaPacket* pFramePacket)
         if (!m_bKeyFrameMode ||
             (pFramePacket->m_ulFlags & HX_KEYFRAME_FLAG))
         {
-            HXLOGL4(HXLOG_BVID, "\tAdded to input queue", pFramePacket->m_ulTime);
+            HXLOGL4(HXLOG_BVID, "\tAdded encoded frame ts=%lu to input queue", pFramePacket->m_ulTime);
             m_pMutex->Lock();
             m_InputQueue.AddTail(pFramePacket);
             m_pMutex->Unlock();
+            // Does the output queue have space to decode a frame?
+            if (!m_pOutputQueue->IsFull())
+            {
+                // Yes the output queue has space to decode a frame,
+                // so we should signal the decode thread.
+                if (m_pVideoRenderer)
+                {
+                    m_pVideoRenderer->SignalDecoderThread();
+                }
+            }
         }
         else
         {
@@ -438,6 +448,16 @@ HX_RESULT CVideoFormat::Requeue(CMediaPacket* pFramePacket)
 	m_pMutex->Lock();
 	m_InputQueue.AddHead(pFramePacket);
 	m_pMutex->Unlock();
+        // Does the output queue have space to decode a frame?
+        if (!m_pOutputQueue->IsFull())
+        {
+            // Yes the output queue has space to decode a frame,
+            // so we should signal the decode thread.
+            if (m_pVideoRenderer)
+            {
+                m_pVideoRenderer->SignalDecoderThread();
+            }
+        }
     }
 
     return HXR_OK;
@@ -450,6 +470,9 @@ HX_RESULT CVideoFormat::Requeue(CMediaPacket* pFramePacket)
  */
 CMediaPacket* CVideoFormat::Dequeue(void)
 {
+    // Get the current number of queued decoded frames in the output queue
+    INT32 lCount = m_pOutputQueue->Count();
+    // Get a decoded frame from the output queue
     CMediaPacket* pPacket = (CMediaPacket*) m_pOutputQueue->Get();
 
 #ifdef ENABLE_FRAME_TRACE
@@ -461,6 +484,22 @@ CMediaPacket* CVideoFormat::Dequeue(void)
 	frameTraceArray[ulFrameTraceIdx++][1] = 'G';
     }
 #endif	// ENABLE_FRAME_TRACE
+
+    // Did we dequeue a decoded frame?
+    if (pPacket)
+    {
+        // Log a message
+        HXLOGL4(HXLOG_BVID, "CVideoFormat::Dequeue() - Removed decoded frame ts=%lu from output queue (%ld frames remaining)",
+                pPacket->m_ulTime, lCount - 1);
+        // We just opened up a spot in a previously full decoded frame
+        // output queue. Therefore, the decoder thread may have been
+        // waiting for space to open up, so we should signal the 
+        // decoder thread to try and decode.
+        if (m_pVideoRenderer)
+        {
+            m_pVideoRenderer->SignalDecoderThread();
+        }
+    }
 
     return pPacket;
 }
@@ -521,6 +560,8 @@ void CVideoFormat::FlushOutputQueue(void)
     {
 	while ((pFrame = (CMediaPacket*) m_pOutputQueue->Get()) != NULL)
 	{
+            // Log a message
+            HXLOGL4(HXLOG_BVID, "CVideoFormat::FlushOutputQueue() - Flush decoded frame ts=%lu", pFrame->m_ulTime);
 #ifdef ENABLE_FRAME_TRACE
 	    if (ulFrameTraceIdx < MAX_FRAME_TRACE_ENTRIES)
 	    {
@@ -583,6 +624,15 @@ HXBOOL CVideoFormat::DecodeFrame(UINT32 ulMaxExtraFrames)
 
     HXLOGL4(HXLOG_BVID, "CVideoFormat::DecodeFrame() Start");
 
+    // If the call to CreateDecodedPacket() does not produce
+    // a frame, does the renderer need to loop?
+    if (!NeedMultipleDecodeFrameLoops())
+    {
+        // If CreateDecodedPacket() does not produce a frame,
+        // then there is no need to try more than once.
+        ulMaxExtraFrames = 0;
+    }
+
     m_bIsFillbackDecodeNeeded = FALSE;
 
     m_pVideoRenderer->BltIfNeeded();
@@ -590,6 +640,9 @@ HXBOOL CVideoFormat::DecodeFrame(UINT32 ulMaxExtraFrames)
     m_pDecoderMutex->Lock();
     m_pMutex->Lock();
     
+    HXLOGL4(HXLOG_BVID, "CVideoFormat::DecodeFrame() assembledFramesInQ=%lu decodedFramesInQ=%lu decodedFrameQCapacity=%lu",
+            GetAssembledPacketQueueDepth(), GetDecodedFrameQueueDepth(), GetDecodedFrameQueueCapacity());
+
     if ((!m_InputQueue.IsEmpty()) &&
 	(!m_pOutputQueue->IsFull()) &&
 	(!m_bDecodeSuspended))
@@ -601,6 +654,8 @@ HXBOOL CVideoFormat::DecodeFrame(UINT32 ulMaxExtraFrames)
 	    m_pMutex->Unlock();
 
 	    m_bIsFillbackDecodeNeeded = FALSE;
+
+            HXLOGL4(HXLOG_BVID, "CVideoFormat::DecodeFrame() calling CreateDecodedPacket() with assembled frame ts=%lu", pEncodedPacket->m_ulTime);
 
 	    pDecodedPacket = CreateDecodedPacket(pEncodedPacket);
 
@@ -618,9 +673,16 @@ HXBOOL CVideoFormat::DecodeFrame(UINT32 ulMaxExtraFrames)
 
 		m_ulLastDecodedFrameTime = pDecodedPacket->m_ulTime;
 		HXLOGL4(HXLOG_BVID, "CVideoFormat::DecodeFrame Putting decoded frame PTS=%lu on output queue", pDecodedPacket->m_ulTime);
-		m_pOutputQueue->Put(pDecodedPacket, TRUE);
+		HXBOOL bPutRet = m_pOutputQueue->Put(pDecodedPacket, TRUE);
+        if(!bPutRet)
+        {
+            HXLOGL4(HXLOG_BVID, "No Space in output queue for frame PTS=%lu, dropping frame", pDecodedPacket->m_ulTime);
+            pDecodedPacket->Clear();
+            pDecodedPacket = NULL;
+            m_pVideoRenderer->ReportDroppedFrame();
+        }
 
-		if (pDecodedPacket->m_pData)
+		if (pDecodedPacket && pDecodedPacket->m_pData)
 		{
 		    m_pDecoderMutex->Unlock();
 		    m_pVideoRenderer->BltIfNeeded();

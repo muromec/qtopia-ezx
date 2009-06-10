@@ -419,8 +419,12 @@ INT32 CMp3Format::ScanForSyncWord(UINT8 *pBuf,
             {
                 pTemp = pBuf + iFrameSize;
 
+                if((pTemp[0] == 0xFF) && (pTemp[1] & 0xE0 == 0xE0))
+                {
+                    nFrameSize = iFrameSize;
+                }
                 // We do not have consequitve frames..what to do, what to do?
-                if ((pTemp[0] != 0xFF) |
+                else if ((pTemp[0] != 0xFF) |
                     (pTemp[1] != ySyncCheck))
                 {
                     INT32 lHeaderSize = 0;

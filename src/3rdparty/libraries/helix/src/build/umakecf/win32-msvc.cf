@@ -2,7 +2,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: win32-msvc.cf,v 1.19 2006/07/06 19:28:06 jfinnecy Exp $ 
+#  Source last modified: $Id: win32-msvc.cf,v 1.21 2007/07/17 00:17:50 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -129,6 +129,7 @@ class WinLinker(Linker2):
         self.args["default"] = ""
         self.args["debug"] = "/debug"
         self.args["dll"] = ""
+        self.args["base"] = "0x60000000"
         if project.BuildOption('no_optimize'):
             self.args['release'] = ''
         elif project.IsDefined('HELIX_CONFIG_MINIMIZE_SIZE'):
@@ -324,10 +325,11 @@ class WinLinker(Linker2):
         arg_list.append(objects)
         arg_list.append(static_libs)
         arg_list.append(dynamic_libs)
-        cmd = "python %s -basefile:%s -basedir:%s /base:0x60000000 %s" % (
-            os.path.join(BUILD_ROOT,"bin","pylink.py"),
+        cmd = "python %s -basefile:%s -basedir:%s /base:%s %s" % (
+            os.path.join("$(BUILD_ROOT)","bin","pylink.py"),
             os.path.join(project.src_root_path,dbg,"rebase.lst"),
             project.module_directory(),
+            self.args["base"],
             string.join(arg_list))
         cmd_list.append(cmd)
 

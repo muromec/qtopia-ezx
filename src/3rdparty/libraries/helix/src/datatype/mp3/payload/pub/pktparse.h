@@ -57,6 +57,7 @@ public:
     inline virtual void     EndOfPackets    (void) { m_bEndOfPackets = TRUE; }
     inline virtual UINT32   GetChannels     (void) { return m_ulChannels; }
     inline virtual double   GetTimePerPkt   (void) { return m_dFrameTime; }
+    inline virtual double   GetLastPCMTime  (void) { return m_dLastPCMTime; }
 
     inline virtual void     Begin           (UINT32 time) { m_dNextPts = 0.0; }
     inline virtual void     PreSeek         (void)

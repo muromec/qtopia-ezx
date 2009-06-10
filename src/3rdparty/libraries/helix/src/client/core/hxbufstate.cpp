@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxbufstate.cpp,v 1.30 2007/01/11 19:53:31 milko Exp $
+ * Source last modified: $Id: hxbufstate.cpp,v 1.32 2008/01/09 23:08:36 dyek Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -581,7 +581,7 @@ void HXBufferingState::UpdateBufferingInMs(INT64 llRefLowTimestamp,
 					   HXBOOL bIsTimestampDelivery,
 					   UINT32 ulElapsedTime)
 {
-    HXLOGL4(HXLOG_CORE, "HXBufferingState[%s-%p]::UpdateBufferingInMs(loTS=%I64d,hiTS=%I64d,bufferedPlayMode=%lu,tsDeliv=%lu,elaptime=%lu)",
+    HXLOGL4(HXLOG_CORE, "HXBufferingState[%s-%p]::UpdateBufferingInMs(loTS=" HX_I64d_SUBST ",hiTS=" HX_I64d_SUBST ",bufferedPlayMode=%lu,tsDeliv=%lu,elaptime=%lu)",
             (m_pMimeTypeStr ? (const char*) m_pMimeTypeStr->GetBuffer() : "(null)"),
             this, HX_I64d_ARG(llRefLowTimestamp), HX_I64d_ARG(llHighTimestamp), bIsBufferedPlayMode, bIsTimestampDelivery, ulElapsedTime);
     UINT32 ulCalcElapsedTime = 0;

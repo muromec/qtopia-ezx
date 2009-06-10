@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http_debug.h,v 1.5 2004/07/09 18:40:27 hubbe Exp $
+ * Source last modified: $Id: http_debug.h,v 1.7 2008/02/08 18:22:45 praveenkumar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,6 +50,7 @@
 #undef  NULLOK
 #define NULLOK(x)     ((x) ? (x) : "Null")
 
+#if !defined(_SYMBIAN)
 #include "hlxclib/time.h"
 
 #if defined(_UNIX) || defined (_MACINTOSH) || defined(__TCS__)
@@ -64,8 +65,8 @@
                                     (x)->tv_sec = time(NULL); \
                                     (x)->tv_usec = stTime.wMilliseconds * 1000
 #endif
-
-#if defined(DEBUG) && defined(ENABLE_LOGGING) && !defined(_OPENWAVE)
+#endif //_SYMBIAN
+#if defined(DEBUG) && defined(ENABLE_LOGGING) && !defined(_OPENWAVE) && !defined(_SYMBIAN)
 #  include "hlxclib/fcntl.h"
 
    static FILE*           g_fileLog  = NULL;

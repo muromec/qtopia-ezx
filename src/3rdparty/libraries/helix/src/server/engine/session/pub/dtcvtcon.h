@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: dtcvtcon.h,v 1.2 2003/01/23 23:42:57 damonlan Exp $ 
+ * Source last modified: $Id: dtcvtcon.h,v 1.3 2007/08/18 00:21:14 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -35,11 +35,9 @@
  *   
  * ***** END LICENSE BLOCK ***** */  
 
-#include "ts_overlord.h"
 class Process;
 
-class DataConvertShim : public IHXDataConvertResponse,
-			public ThreadSafeOverlord
+class DataConvertShim : public IHXDataConvertResponse
 {
 public:
     DataConvertShim(IHXDataConvert* pConvert, Process* proc);

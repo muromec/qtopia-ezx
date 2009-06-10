@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspmsg.h,v 1.6 2006/01/31 23:39:07 ping Exp $
+ * Source last modified: $Id: rtspmsg.h,v 1.9 2008/03/07 20:31:13 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -223,6 +223,7 @@ public:
 
     void asString(char* pBuf, int& msgLen);
     CHXString asString();
+    CHXString GetHeaderValuesAsString(const char* pName);	
 
 private:
     CHXString m_errorCode;
@@ -278,9 +279,15 @@ public:
 class RTSPSetParamMessage: public RTSPRequestMessage
 {
 public:
+    RTSPSetParamMessage() {m_MsgMode = T_UNKNOWN;}
+    enum SetParamMsgMode { T_UNKNOWN, T_SDB, T_KEEPALIVE};
     RTSPMessage::Tag tag() const { return RTSPMessage::T_SET_PARAM; }
     RTSPMethod GetMethod() const { return RTSP_SET_PARAM; }
     const char* tagStr() const { return "SET_PARAMETER"; }
+    SetParamMsgMode GetMsgMode() {return m_MsgMode;}
+    void SetMsgMode(SetParamMsgMode MsgMode) {m_MsgMode = MsgMode;}
+public:
+    SetParamMsgMode m_MsgMode;
 };
 
 class RTSPGetParamMessage: public RTSPRequestMessage

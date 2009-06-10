@@ -1,6 +1,10 @@
 #ifndef _HXQOSSESS_H_
 #define _HXQOSSESS_H_
 
+_INTERFACE IHXSessionStats;
+_INTERFACE IHXBuffer;
+_INTERFACE IHXServerPacketSource;
+
 // {0A7A1AB2-6E3E-4ed4-800F-97D54E67EE3C}
 DEFINE_GUID(IID_IHXClientBufferInfo, 
 0xa7a1ab2, 0x6e3e, 0x4ed4, 0x80, 0xf, 0x97, 0xd5, 0x4e, 0x67, 0xee, 0x3c);

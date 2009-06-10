@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fbbufctl.cpp,v 1.14 2007/01/11 19:53:31 milko Exp $
+ * Source last modified: $Id: fbbufctl.cpp,v 1.17 2008/03/07 20:33:13 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,6 +53,7 @@
 #include "hlxclib/math.h"
 #include "hxprefutil.h"
 #include "hxtlogutil.h"
+#include "ihxrateadaptctl.h"
 
 //#define HELIX_FEATURE_DBG_LOG
 //#define BUFFER_CONTROL_TESTING
@@ -174,7 +175,8 @@ HXFeedbackBufferControl::HXFeedbackBufferControl() :
     m_ulControlBw(0),
     m_bControlTotal(FALSE),
     m_bPaused(TRUE),
-    m_state(csNotInitialized)
+    m_state(csNotInitialized),
+    m_pRateAdaptCtl(NULL)
 {
     m_control.Init(0.7, 1.25664, 0.2, 5.0);
 }
@@ -252,7 +254,11 @@ STDMETHODIMP HXFeedbackBufferControl::Init(THIS_ IUnknown* pContext)
                                                 (void**)&m_pStatus)) &&
             (HXR_OK == pContext->QueryInterface(IID_IHXPreferences, 
                                                 (void**)&m_pPrefs)) &&
-            (HXR_OK == ReadPrefSettings()))
+            (HXR_OK == ReadPrefSettings()) &&
+            (HXR_OK ==  pContext->QueryInterface(IID_IHXClientRateAdaptControl,
+                                           (void**)&m_pRateAdaptCtl))
+
+            )
 
         {
 #ifdef BUFFER_CONTROL_TESTING
@@ -460,6 +466,7 @@ STDMETHODIMP HXFeedbackBufferControl::Close(THIS)
     HX_RELEASE(m_pThin);
     HX_RELEASE(m_pPrefs);
     HX_RELEASE(m_pStatus);
+    HX_RELEASE(m_pRateAdaptCtl);
 
     ChangeState(csNotInitialized);
 
@@ -735,7 +742,17 @@ void HXFeedbackBufferControl::SetBandwidth(UINT32 ulBandwidth)
 
     if (m_pThin)
     {
-        m_pThin->SetDeliveryBandwidth(ulBandwidth, 0);
+        HX_RESULT rv;
+        rv = m_pThin->SetDeliveryBandwidth(ulBandwidth, 0);
+        if(rv == HXR_NOT_SUPPORTED)
+        {
+            // Not supported is returned by protocol layer when
+            // RateAdaptation is used or when server does not support
+            // SetDeliveryBandwidth
+            HXLOGL1(HXLOG_BUFF, "HXFeedbackBufferControl::SetBandwidth SDB NOT SUPPORTED Stopping FeedbackControl");
+
+            StopCallback();
+        }
     }
 }
 
@@ -819,7 +836,13 @@ void HXFeedbackBufferControl::SetTransportByteLimits(UINT32 ulClipBw)
                     ulByteLimit = 1;
                 }
 
-                pBufLimit->SetByteLimit(i, ulByteLimit);
+                HXBOOL bEnabled = TRUE;
+                m_pRateAdaptCtl->IsEnabled(i, bEnabled);
+
+                if (bEnabled)
+                {
+                  pBufLimit->SetByteLimit(i, ulByteLimit);
+                }
             }
         }
     }

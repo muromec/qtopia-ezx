@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servreg.h,v 1.3 2003/09/04 22:39:09 dcollins Exp $ 
+ * Source last modified: $Id: servreg.h,v 1.4 2009/05/30 19:11:00 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -65,7 +65,6 @@ class Process;
 class WatchList;
 class ServRegKey;
 class ServerPropWatch;
-class RegistryMemCache;
 
 struct IHXPropWatchResponse;
 
@@ -334,7 +333,7 @@ protected:
     friend class PendingActiveRegChangesCallback;
 
     HX_MUTEX            m_pMutex;
-    int                 m_nLockedBy;
+    volatile int        m_nLockedBy;
 
 
 //#define VERBOSE_REGISTRY_LOCKING
@@ -566,10 +565,6 @@ protected:
     
     Process*                    _proc;
     WatchList*			m_pRootWatchList;
-
-private:
-    friend class RegistryMemCache; // so it can access _proc->pc->mem_cache
-    RegistryMemCache*           m_pRegMemCache;
 
 public:
     /*

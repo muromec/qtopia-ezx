@@ -141,7 +141,7 @@ const UINT32 UDP_HEADER  = 8;
  *   RTP RTP RTP RTP RTP
  ******************************************************************************/
 
-ServerRTPBaseTransport::ServerRTPBaseTransport(HXBOOL bIsSource)
+ServerRTPBaseTransport::ServerRTPBaseTransport(HXBOOL bIsSource, HXBOOL bOldTS)
     : Transport()
     , m_pSyncServer(NULL)
     , m_streamNumber(0)
@@ -155,7 +155,6 @@ ServerRTPBaseTransport::ServerRTPBaseTransport(HXBOOL bIsSource)
     , m_bHasRTCPRule(FALSE)
     , m_ulPayloadWirePacket(0)
     , m_RTCPRuleNumber(0)
-    , m_lTimeOffsetRTP(0)
     , m_lSyncOffsetHX(0)
     , m_lSyncOffsetRTP(0)
     , m_lNTPtoHXOffset(0)
@@ -176,13 +175,17 @@ ServerRTPBaseTransport::ServerRTPBaseTransport(HXBOOL bIsSource)
     , m_ulExtensionSupport(0)
     , m_bActive(TRUE)
     , m_bEmulatePVSession(FALSE)
-    , m_pMBitHandler(NULL)
     , m_cLSRRead(0)
     , m_cLSRWrite(0)
     , m_pQoSInfo(NULL)
     , m_bDone(FALSE)
+    , m_bOldTSStatic(bOldTS)
+    , m_bFirstTSSet(FALSE)
+    , m_bReportHandlerReady(FALSE)
 {
     m_wrapSequenceNumber = DEFAULT_WRAP_SEQ_NO;
+    m_LSRHistory[0].m_ulSourceLSR = 0;
+    m_LSRHistory[0].m_ulServerLSR = 0;
 }
 
 ServerRTPBaseTransport::~ServerRTPBaseTransport()
@@ -391,36 +394,31 @@ ServerRTPBaseTransport::setFirstSeqNum(UINT16 uStreamNumber, UINT16 uSeqNum)
     HXLOGL3(HXLOG_RTSP, "ServerRTPBaseTransport[%p]::setFirstSeqNum(); str %u first seq = %u",this, uStreamNumber, uSeqNum);
     HX_RESULT theErr = HXR_UNEXPECTED;
 
-    // On client we allow setting of sequence number only once not to cause
-    // havoc in transport buffer
-    if (!m_bSeqNoSet)
-    {
-        theErr = Transport::setFirstSeqNum(uStreamNumber, uSeqNum);
+    theErr = Transport::setFirstSeqNum(uStreamNumber, uSeqNum);
 
 #ifdef RTP_MESSAGE_DEBUG
-        messageFormatDebugFileOut("INIT: StartSeqNum=%u",
-                                  uSeqNum);
+    messageFormatDebugFileOut("INIT: StartSeqNum=%u",
+            uSeqNum);
 #endif  // RTP_MESSAGE_DEBUG
 
-        if (SUCCEEDED(theErr))
+    if (SUCCEEDED(theErr))
+    {
+        m_bSeqNoSet = TRUE;
+    }
+
+    if (m_pReflectorInfo)
+    {
+        HX_ASSERT(isReflector() && isRTP());
+        RTSPStreamData* pStreamData =
+            m_pStreamHandler->getStreamData(uStreamNumber);
+
+        if (pStreamData)
         {
-            m_bSeqNoSet = TRUE;
-        }
+            m_pReflectorInfo->m_unSeqNoOffset =
+                m_pReflectorInfo->m_unNextSeqNo - pStreamData->m_firstSeqNo;
 
-        if (m_pReflectorInfo)
-        {
-            HX_ASSERT(isReflector() && isRTP());
-            RTSPStreamData* pStreamData =
-                m_pStreamHandler->getStreamData(uStreamNumber);
-
-           if (pStreamData)
-     	    {
-                m_pReflectorInfo->m_unSeqNoOffset =
-                    m_pReflectorInfo->m_unNextSeqNo - pStreamData->m_firstSeqNo;
-
-                // for RTP-Info
-                pStreamData->m_firstSeqNo = m_pReflectorInfo->m_unNextSeqNo;
-            }
+            // for RTP-Info
+            pStreamData->m_firstSeqNo = m_pReflectorInfo->m_unNextSeqNo;
         }
     }
 
@@ -431,28 +429,47 @@ ServerRTPBaseTransport::setFirstSeqNum(UINT16 uStreamNumber, UINT16 uSeqNum)
 void
 ServerRTPBaseTransport::SetFirstTSStatic(RTSPStreamData* pStreamData, UINT32 ulTS, HXBOOL bIsRaw)
 {
-    if (pStreamData->m_pTSConverter && !bIsRaw)
+    if (!m_bOldTSStatic &&  m_bFirstTSSet)
     {
-	m_lRTPOffset = pStreamData->m_lastTimestamp - 
-	    pStreamData->m_pTSConverter->hxa2rtp(ulTS);			    
+        if (pStreamData->m_pTSConverter && !bIsRaw)
+        {
+            m_lRTPOffset = pStreamData->m_lastTimestamp - 
+                pStreamData->m_pTSConverter->hxa2rtp(ulTS);			    
+        }
+        else
+        {
+            m_lRTPOffset = pStreamData->m_lastTimestamp - ulTS;		
+        }
+
+        pStreamData->m_firstTimestamp =  pStreamData->m_lastTimestamp; 
+
+        if (m_pFirstPlayTime && m_pLastPauseTime)
+        {
+            HX_ASSERT((m_pFirstPlayTime->tv_sec*1000+m_pFirstPlayTime->tv_usec/1000) >=
+                    (m_pLastPauseTime->tv_sec*1000+m_pLastPauseTime->tv_usec/1000));
+
+            UINT32 ulPauseDuration = (m_pFirstPlayTime->tv_sec*1000+m_pFirstPlayTime->tv_usec/1000) -
+                (m_pLastPauseTime->tv_sec*1000+m_pLastPauseTime->tv_usec/1000);
+
+            if (pStreamData->m_pTSConverter)
+                ulPauseDuration =  pStreamData->m_pTSConverter->hxa2rtp(ulPauseDuration);
+            pStreamData->m_firstTimestamp += ulPauseDuration;
+            m_lRTPOffset += ulPauseDuration;
+        }
     }
     else
     {
-	m_lRTPOffset = pStreamData->m_lastTimestamp - ulTS;		
-    }
+        m_lRTPOffset = 0;
+        if (pStreamData->m_pTSConverter && !bIsRaw)
+        {
+            pStreamData->m_firstTimestamp = pStreamData->m_lastTimestamp =
+                pStreamData->m_pTSConverter->hxa2rtp(ulTS);
+        }
+        else
+        {
+            pStreamData->m_firstTimestamp = pStreamData->m_lastTimestamp = ulTS;
+        }
 
-    pStreamData->m_firstTimestamp =  pStreamData->m_lastTimestamp; 
-
-    if (m_pFirstPlayTime && m_pLastPauseTime)
-    {
-	HX_ASSERT((m_pFirstPlayTime->tv_sec*1000+m_pFirstPlayTime->tv_usec/1000) >=
-	    (m_pLastPauseTime->tv_sec*1000+m_pLastPauseTime->tv_usec/1000));
-
-	UINT32 ulPauseDuration = (m_pFirstPlayTime->tv_sec*1000+m_pFirstPlayTime->tv_usec/1000) -
-	    (m_pLastPauseTime->tv_sec*1000+m_pLastPauseTime->tv_usec/1000);
-
-	pStreamData->m_firstTimestamp += ulPauseDuration;
-	m_lRTPOffset += ulPauseDuration;
     }
 }
 
@@ -506,7 +523,20 @@ ServerRTPBaseTransport::setFirstTimeStamp(UINT16 uStreamNumber, UINT32 ulTS,
             SetFirstTSLive(pStreamData, ulTS, bIsRaw);
         }
 
+        m_bFirstTSSet = TRUE;
         m_bRTPTimeSet = TRUE;
+
+        // init report handler with starting NTP time and
+        // RTP start time as the reference point.
+        // only need to do this on the first packet of the session, 
+        // not after seek/resume, etc.
+        if (!m_bReportHandlerReady && m_pFirstPlayTime)
+        {
+            m_pReportHandler->Init(*m_pFirstPlayTime,
+                                pStreamData->m_firstTimestamp,
+                                pStreamData->m_pTSConverter);
+            m_bReportHandlerReady = TRUE;
+        }
     }
 }
 
@@ -549,6 +579,10 @@ ServerRTPBaseTransport::setFirstPlayTime(Timeval* pTv)
 HX_RESULT
 ServerRTPBaseTransport::reflectPacket(BasePacket* pBasePacket, REF(IHXBuffer*)pSendBuf)
 {
+    // We should never be reflecting anymore
+    HX_ASSERT(FALSE);
+    return HXR_UNEXPECTED;
+
     HX_ASSERT(pBasePacket);
     HX_ASSERT(m_bHasRTCPRule);
     HX_ASSERT(m_ulPayloadWirePacket==1);
@@ -584,7 +618,6 @@ ServerRTPBaseTransport::reflectPacket(BasePacket* pBasePacket, REF(IHXBuffer*)pS
     ulLen = pBuffer->GetSize();
 
     HX_ASSERT(pPacket->GetStreamNumber() == m_streamNumber);
-    HX_ASSERT(pPacket->GetASMFlags());
 
     /*
      * RTP packet
@@ -819,6 +852,10 @@ ServerFixRTPHeader(IHXCommonClassFactory* pCCF,
              UINT16 unSeqNoOffset,
              UINT32 ulRTPTSOffset)
 {
+    // We should never be reflecting anymore
+    HX_ASSERT(FALSE);
+    return HXR_UNEXPECTED;
+
     if (pOrigBuf->GetSize() < 8)
     {
         return HXR_INVALID_PARAMETER;
@@ -863,6 +900,10 @@ ServerFixRTCPSR(IHXCommonClassFactory* pCCF,
           REF(IHXBuffer*) pNewBuf,
           UINT32 ulRTPTSOffset)
 {
+    // We should never be reflecting anymore
+    HX_ASSERT(FALSE);
+    return HXR_UNEXPECTED;
+
     BYTE* pcOrig = pOrigBuf->GetBuffer();
     if (pOrigBuf->GetSize() < 20)
     {
@@ -902,72 +943,6 @@ ServerFixRTCPSR(IHXCommonClassFactory* pCCF,
         *pc++ = (UINT8)(ulRTPTS);
     }
     return theErr;
-}
-
-
-void
-ServerRTPBaseTransport::SyncTimestamp(IHXPacket* pPacket)
-{
-
-    IHXTimeStampSync* pTSSync = NULL;
-    if (FAILED(
-            m_pResp->QueryInterface(IID_IHXTimeStampSync, (void**)&pTSSync)))
-    {
-        // this shouldn't happen...
-        HX_ASSERT(!"IHXTimeStampSync not implemented");
-        return;
-    }
-
-    UINT32 ulInitialRefTime = 0;
-    UINT32 ulInitialThisTime = pPacket->GetTime();
-
-    if (pTSSync->NeedInitialTS(m_sessionID))
-    {
-        pTSSync->SetInitialTS(m_sessionID, pPacket->GetTime());
-        ulInitialRefTime = ulInitialThisTime;
-    }
-    else
-    {
-        ulInitialRefTime = pTSSync->GetInitialTS(m_sessionID);
-    }
-    HX_RELEASE(pTSSync);
-
-    RTSPStreamData* pStreamData =
-        m_pStreamHandler->getStreamData(pPacket->GetStreamNumber());
-
-    HX_ASSERT(pStreamData != NULL);
-    if (pStreamData)
-    {
-        // calc the difference b/n reference stream
-        if (ulInitialThisTime >= ulInitialRefTime)
-        {
-            // we want RTP time
-            if (pStreamData->m_pTSConverter)
-            {
-                m_lTimeOffsetRTP =
-                    (INT32)pStreamData->m_pTSConverter->hxa2rtp(ulInitialThisTime - ulInitialRefTime);
-            }
-            else
-            {
-                m_lTimeOffsetRTP = (INT32)(ulInitialThisTime - ulInitialRefTime);
-            }
-        }
-        else
-        {
-            // we want RTP time
-            if (pStreamData->m_pTSConverter)
-            {
-                m_lTimeOffsetRTP =
-                    (INT32)pStreamData->m_pTSConverter->hxa2rtp(ulInitialRefTime - ulInitialThisTime);
-            }
-            else
-            {
-                m_lTimeOffsetRTP = (INT32)(ulInitialRefTime - ulInitialThisTime);
-            }
-
-            m_lTimeOffsetRTP *= -1;
-        }
-    }
 }
 
 // The pPacketBuf is returned with an AddRef(), as it must.
@@ -1048,32 +1023,12 @@ ServerRTPBaseTransport::makePacket(BasePacket* pBasePacket,
             }
         }
         HX_RELEASE(pRTPPacket);
-
-        // figure out marker bit handling routine
-        if (NULL == m_pMBitHandler)
-        {
-            IHXRTPPacketInfo* pRTPPacketInfo = NULL;
-            if (pPacket->QueryInterface(IID_IHXRTPPacketInfo, (void**) &pRTPPacketInfo) == HXR_OK)
-            {
-                m_pMBitHandler = &ServerRTPBaseTransport::MBitRTPPktInfo;
-                pRTPPacketInfo->Release();
-            }
-            else
-            {
-                m_pMBitHandler = &ServerRTPBaseTransport::MBitASMRuleNo;
-            }
-        }
     }
 
     /*
      * Marker Bit
      */
-    (this->*m_pMBitHandler)(pkt.marker_flag, pPacket, ruleNumber);
-
-    if (m_bRTPTimeSet)
-    {
-        SyncTimestamp(pPacket);
-    }
+    pkt.marker_flag = ruleNumber & 0x1;
 
     /*
      *  Timestamp
@@ -1118,56 +1073,8 @@ ServerRTPBaseTransport::makePacket(BasePacket* pBasePacket,
         m_pRTCPTran->m_bSendBye = TRUE;
         pStreamData->m_bFirstPacket = FALSE;
 
-        // init report handler with starting NTP time and
-        // 0 RTP time as the reference point.
-        m_pReportHandler->Init(*m_pFirstPlayTime,
-                               pStreamData->m_firstTimestamp,
-                               pStreamData->m_pTSConverter);
-
         // at this point, it should have the same stream number
         HX_ASSERT(m_streamNumber == m_pRTCPTran->m_streamNumber);
-        HX_ASSERT(m_bRTPTimeSet);
-    }
-
-    // externally, we need to offset the timestamp...
-    //
-    // XXXGo
-    // In RTSP PLAY Response msg, there is a RTP-Info header in which there
-    // is a rtp timestap that corresponds to NTP time spesified in PLAY Request.
-    // Since PLAY Response goes out before we ever receive the first pkt, it
-    // always returns RTP time equivalent of NTP time in a Range header as a timestamp.
-    // So, we need to offset the timestamp here.
-    // In future, we might want to change the calling sequence so we don't have to do this...
-    if (m_bRTPTimeSet)
-    {
-        INT64 nNewRTPOffset = 0;
-        UINT32 ulRawRTPTime = 0;
-        HXTimeval hxNow = m_pScheduler->GetCurrentSchedulerTime();
-        Timeval tvNow;
-        NTPTime ntpNow;
-
-        // Convert scheduler time to something we can use.
-        tvNow.tv_sec = (LONG32)hxNow.tv_sec;
-        tvNow.tv_usec = (LONG32)hxNow.tv_usec;
-
-        ntpNow = NTPTime(tvNow);
-
-
-        if (pStreamData->m_pTSConverter)
-        {
-            ulRawRTPTime = pStreamData->m_pTSConverter->hxa2rtp((UINT32)(ntpNow - m_pReportHandler->GetNTPBase()));
-        }
-        else
-        {
-            ulRawRTPTime = (UINT32)(ntpNow - m_pReportHandler->GetNTPBase());
-        }
-
-        nNewRTPOffset = CAST_TO_INT64 pkt.timestamp - CAST_TO_INT64 ulRawRTPTime;
-
-        //m_pReportHandler->SetRTPBase(nNewRTPOffset);
-
-        // if this is true, there was a Range header in a PLAY request
-        m_bRTPTimeSet = FALSE;
     }
 
     pStreamData->m_lastTimestamp = pkt.timestamp;
@@ -1390,35 +1297,6 @@ ServerRTPBaseTransport::setRTCPTransport(ServerRTCPBaseTransport* pRTCPTran)
     // pointing to the same instatnce
     HX_ASSERT(m_pReportHandler);
     m_pRTCPTran->m_pReportHandler = m_pReportHandler;
-}
-
-void
-ServerRTPBaseTransport::MBitRTPPktInfo(REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRuleNo)
-{
-    HXBOOL b = FALSE;
-    IHXRTPPacketInfo* pRTPPacketInfo = NULL;
-    if (pPkt->QueryInterface(IID_IHXRTPPacketInfo, (void**) &pRTPPacketInfo) == HXR_OK)
-    {
-        if (pRTPPacketInfo->GetMarkerBit(b) == HXR_OK && b)
-        {
-            bMBit = TRUE;
-        }
-        else
-        {
-            bMBit = FALSE;
-        }
-        pRTPPacketInfo->Release();
-    }
-    else
-    {
-        bMBit = FALSE;
-    }
-}
-
-void
-ServerRTPBaseTransport::MBitASMRuleNo(REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRuleNo)
-{
-    bMBit = m_bHasMarkerRule && ((unRuleNo & 0x1) == m_markerRuleNumber);
 }
 
 HX_RESULT
@@ -2129,62 +2007,6 @@ ServerRTCPBaseTransport::handlePacketList(CHXSimpleList* pList, IHXBuffer* pBuff
                     }
 
                     HandleNADUPacket(pPkt);
-                }
-                else
-                {
-                    // make sure this APP is from RS.
-                    // Hmmm...This is a security risk...Anyone can send APP pkt
-                    // with "RNWK"...
-                    if ((0 != strncmp((const char*)pPkt->app_name, "RNWK", 4)) &&
-                        (0 != strncmp((const char*)pPkt->app_name, "HELX", 4)))
-                    {
-                        // unknown APP, ignore it.
-                        break;
-                    }
-
-                    if (!(pPkt->m_pAPPItems))
-                    {
-                        break;
-                    }
-
-                    HX_ASSERT(1 == pPkt->count);
-                    pAppPkt = new APPItem();
-                    if(!pAppPkt)
-                    {
-                        theErr = HXR_OUTOFMEMORY;
-                        break;
-                    }
-                    
-                    if ((pPkt->m_pAPPItems[0]).app_type == APP_BUFINFO)
-                    {
-                        IHXBuffer* pTmp = NULL;
-                        if((m_pSignalBus) && SUCCEEDED(m_pCommonClassFactory->
-                                                        CreateInstance(CLSID_IHXBuffer,
-                                                                        (void**)&pTmp)))
-                        {
-                            //pTmp->Set((UCHAR*)(&pPkt->m_pAPPItems[0]), sizeof(APPItem));
-                            pTmp->SetSize(sizeof(BufferMetricsSignal));
-                            BufferMetricsSignal* pbufSig =
-                                (BufferMetricsSignal*)pTmp->GetBuffer();
-                                
-                            // The correct mapping from SSRC to stream number
-                            // relies on the port multiplexing used by the
-                            // current implementation. If we use SSRC-based
-                            // multiplexing, we will need to take a look
-                            // again at this mapping.
-                            pbufSig->m_ulStreamNumber = m_streamNumber;
-                            pbufSig->m_ulLowTimestamp = pPkt->m_pAPPItems[0].lowest_timestamp;
-                            pbufSig->m_ulHighTimestamp = pPkt->m_pAPPItems[0].highest_timestamp;
-                            pbufSig->m_ulBytes = pPkt->m_pAPPItems[0].bytes_buffered;
-                            m_pQoSSignal_APP->SetValue(pTmp);
-                            m_pSignalBus->Send(m_pQoSSignal_APP);
-                            HX_RELEASE(pTmp);
-                        }
-                    }
-                    else
-                    {
-                        memcpy(pAppPkt, &pPkt->m_pAPPItems[0], sizeof(APPItem)); /* Flawfinder: ignore */
-                    }
                 }
             }
             break;

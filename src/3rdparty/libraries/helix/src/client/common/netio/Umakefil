@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.10 2006/04/20 23:49:11 ping Exp $
+# Source last modified: $Id: Umakefil,v 1.12 2008/12/02 14:00:10 gahluwalia Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 or later (the
+# terms of the GNU General Public License Version 2 (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -71,5 +71,9 @@ project.AddSources('inet.cpp',
                    'shim_resolve.cpp',
                    'shim_listening_socket.cpp')
 
+if project.IsDefined('HELIX_FEATURE_SECURE_SOCKET'):
+    project.AddSources('hxssl.cpp', 'hxcertmng.cpp')
+    project.AddModuleIncludes('common/crypto/lite')
+    
 
 LibraryTarget('netioclntlib')

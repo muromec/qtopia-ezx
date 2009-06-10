@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxvsurf.h,v 1.2 2004/07/09 18:42:48 hubbe Exp $
+ * Source last modified: $Id: hxvsurf.h,v 1.6 2009/06/01 13:42:40 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -175,6 +175,8 @@ typedef struct _tagVideoMemStruct
 #define HX_YVU9        MKFOURCC('Y','V','U','9') /* Intel YVU9     */
 #define HX_ARGB        MKFOURCC('A','R','G','B') /* ARGB32         */
 #define HX_DVPF        MKFOURCC('D','V','P','F') /* dvpf           */
+#define HX_NV21        MKFOURCC('N','V','2','1') /* Qualcomm YVU semi-planar */
+#define HX_OMXV        MKFOURCC('O','M','X','V') /* OpenMax buffer header pointer */
 
 /*
  * Non-standard FOURCC formats (these are just few aliases to what can be
@@ -764,5 +766,12 @@ DECLARE_INTERFACE_(IHXSubRectVideoSurface, IHXVideoSurface)
 };
 // $EndPrivate.
 
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXVideoSurface)
+DEFINE_SMART_PTR(IHXVideoHook)
+DEFINE_SMART_PTR(IHXVideoHookSink)
+DEFINE_SMART_PTR(IHXRenderTimeLine)
+DEFINE_SMART_PTR(IHXVideoSurface2)
+DEFINE_SMART_PTR(IHXSubRectVideoSurface)
 
 #endif /* _HXVSURF_H_ */

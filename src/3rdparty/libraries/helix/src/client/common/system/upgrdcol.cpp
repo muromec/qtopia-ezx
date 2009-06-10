@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: upgrdcol.cpp,v 1.8 2006/02/09 01:09:53 ping Exp $
+ * Source last modified: $Id: upgrdcol.cpp,v 1.10 2008/02/19 10:22:58 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,7 +52,7 @@
 #include "ihxpckts.h"
 #include "pckunpck.h"
 #include "upgrdcol.h"
-#include "stdlib.h"
+#include "hlxclib/stdlib.h"
 #include "hxordval.h"
 #include "hxbuffer.h"
 #include "hxstrutl.h"

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcloakedsocket.cpp,v 1.17 2007/01/03 06:53:43 gbajaj Exp $
+ * Source last modified: $Id: hxcloakedsocket.cpp,v 1.19 2008/08/18 21:50:48 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -2098,7 +2098,7 @@ HX_RESULT HXCloakedSocket::HandleGetSockReadEvent(HX_RESULT status)
     char*      pBufferContents = NULL;
     ULONG32    nMsgLen = 0;
     HTTPResponseMessage* pMessage = NULL;
-    HTTPParser Parser;
+    HTTPParser Parser(m_pContext);
     ULONG32    ulHTTPStatus = 0;
     
     if (HXR_OK != hr)
@@ -2290,7 +2290,7 @@ HXCloakedSocket::HandlePostSockReadEvent(HX_RESULT status)
     HX_ASSERT(pBuf);
 
     // try parsing in buffer as an http response
-    HTTPParser           Parser;
+    HTTPParser           Parser(m_pContext);
     char*                pBufferContents = NULL;
     ULONG32              nMsgLen         = 0;
     HTTPResponseMessage* pMessage        = NULL;
@@ -3199,7 +3199,7 @@ HXCloakedSocket::StartAuthenticationIfNeeded(IHXBuffer* pBuf)
     /* start of authenticated proxy logic */
 
     // try parsing in buffer as an http response
-    HTTPParser Parser;
+    HTTPParser Parser(m_pContext);
     char* pBufferContents = (char*)(const char*)pBuf->GetBuffer();
     ULONG32 nMsgLen = pBuf->GetSize();
 #if !defined HELIX_FEATURE_SERVER

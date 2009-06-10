@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: winthrd.cpp,v 1.14 2006/10/04 20:07:45 jeffl Exp $
+ * Source last modified: $Id: winthrd.cpp,v 1.17 2008/10/31 22:26:51 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -303,7 +303,31 @@ HXWinThread::PostMessage(HXThreadMessage* pMsg, void* pWindowHandle)
          */
         while(!m_ArgsAndAddr.m_bThreadCanReceiveMessages)
         {
-            Sleep(0);
+            // Sleep(1) is preferred over Sleep(0):
+            //
+            // Sleep(0) only gives up the current thread's time-slice if a thread 
+            // at *equal priority* is ready to run, as a result, it can still starve
+            // the thread with lower priority. 
+            //
+            // Sleep(1) forces itself removed from the scheduler temporarily and thus
+            // minimize the starvation.
+            //
+            // The benefit of Sleep(1) is most noticable on single-core system.
+            // 
+            // This fixed Bug 227594 where the creation of Flash thread is starved by 
+            // the main thread who's spining in this tight loop with Sleep(0) when 
+            // the Flash thread is not yet ready to receive the message.
+            // 
+            // Instead of being starved indefinitely, the Flash thread will be eventually 
+            // started, thanks for the "balance set manager" in Window's scheduler. Basically,
+            // there is a system daemon thread waking up once a while to check for
+            // threads that are being starved because of lower priority. If any threads
+            // are found by the "balance set manager" which have been starved for ~3-4 seconds,
+            // those starved threads enjoy a temporary priority boost to priority 15("time critical"), 
+            // virtually ensuring the thread will be scheduled. 
+            //
+            // This explain why the ~6s delay observed in the bug report.
+            Sleep(1);
         }
         bResult = ::PostThreadMessage(m_ulThreadId, pMsg->m_ulMessage, 
                                       (WPARAM) pMsg->m_pParam1, (LPARAM) pMsg->m_pParam2);
@@ -491,7 +515,7 @@ HXWinNamedMutex::Trylock            (void)
 {
 #ifdef _WIN32
 #if(_WIN32_WINNT >= 0x0400)
-    if (::WaitForSingleObject(0) == WAIT_OBJECT_0)
+    if (::WaitForSingleObject(m_Mutex, 0) == WAIT_OBJECT_0)
     {
         return HXR_OK;
     }

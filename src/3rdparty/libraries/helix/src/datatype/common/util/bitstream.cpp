@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bitstream.cpp,v 1.6 2006/01/04 07:12:44 pankajgupta Exp $
+ * Source last modified: $Id: bitstream.cpp,v 1.8 2008/11/11 15:15:01 alokjain Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -74,11 +74,13 @@ Bitstream::Bitstream() :
     m_pCur(0),
     m_bitBuf(0),
     m_bitCount(0),
-    m_ulBufSize(0)
+    m_ulBufSize(0),
+    m_ulBufSizeBits(0)
 {}
 
-void Bitstream::SetBuffer(const UINT8* pBuf)
+void Bitstream::SetBuffer(const UINT8* pBuf, ULONG32 ulBufSize )
 {
+    SetBufSize(ulBufSize); 
     m_pBuf = pBuf;
     m_pCur = m_pBuf;
 }
@@ -91,6 +93,7 @@ const UINT8* Bitstream::GetBuffer(void)
 void Bitstream::SetBufSize(ULONG32 ulBufSize)
 {
     m_ulBufSize = ulBufSize;
+    m_ulBufSizeBits = ulBufSize<<3;
 }
 
 ULONG32 Bitstream::GetBufSize(void)
@@ -113,6 +116,7 @@ ULONG32 Bitstream::GetBits(ULONG32 bitCount)
 	m_bitCount = 8 - (bitCount - m_bitCount);
     }
 
+    m_ulBufSizeBits -= (bitCount <= m_ulBufSizeBits ? bitCount : m_ulBufSizeBits);
     return ret;
 }
 
@@ -166,3 +170,9 @@ void Bitstream::FlushBits(ULONG32 bitCount)
 
     GetBits(bitCount);
 }
+
+UINT32 Bitstream::BitsLeft(void)
+{
+    return m_ulBufSizeBits;
+}
+

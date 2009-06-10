@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstring.h,v 1.15 2006/04/11 00:13:09 jeffl Exp $
+ * Source last modified: $Id: hxstring.h,v 1.17 2008/06/27 20:05:34 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -280,6 +280,9 @@ extern const CHXString HXEmptyString;
 extern const char* const _g_emptyString;
 #define HXEmptyString HXGlobalCHXString::Get(&_g_emptyString)
 #endif
+
+// create a CHXString from GECKO API NPString
+#define CHXSTRING_FROM_NPSTRING(x) (CHXString((x).utf8characters, (x).utf8length))
 
 inline
 char* CHXStringRep::GetBuffer()

@@ -120,7 +120,6 @@ public:
     /* IHXPSourcePackets */
     STDMETHOD(Init)             (THIS_ IHXPSinkPackets* pSink);
     STDMETHOD(GetPacket)        (THIS_ UINT16 unStreamNumber);
-    STDMETHOD_(UINT32, IsThreadSafe)     (THIS);
 
     /* IHXPSinkPackets */
     STDMETHOD(PacketReady)  	(THIS_ HX_RESULT ulStatus, IHXPacket* pPacket);
@@ -163,9 +162,11 @@ public:
     STDMETHOD(GetCurrentAggregateRateDesc)(THIS_ REF(IHXRateDescription*)pRateDesc);
     STDMETHOD(CommitInitialAggregateRateDesc) (THIS);
     STDMETHOD_(BOOL,IsInitalAggregateRateDescCommitted) (THIS);
-    STDMETHOD(UpshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp);
-    STDMETHOD(DownshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp);
+    STDMETHOD(UpshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated);
+    STDMETHOD(DownshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated);
 
+    STDMETHOD(SelectLogicalStream)(THIS_ UINT32 ulStreamGroupNum,
+                                         UINT32 ulLogicalStreamNum);
     STDMETHOD(SetStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, 
                                         UINT32 ulLogicalStreamNum, 
                                         IHXRateDescription* pRateDesc, 
@@ -174,13 +175,17 @@ public:
     STDMETHOD(GetCurrentStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, REF(IHXRateDescription*)pRateDesc);
     STDMETHOD(CommitInitialStreamGroupRateDesc) (THIS_ UINT32 ulStreamGroupNum);
     STDMETHOD_(BOOL,IsInitalStreamGroupRateDescCommitted) (THIS_ UINT32 ulStreamGroupNum);
+    STDMETHOD(GetNextSwitchableRateDesc)(THIS_ REF(IHXRateDescription*)pRateDesc);
+    STDMETHOD(GetNextSwitchableStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, REF(IHXRateDescription*)pRateDesc);
 
     STDMETHOD(UpshiftStreamGroup)   (THIS_ UINT32 ulStreamGroupNum, 
                                     UINT32 ulRate, 
-                                    IHXStreamRateDescResponse* pResp);
+                                    IHXStreamRateDescResponse* pResp,
+                                    BOOL bIsClientInitiated);
     STDMETHOD(DownshiftStreamGroup) (THIS_ UINT32 ulStreamGroupNum, 
                                     UINT32 ulRate, 
-                                    IHXStreamRateDescResponse* pResp);
+                                    IHXStreamRateDescResponse* pResp,
+                                    BOOL bIsClientInitiated);
 
     STDMETHOD(SubscribeLogicalStreamRule)   (THIS_ UINT32 ulLogicalStreamNum, 
                                             UINT32 ulRuleNum, 
@@ -188,9 +193,10 @@ public:
     STDMETHOD(UnsubscribeLogicalStreamRule)(THIS_ UINT32 ulLogicalStreamNum, 
                                             UINT32 ulRuleNum, 
                                             IHXStreamRateDescResponse* pResp);
+    STDMETHOD(GetLowestAvgRate)(THIS_ UINT32 ulStreamGroupNum, REF(UINT32) ulLowestAvgRate);
+    STDMETHOD(SetDownshiftOnFeedbackTimeoutFlag)(THIS_ BOOL bFlag);
 
     // IHXUberStreamManagerConfig methods
-    STDMETHOD(SetClientAverageBandwidth) (THIS_ UINT32 ulAvgBandwidth);
     STDMETHOD(SetRateSelectionInfoObject) (THIS_ IHXRateSelectionInfo* pRateSelInfo);
 
     void SetInitial(UINT32 type, UINT32 ulVal);
@@ -210,11 +216,10 @@ protected:
     HX_RESULT CommitExternalSubscription(void);
 
 
-    HX_RESULT _SetInitialRate(UINT32 ulRate);
     HX_RESULT InitASMRuleHandler(IHXSyncHeaderSource* pHdrSrc);
     HX_RESULT DoInit(HX_RESULT ulStatus);
 
-    HX_RESULT SelectStreams();
+    STDMETHOD(DetermineSelectableStreams)(THIS_ const StreamAdaptationParams* pStreamAdaptationParams = NULL);
     HX_RESULT PrepareExternalSubscription(void);
     
     void    ShiftResponse(HX_RESULT status);
@@ -224,14 +229,8 @@ protected:
     BOOL    IsLegacyMode(void) {return m_pPullPacketSink || m_pPullPacketSource;}
 
     void    DumpSelection(HX_RESULT theErr);
+    HX_RESULT UnsubscribeAllOnDone(void);
     
-    /*
-     * Marker Bit Handling Routine
-     */
-    typedef HX_RESULT (CASMStreamFilter::*HandleMBitFunc)(UINT8,ServerPacket*); 
-    inline HX_RESULT MBitRTPPktInfo (UINT8 bMBit, ServerPacket* pPkt);
-    inline HX_RESULT MBitASMRuleNo  (UINT8 bMBit, ServerPacket* pPkt);
-
 protected:
     UINT32			m_ulRefCount;
     Process*			m_pProc;
@@ -265,18 +264,8 @@ protected:
     IHXRateDescResponse*        m_pRateDescResp;
 
     CStreamSelector*		m_pStreamSelector;
-    
-    HandleMBitFunc		m_pMBitHandler;
         
-    struct _InitialTargetRate
-    {	
-	_InitialTargetRate() : m_bForceRate(FALSE), m_ulInitRate(0){}
-	BOOL	m_bForceRate;    
-	UINT32	m_ulInitRate;
-    }				m_initialTargetRate;
-
-    
-    UINT32			m_bRateCommitted; // TRUE if stream selection has been committed
+    UINT32                      m_bRateCommitted; // TRUE if stream selection has been committed
     IHXRateSelectionInfo*       m_pRateSelInfo;
 
     enum
@@ -301,10 +290,8 @@ protected:
     // debug
     UINT32			m_ulShiftAfter;
     UINT32			m_ulPktCount;
-    UINT32			m_ulLastTS;
-    BOOL                        m_bPacketTrace;
+    INT32                       m_lDebugOutput;
 
-    BOOL m_bDumpAdaptationInfo;
 };
 
 #endif /* _STREAM_FILTER_ASM_H_ */

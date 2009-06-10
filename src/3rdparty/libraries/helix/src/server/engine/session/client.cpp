@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: client.cpp,v 1.47 2006/12/21 05:13:42 tknox Exp $
+ * Source last modified: $Id: client.cpp,v 1.52 2009/01/06 19:02:07 atin Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -35,171 +35,47 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#ifdef _HPUX
-#include <sys/time.h>
-#endif
-#include <time.h>
 #ifdef _UNIX
-#  include <sys/types.h>
-#  include <sys/socket.h>
-#  include <errno.h>
-#  include <stdio.h>
-#  include <stdlib.h>
+#include "ctype.h"
 #endif // _UNIX
 
-#include "hxtypes.h"
-#include "hxcom.h"
-#include "hxerror.h"
-#include "dict.h"
-#include "debug.h"
-#include "netbyte.h"
-#include "sio.h"
-#include "tcpio.h"
-#include "callback_container.h"
-#include "hxstring.h"
 #include "hxslist.h"
-#include "mimehead.h"
-#include "cbqueue.h"
-#include "rttp2.h"
 #include "id.h"
-#include "config.h"
 #include "hxprot.h"
 #include "chxpckts.h"
 #include "rtspmsg.h"
-#include "hxstats.h"
 #include "server_stats.h"
 #include "client.h"
 #include "server_engine.h"
 #include "server_info.h"
-#include "shmem.h"
 #include "streamer_container.h"
 #include "defslice.h"
-#include "loadinfo.h"
-#include "errhand.h"
-#include "dispatchq.h"
 #include "clientguid.h"
-#include "clientregtree.h"
-#include "mutex.h"
 #include "tsid.h"
 #include "shutdown.h"
-
 #include "hxtick.h"
-
 #include "servbuffer.h"
+#include "pcktflowwrap.h"
+#include "clientsession.h"
 
-
-#ifdef PAULM_CLIENTTIMING
-#include "classtimer.h"
-#endif
-
-// max delay 1hr. hoping that the bad clients will disconnect by then
-static const int MAX_DELAY_MS = 3600000;
-
-INT32 Client::ClientDeleteCallback::zm_lRegDestructDelay = -1;
 static const char* GUID_ENTRY_PERSISTENCE_STRING = "config.ClientGUIDPersistence";
 static const INT32 GUID_ENTRY_PERSISTENCE_DEFAULT = 30;
 
-#ifdef PAULM_CLIENTTIMING
-
-void
-_ExpiredClientReport(void* p)
-{
-    Client* c = (Client*)p;
-    printf("\tstamp: %lu\n", c->stamp);
-    if (c->proc->pc->engine)
-        printf("\tnow: %lu\n", c->proc->pc->engine->now.tv_sec);
-    else
-        printf("\tnow: 0\n");
-    printf("\tis_cloak: %d\n", c->is_cloak);
-    if (c->is_cloak)
-    {
-        if (c->cloak_id)
-        {
-            printf("\tcloak_id: %s\n", c->cloak_id);
-        }
-    }
-    printf("\tis_cloaked_get: %d\n", c->is_cloaked_get);
-    printf("\tis_multiple_put: %d\n", c->is_multiple_put);
-    printf("\tis_dummy: %d\n", c->is_dummy);
-    printf("\tgot_read: %d\n", c->got_read);
-    printf("\tdied_from_Alive: %d\n", c->died_from_Alive);
-    printf("\tin_streamer: %d\n", c->in_streamer);
-    printf("\tdied_from_timeout: %d\n", c->died_from_timeout);
-    printf("\tm_pSock: 0x%x\n", c->m_pSock);
-    printf("\tm_pProtocol: 0x%x\n", c->m_pProtocol);
-    printf("\tprotocol: ");
-    switch (c->m_protType)
-    {
-    case HXPROT_RTSP:
-        printf("RTSP_PROT\n");
-        break;
-    case HXPROT_HTTP:
-        printf("HTTP_PROT\n");
-        break;
-#ifdef HELIX_FEATURE_SERVER_WMT_MMS
-    case HXPROT_MMS:
-        printf("MMS_PROT\n");
-        break;
-#endif
-    case HXPROT_UNKNOWN:
-    default:
-        printf("UNKNOWN_PROT\n");
-        break;
-    }
-    printf("\tstate: ");
-    switch (c->m_state)
-    {
-    case Client::ALIVE:
-        printf("ALIVE\n");
-        break;
-
-    case Client::CLOSE_CB_QED:
-        printf("CLOSE_CB_QED\n");
-        break;
-
-    case Client::DELETE_CB_QED:
-        printf("DELETE_CB_QED\n");
-        break;
-
-    case Client::DEAD:
-        printf("DEAD\n");
-        break;
-
-    default:
-        printf("WHAT!\n");
-        break;
-    }
-#ifdef PAULM_CLIENTAR
-    c->DumpState();
-#endif
-}
-
-ClassTimer g_ClientTimer("Client", _ExpiredClientReport, 3600);
-#endif
-
-
-void
-Client::init(HXProtocolType type, HXProtocol* pProtocol)
-{
-    m_protType = type;
-    m_pProtocol = pProtocol;
-    m_pProtocol->AddRef();
-
-    conn_id = proc->pc->conn_id_table->create((void*)1);
-}
+// static initializations
+INT32 Client::ClientDeleteCallback::zm_lRegDestructDelay = -1;
+UINT32 Client::m_ulNextSessionID = 0;
 
 Client::Client(Process* p)
         : m_ulRefCount(0)
-        , proc(p)
+        , m_pProc(p)
         , m_pProtocol(NULL)
         , m_state(ALIVE)
-        , conn_id(0)
+        , m_ulConnId(0)
         , m_ulRegistryConnId(0)
         , m_uBytesSent(0)
         , m_protType(HXPROT_UNKNOWN)
         , m_clientType(UNKNOWN_CLIENT)
         , m_bIsAProxy(FALSE)
-        , m_ulThreadSafeFlags(HX_THREADSAFE_METHOD_SOCKET_READDONE)
         , m_pStats(NULL)
         , m_pRegTree(NULL)
         , m_pClientGUIDEntry(NULL)
@@ -207,78 +83,59 @@ Client::Client(Process* p)
         , m_pPlayerGUID(NULL)
         , m_bUseRegistryForStats(TRUE)
         , m_ulClientStatsObjId(0)
-        , is_cloak(FALSE)
+        , m_bIsCloak(FALSE)
 #if ENABLE_LATENCY_STATS
         , m_ulStartTime(0)
         , m_ulCorePassCBTime(0)
         , m_ulDispatchTime(0)
         , m_ulStreamerTime(0)
         , m_ulFirstReadTime(0)
-        , m_pProtocol(0)
         , m_ulCloseStatus(HXR_OK)
 #endif
+        , m_pPacketFlowWrap(NULL)
+        , m_pSessions(NULL)
 {
+    m_pSessions = new CHXSimpleList;
+    if(m_ulNextSessionID == 0)
+    {
+        m_ulNextSessionID = rand();
+    }
+ 
     m_ulCreateTime = HX_GET_BETTERTICKCOUNT();
 
-#ifdef PAULM_IHXTCPSCAR
-    ADDR_NOTIFY(m_pCtrl, 3);
-#endif
-
-#ifdef PAULM_CLIENTAR
-    ADDR_NOTIFY(this, 1);
-#endif
     AddRef();
 
     UINT32 ul = 0;
-    if (HXR_OK == proc->pc->registry->GetInt(REGISTRY_RTSPPROXY_ENABLED,
-    (INT32*)&ul, proc))
+    if (HXR_OK == m_pProc->pc->registry->GetInt(REGISTRY_RTSPPROXY_ENABLED,
+    (INT32*)&ul, m_pProc))
     {
         m_bIsAProxy = TRUE;
     }
 
-    m_bUseRegistryForStats = proc->pc->client_stats_manager->UseRegistryForStats();
-
-    //XXXTDM: is this useful?
-    INT32 nVal=0;
-    if (SUCCEEDED(proc->pc->registry->GetInt("config.ThreadSafeSockets",
-        &nVal, proc)))
-    {
-        m_ulThreadSafeFlags = (UINT32)nVal;
-    }
-    else
-    {
-        m_ulThreadSafeFlags = HX_THREADSAFE_METHOD_SOCKET_READDONE;
-    }
-#ifdef XXXDC_DEBUG
-    printf ("Client::Client: m_ulThreadSafeFlags = %08x\n", m_ulThreadSafeFlags);
-#endif
+    m_bUseRegistryForStats = m_pProc->pc->client_stats_manager->UseRegistryForStats();
 
 #if ENABLE_LATENCY_STATS
-    m_ulStartTime = proc->pc->engine->now.tv_sec;
+    m_ulStartTime = m_pProc->pc->engine->now.tv_sec;
 #endif
 }
 
 Client::~Client(void)
 {
-#ifdef PAULM_CLIENTTIMING
-    g_ClientTimer.Remove(this);
-#endif
-
-    if (conn_id)
+    if (m_ulConnId)
     {
-        proc->pc->conn_id_table->destroy(conn_id);
+        m_pProc->pc->conn_id_table->destroy(m_ulConnId);
     }
 
-    // DPRINTF(0x48000000, ("Client(%lu) getting deleted\n", conn_id));
-    proc->pc->streamer_info->PlayerDisconnect(proc);
+    // DPRINTF(0x48000000, ("Client(%lu) getting deleted\n", m_ulConnId));
+    m_pProc->pc->streamer_info->PlayerDisconnect(m_pProc);
 
-    cleanup_stats();
+    CleanupStats();
 
     HX_RELEASE(m_pProtocol);
     HX_RELEASE(m_pClientGUIDEntry);
     HX_VECTOR_DELETE(m_pPlayerGUID);
-
-    DPRINTF(D_INFO|0x48000000, ("Client(%u) got deleted\n", conn_id));
+    Done(HXR_OK);
+    DPRINTF(D_INFO|0x48000000, ("Client(%u) got deleted\n", m_ulConnId));
 }
 
 /*
@@ -292,19 +149,6 @@ Client::QueryInterface(REFIID riid, void** ppvObj)
     {
         AddRef();
         *ppvObj = (IUnknown*)(IHXSocketResponse*)this;
-        return HXR_OK;
-    }
-#ifdef PAULM_CLIENTAR
-    else if (IsEqualIID(riid, IID_IHXObjDebugger))
-    {
-        *ppvObj = (IHXObjDebugger*)this;
-        return HXR_OK;
-    }
-#endif
-    else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
-    {
-        AddRef();
-        *ppvObj = (IHXThreadSafeMethods*)this;
         return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IHXServerShutdownResponse))
@@ -321,28 +165,22 @@ Client::QueryInterface(REFIID riid, void** ppvObj)
 STDMETHODIMP_(UINT32)
 Client::AddRef(void)
 {
-    DPRINTF(0x5d000000, ("%u:Client::AddRef() == %u\n", conn_id,
+    DPRINTF(0x5d000000, ("%u:Client::AddRef() == %u\n", m_ulConnId,
             m_ulRefCount+1));
-#ifdef PAULM_CLIENTAR
-    ((ObjDebugger*)this)->NotifyAddRef();
-#endif
     return InterlockedIncrement(&m_ulRefCount);
 }
 
 STDMETHODIMP_(UINT32)
 Client::Release(void)
 {
-    DPRINTF(0x5d000000, ("%u:Client::Release() == %u\n", conn_id,
+    DPRINTF(0x5d000000, ("%u:Client::Release() == %u\n", m_ulConnId,
             m_ulRefCount-1));
-#ifdef PAULM_CLIENTAR
-    ((ObjDebugger*)this)->NotifyRelease();
-#endif
     if (InterlockedDecrement(&m_ulRefCount) > 0)
     {
         return m_ulRefCount;
     }
 
-    // HX_ASSERT(Process::get_procnum() == proc->procnum());
+    // HX_ASSERT(Process::get_procnum() == m_pProc->procnum());
     delete this;
 
     return 0;
@@ -370,31 +208,30 @@ Client::OnShutDownEnd()
     return HXR_OK;
 }
 
-
-/*
- * IUnknown methods
- */
-
-STDMETHODIMP_(UINT32)
-Client::IsThreadSafe()
+void
+Client::Init(HXProtocolType type, HXProtocol* pProtocol)
 {
-    return m_ulThreadSafeFlags;
+    m_protType = type;
+    m_pProtocol = pProtocol;
+    m_pProtocol->AddRef();
+
+    m_ulConnId = m_pProc->pc->conn_id_table->create((void*)1);
 }
 
 void
 Client::OnClosed(HX_RESULT status)
 {
-    DPRINTF(D_INFO, ("%lu: Client(refcount(%lu)) Closed() called\n", conn_id,
+    DPRINTF(D_INFO, ("%lu: Client(refcount(%lu)) Closed() called\n", m_ulConnId,
             m_ulRefCount));
 
     if(m_ulClientStatsObjId != 0)
     {
-        HX_ASSERT(proc->pc->process_type == PTStreamer);
-        StreamerContainer* pStreamer = ((StreamerContainer*)(proc->pc));
+        HX_ASSERT(m_pProc->pc->process_type == PTStreamer);
+        StreamerContainer* pStreamer = ((StreamerContainer*)(m_pProc->pc));
         pStreamer->m_pServerShutdown->Unregister(m_ulClientStatsObjId);
     }
 
-    if (isAlive() && m_state != DELETE_CB_QED)
+    if (IsAlive() && m_state != DELETE_CB_QED)
     {
         m_state = DELETE_CB_QED;
         m_ulCloseStatus = status;
@@ -406,23 +243,18 @@ Client::OnClosed(HX_RESULT status)
          */
         ClientDeleteCallback* cb = new ClientDeleteCallback;
         cb->client = this;
-        proc->pc->engine->schedule.enter(0.0, cb);
+        m_pProc->pc->engine->schedule.enter(0.0, cb);
     }
 }
 
 void
-Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
+Client::InitStats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
                 BOOL bIsCloak)
 {
     IHXBuffer* pValue = NULL;
 
-    if (!isAlive() || m_protType == HXPROT_UNKNOWN)
+    if (!IsAlive() || m_protType == HXPROT_UNKNOWN)
         return;
-
-#ifdef PERF_NOCLIENTREG
-    m_ulRegistryConnId = proc->pc->server_info->IncrementTotalClientCount(proc);
-#endif
-    // Get a regtree
 
     HX_ASSERT(!m_pRegTree);
     /*
@@ -434,16 +266,13 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
      * N.B. The m_pRegTree pointer is only valid as long as we hold a ref
      * on the m_pClientGUIDEntry COM object.
      */
-
     if (!m_pClientGUIDEntry)
     {
         m_pClientGUIDEntry = g_pClientGUIDTable->GetCreateEntry(NULL, this);
     }
 
-#ifndef PERF_NOCLIENTREG
     m_pRegTree = m_pClientGUIDEntry->GetRegTree();
     m_ulRegistryConnId = m_pRegTree->GetSeqNum();
-#endif //ndef PERF_NOCLIENTREG
 
     if(!m_bIsAProxy)
     {
@@ -468,12 +297,10 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
             m_pStats->SetPort(uPeerPort);
             m_pStats->SetCloaked(bIsCloak);
         }
-#ifndef PERF_NOCLIENTREG
         if (m_bUseRegistryForStats)
         {
             m_pRegTree->SetAddrs(pLocalAddrBuf, pPeerAddrBuf, uPeerPort, bIsCloak);
         }
-#endif //ndef PERF_NOCLIENTREG
 
         HX_RELEASE(pPeerAddrBuf);
         HX_RELEASE(pLocalAddrBuf);
@@ -484,8 +311,8 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
 
     if(m_ulClientStatsObjId != 0)
     {
-        HX_ASSERT(proc->pc->process_type == PTStreamer);
-        StreamerContainer* pStreamer = ((StreamerContainer*)(proc->pc));
+        HX_ASSERT(m_pProc->pc->process_type == PTStreamer);
+        StreamerContainer* pStreamer = ((StreamerContainer*)(m_pProc->pc));
         pStreamer->m_pServerShutdown->Register(m_ulClientStatsObjId, this);
     }
 
@@ -520,7 +347,6 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
         pValue->Set((const BYTE*)"UNKNOWN", strlen("UNKNOWN")+1);
     }
 
-#ifndef PERF_NOCLIENTREG
     // Cloaking calls init_registry with HXPROT_RTSP, so m_pRegTree won't be
     // set here.
 
@@ -528,7 +354,6 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
     {
         m_pRegTree->SetProtocol(pValue);
     }
-#endif // ndef PERF_NOCLIENTREG
 
     if (m_pStats)
     {
@@ -542,12 +367,10 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
     pValue = new ServerBuffer(TRUE);
     pValue->Set((Byte*)version, strlen(version)+1);
 
-#ifndef PERF_NOCLIENTREG
     if (m_bUseRegistryForStats && m_pRegTree)
     {
         m_pRegTree->SetVersion(pValue);
     }
-#endif // ndef PERF_NOCLIENTREG
 
     if (m_pStats)
     {
@@ -558,39 +381,39 @@ Client::init_stats(IHXSockAddr* pLocalAddr, IHXSockAddr* pPeerAddr,
 }
 
 void
-Client::update_protocol_statistics_info(ClientType nType)
+Client::UpdateProtocolStatsInfo(ClientType nType)
 {
-    if (!isAlive() || m_bNeedCountDecrement)
+    if (!IsAlive() || m_bNeedCountDecrement)
         return;
 
     m_clientType = nType;
 
     if (m_clientType == MIDBOX_CLIENT)
     {
-        proc->pc->server_info->IncrementMidBoxCount(proc);
+        m_pProc->pc->server_info->IncrementMidBoxCount(m_pProc);
     }
 
     if (m_protType == HXPROT_RTSP)
     {
         /**
          * \note When this class is updated to use the shiny new
-         * IHXServerInfo interface, instead of the raw proc->pc->server_info
+         * IHXServerInfo interface, instead of the raw m_pProc->pc->server_info
          * the following call will need to become two: One to increment the
          * RTSP client count, and one to increment the cloaked client count.
          */
         if (m_clientType == PLAYER_CLIENT)
-            proc->pc->server_info->IncrementRTSPClientCount(is_cloak, proc);
+            m_pProc->pc->server_info->IncrementRTSPClientCount(m_bIsCloak, m_pProc);
     }
     else if (m_protType == HXPROT_HTTP)
     {
         if (m_clientType == PLAYER_CLIENT)
-            proc->pc->server_info->IncrementHTTPClientCount(proc);
+            m_pProc->pc->server_info->IncrementHTTPClientCount(m_pProc);
     }
 #ifdef HELIX_FEATURE_SERVER_WMT_MMS
     else if (m_protType == HXPROT_MMS)
     {
         if (m_clientType == PLAYER_CLIENT)
-            proc->pc->server_info->IncrementMMSClientCount(proc);
+            m_pProc->pc->server_info->IncrementMMSClientCount(m_pProc);
     }
 #endif
 
@@ -599,9 +422,8 @@ Client::update_protocol_statistics_info(ClientType nType)
 }
 
 void
-Client::cleanup_stats()
+Client::CleanupStats()
 {
-#ifndef PERF_NOCLIENTREG
     if (m_pClientGUIDEntry)
     {
         m_pClientGUIDEntry->Release();
@@ -612,7 +434,6 @@ Client::cleanup_stats()
     {
         m_pRegTree = NULL;
     }
-#endif /* ndef PERF_NOCLIENTREG */
 
     HX_RELEASE(m_pStats);
 
@@ -622,22 +443,22 @@ Client::cleanup_stats()
         {
             /**
              * \note When this class is updated to use the shiny new
-             * IHXServerInfo interface, instead of the raw proc->pc->server_info
+             * IHXServerInfo interface, instead of the raw m_pProc->pc->server_info
              * the following call will need to become two: One to decrement the
              * RTSP client count, and one to decrement the cloaked client count.
              */
             if (m_protType == HXPROT_RTSP)
-                proc->pc->server_info->DecrementRTSPClientCount(is_cloak, proc);
+                m_pProc->pc->server_info->DecrementRTSPClientCount(m_bIsCloak, m_pProc);
             else if (m_protType == HXPROT_HTTP)
-                proc->pc->server_info->DecrementHTTPClientCount(proc);
+                m_pProc->pc->server_info->DecrementHTTPClientCount(m_pProc);
 #ifdef HELIX_FEATURE_SERVER_WMT_MMS
             else if (m_protType == HXPROT_MMS)
-                proc->pc->server_info->DecrementMMSClientCount(proc);
+                m_pProc->pc->server_info->DecrementMMSClientCount(m_pProc);
 #endif
         }
         else if (m_clientType == MIDBOX_CLIENT)
         {
-            proc->pc->server_info->DecrementMidBoxCount(proc);
+            m_pProc->pc->server_info->DecrementMidBoxCount(m_pProc);
         }
         m_bNeedCountDecrement = FALSE;
     }
@@ -664,7 +485,7 @@ STDMETHODIMP
 Client::ClientDeleteCallback::Func()
 {
     DPRINTF(D_INFO, ("%u: CDC::Func() start -- Client->RefCount(%u)\n",
-        client->conn_id, client->m_ulRefCount));
+        client->m_ulConnId, client->m_ulRefCount));
 
     if (client->m_state == DEAD)
     {
@@ -681,7 +502,7 @@ Client::ClientDeleteCallback::Func()
      */
     DPRINTF(0x10000000, ("%u: CDC::Func() before Protocol done "
         "Client->RC(%u)\n",
-        client->conn_id, client->m_ulRefCount));
+        client->m_ulConnId, client->m_ulRefCount));
 
     if (client->m_pProtocol)
     {
@@ -689,7 +510,7 @@ Client::ClientDeleteCallback::Func()
     }
 
     DPRINTF(0x10000000, ("%u: CDC::Func() before HTTP done Client->RC(%u)\n",
-        client->conn_id, client->m_ulRefCount));
+        client->m_ulConnId, client->m_ulRefCount));
 
     if (client->m_pClientGUIDEntry)
     {
@@ -703,8 +524,8 @@ Client::ClientDeleteCallback::Func()
             {
                 INT32 delay = GUID_ENTRY_PERSISTENCE_DEFAULT;
                 if (HXR_OK ==
-                    client->proc->pc->registry->GetInt(GUID_ENTRY_PERSISTENCE_STRING,
-                                                       &delay, client->proc))
+                    client->m_pProc->pc->registry->GetInt(GUID_ENTRY_PERSISTENCE_STRING,
+                                                       &delay, client->m_pProc))
                 {
                     zm_lRegDestructDelay = delay;
                 }
@@ -727,18 +548,15 @@ Client::ClientDeleteCallback::Func()
     }
 
     DPRINTF(0x10000000, ("%u: CDC::Func() before release Client->RC(%u)\n",
-        client->conn_id, client->m_ulRefCount));
+        client->m_ulConnId, client->m_ulRefCount));
 
-    ULONG32 conn_id = client->conn_id;
+    ULONG32 ulConnId = client->m_ulConnId;
     LONG32 ref_count = (client->m_ulRefCount ? client->m_ulRefCount-1 : 0);
 
-#ifdef PAULM_CLIENTAR
-    REL_NOTIFY(client, 5);
-#endif
     HX_RELEASE(client);
 
     DPRINTF(0x04000000, ("%6.1u: 4. Client->RefCount(%u)\n",
-        conn_id, ref_count));
+        ulConnId, ref_count));
 
     return HXR_OK;
 }
@@ -773,9 +591,9 @@ Client::SetPlayerGUID(char* pGUID, int pLen)
 }
 
 void
-Client::update_stats()
+Client::UpdateStats()
 {
-    if (!isAlive())
+    if (!IsAlive())
         return;
 
     if (m_pStats)
@@ -783,40 +601,202 @@ Client::update_stats()
         m_pStats->SetControlBytesSent(m_pProtocol->controlBytesSent());
     }
 
-#ifndef PERF_NOCLIENTREG
     if (m_pRegTree && m_bUseRegistryForStats)
     {
         m_pRegTree->SetControlBytesSent(m_pProtocol->controlBytesSent());
     }
-#endif
 }
+
+void
+Client::Done(HX_RESULT status)
+{
+   if (m_pSessions)
+   {
+		ClearSessionList(status);
+	    HX_DELETE(m_pSessions);
+   }
+   if (m_pPacketFlowWrap)
+   {
+	    HX_DELETE(m_pPacketFlowWrap);
+   }
+}
+
+void
+Client::ClearSessionList(HX_RESULT status)
+{
+    CHXSimpleList::Iterator i;
+
+    for (i = m_pSessions->Begin(); i != m_pSessions->End(); ++i)
+    {
+        ClientSession* pSession = (ClientSession*)(*i);
+        pSession->Done(status);
+        pSession->Release();
+    }
+
+    m_pSessions->RemoveAll();
+}
+
+
+ClientSession*
+Client::FindSession(const char* pSessionID)
+{
+    CHXSimpleList::Iterator i;
+
+    if (pSessionID)
+    {
+        for (i = m_pSessions->Begin(); i != m_pSessions->End(); ++i)
+        {
+            ClientSession* pSession = (ClientSession*)(*i);
+            if (pSession->m_sessionID == pSessionID)
+            {
+                return pSession;
+            }
+        }
+    }
+    return 0;
+}
+
+HX_RESULT
+Client::RemoveSession(const char* pSessionID, HX_RESULT status)
+{
+    HX_ASSERT(m_pSessions != NULL);
+    if (m_pSessions != NULL)
+    {
+        LISTPOSITION pos = m_pSessions->GetHeadPosition();
+        while (pos)
+        {
+            ClientSession* pSession = (ClientSession*)m_pSessions->GetAt(pos);
+            if (pSession->m_sessionID == pSessionID)
+            {
+                pos = m_pSessions->RemoveAt(pos);
+                pSession->Done(status);
+                m_pProc->pc->server_info->DecrementStreamCount(m_pProc);
+                pSession->Release();
+            }
+            else
+            {
+                m_pSessions->GetNext(pos);
+            }
+        }
+    }
+    return HXR_OK;
+}
+
+/* XXXTDM: get rid of this and NewSessionWithID().
+* These are used for the Pragma: initiate-session, to allow an RTSP session
+* to be created without a corresponding ClientSession.  Allowing this has
+* created problems (see comments in rtspserv.cpp).  The two session
+* objects should have a 1:1 correspondence.
+*/
+HX_RESULT
+Client::GenerateNewSessionID(CHXString& sessionID, UINT32 ulSeqNo)
+{
+    char tmp[64];
+    sprintf(tmp, "%ld-%ld", ++m_ulNextSessionID, ulSeqNo);
+    sessionID = tmp;
+    return HXR_OK;
+}
+
+HX_RESULT
+Client::NewSession(ClientSession** ppSession,
+                   UINT32 uSeqNo,
+                   BOOL bRetainEntityForSetup)
+{
+    CHXString sessionID;
+    GenerateNewSessionID(sessionID, uSeqNo);
+
+    *ppSession = new ClientSession(m_pProc, this, sessionID);
+    m_pSessions->AddHead(*ppSession);
+
+    // AddRef for both list and out parameter.
+    (*ppSession)->AddRef();
+    (*ppSession)->AddRef();
+
+    /*
+    * this solves the problem of the subscriber counting http connections,
+    * which was solved previously by counting only pna and rtsp clients.
+    * since only pnaprot and rtspprot call NewSession() and/or
+    * NewSessioWithID() the subscriber can rely on the 'server.streamCount'
+    * var for the same info.
+    */
+    m_pProc->pc->server_info->IncrementStreamCount(m_pProc);
+
+    return HXR_OK;
+}
+
+HX_RESULT
+Client::NewSessionWithID(ClientSession** ppSession,
+                         UINT32 uSeqNo, const char* pSessionId,
+                         BOOL bRetainEntityForSetup)
+{
+    *ppSession = new ClientSession(m_pProc, this, pSessionId);
+    m_pSessions->AddHead(*ppSession);
+
+    // AddRef for both list and out parameter.
+    (*ppSession)->AddRef();
+    (*ppSession)->AddRef();
+
+    /*
+    * this solves the problem of the subscriber counting http connections,
+    * which was solved previously by counting only pna and rtsp clients.
+    * since only pnaprot and rtspprot call NewSession() and/or
+    * NewSessioWithID() the subscriber can rely on the 'server.streamCount'
+    * var for the same info.
+    */
+    m_pProc->pc->server_info->IncrementStreamCount(m_pProc);
+
+    return HXR_OK;
+}
+
+void
+Client::SetStreamStartTime(const char* szSessionID, UINT32 ulStreamNum,
+                           UINT32 ulTimestamp)
+{
+    ClientSession* pSession = FindSession(szSessionID);
+    if (pSession)
+    {
+        pSession->SetStreamStartTime(ulStreamNum, ulTimestamp);
+    }
+}
+
+HX_RESULT
+Client::HandleDefaultSubscription(const char* szSessionID)
+{
+    ClientSession* pSession = FindSession(szSessionID);
+    if (pSession)
+    {
+        return pSession->HandleDefaultSubscription();
+    }
+    return HXR_UNEXPECTED;
+}
+
 
 #if ENABLE_LATENCY_STATS
 void
 Client::TCorePassCB()
 {
-    m_ulCorePassCBTime = proc->pc->engine->now.tv_sec - m_ulStartTime;
-    proc->pc->server_info->UpdateCorePassCBLatency(m_ulCorePassCBTime);
+    m_ulCorePassCBTime = m_pProc->pc->engine->now.tv_sec - m_ulStartTime;
+    m_pProc->pc->server_info->UpdateCorePassCBLatency(m_ulCorePassCBTime);
 }
 
 void
 Client::TDispatch()
 {
-    m_ulDispatchTime = proc->pc->engine->now.tv_sec - m_ulStartTime;
-    proc->pc->server_info->UpdateDispatchLatency(m_ulDispatchTime);
+    m_ulDispatchTime = m_pProc->pc->engine->now.tv_sec - m_ulStartTime;
+    m_pProc->pc->server_info->UpdateDispatchLatency(m_ulDispatchTime);
 }
 
 void
 Client::TStreamer()
 {
-    m_ulStreamerTime = proc->pc->engine->now.tv_sec - m_ulStartTime;
-    proc->pc->server_info->UpdateStreamerLatency(m_ulStreamerTime);
+    m_ulStreamerTime = m_pProc->pc->engine->now.tv_sec - m_ulStartTime;
+    m_pProc->pc->server_info->UpdateStreamerLatency(m_ulStreamerTime);
 }
 
 void
 Client::TFirstRead()
 {
-    m_ulFirstReadTime = proc->pc->engine->now.tv_sec - m_ulStartTime;
-    proc->pc->server_info->UpdateFirstReadLatency(m_ulFirstReadTime);
+    m_ulFirstReadTime = m_pProc->pc->engine->now.tv_sec - m_ulStartTime;
+    m_pProc->pc->server_info->UpdateFirstReadLatency(m_ulFirstReadTime);
 }
 #endif

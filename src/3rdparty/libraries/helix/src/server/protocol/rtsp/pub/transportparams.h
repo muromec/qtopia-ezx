@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: transportparams.h,v 1.4 2007/02/14 18:50:45 tknox Exp $
+ * Source last modified: $Id: transportparams.h,v 1.9 2009/02/07 06:28:16 jzeng Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -63,6 +63,8 @@
 #ifndef MAX_HOST_LEN
 #define MAX_HOST_LEN 256
 #endif
+
+class RTSPTransportParams;
 
 typedef HXCOMPtr<RTSPTransportParams> SPRTSPTransportParams;
 
@@ -131,8 +133,8 @@ class RTSPTransportInstantiator : public IUnknown
 public:
     RTSPTransportInstantiator(BOOL bAggregate);
 
-    HX_RESULT Init(IUnknown* pContext,
-                   RTSPServerProtocol* pServerProtocol);
+    HX_RESULT Init(IUnknown* pContext, const char* pSessionID, 
+                   IHXQoSSignalBus* pSignalBus, CRTSPBaseProtocol* pServerProtocol);
 
     // IUnknown methods.
 
@@ -166,7 +168,7 @@ public:
                               BOOL bIsMidBox,
                               BOOL bIsFirstSetup);
 
-    HX_RESULT selectTransport(RTSPServerProtocol::Session* pSession,
+    HX_RESULT selectTransport(RTSPServerSession* pSession,
                               UINT16 usStreamNumber = 0);
 
     HX_RESULT selectTransport(BOOL bAllowRARTP,
@@ -209,26 +211,29 @@ public:
     STDMETHOD(CreateTransport) (THIS_ HXBOOL /*IN*/ bIsAggregate,
                                         void** /*OUT*/ ppTransport);
 
-    HX_RESULT SetupTransportTNGTcpRDTTcp(RTSPServerProtocol::Session* pSession,
+    HX_RESULT SetupTransportTNGTcpRDTTcp(RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
         UINT16 usStreamNumber);
     HX_RESULT SetupTransportTNGUdpRDTUdpMcast(
-        RTSPServerProtocol::Session* pSession,
+        RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
         RTSPTransportParams* pTransParams, UINT16 usStreamNumber);
-    HX_RESULT SetupTransportRTPUdp(RTSPServerProtocol::Session* pSession,
+    HX_RESULT SetupTransportRTPUdp(RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
-        RTSPTransportParams* pTransParams, UINT16 usStreamNumber);
-    HX_RESULT SetupTransportRTPTcp(RTSPServerProtocol::Session* pSession,
+        RTSPTransportParams* pTransParams, UINT16 usStreamNumber,
+        HXBOOL bOldRTPTS);
+    HX_RESULT SetupTransportRTPTcp(RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
-        UINT16 usStreamNumber);
-    HX_RESULT SetupTransportNULLSet(RTSPServerProtocol::Session* pSession,
+        UINT16 usStreamNumber,
+        HXBOOL bOldRTPTS);
+    HX_RESULT SetupTransportNULLSet(RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
         UINT16 usStreamNumber);
     HX_RESULT SetupTransportBCNGUdpTcpMcast(
-        RTSPServerProtocol::Session* pSession,
+        RTSPServerSession* pSession,
         RTSPStreamInfo* pStreamInfo,
-        RTSPTransportParams* pTransParams, UINT16 usStreamNumber);
+        RTSPTransportParams* pTransParams, 
+        UINT16 usStreamNumber, BOOL bIsPre12Dot1Proxy);
 
     IHXSockAddr* getPeerAddress(RTSPTransportParams* pTransParams);
 
@@ -243,17 +248,21 @@ private:
 
     RTSPTransportParams* parseTransportField (IHXMIMEField* pField,
                                               UINT32 ulStrmCtrlID = 0);
+    void AdjustTransportPriorities(void);
 
+    UINT8                        m_RTSPTransportPriorityTable[RTSP_TR_LAST];
     IUnknown*                    m_pContext;
     UINT32                       m_ulRefCount;
 
     CHXSimpleList                m_transportParamsList;
     BOOL                         m_bSelected;
     BOOL                         m_bAggregateTransport;
+    BOOL                         m_bPreferTCP;
+    BOOL                         m_bPreferRTP;
 
     IHXSockAddr*                 m_pLocalAddr;
 
-    RTSPServerProtocol*          m_pServProt;
+    CRTSPBaseProtocol*           m_pBaseProt;
     UINT16                       m_usFirstStream;
 };
 

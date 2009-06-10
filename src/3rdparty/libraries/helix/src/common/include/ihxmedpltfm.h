@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxmedpltfm.h,v 1.9 2006/10/30 21:59:22 gwright Exp $
+ * Source last modified: $Id: ihxmedpltfm.h,v 1.12 2009/04/08 20:54:41 jiau Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -55,8 +55,10 @@
 typedef _INTERFACE	IUnknown			IUnknown;
 typedef _INTERFACE	IHXClientEngine			IHXClientEngine;
 typedef _INTERFACE	IHXMediaPlatform		IHXMediaPlatform;
+typedef _INTERFACE	IHXValues			IHXValues;
+typedef _INTERFACE	IHXList				IHXList;
 
-#if defined(_WINDOWS) || defined(_SYMBIAN)
+#if defined(_WINDOWS) || defined(_SYMBIAN) || defined(_BREW)
 # define HX_MEDIA_PLATFORM_DLLNAME   "hxmedpltfm.dll"
 #elif defined(_UNIX)
 # define HX_MEDIA_PLATFORM_DLLNAME   "hxmedpltfm.so"
@@ -266,6 +268,136 @@ DECLARE_INTERFACE_(IHXMediaPlatformKicker, IUnknown)
     STDMETHOD(Kick) (THIS_
                      UINT32  ulThreadID,
                      UINT32* pulSuggestedSleep) PURE;
+};
+
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *  	IID_IHXMediaPlatformQuery
+ *
+ *  Purpose:
+ *
+ *      Interface provided by the mediaplatform. This
+ *      interface let you query mediaplatform capabilities
+ *
+ *
+ *  IID_IHXMediaPlatformQuery:
+ *
+ *      {386a0848-8a1d-41db-814d-3f043ff9c000}
+ *
+ */
+DEFINE_GUID(IID_IHXMediaPlatformQuery, 0x386a0848, 0x8a1d, 0x41db, 0x81, 0x4d, 0x3f,
+            0x4, 0x3f, 0xf9, 0xc0, 0x0);
+
+#undef  INTERFACE
+#define INTERFACE   IHXMediaPlatformQuery
+
+DECLARE_INTERFACE_(IHXMediaPlatformQuery, IUnknown)
+{
+    /*
+     * IUnknown methods
+     */
+    STDMETHOD(QueryInterface)   (THIS_
+                                 REFIID riid,
+                                 void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release) (THIS) PURE;
+
+    /*
+     * IHXMediaPlatformQuery methods
+     */
+
+    /************************************************************************
+     *  Method:
+     *          IHXMediaPlatformQuery::GetSupportedMIMETypes
+     *  Purpose:
+     *          Retrives list of MIME types supported
+     *
+     * 					UINT32 ulMimeTypePurposeMask indicates the purpose for which 
+     *						supported mime-types are queried.
+		 * 					ulMimeTypePurposeMask:
+		 *	    		bits:   
+		 *                0 – 7 
+		 *										= 1: Stream Playback
+		 *									  = 2: file Playback
+		 *
+		 *  Returns:
+     *          Returns IHXValues of IHXList. Each item of IHXList is IHXValues
+     *          which is specified to contain "MimeType" CString property 
+     *          (UTF8, NULL terminated string) and "MimeTypePurposeId" ULONG32 
+     *          property that indicates purpose of the of mime-type.
+     */
+    #define HX_MEDIA_PLATFORM_QUERY_STREAM_PLAYBACK       1
+    #define HX_MEDIA_PLATFORM_QUERY_FILE_PLAYBACK         2
+     
+    STDMETHOD(GetSupportedMIMETypes) (THIS_ UINT32 ulMimeTypePurposeMask, REF(IHXList*) rpMimeTypeList) PURE;
+
+    /************************************************************************
+     *  Method:
+     *          IHXMediaPlatformQuery::GetSupportedProtocols
+     *  Purpose:
+     *          Retrives list of protocol supported for a MIME type
+     *
+     * 					UINT32 ulProtocolPurposeMask indicates the purpose for which 
+     *						supported protocol-types are queried.
+		 * 					ulProtocolPurposeMask:
+		 *	    		bits:   0 – 7 
+		 *										= 1 = Reception
+		 *									  = 2 = Transmission
+		 *
+		 *  Returns:
+     *          Returns IHXValues of IHXList. Each item of IHXList is IHXValues
+     *          which is specified to contain "Protocol" CString property 
+     *          (UTF8, NULL terminated string) and "ProtocolPurposeId" ULONG32 
+     *          property that indicates purpose of the of protocol-type.
+     */
+    #define HX_MEDIA_PLATFORM_QUERY_RECEPTION_PROTOCOL     1
+    #define HX_MEDIA_PLATFORM_QUERY_TRANSMISSION_PROTOCOL  2
+    
+    STDMETHOD(GetSupportedProtocols) (THIS_ UINT32 ulProtocolPurposeMask, REF(IHXList*) rpProtocolList) PURE;
+
+    /************************************************************************
+     *  Method:
+     *          IHXMediaPlatformQuery::GetSupportedDevices
+     *  Purpose:
+     *          Retrives IDs of a specific type device
+     *
+     * 					UINT32 ulDeviceTypeMask indicates the purpose for which 
+     *						supported device-types are queried.
+		 * 					ulDeviceTypeMask:
+		 *	    		bits:   0 – 7 
+		 *										= 1 = Audio Output
+		 *									  = 2 = Video Output
+		 *									  = 4 = Audio Input
+		 *									  = 8 = Video Input
+		 *
+		 *  Returns:
+     *          Returns IHXValues of IHXList. Each item of IHXList is IHXValues
+     *          which is specified to contain "DeviceType" CString property 
+     *          (UTF8, NULL terminated string) and "DeviceId" ULONG32 
+     *          property that indicates purpose of the of device-type.
+     */
+    #define HX_MEDIA_PLATFORM_QUERY_AUDIO_OUTPUT_DEVICE     1
+    #define HX_MEDIA_PLATFORM_QUERY_VIDEO_OUTPUT_DEVICE     2
+    #define HX_MEDIA_PLATFORM_QUERY_AUDIO_INPUT_DEVICE      4
+    #define HX_MEDIA_PLATFORM_QUERY_VIDEO_INPUT_DEVICE      8
+     
+    STDMETHOD(GetSupportedDevices) (THIS_ UINT32 ulDeviceTypeMask, REF(IHXList*) rpDeviceList) PURE;
+
+    /************************************************************************
+     *  Method:
+     *          IHXMediaPlatformQuery::GetDeviceInfo
+     *  Purpose:
+     *          Retrives properties of a specific type device
+     *
+     *  Returns:
+     *          Returns IHXValues which contain the device properties of a
+     *          specific device.
+     */
+    STDMETHOD(GetDeviceInfo) (THIS_ const char* szDeviceId, REF(IHXValues*) rpPropertiesValue) PURE;
 };
 
 #include "hxcomptr.h"

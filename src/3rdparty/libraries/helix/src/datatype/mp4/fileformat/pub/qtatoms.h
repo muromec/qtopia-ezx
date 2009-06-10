@@ -50,6 +50,7 @@
  */
 #include "qtbatom.h"
 #include "mempager.h"
+#include "proptools.h"
 
 #define QT_BAD_SAMPLE_SIZE	0xFFFFFFFF
 
@@ -106,7 +107,7 @@ typedef enum
     QT_payt = QT_ENCODE_TYPE('p', 'a', 'y', 't'),
     QT_udta = QT_ENCODE_TYPE('u', 'd', 't', 'a'),
     QT_name = QT_ENCODE_TYPE('n', 'a', 'm', 'e'),
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
     // /-->> 3GPP Asset Info Data box types:
     QT_titl = QT_ENCODE_TYPE('t', 'i', 't', 'l'),
     QT_auth = QT_ENCODE_TYPE('a', 'u', 't', 'h'),
@@ -119,6 +120,8 @@ typedef enum
     QT_clsf = QT_ENCODE_TYPE('c', 'l', 's', 'f'),
     QT_kywd = QT_ENCODE_TYPE('k', 'y', 'w', 'd'),
     QT_loci = QT_ENCODE_TYPE('l', 'o', 'c', 'i'),
+    QT_albm = QT_ENCODE_TYPE('a', 'l', 'b', 'm'),
+    QT_yrrc = QT_ENCODE_TYPE('y', 'r', 'r', 'c'),
     // /<<-- end Asset Info Data box types
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
@@ -127,6 +130,8 @@ typedef enum
     QT_tref = QT_ENCODE_TYPE('t', 'r', 'e', 'f'),
     QT_tims = QT_ENCODE_TYPE('t', 'i', 'm', 's'),
     QT_tsro = QT_ENCODE_TYPE('t', 's', 'r', 'o'),
+    QT_twos = QT_ENCODE_TYPE('t', 'w', 'o', 's'),    
+    QT_sowt = QT_ENCODE_TYPE('s', 'o', 'w', 't'),    
     QT_snro = QT_ENCODE_TYPE('s', 'n', 'r', 'o'),
     QT_rtp  = QT_ENCODE_TYPE('r', 't', 'p', ' '),
     QT_rtpo = QT_ENCODE_TYPE('r', 't', 'p', 'o'),
@@ -135,13 +140,24 @@ typedef enum
     QT_soun = QT_ENCODE_TYPE('s', 'o', 'u', 'n'),
     QT_mp4v = QT_ENCODE_TYPE('m', 'p', '4', 'v'),
     QT_mp4a = QT_ENCODE_TYPE('m', 'p', '4', 'a'),
+    QT__mp3 = QT_ENCODE_TYPE('.', 'm', 'p', '3'),
+    QT_ms_U = QT_ENCODE_TYPE('m', 's', 0, 'U'),
+    QT_SVQ1 = QT_ENCODE_TYPE('S', 'V', 'Q', '1'),
+    QT_SVQ3 = QT_ENCODE_TYPE('S', 'V', 'Q', '3'), 
+    QT_dvcp = QT_ENCODE_TYPE('d', 'v', 'c', 'p'),    
     QT_ftyp = QT_ENCODE_TYPE('f', 't', 'y', 'p'),
     QT_samr = QT_ENCODE_TYPE('s', 'a', 'm', 'r'),
     QT_sqcp = QT_ENCODE_TYPE('s', 'q', 'c', 'p'),
     QT_s263 = QT_ENCODE_TYPE('s', '2', '6', '3'),
+    QT_h263 = QT_ENCODE_TYPE('h', '2', '6', '3'),
+    QT_jpeg = QT_ENCODE_TYPE('j', 'p', 'e', 'g'),
+    QT_MJPG = QT_ENCODE_TYPE('M', 'J', 'P', 'G'),    
+    QT_mpg1 = QT_ENCODE_TYPE('m', 'p', 'g', '1'),
     QT_avc1 = QT_ENCODE_TYPE('a', 'v', 'c', '1'),
     QT_sawb = QT_ENCODE_TYPE('s', 'a', 'w', 'b'),
     QT_alac = QT_ENCODE_TYPE('a', 'l', 'a', 'c'),
+    QT_alaw = QT_ENCODE_TYPE('a', 'l', 'a', 'w'),    
+    QT_ulaw = QT_ENCODE_TYPE('u','l','a','w'),
     // /-->> 3GPP Timed Text box types:
     QT_text = QT_ENCODE_TYPE('t', 'e', 'x', 't'),
     QT_tx3g = QT_ENCODE_TYPE('t', 'x', '3', 'g'),
@@ -152,7 +168,12 @@ typedef enum
     QT_krok = QT_ENCODE_TYPE('k', 'r', 'o', 'k'),
     QT_href = QT_ENCODE_TYPE('h', 'r', 'e', 'f'),
     QT_tbox = QT_ENCODE_TYPE('t', 'b', 'o', 'x'),
-    QT_blnk = QT_ENCODE_TYPE('b', 'l', 'n', 'k')
+    QT_blnk = QT_ENCODE_TYPE('b', 'l', 'n', 'k'),
+    QT_rmra = QT_ENCODE_TYPE('r', 'm', 'r', 'a'),
+    QT_rmda = QT_ENCODE_TYPE('r', 'm', 'd', 'a'),
+    QT_rdrf = QT_ENCODE_TYPE('r', 'd', 'r', 'f'),
+    QT_rmdr = QT_ENCODE_TYPE('r', 'm', 'd', 'r'),
+    QT_url = QT_ENCODE_TYPE('u', 'r', 'l', ' ')
     // /<<-- end 3GPP Timed Text box types.
 } QTKnownAtomType;
 
@@ -172,7 +193,8 @@ typedef enum
     QT_3gg6 = QT_ENCODE_TYPE('3', 'g', 'g', '6'),
     QT_3gp6 = QT_ENCODE_TYPE('3', 'g', 'p', '6'),
     QT_3gr6 = QT_ENCODE_TYPE('3', 'g', 'r', '6'),
-    QT_3gs6 = QT_ENCODE_TYPE('3', 'g', 's', '6')
+    QT_3gs6 = QT_ENCODE_TYPE('3', 'g', 's', '6'),
+    QT_MSNV = QT_ENCODE_TYPE('M', 'S', 'N', 'V')
 } QTKnownBrandType;
 
 /****************************************************************************
@@ -353,7 +375,18 @@ public:
     virtual QTAtomType	GetType(void)	    { return QT_udta; }
 };
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+
+
+/****************************************************************************
+ *  Language encoding field is common to most meta atoms.
+ */
+inline void InitLanguageEncoding(char out[3])
+{
+    out[0] = out[1] = out[2] = ' ';
+}
+void ExtractLanguageEncoding(UINT8* pPadAndLang, char out[3]);
+
 
 /****************************************************************************
  *  cprt Atom Class
@@ -366,10 +399,10 @@ public:
      */
     struct Data
     {
-	UINT8 pVersion[1];
-	UINT8 pFlags[3];
-	UINT8 pPadAndLang[2];
-	UINT8 pCopyright[1];
+        UINT8 pVersion[1];
+        UINT8 pFlags[3];
+        UINT8 pPadAndLang[2];
+        UINT8 pCopyright[1];
     } PACKING;
 
     /*
@@ -378,7 +411,7 @@ public:
     CQT_cprt_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -390,6 +423,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetCopyright(void)
     {
         HX_ASSERT(m_pData);
@@ -398,8 +441,7 @@ public:
 
     ULONG32 GetCopyrightLength(void)
     {
-        char* value = (char*)GetCopyright();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetCopyright(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -438,6 +480,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetAuthor(void)
     {
         HX_ASSERT(m_pData);
@@ -446,8 +498,7 @@ public:
 
     ULONG32 GetAuthorLength(void)
     {
-        char* value = (char*)GetAuthor();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetAuthor(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -474,7 +525,7 @@ public:
     CQT_titl_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -486,6 +537,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetTitle(void)
     {
         HX_ASSERT(m_pData);
@@ -494,8 +555,7 @@ public:
 
     ULONG32 GetTitleLength(void)
     {
-        char* value = (char*)GetTitle();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetTitle(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -524,7 +584,7 @@ public:
     CQT_dscp_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -536,6 +596,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetDescription(void)
     {
         HX_ASSERT(m_pData);
@@ -544,8 +614,7 @@ public:
 
     ULONG32 GetDescriptionLength(void)
     {
-        char* value = (char*)GetDescription();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetDescription(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -572,7 +641,7 @@ public:
     CQT_perf_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -584,6 +653,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetPerformer(void)
     {
         HX_ASSERT(m_pData);
@@ -592,8 +671,7 @@ public:
 
     ULONG32 GetPerformerLength(void)
     {
-        char* value = (char*)GetPerformer();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetPerformer(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -620,7 +698,7 @@ public:
     CQT_gnre_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -632,6 +710,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     UINT8* GetGenre(void)
     {
         HX_ASSERT(m_pData);
@@ -640,8 +728,7 @@ public:
 
     ULONG32 GetGenreLength(void)
     {
-        char* value = (char*)GetGenre();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetGenre(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 };
 
@@ -670,7 +757,7 @@ public:
     CQT_rtng_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -682,6 +769,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     ULONG32 GetRatingEntityLength(void)
     {
         // rating entity is 4 bytes
@@ -708,8 +805,7 @@ public:
 
     ULONG32 GetRatingInfoLength(void)
     {
-        char* value = (char*)GetRatingInfo();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetRatingInfo(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
     
     UINT8* GetRatingInfo(void)
@@ -744,7 +840,7 @@ public:
     CQT_clsf_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -756,6 +852,16 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
     ULONG32 GetClassEntityLength(void)
     {
         // class entity is 4 bytes
@@ -776,8 +882,7 @@ public:
 
     ULONG32 GetClassInfoLength(void)
     {
-        char* value = (char*)GetClassInfo();
-	return (value) ? strlen(value) + 1 : 0;
+        return EncStrUtils::ByteLengthScan((const char*)GetClassInfo(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
     
     UINT8* GetClassInfo(void)
@@ -811,7 +916,7 @@ public:
     CQT_kywd_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -823,6 +928,15 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
 
     UINT8 Get_KeywordCnt(void)
     {
@@ -902,7 +1016,7 @@ public:
     CQT_loci_Atom(ULONG32 ulOffset,
                   ULONG32 ulSize,
                   CQTAtom *pParent) : CQTAtom(ulOffset,
-            	                              ulSize,
+                                              ulSize,
                                               pParent) {;}
 
     /*
@@ -914,6 +1028,21 @@ public:
     /*
      *	Data Access Methods
      */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
+    ULONG32 GetNameLength(void)
+    {
+        return EncStrUtils::ByteLengthScan((const char*)GetName(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
+    }
+
     UINT8* GetName(void)
     {
         HX_ASSERT(m_pData);
@@ -1027,6 +1156,11 @@ public:
         return (m_pData) ? GetUI16(((Data*)m_pData)->pName + ulOffset + 11) : 0;
     }
 
+    ULONG32 GetAstronomicalBodyLength(void)
+    {
+        return EncStrUtils::ByteLengthScan((const char*)GetAstronomicalBody(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
+    }
+
     UINT8* GetAstronomicalBody(void)
     {
         // scan past name
@@ -1040,6 +1174,11 @@ public:
         // return '\0' terminated string at position of astronomical body
         HX_ASSERT(m_pData);
         return (m_pData) ? ((Data*)m_pData)->pName + ulOffset + 13 : NULL;
+    }
+
+    ULONG32 GetAdditionalNotesLength(void)
+    {
+        return EncStrUtils::ByteLengthScan((const char*)GetAdditionalNotes(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
     }
 
     UINT8* GetAdditionalNotes(void)
@@ -1073,16 +1212,145 @@ private:
         if(!m_pData)
             return 0L;
 
-        ULONG32 ulOffset = ulInitialOffset;
-    
-        // find end of 'location name' string, but don't go past atom size
-        while((ulOffset < m_ulSize) && (((Data*)m_pData)->pName[ulOffset]))
-        {
-            ulOffset++;
-        }
+        return (ulInitialOffset + EncStrUtils::ByteLengthScan((const char*)(((Data*)m_pData)->pName + ulInitialOffset),
+                                            TRUE, EncStrUtils::SCAN_FLAG_UTF16BE));
+    }
+};
 
-        // return one past the end of the 'name' string
-        return (ulOffset + 1);
+/****************************************************************************
+ *  clsf Atom Class -- 3GPP Asset Info: Album
+ */
+class CQT_albm_Atom : public CQTAtom
+{
+public:
+    /*
+     *	Leaf Data Format
+     */
+    struct Data
+    {
+        UINT8 pVersion[1];
+        UINT8 pFlags[3];
+        UINT8 pPadAndLang[2];
+        UINT8 pAlbumTitle[1];
+    } PACKING;
+
+    /*
+     *	Constructor/Destructor
+     */
+    CQT_albm_Atom(ULONG32 ulOffset,
+                  ULONG32 ulSize,
+                  CQTAtom *pParent) : CQTAtom(ulOffset,
+                                              ulSize,
+                                              pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)  { return TRUE; }
+    virtual QTAtomType	GetType(void)	{ return QT_albm; }
+
+    /*
+     *	Data Access Methods
+     */
+    void GetLanguageEncoding(char out[3])
+    {
+        InitLanguageEncoding(out);
+        HX_ASSERT(m_pData);
+        if(m_pData)
+        {
+            ExtractLanguageEncoding(((Data*)m_pData)->pPadAndLang, out);
+        }
+    }
+
+    ULONG32 GetAlbumTitleLength(void)
+    {
+        return EncStrUtils::ByteLengthScan((const char*)GetAlbumTitle(), FALSE, EncStrUtils::SCAN_FLAG_UTF16BE);
+    }
+    
+    UINT8* GetAlbumTitle(void)
+    {
+        HX_ASSERT(m_pData);
+        return (m_pData) ? ((Data*) m_pData)->pAlbumTitle : NULL;
+    }
+
+    HXBOOL HasTrackNumber(void)
+    {
+        ULONG32 ulTrackNumberOffset = 0;
+        return GetTrackNumberOffset(ulTrackNumberOffset);
+    }
+
+    UINT8 GetTrackNumber(void)
+    {
+        ULONG32 ulTrackNumberOffset = 0;
+        if(GetTrackNumberOffset(ulTrackNumberOffset))
+        {
+            // return 1 byte at the position of track number
+            HX_ASSERT(m_pData);
+            return (m_pData) ? *(((Data*)m_pData)->pAlbumTitle + ulTrackNumberOffset) : 0;
+        }
+        return 0;
+    }
+    
+private:
+
+    HXBOOL GetTrackNumberOffset(ULONG32& ulTrackNumberOffset)
+    {
+        HX_ASSERT(m_pData);
+        if(!m_pData) return FALSE;
+
+        UINT32 len = EncStrUtils::ByteLengthScan((const char*)(((Data*)m_pData)->pAlbumTitle),
+                                    TRUE, EncStrUtils::SCAN_FLAG_UTF16BE);
+
+        const ULONG32 ulTitleOffset = 6;
+        if((ulTitleOffset + len) < m_ulSize)
+        {
+            // track number found
+            ulTrackNumberOffset = len;
+            return TRUE;
+        }
+        // track number missing (it's an optional field)
+        return FALSE;
+    }
+};
+
+/****************************************************************************
+ *  yrrc Atom Class -- 3GPP Asset Info: Classification
+ */
+class CQT_yrrc_Atom : public CQTAtom
+{
+public:
+    /*
+     *	Leaf Data Format
+     */
+    struct Data
+    {
+        UINT8 pVersion[1];
+        UINT8 pFlags[3];
+        UINT8 pRecordingYear[2];
+    } PACKING;
+
+    /*
+     *	Constructor/Destructor
+     */
+    CQT_yrrc_Atom(ULONG32 ulOffset,
+                  ULONG32 ulSize,
+                  CQTAtom *pParent) : CQTAtom(ulOffset,
+                                              ulSize,
+                                              pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)  { return TRUE; }
+    virtual QTAtomType	GetType(void)	{ return QT_yrrc; }
+
+    /*
+     *	Data Access Methods
+     */
+    UINT16 GetRecordingYear(void)
+    {
+        HX_ASSERT(m_pData);
+        return (m_pData) ? GetUI16(((Data*) m_pData)->pRecordingYear) : 0;
     }
 };
 
@@ -2039,6 +2307,39 @@ public:
 	UINT8 pVersion[1];
 	UINT8 pFlags[3];
 	UINT8 pESDescriptor[1];
+    } PACKING;
+
+    class QTSoundCompressionInfo: public AudioArrayEntry
+    {
+    public:
+        UINT8 pSamplesPerPacket[4];//Quick Time 3 Specific 
+        UINT8 pBytesPerPacket[4];
+        UINT8 pBytesPerFrame[4];
+        UINT8 pBytesPerSample[4];
+    } PACKING;
+
+
+    class SounDescSIDecomParam: public QTSoundCompressionInfo 
+    {
+    public:
+        UINT8 pSize[4];
+        UINT8 pType[4];//wave
+        UINT8 pSizeFrma[4];
+        UINT8 pTypeFrma[4];//generally
+        UINT8 pDataFormatMp4a[4];	
+    }PACKING;
+
+    class AudioQTMP4ArrayEntry : public SounDescSIDecomParam
+    {
+    public:
+        UINT8 pSize[4];
+        UINT8 pType[4];
+        UINT8 pSkip[4];
+        UINT8 pSizeEsds[4];	
+        UINT8 pEsdS[4];	
+        UINT8 pVersion[1];
+        UINT8 pFlags[3];
+        UINT8 pESDescriptor[1];
     } PACKING;
 
     class VideoMP4ArrayEntry : public VideoArrayEntry
@@ -3340,30 +3641,103 @@ public:
     ULONG32 Get_NumCompatibleBrands(void)
     {
 	HX_ASSERT(m_pData);
-	return (GetDataSize() - sizeof(Data) + sizeof(TableEntry)) / 
-	       sizeof(TableEntry);
+
+ 	ULONG32 dataSize = GetDataSize() + sizeof(TableEntry);
+	return (dataSize < sizeof(Data)) ? 0 :
+                                 ((dataSize - sizeof(Data))/sizeof(TableEntry));
     }
 
     ULONG32 Get_MajorBrand(void)
     {
 	HX_ASSERT(m_pData);
-	return GetUL32(((Data*) m_pData)->pMajorBrand);
+	return (m_pData) ? GetUL32(((Data*) m_pData)->pMajorBrand) : 0;
     }
 
     ULONG32 Get_MinorVersion(void)
     {
 	HX_ASSERT(m_pData);
-	return GetUL32(((Data*) m_pData)->pMinorVersion);
+	return (m_pData) ? GetUL32(((Data*) m_pData)->pMinorVersion): 0;
     }
 
     ULONG32 Get_CompatibleBrand(ULONG32 ulEntryIdx)
     {
 	HX_ASSERT(m_pData);
 	HX_ASSERT(ulEntryIdx < Get_NumCompatibleBrands());
-	return GetUL32(((Data*) m_pData)->pTable[ulEntryIdx].pCompatibleBrand);
+	return (m_pData) ? GetUL32(((Data*) m_pData)->pTable[ulEntryIdx].pCompatibleBrand) : 0;
     }
 };
 
+class CQT_rmra_Atom : public CQTAtom
+{
+public:
+     /*	Constructor/Destructor
+    */
+    CQT_rmra_Atom(ULONG32 ulOffset,
+		  ULONG32 ulSize, 
+		  CQTAtom *pParent) : CQTAtom(ulOffset,
+					      ulSize,
+					      pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)    { return FALSE; }
+    virtual QTAtomType	GetType(void)	    { return QT_rmra; }
+};
+
+class CQT_rmda_Atom : public CQTAtom
+{
+public:
+    /*	Constructor/Destructor
+    */
+    CQT_rmda_Atom(ULONG32 ulOffset,
+		  ULONG32 ulSize, 
+		  CQTAtom *pParent) : CQTAtom(ulOffset,
+					      ulSize,
+					      pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)    { return FALSE; }
+    virtual QTAtomType	GetType(void)	    { return QT_rmda; }
+};
+
+class CQT_rdrf_Atom : public CQTAtom
+{
+public:
+    /*	Constructor/Destructor
+    */
+    CQT_rdrf_Atom(ULONG32 ulOffset,
+		  ULONG32 ulSize, 
+		  CQTAtom *pParent) : CQTAtom(ulOffset,
+					      ulSize,
+					      pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)    { return TRUE; }
+    virtual QTAtomType	GetType(void)	    { return QT_rdrf; }
+};
+
+class CQT_rmdr_Atom : public CQTAtom
+{
+public:
+	     /*	Constructor/Destructor
+     */
+    CQT_rmdr_Atom(ULONG32 ulOffset,
+		  ULONG32 ulSize, 
+		  CQTAtom *pParent) : CQTAtom(ulOffset,
+					      ulSize,
+					      pParent) {;}
+
+    /*
+     *	Required Virtual Methods
+     */
+    virtual HXBOOL	IsLeafType(void)    { return TRUE; }
+    virtual QTAtomType	GetType(void)	    { return QT_rmdr; }
+};
 #ifdef QTCONFIG_SPEED_OVER_SIZE
 #include "qtatoms_inline.h"
 #endif	// QTCONFIG_SPEED_OVER_SIZE

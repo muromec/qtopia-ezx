@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: client_profile_mgr.cpp,v 1.12 2004/05/21 19:53:25 jgordon Exp $
+ * Source last modified: $Id: client_profile_mgr.cpp,v 1.15 2007/12/13 06:10:50 yphadke Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -65,8 +65,10 @@
 #include "client_profile.h"
 #include "client_profile_mgr.h"
 
-#define DEFAULT_PROFILES_KEY "config.CapabilityExchange.DefaultProfiles"
 #define MAX_PROFILE_CACHE_KEY "config.CapabilityExchange.ProfileCacheSize"
+#include "hxqos.h"
+#include "qos_prof_conf.h"
+#include "qos_cfg_names.h"
 
 ClientProfileManager::ClientProfileManager(Process* pProc)
 : m_ulRefCount(0)
@@ -167,21 +169,53 @@ ClientProfileManager::GetPSSProfile(IHXClientProfileManagerResponse* pResponse,
 
     // Find the default profile
     pRequestHeaders->GetPropertyCString("user-agent", pUserAgentHdr);
-    GetDefaultProfile(pUserAgentHdr, pDefaultProfile, ulDfltPrfMergeRule);
-    HX_RELEASE(pUserAgentHdr);
 
+    IHXQoSProfileSelector* pProfileSelector = NULL;
+    IHXUserAgentSettings* pUAS = NULL;
+    IHXQoSProfileConfigurator* pProfileConfigurator = NULL;
+    IHXBuffer* pLocalRDF = NULL;
+    BOOL bRetriveXWAPProfile = TRUE;
+    INT32 lTemp=0;
 
-    // Extract the list of all profile URI's (and overrides) from the request
-    // headers
-    if (ulDfltPrfMergeRule != HX_CP_CMR_DOMINATE && 
-        SUCCEEDED(pRequestHeaders->GetPropertyCString("x-wap-profile",
-                                                      pXwapPrfHdr)))
+    pContext->QueryInterface(IID_IHXQoSProfileSelector, (void**)&pProfileSelector);
+    pContext->QueryInterface(IID_IHXQoSProfileConfigurator, (void**)&pProfileConfigurator);
+
+    if(pProfileSelector && pProfileConfigurator)
     {
-        pRequestHeaders->GetPropertyCString("x-wap-profile-diff", 
-            pXwapPrfDiffHdr);
+        pProfileSelector->SelectProfile(pUserAgentHdr, NULL, NULL, pUAS);
 
-        rc = InitProfileReqList(pXwapPrfHdr, pXwapPrfDiffHdr, pPrfReqList, 
-                bProfilesCached);
+        pProfileConfigurator->SetUserAgentSettings(pUAS);
+        pProfileConfigurator->GetConfigBuffer(QOS_CFG_CC_CE_LOCAL_RDF, pLocalRDF);
+        if(SUCCEEDED(pProfileConfigurator->GetConfigInt(QOS_CFG_CC_CE_RET_XWAP_PROFILE, lTemp)))
+        {
+            bRetriveXWAPProfile = (BOOL)lTemp;
+        }
+    }
+
+    GetDefaultProfile(pLocalRDF, pDefaultProfile, ulDfltPrfMergeRule);
+
+    HX_RELEASE(pUserAgentHdr);
+    HX_RELEASE(pLocalRDF);
+    HX_RELEASE(pUAS);
+    HX_RELEASE(pProfileSelector);
+    HX_RELEASE(pProfileConfigurator);
+
+    if(bRetriveXWAPProfile)
+    {
+        // Extract the list of all profile URI's (and overrides) from the request
+        // headers
+        if (ulDfltPrfMergeRule != HX_CP_CMR_DOMINATE && 
+            SUCCEEDED(pRequestHeaders->GetPropertyCString("x-wap-profile",
+                                                        pXwapPrfHdr)))
+        {
+            pRequestHeaders->GetPropertyCString("x-wap-profile-diff", 
+                pXwapPrfDiffHdr);
+
+            rc = InitProfileReqList(pXwapPrfHdr, pXwapPrfDiffHdr, pPrfReqList, 
+                    bProfilesCached);
+            HX_RELEASE (pXwapPrfHdr);
+            HX_RELEASE (pXwapPrfDiffHdr);
+        }
     }
 
     // Initialize the profile request handler
@@ -725,12 +759,11 @@ ClientProfileManager::GetDefaultProfile(IHXBuffer* pUserAgentHdr,
 
 HX_RESULT
 ClientProfileManager::CacheStaticProfile(IHXBuffer* pKey, 
-                                         IHXBuffer* pRequestURI, 
                                          UINT32 ulMergeRule)
 {
     HX_RESULT rc = HXR_OK;
 
-    HX_ASSERT(pRequestURI);
+    HX_ASSERT(pKey);
     HX_VERIFY(m_pProc);
     HX_VERIFY(m_pPrfAgentProc);
     HX_VERIFY(m_pPrfAgent);
@@ -744,7 +777,7 @@ ClientProfileManager::CacheStaticProfile(IHXBuffer* pKey,
         return HXR_OUTOFMEMORY;
     }
 
-    rc = ParseProfileHeader((char*)pRequestURI->GetBuffer(), pPrfReqList, 
+    rc = ParseProfileHeader((char*)pKey->GetBuffer(), pPrfReqList, 
             pDiff, pReqInfo);
 
     if(FAILED(rc))
@@ -768,15 +801,10 @@ ClientProfileManager::CacheStaticProfile(IHXBuffer* pKey,
     {
         pReqHandler->m_pCacheKey = pKey;
         pKey->AddRef();
-    }
 
-    if (pRequestURI)
-    {
-        pReqHandler->m_pRequestURI = pRequestURI;
-        pRequestURI->AddRef();
+        pReqHandler->m_pRequestURI = pKey;
+        pKey->AddRef();
     }
-
-    pRequestURI->AddRef();
 
     //send the request off to the plugin proc 
     ProfileRequestHandler::RequestInitCB* pReqInitCB = NULL; 
@@ -817,39 +845,33 @@ ClientProfileManager::CacheDefaultProfiles()
     UINT32 ulNumProfiles = 0;
     UINT32 i;
 
-    if(SUCCEEDED(pRegistry->GetChildIdListByName(DEFAULT_PROFILES_KEY, 
-       pulProfiles, ulNumProfiles)))
+    IHXQoSProfileSelector* pProfileSelector = NULL;
+    IHXUserAgentSettings* pUAS = NULL;
+    IHXQoSProfileConfigurator* pProfileConfigurator = NULL;
+    CHXMapStringToOb::Iterator itrUASConfigTree;
+    IHXBuffer* pLocalRDF = NULL;
+
+    pContext->QueryInterface(IID_IHXQoSProfileSelector, (void**)&pProfileSelector);
+    pContext->QueryInterface(IID_IHXQoSProfileConfigurator, (void**)&pProfileConfigurator);
+    if(pProfileSelector && pProfileConfigurator)
     {
-        // Iterate the profile entries and add them to the cache
-        for(i = 0; i < ulNumProfiles; i++)
+        itrUASConfigTree = pProfileSelector->GetBegin();
+       
+        for(; itrUASConfigTree != pProfileSelector->GetEnd(); itrUASConfigTree++)
         {
-            if(SUCCEEDED(pRegistry->GetPropName(pulProfiles[i], pPropName)))
+            pUAS = (IHXUserAgentSettings*) *itrUASConfigTree;
+            pProfileConfigurator->SetUserAgentSettings((IHXUserAgentSettings*) *itrUASConfigTree);
+            pProfileConfigurator->GetConfigBuffer(QOS_CFG_CC_CE_LOCAL_RDF, pLocalRDF);
+
+            if(pLocalRDF)
             {
-                szRegName = (const char*)pPropName->GetBuffer();
-                SafeSprintf(szProp, 512, "%s.UserAgent", szRegName);
-                if(SUCCEEDED(pRegistry->GetStrByName(szProp, pKey)))
-                {
-                    SafeSprintf(szProp, 512, "%s.URI", szRegName);
-                    if(SUCCEEDED(pRegistry->GetStrByName(szProp, pURI)))
-                    {
-                        INT32 lIgnoreHdr;
-                        SafeSprintf(szProp, 512, "%s.IgnoreCapExHeaders", 
-                            szRegName);
-                        if(FAILED(pRegistry->GetIntByName(szProp, lIgnoreHdr)))
-                        {
-                            lIgnoreHdr = 0;
-                        }
-                        // If IgnoreCapExHeaders is set, use DOMINATE, else 
-                        // override defaults
-                        CacheStaticProfile(pKey, pURI, lIgnoreHdr ? 
-                                HX_CP_CMR_DOMINATE : HX_CP_CMR_OVER);
-                        pKey->Release();
-                        pURI->Release();
-                    }
-                }
+                CacheStaticProfile(pLocalRDF, HX_CP_CMR_OVER);
+                HX_RELEASE(pLocalRDF);
             }
         }
     }
+    HX_RELEASE(pProfileSelector);
+    HX_RELEASE(pProfileConfigurator);
 
     HX_RELEASE(pRegistry);
     return HXR_OK;

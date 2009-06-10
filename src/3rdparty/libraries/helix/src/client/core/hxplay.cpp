@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxplay.cpp,v 1.182 2007/04/09 19:48:03 ping Exp $
+ * Source last modified: $Id: hxplay.cpp,v 1.200 2009/05/06 20:17:30 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -48,13 +48,15 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "hxtypes.h"
+#ifndef _BREW 
 #include "hlxclib/sys/socket.h"
+#endif
 #include "hxcom.h"
 #include "hxmime.h"
 #include "dbcs.h"
 #include "chxxtype.h"
 #include "hxresult.h"
-
+#include "hxthreadyield.h"
 #ifndef _WINCE
 #include "hlxclib/signal.h"
 #endif
@@ -229,22 +231,24 @@ void hookRealAudio_ReportError(int err, long errVal);
 #ifdef HELIX_SYMBIAN81_WINSCW_EMULATOR
 /* Symbian emulator has 1 timer tick == 100ms */
 #define PLAYER_UPDATE_INTERVAL					90
+#elif defined(ANDROID)
+#define PLAYER_UPDATE_INTERVAL					90
 #else
-#define PLAYER_UPDATE_INTERVAL					30
+#define PLAYER_UPDATE_INTERVAL                  30
 #endif
 
 #ifdef THREADS_SUPPORTED
-#define SYSTEM_PERCENT	65
-#define INTERRUPT_PERCENT	30
+#define SYSTEM_PERCENT  65
+#define INTERRUPT_PERCENT   30
 #else
-#define SYSTEM_PERCENT	95
-#define INTERRUPT_PERCENT	0
+#define SYSTEM_PERCENT  95
+#define INTERRUPT_PERCENT   0
 #endif
 
-#define PLAYER_SYSTEM_PROCESSING_INTERVAL		(PLAYER_UPDATE_INTERVAL*SYSTEM_PERCENT/100)
-#define PLAYER_INTERRUPT_PROCESSING_INTERVAL	(PLAYER_UPDATE_INTERVAL*INTERRUPT_PERCENT/100)
+#define PLAYER_SYSTEM_PROCESSING_INTERVAL       (PLAYER_UPDATE_INTERVAL*SYSTEM_PERCENT/100)
+#define PLAYER_INTERRUPT_PROCESSING_INTERVAL    (PLAYER_UPDATE_INTERVAL*INTERRUPT_PERCENT/100)
 
-#define MAX_QUICK_SEEK_POST_BUFFERING_WAIT  500	// in milliseconds
+#define MAX_QUICK_SEEK_POST_BUFFERING_WAIT  500 // in milliseconds
 
 /* Please add any variables to be re-initialized in the ResetPlayer()
  * function also.
@@ -290,7 +294,7 @@ HXPlayer::HXPlayer() :
     ,m_pViewPortManager(NULL)
     ,m_pMediaMarkerManager(NULL)
     ,m_pEventManager(NULL)
-    ,m_pCookies(NULL)
+    ,m_pCookies3(NULL)
     ,m_pPersistentComponentManager(NULL)
     ,m_pPreferredTransportManager(NULL)
     ,m_pNetInterfaces(NULL)
@@ -372,7 +376,6 @@ HXPlayer::HXPlayer() :
     ,m_bCurrentPresentationClosed(FALSE)
     ,m_bContactingDone(FALSE)
     ,m_bFSBufferingEnd(FALSE)
-    ,m_bAllLocalSources(TRUE)
     ,m_b100BufferingToBeSent(TRUE)
     ,m_bSetupToBeDone(FALSE)
     ,m_bPostSetupToBeDone(FALSE)
@@ -428,6 +431,7 @@ HXPlayer::HXPlayer() :
     ,m_pRecordService(NULL)
     ,m_bRecordServiceEnabled(FALSE)
     ,m_pMetaInfo(NULL)
+    ,m_pEmbeddedUI(NULL)
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     , m_ulTotalDurReported(HX_PROGDOWNLD_UNKNOWN_DURATION)
     , m_ulTimeOfOpenURL(HX_PROGDOWNLD_UNKNOWN_DURATION)
@@ -514,6 +518,11 @@ HXPlayer::HXPlayer() :
 
     m_pMetaInfo = new CHXMetaInfo((IUnknown*)(IHXPlayer*)this);
     HX_ADDREF(m_pMetaInfo);
+
+#if defined(HELIX_FEATURE_EMBEDDED_UI)
+    m_pEmbeddedUI = new CHXEmbeddedUI((IUnknown*)(IHXPlayer*)this);
+    HX_ADDREF(m_pEmbeddedUI);
+#endif // HELIX_FEATURE_EMBEDDED_UI
 
     HX_ADDREF(m_pErrorSinkControl);
     HX_ADDREF(m_pAdviseSink);
@@ -620,6 +629,9 @@ STDMETHODIMP HXPlayer::QueryInterface(REFIID riid, void** ppvObj)
 #if defined(HELIX_FEATURE_PLAYBACK_MODIFIER)
             { GET_IIDHANDLE(IID_IHXPlaybackModifier), (IHXPlaybackModifier*)this },
 #endif // HELIX_FEATURE_PLAYBACK_MODIFIER.
+#if defined(HELIX_FEATURE_VIDEO_FRAME_STEP)
+            { GET_IIDHANDLE(IID_IHXFrameStep), (IHXFrameStep*)this },
+#endif 
         };
     HX_RESULT res = ::QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj);
     
@@ -659,6 +671,11 @@ STDMETHODIMP HXPlayer::QueryInterface(REFIID riid, void** ppvObj)
     }
     else if (m_pMetaInfo &&
              m_pMetaInfo->QueryInterface(riid, ppvObj) == HXR_OK)
+    {
+        return HXR_OK;
+    }
+    else if (m_pEmbeddedUI &&
+             m_pEmbeddedUI->QueryInterface(riid, ppvObj) == HXR_OK)
     {
         return HXR_OK;
     }
@@ -861,7 +878,7 @@ HXPlayer::BeginPlayer(void)
     }
     else if (m_bSeekCached)
     {
-	theErr = SeekPlayer(m_ulSeekTime);
+    theErr = SeekPlayer(m_ulSeekTime);
     }
 
     m_bPaused = FALSE;
@@ -1022,11 +1039,11 @@ HXPlayer::PausePlayer(HXBOOL bNotifyTLC /* = TRUE*/)
     /* Send OnPause to advice sink ONLY if it is not an internal Pause */
     if (bNotifyTLC && !m_bInternalReset)
     {
-	SetClientState(HX_CLIENT_STATE_PAUSED);
-	if (m_pAdviseSink)
-	{
+    SetClientState(HX_CLIENT_STATE_PAUSED);
+    if (m_pAdviseSink)
+    {
             m_pAdviseSink->OnPause(m_ulCurrentPlayTime);
-	}
+    }
     }
 
     return (theErr);
@@ -1060,6 +1077,8 @@ STDMETHODIMP HXPlayer::Seek(ULONG32    ulTime)
 HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
 {
     HXLOGL1(HXLOG_CORE, "HXPlayer[%p]::SeekPlayer(%lu)", this, ulTime);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::SeekPlayer(%lu)", this, ulTime);
+    
     HX_RESULT theErr = HXR_OK;
 
     if (m_bIsDone)
@@ -1076,14 +1095,14 @@ HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
     // Cache seek value, if not in the opened state
     if (m_eClientState < HX_CLIENT_STATE_OPENED)
     {
-    	HXLOGL1(HXLOG_CORE, "HXPlayer[%p]::SeekPlayer(%lu) Caching seek value", this, ulTime);
-	m_bSeekCached = TRUE;
-	m_ulSeekTime = ulTime;
+        HXLOGL1(HXLOG_CORE, "HXPlayer[%p]::SeekPlayer(%lu) Caching seek value", this, ulTime);
+    m_bSeekCached = TRUE;
+    m_ulSeekTime = ulTime;
 
-	if (m_eClientState < HX_CLIENT_STATE_CONNECTED)
-	{
-	    return HXR_OK;
-	}
+    if (m_eClientState < HX_CLIENT_STATE_CONNECTED)
+    {
+        return HXR_OK;
+    }
     }
 
     /* we do allow internal seek (done during resume after live pause)*/
@@ -1103,20 +1122,20 @@ HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
         m_bInternalPauseResume  = TRUE;
         // Disable the OnPause advise sink control call
         m_pAdviseSink->DisableAdviseSink(HX_ADVISE_SINK_FLAG_ONPAUSE);
-	// Disable client state sink control, check if it's already disabled from SetVelocity
-	HXBOOL bIsEnabled = m_pClientStateAdviseSink->IsEnabled(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	if (bIsEnabled)
-	{
-	    m_pClientStateAdviseSink->DisableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	}
+    // Disable client state sink control, check if it's already disabled from SetVelocity
+    HXBOOL bIsEnabled = m_pClientStateAdviseSink->IsEnabled(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+    if (bIsEnabled)
+    {
+        m_pClientStateAdviseSink->DisableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+    }
         // Do the internal pause
         PausePlayer();
         // Re-enable the OnPause advise sink control call
         m_pAdviseSink->EnableAdviseSink(HX_ADVISE_SINK_FLAG_ONPAUSE);
-	if (!bIsEnabled)
-	{
-	    m_pClientStateAdviseSink->EnableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	}
+    if (!bIsEnabled)
+    {
+        m_pClientStateAdviseSink->EnableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+    }
 
     }
 
@@ -1156,22 +1175,22 @@ HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
 
     if (!m_bSeekCached)
     {
-	SetClientState(HX_CLIENT_STATE_SEEKING);
+    SetClientState(HX_CLIENT_STATE_SEEKING);
 
-	if (m_pAdviseSink)
-	{
-	    m_pAdviseSink->OnPreSeek(m_ulTimeBeforeSeek, m_ulTimeAfterSeek);
-	}
+    if (m_pAdviseSink)
+    {
+        m_pAdviseSink->OnPreSeek(m_ulTimeBeforeSeek, m_ulTimeAfterSeek);
+    }
 
-	// change the state of buffering to seek
-	if (m_bIsLive)
-	{
-	    m_BufferingReason       = BUFFERING_LIVE_PAUSE;
-	}
-	else
-	{
-	    m_BufferingReason       = BUFFERING_SEEK;
-	}
+    // change the state of buffering to seek
+    if (m_bIsLive)
+    {
+        m_BufferingReason       = BUFFERING_LIVE_PAUSE;
+    }
+    else
+    {
+        m_BufferingReason       = BUFFERING_SEEK;
+    }
     }
 
     /* Send all pre-seek events to the renderers */
@@ -1227,9 +1246,9 @@ HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
 
     if (!theErr)
     {
-	// SeekCached means this is Seek that was cached prior to preentation openining.
-	// Activation of download will be deferred to whatever mechanism is
-	// normally used rather than forcing it here.
+    // SeekCached means this is Seek that was cached prior to preentation openining.
+    // Activation of download will be deferred to whatever mechanism is
+    // normally used rather than forcing it here.
         if (!m_bSeekCached)
         {
             /* Start pre-fetch */
@@ -1240,19 +1259,19 @@ HX_RESULT HXPlayer::SeekPlayer(ULONG32 ulTime)
         {
             // Disable the OnBegin advise sink call
             m_pAdviseSink->DisableAdviseSink(HX_ADVISE_SINK_FLAG_ONBEGIN);
-	    HXBOOL bIsEnabled = m_pClientStateAdviseSink->IsEnabled(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	    if (bIsEnabled)
-	    {
-		m_pClientStateAdviseSink->DisableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	    }
+        HXBOOL bIsEnabled = m_pClientStateAdviseSink->IsEnabled(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+        if (bIsEnabled)
+        {
+        m_pClientStateAdviseSink->DisableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+        }
             // Call the internal begin
             theErr = Begin();
             // Re-enable the OnBegin advise sink call
             m_pAdviseSink->EnableAdviseSink(HX_ADVISE_SINK_FLAG_ONBEGIN);
-	    if (!bIsEnabled)
-	    {
-		m_pClientStateAdviseSink->EnableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-	    }
+        if (!bIsEnabled)
+        {
+        m_pClientStateAdviseSink->EnableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
+        }
 
             // Clear the internal pause/resume flag
             m_bInternalPauseResume = FALSE;
@@ -1564,7 +1583,6 @@ STDMETHODIMP HXPlayer::Init(IHXClientEngine*  pEngine,
 
         m_pEngine->QueryInterface(IID_IHXNetInterfaces,
                                             (void**)&m_pNetInterfaces);
-
 #if defined(HELIX_FEATURE_REGISTRY)
         // create registry entries
         if (HXR_OK != m_pEngine->QueryInterface(IID_IHXRegistry, (void**)&m_pRegistry))
@@ -1595,7 +1613,7 @@ STDMETHODIMP HXPlayer::Init(IHXClientEngine*  pEngine,
 #endif /* HELIX_FEATURE_STATS && HELIX_FEATURE_REGISTRY */
         }
 
-        m_pCookies = m_pEngine->GetCookies();
+        m_pEngine->QueryInterface(IID_IHXCookies3, (void**)&m_pCookies3);
 
 #if defined(HELIX_FEATURE_EVENTMANAGER)
         // Get our own IUnknown interface
@@ -1649,8 +1667,7 @@ STDMETHODIMP HXPlayer::Init(IHXClientEngine*  pEngine,
 #endif /* HELIX_FEATURE_NEXTGROUPMGR */
 
 #if defined(HELIX_FEATURE_AUTOUPGRADE)
-    m_pUpgradeCollection = new HXUpgradeCollection((IUnknown*)(IHXPlayer*)this);
-    m_pUpgradeCollection->AddRef();
+    CreateInstanceCCF(CLSID_IHXUpgradeCollection, (void**)&m_pUpgradeCollection, (IUnknown*)(IHXClientEngine*)m_pEngine);  
 #endif /* HELIX_FEATURE_AUTOUPGRADE */
 
     return theErr;
@@ -2040,9 +2057,9 @@ HXPlayer::SetupAudioPlayer(UINT32 &ulSchedulerFlags)
 #if defined(THREADS_SUPPORTED) && !defined(_MAC_UNIX)
     if( m_bUseCoreThread && !m_pEngine->AtInterruptTime() )
     {
-	// Schedule player again looking for invocation on core thread
-	ulSchedulerFlags = (PLAYER_SCHEDULE_INTERRUPT_ONLY | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::SetupAudioPlayer() Wrong Thread: Bailing out", this);
+    // Schedule player again looking for invocation on core thread
+    ulSchedulerFlags = (PLAYER_SCHEDULE_INTERRUPT_ONLY | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::SetupAudioPlayer() Wrong Thread: Bailing out", this);
         return HXR_RETRY;
     }
 #endif //_WIN32
@@ -2083,25 +2100,27 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
 {
     // When we are called from interrupt safe chain, we could be called at
     // interrupt and system time.
+    ULONG32 ulTime;
+    StartYield(&ulTime);
     HXBOOL bAtInterrupt = (bFromInterruptSafeChain && m_pEngine->AtInterruptTime());
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Entering: Init=%c PostSetupDue=%c InterrTime=%c",
-	this,
-	m_bInitialized ? 'T' : 'F',
-	m_bPostSetupToBeDone ? 'T' : 'F',
-	bAtInterrupt ? 'T' : 'F');
+    this,
+    m_bInitialized ? 'T' : 'F',
+    m_bPostSetupToBeDone ? 'T' : 'F',
+    bAtInterrupt ? 'T' : 'F');
 
     UINT32 ulSchedulerFlags = PLAYER_SCHEDULE_DEFAULT;
 
     if ((!m_bInitialized || m_bPostSetupToBeDone ) && bAtInterrupt)
     {
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Non-interr time needed: Bailing out", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Non-interr time needed: Bailing out", this);
         return HXR_OK;
     }
 
     if (m_ulCoreLockCount)
     {
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Core Locked: Bailing out", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Core Locked: Bailing out", this);
         SchedulePlayer(ulSchedulerFlags);
         return HXR_OK;
     }
@@ -2111,9 +2130,9 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
 
 #if defined (HELIX_CONFIG_YIELD_LESS_TO_OTHERS)
     UINT32 ulLoopEntryTime = 0;
-#else	// HELIX_CONFIG_YIELD_LESS_TO_OTHERS
+#else   // HELIX_CONFIG_YIELD_LESS_TO_OTHERS
     UINT32 ulLoopEntryTime = m_bYieldLessToOthers ? 0 : HX_GET_BETTERTICKCOUNT();
-#endif	// HELIX_CONFIG_YIELD_LESS_TO_OTHERS
+#endif  // HELIX_CONFIG_YIELD_LESS_TO_OTHERS
 
 #if 0
 #if defined(_WIN32) && defined(_DEBUG)
@@ -2127,22 +2146,22 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
     SourceInfo*         pSourceInfo         = NULL;
     RendererInfo*       pRendInfo           = NULL;
     IHXRenderer*        pRenderer           = NULL;
-    HXBOOL		bDone               = FALSE;
-    HXBOOL		bIsFirst            = TRUE;
+    HXBOOL      bDone               = FALSE;
+    HXBOOL      bIsFirst            = TRUE;
 
 #if defined(HELIX_FEATURE_AUTOUPGRADE)
-    HXBOOL		bReadyToUpgrade     = TRUE;
+    HXBOOL      bReadyToUpgrade     = TRUE;
 #endif
 
-    HXBOOL		bSuppressErrorReporting = FALSE;
+    HXBOOL      bSuppressErrorReporting = FALSE;
     UINT32              ulNumStreamsToBeFilled = 0;
     UINT16              unStatusCode        = 0;
     UINT16              unPercentDone       = 0;
     IHXBuffer*          pStatusDesc         = NULL;
 
-    HXBOOL		bAttemptedResume    = FALSE;
-    HXBOOL		bIsBuffering	    = FALSE;
-    HXBOOL		bWasBuffering;
+    HXBOOL      bAttemptedResume    = FALSE;
+    HXBOOL      bIsBuffering        = FALSE;
+    HXBOOL      bWasBuffering;
     
     CHXMapPtrToPtr::Iterator    ndxSource;
     CHXMapLongToObj::Iterator   ndxRend;
@@ -2164,9 +2183,9 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
     /* check InternalPause() for details */
     if (m_bPendingAudioPause && !bAtInterrupt)
     {
-	m_pAudioPlayer->Pause();
+    m_pAudioPlayer->Pause();
     }
-#endif	// _MACINTOSH
+#endif  // _MACINTOSH
 
     ndxSource = m_pSourceMap->Begin();
 
@@ -2257,13 +2276,13 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
          */
         m_bIsSmilRenderer = m_bSetupLayoutSiteGroup;
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Initialize Renderers: Start", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Initialize Renderers: Start", this);
 
         theErr = InitializeRenderers();
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Initialize Renderers: End", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Initialize Renderers: End", this);
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupLayout: Start", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupLayout: Start", this);
 
 #if defined(HELIX_FEATURE_VIDEO)
         if (!m_bPlayerWithoutSources && !theErr)
@@ -2278,67 +2297,67 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
         }
 #endif /* HELIX_FEATURE_VIDEO */
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupLayout: End", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupLayout: End", this);
     }
 
     // Perform prefetching if we are in the connected state and there is no halt set or halt has been cleared
     if (!theErr && m_bInitialized &&
-	m_eClientState == HX_CLIENT_STATE_CONNECTED &&
-	m_eClientStateStatus == HX_CLIENT_STATE_STATUS_ACTIVE)
+    m_eClientState == HX_CLIENT_STATE_CONNECTED &&
+    m_eClientStateStatus == HX_CLIENT_STATE_STATUS_ACTIVE)
     {
-    	HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::ProcessIdle() Prefetching", this);
-	m_eClientStateStatus = HX_CLIENT_STATE_STATUS_ACTIVE;
-	SetClientState(HX_CLIENT_STATE_OPENING);
+        HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::ProcessIdle() Prefetching", this);
+    m_eClientStateStatus = HX_CLIENT_STATE_STATUS_ACTIVE;
+    SetClientState(HX_CLIENT_STATE_OPENING);
 
-	m_bSetupToBeDone = TRUE;
+    m_bSetupToBeDone = TRUE;
 
-	AdjustPresentationTime();
+    AdjustPresentationTime();
     }
 
-    if ((m_eClientState == HX_CLIENT_STATE_OPENING) && m_bSetupToBeDone)
+    if (m_bSetupToBeDone)
     {
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupAudioPlayer: Start", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupAudioPlayer: Start", this);
 
-	theErr = SetupAudioPlayer(ulSchedulerFlags);
+    theErr = SetupAudioPlayer(ulSchedulerFlags);
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupAudioPlayer: End", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SetupAudioPlayer: End", this);
 
-	if (theErr == HXR_RETRY)
-	{
-	    theErr = HXR_OK;
-	    goto exitRoutine;
-	}
+    if (theErr == HXR_RETRY)
+    {
+        theErr = HXR_OK;
+        goto exitRoutine;
+    }
     }
 
     if (m_bPostSetupToBeDone)
     {
         m_bPostSetupToBeDone = FALSE;
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PostSetup: Start", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PostSetup: Start", this);
 
         /* Initialize audio services */
         if (!theErr && m_bInitialized)
         {
             m_bIsPresentationClosedToBeSent = TRUE;
-	    SetClientState(HX_CLIENT_STATE_OPENED);
+        SetClientState(HX_CLIENT_STATE_OPENED);
             if (m_pAdviseSink)
             {
                 m_pAdviseSink->OnPresentationOpened();
             }
-	    // Check if seek and velocity were cached
-	    if (m_bPlaybackVelocityCached)
-	    {
-		theErr = SetVelocity(m_lPlaybackVelocityCached, m_bKeyFrameModeCached, m_bAutoSwitchCached);
-		m_bPlaybackVelocityCached = FALSE;
-	    }
-	    if (m_bSeekCached && !theErr)
-	    {
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SeekPlayer: Start", this);
+        // Check if seek and velocity were cached
+        if (m_bPlaybackVelocityCached)
+        {
+        theErr = SetVelocity(m_lPlaybackVelocityCached, m_bKeyFrameModeCached, m_bAutoSwitchCached);
+        m_bPlaybackVelocityCached = FALSE;
+        }
+        if (m_bSeekCached && !theErr)
+        {
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SeekPlayer: Start", this);
 
-		theErr = SeekPlayer(m_ulSeekTime);
+        theErr = SeekPlayer(m_ulSeekTime);
 
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SeekPlayer: End", this);
-	    }
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SeekPlayer: End", this);
+        }
         }
 
         if (!theErr && m_bInitialized)
@@ -2359,7 +2378,7 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
                 if (pSource)
                 {
                     theErr = pSource->DoResume(ulLoopEntryTime,
-					       GetPlayerProcessingInterval(bFromInterruptSafeChain));
+                           GetPlayerProcessingInterval(bFromInterruptSafeChain));
                 }
                 else
                 {
@@ -2374,14 +2393,14 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
          */
         if (!theErr && m_bInitialized && m_bIsFirstBegin && !m_bIsDone)
         {
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() StartDownload: Start", this);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() StartDownload: Start", this);
 
             theErr = StartDownload();
 
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() StartDownload: End", this);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() StartDownload: End", this);
         }
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PostSetup: End", this);
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PostSetup: End", this);
     }
 
     // if it is still not initialized check error code and return
@@ -2394,237 +2413,240 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
 
     if (!m_ToBeginRendererList.IsEmpty())
     {
-	CheckBeginList();
+    CheckBeginList();
     }
 
     do
     {
-	UINT32 ulProcessingTimeAllowance = GetPlayerProcessingInterval(bFromInterruptSafeChain);
+    UINT32 ulProcessingTimeAllowance = GetPlayerProcessingInterval(bFromInterruptSafeChain);
 
-	while (!theErr && !bDone && m_uNumSourcesActive > 0)
-	{
-	    bWasBuffering = m_bIsBuffering;
-	    bIsBuffering = FALSE;
-	    uLowestBuffering = 100;
-	    ulNumStreamsToBeFilled = 0;
+    while (!theErr && !bDone && m_uNumSourcesActive > 0)
+    {
+        bWasBuffering = m_bIsBuffering;
+        bIsBuffering = FALSE;
+        uLowestBuffering = 100;
+        ulNumStreamsToBeFilled = 0;
 
-	    ndxSource = m_pSourceMap->Begin();
-	    for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
-	    {
-		pSourceInfo = (SourceInfo*)(*ndxSource);
+        ndxSource = m_pSourceMap->Begin();
+        for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
+        {
+        pSourceInfo = (SourceInfo*)(*ndxSource);
 
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo ProcessIdle: Start", this);
-		theErr = pSourceInfo->ProcessIdle(
-		    ulNumStreamsToBeFilled,
-		    bIsBuffering, uLowestBuffering,
-		    ulLoopEntryTime,
-		    ulProcessingTimeAllowance);
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo ProcessIdle: End", this);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo ProcessIdle: Start", this);
+        theErr = pSourceInfo->ProcessIdle(
+            ulNumStreamsToBeFilled,
+            bIsBuffering, uLowestBuffering,
+            ulLoopEntryTime,
+            ulProcessingTimeAllowance);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo ProcessIdle: End", this);
 
-		if (pSourceInfo->m_pPeerSourceInfo)
-		{
-		    HXBOOL tmp_bIsBuffering = FALSE;
-		    UINT32 tmp_ulNumStreamsToBeFilled = 0;
-		    UINT16 tmp_uLowestBuffering = 100;
+        if (pSourceInfo->m_pPeerSourceInfo)
+        {
+            HXBOOL tmp_bIsBuffering = FALSE;
+            UINT32 tmp_ulNumStreamsToBeFilled = 0;
+            UINT16 tmp_uLowestBuffering = 100;
 
-		    pSourceInfo->m_pPeerSourceInfo->ProcessIdle(
-			tmp_ulNumStreamsToBeFilled,
-			tmp_bIsBuffering, tmp_uLowestBuffering,
-			ulLoopEntryTime,
-			ulProcessingTimeAllowance);
-		}
+            pSourceInfo->m_pPeerSourceInfo->ProcessIdle(
+            tmp_ulNumStreamsToBeFilled,
+            tmp_bIsBuffering, tmp_uLowestBuffering,
+            ulLoopEntryTime,
+            ulProcessingTimeAllowance);
+        }
 
-		// From the player perspective, we are buffering only if the
-		// we are not playing.  That is, even if one of the source is
-		// buffering, as long the source did not pause the player,
-		// this background buffering not relevant at player level.
-		bIsBuffering = (bIsBuffering && !m_bIsPlaying);
+        // From the player perspective, we are buffering only if the
+        // we are not playing.  That is, even if one of the source is
+        // buffering, as long the source did not pause the player,
+        // this background buffering not relevant at player level.
+        bIsBuffering = (bIsBuffering && !m_bIsPlaying);
 
-		/* Source was added during ProcessIdle.
-		 * Start all over again
-		 */
-		if (m_bSourceMapUpdated)
-		{
-		    m_bIsBuffering = bIsBuffering;
-		    bDone = TRUE;
-		    break;
-		}
-	    }
+        /* Source was added during ProcessIdle.
+         * Start all over again
+         */
+        if (m_bSourceMapUpdated)
+        {
+            m_bIsBuffering = bIsBuffering;
+            bDone = TRUE;
+            break;
+        }
+        }
 
-	    m_bIsBuffering = bIsBuffering;
+        m_bIsBuffering = bIsBuffering;
 
-	    if (bIsBuffering && !bWasBuffering)
-	    {
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering...", this);
-	    }
+        if (bIsBuffering && !bWasBuffering)
+        {
+        ulProcessingTimeAllowance = GetPlayerProcessingInterval(bFromInterruptSafeChain);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering...", this);
+        }
 
-	    if (bWasBuffering && !bIsBuffering)
-	    {
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering completed", this);
-	    }
+        if (bWasBuffering && !bIsBuffering)
+        {
+        ulProcessingTimeAllowance = GetPlayerProcessingInterval(bFromInterruptSafeChain);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering completed", this);
+        }
 
-	    if (bIsBuffering)
-	    {
-		ndxSource = m_pSourceMap->Begin();
-		for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
-		{
-		    pSourceInfo = (SourceInfo*)(*ndxSource);
+        if (bIsBuffering)
+        {
+        ndxSource = m_pSourceMap->Begin();
+        for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
+        {
+            pSourceInfo = (SourceInfo*)(*ndxSource);
 
-		    ndxRend = pSourceInfo->m_pRendererMap->Begin();
+            ndxRend = pSourceInfo->m_pRendererMap->Begin();
 
-		    for (;!theErr && ndxRend != pSourceInfo->m_pRendererMap->End();
-			++ndxRend)
-		    {
-			pRendInfo   = (RendererInfo*)(*ndxRend);
-			pRenderer   = pRendInfo->m_pRenderer;
+            for (;!theErr && ndxRend != pSourceInfo->m_pRendererMap->End();
+            ++ndxRend)
+            {
+            pRendInfo   = (RendererInfo*)(*ndxRend);
+            pRenderer   = pRendInfo->m_pRenderer;
 
-			if((pRendInfo->m_bInterruptSafe || !bAtInterrupt)
-			    && pRenderer)
-			{
-			    pRenderer->OnBuffering(m_BufferingReason, uLowestBuffering);
-			}
-		    }
-		}
+            if((pRendInfo->m_bInterruptSafe || !bAtInterrupt)
+                && pRenderer)
+            {
+                pRenderer->OnBuffering(m_BufferingReason, uLowestBuffering);
+            }
+            }
+        }
 
-		m_b100BufferingToBeSent = TRUE;
-		SetClientState(HX_CLIENT_STATE_PREFETCHING);
-		if (m_pAdviseSink)
-		{
-		    m_pAdviseSink->OnBuffering(m_BufferingReason, uLowestBuffering);
-		}
-	    }
-	    else
-	    {
-		if (bWasBuffering)
-		{
-		    m_ulBufferingCompletionTime = HX_GET_BETTERTICKCOUNT();
-		}
+        m_b100BufferingToBeSent = TRUE;
+        SetClientState(HX_CLIENT_STATE_PREFETCHING);
+        if (m_pAdviseSink)
+        {
+            m_pAdviseSink->OnBuffering(m_BufferingReason, uLowestBuffering);
+        }
+        }
+        else
+        {
+        if (bWasBuffering)
+        {
+            m_ulBufferingCompletionTime = HX_GET_BETTERTICKCOUNT();
+        }
 
-		if ((!bAttemptedResume) && (!m_bSourceMapUpdated))
-		{
-		    if (!m_bIsPlaying)
-		    {
-			// The below test if for safety only.  In case we somehow missed to obtain
-			// the buffering completion time, obtain it now.
-			if (m_ulBufferingCompletionTime == 0)
-			{
-			    m_ulBufferingCompletionTime = HX_GET_BETTERTICKCOUNT();
-			}
+        if ((!bAttemptedResume) && (!m_bSourceMapUpdated))
+        {
+            if (!m_bIsPlaying)
+            {
+            // The below test if for safety only.  In case we somehow missed to obtain
+            // the buffering completion time, obtain it now.
+            if (m_ulBufferingCompletionTime == 0)
+            {
+                m_ulBufferingCompletionTime = HX_GET_BETTERTICKCOUNT();
+            }
 
-			// We are not buffering any more, still not playing and we have not attempted to
-			// resume playback - try to resume.
-			HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering done: Trying to resume...", this);
-			if (m_bQuickSeekMode)
-			{
-			    // If we are in quick see mode - there is no need to come back and fill in more
-			    // data since we met the buffering requirement and we are not going to resume
-			    // the timeline since quick seek mode implies we are paused.
-			    // If we are in quick seek mode, we'll not declare "bDone" in order to loop
-			    // back after resumption and fill in some more data as long as our processing
-			    // slice alotment allows us to do so.
-			    bDone = TRUE;
-			}
-			break;
-		    }
-		}
-	    }
+            // We are not buffering any more, still not playing and we have not attempted to
+            // resume playback - try to resume.
+            HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() Buffering done: Trying to resume...", this);
+            if (m_bQuickSeekMode)
+            {
+                // If we are in quick see mode - there is no need to come back and fill in more
+                // data since we met the buffering requirement and we are not going to resume
+                // the timeline since quick seek mode implies we are paused.
+                // If we are in quick seek mode, we'll not declare "bDone" in order to loop
+                // back after resumption and fill in some more data as long as our processing
+                // slice alotment allows us to do so.
+                bDone = TRUE;
+            }
+            break;
+            }
+        }
+        }
 
-	    if (!theErr)
-	    {
-		// We do not limit event processing below by ulLoopEntryTime since
-		// we process current events after every fetching of events (at most one
-		// event per stream is feteched).  Thus, we simply dispatch what was
-		// retrieved.
-		theErr = ProcessCurrentEvents(0, bAtInterrupt, bFromInterruptSafeChain);
-	    }
+        if (!theErr)
+        {
+        // We do not limit event processing below by ulLoopEntryTime since
+        // we process current events after every fetching of events (at most one
+        // event per stream is feteched).  Thus, we simply dispatch what was
+        // retrieved.
+        theErr = ProcessCurrentEvents(0, bAtInterrupt, bFromInterruptSafeChain);
+        }
 
-	    if (theErr || m_bSourceMapUpdated)
-	    {
-		bDone = TRUE;
-		ulSchedulerFlags |= PLAYER_SCHEDULE_IMMEDIATE;
-		HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceMapUpdated: Skipping to exit...", this);
-		goto exitRoutine;
-	    }
+        if (theErr || m_bSourceMapUpdated)
+        {
+        bDone = TRUE;
+        ulSchedulerFlags |= PLAYER_SCHEDULE_IMMEDIATE;
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceMapUpdated: Skipping to exit...", this);
+        goto exitRoutine;
+        }
 
-	    // If we have no more streams to fill or we have exceeded
-	    // our processing slice window, break out of the loop.
-	    // We'll need next slice to continue.
-	    if ((ulNumStreamsToBeFilled == 0) ||
-		((ulLoopEntryTime != 0) &&
-		 ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > GetPlayerProcessingInterval(bFromInterruptSafeChain))))
-	    {
-		bDone = TRUE;
-		if (ulNumStreamsToBeFilled)
-		{
-		    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo servicing CPU use timeout: Time=%lu Allowed=%lu", 
-			    this, 
-			    HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
-			    GetPlayerProcessingInterval(bFromInterruptSafeChain));
-		}
-		break;
-	    }
-	}
+        // If we have no more streams to fill or we have exceeded
+        // our processing slice window, break out of the loop.
+        // We'll need next slice to continue.
+        if ((ulNumStreamsToBeFilled == 0) ||
+        ((ulLoopEntryTime != 0) &&
+         ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > GetPlayerProcessingInterval(bFromInterruptSafeChain))))
+        {
+        bDone = TRUE;
+        if (ulNumStreamsToBeFilled)
+        {
+            HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() SourceInfo servicing CPU use timeout: Time=%lu Allowed=%lu", 
+                this, 
+                HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
+                GetPlayerProcessingInterval(bFromInterruptSafeChain));
+        }
+        break;
+        }
+        YieldIfRequired(&ulTime);			
+    }
 
-	// SPECIAL CASE:
-	// the player received all the packets(m_uNumSourcesActive is 0) and
-	// EndOfPacket() hasn't been sent to the renderer yet,
-	// BUT the renderer still calls ReportRebufferStatus()
-	// we need to make sure the rebuffering is done before calling resume.
-	if (m_uNumSourcesActive == 0)
-	{
-	    ndxSource = m_pSourceMap->Begin();
-	    for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
-	    {
-		pSourceInfo = (SourceInfo*)(*ndxSource);
+    // SPECIAL CASE:
+    // the player received all the packets(m_uNumSourcesActive is 0) and
+    // EndOfPacket() hasn't been sent to the renderer yet,
+    // BUT the renderer still calls ReportRebufferStatus()
+    // we need to make sure the rebuffering is done before calling resume.
+    if (m_uNumSourcesActive == 0)
+    {
+        ndxSource = m_pSourceMap->Begin();
+        for (;!theErr && ndxSource != m_pSourceMap->End(); ++ndxSource)
+        {
+        pSourceInfo = (SourceInfo*)(*ndxSource);
 
-		if (!pSourceInfo->IsRebufferDone())
-		{
-		    bIsBuffering = TRUE;
-		    m_bIsBuffering = TRUE;
-		    break;
-		}
-	    }
-	}
+        if (!pSourceInfo->IsRebufferDone())
+        {
+            bIsBuffering = TRUE;
+            m_bIsBuffering = TRUE;
+            break;
+        }
+        }
+    }
 
-	/* Stop Downloading if we have not been issued a
-	* Begin() command and we are done with Buffering.
-	*/
-	if (!theErr && !bIsBuffering && m_bFastStartInProgress && !m_bIsDone)
-	{
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PauseDownload: Start", this);
+    /* Stop Downloading if we have not been issued a
+    * Begin() command and we are done with Buffering.
+    */
+    if (!theErr && !bIsBuffering && m_bFastStartInProgress && !m_bIsDone)
+    {
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PauseDownload: Start", this);
 
-	    theErr = PauseDownload();
+        theErr = PauseDownload();
 
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PauseDownload: End", this);
-	}
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessIdle() PauseDownload: End", this);
+    }
 
-	// Process Current Events Due...
-	if (!theErr && (m_uNumSourcesActive == 0))
-	{
-	    // If we have sources active, event processing will occur above as
-	    // part of servicing source's process idle.
-	    // We do not limit event processing below by ulLoopEntryTime since
-	    // we process current events after every fetching of events (see above)
-	    // and at most one event per stream is feteched.  
-	    // Thus, we simply dispatch the events retrieved.
-	    theErr = ProcessCurrentEvents(0, bAtInterrupt, bFromInterruptSafeChain);
-	}
+    // Process Current Events Due...
+    if (!theErr && (m_uNumSourcesActive == 0))
+    {
+        // If we have sources active, event processing will occur above as
+        // part of servicing source's process idle.
+        // We do not limit event processing below by ulLoopEntryTime since
+        // we process current events after every fetching of events (see above)
+        // and at most one event per stream is feteched.  
+        // Thus, we simply dispatch the events retrieved.
+        theErr = ProcessCurrentEvents(0, bAtInterrupt, bFromInterruptSafeChain);
+    }
 
-	// repeat source specific
-	SwitchSourceIfNeeded();
+    // repeat source specific
+    SwitchSourceIfNeeded();
 
-	if (!theErr && !bIsBuffering)
-	{
-	    theErr = CheckForAudioResume(ulSchedulerFlags);
+    if (!theErr && !bIsBuffering)
+    {
+        theErr = CheckForAudioResume(ulSchedulerFlags);
 
-	    if (theErr == HXR_RETRY)
-	    {
-		theErr = HXR_OK;
-		goto exitRoutine;
-	    }
-	}
+        if (theErr == HXR_RETRY)
+        {
+        theErr = HXR_OK;
+        goto exitRoutine;
+        }
+    }
 
-	bAttemptedResume = TRUE;
+    bAttemptedResume = TRUE;
     } while (!theErr && !bDone && (m_uNumSourcesActive > 0));
 
     if (!theErr && !m_bLastGroup && !m_bNextGroupStarted && !bAtInterrupt)
@@ -2656,7 +2678,7 @@ HX_RESULT HXPlayer::ProcessIdle(HXBOOL bFromInterruptSafeChain)
                 // schedule a system callback to ensure
                 // the renderers receive OnTimeSync() on its duration
                 // AND the clip ends ASAP
-		SchedulePlayer(PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
+        SchedulePlayer(PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
                 goto cleanup;
             }
             else
@@ -3027,7 +3049,7 @@ HXPlayer::OpenRedirect(const char* pszURL)
     
     if (HXR_OK == m_pEngine->QueryInterface(IID_IHXCommonClassFactory, (void**)&pCCF))
     {
-	pCCF->CreateInstance(CLSID_IHXRequest, (void**)&m_pRequest);
+    pCCF->CreateInstance(CLSID_IHXRequest, (void**)&m_pRequest);
     }
     HX_RELEASE(pCCF);
 
@@ -3263,9 +3285,17 @@ HXPlayer::PauseDownload(void)
          * right away. So do not return the function from here, instead fall
          * down below to return 100% buffering message instantly
          */
-        if (!m_bAllLocalSources)
+        ndxSource = m_pSourceMap->Begin();
+        for (; ndxSource != m_pSourceMap->End(); ++ndxSource)
         {
-            return HXR_OK;
+            SourceInfo* pSourceInfo = (SourceInfo*) (*ndxSource);
+
+            HXSource* pSource = pSourceInfo->m_pSource;
+
+            if(pSource && pSource->IsNetworkAccess())
+            {
+                return HXR_OK;
+            }
         }
     }
     else
@@ -3301,7 +3331,7 @@ HXPlayer::PauseDownload(void)
     if (m_b100BufferingToBeSent)
     {
         m_b100BufferingToBeSent = FALSE;
-	SetClientState(HX_CLIENT_STATE_PREFETCHED);
+    SetClientState(HX_CLIENT_STATE_PREFETCHED);
         if (m_pAdviseSink)
         {
             m_pAdviseSink->OnBuffering(m_BufferingReason, 100);
@@ -3316,67 +3346,72 @@ HXPlayer::SchedulePlayer(UINT32 ulFlags)
 {
     UINT32 ulNextInterval = ((ulFlags & PLAYER_SCHEDULE_IMMEDIATE) ? 0 : m_ulPlayerUpdateInterval);
 
-    if ((ulFlags & PLAYER_SCHEDULE_MAIN) &&
-	(!m_bIsDone || m_LastError || m_pEngine->AtInterruptTime()))
+    if (((ulFlags & PLAYER_SCHEDULE_MAIN) || !m_bUseCoreThread) &&
+    (!m_bIsDone || m_LastError || m_pEngine->AtInterruptTime()))
     {
-	if (ulFlags & PLAYER_SCHEDULE_RESET)
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing System Callback", this);
-	    m_pHXPlayerCallback->Cancel(m_pScheduler);
-	}
-
-	if (!m_pHXPlayerCallback->GetPendingCallback())
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling System Callback in %lu", 
-		    this,
-		    ulNextInterval);
-
-	    m_pHXPlayerCallback->CallbackScheduled(
-		m_pScheduler->RelativeEnter(m_pHXPlayerCallback, 
-					    ulNextInterval));
-	}
+    if (ulFlags & PLAYER_SCHEDULE_RESET)
+    {
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing System Callback", this);
+        m_pHXPlayerCallback->Cancel(m_pScheduler);
     }
 
-    if ((ulFlags & PLAYER_SCHEDULE_INTERRUPT_SAFE) &&
-	(!m_bIsDone || m_LastError))
+    if (!m_pHXPlayerCallback->GetPendingCallback())
     {
-	if (ulFlags & PLAYER_SCHEDULE_RESET)
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing Interrupt Callback", this);
-	    m_pHXPlayerInterruptCallback->Cancel(m_pScheduler);
-	}
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling System Callback in %lu", 
+            this,
+            ulNextInterval);
 
-	if (!m_pHXPlayerInterruptCallback->GetPendingCallback())
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling Interupt Callback in %lu", 
-		    this,
-		    ulNextInterval);
+        m_pHXPlayerCallback->CallbackScheduled(
+        m_pScheduler->RelativeEnter(m_pHXPlayerCallback, 
+                        ulNextInterval));
+    }
+    }
 
-	    m_pHXPlayerInterruptCallback->CallbackScheduled(
-		m_pScheduler->RelativeEnter(m_pHXPlayerInterruptCallback, 
-					    ulNextInterval));
-	}
+    //only schedule on the interrupt-safe and interrupt-only chains if we are
+    //using core thread
+    if (m_bUseCoreThread)
+    {
+    if ((ulFlags & PLAYER_SCHEDULE_INTERRUPT_SAFE) &&
+    (!m_bIsDone || m_LastError))
+    {
+    if (ulFlags & PLAYER_SCHEDULE_RESET)
+    {
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing Interrupt Callback", this);
+        m_pHXPlayerInterruptCallback->Cancel(m_pScheduler);
+    }
+
+    if (!m_pHXPlayerInterruptCallback->GetPendingCallback())
+    {
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling Interupt Callback in %lu", 
+            this,
+            ulNextInterval);
+
+        m_pHXPlayerInterruptCallback->CallbackScheduled(
+        m_pScheduler->RelativeEnter(m_pHXPlayerInterruptCallback, 
+                        ulNextInterval));
+    }
     }
 
     if ((ulFlags & PLAYER_SCHEDULE_INTERRUPT_ONLY) &&
-	(!m_bIsDone || m_LastError))
+    (!m_bIsDone || m_LastError))
     {
-	if (ulFlags & PLAYER_SCHEDULE_RESET)
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing Interrupt Only Callback", this);
-	    m_pHXPlayerInterruptOnlyCallback->Cancel(m_pScheduler);
-	}
+    if (ulFlags & PLAYER_SCHEDULE_RESET)
+    {
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Removing Interrupt Only Callback", this);
+        m_pHXPlayerInterruptOnlyCallback->Cancel(m_pScheduler);
+    }
 
-	if (!m_pHXPlayerInterruptOnlyCallback->GetPendingCallback())
-	{
-	    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling Interupt Only Callback in %lu", 
-		    this,
-		    ulNextInterval);
+    if (!m_pHXPlayerInterruptOnlyCallback->GetPendingCallback())
+    {
+        HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SchedulePlayer() Scheduling Interupt Only Callback in %lu", 
+            this,
+            ulNextInterval);
 
-	    m_pHXPlayerInterruptOnlyCallback->CallbackScheduled(
-		m_pScheduler->RelativeEnter(m_pHXPlayerInterruptOnlyCallback, 
-					    ulNextInterval));
-	}
+        m_pHXPlayerInterruptOnlyCallback->CallbackScheduled(
+        m_pScheduler->RelativeEnter(m_pHXPlayerInterruptOnlyCallback, 
+                        ulNextInterval));
+    }
+    }
     }
 }
 
@@ -3389,20 +3424,20 @@ HXPlayer::CheckForAudioResume(UINT32 &ulSchedulerFlags)
         (m_bBeginPending || m_bTimelineToBeResumed) &&
         m_uNumSourceToBeInitializedBeforeBegin == 0)
     {
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Starting to resume...", this); 
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Starting to resume...", this); 
 
 #if defined(HELIX_CONFIG_AUDIO_ON_CORE_THREAD)
-	if (m_bResumeOnlyAtSystemTime && m_pEngine->AtInterruptTime())
-	{
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Wrong Thread: Bailing out:", this);
-	    ulSchedulerFlags = (PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
-	    return HXR_RETRY;
-	}
+    if (m_bResumeOnlyAtSystemTime && m_pEngine->AtInterruptTime())
+    {
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Wrong Thread: Bailing out:", this);
+        ulSchedulerFlags = (PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
+        return HXR_RETRY;
+    }
 #endif
         if (m_b100BufferingToBeSent)
         {
             m_b100BufferingToBeSent = FALSE;
-	    SetClientState(HX_CLIENT_STATE_PREFETCHED);
+        SetClientState(HX_CLIENT_STATE_PREFETCHED);
             if (m_pAdviseSink)
             {
                 m_pAdviseSink->OnBuffering(m_BufferingReason, 100);
@@ -3424,7 +3459,7 @@ HXPlayer::CheckForAudioResume(UINT32 &ulSchedulerFlags)
          */
         if (m_bPaused || !m_bInitialized)
         {
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Interrupted: Bailing out", this);
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Interrupted: Bailing out", this);
             return HXR_OK;
         }
 
@@ -3434,8 +3469,8 @@ HXPlayer::CheckForAudioResume(UINT32 &ulSchedulerFlags)
         m_bPendingAudioPause    = FALSE;
     
         HXLOGL1(HXLOG_CORE, "HXPlayer[%p]::CheckForAudioResume(): resuming audio player", this);            
-	
-	SetClientState(HX_CLIENT_STATE_PLAYING);
+    
+    SetClientState(HX_CLIENT_STATE_PLAYING);
 
 #if !defined(HELIX_FEATURE_LOGLEVEL_NONE)
         // The following logic is only valuable when logging is enabled
@@ -3455,7 +3490,7 @@ HXPlayer::CheckForAudioResume(UINT32 &ulSchedulerFlags)
 
         theErr = m_pAudioPlayer->Resume();
 
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Completed resume", this); 
+    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckForAudioResume(): Completed resume", this); 
     }
 
     return theErr;
@@ -3729,7 +3764,11 @@ STDMETHODIMP HXPlayer::OnTimeSync(ULONG32 /*IN*/ ulCurrentTime)
 
     m_pCoreMutex->Lock();
 
-    if (m_bCurrentPresentationClosed)
+    /* ProcessIdle can result in triggering rebuffering (delayed due to accelerated delivery).
+     * This will call InternalPause() and will pause the timeline. No further timesyncs 
+     * should be sent to the source/renderers
+     */
+    if (m_bCurrentPresentationClosed || !m_bIsPlaying)
     {
         goto exit;
     }
@@ -3784,15 +3823,15 @@ STDMETHODIMP HXPlayer::OnTimeSync(ULONG32 /*IN*/ ulCurrentTime)
 
     if (m_pAdviseSink)
     {
-        m_pAdviseSink->OnPosLength( (m_bIsLive ||
+        m_pAdviseSink->OnPosLength( (m_bIsLive || m_bHasSubordinateLifetime ||
                                     m_ulCurrentPlayTime <= m_ulPresentationDuration) ?
                                     m_ulCurrentPlayTime : m_ulPresentationDuration,
                                     m_ulPresentationDuration);
     }
 
+exit:
     m_bTimeSyncLocked = FALSE;
 
-exit:
     m_pCoreMutex->Unlock();
     return theErr;
 }
@@ -3837,8 +3876,7 @@ HX_RESULT   HXPlayer::DoURLOpen(CHXURL* pCHXURL, char* pMimeType)
 
 #if defined(HELIX_FEATURE_AUTOUPGRADE)
     HX_RELEASE (m_pUpgradeCollection);
-    m_pUpgradeCollection = new HXUpgradeCollection((IUnknown*)(IHXPlayer*)this);
-    m_pUpgradeCollection->AddRef();
+    CreateInstanceCCF(CLSID_IHXUpgradeCollection, (void**)&m_pUpgradeCollection, (IUnknown*)(IHXClientEngine*)m_pEngine);  
 #endif /* HELIX_FEATURE_AUTOUPGRADE */
 
 #if defined(HELIX_FEATURE_RECORDCONTROL)
@@ -3947,7 +3985,7 @@ STDMETHODIMP HXPlayer::OpenURL(const char* pURL)
     HX_RELEASE(m_pRequest);
     if (HXR_OK == m_pEngine->QueryInterface(IID_IHXCommonClassFactory, (void**)&pCCF))
     {
-	pCCF->CreateInstance(CLSID_IHXRequest, (void**)&m_pRequest);
+    pCCF->CreateInstance(CLSID_IHXRequest, (void**)&m_pRequest);
     }
     HX_RELEASE(pCCF);
 
@@ -4073,8 +4111,8 @@ HXPlayer::SetSingleURLPresentation(const CHXURL* pURL)
     char* url = (char*)pURL->GetURL();
     if (HXR_OK == CreateAndSetBufferCCF(pValue, (BYTE*)url, strlen(url)+1, (IUnknown*)(IHXPlayer*)this))
     {
-	pProperties->SetPropertyCString("url", pValue);
-	HX_RELEASE(pValue);
+    pProperties->SetPropertyCString("url", pValue);
+    HX_RELEASE(pValue);
     }
 
     m_pGroupManager->AddGroup(pGroup);
@@ -4145,8 +4183,8 @@ HX_RESULT HXPlayer::AddURL(SourceInfo*& /*OUT*/ pSourceInfo, HXBOOL bAltURL)
     HXSource*   pSource = NULL;
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::AddURL(pSourceInfo=%p) Start", 
-	    this, 
-	    pSourceInfo);
+        this, 
+        pSourceInfo);
 
     theErr = CreateSourceInfo(pSourceInfo, bAltURL);
 
@@ -4215,8 +4253,8 @@ HX_RESULT HXPlayer::AddURL(SourceInfo*& /*OUT*/ pSourceInfo, HXBOOL bAltURL)
 cleanup:
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::AddURL(pSourceInfo=%p) End", 
-	    this, 
-	    pSourceInfo);
+        this, 
+        pSourceInfo);
 
     return (theErr);
 }
@@ -4228,9 +4266,9 @@ HXPlayer::CreateSourceInfo(SourceInfo*& pSourceInfo, HXBOOL bAltURL)
     HXSource*   pSource = NULL;
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CreateSourceInfo(pSourceInfo=%p, bAltURL=%c) Start", 
-	    this, 
-	    pSourceInfo,
-	    bAltURL ? 'T' :'F');
+        this, 
+        pSourceInfo,
+        bAltURL ? 'T' :'F');
 
     IHXPluginSearchEnumerator* pEnum = NULL;
     HXBOOL bFileFormatClaim = CanFileFormatClaimSchemeExtensionPair(m_pURL, 
@@ -4266,24 +4304,24 @@ HXPlayer::CreateSourceInfo(SourceInfo*& pSourceInfo, HXBOOL bAltURL)
     if (!theErr && pSource)
     {
 #ifdef HELIX_FEATURE_AUDIO_LEVEL_NORMALIZATION
-	IHXValues* pURLOptions = m_pURL->GetOptions();
-	if (pURLOptions)
-	{
-	    ULONG32 ulOffset;
-	    IHXBuffer* pBuffer = NULL;
+    IHXValues* pURLOptions = m_pURL->GetOptions();
+    if (pURLOptions)
+    {
+        ULONG32 ulOffset;
+        IHXBuffer* pBuffer = NULL;
 
-	    // Positive numbers are created as ULONG32 properties, whereas
-	    // negative numbers are created as buffers.  So we have to check both.
-	    if (pURLOptions->GetPropertyULONG32("soundLevelOffset", ulOffset) == HXR_OK)
-		pSource->SetSoundLevelOffset ((INT16)ulOffset);
-	    else if (pURLOptions->GetPropertyBuffer("soundLevelOffset", pBuffer) == HXR_OK)
-	    {
-		pSource->SetSoundLevelOffset ((INT16)atoi((const char *)pBuffer->GetBuffer()));
-		HX_RELEASE(pBuffer);
-	    }
+        // Positive numbers are created as ULONG32 properties, whereas
+        // negative numbers are created as buffers.  So we have to check both.
+        if (pURLOptions->GetPropertyULONG32("soundLevelOffset", ulOffset) == HXR_OK)
+        pSource->SetSoundLevelOffset ((INT16)ulOffset);
+        else if (pURLOptions->GetPropertyBuffer("soundLevelOffset", pBuffer) == HXR_OK)
+        {
+        pSource->SetSoundLevelOffset ((INT16)atoi((const char *)pBuffer->GetBuffer()));
+        HX_RELEASE(pBuffer);
+        }
 
-	    HX_RELEASE(pURLOptions);
-	}
+        HX_RELEASE(pURLOptions);
+    }
 #endif
 
         pSourceInfo->m_bInitialized = FALSE;
@@ -4301,9 +4339,9 @@ HXPlayer::CreateSourceInfo(SourceInfo*& pSourceInfo, HXBOOL bAltURL)
     }
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CreateSourceInfo(pSourceInfo=%p, bAltURL=%c) End", 
-	    this, 
-	    pSourceInfo,
-	    bAltURL ? 'T' :'F');
+        this, 
+        pSourceInfo,
+        bAltURL ? 'T' :'F');
 
     return (theErr);
 }
@@ -4315,7 +4353,6 @@ HXPlayer::PrepareSourceInfo(IHXValues* pTrack, SourceInfo*& pSourceInfo)
     char            szPrefetchType[] = "PrefetchType";
 #endif
 
-#if defined(HELIX_FEATURE_ADVANCEDGROUPMGR)
     HX_RESULT       rc = HXR_OK;
     char            szMaxDuration[] = "maxduration";
     char            szIndefiniteDuration[] = "indefiniteduration";
@@ -4325,7 +4362,6 @@ HXPlayer::PrepareSourceInfo(IHXValues* pTrack, SourceInfo*& pSourceInfo)
     char            szFill[] = "fill";
     char            szSeekOnLateBegin[] = "SeekOnLateBegin";
     char            szSeekOnLateBeginTolerance[] = "SeekOnLateBeginTolerance";
-
     UINT32          ulValue = 0;
 #ifdef SEQ_DEPENDENCY
     char            szTrack_hint[] = "track-hint";
@@ -4447,7 +4483,6 @@ HXPlayer::PrepareSourceInfo(IHXValues* pTrack, SourceInfo*& pSourceInfo)
         }
     }
 
-
 #ifdef SEQ_DEPENDENCY
     IHXBuffer* pDependency = NULL;
     pTrack->GetPropertyCString(szTrack_hint,pDependency);
@@ -4461,9 +4496,6 @@ HXPlayer::PrepareSourceInfo(IHXValues* pTrack, SourceInfo*& pSourceInfo)
 #endif /*SEQ_DEPENDENCY*/
 
     return rc;
-#else
-    return HXR_NOTIMPL;
-#endif /* HELIX_FEATURE_ADVANCEDGROUPMGR */
 }
 
 /************************************************************************
@@ -4851,10 +4883,10 @@ HXPlayer::OpenTrack(IHXValues* pTrack, UINT16 uGroupID, UINT16 uTrackID)
     }
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::OpenTrack(): URL=%s GroupID=%hd TrackID=%hd", 
-	    this, 
-	    m_pURL ? m_pURL->GetURL() : "NULL",
-	    uGroupID, 
-	    uTrackID);
+        this, 
+        m_pURL ? m_pURL->GetURL() : "NULL",
+        uGroupID, 
+        uTrackID);
 
     pSourceInfo = NewSourceInfo();
     if(pSourceInfo)
@@ -4888,7 +4920,7 @@ HXPlayer::OpenTrack(IHXValues* pTrack, UINT16 uGroupID, UINT16 uTrackID)
 
     if (HXR_OK == theErr)
     {
-	SchedulePlayer(PLAYER_SCHEDULE_DEFAULT | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
+    SchedulePlayer(PLAYER_SCHEDULE_DEFAULT | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
     }
 
 cleanup:
@@ -4923,42 +4955,42 @@ void HXPlayer::PlayNextGroup()
 
     if (m_nCurrentGroup >= m_nGroupCount)
     {
-	if (m_bRestartToPrefetched)
-	{
-	    HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::PlayNextGroup() Restarting, transitioning to PREFETCHED...", this);
+    if (m_bRestartToPrefetched)
+    {
+        HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::PlayNextGroup() Restarting, transitioning to PREFETCHED...", this);
 
-	    // Send callback messages
+        // Send callback messages
             m_pAdviseSink->OnPosLength( (m_bIsLive && m_ulPresentationDuration == 0) ?
                                     m_ulCurrentPlayTime : m_ulPresentationDuration,
                                     m_ulPresentationDuration);
             m_pAdviseSink->OnStop();
 
-	    // Pause and seek to zero
-	    m_bIsDone = FALSE;
-	    m_bInternalReset = TRUE; // Don't send 'OnPause' or set state to PAUSED
-	    PausePlayer();
-	    m_bInternalReset = FALSE;
-	    SeekPlayer(0);
-	}
-	else
-	{
-		// Stop completely...
-		m_bIsPresentationClosedToBeSent = TRUE;
-		m_bIsDone = TRUE;
+        // Pause and seek to zero
+        m_bIsDone = FALSE;
+        m_bInternalReset = TRUE; // Don't send 'OnPause' or set state to PAUSED
+        PausePlayer();
+        m_bInternalReset = FALSE;
+        SeekPlayer(0);
+    }
+    else
+    {
+        // Stop completely...
+        m_bIsPresentationClosedToBeSent = TRUE;
+        m_bIsDone = TRUE;
 
-		StopPlayer(END_DURATION);
+        StopPlayer(END_DURATION);
 
 #if defined(HELIX_FEATURE_VIDEO)
-		/*
-		 * Let the site supplier know that we are done changing the layout.
-		 */
-		if (m_pSiteSupplier && !m_bBeginChangeLayoutTobeCalled)
-		{
-		    m_bBeginChangeLayoutTobeCalled      = TRUE;
-		    m_pSiteSupplier->DoneChangeLayout();
-		}
+        /*
+         * Let the site supplier know that we are done changing the layout.
+         */
+        if (m_pSiteSupplier && !m_bBeginChangeLayoutTobeCalled)
+        {
+            m_bBeginChangeLayoutTobeCalled      = TRUE;
+            m_pSiteSupplier->DoneChangeLayout();
+        }
 #endif /* HELIX_FEATURE_VIDEO */
-	}
+    }
     }
     else
     {
@@ -5032,8 +5064,6 @@ HX_RESULT HXPlayer::DoNetworkOpen(SourceInfo*& pSourceInfo, HXBOOL bAltURL)
     const char* pszURL = NULL;
     ULONG32     ulPort = 0;
     IHXBuffer* pszParentName = NULL;
-
-    m_bAllLocalSources = FALSE;
 
 #if defined(HELIX_FEATURE_SMARTERNETWORK)
     if (!m_bPrefTransportInitialized && m_pPreferredTransportManager)
@@ -5161,9 +5191,9 @@ HX_RESULT HXPlayer::DoFileSystemOpen(SourceInfo*& pSourceInfo, HXBOOL bAltURL, I
 #endif
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::DoFileSystemOpen(pSourceInfo=%p, bAltURL=%c) Start", 
-	    this, 
-	    pSourceInfo,
-	    bAltURL ? 'T' :'F');
+        this, 
+        pSourceInfo,
+        bAltURL ? 'T' :'F');
 
     pSource = pSourceInfo->m_pSource = NewFileSource();
     if (!pSource)
@@ -5263,9 +5293,9 @@ cleanup:
     }
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::DoFileSystemOpen(pSourceInfo=%p, bAltURL=%c) End", 
-	    this, 
-	    pSourceInfo,
-	    bAltURL ? 'T' :'F');
+        this, 
+        pSourceInfo,
+        bAltURL ? 'T' :'F');
 
     return theErr;
 #else
@@ -5346,7 +5376,7 @@ HX_RESULT HXPlayer::InitializeRenderers(void)
     {
         m_bInitialized = TRUE;
 
-	SetClientState(HX_CLIENT_STATE_CONNECTED);
+    SetClientState(HX_CLIENT_STATE_CONNECTED);
         if (m_pAdviseSink)
         {
             m_pAdviseSink->OnPosLength( m_ulCurrentPlayTime,
@@ -5394,8 +5424,8 @@ HX_RESULT HXPlayer::InitializeRenderers(void)
 // get all packets from event queue and send them to the various renders
 HX_RESULT
 HXPlayer::ProcessCurrentEvents(UINT32 ulLoopEntryTime, 
-			       HXBOOL bAtInterrupt, 
-			       HXBOOL bFromInterruptSafeChain)
+                   HXBOOL bAtInterrupt, 
+                   HXBOOL bFromInterruptSafeChain)
 {
     HX_RESULT theErr = HXR_OK;
     LISTPOSITION listpos;
@@ -5421,8 +5451,8 @@ HXPlayer::ProcessCurrentEvents(UINT32 ulLoopEntryTime,
 
     if (m_EventList.GetNumEvents() == 0)
     {
-	HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessCurrentEvents() End", this);
-	return HXR_OK;
+        HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessCurrentEvents() End m_EventList.GetNumEvents() == 0", this);
+        return HXR_OK;
     }
 
     m_bDidWeDeleteAllEvents = FALSE;
@@ -5434,85 +5464,84 @@ HXPlayer::ProcessCurrentEvents(UINT32 ulLoopEntryTime,
 
     do
     {
-	pPacket = pEvent->GetPacket();
+        pPacket = pEvent->GetPacket();
 
-	/* since packet's time may be different from player's time, send
-	* renderer the offset */
-	HXLOGL4(HXLOG_CORE, "HXPlayer[%p]::ProcessCurrentEvents() Packet Time: %lu", this, pPacket->GetTime());
+        /* since packet's time may be different from player's time, send
+        * renderer the offset */
+        HXLOGL4(HXLOG_CORE, "HXPlayer[%p]::ProcessCurrentEvents() Packet Time: %lu", this, pPacket->GetTime());
 
-	if (m_bLiveSeekToBeDone && !pEvent->IsPreSeekEvent())
-	{
-	    /* Audio device was earlier seeked  based on the last timesync
-	    * + pause duration. The actual first packet time we get after
-	    * Pause may be different from the seek time. This is because
-	    * at pause time, packets may have been given in advance to
-	    * the renderers due to preroll. Also, they may be stored in
-	    * resend buffer at protocol level. So the only way to kind
-	    * of know what time we should have actually seeked to is based
-	    * on the first packet time. Even this may result in initial
-	    * re-buffering. This is still a hack. We probably need a
-	    * better live pause solution.
-	    */
-	    m_bLiveSeekToBeDone = FALSE;
-	    UINT32 ulCurTime = m_pAudioPlayer->GetCurrentPlayBackTime();
-	    /* make sure we have sent ATLEAST one ontimesync to the renderer.
-	    * otherwise, we cannot rely on the m_ulTimeAfterSeek value since it is based on
-	    * m_ulTimeDiff which only gets set in the first ontimesync call.
-	    * Needed to fix pause during inital buffering of live playback
-	    */
-	    if (!pEvent->m_pRendererInfo->m_bIsFirstTimeSync &&
-		pPacket->GetTime() > pEvent->m_pRendererInfo->m_pStreamInfo->m_ulTimeAfterSeek)
-	    {
-
+        if (m_bLiveSeekToBeDone && !pEvent->IsPreSeekEvent())
+        {
+            /* Audio device was earlier seeked  based on the last timesync
+            * + pause duration. The actual first packet time we get after
+            * Pause may be different from the seek time. This is because
+            * at pause time, packets may have been given in advance to
+            * the renderers due to preroll. Also, they may be stored in
+            * resend buffer at protocol level. So the only way to kind
+            * of know what time we should have actually seeked to is based
+            * on the first packet time. Even this may result in initial
+            * re-buffering. This is still a hack. We probably need a
+            * better live pause solution.
+            */
+            m_bLiveSeekToBeDone = FALSE;
+            UINT32 ulCurTime = m_pAudioPlayer->GetCurrentPlayBackTime();
+            /* make sure we have sent ATLEAST one ontimesync to the renderer.
+            * otherwise, we cannot rely on the m_ulTimeAfterSeek value since it is based on
+            * m_ulTimeDiff which only gets set in the first ontimesync call.
+            * Needed to fix pause during inital buffering of live playback
+            */
+            if (!pEvent->m_pRendererInfo->m_bIsFirstTimeSync &&
+                 pPacket->GetTime() > pEvent->m_pRendererInfo->m_pStreamInfo->m_ulTimeAfterSeek)
+            {
 #if defined(_MACINTOSH) || defined(_MAC_UNIX)
-		/* Cannot call audio player Seek() at interrupt time. It results
-		* in audio device Reset() which issues DoImmediate commands
-		*/
-		if (bAtInterrupt)
-		{
-		    SchedulePlayer(PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
-		    break;
-		}
+                /* Cannot call audio player Seek() at interrupt time. It results
+                * in audio device Reset() which issues DoImmediate commands
+                */
+                if (bAtInterrupt)
+                {
+                    SchedulePlayer(PLAYER_SCHEDULE_MAIN | PLAYER_SCHEDULE_IMMEDIATE | PLAYER_SCHEDULE_RESET);
+                    break;
+                }
 #endif
-		UINT32 ulTimeDiff = 0;
-		ulTimeDiff = pPacket->GetTime() -
-		    pEvent->m_pRendererInfo->m_pStreamInfo->m_ulTimeAfterSeek;
-		m_pAudioPlayer->Seek(ulCurTime + ulTimeDiff);
-	    }
-	}
+                UINT32 ulTimeDiff = 0;
+                ulTimeDiff = pPacket->GetTime() -
+                    pEvent->m_pRendererInfo->m_pStreamInfo->m_ulTimeAfterSeek;
+                m_pAudioPlayer->Seek(ulCurTime + ulTimeDiff);
+            }
+        }
 
-	if (!bAtInterrupt || pEvent->m_pRendererInfo->m_bInterruptSafe)
-	{
-	    if (!pEvent->IsPreSeekEvent())
-	    {
-		SendPostSeekIfNecessary(pEvent->m_pRendererInfo);
-	    }
+        if (!bAtInterrupt || pEvent->m_pRendererInfo->m_bInterruptSafe)
+        {
+            if (!pEvent->IsPreSeekEvent())
+            {
+                SendPostSeekIfNecessary(pEvent->m_pRendererInfo);
+            }
 
-	    // remove this event from the packet list...
-	    listpos = m_EventList.RemoveAt(listpos);
+            // remove this event from the packet list...
+            listpos = m_EventList.RemoveAt(listpos);
 
-	    theErr = SendPacket(pEvent);
+            theErr = SendPacket(pEvent);
 
-	    /* A renderer may call SetCurrentGroup OR Stop() from within
-	    * OnPacket call. If so, we delete all the pending events
-	    */
-	    if (m_bDidWeDeleteAllEvents)
-	    {
-		delete pEvent;
-		break;
-	    }
+            /* A renderer may call SetCurrentGroup OR Stop() from within
+            * OnPacket call. If so, we delete all the pending events
+            */
+            if (m_bDidWeDeleteAllEvents)
+            {
+                delete pEvent;
+                break;
+            }
 
-	    HX_ASSERT(pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued > 0);
+            HX_ASSERT(pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued > 0);
 
-	    pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued--;
+            pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued--;
 
-	    if (pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued == 0 &&
-		pEvent->m_pRendererInfo->m_pStreamInfo->m_bSrcInfoStreamDone)
-	    {
-		SendPostSeekIfNecessary(pEvent->m_pRendererInfo);
-		pEvent->m_pRendererInfo->m_bOnEndOfPacketSent = TRUE;
-		if (pEvent->m_pRendererInfo->m_pRenderer)
-		{
+            if (pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued == 0 &&
+                pEvent->m_pRendererInfo->m_pStreamInfo->m_bSrcInfoStreamDone)
+            {
+                SendPostSeekIfNecessary(pEvent->m_pRendererInfo);
+                pEvent->m_pRendererInfo->m_bOnEndOfPacketSent = TRUE;
+                if (pEvent->m_pRendererInfo->m_pRenderer)
+                {
 
 #if defined(HELIX_FEATURE_DRM)
                     /* ask DRM to flush packets */
@@ -5523,50 +5552,50 @@ HXPlayer::ProcessCurrentEvents(UINT32 ulLoopEntryTime,
                     }
 #endif /* HELIX_FEATURE_DRM */
 
-		    pEvent->m_pRendererInfo->m_pRenderer->OnEndofPackets();
-		}
-		if (m_bIsLive && m_ulPresentationDuration == 0 &&
-		    pEvent->m_pRendererInfo->m_pStreamInfo->m_ulLastPacketTime > 0)
-		{
-		    // Set the duration, playout end of clip
-		    SetPresentationTime(pEvent->m_pRendererInfo->m_pStreamInfo->m_ulLastPacketTime);
-		    HXLOGL3(HXLOG_CORE, "HXPlayer[%p] Received end of packets event, duration set to : %ld",
-			this, m_ulPresentationDuration);
-		}
-	    }
+                    pEvent->m_pRendererInfo->m_pRenderer->OnEndofPackets();
+                }
+                if (m_bIsLive && m_ulPresentationDuration == 0 &&
+                    pEvent->m_pRendererInfo->m_pStreamInfo->m_ulLastPacketTime > 0)
+                {
+                    // Set the duration, playout end of clip
+                    SetPresentationTime(pEvent->m_pRendererInfo->m_pStreamInfo->m_ulLastPacketTime);
+                    HXLOGL3(HXLOG_CORE, "HXPlayer[%p] Received end of packets event, duration set to : %ld",
+                    this, m_ulPresentationDuration);
+                }
+            }
 
-	    // cleanup this event...
-	    delete pEvent;
-	    pEvent = NULL;
+            // cleanup this event...
+            delete pEvent;
+            pEvent = NULL;
 
-	    if(m_bEventAcceleration)
-	    {
-		m_bEventAcceleration = FALSE;
-		listpos = m_EventList.GetHeadPosition();
-	    }
+            if(m_bEventAcceleration)
+            {
+                m_bEventAcceleration = FALSE;
+                listpos = m_EventList.GetHeadPosition();
+            }
 
-	    // and get the next event...
-	    if (m_EventList.GetNumEvents() > 0)
-	    {
-		pEvent = m_EventList.GetAt(listpos);
-	    }
-	}
-	else
-	{
-	    pEvent = m_EventList.GetAtNext(listpos); //skip over event - *++listpos
-	}
+            // and get the next event...
+            if (m_EventList.GetNumEvents() > 0)
+            {
+                pEvent = m_EventList.GetAt(listpos);
+            }
+        }
+        else
+        {
+            pEvent = m_EventList.GetAtNext(listpos); //skip over event - *++listpos
+        }
 
-	// If loop entry time is set, we must limit the processing to the
-	// player update interval duration.
-	if ((ulLoopEntryTime != 0) &&
-	    ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > GetPlayerProcessingInterval(bFromInterruptSafeChain)))
-	{
-	    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessCurrentEvents() CPU use timeout: Time=%lu Allowed=%lu", 
-		this, 
-		HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
-		GetPlayerProcessingInterval(bFromInterruptSafeChain));
-	    break;
-	}
+        // If loop entry time is set, we must limit the processing to the
+        // player update interval duration.
+        if ((ulLoopEntryTime != 0) &&
+            ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > GetPlayerProcessingInterval(bFromInterruptSafeChain)))
+        {
+            HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::ProcessCurrentEvents() CPU use timeout: Time=%lu Allowed=%lu", 
+            this, 
+            HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
+            GetPlayerProcessingInterval(bFromInterruptSafeChain));
+            break;
+        }
     } while (!theErr && pEvent);
 
     m_bDidWeDeleteAllEvents = FALSE;
@@ -5597,11 +5626,11 @@ HX_RESULT HXPlayer::SendPreSeekEvents()
             pEvent->m_pRendererInfo->m_ulNumberOfPacketsQueued--;
             delete pEvent;
 
-	    if(m_bEventAcceleration)
-	    {
-		m_bEventAcceleration = FALSE;
-		listpos = m_EventList.GetHeadPosition();
-	    }
+        if(m_bEventAcceleration)
+        {
+        m_bEventAcceleration = FALSE;
+        listpos = m_EventList.GetHeadPosition();
+        }
         }
         else
         {
@@ -5726,10 +5755,10 @@ HX_RESULT HXPlayer::SendPacket(CHXEvent* pEvent)
     //video renderers.
     if (pRend && (!m_bQuickSeekMode || !pRendInfo->m_bIsAudioRenderer))
     {
-	HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SendPacket Strm=%hu TS=%lu PlayTime=%lu",
-			this,
-			pEvent->GetPacket()->GetStreamNumber(),
-			pEvent->GetPacket()->GetTime(),
+    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::SendPacket Strm=%hu TS=%lu PlayTime=%lu",
+            this,
+            pEvent->GetPacket()->GetStreamNumber(),
+            pEvent->GetPacket()->GetTime(),
                         GetInternalCurrentPlayTime());
 
 #if defined(HELIX_FEATURE_DRM)
@@ -5843,15 +5872,15 @@ HXPlayer::StopAllStreams(EndCode endCode)
     if (m_bIsPresentationClosedToBeSent)
     {
         m_bIsPresentationClosedToBeSent = FALSE;
-	SetClientState(HX_CLIENT_STATE_READY);
+    SetClientState(HX_CLIENT_STATE_READY);
         if (m_pAdviseSink)
         {
-	    if (endCode == END_DURATION)
-	    {
-        	m_pAdviseSink->OnPosLength( (m_bIsLive && m_ulPresentationDuration == 0) ?
+        if (endCode == END_DURATION)
+        {
+            m_pAdviseSink->OnPosLength( (m_bIsLive && m_ulPresentationDuration == 0) ?
                                     m_ulCurrentPlayTime : m_ulPresentationDuration,
                                     m_ulPresentationDuration);
-	    }
+        }
             m_pAdviseSink->OnStop();
             m_pAdviseSink->OnPresentationClosed();
         }
@@ -5967,10 +5996,10 @@ HXPlayer::ResetPlayer(void)
 {
     HXLOGL4(HXLOG_CORE, "HXPlayer[%p]::ResetPlayer()", this);
 
-    if (m_pCookies)
+    if (m_pCookies3)
     {
 #if defined(HELIX_FEATURE_COOKIES)
-        m_pCookies->SyncRMCookies(TRUE);
+        m_pCookies3->SyncRMCookies(TRUE);
 #endif /* defined(HELIX_FEATURE_COOKIES) */
     }
 
@@ -6107,7 +6136,7 @@ HXPlayer::ResetGroup(void)
     m_bBeginPending         = FALSE;
     m_bTimelineToBeResumed  = FALSE;
     m_bIsPlaying            = FALSE;
-    m_bIsBuffering	    = FALSE;
+    m_bIsBuffering      = FALSE;
     m_bSetupToBeDone        = FALSE;
     m_bPostSetupToBeDone    = FALSE;
 
@@ -6136,7 +6165,6 @@ HXPlayer::ResetGroup(void)
     m_bFSBufferingEnd       = FALSE;
     m_b100BufferingToBeSent = TRUE;
     m_uNumSourceToBeInitializedBeforeBegin = 0;
-    m_bAllLocalSources      = TRUE;
     m_bResumeOnlyAtSystemTime = FALSE;
 
 #if defined(HELIX_FEATURE_PREFETCH)
@@ -6488,6 +6516,10 @@ HXPlayer::Close()
         HX_RELEASE(m_pMetaInfo);
     }
 
+#if defined HELIX_FEATURE_EMBEDDED_UI
+    HX_RELEASE(m_pEmbeddedUI);
+#endif // HELIX_FEATURE_EMBEDDED_UI
+
 #if defined(HELIX_FEATURE_STATS) && defined(HELIX_FEATURE_REGISTRY)
     if (m_pRegistry)
     {
@@ -6634,6 +6666,7 @@ HXPlayer::Close()
     HX_RELEASE (m_pClientViewSource);
     HX_RELEASE (m_pViewPortManager);
     HX_RELEASE (m_pClientViewRights);
+    HX_RELEASE (m_pCookies3);
 
 #if defined(HELIX_FEATURE_MEDIAMARKER)
     if (m_pMediaMarkerManager)
@@ -6977,7 +7010,7 @@ HXPlayer::SetClientState(EHXClientState eState)
 {
     if (eState == m_eClientState)
     {
-	return;
+    return;
     }
 
     // It is possible for engine to never enter prefetching state due to
@@ -6985,31 +7018,31 @@ HXPlayer::SetClientState(EHXClientState eState)
     // consistent and simple, we report prefetching state prior to transitioning 
     // to prefetched state.
     if ((eState == HX_CLIENT_STATE_PREFETCHED) && 
-	(m_eClientState != HX_CLIENT_STATE_PREFETCHING))
+    (m_eClientState != HX_CLIENT_STATE_PREFETCHING))
     {
-	SetClientState(HX_CLIENT_STATE_PREFETCHING);
+    SetClientState(HX_CLIENT_STATE_PREFETCHING);
     }
-	    
+        
     HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetClientState() %d -> %d", this, (UINT16)m_eClientState, (UINT16)eState);
 
     if (m_bHaltInConnected && eState == HX_CLIENT_STATE_CONNECTED)
     {
-    	HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetClientState() HALTING from %d", this, (UINT16) m_eClientState);
-	m_eClientStateStatus = HX_CLIENT_STATE_STATUS_HALTED;
+        HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetClientState() HALTING from %d", this, (UINT16) m_eClientState);
+    m_eClientStateStatus = HX_CLIENT_STATE_STATUS_HALTED;
     }
 
     if (m_pClientStateAdviseSink)
     {
-	m_pClientStateAdviseSink->OnStateChange(m_eClientState, eState);
+    m_pClientStateAdviseSink->OnStateChange(m_eClientState, eState);
     }
     m_eClientState = eState;
 }
 
 /************************************************************************
-*	Method:
-*		IHXClientState::SetConfig
-*	Purpose:
-*		Specify whether or not to halt in the connected state
+*   Method:
+*       IHXClientState::SetConfig
+*   Purpose:
+*       Specify whether or not to halt in the connected state
 *
 */
 STDMETHODIMP
@@ -7017,27 +7050,27 @@ HXPlayer::SetConfig(IHXValues* pValues)
 {
     if (pValues)
     {
-	ULONG32 ulValue;
-	if (pValues->GetPropertyULONG32("HaltInConnected", ulValue) == HXR_OK)
-	{
-	    m_bHaltInConnected = (ulValue != 0);
-	    HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetConfig() HaltInConnected: %s", this, m_bHaltInConnected ? "TRUE" : "FALSE");
-	}
-	else if (pValues->GetPropertyULONG32("RestartToPrefetched", ulValue) == HXR_OK)
-	{
-	    m_bRestartToPrefetched = (ulValue != 0);
-	    HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetConfig() RestartToPrefetched: %s", this, m_bRestartToPrefetched ? "TRUE" : "FALSE");
-	}
+    ULONG32 ulValue;
+    if (pValues->GetPropertyULONG32("HaltInConnected", ulValue) == HXR_OK)
+    {
+        m_bHaltInConnected = (ulValue != 0);
+        HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetConfig() HaltInConnected: %s", this, m_bHaltInConnected ? "TRUE" : "FALSE");
+    }
+    else if (pValues->GetPropertyULONG32("RestartToPrefetched", ulValue) == HXR_OK)
+    {
+        m_bRestartToPrefetched = (ulValue != 0);
+        HXLOGL3(HXLOG_CORE, "HXPlayer[%p]::SetConfig() RestartToPrefetched: %s", this, m_bRestartToPrefetched ? "TRUE" : "FALSE");
+    }
     }
 
     return HXR_OK;
 }
 
 /************************************************************************
-*	Method:
-*		IHXClientState::Resume
-*	Purpose:
-*		Resume player state transition, prefetch
+*   Method:
+*       IHXClientState::Resume
+*   Purpose:
+*       Resume player state transition, prefetch
 *
 */
 STDMETHODIMP
@@ -7049,10 +7082,10 @@ HXPlayer::Resume()
 }
 
 /************************************************************************
-*	Method:
-*		IHXClientState::GetState
-*	Purpose:
-*		Get the client state
+*   Method:
+*       IHXClientState::GetState
+*   Purpose:
+*       Get the client state
 *
 */
 STDMETHODIMP_(UINT16)
@@ -7331,6 +7364,8 @@ HXPlayer::CopyRegInfo(UINT32 ulFromRegID, UINT32 ulToRegID)
     // PT_COMPOSITE without child
     if (!pValues)
     {
+        HX_RELEASE(pFromRegName);
+        HX_RELEASE(pToRegName);
         return HXR_OK;
     }
 
@@ -7461,13 +7496,13 @@ HXPlayer::RemoveTrack(UINT16 uGroupIndex, UINT16 uTrackIndex, IHXValues* pValues
     SourceInfo* pSourceInfo = NULL;
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::RemoveTrack(GroupID=%hd TrackID=%hd): Start", 
-	    this, 
-	    uGroupIndex, 
-	    uTrackIndex);
+        this, 
+        uGroupIndex, 
+        uTrackIndex);
 
 #if defined(HELIX_FEATURE_NEXTGROUPMGR)
     UINT16      uCurrentGroup = 0;
-	IHXGroup*  pGroup = NULL;
+    IHXGroup*  pGroup = NULL;
 #endif
     // track removed from the current group
     if (uGroupIndex == m_nCurrentGroup &&
@@ -7501,9 +7536,9 @@ HXPlayer::RemoveTrack(UINT16 uGroupIndex, UINT16 uTrackIndex, IHXValues* pValues
 #endif /* HELIX_FEATURE_NEXTGROUPMGR */
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::RemoveTrack(GroupID=%hd TrackID=%hd): End", 
-	    this, 
-	    uGroupIndex, 
-	    uTrackIndex);
+        this, 
+        uGroupIndex, 
+        uTrackIndex);
 
     return hr;
 #else
@@ -7848,15 +7883,15 @@ HXPlayer::GetTimingFromURL(CHXURL* pURL, UINT32& ulStart,
 }
 
 HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL, 
-						       REF(IHXPluginSearchEnumerator*) rpEnum,
-						       HXBOOL bMustClaimExtension)
+                               REF(IHXPluginSearchEnumerator*) rpEnum,
+                               HXBOOL bMustClaimExtension)
 {
     HXBOOL bRet = FALSE;
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CanFileFormatClaimSchemeExtensionPair(URL=%s, bMustClaimExtension=%c) Start", 
-	    this, 
-	    pURL ? pURL->GetURL() : "NULL",
-	    bMustClaimExtension ? 'T' :'F');
+        this, 
+        pURL ? pURL->GetURL() : "NULL",
+        bMustClaimExtension ? 'T' :'F');
 
     HX_ASSERT(rpEnum == NULL);
 
@@ -7871,6 +7906,9 @@ HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL,
             HX_RESULT retVal = pProps->GetPropertyBuffer(PROPERTY_SCHEME, pSchemeStr);
             if (SUCCEEDED(retVal))
             {
+                // Initialize the extension string and the search string
+                CHXString cExtension;
+                CHXString cSearch;
                 // Get the full path
                 IHXBuffer* pFullPathStr = NULL;
                 retVal = pProps->GetPropertyBuffer(PROPERTY_FULLPATH, pFullPathStr);
@@ -7879,7 +7917,6 @@ HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL,
                     // Put this into a CHXString
                     CHXString cFullPath((const char*) pFullPathStr->GetBuffer());
                     CHXString cFileName = cFullPath;
-                    CHXString cExtension;
                     // Find the last "/" or "\"
                     INT32 lLastSlash1 = cFullPath.ReverseFind('/');
                     INT32 lLastSlash2 = cFullPath.ReverseFind('\\');
@@ -7895,7 +7932,7 @@ HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL,
                         cExtension = cFileName.Right(cFileName.GetLength() - lPeriod - 1);
                     }
                     // Construct the search string
-                    CHXString cSearch((const char*) pSchemeStr->GetBuffer());
+                    cSearch = (const char*) pSchemeStr->GetBuffer();
                     // Do we have an extension?
                     if (cExtension.GetLength() > 0)
                     {
@@ -7904,51 +7941,62 @@ HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL,
                         // Append the extension
                         cSearch += cExtension;
                     }
-
-		    if (!bMustClaimExtension || (cExtension.GetLength() > 0))
-		    {
-			// Get the IHXPluginHandler3 interface
-			IHXPluginHandler3* pHandler3 = NULL;
-			retVal = m_pPlugin2Handler->QueryInterface(IID_IHXPluginHandler3, (void**) &pHandler3);
-			if (SUCCEEDED(retVal))
-			{
-			    // Find out if we have any fileformat plugins which
-			    // have a scheme extension pair equal to cSearch
-			    IHXPluginSearchEnumerator* pEnum = NULL;
-			    retVal = pHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS,
-									       PLUGIN_FILEFORMAT_TYPE,
-									       PLUGIN_SCHEME_EXTENSION,
-									       (char*) (const char*) cSearch,
-									       NULL, NULL, pEnum);
-			    if ((FAILED(retVal) || (pEnum->GetNumPlugins() == 0)) &&
-				(!bMustClaimExtension) &&
-				(cExtension.GetLength() > 0))
-			    {
-				// Try just the scheme as the search string. This is because
-				// some plugins may claim a scheme for all file extensions
-				cSearch = (const char*) pSchemeStr->GetBuffer();
-				// Search for just the scheme
-				HX_RELEASE(pEnum);
-				retVal = pHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS,
-										   PLUGIN_FILEFORMAT_TYPE,
-										   PLUGIN_SCHEME_EXTENSION,
-										   (char*) (const char*) cSearch,
-										   NULL, NULL, pEnum);
-			    }
-			    if (SUCCEEDED(retVal) && pEnum && pEnum->GetNumPlugins() > 0)
-			    {
-				// We do have a file format that can claim this
-				// combination of scheme and file extension
-				bRet = TRUE;
-				// Pass the enumerator as an out parameter
-				rpEnum = pEnum;
-				rpEnum->AddRef();
-			    }
-			    HX_RELEASE(pEnum);
-			}
-			HX_RELEASE(pHandler3);
-		    }
                 }
+                else
+                {
+                    // Some URLs (like capture://audio) do not have a path 
+                    // at all, so they will fail the test where we look 
+                    // for the PROPERTY_FULLPATH in the CHXURL properties.
+                    // So in this case, the search string is just the scheme
+                    cSearch = (const char*) pSchemeStr->GetBuffer();
+                    // Clear the return value
+                    retVal = HXR_OK;
+                }
+                // We either need to have an extension or the input flag needs
+                // to be set saying we don't have to claim the extension.
+            if (!bMustClaimExtension || (cExtension.GetLength() > 0))
+            {
+            // Get the IHXPluginHandler3 interface
+            IHXPluginHandler3* pHandler3 = NULL;
+            retVal = m_pPlugin2Handler->QueryInterface(IID_IHXPluginHandler3, (void**) &pHandler3);
+            if (SUCCEEDED(retVal))
+            {
+                // Find out if we have any fileformat plugins which
+                // have a scheme extension pair equal to cSearch
+                IHXPluginSearchEnumerator* pEnum = NULL;
+                retVal = pHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS,
+                                           PLUGIN_FILEFORMAT_TYPE,
+                                           PLUGIN_SCHEME_EXTENSION,
+                                           (char*) (const char*) cSearch,
+                                           NULL, NULL, pEnum);
+                if ((FAILED(retVal) || (pEnum->GetNumPlugins() == 0)) &&
+                (!bMustClaimExtension) &&
+                (cExtension.GetLength() > 0))
+                {
+                // Try just the scheme as the search string. This is because
+                // some plugins may claim a scheme for all file extensions
+                cSearch = (const char*) pSchemeStr->GetBuffer();
+                // Search for just the scheme
+                HX_RELEASE(pEnum);
+                retVal = pHandler3->FindGroupOfPluginsUsingStrings(PLUGIN_CLASS,
+                                           PLUGIN_FILEFORMAT_TYPE,
+                                           PLUGIN_SCHEME_EXTENSION,
+                                           (char*) (const char*) cSearch,
+                                           NULL, NULL, pEnum);
+                }
+                if (SUCCEEDED(retVal) && pEnum && pEnum->GetNumPlugins() > 0)
+                {
+                // We do have a file format that can claim this
+                // combination of scheme and file extension
+                bRet = TRUE;
+                // Pass the enumerator as an out parameter
+                rpEnum = pEnum;
+                rpEnum->AddRef();
+                }
+                HX_RELEASE(pEnum);
+            }
+            HX_RELEASE(pHandler3);
+            }
                 HX_RELEASE(pFullPathStr);
             }
             HX_RELEASE(pSchemeStr);
@@ -7957,10 +8005,10 @@ HXBOOL HXPlayer::CanFileFormatClaimSchemeExtensionPair(CHXURL* pURL,
     }
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CanFileFormatClaimSchemeExtensionPair(URL=%s, bMustClaimExtension=%c) End=%c", 
-	    this, 
-	    pURL ? pURL->GetURL() : "NULL",
-	    bMustClaimExtension ? 'T' :'F',
-	    bRet ? 'T' : 'F');
+        this, 
+        pURL ? pURL->GetURL() : "NULL",
+        bMustClaimExtension ? 'T' :'F',
+        bRet ? 'T' : 'F');
 
     return bRet;
 }
@@ -8286,31 +8334,31 @@ STDMETHODIMP HXPlayerCallback::QueryInterface(REFIID riid, void** ppvObj)
 {
     if (IsEqualIID(riid, IID_IHXInterruptSafe))
     {
-	if (m_bInterruptSafe)
-	{
-	    AddRef();
-	    *ppvObj = (IUnknown*)(IHXInterruptSafe*) this;
-	    return HXR_OK;
-	}
-	else
-	{
-	    ppvObj = NULL;
-	    return HXR_NOINTERFACE;
-	}
+    if (m_bInterruptSafe)
+    {
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXInterruptSafe*) this;
+        return HXR_OK;
+    }
+    else
+    {
+        ppvObj = NULL;
+        return HXR_NOINTERFACE;
+    }
     }
     else if (IsEqualIID(riid, IID_IHXInterruptOnly))
     {
-	if (m_bInterruptOnly)
-	{
-	    AddRef();
-	    *ppvObj = (IUnknown*)(IHXInterruptOnly*) this;
-	    return HXR_OK;
-	}
-	else
-	{
-	    ppvObj = NULL;
-	    return HXR_NOINTERFACE;
-	}
+    if (m_bInterruptOnly)
+    {
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXInterruptOnly*) this;
+        return HXR_OK;
+    }
+    else
+    {
+        ppvObj = NULL;
+        return HXR_NOINTERFACE;
+    }
     }
     else
     {
@@ -8341,7 +8389,7 @@ void HXPlayer::PlayerCallback(void* pParam)
 
     if (pObj)
     {
-	pObj->ProcessIdle(FALSE);
+    pObj->ProcessIdle(FALSE);
     }
 }
 
@@ -8850,9 +8898,9 @@ HXPlayer::TrackAdded(UINT16         /*IN*/ uGroupIndex,
                     this, uGroupIndex, pTrack, uTrackIndex);
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::TrackAdded(GroupID=%hd TrackID=%hd) Start", 
-	    this, 
-	    uGroupIndex, 
-	    uTrackIndex);
+        this, 
+        uGroupIndex, 
+        uTrackIndex);
 
 #if defined(HELIX_FEATURE_BASICGROUPMGR)
     HX_RESULT       theErr = HXR_OK;
@@ -8868,7 +8916,7 @@ HXPlayer::TrackAdded(UINT16         /*IN*/ uGroupIndex,
     {
 #if defined(HELIX_FEATURE_PREFETCH)
     SourceInfo*     pSourceInfo = NULL;
-	IHXPrefetch*   pPrefetch = NULL;
+    IHXPrefetch*   pPrefetch = NULL;
         // determine whether the track has been prefetched
         if (m_pPrefetchManager &&
             m_pPrefetchManager->Lookup(pTrack, pSourceInfo))
@@ -8973,9 +9021,9 @@ HXPlayer::TrackAdded(UINT16         /*IN*/ uGroupIndex,
     HX_RELEASE(pThisGroup);
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::TrackAdded(GroupID=%hd TrackID=%hd) End", 
-	    this, 
-	    uGroupIndex, 
-	    uTrackIndex);
+        this, 
+        uGroupIndex, 
+        uTrackIndex);
 
     return HXR_OK;
 #else
@@ -9290,12 +9338,12 @@ HXPlayer::IsRendererAvailable(const char* pMimeType)
         pCheckComponent->AddRef();
 
         IHXBuffer* pBuffer = NULL;
-	if (HXR_OK == CreateAndSetBufferCCF(pBuffer, (BYTE*)pMimeType, strlen(pMimeType)+1, (IUnknown*)(IHXPlayer*)this))
-	{
-	    // add the component to the list
-	    pCheckComponent->Add(eUT_Required, pBuffer, 0, 0);
-	    HX_RELEASE(pBuffer);
-	}
+    if (HXR_OK == CreateAndSetBufferCCF(pBuffer, (BYTE*)pMimeType, strlen(pMimeType)+1, (IUnknown*)(IHXPlayer*)this))
+    {
+        // add the component to the list
+        pCheckComponent->Add(eUT_Required, pBuffer, 0, 0);
+        HX_RELEASE(pBuffer);
+    }
 
         // Request the upgrade handler
         IHXUpgradeHandler* pUpgradeHandler = NULL;
@@ -9551,7 +9599,7 @@ HXPlayer::SetPresentationTime(UINT32 ulPresentationTime)
 
     if (m_ulPresentationDuration > 0)
     {
-	m_bHasSubordinateLifetime = FALSE;
+    m_bHasSubordinateLifetime = FALSE;
     }
 
     if (m_pAdviseSink)
@@ -9587,7 +9635,7 @@ HXPlayer::UpdateSourceInfo(SourceInfo* pSourceInfo,
 
 #if defined(HELIX_FEATURE_STATS) && defined(HELIX_FEATURE_REGISTRY)
     UINT32      ulRegId = 0;
-	IHXBuffer*  pParentName = NULL;
+    IHXBuffer*  pParentName = NULL;
     // update sourc/stream stats' registry
     if (m_pRegistry && m_pStats &&
         HXR_OK == m_pRegistry->GetPropName(ulParentRegId, pParentName))
@@ -9770,27 +9818,27 @@ HXPlayer::CheckBeginList(void)
             rcTemp = CalculateOnBeginTime(pRendInfo, ulOnBeginTime);
             if (HXR_OK == rcTemp)
             {
-		pBeginningSource = pRendInfo->m_pStream->GetHXSource();
+        pBeginningSource = pRendInfo->m_pStream->GetHXSource();
 
-		HX_ASSERT(pBeginningSource);
+        HX_ASSERT(pBeginningSource);
 
                 pRendInfo->m_bInitialBeginToBeSent  = FALSE;
-		if (pRendInfo->m_pRenderer)
-		{
-		    pRendInfo->m_pRenderer->OnBegin(ulOnBeginTime);
-		}
+        if (pRendInfo->m_pRenderer)
+        {
+            pRendInfo->m_pRenderer->OnBegin(ulOnBeginTime);
+        }
                 lPos = m_ToBeginRendererList.RemoveAt(lPos);
 
-		if (pBeginningSource)
-		{
-		    if (!beginningSourceList.Find(pBeginningSource))
-		    {
-			// source we have not seen yet
-			beginningSourceList.AddHead(pBeginningSource);
-			pBeginningSource = NULL;
-		    }
-		    HX_RELEASE(pBeginningSource);
-		}
+        if (pBeginningSource)
+        {
+            if (!beginningSourceList.Find(pBeginningSource))
+            {
+            // source we have not seen yet
+            beginningSourceList.AddHead(pBeginningSource);
+            pBeginningSource = NULL;
+            }
+            HX_RELEASE(pBeginningSource);
+        }
             }
             else
             {
@@ -9812,13 +9860,13 @@ HXPlayer::CheckBeginList(void)
     // were just begun.
     while (!beginningSourceList.IsEmpty())
     {
-	pBeginningSource = (HXSource*) beginningSourceList.RemoveHead();
-	HX_ASSERT(pBeginningSource);
-	if (pBeginningSource)
-	{
-	    pBeginningSource->ResumeAudioStreams();
-	    HX_RELEASE(pBeginningSource);
-	}
+    pBeginningSource = (HXSource*) beginningSourceList.RemoveHead();
+    HX_ASSERT(pBeginningSource);
+    if (pBeginningSource)
+    {
+        pBeginningSource->ResumeAudioStreams();
+        HX_RELEASE(pBeginningSource);
+    }
     }
 
     HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::CheckBeginList() End", this);
@@ -9828,7 +9876,7 @@ HXPlayer::CheckBeginList(void)
 
 HX_RESULT              
 HXPlayer::CalculateOnBeginTime(RendererInfo* pRendInfo, 
-			       UINT32& ulOnBeginTime)
+                   UINT32& ulOnBeginTime)
 {
     HX_RESULT retVal;
     IHXStreamSource* pSource = NULL;
@@ -9839,33 +9887,33 @@ HXPlayer::CalculateOnBeginTime(RendererInfo* pRendInfo,
     // known.  Start time should become known for the live stream once the first
     // packet of the live stream is received.
     if ((retVal == HXR_OK) && 
-	pSource->IsLive() && 
-	(!pRendInfo->m_bStartTimeValid))
+    pSource->IsLive() && 
+    (!pRendInfo->m_bStartTimeValid))
     {
         retVal = HXR_NO_DATA;
     }
 
     if (retVal == HXR_OK)
     {
-	UpdateCurrentPlayTime(m_pAudioPlayer->GetCurrentPlayBackTime());
+    UpdateCurrentPlayTime(m_pAudioPlayer->GetCurrentPlayBackTime());
 
-	ulOnBeginTime = m_ulCurrentPlayTime;
-	if (pRendInfo->m_bInitialBeginToBeSent)
-	{
-	    // If initial begin is yet to be sent, this means we have not
-	    // started playing this stream and we can and need to compute
-	    // the time offset to this renderer's time coordinate system
-	    // that will be used in Onbegin as well as in OnTimeSync call
-	    // to the renderer.  In case of the live stream, the time-stamps
-	    // passed to the renderer are not offset to 0 and thus we
-	    // anchor the renderer time coordinate system to the live stream
-	    // start time.
-	    if (pSource->IsLive())
-	    {
-		pRendInfo->m_ulTimeDiff = pRendInfo->m_ulStreamStartTime;
-	    }
-	}
-	ulOnBeginTime += pRendInfo->m_ulTimeDiff;
+    ulOnBeginTime = m_ulCurrentPlayTime;
+    if (pRendInfo->m_bInitialBeginToBeSent)
+    {
+        // If initial begin is yet to be sent, this means we have not
+        // started playing this stream and we can and need to compute
+        // the time offset to this renderer's time coordinate system
+        // that will be used in Onbegin as well as in OnTimeSync call
+        // to the renderer.  In case of the live stream, the time-stamps
+        // passed to the renderer are not offset to 0 and thus we
+        // anchor the renderer time coordinate system to the live stream
+        // start time.
+        if (pSource->IsLive())
+        {
+        pRendInfo->m_ulTimeDiff = pRendInfo->m_ulStreamStartTime;
+        }
+    }
+    ulOnBeginTime += pRendInfo->m_ulTimeDiff;
     }
 
     HX_RELEASE(pSource);
@@ -10107,14 +10155,14 @@ HXPlayer::SureStreamSourceRegistered(SourceInfo* pSourceInfo)
     {
         m_ulActiveSureStreamSource++;
 
-	/*** Do not turn off fast start if multiple sure-streams present.
-	     We used to this via the code below as a conservative measure while
-	     introducing FAST-START (a.k.a. turbo-play).  However, this is overly
-	     restrictive as any RealVideo stream appears as sure-stream file due
-	     to on-the fly generation of the key-frame only stream.  Even if this
-	     code needed to be re-enable, care should be taken it is not done
-	     for local content as that would place start-up penalty on multi-video
-	     stream presentations.
+    /*** Do not turn off fast start if multiple sure-streams present.
+         We used to this via the code below as a conservative measure while
+         introducing FAST-START (a.k.a. turbo-play).  However, this is overly
+         restrictive as any RealVideo stream appears as sure-stream file due
+         to on-the fly generation of the key-frame only stream.  Even if this
+         code needed to be re-enable, care should be taken it is not done
+         for local content as that would place start-up penalty on multi-video
+         stream presentations.
         if (m_ulActiveSureStreamSource > 1 && m_bFastStart)
         {
             HXLOGL2(HXLOG_TRAN, "SureStreams > 1 - TurboPlay Off");
@@ -10132,7 +10180,7 @@ HXPlayer::SureStreamSourceRegistered(SourceInfo* pSourceInfo)
                 }
             }
         }
-	***/
+    ***/
     }
 
     return;
@@ -10153,7 +10201,12 @@ HXBOOL
 HXPlayer::CanBeFastStarted(SourceInfo* pSourceInfo)
 {
     HXBOOL                bFastStart = TRUE;
+#ifdef WIN32_PLATFORM_PSPC
+    // TurboPlay only hurts on WM platforms
+    HXBOOL                bTurboPlay = FALSE;
+#else //WIN32_PLATFORM_PSPC
     HXBOOL                bTurboPlay = TRUE;
+#endif //WIN32_PLATFORM_PSPC
     IHXBuffer*          pBuffer    = NULL;
     IHXUpgradeHandler*  pHandler   = NULL;
 
@@ -10170,7 +10223,7 @@ HXPlayer::CanBeFastStarted(SourceInfo* pSourceInfo)
 
 #if defined(HELIX_FEATURE_NEXTGROUPMGR)
     UINT16              uNextGroup = 0;
-	IHXGroup*           pNextGroup = NULL;
+    IHXGroup*           pNextGroup = NULL;
         // we want faststart the next group if we are done with the current one
         if (m_bNextGroupStarted &&
             m_pNextGroupManager &&
@@ -10236,8 +10289,8 @@ HXPlayer::SendPostSeekIfNecessary(RendererInfo* pRendererInfo)
         pRendererInfo->m_BufferingReason == BUFFERING_LIVE_PAUSE)
     {
         pRendererInfo->m_BufferingReason = BUFFERING_CONGESTION;
-	if (pRendererInfo->m_pRenderer)
-	{
+    if (pRendererInfo->m_pRenderer)
+    {
 #if defined(HELIX_FEATURE_DRM)
             //flush the DRM pending packets
             HXSource* pSource = pRendererInfo->m_pStream->GetHXSource();
@@ -10247,10 +10300,10 @@ HXPlayer::SendPostSeekIfNecessary(RendererInfo* pRendererInfo)
             }
 #endif /* HELIX_FEATURE_DRM */
 
-	    pRendererInfo->m_pRenderer->OnPostSeek(
+        pRendererInfo->m_pRenderer->OnPostSeek(
                 pRendererInfo->m_pStreamInfo->m_ulTimeBeforeSeek,
                 pRendererInfo->m_pStreamInfo->m_ulTimeAfterSeek);
-	}
+    }
 
         pRendererInfo->m_pStreamInfo->m_pStream->m_bPostSeekToBeSent = FALSE;
     }
@@ -11333,14 +11386,14 @@ UINT32 HXPlayer::ComputeFillEndTime(UINT32 ulCurTime, UINT32 ulOffsetScale, UINT
 #endif /* #if defined(HELIX_FEATURE_PLAYBACK_VELOCITY) */
 
 #ifdef _MACINTOSH
-#define ADDITIONAL_PREDELIVERY_TIME	4000
+#define ADDITIONAL_PREDELIVERY_TIME 4000
     /* on Mac we try to be even farther ahead than the timeline in
      * packet delivery since the callbacks are not that smooth
      * and if we are really close to the wire, it results in
      * unnecccessary re-buffers. 
      */ 
     ulRet += ADDITIONAL_PREDELIVERY_TIME;
-#endif	// _MACINTOSH
+#endif  // _MACINTOSH
 
     return ulRet;
 }
@@ -11527,16 +11580,16 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
     if (lVelocity >= HX_PLAYBACK_VELOCITY_MIN &&
         lVelocity <= HX_PLAYBACK_VELOCITY_MAX)
     {
-	if (m_eClientState < HX_CLIENT_STATE_OPENED)
-	{
-    	    HXLOGL1(HXLOG_TRIK, "HXPlayer SetVelocity(velocity=%ld,keyframemode=%lu,autoswitch=%lu) Caching until client state is OPENED",
-            	lVelocity, bKeyFrameMode, bAutoSwitch);
-	    m_bPlaybackVelocityCached = TRUE;
-	    m_lPlaybackVelocityCached = lVelocity;
-	    m_bKeyFrameModeCached = bKeyFrameMode;
-	    m_bAutoSwitchCached = bAutoSwitch;
-	    return HXR_OK;
-	}
+    if (m_eClientState < HX_CLIENT_STATE_OPENED)
+    {
+            HXLOGL1(HXLOG_TRIK, "HXPlayer SetVelocity(velocity=%ld,keyframemode=%lu,autoswitch=%lu) Caching until client state is OPENED",
+                lVelocity, bKeyFrameMode, bAutoSwitch);
+        m_bPlaybackVelocityCached = TRUE;
+        m_lPlaybackVelocityCached = lVelocity;
+        m_bKeyFrameModeCached = bKeyFrameMode;
+        m_bAutoSwitchCached = bAutoSwitch;
+        return HXR_OK;
+    }
 
         // Clear the return value
         retVal = HXR_OK;
@@ -11575,11 +11628,11 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
                                                      HX_ADVISE_SINK_FLAG_ONPRESEEK   |
                                                      HX_ADVISE_SINK_FLAG_ONPOSTSEEK  |
                                                      HX_ADVISE_SINK_FLAG_ONBUFFERING);
-		    // Do not disable if in the paused state, otherwise we will miss some state transitions waiting for TimeSync
-		    if (m_bIsPlaying)
-		    {
+            // Do not disable if in the paused state, otherwise we will miss some state transitions waiting for TimeSync
+            if (m_bIsPlaying)
+            {
                         m_pClientStateAdviseSink->DisableClientStateAdviseSink(HX_CLIENT_STATE_ADVISE_SINK_FLAG_ONSTATECHANGE);
-		    }
+            }
                     // Get the current time
                     UINT32 ulTime = GetCurrentPlayTime();
                     // Get the IID_IHXPlaybackVelocityTimeRegulator interface from
@@ -11604,7 +11657,7 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
                     {
                         // Get the core mutex
                         m_pCoreMutex->Lock();
-			m_ulCoreLockCount++;
+            m_ulCoreLockCount++;
                         // Disable the advise sink OnPause call
                         m_pAdviseSink->DisableAdviseSink(HX_ADVISE_SINK_FLAG_ONPAUSE);
                         // Pause the player
@@ -11612,7 +11665,7 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
                         // Re-enable the advise sink OnPause call
                         m_pAdviseSink->EnableAdviseSink(HX_ADVISE_SINK_FLAG_ONPAUSE);
                         // Release the core mutex
-			m_ulCoreLockCount--;
+            m_ulCoreLockCount--;
                         m_pCoreMutex->Unlock();
                     }
                     // Copy the new velocity to the member variable
@@ -11627,7 +11680,7 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
                     {
                         // Get the core mutex
                         m_pCoreMutex->Lock();
-			m_ulCoreLockCount++;
+            m_ulCoreLockCount++;
                         // Seek the player
                         SeekPlayer(ulOrigTime);
                         // If we were playing when we got the SetVelocity,
@@ -11642,7 +11695,7 @@ STDMETHODIMP HXPlayer::SetVelocity(INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL
                             m_pAdviseSink->EnableAdviseSink(HX_ADVISE_SINK_FLAG_ONBEGIN);
                         }
                         // Release the core mutex
-			m_ulCoreLockCount--;
+            m_ulCoreLockCount--;
                         m_pCoreMutex->Unlock();
                     }
                     else
@@ -11754,9 +11807,9 @@ STDMETHODIMP HXPlayer::UpdateVelocityCaps(IHXPlaybackVelocityCaps* pCaps)
 
 STDMETHODIMP HXPlayer::UpdateVelocity(INT32 lVelocity)
 {
-    if (m_pPlaybackVelocityResponse)
+    if (m_pAdviseSink)
     {
-        m_pPlaybackVelocityResponse->UpdateVelocity(lVelocity);
+        m_pAdviseSink->UpdateVelocity(lVelocity);
     }
     return HXR_OK;
 }
@@ -11764,12 +11817,58 @@ STDMETHODIMP HXPlayer::UpdateVelocity(INT32 lVelocity)
 STDMETHODIMP HXPlayer::UpdateKeyFrameMode(HXBOOL bKeyFrameMode)
 {
     HX_RESULT retVal = SetKeyFrameMode(bKeyFrameMode);
-    if (SUCCEEDED(retVal) && m_pPlaybackVelocityResponse)
+    if (SUCCEEDED(retVal) && m_pAdviseSink)
     {
-        m_pPlaybackVelocityResponse->UpdateKeyFrameMode(m_bKeyFrameMode);
+        m_pAdviseSink->UpdateKeyFrameMode(bKeyFrameMode);
     }
     return retVal;
 }
+
+	// IHXFrameStep methods
+#if defined(HELIX_FEATURE_VIDEO_FRAME_STEP)
+STDMETHODIMP HXPlayer::StepFrames(INT32 lSteps)
+{
+    HX_RESULT retVal = HXR_FAIL;
+	HXBOOL bIsRendererFound = FALSE;
+	// Do we have a source map?
+	if (m_pSourceMap && m_pAdviseSink)
+	{
+		retVal = HXR_OK;
+		// Send command to sources
+		CHXMapPtrToPtr::Iterator srcItr = m_pSourceMap->Begin();
+		for (; SUCCEEDED(retVal) && srcItr != m_pSourceMap->End() && !bIsRendererFound; ++srcItr)
+		{
+			SourceInfo* pSourceInfo = (SourceInfo*)(*srcItr);
+			if (pSourceInfo)
+			{
+				// Send command to all renderers
+				if (SUCCEEDED(retVal) && pSourceInfo->m_pRendererMap)
+				{
+					CHXMapLongToObj::Iterator rendItr = pSourceInfo->m_pRendererMap->Begin();
+					for (; rendItr != pSourceInfo->m_pRendererMap->End() && !bIsRendererFound; ++rendItr)
+					{
+						RendererInfo* pRendInfo = (RendererInfo*)(*rendItr);
+						if (pRendInfo && pRendInfo->m_pRenderer)
+						{
+							// QI for IHXFrameStep
+							IHXFrameStep* pVel = NULL;
+							retVal = pRendInfo->m_pRenderer->QueryInterface(IID_IHXFrameStep, (void**) &pVel);
+							if (SUCCEEDED(retVal))
+							{
+								// Send the command
+								retVal = pVel->StepFrames(lSteps);
+								bIsRendererFound = TRUE;
+							}
+							HX_RELEASE(pVel);
+						}
+					}
+				}
+			}
+		}
+	}
+	return retVal;
+}
+#endif  //HELIX_FEATURE_VIDEO_FRAME_STEP
 
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
 /*
@@ -12803,7 +12902,7 @@ HXPlayer::GetPresentationFeature(const char* /*IN*/ pszFeatureName,
                             do
                             {
                                 //  Copy to pFeatureOptions:
-				INT32 lIsOptionEnabled = 0;
+                INT32 lIsOptionEnabled = 0;
                                 hxr = m_pRegistry->GetIntById(ulOptionRegID,
                                         lIsOptionEnabled);
                                 if (FAILED(hxr))
@@ -13274,7 +13373,7 @@ HXPlayer::RemovePresentationFeatureSink(IHXPresentationFeatureSink* pPFSink)
                         m_pPFSEventProxyList->GetAt(lPos);
                 if (pPFEventProxy  &&  pPFEventProxy->GetSink() == pPFSink)
                 {
-	            m_pPFSEventProxyList->RemoveAt(lPos);
+                m_pPFSEventProxyList->RemoveAt(lPos);
                     HX_RELEASE(pPFEventProxy); //  This releases its PFSink.
                     bFound = TRUE;
                     hxr = HXR_OK;
@@ -13778,9 +13877,9 @@ STDMETHODIMP HXPlayer::QuickSeek(ULONG32 ulSeekTime)
     bFirstFrame = IsFirstFrameDisplayed();
     
     if (!bFirstFrame && 
-	(m_bIsBuffering || 
-	 (m_ulBufferingCompletionTime == 0) ||
-	 (((LONG32) (HX_GET_BETTERTICKCOUNT() - m_ulBufferingCompletionTime)) < MAX_QUICK_SEEK_POST_BUFFERING_WAIT)))
+    (m_bIsBuffering || 
+     (m_ulBufferingCompletionTime == 0) ||
+     (((LONG32) (HX_GET_BETTERTICKCOUNT() - m_ulBufferingCompletionTime)) < MAX_QUICK_SEEK_POST_BUFFERING_WAIT)))
     {
         // We have a seek going already. Add this one to the queue.
         m_ulSeekQueue = ulSeekTime;
@@ -13788,7 +13887,7 @@ STDMETHODIMP HXPlayer::QuickSeek(ULONG32 ulSeekTime)
     }
     else
     {
-	m_ulBufferingCompletionTime = 0;
+    m_ulBufferingCompletionTime = 0;
         theErr = SeekPlayer(ulSeekTime);
         m_ulSeekQueue = kNoValue;
     }

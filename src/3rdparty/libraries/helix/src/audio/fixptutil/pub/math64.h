@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: math64.h,v 1.31 2006/06/06 22:14:02 gwright Exp $
+ * Source last modified: $Id: math64.h,v 1.34 2009/04/06 03:53:41 sgarg Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,7 @@
 // MSVC / i386
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#if (defined(_M_IX86) && defined(_MSC_VER)) || (defined(__WINS__) && defined(_SYMBIAN)) || (defined(__WINS__) && defined(WINCE_EMULATOR)) || (defined(_OPENWAVE_SIMULATOR))
+#if (defined(_M_IX86) && defined(_MSC_VER)) || (defined(__WINS__) && defined(_SYMBIAN)) || (defined(__WINS__) && defined(WINCE_EMULATOR)) || (defined(_OPENWAVE_SIMULATOR) || defined(AEE_SIMULATOR))
 
 #define HAVE_PLATFORM_MACROS
 
@@ -505,7 +505,11 @@ extern "C" {
 #endif
 
 /* Compute a * b / c, using 64-bit intermediate result */
-extern int MulDiv64(int a, int b, int c);
+static __inline int MulDiv64(int a, int b, int c)
+{
+  long long t = (long long)a * (long long)b ;
+  return (int)(t / c) ;
+}
 
 #ifdef __cplusplus
 }

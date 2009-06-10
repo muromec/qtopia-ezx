@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pcktflowwrap.cpp,v 1.13 2006/12/21 05:06:06 tknox Exp $
+ * Source last modified: $Id: pcktflowwrap.cpp,v 1.17 2008/03/24 06:58:37 manvendras Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -63,7 +63,6 @@
 #include "mem_cache.h"
 #include "hxpiids.h"
 #include "globals.h"
-#include "player.h"
 #include "ppm.h"
 
 #include "hxpcktflwctrl.h"
@@ -85,41 +84,7 @@ PacketFlowWrapper::~PacketFlowWrapper()
 }
 
 HX_RESULT
-PacketFlowWrapper::RegisterSource(IHXPSourceControl* pSourceCtrl,
-                                  REF(IHXPacketFlowControl*) pPacketFlowControl,
-                                  IHXSessionStats* pSessionStats,
-                                  UINT16 unStreamCount,
-                                  BOOL bUseMDP,
-                                  BOOL bIsLive,
-                                  BOOL bIsMulticast,
-                                  DataConvertShim* pDataConv)
-{
-    if (!bUseMDP)
-    {
-        if (!m_pPPM)
-        {
-            m_pPPM = new PPM(m_pProc, m_bIsRTP);
-        }
-
-        m_pPPM->RegisterSource(pSourceCtrl, &pPacketFlowControl, unStreamCount,
-                               bIsLive, bIsMulticast, pDataConv);
-    }
-    else
-    {
-        if (!m_pFlowMgr)
-        {
-            m_pFlowMgr = new PacketFlowManager(m_pProc, m_bIsRTP);
-        }
-
-        m_pFlowMgr->RegisterSource(pSourceCtrl, &pPacketFlowControl, pSessionStats, unStreamCount,
-                                   bIsLive, bIsMulticast, pDataConv);
-    }
-
-    return HXR_OK;
-}
-    
-HX_RESULT
-PacketFlowWrapper::RegisterSource(IHXPSourceControl* pSourceCtrl,
+PacketFlowWrapper::RegisterSource(IUnknown* pSourceCtrl,
                                   REF(IHXPacketFlowControl*) pPacketFlowControl,
                                   IHXSessionStats* pSessionStats,
                                   UINT16 unStreamCount,
@@ -127,8 +92,7 @@ PacketFlowWrapper::RegisterSource(IHXPSourceControl* pSourceCtrl,
                                   BOOL bIsLive,
                                   BOOL bIsMulticast,
                                   DataConvertShim* pDataConv,
-                                  Player* pPlayerCtrl,
-                                  const char* szPlayerSessionId)
+                                  BOOL bIsFCS)
 {
     if (!bUseMDP)
     {
@@ -138,8 +102,7 @@ PacketFlowWrapper::RegisterSource(IHXPSourceControl* pSourceCtrl,
         }
 
         m_pPPM->RegisterSource(pSourceCtrl, &pPacketFlowControl, unStreamCount,
-                               bIsLive, bIsMulticast, pDataConv, pPlayerCtrl,
-                               szPlayerSessionId, pSessionStats);
+                               bIsLive, bIsMulticast, pDataConv, bIsFCS);
     }
     else
     {
@@ -149,8 +112,46 @@ PacketFlowWrapper::RegisterSource(IHXPSourceControl* pSourceCtrl,
         }
 
         m_pFlowMgr->RegisterSource(pSourceCtrl, &pPacketFlowControl, pSessionStats, unStreamCount,
-                                   bIsLive, bIsMulticast, pDataConv, pPlayerCtrl,
-                                   szPlayerSessionId);        
+                                   bIsLive, bIsMulticast, pDataConv, bIsFCS);
+    }
+
+    return HXR_OK;
+}
+    
+HX_RESULT
+PacketFlowWrapper::RegisterSource(IUnknown* pSourceCtrl,
+                                  REF(IHXPacketFlowControl*) pPacketFlowControl,
+                                  IHXSessionStats* pSessionStats,
+                                  UINT16 unStreamCount,
+                                  BOOL bUseMDP,
+                                  BOOL bIsLive,
+                                  BOOL bIsMulticast,
+                                  DataConvertShim* pDataConv,
+                                  Client* pClient,
+                                  const char* szPlayerSessionId,
+                                  BOOL bIsFCS)
+{
+    if (!bUseMDP)
+    {
+        if (!m_pPPM)
+        {
+            m_pPPM = new PPM(m_pProc, m_bIsRTP);
+        }
+
+        m_pPPM->RegisterSource(pSourceCtrl, &pPacketFlowControl, unStreamCount,
+                               bIsLive, bIsMulticast, pDataConv, pClient,
+                               szPlayerSessionId, pSessionStats, bIsFCS);
+    }
+    else
+    {
+        if (!m_pFlowMgr)
+        {
+            m_pFlowMgr = new PacketFlowManager(m_pProc, m_bIsRTP);
+        }
+
+        m_pFlowMgr->RegisterSource(pSourceCtrl, &pPacketFlowControl, pSessionStats, unStreamCount,
+                                   bIsLive, bIsMulticast, pDataConv, pClient,
+                                   szPlayerSessionId, bIsFCS);        
     }
 
     return HXR_OK;

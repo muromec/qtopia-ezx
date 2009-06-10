@@ -60,7 +60,7 @@ class ServerRTPUDPTransport : public ServerRTPBaseTransport
                             , public IHXSocketResponse
 {
 public:
-    ServerRTPUDPTransport               (BOOL bIsSource);
+    ServerRTPUDPTransport               (BOOL bIsSource, HXBOOL bOldTS = FALSE);
     ~ServerRTPUDPTransport              ();
 
     /* IUnknown: */

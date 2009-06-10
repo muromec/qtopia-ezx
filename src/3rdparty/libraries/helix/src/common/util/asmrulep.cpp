@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: asmrulep.cpp,v 1.24 2006/05/22 19:14:09 dcollins Exp $
+ * Source last modified: $Id: asmrulep.cpp,v 1.30 2009/05/14 15:02:13 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -730,6 +730,9 @@ ASMRule::Dump()
 
 ASMRuleBook::ASMRuleBook(const char* pRuleBook)
 : m_LastError(HXR_OK)
+, m_pRules(NULL)
+, m_unNumRules(0)
+, m_ulNumThresholds(0)
 , m_pValidRulesArray(NULL)
 , m_pDeletedRulesArray(NULL)
 , m_pRuleBook(NULL)
@@ -745,6 +748,9 @@ ASMRuleBook::ASMRuleBook(const char* pRuleBook)
 
 ASMRuleBook::ASMRuleBook(IUnknown* pContext, const char* pRuleBook)
 : m_LastError(HXR_OK)
+, m_pRules(NULL)
+, m_unNumRules(0)
+, m_ulNumThresholds(0)
 , m_pValidRulesArray(NULL)
 , m_pDeletedRulesArray(NULL)
 , m_pRuleBook(NULL)
@@ -758,7 +764,7 @@ ASMRuleBook::ASMRuleBook(IUnknown* pContext, const char* pRuleBook)
 
 ASMRuleBook::~ASMRuleBook()
 {
-    delete [] m_pRules;
+    HX_VECTOR_DELETE(m_pRules);
     if( m_pValidRulesArray )
     {
        HX_VECTOR_DELETE(m_pValidRulesArray);
@@ -1102,40 +1108,43 @@ ASMRuleBook::Init(const char* pRuleBook)
     }
 
     m_unNumRules = i;
-    m_pRules = new ASMRule[i];
-    if(!m_pRules)
+    if (i > 0)
     {
-       m_LastError = HXR_OUTOFMEMORY;
-        return;
-    }
-    
-    for (i = 0; i < m_unNumRules; i++)
-    {
-	m_pRules[i].SetContext(m_pContext);
-    }
-
-    //printf ("%d Rules\n", i);
-
-    // Iterate through each rule
-    m_pRuleBook = new char[ ulRuleBookLen + 1 ];
-    if(!m_pRuleBook)
-    {
+        m_pRules = new ASMRule[i];
+        if(!m_pRules)
+        {
         m_LastError = HXR_OUTOFMEMORY;
-        HX_DELETE(m_pRules);
-        return;
-    }
-    else
-    {
-        memcpy( (void*) m_pRuleBook, pRuleBook, ulRuleBookLen + 1 );
-    }
+            return;
+        }
+        
+        for (i = 0; i < m_unNumRules; i++)
+        {
+	    m_pRules[i].SetContext(m_pContext);
+        }
 
-    m_LastError = Reset();
+        //printf ("%d Rules\n", i);
+
+        // Iterate through each rule
+        m_pRuleBook = new char[ ulRuleBookLen + 1 ];
+        if(!m_pRuleBook)
+        {
+            m_LastError = HXR_OUTOFMEMORY;
+            HX_DELETE(m_pRules);
+            return;
+        }
+        else
+        {
+            memcpy( (void*) m_pRuleBook, pRuleBook, ulRuleBookLen + 1 );
+        }
+
+        m_LastError = Reset();
+    }
 }
 
 HX_RESULT
 ASMRuleBook::InitRulesArray()
 {
-   if( !m_pValidRulesArray )
+   if( !m_pValidRulesArray && m_unNumRules)
    {
       m_pValidRulesArray = new HXBOOL[ m_unNumRules ];
       if(!m_pValidRulesArray)
@@ -1148,7 +1157,7 @@ ASMRuleBook::InitRulesArray()
          m_pValidRulesArray[ii] = TRUE;
       }
    }
-   if( !m_pDeletedRulesArray )
+   if( !m_pDeletedRulesArray && m_unNumRules)
    {
       m_pDeletedRulesArray = new HXBOOL[ m_unNumRules ];
       if(!m_pDeletedRulesArray)
@@ -1485,6 +1494,7 @@ HX_RESULT
 ASMRuleBook::Reset()
 {
     int i = 0;
+    if (m_pRuleBook)
     { //XXXSMPNOW
 	HXBOOL bSeenExpression = 0;
 
@@ -1574,7 +1584,7 @@ ASMRuleBook::Reset()
 				return HXR_OUTOFMEMORY;
 			    }
 			}
-#ifndef HELIX_FEATURE_CLIENT
+#if !defined(HELIX_FEATURE_CLIENT)
 			// Client should always provide m_pContext
 			else
 			{

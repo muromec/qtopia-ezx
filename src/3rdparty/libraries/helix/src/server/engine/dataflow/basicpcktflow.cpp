@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: basicpcktflow.cpp,v 1.36 2007/01/30 00:48:42 jzeng Exp $
+ * Source last modified: $Id: basicpcktflow.cpp,v 1.43 2009/02/05 22:22:55 dcollins Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -69,7 +69,6 @@
 #include "mem_cache.h"
 #include "hxpiids.h"
 #include "globals.h"
-#include "player.h"
 
 #include "servbuffer.h"
 
@@ -78,8 +77,7 @@
 #include "hxqostran.h"
 #include "pcktflowmgr.h"
 #include "basicpcktflow.h"
-#include "pushpcktflow.h"
-#include "static_pushpktflow.h"
+#include "pushpacketflow.h"
 #include "pullpcktflow.h"
 #include "pcktstrm.h"
 #include "pcktflowwrap.h"
@@ -102,26 +100,15 @@ BasicPacketFlow::Create(Process* p,
 BasicPacketFlow*
 BasicPacketFlow::Create(Process* p,
                         IHXSessionStats* pSessionStats,
-                        UINT16 unStreamCount,
-                        PacketFlowManager* pFlowMgr,
-                        IHXPSourceLivePackets* pSourcePackets,
-                        BOOL bIsMulticast)
-{
-    return new PushPacketFlow(p, pSessionStats, unStreamCount, pFlowMgr,
-                              pSourcePackets, bIsMulticast);
-}
-
-BasicPacketFlow*
-BasicPacketFlow::Create(Process* p,
-                        IHXSessionStats* pSessionStats,
 			UINT16 unStreamCount,
 			PacketFlowManager* pFlowMgr,
 			IHXServerPacketSource* pSource,
 			BOOL bIsMulticast,
-			BOOL bIsLive)
+			BOOL bIsLive,
+            BOOL bIsFCS)
 {
-    return new StaticPushPacketFlow(p, pSessionStats, unStreamCount, pFlowMgr,
-				    pSource, bIsMulticast, bIsLive);
+    return new PushPacketFlow(p, pSessionStats, unStreamCount, pFlowMgr,
+				    pSource, bIsMulticast, bIsLive, bIsFCS);
 }
 
 BasicPacketFlow::BasicPacketFlow(Process* p,
@@ -160,7 +147,7 @@ BasicPacketFlow::BasicPacketFlow(Process* p,
     m_pConvertShim              = 0;
     m_pConvertingPacket		= NULL;
     m_bPlayPendingOnSeek	= FALSE;
-    m_pPlayerControl            = NULL;
+    m_pClient            = NULL;
     m_pPlayerSessionId          = NULL;
     m_pRateManager              = NULL;
     m_bSeekPacketPending  = FALSE;
@@ -385,13 +372,12 @@ BasicPacketFlow::StreamDone(UINT16 unStreamNumber, BOOL bForce /* = FALSE */)
 void
 BasicPacketFlow::SetStreamStartTime(UINT32 ulStreamNum, UINT32 ulTS)
 {
-    Player* pPlayerCtrl = NULL;
     IHXBuffer* pFlowId = NULL;
     
-    if (m_pPlayerControl && m_pPlayerSessionId)
+    if (m_pClient && m_pPlayerSessionId)
     {
         const char* szSessionID = (const char*)m_pPlayerSessionId->GetBuffer();
-        m_pPlayerControl->SetStreamStartTime(szSessionID, ulStreamNum, ulTS);
+        m_pClient->SetStreamStartTime(szSessionID, ulStreamNum, ulTS);
     }
 }
 
@@ -466,7 +452,7 @@ BasicPacketFlow::Done()
 
     HX_RELEASE(m_pConvertingPacket);
 
-    HX_RELEASE(m_pPlayerControl);
+    HX_RELEASE(m_pClient);
     HX_RELEASE(m_pPlayerSessionId);
     HX_RELEASE(m_pAccurateClock);
 }
@@ -1124,7 +1110,7 @@ BasicPacketFlow::HXPacketToServerPacket(IHXPacket* pPacket)
 	}
 	else
 	{
-	    pServerPacket = new (m_pProc->pc->mem_cache) ServerPacket();
+	    pServerPacket = new ServerPacket();
 	}
 
 	pServerPacket->SetPacket(pPacket);
@@ -1314,18 +1300,18 @@ BasicPacketFlow::WouldBlockCleared(UINT32 id)
 }
 
 void
-BasicPacketFlow::SetPlayerInfo(Player* pPlayerControl,
+BasicPacketFlow::SetPlayerInfo(Client* pClient,
                                const char* szSessionId,
                                IHXSessionStats* pSessionStats)
 {
     // we already have the session stats; but we have to use the same
     // function signature as the PPM.
 
-    HX_RELEASE(m_pPlayerControl);
+    HX_RELEASE(m_pClient);
     HX_RELEASE(m_pPlayerSessionId);
 
-    m_pPlayerControl = pPlayerControl;
-    m_pPlayerControl->AddRef();
+    m_pClient = pClient;
+    m_pClient->AddRef();
 
     UINT32 ulBuffLen = strlen(szSessionId) + 1;
     m_pPlayerSessionId = new ServerBuffer(TRUE);

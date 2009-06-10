@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cwinfile.cpp,v 1.8 2006/02/07 19:21:14 ping Exp $
+ * Source last modified: $Id: cwinfile.cpp,v 1.10 2007/12/12 18:44:34 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -227,18 +227,18 @@ HX_RESULT CWinFile::OpenShared(const char *filename, UINT16 mode, UINT16 sharedm
 
 HX_RESULT CWinFile::Close(void)
 {
-	// close previous file if necessary
-	if ( mFD >= 0 )
-	{
-		mLastError = HXR_OK;   
-		if ( close( mFD ) < 0 )
-		{
-			mLastError = HXR_INVALID_FILE;
-			return HXR_INVALID_FILE;
-		}
-		return HXR_OK;
-	}
-	return HXR_INVALID_FILE;
+    // close previous file if necessary
+    if ( mFD >= 0 )
+    {
+        mLastError = HXR_OK;   
+        if ( close( mFD ) < 0 )
+        {
+            mLastError = HXR_INVALID_FILE;
+        }
+        mFD = HX_FILE_NOT_OPEN;
+        return mLastError;
+    }
+    return HXR_INVALID_FILE;
 }
 
 

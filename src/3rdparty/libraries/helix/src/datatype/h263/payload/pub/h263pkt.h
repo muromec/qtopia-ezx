@@ -42,18 +42,32 @@
 #include "hxslist.h"
 #include "hxwintyp.h"
 
+#include "baseobj.h"
+#include "hxplugn.h"
+#include "hxplgns.h"
+
+#define H263_MIME_TYPE "video/H263-2000"
+ 
+
 struct IHXRTPPacket;
 class CQT_TrackInfo_Manager;
 
 /*
  * H263+ Packetizer - currently implementing only RFC2429
  */
-class CH263Packetizer	: public IHXPayloadFormatObject
+class CH263Packetizer	: public IHXPayloadFormatObject,
+                          public IHXPlugin,
+                          public IHXPluginProperties,
+                          public CHXBaseCountingObject
 {
 public:
     CH263Packetizer(CQT_TrackInfo_Manager* pTrackInfo = NULL);
     ~CH263Packetizer();
 
+    	
+    static HX_RESULT STDAPICALLTYPE HXCreateInstance(IUnknown** ppIUnknown);
+    static HX_RESULT STDAPICALLTYPE CanUnload(void);
+    static HX_RESULT STDAPICALLTYPE CanUnload2(void);
     /*
      *	IUnknown methods
      */
@@ -83,14 +97,38 @@ public:
 				REF(IHXPacket*) pPacket);
     STDMETHOD(Flush)		(THIS);
 
+    	
+ /*
+    *	IHXPlugin methods
+    */
+
+    STDMETHOD(InitPlugin)	(THIS_
+				IUnknown*   /*IN*/  pContext);
+
+    STDMETHOD(GetPluginInfo)	(THIS_
+				REF(HXBOOL) bLoadMultiple,
+				REF(const char*) pDescription,
+				REF(const char*) pCopyright,
+				REF(const char*) pMoreInfoURL,
+				REF(ULONG32) ulVersionNumber
+				);
+ 
+    /*
+     *	IHXPluginProperties
+     */
+    STDMETHOD(GetProperties)  (THIS_
+				REF(IHXValues*) pIHXValuesProperties
+				);		
+
+ 
 protected:
     void	FlushOutput(void);
     UINT8*	MakeBuffer(REF(IHXBuffer*)pOutBuf, UINT32 ulSize);
 
     // Out Packet routine
-    typedef HX_RESULT (CH263Packetizer::*AddOutPkt)(IHXBuffer*, IHXPacket*, BOOL); 
-    HX_RESULT AddOutHXPkt   (IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit);    
-    HX_RESULT AddOutHXRTPPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit);
+    typedef HX_RESULT (CH263Packetizer::*AddOutPkt)(IHXBuffer*, IHXPacket*, BOOL, UINT32, HXBOOL); 
+    HX_RESULT AddOutHXPkt   (IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit, UINT32 uiIterations, HXBOOL bIterationOver);    
+    HX_RESULT AddOutHXRTPPkt(IHXBuffer* pBuf, IHXPacket* pInPkt, BOOL bMBit, UINT32 uiIterations, HXBOOL bIterationOver);
 
     /*
      * RFC2429 specific implementation
@@ -102,8 +140,10 @@ protected:
 	MARKER_UNKNOWN
     };
     HX_RESULT	PacketizeRFC2429(IHXPacket* pInHXPkt);
-    HX_RESULT	GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInHXPkt, RTPMarkerBit mBit);
+    HX_RESULT	GeneratePacket(UINT8* pData, UINT32 ulDataSize, IHXPacket* pInHXPkt, RTPMarkerBit mBit, UINT32 uiIterations, HXBOOL bIterationOver);
     UINT8*	WriteRTP263PlusPayloadHdr(UINT8* pc, BOOL bPBit);
+
+    UINT32 PrepareOutPktASMFlags(IHXPacket* pInPkt, UINT32 uiIterations, HXBOOL bIterationOver);
 
     /*
      * Stream Header Routines
@@ -112,6 +152,7 @@ protected:
     HX_RESULT	HandleSDP(IHXBuffer* pOpaque);
     void	HandleBitRates(IHXBuffer* pOpaque);
     HX_RESULT	HandleMimeType(void);
+
     
 private:
     
@@ -135,6 +176,9 @@ private:
     }		    m_state;
     
     static const UINT32 zm_ulRTP263PlusHdrSize;
+    static const char* zm_pDescription;
+    static const char* zm_pCopyright;
+    static const char* zm_pMoreInfoURL;
 };
 
 #endif /* H263PKT_H */

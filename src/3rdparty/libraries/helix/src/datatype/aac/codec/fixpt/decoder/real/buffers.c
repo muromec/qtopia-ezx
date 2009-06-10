@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: buffers.c,v 1.1 2005/02/26 01:47:34 jrecker Exp $ 
+ * Source last modified: $Id: buffers.c,v 1.2 2008/01/15 21:20:31 ehyche Exp $ 
  *   
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -48,6 +48,11 @@
 #else
 #include "hlxclib/stdlib.h"
 #endif
+#if defined(REAL_FORMAT_SDK)
+#include "rm_memory_shim.h"
+#define malloc hx_realformatsdk_malloc
+#define free   hx_realformatsdk_free
+#endif /* #if defined(REAL_FORMAT_SDK) */
 
 #include "coder.h"
 

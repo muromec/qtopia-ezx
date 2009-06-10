@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxresult.h,v 1.49 2007/03/28 04:01:49 junhliu Exp $
+ * Source last modified: $Id: hxresult.h,v 1.55 2009/02/12 20:04:14 ehyche Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -104,6 +104,7 @@ typedef LONG32  HX_RESULT;
 #define SS_SOCK 24   /* Socket errors */
 #define SS_RSLV 25   /* Resolver errors */
 #define SS_RTSP 26   /* RTSP errors */
+#define SS_RAVE 27   /* ra/ve errors */
 
 #define SS_DPR 63    /* Deprecated errors                          */
 #define SS_SAM 100   /* ServerAlert errors                         */
@@ -175,6 +176,7 @@ typedef LONG32  HX_RESULT;
 #define HXR_DEVVIDEO_FATAL_ERROR        MAKE_HX_RESULT(1,SS_GLO,38)                 // 80040026
 #define HXR_DEVVIDEO_RESOURCE_LOST      MAKE_HX_RESULT(1,SS_GLO,39)                 // 80040027
 #define HXR_DEVVIDEO_RESOURCE_RESTORED  MAKE_HX_RESULT(1,SS_GLO,40)                 // 80040028
+#define HXR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS MAKE_HX_RESULT(1,SS_GLO,41)       // 80040029
 
 #define HXR_BUFFERING                   MAKE_HX_RESULT(0,SS_NET,0)                  // 00040040
 #define HXR_PAUSED                      MAKE_HX_RESULT(0,SS_NET,1)                  // 00040041
@@ -230,6 +232,7 @@ typedef LONG32  HX_RESULT;
 #define HXR_NET_RESOURCES_IN_USE        MAKE_HX_RESULT(1,SS_NET,53)                 // 80040075
 #define HXR_ACCESSPOINT_NOT_FOUND		MAKE_HX_RESULT(1,SS_NET,54)					// 80040076
 #define HXR_INCOMPATIBLE_RTSP_SERVER    MAKE_HX_RESULT(1,SS_NET,55)                 // 80040077
+#define HXR_INVALID_ACCESSPOINT         MAKE_HX_RESULT(1,SS_NET,56)                 // 80040078
 
 #define HXR_AT_END                      MAKE_HX_RESULT(0,SS_FIL,0)                  // 00040080
 #define HXR_INVALID_FILE                MAKE_HX_RESULT(1,SS_FIL,1)                  // 80040081
@@ -256,7 +259,8 @@ typedef LONG32  HX_RESULT;
 #define HXR_ADVISE_LOCAL_ACCESS		MAKE_HX_RESULT(0,SS_FIL,22)                 // 00040096
 #define HXR_ADVISE_NETWORK_ACCESS	MAKE_HX_RESULT(0,SS_FIL,23)                 // 00040097
 #define HXR_ADVISE_NO_FASTSTART		MAKE_HX_RESULT(0,SS_FIL,24)		    // 00040098
-#define HXR_PROGRESSIVE_DOWNLOAD_TIMEOUT	MAKE_HX_RESULT(1,SS_FIL,25)					// 00040099
+#define HXR_PROGRESSIVE_DOWNLOAD_TIMEOUT MAKE_HX_RESULT(1,SS_FIL,25)                // 00040099
+#define HXR_ADVISE_PACING               MAKE_HX_RESULT(0,SS_FIL,26)		    // 0004009A
 
 #define HXR_BAD_SERVER                  MAKE_HX_RESULT(1,SS_PRT,0)                  // 800400c0
 #define HXR_ADVANCED_SERVER             MAKE_HX_RESULT(1,SS_PRT,1)                  // 800400c1
@@ -465,6 +469,8 @@ typedef LONG32  HX_RESULT;
 #define HXR_VSRC_DISABLED               MAKE_HX_RESULT(1,SS_MSC,17)                 // 800401d1
 #define HXR_VSRC_NOCLIP                 MAKE_HX_RESULT(1,SS_MSC,18)                 // 800401d2
 #define HXR_SET_SECURE_OUT_FAIL         MAKE_HX_RESULT(1,SS_MSC,20)                 // 800401d4
+#define HXR_UNTIMED_REND_CAN_SET_END    MAKE_HX_RESULT(0,SS_MSC,21)                 // 000401d5
+#define HXR_TIMELINE_ENDED              MAKE_HX_RESULT(1,SS_MSC,22)                 // 800401d6
 
 #define HXR_RESOURCE_NOT_CACHED         MAKE_HX_RESULT(1,SS_RSC,1)                  // 80040301
 #define HXR_RESOURCE_NOT_FOUND          MAKE_HX_RESULT(1,SS_RSC,2)                  // 80040302
@@ -650,7 +656,9 @@ typedef LONG32  HX_RESULT;
 #define HXR_RSLV_NONAME                 MAKE_HX_RESULT(1, SS_RSLV, 0)               // 80040640
 #define HXR_RSLV_NODATA                 MAKE_HX_RESULT(1, SS_RSLV, 1)               // 80040641
 
-#define SA_OFFSET 2
+#define HXR_RAVE_UI_FAIL                MAKE_HX_RESULT(1, SS_RAVE, 0)               //
+
+#define SA_OFFSET 1
 #define MAKE_SA(sa) HXR_SE_MIN_VALUE+sa+SA_OFFSET
 #define IS_SERVER_ALERT(sa) ((HXR_SE_MIN_VALUE < sa && sa < HXR_SE_MAX_VALUE) || sa == HXR_SERVER_ALERT)
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: server_engine.cpp,v 1.20 2006/09/16 00:58:27 ebala Exp $
+ * Source last modified: $Id: server_engine.cpp,v 1.26 2008/07/03 21:54:17 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -50,6 +50,8 @@
 #ifdef _SOLARIS
 #include <alloca.h>
 #endif
+#include "hlxclib/signal.h"
+
 #include "hxcom.h"
 #include "hxerror.h"
 #include "hxcomm.h"
@@ -83,10 +85,13 @@
 
 #if defined _HPUX || defined _OSF1
 #include <alloca.h>
+#elif defined _LSB
+#define alloca(size)   __builtin_alloca (size)
 #endif
 
 #include "server_context.h"
 #include "globals.h"
+#include "safestring.h"
 
 #ifdef PAULM_SOCKTIMING
 #include "sockettimer.h"
@@ -187,6 +192,7 @@ extern UINT32 GetStringDataSize();
 
 extern Engine** volatile g_ppLastEngine;
 extern BOOL terminated;
+extern BOOL g_bServerGoingDown;
 
 ServerEngine* get_my_engine();
 
@@ -482,15 +488,16 @@ ServerEngine::mainloop(BOOL bJumpStart)
 #endif // defined _LINUX || defined _SOLARIS
 
     volatile unsigned int guard1 = 0xc001d00d;
-    int count = 0;
     int n;
     Timeval*    timeoutp;
     Timeval     timeout;
     Timeval     timeout2;
-    Engine*     pThisEngine = this;
     Timeval     last_left_select_time;
     Timeval     last_in_select_time;
     volatile unsigned int guard2 = 0xcc110088;
+    UINT32 ulErrCode = 0;
+    UINT32 ulErrCounter = 0;
+    int procnum = proc->procnum();
 
 #ifndef _WIN32
     /*
@@ -564,7 +571,7 @@ RealCrashAvoid:
             ServerEngine* pEngine = get_my_engine();
             pEngine->mainloop(TRUE);
         }
-        if (proc->pc->registry->m_nLockedBy == proc->procnum())
+        if (proc->pc->registry->m_nLockedBy == procnum)
         {
             sprintf(buffer, "Server Registry: Recovering!\n");
             if (g_bCrashAvoidancePrint)
@@ -578,7 +585,7 @@ RealCrashAvoid:
         }
         if (proc->pc->managed_mutex_list && proc->pc->managed_mutex_list->LockCount() > 0)
         {
-            sprintf(buffer, "Managed Locks: Recovering %d locks!\n",
+            sprintf(buffer, "Managed Locks: Recovering %lu locks!\n",
                         proc->pc->managed_mutex_list->LockCount());
             if (g_bCrashAvoidancePrint)
             {
@@ -642,6 +649,38 @@ RealCrashAvoid:
             /* Jump back Into the engine */
             goto restart_dispatchq_after_GPF;
         }
+        else if (m_CrashState == IN_SERVERPQ)
+        {
+            sprintf(buffer, "Normal CA: In Non-Thread-safe ServerPQ\n");
+            if (g_bCrashAvoidancePrint)
+            {
+                printf ("%s", buffer);
+                fflush(0);
+            }
+            RSSManager::CrashOutput(buffer);
+            m_bForceSelect = TRUE;
+
+            schedule.crash_recovery();
+
+            /* Jump back Into the engine */
+            goto restart_serverpq_after_GPF;
+        }
+        else if (m_CrashState == IN_ISERVERPQ)
+        {
+            sprintf(buffer, "Normal CA: In Thread-safe ServerPQ\n");
+            if (g_bCrashAvoidancePrint)
+            {
+                printf ("%s", buffer);
+                fflush(0);
+            }
+            RSSManager::CrashOutput(buffer);
+            m_bForceSelect = TRUE;
+
+            ischedule.crash_recovery();
+
+            /* Jump back Into the engine */
+            goto restart_serverpq_after_GPF;
+        }
     }
 
     *g_ppLastEngine = this;
@@ -684,7 +723,14 @@ RealCrashAvoid:
         last_in_select_time = now;
 
         n = callbacks.Select((struct timeval*)timeoutp);
-
+        if (n < 0)
+        {
+#ifdef _WIN32
+            ulErrCode = WSAGetLastError();
+#else
+            ulErrCode = errno;
+#endif
+        }
         m_ulMainloopIterations++;
 
         GETTIMEOFDAY(now);
@@ -698,10 +744,23 @@ RealCrashAvoid:
             proc->pc->loadinfo->StreamerIteration();
         }
 
+restart_serverpq_after_GPF:
+        m_CrashState = IN_ISERVERPQ;
         m_pICurrentElem = ischedule.get_execute_list(now);
+        m_CrashState = IN_SERVERPQ;
         m_pSCurrentElem = schedule.get_execute_list(now);
+        m_CrashState = NONE;
         if (n < 0)
         {
+            ulErrCounter++;
+            if (ulErrCounter < 1000 && !g_bServerGoingDown)
+            {
+                char buf[256] = "\0";
+                SafeSprintf(buf, 256, "select error in mainloop = %u , timeout: %ld.%06ld, procnum = %d\n",
+                        ulErrCode, timeout.tv_sec, timeout.tv_usec, procnum);
+                proc->pc->error_handler->Report(HXLOG_ERR, HXR_FAIL, (ULONG32)HXR_FAIL, buf, 0);
+            }
+
             m_bMoreReaderOrWriter = FALSE;
             m_bMoreTSReaderOrWriter = FALSE;
 
@@ -713,6 +772,12 @@ RealCrashAvoid:
                 callbacks.HandleBadFds(proc->pc->error_handler);
             }
 #endif
+#ifdef _WIN32
+            if (ulErrCode == WSAENOTSOCK)
+            {
+                callbacks.HandleBadFds(proc->pc->error_handler);
+            }
+#endif            
         }
         else if (n == 0)
         {
@@ -726,7 +791,7 @@ RealCrashAvoid:
             callbacks.invoke_start();
         }
 
-        m_bOnce = TRUE;
+        m_bOnce = proc->pc->dispatchq->count(procnum) > 0 ? TRUE : FALSE;
         m_bForceSelect = FALSE;
 
 restart_after_GPF:
@@ -738,12 +803,6 @@ restart_after_GPF:
             int i;
             if (m_pICurrentElem || m_bMoreTSReaderOrWriter)
             {
-                if (*g_bLimitParallelism)
-                {
-                    //This is for Linux 2.2 compatibility and for debugging,
-                    HXMutexLock(g_pServerMainLock, TRUE);
-                    m_bMutexProtection = TRUE;
-                }
                 if (m_bMoreTSReaderOrWriter)
                 {
                     m_bMoreTSReaderOrWriter = callbacks.invoke_n_ts(5, 5);
@@ -771,21 +830,18 @@ restart_after_GPF:
                     }
                     else
                     {
+                        m_CrashState = IN_ISERVERPQ;
                         m_pICurrentElem = ischedule.get_execute_list(now);
+                        m_CrashState = IN_LOOP;
                     }
                 }
-                if (*g_bLimitParallelism)
-                {
-                    m_bMutexProtection = FALSE;
-                    HXMutexUnlock(g_pServerMainLock);
-                }
 
-                bCondition = ((m_bOnce || m_pSCurrentElem || m_bMoreReaderOrWriter) &&
+                bCondition = ((m_pSCurrentElem || m_bMoreReaderOrWriter) &&
                     HXMutexTryLock(g_pServerMainLock));
             }
-            else
+            else if (m_pSCurrentElem || m_bMoreReaderOrWriter)
             {
-                bCondition = (m_bOnce || m_pSCurrentElem || m_bMoreReaderOrWriter);
+                bCondition = TRUE;
                 HXMutexLock(g_pServerMainLock, TRUE);
             }
             if (bCondition)
@@ -793,7 +849,7 @@ restart_after_GPF:
                 m_bMutexProtection = TRUE;
                 for (i = 0; i < 5 && m_pSCurrentElem; i++)
                 {
-                    m_pSCurrentElem = schedule.execute_element(m_pSCurrentElem);
+                    m_pSCurrentElem = schedule.execute_locked_element(m_pSCurrentElem);
                     *g_pSchedulerElems += 1;
                 }
 
@@ -802,22 +858,21 @@ restart_after_GPF:
                     m_bMoreReaderOrWriter = callbacks.invoke_n(
                         5, 5, g_pMutexNetReaders, g_pMutexNetWriters);
                 }
-
-                if (m_bOnce)
-                {
 restart_dispatchq_after_GPF:
-                    m_CrashState = IN_DISPATCHQ;
-                    proc->pc->dispatchq->execute(proc);
-                    m_CrashState = IN_LOOP;
-                    m_bOnce = FALSE;
-                }
                 m_bMutexProtection = FALSE;
                 HXMutexUnlock(g_pServerMainLock);
+            }
+            if (m_bOnce)
+            {
+                m_CrashState = IN_DISPATCHQ;
+                proc->pc->dispatchq->execute(proc);
+                m_CrashState = IN_LOOP;
+                m_bOnce = FALSE;
             }
         }
         m_CrashState = NONE;
 
-        g_pMainLoops[proc->procnum()]++;
+        g_pMainLoops[procnum]++;
 
 #ifdef _UNIX
         if (g_bReconfigServer)

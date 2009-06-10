@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbianglobalvideoparameters.cpp,v 1.8 2007/04/30 18:41:39 suramakr Exp $
+ * Source last modified: $Id: symbianglobalvideoparameters.cpp,v 1.11 2009/03/30 20:39:53 praveenkumar Exp $
  *
  * Copyright Notices:
  *
@@ -74,6 +74,11 @@ SymbianGlobalVideoParameters::SymbianGlobalVideoParameters():
   ,m_lScreenNumber( 0 ),
   m_bScreenNumberSet( FALSE )
 #endif //SYMBIAN_ENABLE_MMF_MULTISCREEN_SUPPORT
+  ,m_ulScalingTypeValue(EMMFDefaultScaling)
+#if defined(HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES)
+  ,m_bUseSurfaces(FALSE)
+  ,m_ulDisplayIDArrayIndex(0)
+#endif //HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES
 {
 	memset(&m_clipRect, 0, sizeof(m_clipRect));
 	memset(&m_windowRect, 0, sizeof(m_windowRect));
@@ -251,3 +256,32 @@ HXBOOL SymbianGlobalVideoParameters::IsDisplayRegionValid(void)
 {
 	return(m_bValidDisplayRegion);
 }
+
+HX_RESULT SymbianGlobalVideoParameters::GetScalingTypeValue(UINT32 &ulValue)
+{
+	HX_RESULT retVal = HXR_OK;
+	ulValue = m_ulScalingTypeValue;
+	return retVal;
+}
+
+HX_RESULT SymbianGlobalVideoParameters::SetScalingTypeValue(UINT32 ulValue)
+{
+	HX_RESULT retVal = HXR_OK;
+	m_ulScalingTypeValue = ulValue;
+	return retVal;
+}
+
+#if defined(HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES)
+HX_RESULT SymbianGlobalVideoParameters::SetUseSurfaces()
+{
+	HX_RESULT retVal = HXR_OK;
+	m_bUseSurfaces = TRUE;
+	return retVal;
+}
+
+HXBOOL SymbianGlobalVideoParameters::GetUseSurfaces()
+{
+	return m_bUseSurfaces;
+}
+
+#endif //HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES

@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: hxmedpltfmdll,v 1.8 2007/03/02 01:16:22 ping Exp $
+# Source last modified: $Id: hxmedpltfmdll,v 1.15 2008/12/04 07:27:10 gahluwalia Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 or later (the
+# terms of the GNU General Public License Version 2 (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -61,9 +61,11 @@ project.AddModuleIncludes("common/include",
                           "common/lang/xml/pub",
                           "common/netio/pub",
                           "common/log/logutil/pub",
+                          "protocol/http/pub",
                           "audio/include",
                           "video/include",
-                          "client/include")
+                          "client/include",
+                          "client/common/container/pub/extended")
 
 project.AddIncludes("../include",
                     "../common/container/pub",
@@ -90,11 +92,26 @@ project.AddModuleLibraries("common/dbgtool[debuglib]",
                            "client/videosvc[vidsvclib]")
 
 project.AddSources("chxmedpltfm.cpp",
-		   "chxmedpltfmkicker.cpp",
-		   "chxmedpltfmsched.cpp",
+                   "chxmedpltfmkicker.cpp",
+                   "chxmedpltfmsched.cpp",
+                   "hxpackageunloader.cpp",
                    "hxdll.cpp",
                    "dlliids.cpp")
-
+				   
+if project.IsDefined('HELIX_FEATURE_SECURE_SOCKET'):
+    project.AddModuleLibraries('common\crypto\lite[crypto]')
+	
+if project.IsDefined("HELIX_CONFIG_USE_EXTENDED"):
+    project.AddSources("mediaplatformextension.cpp")
+    project.ExportFunction("HXCreateMediaPlatformEx",
+                       "IHXMediaPlatform** ppMediaPlatform",
+                       "client/medpltfm/pub",
+                       "chxmedpltfm.h")
+    project.ExportFunction("HXMediaPlatformCloseEx",
+                       "void",
+                       "client/medpltfm/pub",
+                       "chxmedpltfm.h")	
+	
 if project.IsDefined("HELIX_FEATURE_EXTENDED_MEDIAPLATFORM"):
     project.AddSources("hxgenericcontext.cpp")
     project.AddSources("chxmedpltfmex.cpp")
@@ -111,7 +128,6 @@ project.ExportFunction("HXMediaPlatformClose",
                        "void",
                        "client/medpltfm/pub",
                        "chxmedpltfm.h")
-
 project.ExportFunction("CreateEngine",
                        "IHXClientEngine** ppEngine",
                        "client/medpltfm/pub",

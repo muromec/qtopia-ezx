@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdir.cpp,v 1.8 2005/03/14 19:36:30 bobclark Exp $
+ * Source last modified: $Id: hxdir.cpp,v 1.10 2009/01/19 23:30:46 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#if defined (_SOLARIS) || defined (_FREEBSD) || defined (_OPENBSD) || defined (_NETBSD)
+#if defined (_SOLARIS) || defined (_FREEBSD) || defined (_OPENBSD) || defined (_NETBSD) || defined (ANDROID)
 #include <dirent.h>
 #elif defined (__hpux)
 #include <sys/dirent.h>

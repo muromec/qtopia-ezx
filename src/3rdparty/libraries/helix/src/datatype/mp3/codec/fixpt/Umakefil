@@ -78,7 +78,8 @@ else:
 
 project.AddIncludes("./pub")
 project.AddModuleIncludes("common/include")
-project.AddModuleIncludes("common/runtime/pub")
+project.AddModuleIncludes("common/runtime/pub",
+                          "common/system/pub")
 
 LibraryTarget("mp3codecfixpt")
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-* Source last modified: $Id: chxmedpltfmkicker.cpp,v 1.7 2007/04/17 12:47:43 gahluwalia Exp $
+* Source last modified: $Id: chxmedpltfmkicker.cpp,v 1.9 2009/05/06 20:11:57 sfu Exp $
 * 
 * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 * 
@@ -18,7 +18,7 @@
 * contents of the file.
 * 
 * Alternatively, the contents of this file may be used under the
-* terms of the GNU General Public License Version 2 or later (the
+* terms of the GNU General Public License Version 2 (the
 * "GPL") in which case the provisions of the GPL are applicable
 * instead of those above. If you wish to allow use of your version of
 * this file only under the terms of the GPL, and not to allow others
@@ -60,6 +60,8 @@
 #define MINIMUM_GRANULARITY   55
 #elif defined (_MACINTOSH)		    /* MACINTOSH */
 #define MINIMUM_GRANULARITY   20
+#elif defined (ANDROID)
+#define MINIMUM_GRANULARITY   20 
 #elif defined (_UNIX)
 #define MINIMUM_GRANULARITY   5
 #else					    /* ELSE */

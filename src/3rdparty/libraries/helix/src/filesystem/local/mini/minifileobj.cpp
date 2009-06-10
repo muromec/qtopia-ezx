@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: minifileobj.cpp,v 1.27 2007/04/18 18:00:35 aperiquet Exp $
+ * Source last modified: $Id: minifileobj.cpp,v 1.39 2008/07/08 19:49:40 anuj_dhamija Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -69,7 +69,6 @@
 #include "hxerror.h"  /* IHXErrorMessages */
 
 #if defined (_WINDOWS ) && defined (_WIN32)
-#include <atlbase.h>
 #ifndef _WINCE
 #include <direct.h>    /* mkdir, etc. */
 #endif
@@ -111,6 +110,8 @@ CHXMiniFileObject::CHXMiniFileObject(IHXCommonClassFactory* pClassFactory,
       ,m_pContext            (pContext)
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
       ,m_pDataSource         (NULL)
+      ,m_bAsyncReadSupported (FALSE)
+      ,m_pPendingReadBufAsync (NULL)
 #endif
 {
     DPRINTF(D_MINI_FO, ("CHXMiniFO::CHXMiniFileObject()\n"));
@@ -164,6 +165,11 @@ CHXMiniFileObject::~CHXMiniFileObject(void)
     }
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     HX_RELEASE(m_pDataSource);
+    HX_RELEASE(m_pPendingReadBuf);
+    if(m_bAsyncReadSupported)
+    {
+        HX_RELEASE(m_pPendingReadBufAsync);
+    }
 #endif
 }
 
@@ -206,12 +212,13 @@ STDMETHODIMP CHXMiniFileObject::OpenFile(UINT32 fileAccessMode)
         }
         if(pDataSource)
         {
-            // This Request supports data source API. Set this to m_pDataSource.
-            // m_pDataSource will be used for all file operations.
+           // This Request supports data source API. Set this to m_pDataSource.
+           // m_pDataSource will be used for all file operations.
            HX_RELEASE(m_pDataSource);
            m_pDataSource = pDataSource;
            pDataSource = NULL;
-           result = m_pDataSource->Open(m_pRequest, modeStr);
+           m_bAsyncReadSupported = m_pDataSource->AsyncReadSupported();
+           result = m_pDataSource->Open2(m_pRequest, modeStr, this, this);
         }
         else
 #endif
@@ -445,14 +452,14 @@ STDMETHODIMP CHXMiniFileObject::Init( UINT32 fileAccessMode, IHXFileResponse* pF
             (fileAccessMode == 0))
         {
             // reset to start of file
-            m_pDataSource->Seek(0, SEEK_SET);
+            m_pDataSource->Seek2(0, SEEK_SET, this);
             // notify that file is ready
             m_pFileResponse->InitDone(HXR_OK);
             return HXR_OK;
         }
         else // Access mode has changed
         {
-            m_pDataSource->Close();
+            m_pDataSource->Close2( this );
             HX_RELEASE(m_pDataSource);
         }
     }
@@ -483,7 +490,10 @@ STDMETHODIMP CHXMiniFileObject::Init( UINT32 fileAccessMode, IHXFileResponse* pF
     m_FileAccessMode = fileAccessMode;
 
     HX_RESULT fileOpenResult = OpenFile(fileAccessMode);
-    m_pFileResponse->InitDone(fileOpenResult);
+    if (fileOpenResult == HXR_OK )
+    {
+    	fileOpenResult = m_pFileResponse->InitDone(fileOpenResult);
+	}
 
     return fileOpenResult;
 }
@@ -636,29 +646,96 @@ STDMETHODIMP CHXMiniFileObject::DoReadLoopEx(UINT32 byteCount,
                                              IHXBuffer* pBuffer)
 {
     HX_RESULT result = HXR_OK;
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)	
+    if(m_bAsyncReadSupported)
+    {
+        m_pPendingReadBufAsync = pBuffer;
+    }
+#endif	
 
     UINT32 actualCount = DoRead(pBuffer);
 
-    if (m_pFile && ferror(m_pFile)) 
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)	
+    if(!m_bAsyncReadSupported)
+    {
+#endif    
+    if(IsReadError())
     {
         HX_RELEASE(pBuffer);
         ReadDoneError(HXR_READ_ERROR);
         return HXR_READ_ERROR;
     }
-
     result = pBuffer->SetSize(actualCount);
-
-    if(result == HXR_OK)
-    {
-        // Notify the caller that the read is done
-        HX_RESULT readResult = actualCount > 0 ? HXR_OK : HXR_FAILED;
-        result = DoReadDone(readResult, pBuffer);
+        if(result == HXR_OK)
+        {
+            // Notify the caller that the read is done
+            HX_RESULT readResult = actualCount > 0 ? HXR_OK : HXR_READ_ERROR;
+            result = DoReadDone(readResult, pBuffer);
+        }
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)		
     }
+#endif	
 
     return result;
 }
 
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)
 
+/****************************************************************************
+ *  IHXMMFDataSourceObserver::ReadDone
+ *
+ *  This routine is called by DataSource whenever there is a request for 
+ *  data from file object and requested amount of data available at Data
+ *  source level.
+ */
+ 
+void CHXMiniFileObject::ReadDone(IHXBuffer* pBuffer, UINT32 byteCount)
+{
+    HX_RESULT result = HXR_OK;
+    //Read interrupt Read is not allowed. In the case when Seek happens the second Read may come in
+    //before the first ReadDone a ReadDone(HXR_CANCELLED, NULL)is sent to the File format when Seek starts.
+    //We put a check here to see if the returned buffer from asynchronous Data Source is the one we are expecting 
+    //here. If not we just drop it.
+    if ( m_pPendingReadBufAsync != pBuffer && pBuffer )
+    {
+        HX_RELEASE(pBuffer);
+        result = HXR_FAIL;
+    }
+    if(m_pPendingReadBufAsync != NULL && result == HXR_OK)
+    {
+        if(IsReadError())
+        {
+            result = HXR_READ_ERROR;
+        }
+        if( result == HXR_OK )
+        {
+            result = m_pPendingReadBufAsync->SetSize(byteCount);
+        }
+        if(result == HXR_OK)
+        {
+            HX_RESULT readResult = byteCount > 0 ? HXR_OK : HXR_READ_ERROR;
+            result = DoReadDone(readResult, m_pPendingReadBufAsync);
+            m_pPendingReadBufAsync = NULL;
+            if(result == HXR_OK)
+            {
+                if(m_pPendingReadBuf != NULL )
+                {
+                    DoReadLoop();
+                }
+            }
+        }
+        else
+        {
+            HX_RELEASE(m_pPendingReadBufAsync);
+        }
+        if(result != HXR_OK)
+        {
+            ReadDoneError(result);
+        }
+    }
+}
+
+#endif
 /****************************************************************************
  *  IHXFileObject::DoRead
  *
@@ -672,9 +749,7 @@ STDMETHODIMP_(UINT32) CHXMiniFileObject::DoRead(IHXBuffer* pBuffer)
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     if(m_pDataSource)
     {
-        actualCount = m_pDataSource->Read(pBuffer->GetBuffer(),
-                                          sizeof(UCHAR),
-                                          pBuffer->GetSize());
+        actualCount = m_pDataSource->Read2(pBuffer, this);
     }
     else
 #endif
@@ -741,6 +816,20 @@ STDMETHODIMP_(void) CHXMiniFileObject::ReadDoneError(HX_RESULT theError)
     m_pFileResponse->ReadDone(theError, NULL);
 }        
 
+HXBOOL CHXMiniFileObject::IsReadError()
+{
+    HXBOOL bError = FALSE;
+
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)
+    if(m_pDataSource && FAILED(m_pDataSource->GetLastError2(this)) )
+#else
+    if (m_pFile && ferror(m_pFile)) 
+#endif
+    {
+        bError = TRUE;
+    }
+    return bError;
+}
 
 /****************************************************************************
  *  IHXFileObject::Write
@@ -761,8 +850,8 @@ STDMETHODIMP CHXMiniFileObject::Write(IHXBuffer* pDataToWrite)
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     if(m_pDataSource)
     {
-        actualCount = m_pDataSource->Write(pDataToWrite->GetBuffer(), 
-                                             sizeof(UCHAR), byteCount);
+        actualCount = m_pDataSource->Write2(pDataToWrite->GetBuffer(), 
+                                             sizeof(UCHAR), byteCount, this);
     }
     else
 #endif
@@ -794,6 +883,17 @@ STDMETHODIMP CHXMiniFileObject::Seek( UINT32 offset, HXBOOL bIsRelative )
 
     // Cancel any pending reads
     HX_RELEASE(m_pPendingReadBuf);
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)	
+    if(m_bAsyncReadSupported && m_pPendingReadBufAsync)
+    {
+        //if the File format has ReadDone Pending cancel it here
+        if (!m_bInReadDone)
+        {
+            m_pFileResponse->ReadDone(HXR_CANCELLED, NULL);
+        }
+        m_pPendingReadBufAsync = NULL;
+    }
+#endif	
 
     int fromWhere = SEEK_SET; // absolute
     if (bIsRelative == TRUE)
@@ -805,7 +905,7 @@ STDMETHODIMP CHXMiniFileObject::Seek( UINT32 offset, HXBOOL bIsRelative )
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     if(m_pDataSource)
     {
-        seekResult = m_pDataSource->Seek(offset, fromWhere);
+        seekResult = m_pDataSource->Seek2(offset, fromWhere, this);
     }
     else
 #endif
@@ -863,7 +963,7 @@ STDMETHODIMP CHXMiniFileObject::Close(void)
 #if defined(HELIX_FEATURE_MMF_DATASOURCE)
     if(m_pDataSource)
     {
-        m_pDataSource->Close();
+        m_pDataSource->Close2( this );
 		HX_RELEASE(m_pDataSource);
     }
     else
@@ -1093,6 +1193,9 @@ STDMETHODIMP CHXMiniFileObject::QueryInterface(REFIID interfaceID, void** ppInte
 	{ GET_IIDHANDLE(IID_IHXFileExists), (IHXFileExists*) this },
 	{ GET_IIDHANDLE(IID_IHXFileStat), (IHXFileStat*) this },
 	{ GET_IIDHANDLE(IID_IHXGetFileFromSamePool), (IHXGetFileFromSamePool*) this },
+#if defined(HELIX_FEATURE_MMF_DATASOURCE)
+	{ GET_IIDHANDLE(IID_IHXMMFDataSourceObserver), (IHXMMFDataSourceObserver*) this },
+#endif
     };
     return ::QIFind(qiList, QILISTSIZE(qiList), interfaceID, ppInterfaceObj);
 }
@@ -1168,9 +1271,8 @@ STDMETHODIMP CHXMiniFileObject::MakeDir()
 
 #if defined (_WINDOWS ) || defined (_WIN32)
 
-        USES_CONVERSION;
-
-    if( ::CreateDirectory(A2T(m_pFilename), NULL) == 0 )
+        
+    if( ::CreateDirectory(OS_STRING(m_pFilename), NULL) == 0 )
         return HXR_FAIL;
 
 #elif defined UNIX
@@ -1193,14 +1295,13 @@ STDMETHODIMP CHXMiniFileObject::ReadDir()
     char pDirname[1024];
 
 #if defined (_WINDOWS ) && defined (_WIN32)
-    USES_CONVERSION;
-
+    
     if (!m_hFileHandle)
     {
         strcpy(pDirname, m_pFilename);
         strcat(pDirname, "\\*");
 
-        m_hFileHandle = ::FindFirstFile( A2T(pDirname), &m_FileInfo );
+        m_hFileHandle = ::FindFirstFile( OS_STRING(pDirname), &m_FileInfo );
 
         if ( INVALID_HANDLE_VALUE == m_hFileHandle )
         {
@@ -1219,7 +1320,7 @@ STDMETHODIMP CHXMiniFileObject::ReadDir()
         }
     }
 
-    strcpy( pDirname, T2A(m_FileInfo.cFileName) );
+    strcpy( pDirname, OS_STRING(m_FileInfo.cFileName) );
 #else
     return HXR_FAIL;
 #endif

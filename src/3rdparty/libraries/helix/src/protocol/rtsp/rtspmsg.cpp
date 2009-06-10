@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspmsg.cpp,v 1.10 2006/01/31 23:39:07 ping Exp $
+ * Source last modified: $Id: rtspmsg.cpp,v 1.13 2008/10/20 21:29:41 demiurgo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -593,7 +593,7 @@ RTSPRequestMessage::asString(char* pBuf, int& msgLen)
 CHXString
 RTSPResponseMessage::asString()
 {
-	int lenTmpBuf = (int)(m_errorMsg.GetLength() + 80);
+	int lenTmpBuf = (int)(m_errorMsg.GetLength() + m_errorCode.GetLength() + 80);
     char* pTmpBuf = new char[lenTmpBuf];
     SafeSprintf(pTmpBuf, (UINT32)lenTmpBuf, "RTSP/%d.%d %s %s\r\n",
 	majorVersion(), minorVersion(), (const char*)m_errorCode,
@@ -614,6 +614,18 @@ RTSPResponseMessage::asString()
     if(contentLength() > 0)
     {
 	msgStr += getContent();
+    }
+    return msgStr;
+}
+
+CHXString
+RTSPResponseMessage::GetHeaderValuesAsString(const char* pName)
+{
+    CHXString msgStr = "";
+    MIMEHeader* pHeader = getHeader(pName);
+    if (pHeader)
+    {
+        pHeader->asString(msgStr);
     }
     return msgStr;
 }

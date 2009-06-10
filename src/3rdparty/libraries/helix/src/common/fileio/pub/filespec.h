@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: filespec.h,v 1.10 2005/03/14 19:36:30 bobclark Exp $
+ * Source last modified: $Id: filespec.h,v 1.12 2008/02/05 06:06:09 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -65,6 +65,8 @@
 	#include "platform/unix/filespecunix.h"
 #elif defined(_OPENWAVE)
 	#include "platform/openwave/filespecopwave.h"
+#elif defined(_BREW)
+	#include "platform/brew/filespecbrew.h"	
 #else
 	#error implement for this platform
 #endif
@@ -152,7 +154,7 @@ private:
 		mutable FSSpec*	m_pTempSpec; // for (FSSpec*) only
 		mutable void*	m_pTempRef; 
 	#endif
-#elif defined( _WINDOWS ) || defined( _UNIX ) || defined(_SYMBIAN)
+#elif defined( _WINDOWS ) || defined( _UNIX ) || defined(_SYMBIAN) || defined(_BREW)
 
 	CHXPathParser m_parser;
 
@@ -254,7 +256,7 @@ private:
         static OSErr FSpGetDirectoryID(const FSSpec *spec, long *theDirID, Boolean *isDirectory);
 #endif
 
-#elif defined( _WINDOWS ) || defined( _UNIX ) || defined(_SYMBIAN)
+#elif defined( _WINDOWS ) || defined( _UNIX ) || defined(_SYMBIAN) || defined(_BREW)
 
 	CHXPathParser m_parser;
 

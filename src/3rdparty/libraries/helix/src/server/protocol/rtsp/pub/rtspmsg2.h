@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: rtspmsg2.h,v 1.3 2003/05/13 20:53:05 tmarshall Exp $ 
+ * Source last modified: $Id: rtspmsg2.h,v 1.4 2007/11/20 03:56:45 seansmith Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -39,8 +39,7 @@
 
 #include "hxcomm.h"
 
-// The Product Formerly Known As RealProxy has a CRTSPMessage class so
-// call ours something different
+
 class CRTSPMessageBase : public IHXRTSPMessage
 {
 public:
@@ -67,13 +66,31 @@ public:
     STDMETHOD(SetContent)           (THIS_ IHXBuffer* pbuf);
     STDMETHOD(GetHeaderList)        (THIS_ REF(IHXList*) plistHeaders);
     STDMETHOD(GetHeaderListConst)   (THIS_ REF(IHXList*) plistHeaders);
-    STDMETHOD(GetHeader)            (THIS_ const char* key, REF(IHXMIMEHeader*) pHeader);
+    STDMETHOD(GetHeader)                (THIS_ const char* key, 
+                                         REF(IHXMIMEHeader*) pHeader);
     STDMETHOD(AddHeader)            (THIS_ IHXMIMEHeader* pHeader);
     STDMETHOD(SetHeader)            (THIS_ IHXMIMEHeader* pHeader);
     STDMETHOD(RemoveHeader)         (THIS_ const char* key);
     STDMETHOD_(void,ReplaceDelimiters)(THIS_ 
 				    BOOL bReplaceDelimiters,
 				    int nReplacementDelimiter);
+
+    // adapted from proxy message class
+    void IsProxy                        (HXBOOL bProxy) { m_bIsProxy = bProxy; }
+    const char* GetSessionID            (void);
+    HX_RESULT SetSessionID              (const char* pszSessionID);
+    virtual const char* TagStr          (void) PURE;
+    virtual RTSPMethod GetType          (void) PURE;
+    virtual RTSPMethod GetRequestType   (void) { return RTSP_UNKNOWN; }
+    virtual void SetRequestType         (RTSPMethod type) {};
+    HX_RESULT CheckURL                  (IHXBuffer* pURLBuf);
+    HXBOOL IsFullURL                    (void) { return m_bFullyQualifiedURL; }
+    const char* GetHostname             (void);
+    UINT16 GetPort                      (void) { return m_uPort; }
+    void ProxyGeneratedRequest          (void) { m_bProxyGeneratedRequest = TRUE; }
+    HXBOOL IsProxyGeneratedRequest      (void) { return m_bProxyGeneratedRequest; }
+    HX_RESULT ReplaceHeader             (const char *szKey, const char* szNewVal);
+
 
 protected:
     UINT32  GetHeaderCount(void);
@@ -92,6 +109,14 @@ protected:
     BOOL                m_bReplaceDelimiters;
     int	                m_nReplacementDelimiter;
     IHXFastAlloc*       m_pFastAlloc;
+
+    // from proxy message class
+    IHXBuffer*          m_pSessionID;
+    IHXBuffer*          m_pHostname;
+    UINT16              m_uPort;
+    HXBOOL              m_bFullyQualifiedURL;
+    HXBOOL              m_bProxyGeneratedRequest;
+    HXBOOL              m_bIsProxy;
 };
 
 class CRTSPRequestMessage : public CRTSPMessageBase,
@@ -110,7 +135,8 @@ public:
     STDMETHOD_(ULONG32,Release)     (THIS);
 
     // IHXRTSPConsumer
-    STDMETHOD(ReadDone)             (THIS_ IHXBuffer* pbufPacket, UINT32* ppos);
+    STDMETHOD(ReadDone)                 (THIS_ IHXBuffer* pbufPacket, 
+                                         UINT32* ppos);
     STDMETHOD_(UINT32,GetSize)      (THIS);
     STDMETHOD_(UINT32,Write)        (THIS_ BYTE* pbuf);
     STDMETHOD_(UINT32,AsBuffer)     (THIS_ REF(IHXBuffer*) pbuf );
@@ -123,6 +149,10 @@ public:
     STDMETHOD(SetVerbEx)            (THIS_ IHXBuffer* pbufVerb);
     STDMETHOD(GetUrl)               (THIS_ REF(IHXBuffer*) pbufUrl);
     STDMETHOD(SetUrl)               (THIS_ IHXBuffer* pbufUrl);
+
+    // adapted from proxy message class
+    const char* TagStr                  (void);
+    RTSPMethod GetType                  (void) { return GetMethod(); }
 
 protected:
     int ParseCommand(IHXBuffer* pbuf, UINT32* ppos);
@@ -149,7 +179,8 @@ public:
     STDMETHOD_(ULONG32,Release)     (THIS);
 
     // IHXRTSPConsumer
-    STDMETHOD(ReadDone)             (THIS_ IHXBuffer* pbufPacket, UINT32* ppos);
+    STDMETHOD(ReadDone)                 (THIS_ IHXBuffer* pbufPacket, 
+                                         UINT32* ppos);
     STDMETHOD_(UINT32,GetSize)      (THIS);
     STDMETHOD_(UINT32,Write)        (THIS_ BYTE* pbuf);
     STDMETHOD_(UINT32,AsBuffer)     (THIS_ REF(IHXBuffer*) pbuf );
@@ -160,13 +191,22 @@ public:
     STDMETHOD(GetStatusText)        (THIS_ REF(IHXBuffer*) pbufStatus);
     STDMETHOD(SetStatusText)        (THIS_ IHXBuffer* pbufStatus);
 
+    // adapted from proxy message class
+    const char* TagStr                  (void) { return ("RESPONSE"); }
+    RTSPMethod GetType                  (void) { return RTSP_RESP; }
+    RTSPMethod GetRequestType           (void) { return m_reqType; }
+    void SetRequestType           (RTSPMethod type) { m_reqType = type; }
+
 protected:
     int ParseCommand(IHXBuffer* pbuf, UINT32* ppos);
 
-private:
+protected:
     IHXBuffer*          m_pbufMessage;
     UINT32              m_statuscode;
     IHXBuffer*          m_pbufReason;
+
+    // from proxy message class
+    RTSPMethod          m_reqType;
 };
 
 class CRTSPInterleavedPacket : public IHXRTSPConsumer,
@@ -184,7 +224,8 @@ public:
     STDMETHOD_(ULONG32,Release)     (THIS);
 
     // IHXRTSPConsumer
-    STDMETHOD(ReadDone)             (THIS_ IHXBuffer* pbufPacket, UINT32* ppos);
+    STDMETHOD(ReadDone)                 (THIS_ IHXBuffer* pbufPacket, 
+                                         UINT32* ppos);
     STDMETHOD_(UINT32,GetSize)      (THIS);
     STDMETHOD_(UINT32,Write)        (THIS_ BYTE* pbuf);
     STDMETHOD_(UINT32,AsBuffer)     (THIS_ REF(IHXBuffer*) pbuf );

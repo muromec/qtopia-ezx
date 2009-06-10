@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cookies.h,v 1.7 2006/03/08 19:13:40 ping Exp $
+ * Source last modified: $Id: cookies.h,v 1.16 2009/01/06 20:33:15 cbailey Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -55,10 +55,11 @@ typedef HXBOOL (PASCAL FAR	*INTERNETGETCOOKIE)(LPCSTR, LPCSTR, LPSTR, LPDWORD);
 typedef HXBOOL (PASCAL FAR	*INTERNETSETCOOKIE)(LPCSTR, LPCSTR, LPCSTR);
 #endif /* _WINDOWS */
 
-#ifdef _MACINTOSH
+#if defined(_MACINTOSH) || defined(_WINDOWS)
 #include <time.h>
 #endif
 
+#include "ihxcookies.h"
 #include "ihxcookies2.h"
 
 struct CookieStruct
@@ -88,24 +89,31 @@ struct CookieStruct
     HXBOOL	bMemoryOnly; //wasn't read from disk, but arrived via SetCookies (usually from playing a stream)
 };
 
-class HXCookies : public IHXCookies, public IHXCookies2
+class HXCookies : public IHXCookies, public IHXCookies2, public IHXCookies3
 {
 protected:  
 
     LONG32		m_lRefCount;
     IUnknown*		m_pContext;
     
+    UINT32              m_ulExternalCookies;
     HXBOOL		m_bInitialized;
     HXBOOL		m_bSaveCookies;
-    HXBOOL                m_bMemoryOnly;
+    HXBOOL              m_bMemoryOnly;
     char*		m_pNSCookiesPath;
-    char*               m_pFFCookiesPath;
+    char*               m_pFFTextCookiesPath;
+    char*               m_pFFSQLiteCookiesPath;
+    char*               m_pFFProfilePath;
     char*		m_pRMCookiesPath;
-    time_t		m_lastModification;
+    
+    time_t		m_lastRMCookiesFileModification;
+    time_t              m_lastFFTextCookiesFileModification;
+    time_t              m_lastFFSQLiteCookiesFileModification;
 
     CHXSimpleList*	m_pNSCookies;
     CHXSimpleList*      m_pFFCookies;
     CHXSimpleList*	m_pRMCookies;
+    CHXSimpleList*      m_pSFCookies;
 
     IHXPreferences*	m_pPreferences;
     IHXCookiesHelper*	m_pCookiesHelper;
@@ -120,8 +128,9 @@ protected:
     int			m_fileID;
 #endif /* _WINDOWS */
     
-    HX_RESULT	    PrepareCookiesPath(void);
+    HX_RESULT       PrepareCookies(void);
     HX_RESULT	    OpenCookies(char* pCookieFile, HXBOOL bRMCookies, CHXSimpleList*& pCookiesList);
+    HX_RESULT       OpenCookiesSQLite(char* pCookieFile, CHXSimpleList*& pCookiesList);
     HX_RESULT	    SaveCookies(void);
     HX_RESULT	    AddCookie(CookieStruct* pCookie, CHXSimpleList*& pCookiesList);
 
@@ -134,8 +143,8 @@ protected:
 				       char * hostname,
 				       char * name);
 
-    void	    UpdateModificationTime(void);
-    HXBOOL	    IsCookieFileModified(void);
+    void	    UpdateModificationTime(const char* pFile, time_t& lastModification);
+    HXBOOL	    IsCookieFileModified(const char* pFile, time_t lastModification);
     HX_RESULT	    MergeCookieList(CHXSimpleList* pFromList, CHXSimpleList* pToList);
     /*
     IHXBuffer*	    ConvertToAsciiString(char* pBuffer, UINT32 nBuffLen);
@@ -153,6 +162,20 @@ protected:
 				 REF(IHXBuffer*)   pPlayerCookies);
     HXBOOL	    DoesDomainMatch(const char* szDomain, const char* szDomainToParse);
     HXBOOL          DoPathsMatch   (const char* szCookiesPath, const char* szUrlPath);
+
+    HX_RESULT	    _prepareRMCookies(void);
+    HX_RESULT       _prepareIECookies(void);
+    HX_RESULT       _prepareNSCookies(void);
+    HX_RESULT       _prepareFFTextCookies(void);
+    HX_RESULT       _prepareFFSQLiteCookies(void);
+    HX_RESULT       _prepareSFCookies(void);
+    HXBOOL          _isFFCookiesEnabled(const char* pszPrefsPath);
+
+    HX_RESULT       SyncFFCookies(UINT32 ulCookieType);
+    HX_RESULT       GetFFPaths(UINT32 ulCookieType, char*& pszCookiesPath, char*& pszProfilePath);
+
+    // prefix '/' to pPathIn if it's not present
+    void            FixPath(const char* pPathIn, char*& pPathOut);
 
 public:
     HXCookies(IUnknown* pContext, HXBOOL bMemoryOnly = FALSE);
@@ -217,6 +240,13 @@ public:
 				 REF(IHXBuffer*)   pCookies,
 				 REF(IHXBuffer*)   pPlayerCookies);
 
+    /************************************************************************
+     *	Method:
+     *	    IHXCookies3::SyncRMCookies
+     *	Purpose:
+     *	    Synchronize RM cookies
+     */
+    STDMETHOD(SyncRMCookies)	(THIS_ HXBOOL bSave);
 
     virtual HX_RESULT	    SecureCookies();
     virtual HX_RESULT	    CheckCookies();
@@ -224,8 +254,10 @@ public:
     HX_RESULT	Initialize(void);
     void	Close(void);
     void        SetMemoryOnlyFlag(HXBOOL bMemoryOnly) { m_bMemoryOnly = bMemoryOnly; }
-    HXBOOL        GetMemoryOnlyFlag() const           { return m_bMemoryOnly;        }
-    HX_RESULT	SyncRMCookies(HXBOOL bSave);
+    HXBOOL      GetMemoryOnlyFlag() const           { return m_bMemoryOnly;        }
+
+    void        ProcessSelectResultPerRow(int num_fields, char **p_fields, char **p_col_names);
+
 #ifdef _TEST
     void	DumpCookies();
 #endif // _TEST

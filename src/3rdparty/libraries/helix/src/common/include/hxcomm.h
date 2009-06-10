@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcomm.h,v 1.4 2006/05/01 17:28:56 ping Exp $
+ * Source last modified: $Id: hxcomm.h,v 1.6 2007/10/18 08:56:26 dsingh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -660,5 +660,5 @@ DECLARE_INTERFACE_(IHXAccurateClock, IUnknown)
 
 #include "hxcomptr.h"
 DEFINE_SMART_PTR(IHXStatistics)
-
+DEFINE_SMART_PTR(IHXFastAlloc)
 #endif /*_HXCOMM_H_*/

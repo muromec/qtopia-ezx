@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdrmcore.cpp,v 1.2 2007/04/05 21:56:15 sfu Exp $
+ * Source last modified: $Id: hxdrmcore.cpp,v 1.5 2007/10/05 18:38:04 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -108,6 +108,7 @@ HXDRM::HXDRM(HXSource* pSource) :
 
     HX_VERIFY(SUCCEEDED(m_pSource->GetPlayer(m_pPlayer)));
     m_pPlayer->AddRef();
+    memset(m_pszDRMId, 0, sizeof(m_pszDRMId));
 }
 
 HXDRM::~HXDRM()
@@ -147,6 +148,12 @@ STDMETHODIMP HXDRM::QueryInterface(REFIID riid, void** ppvObj)
     if (SUCCEEDED(res))
     {
         return res;
+    }
+
+    // otherwise, forward the QI to DRM plugin
+    if (m_pDigitalRightsManager)
+    {
+        return m_pDigitalRightsManager->QueryInterface(riid, ppvObj);
     }
 
     *ppvObj = NULL;
@@ -192,8 +199,12 @@ HX_RESULT HXDRM::InitDRMPlugin(IHXValues* pHeader)
     }
 
     // get the DRM Id from file header
-    IHXBuffer* pShortName = 0;
+    IHXBuffer* pShortName = NULL;
     pHeader->GetPropertyCString(HXDRM_NAME_DRMID, pShortName);
+    if (pShortName)
+    {
+        strncpy(m_pszDRMId, (char*)pShortName->GetBuffer(), 4);
+    }
 
     // plugin handler
     IHXPlugin2Handler* pPluginHandler = NULL;
@@ -433,5 +444,46 @@ HX_RESULT HXDRM::StreamHeaderHook(IHXValues* pHeader)
         }
         HX_RELEASE(pPreRecordingHook);
     }
+    return HXR_OK;
+}
+
+// get LicenseInfo from DRM plugin IHXDRMStatus interface
+// wrap DRMId with LicenseInfo together as a XML document
+HX_RESULT HXDRM::GetLicenseInfo(IHXBuffer* pLicenseInfoBuffer)
+{
+   //query DRM plugin to get the LicenseInfo string
+    IHXBuffer* pDRMLicenseInfo = NULL;
+    IHXDRMStatus* pDRMStatus = NULL;
+    IHXValues* pProperties = NULL;
+    if (m_pDigitalRightsManager)
+    {
+        if (SUCCEEDED(m_pDigitalRightsManager->QueryInterface(IID_IHXDRMStatus, (void**)&pDRMStatus)))
+        {
+            if (SUCCEEDED(pDRMStatus->GetContentProperties(pProperties)))
+            {
+                if (pProperties)
+                {
+                    pProperties->GetPropertyBuffer("LicenseInfo", pDRMLicenseInfo);
+                }
+            }
+        }
+    }
+
+    //create an XML structure wrapping DRMId and DRMLicenseInfo together
+    const char* pszXMLFormat = "<LicenseInfo DRMId=\"%s\">%s</LicenseInfo>";
+    int len = strlen(pszXMLFormat) + 1 + 4 + (pDRMLicenseInfo?pDRMLicenseInfo->GetSize():0);
+    char* pszXML = new char[len];
+    SafeSprintf(pszXML, len, pszXMLFormat, m_pszDRMId, 
+                    pDRMLicenseInfo?pDRMLicenseInfo->GetBuffer():(UCHAR*)"");
+
+    if (pLicenseInfoBuffer)
+    {
+        pLicenseInfoBuffer->Set((const UCHAR*)pszXML, strlen(pszXML)+1);
+    }
+
+    HX_RELEASE(pDRMLicenseInfo);
+    HX_RELEASE(pProperties);
+    HX_RELEASE(pDRMStatus);
+
     return HXR_OK;
 }

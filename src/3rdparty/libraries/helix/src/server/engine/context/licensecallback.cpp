@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: licensecallback.cpp,v 1.2 2003/01/23 23:42:53 damonlan Exp $ 
+ * Source last modified: $Id: licensecallback.cpp,v 1.3 2008/03/07 06:39:38 vijendrakumara Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -52,7 +52,7 @@
 LicenseCallbackManager::LicenseCallbackManager (Process* pProc):m_lRefCount(0),
                                     m_pRegistry(NULL), m_pWatch(NULL)
 {
-	m_pCBList = new CHXSimpleList();
+    m_pCBList = new CHXSimpleList();
     
     pProc->pc->server_context->QueryInterface(IID_IHXRegistry, (void**)&m_pRegistry);
     m_pRegistry->CreatePropWatch(m_pWatch);
@@ -102,7 +102,7 @@ LicenseCallbackManager::Release()
 {
     if (InterlockedDecrement(&m_lRefCount) > 0)
     {
-	return m_lRefCount;
+    return m_lRefCount;
     }
     delete this;
     return 0;
@@ -120,15 +120,15 @@ LicenseCallbackManager::QueryInterface(REFIID riid, void** ppvObj)
 {
     if (IsEqualIID(riid, IID_IUnknown))
     {
-    	AddRef();
-	    *ppvObj = (IUnknown*)(IHXPropWatchResponse*)this;
-	    return HXR_OK;
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXPropWatchResponse*)this;
+        return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IHXPropWatchResponse))
     {
-	    AddRef();
-    	*ppvObj = (IHXPropWatchResponse*)this;
-	    return HXR_OK;
+        AddRef();
+        *ppvObj = (IHXPropWatchResponse*)this;
+        return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IHXLicenseCallback))
     {
@@ -184,6 +184,7 @@ STDMETHODIMP LicenseCallbackManager::AddedProp(const UINT32 ulID,
                 }
                 m_pCBList->RemoveAll();
             }
+            HX_RELEASE(pBuffer);
         }
     }
     

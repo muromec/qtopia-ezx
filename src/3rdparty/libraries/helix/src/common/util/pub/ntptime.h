@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ntptime.h,v 1.5 2005/03/14 19:36:41 bobclark Exp $
+ * Source last modified: $Id: ntptime.h,v 1.7 2009/01/13 18:13:40 jgordon Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -87,6 +87,7 @@ public:
     // comparison
     INT32 compare(const NTPTime& lhs) const;
     UINT32 toMSec();
+    Timeval toTimeval();
 
     UINT32 m_ulSecond;
     UINT32 m_ulFraction;
@@ -113,6 +114,13 @@ inline void NTPTime::fromTimeval(Timeval tv)
 {
     m_ulSecond = (UINT32)tv.tv_sec + GETTIMEOFDAY_TO_NTP_OFFSET;
     m_ulFraction = usec2ntp((UINT32)tv.tv_usec);
+}
+
+inline Timeval NTPTime::toTimeval()
+{
+    Timeval tv  ((long)m_ulSecond,
+                (long)(((double)m_ulFraction * 1000000.0) / (double)MAX_UINT32));
+    return tv;
 }
 
 inline HXBOOL operator==(const NTPTime& t1, const NTPTime& t2)

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: resolver_mux.cpp,v 1.4 2006/02/27 20:08:04 atin Exp $ 
+ * Source last modified: $Id: resolver_mux.cpp,v 1.5 2008/07/03 21:54:18 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -102,7 +102,7 @@
 
 #define INADDR_NONE_U 0xffffffffUL
 
-#if defined(_SOLARIS)
+#if defined(_SOLARIS) || defined(_LSB)
 static int inet_aton_resolver( const char* cp, struct in_addr* inp )
 {
     unsigned long addr = inet_addr( cp );

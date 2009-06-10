@@ -2,7 +2,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: linux-common.cf,v 1.9 2006/07/06 19:28:06 jfinnecy Exp $ 
+#  Source last modified: $Id: linux-common.cf,v 1.10 2007/06/13 01:12:50 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -89,7 +89,7 @@ make_toc.cmd = 'ranlib'
 make_toc.make_var = 'RANLIB'
 
 make_lib = platform.make_lib
-make_lib.cmd = 'python %s cr ' % os.path.join(os.environ["BUILD_ROOT"],"bin","pyar.py")
+make_lib.cmd = 'python %s cr ' % os.path.join("$(BUILD_ROOT)","bin","pyar.py")
 make_lib.make_var = 'MAKE_LIB'
 make_lib.make_flags = 'MAKE_LIB_FLAGS'
 
@@ -110,7 +110,7 @@ class LinuxMakeDepend(MakeDepend):
         list.append("-m%s" % (project.makefile_name))
 
         cmd = "%s --gnumake %s %s %s" % (
-            os.path.join(os.environ["BUILD_ROOT"],"bin","mkdepend.py"),
+            os.path.join("$(BUILD_ROOT)","bin","mkdepend.py"),
             string.join(list),
             platform.form_var("INCLUDES"),
             sources)

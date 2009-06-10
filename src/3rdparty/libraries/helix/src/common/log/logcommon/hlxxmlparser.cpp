@@ -353,7 +353,7 @@ ElementData::~ElementData()
     CHXPtrArray::Iterator ElementIter;
     for(ElementIter = m_vChildElements.Begin(); ElementIter != m_vChildElements.End(); ++ElementIter)
     {
-        CHXTElement* pElem = (CHXTElement*)*iter;
+        CHXTElement* pElem = (CHXTElement*)*ElementIter;
         HX_DELETE(pElem);
     }
 }
@@ -590,8 +590,7 @@ void CHXTXmlParser::startElement(void *userData, const char *name, const char **
     // stack then this must be the root element, so add it accordingly
     if (pThis->m_stackElement.IsEmpty())
     {        
-        CHXTElement* pNewElementClone = new CHXTElement(*pNewElement);
-        pThis->AddRootElement(pNewElementClone);
+        pThis->AddRootElement(pNewElement);
     }
     else
     {
@@ -608,7 +607,6 @@ void CHXTXmlParser::endElement(void *userData, const char *name)
 {
     CHXTXmlParser* pThis = (CHXTXmlParser*)userData;
     CHXTElement* pTopElement = (CHXTElement*)pThis->m_stackElement.Pop();
-    delete pTopElement;
 }
 
 void CHXTXmlParser::characterDataHandler(void *userData, const char *szCharData, int nLength)

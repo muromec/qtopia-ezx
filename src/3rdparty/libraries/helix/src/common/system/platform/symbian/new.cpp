@@ -18,13 +18,31 @@
 #define __NO_THROW
 #endif
 
-void OutOfMemory()
+void OutOfMemory(void* &p, size_t size, void* pOld)
 {
-    SymbianMemoryMonitor *pMonitor = SymbianMemoryMonitor::Instance();
+	  //Allocate requested memory and complete the request
+	  SymbianMemoryMonitor *pMonitor = SymbianMemoryMonitor::Instance();
     if (pMonitor)
     {
-        pMonitor->SendEvent(SymbianMemoryMonitor::EOutOfMemory);
+        //Free Mem out buffersize so that memory allocation passes
+        //through 
+        pMonitor->RelaseTempMem();
+    	  if (size < (KMaxTInt/2))
+        {
+            //Check for realloc	
+    		    if(pOld)
+    		    {
+    			      p = User::ReAlloc(pOld, size);
+    				}
+    		    else
+    		    {
+    				    p = User::Alloc(size);
+      	    }
+    	  }
+    	  //Report out of memory back to helix.
+    	  pMonitor->SendEvent(SymbianMemoryMonitor::EOutOfMemory);
     }
+    
 }
 
 void* operator new(size_t size) __NO_THROW
@@ -44,7 +62,9 @@ void* operator new(size_t size) __NO_THROW
 
     if (!p)
     {
-        OutOfMemory();
+        void* pOld = NULL;
+        //Report out of memory
+        OutOfMemory(p, size, pOld);
     }
     return p;
 }
@@ -59,7 +79,9 @@ void* operator new[](size_t size) __NO_THROW
 
     if (!p)
     {
-        OutOfMemory();
+ 		    void* pOld = NULL;
+ 		    //Report out of memory
+		    OutOfMemory(p, size, pOld);
     }
     return p;
 }
@@ -93,7 +115,9 @@ void* malloc(size_t size)
 
     if (!p)
     {
-        OutOfMemory();
+        void* pOld = NULL;
+        //Report out of memory
+        OutOfMemory(p, size, pOld);
     }
 
     return p;
@@ -109,7 +133,7 @@ void* realloc(void* pOld, size_t size)
 
     if (p == NULL)			// allocation failure
 	{
-        OutOfMemory();
+		    OutOfMemory(p, size, pOld);
     }
 
     return p;

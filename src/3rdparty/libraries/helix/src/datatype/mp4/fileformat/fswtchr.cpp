@@ -549,12 +549,35 @@ STDMETHODIMP CFileSwitcher::Init(IHXFileObject* pFileObject,
 	m_pResponse = pResponse;
 	m_pResponse->AddRef();
 
+        /* 
+         * XXX AAK: 11/29/2007 - fix for a server crash seen when the server 
+         * was loaded with clients requesting valid and invalid mp4 filenames.
+         *
+         * add the AddRef()/Release() wrapper around this code 
+         * because if the file object fails to initialize
+         * due to an invalid filename or something else, then it ends 
+         * releasing the CFileSwitcher and calls CQTFileFormat::Close()
+         * * which Releases() CFileSwitcher so that the m_lRefCount == 0.
+         *
+         * for the most part in the server this recently deleted memory does 
+         * not get allocated to another thread before the call to 
+         * HandlFailureSync(), so that call succeeds.
+         *
+         * but, sometimes that memory does get allocated to another thread 
+         * before the call to HandleFailureSync(), then m_pResponse (which was
+         * set to NULL in the dtor) is no longer NULL and no longer a 
+         * IHXFileResponse object, so it ends up getting Release()d via the 
+         * macro HX_RELEASE() inside HandleFailureResponse() thus causing a 
+         * CRASH!
+         */
+	AddRef();
 	retVal = pFileObject->Init(m_ulFlags, (IHXFileResponse*) this);
 
 	if (FAILED(retVal))
 	{
 	    retVal = HandleFailureSync(retVal);
 	}
+	Release();
     }
 
     return retVal;
@@ -1122,19 +1145,6 @@ STDMETHODIMP CFileSwitcher::Func(void)
 }
 
 /****************************************************************************
- *  IHXThreadSafeMethods method
- */
-/****************************************************************************
- *  IsThreadSafe
- */
-STDMETHODIMP_(UINT32)
-CFileSwitcher::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FSR_READDONE;
-}
-
-
-/****************************************************************************
  *  IHXGetFileFromSamePoolResponse method
  */
 /****************************************************************************
@@ -1251,13 +1261,6 @@ STDMETHODIMP CFileSwitcher::QueryInterface(REFIID riid, void** ppvObj)
 	*ppvObj = this;
 	return HXR_OK;
     }
-    else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
-    {
-	AddRef();
-	*ppvObj = (IHXThreadSafeMethods*) this;
-	return HXR_OK;
-    }
-
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     else if (IsEqualIID(riid, IID_IHXMediaBytesToMediaDur))
     {

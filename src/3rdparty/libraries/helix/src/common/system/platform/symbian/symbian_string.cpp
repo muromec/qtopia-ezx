@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbian_string.cpp,v 1.2 2006/08/23 00:41:50 gashish Exp $
+ * Source last modified: $Id: symbian_string.cpp,v 1.4 2009/03/04 00:46:23 girish2080 Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -309,5 +309,75 @@ AllocTextL(const CHXString& str)
     return pText;
 }
 
+HBufC* PrefixNameSpaceLC(const TDesC& aPath, const char* const aNameSpace)
+{
+  HBufC* pName = NULL;
+  TBuf<KMaxFileName> dllNamePath;
+  PrefixNameSpace(aPath, aNameSpace, dllNamePath);
+  pName = dllNamePath.AllocLC();
+
+  return pName;
+}
+
+void PrefixNameSpace(const TDesC& aPath, const char* const aNameSpace, TDes& aDllNamePath)
+{
+  aDllNamePath.Copy(aPath);
+
+  //If valid name-space
+  if(aNameSpace != NULL)
+  {
+	  TBufC8<KMaxFileName> dllPrefix((const unsigned char*)aNameSpace);
+	  TBuf<KMaxFileName> fileName;
+	  fileName.Copy(dllPrefix);
+
+	  TInt index = aDllNamePath.LocateReverseF('\\');
+	  if (KErrNotFound != index)
+	  {
+		  //If aDllNamePath has path and filename component, fetch filename
+		  index += 1;
+		  fileName.Append(aDllNamePath.Right(aDllNamePath.Length() - index));
+	  }
+	  else
+	  {
+		  //aDllNamePath has only filename
+		  index = 0;
+		  fileName.Append(aDllNamePath);
+	  }
+	  //prefix with version [name-space]
+	  aDllNamePath.SetLength(index);
+	  aDllNamePath.Append(fileName);
+  }
+
+  return;
+}
+
+HBufC* PrefixNameSpaceLC(const TDesC& aPath)
+{
+#ifdef HELIX_DEFINE_DLL_NAMESPACE
+  const char* const pNamespace = STRINGIFY(HELIX_DEFINE_DLL_NAMESPACE);
+  return PrefixNameSpaceLC(aPath, pNamespace);
+#else
+  return aPath.AllocLC();
+#endif //HELIX_DEFINE_DLL_NAMESPACE
+}
+
+void PrefixNameSpace(const TDesC& aPath, TDes& aDllNamePath)
+{
+#ifdef HELIX_DEFINE_DLL_NAMESPACE
+  const char* const pNamespace = STRINGIFY(HELIX_DEFINE_DLL_NAMESPACE);
+  return PrefixNameSpace(aPath, pNamespace, aDllNamePath);
+#else
+  return aDllNamePath.Copy(aPath);
+#endif //HELIX_DEFINE_DLL_NAMESPACE
+}
+
+//Prefix HELIX_DEFINE_DLL_NAMESPACE only if its defined
+void PrefixNameSpace(CHXString& aDest)
+{
+#ifdef HELIX_DEFINE_DLL_NAMESPACE
+  const char* pNamespace = STRINGIFY(HELIX_DEFINE_DLL_NAMESPACE);
+  aDest = pNamespace + aDest;
+#endif //HELIX_DEFINE_DLL_NAMESPACE
+}
 } // ns CHXSymbianString
 

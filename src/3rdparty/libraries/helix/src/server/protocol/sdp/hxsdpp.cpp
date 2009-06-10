@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxsdpp.cpp,v 1.5 2006/10/17 18:29:40 jzeng Exp $ 
+ * Source last modified: $Id: hxsdpp.cpp,v 1.6 2007/08/06 06:10:08 vijendrakumara Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -771,7 +771,6 @@ CSDPAttrib::SetStrValue( IHXBuffer* pbufValue )
 
     HX_RELEASE( m_pbufAttrib );
     HX_RELEASE( m_sdpval.bufval );
-    pbufValue->AddRef();
     m_sdpval.bufval = sdp_encode_string( pbufValue );
 
     return HXR_OK;

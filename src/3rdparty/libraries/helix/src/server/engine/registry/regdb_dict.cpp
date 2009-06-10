@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regdb_dict.cpp,v 1.2 2003/01/23 23:42:57 damonlan Exp $ 
+ * Source last modified: $Id: regdb_dict.cpp,v 1.3 2009/05/30 19:09:56 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -78,13 +78,12 @@ ServRegDB_dict::strtolower(char* str)
     }
 }
 			 
-ServRegDB_dict::ServRegDB_dict(RegistryMemCache* pCache)
+ServRegDB_dict::ServRegDB_dict()
     : _compare(strcasecmp)
     , _hash(serv_hash_torek)
     , _size(16)
     , _count(0)
     , _owner_node(0)
-    , m_pCache(pCache)
 {
     _table = new ServRegDB_node*[_size];
     memset(_table, 0, HX_SAFESIZE_T(sizeof(void *) * _size));
@@ -95,7 +94,6 @@ ServRegDB_dict::ServRegDB_dict(RegistryMemCache* pCache)
 }
 
 ServRegDB_dict::ServRegDB_dict(ServRegDB_node* parent,
-                               RegistryMemCache* pCache,
                                Keytype nbuckets,
 	                       Keytype (*hash)(const char*), 
                                int (*compare)(const char*, const char*))
@@ -104,7 +102,6 @@ ServRegDB_dict::ServRegDB_dict(ServRegDB_node* parent,
     , _size(nbuckets)
     , _count(0)
     , _owner_node(parent)
-    , m_pCache(pCache)
 {
     _table = new ServRegDB_node*[_size];
     memset(_table, 0, HX_SAFESIZE_T(sizeof(void *) * _size));
@@ -127,6 +124,9 @@ ServRegDB_dict::~ServRegDB_dict()
 	}
     }
     delete[] _table;
+    _size = 0;
+    _count = 0;
+    _owner_node = 0;
 }
 
 Keytype
@@ -211,7 +211,7 @@ ServRegDB_dict::add(char* key_str, ServRegProperty * new_p)
 	_table = tab;
 	_size = nb;
     }
-    e =  new(m_pCache) ServRegDB_node();
+    e =  new ServRegDB_node();
     if (e)
     {
 	e->next = _table[h%_size];

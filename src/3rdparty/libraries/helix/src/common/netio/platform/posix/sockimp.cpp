@@ -195,7 +195,8 @@ CHXSocketConnectEnumerator::AttemptConnect(HX_RESULT status)
             break;
         }
 
-        if (HXR_OK == m_pSock->ConnectToOne(m_ppAddrVec[m_nIndex++]))
+        status = m_pSock->ConnectToOne(m_ppAddrVec[m_nIndex++]);
+        if (SUCCEEDED(status))
         {
             break;
         } // else, ignore (hide) failure and continue
@@ -373,7 +374,7 @@ CHXSocket::OnEvent(UINT32 uEvent)
     // If the socket is lingering, the write queue is being flushed
     if (m_sock.state == HX_SOCK_STATE_LINGERING)
     {
-        HX_ASSERT(uEvent & HX_SOCK_EVENT_WRITE);
+        //HX_ASSERT(uEvent & HX_SOCK_EVENT_WRITE); //disabled noisy assert, tracked via PR 199216
         HX_RESULT hxr = HandleWriteEvent();
         if (FAILED(hxr) || m_pWriteQueue->IsEmpty())
         {
@@ -391,7 +392,10 @@ CHXSocket::OnEvent(UINT32 uEvent)
         if ((uEvent & HX_SOCK_EVENT_READ) && m_pResponse != NULL)
         {
             m_uAllowedEventMask &= ~(HX_SOCK_EVENT_READ |HX_SOCK_EVENT_ACCEPT |HX_SOCK_EVENT_CLOSE);
-            time(&m_tLastPacket);
+            if (m_uIdleTimeout)
+            {
+                time(&m_tLastPacket);
+            }
             m_pResponse->EventPending(HX_SOCK_EVENT_READ, HXR_OK);
             Select((m_uUserEventMask & m_uAllowedEventMask) | m_uForcedEventMask);
         }
@@ -771,6 +775,11 @@ CHXSocket::Bind(IHXSockAddr* pAddr)
                 }
                 // Binding is dual, fall through
             }
+            else
+            {
+                m_pSock4->Close();
+                HX_RELEASE(m_pSock4);
+            }
         }
 #endif
         if (hx_bind(&m_sock, psa, salen) == 0)
@@ -1013,9 +1022,14 @@ CHXSocket::Close(void)
         m_pSock4->Close();
     }
 #endif
-    if (HX_SOCK_VALID(m_sock) && !m_pWriteQueue->IsEmpty())
+    // if a socket is ready for reading and a read returns zero bytes
+    // then it generally means that the socket has been closed from
+    // the peer's side, so its ok to close the socket from our side too.
+    if (HX_SOCK_VALID(m_sock) && 
+	m_sock.state != HX_SOCK_STATE_CLOSED && 
+	!m_pWriteQueue->IsEmpty())
     {
-        UINT32 uLinger;
+        UINT32 uLinger = LINGER_OFF;
         if (hx_getsockopt(&m_sock, HX_SOCKOPT_LINGER, &uLinger) != 0)
         {
             HX_ASSERT(FALSE);
@@ -1233,6 +1247,7 @@ CHXSocket::SetOption(HXSockOpt name, UINT32 val)
         }
         break;
     case HX_SOCKOPT_APP_IDLETIMEOUT:
+        // Calling with val=0 disables the idle timeout if already set.
         HX_ASSERT(m_pScheduler);
         if (m_pScheduler == NULL)
         {
@@ -1447,23 +1462,34 @@ CHXSocket::SetSourceOption(HXMulticastSourceOption flag,
 STDMETHODIMP
 CHXSocket::Func(void)
 {
+    AddRef();
+    m_hIdleCallback = 0;
+    UINT32 uNextSched = 0;
     time_t now;
-    UINT32 uNextSched;
     time(&now);
-    if (m_tLastPacket+(time_t)m_uIdleTimeout < now)
+    if ((now - m_tLastPacket > (time_t)m_uIdleTimeout * 1000))
     {
+        uNextSched = m_uIdleTimeout * 1000;
+
         if (m_pResponse != NULL)
         {
             m_pResponse->EventPending(HX_SOCK_EVENT_ERROR, HXR_SOCK_TIMEDOUT);
         }
-        uNextSched = m_uIdleTimeout*1000;
+        if (m_sock.state == HX_SOCK_STATE_CLOSED)
+        {
+            //Socket is closed, so don't reschedule the Idle timeout 
+            Release();
+            return HXR_OK;
+        }
     }
     else
     {
-        uNextSched = (m_tLastPacket+m_uIdleTimeout-now)*1000;
+        uNextSched = m_tLastPacket + ((time_t)m_uIdleTimeout * 1000) - now;
     }
+
     HX_ASSERT(m_uIdleTimeout != 0);
     m_hIdleCallback = m_pScheduler->RelativeEnter(this, uNextSched);
+    Release();
     return HXR_OK;
 }
 
@@ -2369,6 +2395,12 @@ CHXListeningSocket::EventPending(UINT32 uEvent, HX_RESULT status)
 	{
 	    m_pResponse->OnError(HXR_SOCK_NETDOWN /* XXX */);
 	}
+        break;
+    case HXR_SOCK_TIMEDOUT:
+        if (m_pResponse != NULL)
+        {
+	    m_pResponse->OnError(HXR_SOCK_TIMEDOUT);
+        }
         break;
     default:
         HX_ASSERT(FALSE);

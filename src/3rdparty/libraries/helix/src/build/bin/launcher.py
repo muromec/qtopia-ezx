@@ -1,6 +1,6 @@
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: launcher.py,v 1.2 2006/07/06 19:28:04 jfinnecy Exp $ 
+#  Source last modified: $Id: launcher.py,v 1.3 2007/07/17 00:17:47 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -120,8 +120,8 @@ class Launcher:
             log.info( 'Received keyboard interrupt - aborting.' )
             sys.exit(0)
             
-        except SystemExit:
-            sys.exit(0)
+        except SystemExit, e:
+            sys.exit(e)
             
         except:
             e = err.Error()

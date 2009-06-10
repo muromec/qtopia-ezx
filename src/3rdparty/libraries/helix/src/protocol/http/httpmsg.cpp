@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpmsg.cpp,v 1.14 2006/05/12 01:48:24 atin Exp $
+ * Source last modified: $Id: httpmsg.cpp,v 1.16 2009/01/08 06:33:15 alokjain Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -246,7 +246,7 @@ HTTPMessage::getHeaderValue(const char* pName, UINT32& value)
     CHXString strValue = getHeaderValue(pName);
     if(strValue != "")
     {
-	value = (UINT32)strtol((const char*)strValue, 0, 10);
+	value = (UINT32)strtoul((const char*)strValue, 0, 10);
 	return 1;
     }
     return 0;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcleng.h,v 1.43 2007/04/14 04:36:15 ping Exp $
+ * Source last modified: $Id: hxcleng.h,v 1.49 2009/03/10 20:07:31 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -93,8 +93,6 @@ class	HXValidator;
 class	HXExternalResourceManager;
 class	CHXCredentialsCache;
 class	CHXResMgr;
-class	HXCookies;
-class	HXCookiesHelper;
 class	HXPreferredTransportManager;
 class	HXProxyManager;
 class	CMediumBlockAllocator;
@@ -124,10 +122,6 @@ struct  IHXBandwidthManager;
 struct	IHXContextUser;
 struct	IHXSiteEventHandler;
 struct	IHXMediaPlatformKicker;
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
-struct IHXDllAccess;
-struct IHXTLogSystem;
-#endif
 
 struct  IHXExternalSystemClock;
 
@@ -243,9 +237,6 @@ protected:
     IHXAsyncIOSelection*    m_pAsyncIOSelection;
     HXBOOL                    m_bNetworkThreading;
 #endif
-    HXCookies*		    m_pCookies;
-    HXCookiesHelper*	    m_pCookiesHelper;
-
     IHXProxyAutoConfig*    m_pProxyAutoConfig;
 
     HXValidator*	    m_pValidator;
@@ -272,23 +263,9 @@ protected:
     HXOverlayManager*              m_pOverlayManager;
     IHXMultiPlayPauseSupport*	   m_pMultiPlayPauseSupport;
     IUnknown*                      m_pConnBWInfo;
-
-// Logging Data
-#if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && defined(HELIX_FEATURE_CORE_LOG)
-    IHXDllAccess*            m_pDllAccess;
-    IHXTLogSystem*           m_pLogSystem;
-#endif // End of !defined(HELIX_FEATUTE_LOGLEVEL_NONE)
 public:
 
-#if defined(_STATICALLY_LINKED) || !defined(HELIX_FEATURE_PLUGINHANDLER2)
-#if defined(HELIX_CONFIG_CONSOLIDATED_CORE)
-    BaseHandler*            m_pPlugin2Handler;
-#else /* HELIX_CONFIG_CONSOLIDATED_CORE */
-    HXPluginManager*	    m_pPlugin2Handler;
-#endif /* HELIX_CONFIG_CONSOLIDATED_CORE */
-#else
     IHXPlugin2Handler*	    m_pPlugin2Handler;
-#endif /* _STATICALLY_LINKED */
 
     HXClientEngine(void);
     ~HXClientEngine(void);
@@ -638,16 +615,12 @@ public:
 
     void	NotifyPlayState(HXBOOL bInPlayingState);
 
-    HXCookies*	GetCookies() {return m_pCookies;};
-
     UINT32	m_lROBActive;
 
 protected:
     void _Initialize();
-    void InitLogging();
     virtual CHXAudioSession*	NewAudioSession();
     virtual HXPlayer*		NewPlayer();
-    virtual HXCookies*		NewCookies();
     void			CreatePrefIfNoExist(const char* pName, const char* pValue);
     void			CreatePluginDir();
     void			CreateCodecDir();

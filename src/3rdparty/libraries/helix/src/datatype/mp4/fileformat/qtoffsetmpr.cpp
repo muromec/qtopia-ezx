@@ -41,7 +41,6 @@
  *  Includes
  */
 #include <stdlib.h>
-#include <search.h>
 
 #include "qtoffsetmpr.h"
 #include "hxprdnld.h"

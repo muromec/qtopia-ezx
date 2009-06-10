@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspprot2.cpp,v 1.19 2006/12/21 19:04:55 tknox Exp $
+ * Source last modified: $Id: rtspprot2.cpp,v 1.21 2008/03/09 12:20:21 npatil Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -428,15 +428,18 @@ CRTSPProtocol::GetAddrInfoDone(HX_RESULT status, UINT32 nVecLen, IHXSockAddr** p
     }
     else
     {
-        m_pSock->SelectEvents(HX_SOCK_EVENT_CONNECT | HX_SOCK_EVENT_READ | HX_SOCK_EVENT_CLOSE);
-        status = m_pSock->ConnectToAny(nVecLen, ppAddrVec);
-        if (status != HXR_OK)
+        if( m_pSock)
         {
-            if (m_pResponse != NULL)
+            m_pSock->SelectEvents(HX_SOCK_EVENT_CONNECT | HX_SOCK_EVENT_READ | HX_SOCK_EVENT_CLOSE);
+            status = m_pSock->ConnectToAny(nVecLen, ppAddrVec);
+            if (status != HXR_OK)
             {
-                m_pResponse->OnConnectDone(status);
+                if (m_pResponse != NULL)
+                {
+                    m_pResponse->OnConnectDone(status);
+                }
+                HX_RELEASE(m_pSock);
             }
-            HX_RELEASE(m_pSock);
         }
     }
 
@@ -663,14 +666,6 @@ CRTSPProtocol::Closed(HX_RESULT status)
     }
 
     return HXR_OK;
-}
-
-/*** IHXThreadSafeMethods methods ***/
-
-UINT32
-CRTSPProtocol::IsThreadSafe(void)
-{
-    return HX_THREADSAFE_METHOD_SOCKET_READDONE;
 }
 
 void

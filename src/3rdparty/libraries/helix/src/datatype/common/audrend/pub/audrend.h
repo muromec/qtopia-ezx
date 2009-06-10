@@ -47,6 +47,7 @@
 #include "hxcore.h"
 #include "hxtick.h"
 #include "hxerror.h"
+#include "hxplayvelocity.h"
 
 #include "audstats.h"
 
@@ -61,6 +62,7 @@ class CAudioRenderer : public IHXPlugin,
 		       public IHXRenderer,
 		       public IHXStatistics,
 		       public IHXInterruptSafe,
+		       public IHXPlaybackVelocity,
 		       public IHXDryNotification
 {
 protected:
@@ -81,6 +83,16 @@ protected:
 
     HX_RESULT InitAudioStream (IHXValues* pHeader,
 			       IHXAudioStream** ppAudioStream);
+
+	//  IHXPlaybackVelocity methods
+    STDMETHOD(InitVelocityControl)         (THIS_ IHXPlaybackVelocityResponse* pResponse);
+    STDMETHOD(QueryVelocityCaps)           (THIS_ REF(IHXPlaybackVelocityCaps*) rpCaps);
+    STDMETHOD(SetVelocity)                 (THIS_ INT32 lVelocity, HXBOOL bKeyFrameMode, HXBOOL bAutoSwitch);
+    STDMETHOD_(INT32,GetVelocity)          (THIS);
+    STDMETHOD(SetKeyFrameMode)             (THIS_ HXBOOL bKeyFrameMode);
+    STDMETHOD_(HXBOOL,GetKeyFrameMode)     (THIS);
+    STDMETHOD_(UINT32,GetKeyFrameInterval) (THIS) { return 0; }
+    STDMETHOD(CloseVelocityControl)        (THIS);
 
     HX_RESULT DoAudio	      (UINT32 &ulAudioTime, 
 			       AUDIO_STATE audioState  = AUDIO_NORMAL);
@@ -116,6 +128,8 @@ protected:
     UINT32		    m_ulLastWriteTime;
     UINT32		    m_ulBaseWriteTime;
     INT32                   m_lTimeOffset;
+    INT32 		    m_lPlaybackVelocity;
+    HXBOOL		    m_bKeyFrameMode;
 
     PlayState		    m_PlayState;
   

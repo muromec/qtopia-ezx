@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: atomicbase.h,v 1.43 2007/03/12 05:20:13 lovish Exp $
+ * Source last modified: $Id: atomicbase.h,v 1.48 2009/02/26 01:38:49 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -56,7 +56,11 @@
 
 
 /****************************************************************************
- *  $Id: atomicbase.h,v 1.43 2007/03/12 05:20:13 lovish Exp $
+<<<<<<< atomicbase.h
+ *  $Id: atomicbase.h,v 1.48 2009/02/26 01:38:49 sfu Exp $
+=======
+ *  $Id: atomicbase.h,v 1.48 2009/02/26 01:38:49 sfu Exp $
+>>>>>>> 1.44.2.4
  *
  *  atomicbase.h - Defines several atomic operations
  * 
@@ -1426,6 +1430,165 @@ HXAtomicSubRetUINT32(UINT32* pNum, UINT32 n)
 
 #endif
 
+#elif defined(_BREW)
+
+/* Increment by 1 and return new value */
+inline INT32
+HXAtomicIncRetINT32(INT32* pNum)
+{
+    *pNum = *pNum + 1;
+    return *pNum;
+}
+
+/* Decrement by 1 and return new value */
+inline INT32
+HXAtomicDecRetINT32(INT32* pNum)
+{
+    *pNum = *pNum - 1;
+    return *pNum;
+}
+
+/* Increment by 1 and return new value */
+inline UINT32
+HXAtomicIncRetUINT32(UINT32* pNum)
+{
+    *pNum = *pNum + 1;
+    return *pNum;
+}
+
+/* Decrement by 1 and return new value */
+inline UINT32
+HXAtomicDecRetUINT32(UINT32* pNum)
+{
+    *pNum = *pNum - 1;
+    return *pNum;
+}
+
+inline UINT32
+HXAtomicExchange(UINT32* pui32Dest, UINT32 ui32Value)
+{
+    UINT32 temp = *pui32Dest;
+    *pui32Dest = ui32Value;
+    ui32Value = temp;
+    return  *pui32Dest;
+}	
+
+inline UINT32
+HXAtomicCompareExchange(UINT32* pui32Dest, UINT32 ui32Exchange, UINT32 ui32Comperand)
+{
+    int temp = *pui32Dest;
+    if(*pui32Dest == ui32Comperand)
+    {
+	*pui32Dest = ui32Exchange;
+    }
+    return temp;
+}
+
+inline void*
+HXAtomicExchangePointer(void** ppvDest, void* pvValue)
+{
+    void* temp = *ppvDest;
+    *ppvDest = pvValue;
+    return temp;
+}
+
+inline void*
+HXAtomicCompareExchangePointer(void** ppvDest, void* pvExchange, const void* pvComperand)
+{
+    void* temp = *ppvDest;
+    if(* ppvDest == pvComperand)
+    { 
+	*ppvDest = pvExchange;
+    }
+    return temp;
+}
+
+#define HXAtomicIncINT32(p)    HXAtomicIncRetINT32((p))
+#define HXAtomicDecINT32(p)    HXAtomicDecRetINT32((p))
+#define HXAtomicIncUINT32(p)   HXAtomicIncRetUINT32((p))
+#define HXAtomicDecUINT32(p)   HXAtomicDecRetUINT32((p))
+
+/***********************************************************************
+ * Android
+ *
+ * Implementation Notes:
+ *
+ * Android build uses Thumb instruction set, making the Linux/ARM 
+ * inline assembly implemention we have not usable (Thumb has no swp instruciton).
+ * 
+ * This ifdef has to be before the Linux/GCC ifdef because Android
+ * does have both _ARM_ and __GCC__ defined
+ */
+#elif defined(ANDROID)
+#include "cutils/atomic.h"
+
+/* Increment by 1 and return new value */
+static inline INT32
+HXAtomicIncRetINT32(INT32* pNum)
+{
+    return  android_atomic_inc((int32_t*)pNum) + 1;
+}
+
+/* Decrement by 1 and return new value */
+static inline INT32
+HXAtomicDecRetINT32(INT32* pNum)
+{
+    return  android_atomic_dec((int32_t*)pNum) - 1;
+}
+
+/* Increment by 1 and return new value */
+static inline UINT32
+HXAtomicIncRetUINT32(UINT32* pNum)
+{
+    return (UINT32)android_atomic_inc((int32_t*)pNum) + 1;
+}
+
+/* Decrement by 1 and return new value */
+static inline UINT32
+HXAtomicDecRetUINT32(UINT32* pNum)
+{
+    return (UINT32)android_atomic_dec((int32_t*)pNum) - 1;
+}
+
+/* Add n and return new value */
+static inline INT32
+HXAtomicAddRetINT32(INT32* pNum, INT32 n)
+{
+    return  android_atomic_add(n, (int32_t*)pNum) + n;
+}
+
+/* Subtract n and return new value */
+static inline INT32
+HXAtomicSubRetINT32(INT32* pNum, INT32 n)
+{
+    return  android_atomic_add(-((int32_t)n), (int32_t*)pNum) - n;
+}
+
+/* Add n and return new value */
+static inline UINT32
+HXAtomicAddRetUINT32(UINT32* pNum, UINT32 n)
+{
+    return  (UINT32)android_atomic_add(n, (int32_t*)pNum) + n;
+}
+
+/* Subtract n and return new value */
+static inline UINT32
+HXAtomicSubRetUINT32(UINT32* pNum, UINT32 n)
+{
+    return  (UINT32)android_atomic_add(-((int32_t)n), (int32_t*)pNum) - n;
+}
+
+
+#define HXAtomicIncINT32(p)    HXAtomicIncRetINT32((p))
+#define HXAtomicDecINT32(p)    HXAtomicDecRetINT32((p))
+#define HXAtomicIncUINT32(p)   HXAtomicIncRetUINT32((p))
+#define HXAtomicDecUINT32(p)   HXAtomicDecRetUINT32((p))
+#define HXAtomicAddINT32(p,n)    HXAtomicAddRetINT32((p),(n))
+#define HXAtomicSubINT32(p,n)    HXAtomicSubRetINT32((p),(n))
+#define HXAtomicAddUINT32(p,n)   HXAtomicAddRetUINT32((p),(n))
+#define HXAtomicSubUINT32(p,n)   HXAtomicSubRetUINT32((p),(n))
+
+
 /***********************************************************************
  * Linux / ARM (gcc)
  *
@@ -1448,7 +1611,7 @@ HXAtomicSubRetUINT32(UINT32* pNum, UINT32 n)
  *   7. Increment (or decrement) again if equal
  *   8. Save the new value to the INT32's location in memory
  *   9. Return new INT32 result if required
- *   
+ *
  */
 #elif defined (_ARM) && defined (__GNUC__)
 
@@ -1675,13 +1838,13 @@ extern "C" {
 // Unsupported platform
 //
 
-#ifndef HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS
+#define HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS
 // Defining HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS will use the ++ and --
 // operators in place of atomic operators in some places in the code. These
 // operators are not thread-safe, and should only be used in the intermediary
 // stages of porting.
-#  error "You need to create atomic dec/inc opers for your platform or #define HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS"
-#endif
+//#  error "You need to create atomic dec/inc opers for your platform or #define HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS"
+//#endif
 
 #endif
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxtsmartpointer.h,v 1.5 2005/12/06 20:52:28 ping Exp $
+ * Source last modified: $Id: hxtsmartpointer.h,v 1.7 2008/08/20 21:04:01 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,15 +47,12 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-#if !defined(HELIX_FEATURE_ALLOW_DEPRECATED_SMARTPOINTERS)
-#error Deprecated SmartPointer header is included, please use common/include/hxcomptr.h instead.
-#endif
-
 #ifndef SMART_POINTER_H
 #define SMART_POINTER_H
 
 #include "hxcom.h"
 
+#if defined(HELIX_FEATURE_ALLOW_DEPRECATED_SMARTPOINTERS)
 //
 // Smart Pointer class that works with any pointer derived from IUnknown
 
@@ -372,6 +369,28 @@ void AssertValidInterface( TSmartPointer spTest )
 #define ASSERT_VALID_INTERFACE
 #endif
 
+#else /* #if defined(HELIX_FEATURE_ALLOW_DEPRECATED_SMARTPOINTERS) */
+
+/* Implement deprecated smart pointers with HXCOMPtr-based smart pointers */
+#include "hxcomptr.h"
+
+/*
+ * HXT_MAKE_CLASS_SMART_PTR is used in Producer SDK code when
+ * a smart pointer is needed for a class. The class must implement
+ * IUnknown, but does not necessarily have to implement any interfaces
+ * which are derived from IUnknown.
+ */
+#define HXT_MAKE_CLASS_SMART_PTR(ClassName) HX_MAKE_CLASS_SMART_PTR_BY_NAME(ClassName, ClassName##Ptr)
+
+/*
+ * HXT_MAKE_SMART_PTR is the commonly-used macro in Producer SDK code when
+ * a smart pointer is needed for an IUnknown-derived interface.
+ * 
+ */
+#define HXT_MAKE_SMART_PTR(Interface) HX_MAKE_SMART_QUERY_PTR_BY_NAME_WITH_GUID(Interface, Interface##Ptr, IID_##Interface)
+
+
+#endif /* #if defined(HELIX_FEATURE_ALLOW_DEPRECATED_SMARTPOINTERS) #else */
 
 
 #endif // SMART_POINTER_H

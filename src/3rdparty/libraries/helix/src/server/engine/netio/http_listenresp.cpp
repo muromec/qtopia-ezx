@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http_listenresp.cpp,v 1.16 2005/01/25 22:55:21 jzeng Exp $
+ * Source last modified: $Id: http_listenresp.cpp,v 1.17 2008/07/28 22:56:07 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -79,7 +79,7 @@ STDMETHODIMP
 HTTPListenResponse::OnConnection(IHXSocket* pNewSock, IHXSockAddr* pSource)
 {
     HXSocketConnection* pConn;
-    pConn = new HXSocketConnection(pNewSock, HXPROT_UNKNOWN);
+    pConn = new HXSocketConnection(pNewSock, HXPROT_UNKNOWN, m_pMessages);
     // NB: We do not AddRef the connection, the socket does
 
     return HXR_OK;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: transportparams.cpp,v 1.6 2007/02/14 18:50:45 tknox Exp $
+ * Source last modified: $Id: transportparams.cpp,v 1.20 2009/02/07 06:28:15 jzeng Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -61,6 +61,7 @@
 #include "rtsppars.h"
 
 #include "rtspserv.h"
+#include "rtspsession.h"
 #include "rtspif.h"
 #include "rtsptran.h"
 #include "servlist.h"
@@ -86,8 +87,9 @@
 #include "mime2.h"
 
 #include "trmimemp.h"
-
+#include "defslice.h"
 #include "proc.h"
+#include "qos_cfg_names.h"
 #if 0
 #include "proc.h"
 #include "server_trace.h"
@@ -103,32 +105,6 @@
 #define IS_SUPPORTED_TRANSPORT(t) \
     ((t) > RTSP_TR_NONE && (t) < RTSP_TR_LAST && \
     (t) != RTSP_TR_RTP_MCAST && (t) != RTSP_TR_RTCP)
-
-static UINT8 RTSPTransportPriorityTable[] =
-{
-    4,     /* RTSP_TR_NONE */
-    4,     /* RTSP_TR_RDT_MCAST */
-    4,     /* RTSP_TR_RDT_UDP */
-    4,     /* RTSP_TR_RDT_TCP */
-    4,     /* RTSP_TR_TNG_UDP */
-    4,     /* RTSP_TR_TNG_TCP */
-    4,     /* RTSP_TR_TNG_MCAST */
-#if defined(HELIX_FEATURE_SERVER_PREFER_RTP)
-    3,     /* RTSP_TR_RTP_UDP  */
-    3,     /* RTSP_TR_RTP_MCAST */
-    3,     /* RTSP_TR_RTP_TCP */
-#else
-    4,     /* RTSP_TR_RTP_UDP  */
-    4,     /* RTSP_TR_RTP_MCAST */
-    4,     /* RTSP_TR_RTP_TCP */
-#endif
-    4,     /* RTSP_TR_RTCP */
-    4,     /* RTSP_TR_NULLSET */
-    4,     /* RTSP_TR_BCNG_UDP */
-    4,     /* RTSP_TR_BCNG_MCAST */
-    4     /* RTSP_TR_BCNG_TCP */
-};
-
 
 
 RTSPTransportParams::RTSPTransportParams() :
@@ -224,13 +200,37 @@ RTSPTransportInstantiator::RTSPTransportInstantiator(BOOL bAggregate)
                      : m_bAggregateTransport(bAggregate)
                      , m_pLocalAddr(NULL)
                      , m_bSelected(FALSE)
-                     , m_pServProt(NULL)
+                     , m_pBaseProt(NULL)
                      , m_usFirstStream(0)
                      , m_ulRefCount(0)
+                     , m_bPreferTCP(FALSE)
+                     , m_bPreferRTP(FALSE)
 {
 #if 0
     printf("RTSPTransportInstantiator(%p) created\n", this);
 #endif
+
+    m_RTSPTransportPriorityTable[RTSP_TR_NONE] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_RDT_MCAST] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_RDT_UDP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_RDT_TCP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_TNG_UDP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_TNG_TCP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_TNG_MCAST] = 4;
+#if defined(HELIX_FEATURE_SERVER_PREFER_RTP)
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_UDP] = 3;
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_MCAST] = 3;
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_TCP] = 3;
+#else
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_UDP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_MCAST] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_RTP_TCP] = 4;
+#endif
+    m_RTSPTransportPriorityTable[RTSP_TR_RTCP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_NULLSET] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_BCNG_UDP] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_BCNG_MCAST] = 4;
+    m_RTSPTransportPriorityTable[RTSP_TR_BCNG_TCP] = 4;
 }
 
 RTSPTransportInstantiator::~RTSPTransportInstantiator()
@@ -241,7 +241,7 @@ RTSPTransportInstantiator::~RTSPTransportInstantiator()
 
     clearTransportParamsList();
     HX_RELEASE(m_pContext);
-    HX_RELEASE(m_pServProt);
+    HX_RELEASE(m_pBaseProt);
     HX_RELEASE(m_pLocalAddr);
 }
 
@@ -261,7 +261,39 @@ RTSPTransportInstantiator::clearTransportParamsList(void)
     }
 }
 
+void
+RTSPTransportInstantiator::AdjustTransportPriorities()
+{
+    // "subtract 1" each time a transport is "preferred". 
+    // Among equal priority transports, preference is determined 
+    // by the client via advertising order
 
+    // In the code below, assignment is used instead of decrementing
+    // the original value, because we cannot ensure that
+    // AdjustTransportPriorities() is called only once
+
+    // Prefer RTP as transport only for non Real media content
+    if (m_bPreferRTP)
+    {
+        //Reset the transport priorities to prefer RTP
+        m_RTSPTransportPriorityTable [RTSP_TR_RTP_TCP] = 3;
+        m_RTSPTransportPriorityTable [RTSP_TR_RTP_UDP] = 3;
+        m_RTSPTransportPriorityTable [RTSP_TR_RTP_MCAST] = 3;
+    }
+
+    if (m_bPreferTCP)
+    {
+        //Reset the transport priorities to prefer TCP
+        m_RTSPTransportPriorityTable [RTSP_TR_RDT_TCP] = 3;
+        m_RTSPTransportPriorityTable [RTSP_TR_TNG_TCP] = 3;
+        m_RTSPTransportPriorityTable [RTSP_TR_RTP_TCP] = 3;
+    }
+
+    if (m_bPreferTCP && m_bPreferRTP)
+    {
+        m_RTSPTransportPriorityTable [RTSP_TR_RTP_TCP] = 2;
+    }
+}
 
 /**
  * \brief Init : initialize the RTSP session with its context
@@ -271,16 +303,54 @@ RTSPTransportInstantiator::clearTransportParamsList(void)
  * \return HXR_OK
  */
 HX_RESULT
-RTSPTransportInstantiator::Init(IUnknown* pContext,
-                            RTSPServerProtocol* pServerProtocol)
+RTSPTransportInstantiator::Init(IUnknown* pContext, 
+                                const char* pSessionID,
+                                IHXQoSSignalBus* pSignalBus,
+                                CRTSPBaseProtocol* pServerProtocol)
 {
-    STRACE1(this);
+    HX_RESULT hresult = HXR_OK;
+	STRACE1(this);
     m_pContext = pContext;
     m_pContext->AddRef();
 
-    m_pServProt = pServerProtocol;
-    m_pServProt->AddRef();
+    m_pBaseProt = pServerProtocol;
+    m_pBaseProt->AddRef();
 
+    IHXQoSProfileConfigurator* pProfileConfigurator = NULL;
+    if(pSignalBus && SUCCEEDED(pSignalBus->QueryInterface(
+                               IID_IHXQoSProfileConfigurator, (void**)&pProfileConfigurator)))
+    {
+        INT32 lTemp = 0;
+        if (SUCCEEDED(pProfileConfigurator->GetConfigInt(QOS_CFG_PREFER_RTP, lTemp))
+            && !m_pBaseProt->GetSession(pSessionID)->m_bIsRealDataType)
+        {
+            m_bPreferRTP = lTemp != 0 ? TRUE : FALSE;
+        }
+    }
+
+    IHXRegistry* pRegistry = NULL;
+    hresult = m_pContext->QueryInterface(IID_IHXRegistry,
+                                         (void**)&pRegistry);
+    HX_VERIFY(HXR_OK == hresult);
+    if (hresult == HXR_OK)
+    {
+        IHXBuffer* pBuf = NULL;
+        INT32 lEnabled = 0;
+        INT32 nTmp = 0;
+        
+        pRegistry->GetIntByName(REGISTRY_TCP_PREF_ENABLED, lEnabled);
+        nTmp = 0;
+        if ((lEnabled || LICENSE_TCP_PREF_ENABLED) && pProfileConfigurator &&
+              SUCCEEDED(pProfileConfigurator->GetConfigInt(QOS_CFG_PREFER_TCP, nTmp)))
+        {
+            m_bPreferTCP = nTmp != 0 ? TRUE : FALSE;
+        }
+    }
+
+    HX_RELEASE(pProfileConfigurator);
+    HX_RELEASE(pRegistry);
+
+    AdjustTransportPriorities();
     return HXR_OK;
 }
 
@@ -421,7 +491,7 @@ RTSPTransportInstantiator::parseTransportField(IHXMIMEField* pField,
                 if (uValLen < MAX_HOST_LEN)
                 {
                     HX_RELEASE(pParams->m_pDestAddr);
-                    m_pServProt->m_pSocket->CreateSockAddr(&pParams->m_pDestAddr);
+                    m_pBaseProt->m_pSock->CreateSockAddr(&pParams->m_pDestAddr);
                     pParams->m_pDestAddr->SetAddr(pBufVal);
                 }
             }
@@ -654,11 +724,11 @@ RTSPTransportInstantiator::parseTransportHeader(IHXMIMEHeader* pHeader,
                 RTSPTransportParams* pCurParams =
                     (RTSPTransportParams*)m_transportParamsList.GetHead();
 
-                UINT16 myPrio = (UINT16)RTSPTransportPriorityTable [pParams->m_lTransportType];
+                UINT16 myPrio = (UINT16)m_RTSPTransportPriorityTable [pParams->m_lTransportType];
 
                 while(cur && pCurParams)
                 {
-                    UINT16 curPrio = (UINT16)RTSPTransportPriorityTable [pCurParams->m_lTransportType];
+                    UINT16 curPrio = (UINT16)m_RTSPTransportPriorityTable [pCurParams->m_lTransportType];
 
                     if (myPrio < curPrio)
                     {
@@ -1200,7 +1270,7 @@ RTSPTransportInstantiator::MakeTransportHeader (BOOL bAggregate, UINT16 uStreamN
     IHXBuffer* pSourceAddrBuf = NULL;
     UINT16 nSourcePort;
     UINT16 nDestPort;
-    m_pServProt->GetSourceAddr(pSourceAddrBuf);
+    m_pBaseProt->GetSourceAddr(pSourceAddrBuf);
 
     IHXSockAddr* pLocalAddr = NULL;
     switch(pParams->m_lTransportType)
@@ -1223,16 +1293,16 @@ RTSPTransportInstantiator::MakeTransportHeader (BOOL bAggregate, UINT16 uStreamN
         case RTSP_TR_TNG_TCP:
         case RTSP_TR_RDT_TCP:
             p += sprintf(p, ";interleaved=%d",
-                m_pServProt->m_tcpInterleave);
-            m_pServProt->m_tcpInterleave++; // for next stream
+                m_pBaseProt->m_tcpInterleave);
+            m_pBaseProt->m_tcpInterleave++; // for next stream
             break;
 
         case RTSP_TR_RTP_TCP:
             // we need to include RTCP channel...
             p += sprintf(p, ";interleaved=%d-%d",
-                m_pServProt->m_tcpInterleave,
-                m_pServProt->m_tcpInterleave+1);
-            m_pServProt->m_tcpInterleave += 2; // for next stream
+                m_pBaseProt->m_tcpInterleave,
+                m_pBaseProt->m_tcpInterleave+1);
+            m_pBaseProt->m_tcpInterleave += 2; // for next stream
             break;
 
         case RTSP_TR_TNG_UDP:
@@ -1365,6 +1435,7 @@ RTSPTransportInstantiator::createUDPSockets(RTSPTransportParams* pParams)
     IHXSockAddr* pBindAddr = NULL;
     UINT32 nSockets;
     IHXSocket** ppSockets;
+    HX_RESULT hxr;
 
     if (!pParams)
     {
@@ -1408,7 +1479,12 @@ RTSPTransportInstantiator::createUDPSockets(RTSPTransportParams* pParams)
 
     /// we need to make sure the refcount of the address is exactly ONE,
     /// because we need to call SetPort.
-    m_pLocalAddr->Clone(&pBindAddr);
+    hxr = m_pLocalAddr->Clone(&pBindAddr);
+    if (FAILED(hxr))
+    {
+        HX_RELEASE(pNetSvc);
+        return hxr;
+    }
 
     nStart = nMinUDPPort + (rand() % (nMaxUDPPort - nMinUDPPort));
     nStart &= 0xfffe;
@@ -1417,8 +1493,24 @@ RTSPTransportInstantiator::createUDPSockets(RTSPTransportParams* pParams)
     pBindAddr->SetPort(nPort);
 
     IHXSockAddr* pPeerAddr = getPeerAddress(pParams);
+    if (!pPeerAddr)
+    {
+        HX_RELEASE(pNetSvc);
+        HX_RELEASE(pBindAddr);
+        return HXR_FAIL;
+    }
+
     IHXSockAddr* pSingleRefPeerAddr = NULL;
-    pPeerAddr->Clone(&pSingleRefPeerAddr);
+
+    hxr = pPeerAddr->Clone(&pSingleRefPeerAddr);
+    if (FAILED(hxr))
+    {
+        HX_RELEASE(pPeerAddr);
+        HX_RELEASE(pNetSvc);
+        HX_RELEASE(pBindAddr);
+        return hxr;
+    }
+
     HX_RELEASE(pPeerAddr);
 
     pSingleRefPeerAddr->SetPort(pParams->m_sPort);
@@ -1551,13 +1643,13 @@ RTSPTransportInstantiator::DataCapableTransportExists(void)
 IHXSockAddr*
 RTSPTransportInstantiator::getPeerAddress(RTSPTransportParams* pTransParams)
 {
-    HX_ASSERT(m_pServProt);
-    HX_ASSERT(m_pServProt->m_pSocket);
+    HX_ASSERT(m_pBaseProt);
+    HX_ASSERT(m_pBaseProt->m_pSock);
     IHXSockAddr* pPeerAddr = NULL;
 
-    if (m_pServProt->m_pProxyPeerAddr!= NULL)
+    if (m_pBaseProt->m_pProxyPeerAddr!= NULL)
     {
-        pPeerAddr = m_pServProt->m_pProxyPeerAddr;
+        pPeerAddr = m_pBaseProt->m_pProxyPeerAddr;
         pPeerAddr->AddRef();
     }
     else if (pTransParams && (pTransParams->m_pDestAddr != NULL))
@@ -1579,7 +1671,7 @@ RTSPTransportInstantiator::getPeerAddress(RTSPTransportParams* pTransParams)
             IHXSockAddr* pRtspPeerAddr = NULL;
             IHXBuffer* pRtspPeerAddrBuf = NULL;
             IHXBuffer* pDestPeerAddrBuf = NULL;
-            m_pServProt->m_pSocket->GetPeerAddr(&pRtspPeerAddr);
+            m_pBaseProt->m_pSock->GetPeerAddr(&pRtspPeerAddr);
             pRtspPeerAddr->GetAddr(&pRtspPeerAddrBuf);
             HX_RELEASE(pRtspPeerAddr);
             pPeerAddr->GetAddr(&pDestPeerAddrBuf);
@@ -1588,14 +1680,14 @@ RTSPTransportInstantiator::getPeerAddress(RTSPTransportParams* pTransParams)
             snprintf(logMsg, sizeof(logMsg), "client IP %s redirecting to %s\n",
                     (const char*)pRtspPeerAddrBuf->GetBuffer(),
                     (const char*)pDestPeerAddrBuf->GetBuffer());
-            m_pServProt->m_pErrorMessages->Report(HXLOG_INFO, 0, 0, logMsg, NULL);
+            m_pBaseProt->m_pErrorMessages->Report(HXLOG_INFO, 0, 0, logMsg, NULL);
             HX_RELEASE(pDestPeerAddrBuf);
             HX_RELEASE(pRtspPeerAddrBuf);
         }
     }
     else
     {
-        m_pServProt->m_pSocket->GetPeerAddr(&pPeerAddr);
+        m_pBaseProt->m_pSock->GetPeerAddr(&pPeerAddr);
     }
 
     HX_ASSERT(pPeerAddr);
@@ -1616,7 +1708,7 @@ RTSPTransportInstantiator::getPeerAddress(RTSPTransportParams* pTransParams)
  */
 HX_RESULT
 RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
-    RTSPServerProtocol::Session* pSession,
+    RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo,
     RTSPTransportParams* pTransParams,
     UINT16 usStreamNumber)
@@ -1626,10 +1718,10 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
     if(pSession->m_sSetupCount == 1)
     {
         /* FeatureLevel 2+ implies Packet Aggregation Support */
-        RDTUDPTransport* pTransport = new RDTUDPTransport(TRUE, !m_pServProt->m_bSetupRecord,
+        RDTUDPTransport* pTransport = new RDTUDPTransport(TRUE, !m_pBaseProt->m_bSetupRecord,
                                          pTransParams->m_lTransportType,
                                          pSession->m_ulRDTFeatureLevel,
-                                         m_pServProt->m_bDisableResend);
+                                         m_pBaseProt->m_bDisableResend);
         pTransport->AddRef();
 
         pSession->m_pTransportList->AddTail(pTransport);
@@ -1651,10 +1743,12 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
         else
         {
             HX_ASSERT(FALSE);
+            HX_RELEASE(pTransport);
             return HXR_BAD_TRANSPORT;
         }
 
-        rc = pTransport->init(m_pContext, pUDPSocket, m_pServProt);
+        rc = pTransport->init(m_pContext, pUDPSocket, m_pBaseProt);
+        pTransport->IncrProtocolCount();
 
         /** If this is an aggregate transport we need to tell the transport
           * because it will close the socket when it is torn down otherwise.
@@ -1666,6 +1760,13 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
         }
 
         IHXSockAddr* pPeerAddr = getPeerAddress(pTransParams);
+        if (!pPeerAddr)
+        {
+            HX_ASSERT(FALSE);
+            HX_RELEASE(pTransport);
+            return HXR_BAD_TRANSPORT;
+        }
+
         IHXSockAddr* pSingleRefPeerAddr;
         pPeerAddr->Clone(&pSingleRefPeerAddr);
         HX_RELEASE(pPeerAddr);
@@ -1678,7 +1779,7 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
         pTransport->setSessionID(pSession->m_sessionID);
         pSession->mapTransportStream(pTransport, usStreamNumber);
         pSession->m_bIsTNG = TRUE;
-        m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+        m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                               usStreamNumber, 0);
         HX_RELEASE(pUDPSocket);
     }
@@ -1692,7 +1793,7 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
                                          usStreamNumber);
             pTransport->addStreamInfo(pStreamInfo,
                                       pTransParams->m_ulBufferDepth);
-            m_pServProt->m_pResp->AddTransport(pTransport,
+            m_pBaseProt->AddTransport(pTransport,
                                   pSession->m_sessionID,
                                   usStreamNumber, 0);
         }
@@ -1712,15 +1813,20 @@ RTSPTransportInstantiator::SetupTransportTNGUdpRDTUdpMcast(
  */
 HX_RESULT
 RTSPTransportInstantiator::SetupTransportTNGTcpRDTTcp(
-    RTSPServerProtocol::Session* pSession,
+    RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo,
     UINT16 usStreamNumber)
 {
     HX_RESULT rc = HXR_OK;
 
+    if (!m_pBaseProt->m_pSock)
+    {
+        return HXR_FAIL;
+    }
+
     if (pSession->m_sSetupCount == 1)
     {
-        IHXSocket* pSock = new CHXRTSPTranSocket(m_pServProt->m_pSocket);
+        IHXSocket* pSock = new CHXRTSPTranSocket(m_pBaseProt->m_pSock);
 
         /*
          * Parameter !m_bSetupRecord means that we are not handling
@@ -1730,8 +1836,8 @@ RTSPTransportInstantiator::SetupTransportTNGTcpRDTTcp(
          * not forward on lost packets because it will be talking
          * to a player and players don't like them.
          */
-        RDTTCPTransport* pTransport = new RDTTCPTransport(!m_pServProt->m_bSetupRecord,
-                                         !m_pServProt->m_bSendLostPackets,
+        RDTTCPTransport* pTransport = new RDTTCPTransport(!m_pBaseProt->m_bSetupRecord,
+                                         !m_pBaseProt->m_bSendLostPackets,
                                          pSession->m_ulRDTFeatureLevel);
 
         pTransport->AddRef();
@@ -1740,24 +1846,25 @@ RTSPTransportInstantiator::SetupTransportTNGTcpRDTTcp(
         pTransport->addStreamInfo(pStreamInfo);
         pSession->mapTransportStream(pTransport, usStreamNumber);
         pSession->mapTransportChannel(pTransport,
-                                     m_pServProt->m_tcpInterleave);
+                                     m_pBaseProt->m_tcpInterleave);
 
-        m_pServProt->m_pResp->AddTransport(pTransport,
+        m_pBaseProt->AddTransport(pTransport,
                               pSession->m_sessionID,
                               usStreamNumber,
                               0);
 
         rc = pTransport->init(m_pContext,
-                         pSock, m_pServProt->m_tcpInterleave,
-                         m_pServProt);
+                         pSock, m_pBaseProt->m_tcpInterleave,
+                         m_pBaseProt);
 
-        IUnknown* punkItem = NULL;
+        pTransport->IncrProtocolCount();
+		IUnknown* punkItem = NULL;
         pSock->QueryInterface(IID_IUnknown, (void**)&punkItem);
-        (*(m_pServProt->m_pWriteNotifyMap))[pTransport] = punkItem;
+        (*(m_pBaseProt->m_pWriteNotifyMap))[pTransport] = punkItem;
 
         pTransport->setSessionID(pSession->m_sessionID);
 
-        (*(m_pServProt->m_pSessionIDList))[m_pServProt->m_tcpInterleave] =
+        (*(m_pBaseProt->m_pSessionIDList))[m_pBaseProt->m_tcpInterleave] =
           new_string(pSession->m_sessionID);
     }
     else
@@ -1769,14 +1876,14 @@ RTSPTransportInstantiator::SetupTransportTNGTcpRDTTcp(
                                          usStreamNumber);
             pTransport->addStreamInfo(pStreamInfo);
             pSession->mapTransportChannel(
-                pTransport, m_pServProt->m_tcpInterleave);
+                pTransport, m_pBaseProt->m_tcpInterleave);
 
-            m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+            m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                                   usStreamNumber, 0);
         }
 
 
-        (*(m_pServProt->m_pSessionIDList))[m_pServProt->m_tcpInterleave] =
+        (*(m_pBaseProt->m_pSessionIDList))[m_pBaseProt->m_tcpInterleave] =
           new_string(pSession->m_sessionID);
     }
     return rc;
@@ -1794,13 +1901,13 @@ RTSPTransportInstantiator::SetupTransportTNGTcpRDTTcp(
  */
 HX_RESULT
 RTSPTransportInstantiator::SetupTransportRTPUdp(
-    RTSPServerProtocol::Session* pSession,
+    RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo,
-    RTSPTransportParams* pTransParams, UINT16 usStreamNumber)
+    RTSPTransportParams* pTransParams, UINT16 usStreamNumber, HXBOOL bOldRTPTS)
 {
     HX_RESULT rc = HXR_OK;
 
-    ServerRTPUDPTransport* pTransport = new ServerRTPUDPTransport(!m_pServProt->m_bSetupRecord);
+    ServerRTPUDPTransport* pTransport = new ServerRTPUDPTransport(!m_pBaseProt->m_bSetupRecord, bOldRTPTS);
     pTransport->AddRef();
     pSession->m_pTransportList->AddTail(pTransport);
     pSession->mapTransportStream(pTransport, usStreamNumber);
@@ -1818,7 +1925,7 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
         DPRINTF(D_INFO, ("PV Emulation enabled in RTP transport\n"));
     }
 
-    if (m_pServProt->m_bRTPLiveLegacyMode)
+    if (m_pBaseProt->m_bRTPLiveLegacyMode)
     {
         pTransport->setLegacyRTPLive();
     }
@@ -1841,7 +1948,8 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
         return HXR_BAD_TRANSPORT;
     }
 
-    rc = pTransport->init(m_pContext, pSockets[0], m_pServProt);
+    rc = pTransport->init(m_pContext, pSockets[0], m_pBaseProt);
+    pTransport->IncrProtocolCount();
 
     /** If this is an aggregate transport we need to tell the transport
       * because it will close the socket when it is torn down otherwise.
@@ -1852,7 +1960,7 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
         pTransport->SetAsAggregate();
     }
 
-    m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+    m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                           usStreamNumber, 0);
 
     IHXSockAddr* pPeerAddr = getPeerAddress(pTransParams);
@@ -1864,7 +1972,7 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
     pTransport->setPeerAddr(pSingleRefPeerAddr);
     HX_RELEASE(pSingleRefPeerAddr);
 
-    if(!m_pServProt->m_bSetupRecord)
+    if(!m_pBaseProt->m_bSetupRecord)
     {
         UINT16 fport = pTransParams->m_sPort + 1;
 
@@ -1874,12 +1982,12 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
         pPeerAddr->Clone(&pSingleRefPeerAddr);
         pSingleRefPeerAddr->SetPort(fport);
 
-        pRTCPTran = new ServerRTCPUDPTransport(!m_pServProt->m_bSetupRecord);
+        pRTCPTran = new ServerRTCPUDPTransport(!m_pBaseProt->m_bSetupRecord);
         pRTCPTran->AddRef();
         pSession->m_pTransportList->AddTail(pRTCPTran);
 
         
-        if (pSession->m_bEmulatePVSession && m_pServProt->m_bRTCPRRWorkAround)
+        if (pSession->m_bEmulatePVSession && m_pBaseProt->m_bRTCPRRWorkAround)
         {
             //PV client sends RTCP packets for both the streams to the same server socket.
 
@@ -1909,14 +2017,14 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
             
             //handle (3)
             pRTCPTran->init(m_pContext, pTransResponse, pTransport,
-                        m_pServProt, usStreamNumber);
+                        m_pBaseProt, usStreamNumber);
             
             HX_RELEASE(pSockResponse);
             HX_RELEASE(pTransResponse);
         }
         else
         {   
-            pRTCPTran->init(m_pContext, pSockets[1], pTransport, m_pServProt,
+            pRTCPTran->init(m_pContext, pSockets[1], pTransport, m_pBaseProt,
                             usStreamNumber);
         }
 
@@ -1958,62 +2066,68 @@ RTSPTransportInstantiator::SetupTransportRTPUdp(
  * \return HXR_OK unless we fail to initialize the transport
  */
 HX_RESULT
-RTSPTransportInstantiator::SetupTransportRTPTcp(RTSPServerProtocol::Session* pSession,
+RTSPTransportInstantiator::SetupTransportRTPTcp(RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo,
-    UINT16 usStreamNumber)
+    UINT16 usStreamNumber, HXBOOL bOldRTPTS)
 {
     HX_RESULT rc = HXR_OK;
+
+    if (!m_pBaseProt->m_pSock)
+    {
+        return HXR_FAIL;
+    }
 
     /*
      *  Don't reuse a tranport obj
      */
-    IHXSocket* pSock = new CHXRTSPTranSocket(m_pServProt->m_pSocket);
+    IHXSocket* pSock = new CHXRTSPTranSocket(m_pBaseProt->m_pSock);
 
-    ServerRTPTCPTransport* pTransport = new ServerRTPTCPTransport(!m_pServProt->m_bSetupRecord);
+    ServerRTPTCPTransport* pTransport = new ServerRTPTCPTransport(!m_pBaseProt->m_bSetupRecord, bOldRTPTS);
     pTransport->AddRef();
 
     pTransport->setSessionID(pSession->m_sessionID);
     pSession->m_pTransportList->AddTail(pTransport);
     pTransport->addStreamInfo(pStreamInfo);
     pSession->mapTransportStream(pTransport, usStreamNumber);
-    m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+    m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                           usStreamNumber, 0);
 
-    rc = pTransport->init(m_pContext, pSock, m_pServProt);
+    rc = pTransport->init(m_pContext, pSock, m_pBaseProt);
 
+    pTransport->IncrProtocolCount();
     IUnknown* punkItem = NULL;
     pSock->QueryInterface(IID_IUnknown, (void**)&punkItem);
-    (*(m_pServProt->m_pWriteNotifyMap))[pTransport] = punkItem;
+    (*(m_pBaseProt->m_pWriteNotifyMap))[pTransport] = punkItem;
 
-    pTransport->setInterleaveChannel(m_pServProt->m_tcpInterleave);
+    pTransport->setInterleaveChannel(m_pBaseProt->m_tcpInterleave);
 
     /* so handleTCPData can do the right thing */
     pSession->mapTransportChannel(pTransport,
-                                  m_pServProt->m_tcpInterleave);
+                                  m_pBaseProt->m_tcpInterleave);
 
-    if (m_pServProt->m_bRTPLiveLegacyMode)
+    if (m_pBaseProt->m_bRTPLiveLegacyMode)
     {
         pTransport->setLegacyRTPLive();
     }
 
     // create an RTCP transport for this stream
     ServerRTCPTCPTransport* pRTCPTran =
-        new ServerRTCPTCPTransport(!m_pServProt->m_bSetupRecord);
+        new ServerRTCPTCPTransport(!m_pBaseProt->m_bSetupRecord);
     pRTCPTran->AddRef();
     pSession->m_pTransportList->AddTail(pRTCPTran);
 //XXXTDM: bad code?    pSession->mapTransportPort(pRTCPTran, foreignPort + 1);
 
     pRTCPTran->init(m_pContext,
-                    m_pServProt->m_pSocket,  // RTCP does not go through CHXRTSPTranSocket
+                    m_pBaseProt->m_pSock,  // RTCP does not go through CHXRTSPTranSocket
                     pTransport,
-                    m_pServProt,
+                    m_pBaseProt,
                     usStreamNumber);
 
     pRTCPTran->setInterleaveChannel(
-        m_pServProt->m_tcpInterleave + 1);
+        m_pBaseProt->m_tcpInterleave + 1);
 
     pSession->mapTransportChannel(pRTCPTran,
-                                 m_pServProt->m_tcpInterleave + 1);
+                                 m_pBaseProt->m_tcpInterleave + 1);
 
     pRTCPTran->setSessionID(pSession->m_sessionID);
     pTransport->setRTCPTransport(pRTCPTran);
@@ -2021,9 +2135,9 @@ RTSPTransportInstantiator::SetupTransportRTPTcp(RTSPServerProtocol::Session* pSe
     //Add StreamInfo to RTCP transport.
     pRTCPTran->addStreamInfo(pStreamInfo);
 
-    (*(m_pServProt->m_pSessionIDList))[m_pServProt->m_tcpInterleave] =
+    (*(m_pBaseProt->m_pSessionIDList))[m_pBaseProt->m_tcpInterleave] =
         new_string(pSession->m_sessionID);
-    (*(m_pServProt->m_pSessionIDList))[m_pServProt->m_tcpInterleave + 1] =
+    (*(m_pBaseProt->m_pSessionIDList))[m_pBaseProt->m_tcpInterleave + 1] =
         new_string(pSession->m_sessionID);
 
     return rc;
@@ -2042,7 +2156,7 @@ RTSPTransportInstantiator::SetupTransportRTPTcp(RTSPServerProtocol::Session* pSe
  */
 HX_RESULT
 RTSPTransportInstantiator::SetupTransportNULLSet(
-    RTSPServerProtocol::Session* pSession,
+    RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo, UINT16 usStreamNumber)
 {
     if (pSession->m_sSetupCount == 1)
@@ -2056,7 +2170,7 @@ RTSPTransportInstantiator::SetupTransportNULLSet(
         pTransport->addStreamInfo(pStreamInfo);
 
         pSession->mapTransportStream(pTransport, usStreamNumber);
-        m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+        m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                               usStreamNumber, 0);
     }
     else
@@ -2067,7 +2181,7 @@ RTSPTransportInstantiator::SetupTransportNULLSet(
             pSession->mapTransportStream(pTransport,
                                          usStreamNumber);
             pTransport->addStreamInfo(pStreamInfo);
-            m_pServProt->m_pResp->AddTransport(pTransport,
+            m_pBaseProt->AddTransport(pTransport,
                                   pSession->m_sessionID,
                                   usStreamNumber, 0);
         }
@@ -2091,10 +2205,11 @@ RTSPTransportInstantiator::SetupTransportNULLSet(
  */
 HX_RESULT
 RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
-    RTSPServerProtocol::Session* pSession,
+    RTSPServerSession* pSession,
     RTSPStreamInfo* pStreamInfo,
     RTSPTransportParams* pTransParams,
-    UINT16 usStreamNumber)
+    UINT16 usStreamNumber,
+    BOOL bIsPre12Dot1Proxy)
 {
 #ifndef HELIX_FEATURE_SERVER_BCNG
     return HXR_FAIL;
@@ -2143,6 +2258,10 @@ RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
 
         BCNGTransport* pTransport = new BCNGTransport(TRUE, m_pContext);
         pTransport->AddRef();
+        if(bIsPre12Dot1Proxy)
+        {
+            pTransport->SetPre12Dot1Proxy();
+        }
 
         pAuthenticationData = new buffer;
         pAuthenticationData->len  = pTransParams->m_pAuthenticationDataField->GetSize();
@@ -2151,7 +2270,7 @@ RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
                     pTransParams->m_pAuthenticationDataField->GetBuffer(),
                     sizeof(UINT8) * pAuthenticationData->len);
 
-        if (HXR_OK != pTransport->init(m_pServProt,
+        if (HXR_OK != pTransport->init(m_pBaseProt,
             pSingleRefPeerAddr, usPortNum, pTransParams->m_Protocol, 
             pTransParams->m_bResendSupported,
             pTransParams->m_ucFECLevel, 
@@ -2159,12 +2278,12 @@ RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
             pTransParams->m_ucSecurityType, 
             pAuthenticationData,
             pTransParams->m_ulPullSplitID,
-            /*tcp only */ m_pServProt->m_pSocket,
-            m_pServProt->m_tcpInterleave + 1))
+            /*tcp only */ m_pBaseProt->m_pSock,
+            m_pBaseProt->m_tcpInterleave + 1))
         {
             return HXR_BAD_TRANSPORT;
         }
-
+        pTransport->IncrProtocolCount();
         HX_RELEASE(pSingleRefPeerAddr);
 
         pSession->m_pTransportList->AddTail(pTransport);
@@ -2173,8 +2292,15 @@ RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
         pTransport->addStreamInfo(pStreamInfo, 0);
 
         pSession->mapTransportStream(pTransport, usStreamNumber);
-        m_pServProt->m_pResp->AddTransport(pTransport, pSession->m_sessionID,
+        m_pBaseProt->AddTransport(pTransport, pSession->m_sessionID,
                               usStreamNumber, 0);
+
+        pSession->mapTransportChannel(pTransport,
+                                     pSession->m_pBaseProt->m_tcpInterleave + 1);
+
+        CRTSPBaseProtocol* pProt = pSession->m_pBaseProt;
+        (*pProt->m_pSessionIDList)[pProt->m_tcpInterleave + 1] =
+            new_string(pSession->m_sessionID);
     }
     else
     {
@@ -2184,7 +2310,7 @@ RTSPTransportInstantiator::SetupTransportBCNGUdpTcpMcast(
             pSession->mapTransportStream(pTransport,
                                          usStreamNumber);
             pTransport->addStreamInfo(pStreamInfo);
-            m_pServProt->m_pResp->AddTransport(pTransport,
+            m_pBaseProt->AddTransport(pTransport,
                                   pSession->m_sessionID,
                                   usStreamNumber, 0);
         }
@@ -2218,7 +2344,7 @@ RTSPTransportInstantiator::CreateTransport (THIS_ HXBOOL /*IN*/ bIsAggregate, vo
  */
 
 HX_RESULT
-RTSPTransportInstantiator::selectTransport(RTSPServerProtocol::Session* pSession,
+RTSPTransportInstantiator::selectTransport(RTSPServerSession* pSession,
                                     UINT16 usStreamNumber)
 {
     HX_ASSERT(pSession != NULL);
@@ -2245,33 +2371,30 @@ RTSPTransportInstantiator::selectTransport(RTSPServerProtocol::Session* pSession
     bForceRTP = pSession->m_ppStreamInfo[usStreamNumber]->m_bForceRTP;
     ulControlID = pSession->m_ppStreamInfo[usStreamNumber]->m_ulControlID;
 
-    /** \todo I think the idea here is to only allow realAudio via RTP or
-      * the use of the "destination" transport paramaeter if we have either
+    /** \The idea here is to only allow realAudio via RTP if we have either
       * already completed the RARTP challenge OR we have not started 
-      * the challenge preocess yet. This code is suspect and needs to 
-      * be commented. I believe the code its based on was incorrect because
-      * I don't see why the two parameters are tied together.
+      * the challenge process yet.
       */
-    if (m_pServProt->m_bRARTPChallengeMet || m_pServProt->m_ulChallengeInitMethod == RTSP_VERB_NONE)
+    if (m_pBaseProt->m_bRARTPChallengeMet || m_pBaseProt->m_ulChallengeInitMethod == RTSP_VERB_NONE)
     {
         if (pSession->m_bSupportsRARTPChallenge)
         {
             bAllowRARTP = TRUE;
         }
+    }
 
-        INT32 lDestAddrSupported = 0;
-        if (m_pServProt->m_pRegistry->GetIntByName("config.SupportRTSPDestinationAddress", lDestAddrSupported) == HXR_OK)
+    INT32 lDestAddrSupported = 0;
+    if (m_pBaseProt->m_pRegistry->GetIntByName("config.SupportRTSPDestinationAddress", lDestAddrSupported) == HXR_OK)
+    {
+        if (lDestAddrSupported)
         {
-            if (lDestAddrSupported)
-            {
-                bAllowDest = TRUE;
-            }
+            bAllowDest = TRUE;
         }
     }
 
     /** Technically this code can't currently be reached in the proxy case,
       * so the m_pProxyLocalAddr check is for possible future reference */
-    IHXSockAddr* pLocalAddr = m_pServProt->m_pProxyLocalAddr;
+    IHXSockAddr* pLocalAddr = m_pBaseProt->m_pProxyLocalAddr;
 
     if (pLocalAddr)
     {
@@ -2279,7 +2402,7 @@ RTSPTransportInstantiator::selectTransport(RTSPServerProtocol::Session* pSession
     }
     else
     {
-        if (FAILED(m_pServProt->m_pSocket->GetLocalAddr(&pLocalAddr)))
+        if (FAILED(m_pBaseProt->m_pSock->GetLocalAddr(&pLocalAddr)))
         {
             HX_ASSERT(FALSE);
             return HXR_FAIL;

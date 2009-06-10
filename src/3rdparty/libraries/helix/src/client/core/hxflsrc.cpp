@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxflsrc.cpp,v 1.124 2007/04/05 21:56:15 sfu Exp $
+ * Source last modified: $Id: hxflsrc.cpp,v 1.138 2009/03/25 21:14:35 joaquincab Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -106,14 +106,12 @@ static const char HX_THIS_FILE[] = __FILE__;
 #endif
 
 #define FILEREAD_SIZE   4096
+#define SOURCE_TIMELINE_TOL  500
 #define LOCALSOURCE_FAST_START_BW_CAPACITY_THRESHOLD	150	// A percentage of source bitrate
-#define MAX_INTERSTREAM_TIMESTAMP_JITTER		5000	// In milliseconds
 
 HXFileSource::HXFileSource() 
     : m_lRefCount(0)
     , m_ulLastBufferingReturned(0)
-    , m_ulFillEndTime(0)
-    , m_ulMaxPreRoll(0)
     , m_uNumStreamsToBeFilled(0)
     , m_bInFillMode(FALSE)
     , m_bInitialPacket(TRUE)
@@ -130,6 +128,7 @@ HXFileSource::HXFileSource()
     , m_pFileFormatEnumerator(NULL)
     , m_pFFClaimURLEnumerator(NULL)
     , m_pCurrentFileFormatUnk(NULL)
+    , m_bSeparateFragment(TRUE)
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     , m_pPDSObserverList(NULL)
 #endif // /HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS.
@@ -267,7 +266,6 @@ HXFileSource::ReSetup()
 {
     m_ulLastBufferingReturned = 0;;
     m_ulFirstPacketTime = 0;
-    m_ulFillEndTime = 0;
     m_ulMaxPreRoll = 0;
     m_uNumStreamsToBeFilled = 0;    
     m_bInitialized = FALSE;
@@ -589,9 +587,27 @@ HXFileSource::ExtendedSetup(const char* pszURL)
 	{
 	    pMimeType = (char*)pValue->GetBuffer();
 
-            FinishSetup(HXR_OK, pMimeType);
-	    theErr = mLastError;
-            bFoundMimeType = TRUE;
+            // Misconfigured web servers often return text/plain
+            // or application/octet-stream for the Content-Type for
+            // file types they don't understand. Therefore, these types
+            // cannot be reliably trusted coming from web servers.
+            // So if the mime type in the response header is 
+            // text/plain or application/octet-stream then we
+            // will not trust it and will fall back to 
+            // letting the recognizer detect the file.
+            HXBOOL bTrustContentType = TRUE;
+            if (!strcmp(pMimeType, "text/plain") ||
+                !strcmp(pMimeType, "application/octet-stream"))
+            {
+                bTrustContentType = FALSE;
+            }
+
+            if (bTrustContentType)
+            {
+                FinishSetup(HXR_OK, pMimeType);
+	        theErr = mLastError;
+                bFoundMimeType = TRUE;
+            }
 
             HX_RELEASE(pValue);
         }
@@ -636,7 +652,12 @@ HXFileSource::ExtendedSetup(const char* pszURL)
 
     if (!bFoundMimeType)
     {
-        if (HXXFile::IsPlusURL(pszURL))
+        HXBOOL bDisablePlusURLHandling = FALSE;
+        
+        ReadPrefBOOL(m_pPreferences, "DisablePlusURLHandling", bDisablePlusURLHandling);
+        HXLOGL2(HXLOG_CORE, "HXFileSource::ExtendedSetup() this[%p] DisablePlusURLHandling:%d", this, bDisablePlusURLHandling);
+        if( (!bDisablePlusURLHandling) &&
+            (HXXFile::IsPlusURL(pszURL)) )
         {
             pMimeType = "application/x-pn-plusurl";
 	}
@@ -740,7 +761,7 @@ HXFileSource::FinishSetup(HX_RESULT status, const char* pMimeType)
 
                         if (m_pMimeFinderResponse)
                         {
-                            m_pFileRecognizer->GetMimeType(m_pFileObject, 
+                            mLastError = m_pFileRecognizer->GetMimeType(m_pFileObject,
                                                            (IHXFileRecognizerResponse*)m_pMimeFinderResponse);
                             return;
                         }
@@ -771,6 +792,8 @@ HXFileSource::AttempToLoadFilePlugin(const char* pMimeType)
     char*   pszTemp = NULL;
     char*   pszURL = NULL;
     HX_RESULT theErr = HXR_OK;
+    HXBOOL bIsFileURL = FALSE;
+    HXBOOL bIsFragmentFound = FALSE;
 
     // Don't try the .ram extension first if we already
     // know of a fileformat which can claim the scheme
@@ -792,10 +815,23 @@ HXFileSource::AttempToLoadFilePlugin(const char* pMimeType)
 	strcpy(pszURL, m_pszURL); /* Flawfinder: ignore */
 
 	// separate fragment from the URL
-	pszTemp = (char*) ::HXFindChar(pszURL, '#');
-	if (pszTemp)
+	// File contain # in name (eg:- foo#test.mp3) 
+	// then in fisrt attempt it will separate fragment and will not find plugin.
+	// So in second attempt it will handle files with # in name, and retry to load plugin without 
+	// treating # as fragment delimiter    
+	if(m_bSeparateFragment)
 	{
-	    *pszTemp = '\0';
+            pszTemp = (char*) ::HXFindChar(pszURL, '#');
+            if (pszTemp)
+            {
+	        bIsFragmentFound = TRUE;
+		if(strstr(pszURL, "file://"))
+		{
+		    bIsFileURL = TRUE;
+		}
+		
+                *pszTemp = '\0';
+            }
 	}
 
 	// separate options from the URL
@@ -879,6 +915,19 @@ HXFileSource::AttempToLoadFilePlugin(const char* pMimeType)
 
     if (!m_pCurrentFileFormatUnk)
     {
+  	// To handle files with # in them, retry to load plugin
+  	// without treating # as fragment delimiter    
+	if(m_bSeparateFragment && bIsFileURL && bIsFragmentFound)
+	{
+	    m_bSeparateFragment = FALSE;
+	    AttempToLoadFilePlugin(pMimeType);
+
+	    // Setting m_bSeparateFragment to true if the HXFileSource class is re-used 
+	    // without destructing, then it will still work.
+	    m_bSeparateFragment = TRUE;
+	    return;
+	}	
+
 	if (!m_bDefaultAltURL)
 	{
 	    theErr = HXR_NO_FILEFORMAT;
@@ -1074,9 +1123,12 @@ HXFileSource::InitializeFileFormat()
 	                                      this,
 	                                      m_pFileObject)) )
     {
+        HXLOGL2(HXLOG_CORE, "HXFileSource::InitializeFileFormat() this[%p] m_pFileObject[%p] resultInitFF(%x)",
+                m_pFFObject,m_pFileObject,resultInitFF);
 	if(HXR_UNSUPPORTED_VIDEO == resultInitFF	||
 	   HXR_UNSUPPORTED_AUDIO == resultInitFF	||
-	   HXR_DOC_MISSING == resultInitFF)
+	   HXR_DOC_MISSING == resultInitFF          ||
+       HXR_ACCESSPOINT_NOT_FOUND == resultInitFF)
 	{
 	    theErr = resultInitFF;
 	}
@@ -1331,6 +1383,7 @@ HXFileSource::DoSeek(ULONG32 seekTime)
     if (m_pRecordControl && m_pRecordControl->Seek(seekTime) == HXR_OK &&
 	m_bPlayFromRecordControl)
     {
+	m_bSeekInsideRecordControl = TRUE;
 	m_pBufferManager->DoSeek(seekTime, TRUE);
 	SeekDone(HXR_OK);
     }
@@ -1338,6 +1391,7 @@ HXFileSource::DoSeek(ULONG32 seekTime)
 #endif /* HELIX_FEATURE_RECORDCONTROL */
     {
 	m_bSourceEnd = FALSE;
+	m_bSeekInsideRecordControl = FALSE;
 
 	m_pBufferManager->DoSeek(seekTime, FALSE);
 
@@ -1511,7 +1565,12 @@ HXFileSource::GetStatus
         return HXR_OK;
     }
 
-    if (m_bSourceEnd && !m_bPacketlessSource)
+    if (m_bSourceEnd && 
+        !m_bPacketlessSource &&
+        !m_bRenderersControlBuffering &&
+        (!IsPlayingFromRecordControl() ||
+	 !m_pRecordControl ||
+	 m_pRecordControl->IsFinishedReading()))
     {
 	if (!IsRebufferDone())
 	{
@@ -1522,7 +1581,7 @@ HXFileSource::GetStatus
 	{
 	    if (m_bInitialBuffering)
 	    {
-		    InitialBufferingDone();
+		InitialBufferingDone();
 	    }
 
 	    m_ulLastBufferingReturned = 100;
@@ -1536,7 +1595,7 @@ HXFileSource::GetStatus
 	return HXR_OK;
     }
 
-    if (m_bInitialized && !m_bPacketlessSource)
+    if (m_bInitialized && !m_bPacketlessSource && !m_bRenderersControlBuffering)
     {
 	if (m_bFirstResume)
 	{
@@ -1576,7 +1635,11 @@ HXFileSource::GetStatus
 	}
     }
 
-    if (m_pFFObject)
+    if (m_bRenderersControlBuffering)
+    {
+        hResult = GetBufferingStatusFromRenderers(statusCode, pStatusDesc, percentDone);
+    }
+    else if (m_pFFObject)
     {
 	if (HXR_OK != m_pFFObject->QueryInterface(IID_IHXPendingStatus, (void**)&pStatus))
 	{
@@ -1660,6 +1723,11 @@ exit:
     }
 
     FastStartUpdateInfo();
+    
+    if (m_bSeekInsideRecordControl && IsPlaying())
+    {
+        m_bSeekInsideRecordControl = FALSE;
+    }
 
     return hResult;
 }
@@ -1725,11 +1793,6 @@ HXFileSource::GetEvent(UINT16 usStreamNumber,
 	}
     }
 
-    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::::HXFileSource[%p]::GetEvent(Strm=%hu)",
-	    m_pPlayer,
-	    this,
-            usStreamNumber);
-
     STREAM_INFO * lpStreamInfo;
     if (!mStreamInfoTable->Lookup((LONG32) usStreamNumber, (void *&) lpStreamInfo))
     {
@@ -1740,52 +1803,123 @@ HXFileSource::GetEvent(UINT16 usStreamNumber,
 #if defined(HELIX_FEATURE_RECORDCONTROL)
     if (m_bPlayFromRecordControl && m_pRecordControl)
     {
-	IHXPacket* pPacket = NULL;
-
-	HX_ASSERT(m_pRecordControl);
-
-	theErr = m_pRecordControl->GetPacket(usStreamNumber, pPacket);
-	if(theErr == HXR_OK)
+	UINT32 ulMaxRendererDispatchTime = m_pPlayer->ComputeFillEndTime(
+		    m_pPlayer->GetInternalCurrentPlayTime(),
+		    m_pPlayer->GetGranularity(),
+		    m_ulMaxPreRoll + MAX_INTERSTREAM_TIMESTAMP_JITTER);
+		    
+	theErr = HXR_WOULD_BLOCK;
+		    
+	// We supply packets from the record control only when needed
+	// since sparse streams may result in excessive buffering of packets due to
+	// interleaving with non-sparse packets. 
+	if ((!m_pRecordControl->IsRead()) ||
+	    (((LONG32) (ulMaxRendererDispatchTime - m_pRecordControl->GetLatestTimestampRead())) >= 0))
 	{
-	    theEvent = new CHXEvent(pPacket,
-                                    CalcEventTime(lpStreamInfo,
-                                                  pPacket->GetTime(),
-                                                  TRUE,
-                                                  m_pPlayer->GetVelocity()));
-	    if(theEvent) 
-		theEvent->SetTimeOffset(m_ulStartTime - m_ulDelay); 
-	    else
-		theErr = HXR_OUTOFMEMORY;
-
-	    if(m_pBufferManager)
+	    IHXPacket* pPacket = NULL;
+	    	    
+	    if ((ulLoopEntryTime != 0) && (ulProcessingTimeAllowance == 0))
 	    {
-		m_pBufferManager->UpdateCounters(pPacket, 0);
+		// Use the most generous - non-interrupt type allowance.
+		ulProcessingTimeAllowance = m_pPlayer->GetPlayerProcessingInterval(FALSE);
 	    }
-            
-            if (m_pHXSrcBufStats && !pPacket->IsLost())
-            {
-                m_pHXSrcBufStats->OnPacket(pPacket);
-            }
-
-	    HX_RELEASE(pPacket);
-	}
-	else
-	{
-	    if(theErr == HXR_NO_DATA && (m_bSourceEnd || lpStreamInfo->m_bSrcStreamDone))
-		theErr = HXR_AT_END;
-
-	    if(theErr == HXR_NO_DATA)
+	    
+	    do
 	    {
-                theErr = HandleOutOfPackets(lpStreamInfo, 
-					    ulLoopEntryTime, 
-					    ulProcessingTimeAllowance);
-	    }
+		theErr = m_pRecordControl->GetPacket(usStreamNumber, pPacket);
+		
+		if (theErr == HXR_OK)
+		{
+		    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::::HXFileSource[%p]::GetEvent(Strm=%hu) Got Packet from Rec.Ctrl Time=%lu",
+			    m_pPlayer,
+			    this,
+			    usStreamNumber,
+			    pPacket->GetTime());
+		    		    
+		    theEvent = new CHXEvent(pPacket,
+					    CalcEventTime(lpStreamInfo,
+							  pPacket->GetTime(),
+							  TRUE,
+							  m_pPlayer->GetVelocity()));
+		    
+		    theErr = HXR_OUTOFMEMORY;
+		    if (theEvent)
+		    {
+			theErr = HXR_OK;
+			theEvent->SetTimeOffset(m_ulStartTime - m_ulDelay);
+		    }
+		    
+		    if (m_pBufferManager)
+		    {
+			m_pBufferManager->UpdateCounters(pPacket, 0);
+		    }
+		    
+		    if (m_pHXSrcBufStats && !pPacket->IsLost())
+		    {
+			m_pHXSrcBufStats->OnPacket(pPacket);
+		    }
+		    
+		    HX_RELEASE(pPacket);
+		}
+		else
+		{
+		    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::::HXFileSource[%p]::GetEvent(Strm=%hu) No Packet from Rec.Ctrl Err=%lu SourceEnd=%c StreamDone=%c",
+			    m_pPlayer,
+			    this,
+			    usStreamNumber,
+			    theErr,
+			    m_bSourceEnd ? 'T' :'F',
+			    lpStreamInfo->m_bSrcStreamDone ? 'T' : 'F');
+		    
+		    if (theErr == HXR_RETRY)
+		    {
+			if ((ulLoopEntryTime != 0) &&
+			    ((HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime) > ulProcessingTimeAllowance))
+			{
+			    HXLOGL3(HXLOG_CORP, "HXPlayer[%p]::HXFileSource[%p]::GetEvent(Strm=%hu) GetPacket from Rec.Ctrl CPU use timeout: Time=%lu Allowed=%lu", 
+				    m_pPlayer, 
+				    this,
+				    usStreamNumber,
+				    HX_GET_BETTERTICKCOUNT() - ulLoopEntryTime,
+				    ulProcessingTimeAllowance);
+			    break;
+			}
+		    }
+		    else if (theErr == HXR_NO_DATA)
+		    {
+			if (m_bSourceEnd || lpStreamInfo->m_bSrcStreamDone)
+			{
+			    if (m_pRecordControl->IsFinishedReading())
+			    {
+				if (m_pBufferManager)
+				{
+				    m_pBufferManager->Stop();
+				}
+			    }
+			    
+			    theErr = HXR_AT_END;
+			}
+			
+			if (theErr == HXR_NO_DATA)
+			{
+			    theErr = HandleOutOfPackets(lpStreamInfo, 
+							ulLoopEntryTime, 
+							ulProcessingTimeAllowance);
+			}
+		    }
+		}
+	    } while (theErr == HXR_RETRY);
 	}
 
 	return theErr;
     }
 #endif /* HELIX_FEATURE_RECORDCONTROL */
 
+    HXLOGL4(HXLOG_CORP, "HXPlayer[%p]::::HXFileSource[%p]::GetEvent(Strm=%hu)",
+	    m_pPlayer,
+	    this,
+            usStreamNumber);
+	    
     // get the packet list for this stream
     CHXEventList  * lEventList = &lpStreamInfo->m_EventList;
 
@@ -3186,10 +3320,22 @@ HXFileSource::FillBuffers(UINT32 ulLoopEntryTime, UINT32 ulProcessingTimeAllowan
 	// Use the most generous - non-interrupt type allowance.
 	ulProcessingTimeAllowance = m_pPlayer->GetPlayerProcessingInterval(FALSE);
     }
+    
+    HXBOOL bAnyStreamDone = FALSE;
 
     while (SUCCEEDED(retVal) && SelectNextStreamToFill(lpStreamInfo))
     {
 	HX_ASSERT(!lpStreamInfo->m_bPacketRequested);
+    
+    //Done the stream when the packet time (plus some delay) reach the duration of a custom end time. 
+    if ( m_bCustomEndTime  && ((lpStreamInfo->m_ulLastPacketTime + m_ulDelay >= SOURCE_TIMELINE_TOL)  && 
+			(lpStreamInfo->m_ulLastPacketTime + m_ulDelay - SOURCE_TIMELINE_TOL >= lpStreamInfo->m_ulDuration) ||
+            bAnyStreamDone))
+    {
+        bAnyStreamDone = TRUE;
+		StreamDone(lpStreamInfo->m_uStreamNumber);
+		break;
+	}
 
 	lpStreamInfo->m_bPacketRequested = TRUE;
 
@@ -3270,6 +3416,10 @@ HXBOOL HXFileSource::SelectNextStreamToFill(STREAM_INFO* &lpStreamInfoOut)
 		if (ulEmptyStreamsMaxBufferingInMs < lpStreamInfo->BufferingState().GetMinBufferingInMs())
 		{
 		    ulEmptyStreamsMaxBufferingInMs = lpStreamInfo->BufferingState().GetMinBufferingInMs();
+		    if (m_ulMaxPreRoll < ulEmptyStreamsMaxBufferingInMs)
+		    {
+			m_ulMaxPreRoll = ulEmptyStreamsMaxBufferingInMs;
+		    }
 		}
 	    }
 
@@ -3370,8 +3520,16 @@ HXFileSource::SetEndOfClip(HXBOOL bForcedEndofClip)
 
     if (!m_bSourceEnd)
     {
-	m_bSourceEnd = TRUE;				  
-	m_pBufferManager->Stop();
+	m_bSourceEnd = TRUE;
+	
+	// If we are playing from the record control,
+	// all buffering control is tied to record control output
+	// and not the actual source output since record control is
+	// time-shifting the source.
+	if (!IsPlayingFromRecordControl())
+	{
+	    m_pBufferManager->Stop();
+	}
 
 	m_pPlayer->EndOfSource(this);
 
@@ -3698,7 +3856,11 @@ HXFileSource::GetFileDone(HX_RESULT rc, IHXBuffer* pFile)
     memset(pszSDPBuffer, 0, ulSDPBufferSize);
     strncpy(pszSDPBuffer, (const char*)pFile->GetBuffer(), pFile->GetSize());
 
-    escapedSDP = HXEscapeUtil::EscapeGeneric(pszSDPBuffer);
+    // Allowing double-escape of characters in sdp file so it can be restored
+    // to its original form when it's unescaped in HXNetSource::FinishSetup().
+    // If this is not done, any URL in the sdp file that contains escaped
+    //  characters will be corrupted
+    escapedSDP = HXEscapeUtil::EscapeGeneric(pszSDPBuffer, TRUE);
 
     url = HELIX_SDP_SCHEME;
     url += ":";
@@ -3847,6 +4009,40 @@ HXFileSource::ShouldDisableFastStart(void)
     }
 
     return bRetVal;
+}
+
+HXBOOL
+HXFileSource::IsNetworkAccess()
+{
+    HXLOGL3(HXLOG_CORE, "HXFileSource::IsNetworkAccess() m_pFFObject[%p] m_pFileObject[%p]", m_pFFObject, m_pFileObject);
+    
+    IHXAdvise* pFFAdvise = NULL;
+    HX_RESULT adviseStatus = HXR_FAIL;
+       
+    if(m_pFFObject)
+    {
+        if(SUCCEEDED(m_pFFObject->QueryInterface(IID_IHXAdvise,(void**)&pFFAdvise)))
+        {
+            adviseStatus = pFFAdvise->Advise(HX_FILERESPONSEADVISE_NETWORKACCESS);
+            HX_RELEASE(pFFAdvise);                
+        }      
+    }
+    
+    if(FAILED(adviseStatus) && m_pFileObject)
+    {
+        adviseStatus = m_pFileObject->Advise(HX_FILEADVISE_NETWORKACCESS);        
+    }
+    
+    if(adviseStatus == HXR_ADVISE_LOCAL_ACCESS)
+    {
+        return FALSE;
+    }
+    else if(SUCCEEDED(adviseStatus))
+    {
+        return TRUE;
+    }
+   
+    return FALSE;
 }
 
 HX_RESULT HXFileSource::HandleSDPData(IHXValues* pHeader)

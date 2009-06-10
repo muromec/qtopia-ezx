@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsmbw.h,v 1.6 2005/03/14 19:27:09 bobclark Exp $
+ * Source last modified: $Id: hxsmbw.h,v 1.8 2008/10/20 19:35:52 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -624,5 +624,18 @@ DECLARE_INTERFACE_(IHXPlayerState, IUnknown)
      */
     STDMETHOD_(HXBOOL, IsPlaying)    (THIS) PURE;
 };
+
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXBandwidthManager)
+DEFINE_SMART_PTR(IHXSourceBandwidthInfo)
+DEFINE_SMART_PTR(IHXBandwidthManagerInput)
+DEFINE_SMART_PTR(IHXStreamBandwidthNegotiator)
+DEFINE_SMART_PTR(IHXStreamBandwidthBias)
+DEFINE_SMART_PTR(IHXThinnableSource)
+DEFINE_SMART_PTR(IHXBandwidthNudger)
+DEFINE_SMART_PTR(IHXASMProps)
+DEFINE_SMART_PTR(IHXAtomicRuleChange)
+DEFINE_SMART_PTR(IHXAtomicRuleGather)
+DEFINE_SMART_PTR(IHXPlayerState)
 
 #endif /* _HXSMBW_H_ */

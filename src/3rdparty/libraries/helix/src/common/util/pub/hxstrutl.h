@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstrutl.h,v 1.11 2006/02/07 19:21:32 ping Exp $
+ * Source last modified: $Id: hxstrutl.h,v 1.13 2009/03/04 00:47:42 girish2080 Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -176,5 +176,16 @@ char* StrToUpper(char *pString);
         delete[] NAME;							\
     }
 #endif /* defined(_SYMBIAN) */
+
+#ifdef HELIX_CONFIG_SYMBIAN_GENERATE_MMP
+// Symbian MMP file does not support String constant definition using MACRO, 
+// so use STRINGIFY to get the string value of a MACRO
+// STRINGIFY(HX_MACRO) should return "helix" if HX_MACRO is defined as:
+// #define HX_MACRO helix
+#define STRINGIFY(x) _STRINGIFY(x)
+#define _STRINGIFY(x) #x
+#else
+#define STRINGIFY(x) x
+#endif // HELIX_CONFIG_SYMBIAN_GENERATE_MMP
 
 #endif /* _HXSTRUTL_H_ */

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxxfile.cpp,v 1.13 2007/01/12 18:04:21 cybette Exp $
+ * Source last modified: $Id: hxxfile.cpp,v 1.15 2008/02/05 06:06:08 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,7 @@
 #include "hxxfile.h"
 #include "hlxclib/string.h"
 #include "hlxclib/limits.h"
-#include <ctype.h>
+#include "hlxclib/ctype.h"
 
 #include "hxheap.h"
 #ifdef _DEBUG

@@ -39,7 +39,11 @@
 // #define _LOG_DATA_ACCESS
 #define QTTRACKCACHE_PAGE_SIZE	0x0000FFFF
 
-#define QT_MAX_SEEK_SKIPBACK_TIME_CLIENT	300000   // milliseconds
+#ifdef HELIX_FEATURE_MIN_HEAP
+#define QT_MAX_SEEK_SKIPBACK_TIME_CLIENT	20000   // milliseconds
+#else
+#define QT_MAX_SEEK_SKIPBACK_TIME_CLIENT	300000  // milliseconds
+#endif
 #define QT_MAX_SEEK_SKIPBACKAHEAD_RATIO_CLIENT	20
 #define QT_MAX_SEEK_SKIPBACK_TIME_SERVER	10000	// milliseconds
 #define QT_MAX_SEEK_SKIPBACKAHEAD_RATIO_SERVER	5	
@@ -351,6 +355,7 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
     ULONG32 ulPayloadType = QT_BAD_PAYLOAD;
     ULONG32 ulAvgBitRate = 0;
     ULONG32 ulMaxBitRate = 0;
+    ULONG32 ulMaxRawBitRate = 0;
     ULONG32 ulAvgPacketSize = 0;
 
     ULONG32 ulPreroll = 0;
@@ -477,6 +482,7 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 
 	ulMaxBitRate = m_TrackInfo.GetMaxBitrate();
 
+	ulMaxRawBitRate = m_TrackInfo.GetMaxRawBitrate();
 	ulPreroll = m_TrackInfo.GetPreroll();
 	ulPredata = m_TrackInfo.GetPredata();
 
@@ -497,6 +503,11 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 	    pHeader->SetPropertyULONG32("MaxBitRate", ulMaxBitRate);
 	}
 
+	if (ulMaxRawBitRate != 0)
+	{
+	    pHeader->SetPropertyULONG32("MaxRawBitRate", ulMaxRawBitRate);
+	}
+
 	if (ulPreroll != 0)
 	{
 	    pHeader->SetPropertyULONG32("Preroll", ulPreroll);
@@ -505,13 +516,14 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 	if (ulPredata != 0)
 	{
 	    pHeader->SetPropertyULONG32("Predata", ulPredata);
+	}
+
         if (ulAvgPacketSize != 0)
         {
             pHeader->SetPropertyULONG32("AvgPacketSize", ulAvgPacketSize);
         }
-	}
 
-	if (ulWidth != 0)
+        if (ulWidth != 0)
 	{
 	    pHeader->SetPropertyULONG32(QT_WIDTH_METANAME, ulWidth);
 	}
@@ -549,10 +561,18 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 	pHeader->SetPropertyULONG32("HasOutOfOrderTS", 1);
     }
 
+#ifdef QTCONFIG_ALTERNATE_STREAMS
+    // If switchable, add the base rule for this stream
+    if (SUCCEEDED(retVal) && m_TrackInfo.GetSwitchGroupId() != 0)
+    {
+        pHeader->SetPropertyULONG32("BaseRule", m_uBaseRuleNumber);
+    }
+#endif
+
     // Set ASM Rule Book
     if (SUCCEEDED(retVal))
     {
-	char pRuleBook[128]; /* Flawfinder: ignore */
+	char pRuleBook[256]; /* Flawfinder: ignore */
 
 #ifdef QTCONFIG_SERVER
 	pHeader->GetPropertyULONG32("RTPPayloadType", ulPayloadType);
@@ -592,9 +612,9 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 		    // divide avg bitrate
 		    UINT32 ulAvgBandwidth = ulAvgBitRate / 2;
 
-		    SafeSprintf(pRuleBook, 128, 
-			    "Marker=%d,AverageBandwidth=%d;"
-			    "Marker=%d,AverageBandwidth=%d;",
+		    SafeSprintf(pRuleBook, 256, 
+			    "Marker=%d,AverageBandwidth=%d,InterDepend=1;"
+			    "Marker=%d,AverageBandwidth=%d,InterDepend=0;",
 			    (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 			    ulAvgBitRate - ulAvgBandwidth,
 			    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1,
@@ -604,16 +624,16 @@ HX_RESULT CQTTrack::BuildStreamHeader(IHXValues* &pHeader,
 		{
 		    if (ulAvgBitRate > 0)
 		    {
-			SafeSprintf(pRuleBook, 128, "Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE;"
-					   "Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE;",
+			SafeSprintf(pRuleBook, 256, "Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE,InterDepend=1;"
+					   "Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE,InterDepend=0;",
 			        (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 				ulAvgBitRate,
 				(QTASM_MARKER_ON_RULE == 0) ? 0 : 1);
 		    }
 		    else
 		    {
-			SafeSprintf(pRuleBook, 128, "Marker=%d,TimeStampDelivery=TRUE;"
-					   "Marker=%d,TimeStampDelivery=TRUE;",
+			SafeSprintf(pRuleBook, 256, "Marker=%d,TimeStampDelivery=TRUE,InterDepend=1;"
+					   "Marker=%d,TimeStampDelivery=TRUE,InterDepend=0;",
 			        (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 				(QTASM_MARKER_ON_RULE == 0) ? 0 : 1);
 		    }
@@ -983,19 +1003,6 @@ HX_RESULT CQTTrack::ObtainTrackBitrate(ULONG32& ulAvgBitrateOut)
 
 
 /****************************************************************************
- *  IHXThreadSafeMethods method
- */
-/****************************************************************************
- *  IsThreadSafe
- */
-STDMETHODIMP_(UINT32)
-CQTTrack::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FF_GETPACKET | HX_THREADSAFE_METHOD_FSR_READDONE;
-}
-
-
-/****************************************************************************
  *  Protected Functions
  */
 /****************************************************************************
@@ -1181,7 +1188,7 @@ HX_RESULT CQTTrack::ReturnPacket(HX_RESULT status,
 				ULONG32 ulSize)
 {
     ULONG32 ulTime = (ULONG32) (m_TrackEdit.GetRealTime() + 0.5);
-    ULONG32 ulRTPTime = m_TrackEdit.GetMediaTime() + 
+    ULONG32 ulRTPTime = m_TrackEdit.GetRealMediaTime() +
 			m_TimeToSample.GetCompositionOffset();
     IHXPacket* pPacket = NULL;
     HX_RESULT retVal = HXR_OK;
@@ -1249,6 +1256,20 @@ HX_RESULT CQTTrack::ReturnPacket(HX_RESULT status,
     else
     {
 	m_bTrackDone = TRUE;
+        if (FAILED(status))
+        {
+            if (m_pResponse)
+            {
+                IHXErrorMessages* pErrMsg = NULL;
+                HX_RESULT rv = m_pResponse->QueryInterface(IID_IHXErrorMessages, (void**) &pErrMsg);
+                if (SUCCEEDED(rv))
+                {
+                    // Report the error
+                    pErrMsg->Report(HXLOG_ERR, status, 0, NULL, NULL);
+                }
+                HX_RELEASE(pErrMsg);
+            }
+        }
     }
 
     if (m_pPacketizer)
@@ -1465,8 +1486,12 @@ UINT32 CQTTrack::GetFramesPerMSecond(CQT_MovieInfo_Manager* pMovieInfo)
         // 1 million seconds converted to movie time scale.
         UINT64 timeUnits     = ((UINT64) (1000*1000) * ulTimeScale);
         //calculate uframesPerMSecond = timeUnits * frameCount / trackDuration;
-        UINT64 uframesPerMSecond = timeUnits/trackDuration * frameCount +
-                           timeUnits%trackDuration * frameCount / trackDuration;
+        UINT64 uframesPerMSecond = 0;
+        if(trackDuration > 0) 
+        {
+		    uframesPerMSecond = timeUnits/trackDuration * frameCount +
+                                timeUnits%trackDuration * frameCount / trackDuration;
+        }
         if (uframesPerMSecond > MAX_UINT32)
         {
             ulRetVal = 0;
@@ -1504,13 +1529,7 @@ STDMETHODIMP CQTTrack::SeekDone(HX_RESULT status)
 //
 STDMETHODIMP CQTTrack::QueryInterface(REFIID riid, void** ppvObj)
 {
-    if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
-    {
-	AddRef();
-	*ppvObj = (IHXThreadSafeMethods*) this;
-	return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IUnknown))
+    if (IsEqualIID(riid, IID_IUnknown))
     {
 	AddRef();
 	*ppvObj = this;

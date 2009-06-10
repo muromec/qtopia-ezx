@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pq.cpp,v 1.7 2005/03/14 19:35:25 bobclark Exp $
+ * Source last modified: $Id: pq.cpp,v 1.9 2008/09/07 10:42:03 pbasic Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -77,8 +77,6 @@ static const char HX_THIS_FILE[] = __FILE__;
 
 PQ::PQ(CHXID* pIds)
 {
-//    int i;
-
     m_pHead = 0;
     m_pNextZeroInsertion = 0;
     m_lElementCount = 0;
@@ -103,6 +101,18 @@ PQ::PQ(CHXID* pIds)
 
 PQ::~PQ()
 {
+    destruct();
+}
+
+void
+PQ::destruct()
+{
+    // check if we're already destructed
+    if (!m_pIds)
+    {
+        return;
+    }
+
     Timeval now;
 
     now.tv_sec = 0x7fffffff;
@@ -142,6 +152,9 @@ PQ::~PQ()
     {
 	HX_DELETE(m_pIds);
     }
+
+    // mark as destructed
+    m_pIds = 0;
 }
 
 UINT32

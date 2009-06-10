@@ -84,8 +84,7 @@ HXBOOL MP4LATMDepack::Init(ULONG32 ulProfileID,
     {
 	Bitstream bs;
 
-	bs.SetBuffer(pStreamMuxConfig);
-	bs.SetBufSize(ulMuxConfigSize);
+	bs.SetBuffer(pStreamMuxConfig, ulMuxConfigSize);
 
 	// A config was specified so try to unpack it
 	ret = HandleMuxConfig(bs);
@@ -197,6 +196,7 @@ HXBOOL MP4LATMDepack::OnPacket(ULONG32 ulTime, const UINT8* pData,
 	    m_ulBytesStaged += ulSize;
 
 	    pBuffer = m_pStagingBuf;
+	    ulSize = m_ulBytesStaged;
 	}
 
 	if (bMarker)
@@ -240,17 +240,21 @@ HXBOOL MP4LATMDepack::ProcessStagingBuffer(const UINT8* pBuffer,ULONG32 ulSize)
 
     Bitstream bs;
     
-    bs.SetBuffer(pBuffer);
-    bs.SetBufSize(ulSize);
+    bs.SetBuffer(pBuffer, ulSize);
 
     if (m_bConfigPresent)
     {
-	if (bs.GetBits(1) == 0)
-	{
+        UINT32 ulLeft = bs.BitsLeft();
+        if (ulLeft < 1)
+        {
+            failed = TRUE;
+        }
+        else if (bs.GetBits(1) == 0)
+        {
 	    // Not sure what we are supposed to do if this fails
-	    if (!HandleMuxConfig(bs))
-		failed = TRUE;
-	}
+            if (!HandleMuxConfig(bs))
+                failed = TRUE;
+        }
     }
 
     if (!failed)
@@ -266,7 +270,11 @@ HXBOOL MP4LATMDepack::ProcessStagingBuffer(const UINT8* pBuffer,ULONG32 ulSize)
                 failed = TRUE;
                 break;
             }
-	    GetPayloads(bs, ulFrameTime);
+	    if (!GetPayloads(bs, ulFrameTime))
+	    {
+	        failed = TRUE;
+	        break;
+	    }
 	}
 
 	m_bHadLoss = FALSE;
@@ -304,16 +312,23 @@ HXBOOL MP4LATMDepack::GetPayloadLengths(Bitstream& bs)
 		if (m_muxConfig.GetStream(streamID).GetLengthType() == 0)
 		{	
 		    ULONG32 tmp;
-
+		    UINT32 ulSizeByteCount = 0;
 		    m_pSlotLengths[streamID] = 0;
-		    
+		    UINT32 ulLeft = bs.BitsLeft();
+		    	
 		    do
-		    { 
-			tmp = bs.GetBits(8);
-			m_pSlotLengths[streamID] += tmp;
-		    } while (tmp == 0xff);
+		    { 	
+		        ulLeft =  bs.BitsLeft();
+		        if (ulLeft < 8)
+		        {
+		            return FALSE;
+		        }
+		        tmp = bs.GetBits(8);
+		        ulSizeByteCount++;
+		        m_pSlotLengths[streamID] += tmp;
+		    } while (tmp == 0xff );
 
-                    if (m_pSlotLengths[streamID] > bs.GetBufSize())
+                    if (m_pSlotLengths[streamID] + ulSizeByteCount > bs.GetBufSize())
                     {
                         failed = TRUE;
                     }
@@ -334,17 +349,22 @@ HXBOOL MP4LATMDepack::GetPayloadLengths(Bitstream& bs)
     return !failed;
 }
 
-void MP4LATMDepack::GetPayloads(Bitstream& bs, ULONG32 ulTime)
+HXBOOL MP4LATMDepack::GetPayloads(Bitstream& bs, ULONG32 ulTime)
 {
+    HXBOOL failed = FALSE;
     if (m_muxConfig.AllSameTiming())
     {
 	for (ULONG32 prog = 0; prog < m_muxConfig.NumPrograms(); prog++)
 	{
 	    for (ULONG32 layer = 0; layer < m_muxConfig.NumLayers(prog); layer++)
 	    {
-		ULONG32 streamID = m_muxConfig.GetStreamID(prog, layer);
-
-		bs.GetBits(m_pSlotLengths[streamID] << 3, m_pPayloadBuf);
+	        ULONG32 streamID = m_muxConfig.GetStreamID(prog, layer);
+	        UINT32 ulLeft = bs.BitsLeft();
+	        if (ulLeft < (m_pSlotLengths[streamID] << 3))
+	        {
+	            return FALSE;		 
+	        }
+	        bs.GetBits(m_pSlotLengths[streamID] << 3, m_pPayloadBuf);
 
 		// Currently we just hand out packets for stream 0
 		if ((streamID == 0) && m_pCallback)
@@ -357,5 +377,6 @@ void MP4LATMDepack::GetPayloads(Bitstream& bs, ULONG32 ulTime)
 	    }
 	}
     }
+    return !failed;
 }
 

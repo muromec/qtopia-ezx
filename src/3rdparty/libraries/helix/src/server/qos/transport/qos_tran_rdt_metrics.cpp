@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_tran_rdt_metrics.cpp,v 1.13 2005/08/19 01:03:10 jgordon Exp $ 
+ * Source last modified: $Id: qos_tran_rdt_metrics.cpp,v 1.16 2009/05/31 03:40:05 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -76,7 +76,8 @@ QoSRDTMetrics::~QoSRDTMetrics ()
 void
 QoSRDTMetrics::Enqueue (UINT16 unStream,
 			UINT16 nSeqNo, 
-			UINT32 /* bytes */ ulSize)
+			UINT32 /* bytes */ ulSize,
+			BOOL bIncomingLostPkt)
 {
     RDTStream* pStreamInfo = NULL;
 
@@ -99,6 +100,20 @@ QoSRDTMetrics::Enqueue (UINT16 unStream,
 
     pStreamInfo->m_pPktHistory[index].m_ulSize = ulSize;
     pStreamInfo->m_pPktHistory[index].m_bACKd = FALSE;
+    /*
+     * previously, even tho the incoming packet (if lost) was not being
+     * sent to the client, it would return it as a missing pkt (NAKd) and 
+     * the server was incorrectly using it to calculate packet loss,
+     * thereby incorrectly doing congestion control. this small change of 
+     * enqueuing a incoming lost packet and recording it as NAKd fixes
+     * that.
+     *
+     * since the client is not going to receive this pkt, it will send
+     * it back in the NAck list. but because we r marking this packet as
+     * NAKd already, when doing an Update() we will not count it as a NAKd
+     * pkt.
+     */
+    pStreamInfo->m_pPktHistory[index].m_bIncomingLostPkt = bIncomingLostPkt;
     pStreamInfo->m_pPktHistory[index].m_bNAKd = FALSE;
 }
 
@@ -118,15 +133,40 @@ QoSRDTMetrics::Update (UINT32 /* msec */ ulNow,
 	return;
     }
 
+    pStreamInfo->m_ulLastACKCount = 0;
+    pStreamInfo->m_ulLastNAKCount = 0;
+
+    UINT16 unIdx = 0;
+    if (nakLen)
+    {
+        UINT16 uNumNAKd = 0;
+	UINT16 uNumIncomingLost = 0;
+
+        for (UINT16 j = 0; j < nakLen; j++)
+        {
+            unIdx = nNakList[j]%PKT_HISTORY_SIZE;
+            if (!(pStreamInfo->m_pPktHistory[unIdx].m_bNAKd) &&
+	        !(pStreamInfo->m_pPktHistory[unIdx].m_bIncomingLostPkt))
+            {
+                if (!(pStreamInfo->m_pPktHistory[unIdx].m_bACKd))
+		    uNumNAKd++;
+		pStreamInfo->m_pPktHistory[unIdx].m_bNAKd = TRUE;
+            }
+	    else if (pStreamInfo->m_pPktHistory[unIdx].m_bIncomingLostPkt)
+		uNumIncomingLost++;
+        }
+
+	nakLen -= uNumIncomingLost;
+        pStreamInfo->m_ulLastNAKCount = uNumNAKd;
+        pStreamInfo->m_ulNAKCount += uNumNAKd;
+    }
+
     m_ulLossAcc += nakLen;
     m_ulLocalLossAcc += nakLen;
     m_ulPktAcc  += (nakLen + ackLen);
 
     m_fRTT = fRTT;
-    pStreamInfo->m_ulLastACKCount = 0;
-    pStreamInfo->m_ulLastNAKCount = 0;
 
-    UINT16 unIdx = 0;
     if (ackLen)
     {
         UINT16 nDataACKd = 0;
@@ -156,26 +196,6 @@ QoSRDTMetrics::Update (UINT32 /* msec */ ulNow,
         pStreamInfo->m_ulLastACKCount = nNumACKd;
         pStreamInfo->m_ulLastACK = ulNow;
         m_ulLocalLossAcc = 0;
-    }
-
-    if (nakLen)
-    {
-        UINT16 nNumNAKd = 0;
-
-        for (UINT16 j = 0; j < nakLen; j++)
-        {
-            unIdx = nNakList[j]%PKT_HISTORY_SIZE;
-            if (!(pStreamInfo->m_pPktHistory[unIdx].m_bNAKd) &&
-                !(pStreamInfo->m_pPktHistory[unIdx].m_bACKd))
-            {
-                nNumNAKd++;
-            }
-            
-            pStreamInfo->m_pPktHistory[unIdx].m_bNAKd = TRUE;
-        }
-
-        pStreamInfo->m_ulLastNAKCount = nNumNAKd;
-        pStreamInfo->m_ulNAKCount += nNumNAKd;
     }
 }
 

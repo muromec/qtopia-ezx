@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: main.cpp,v 1.11 2006/04/03 18:40:54 seansmith Exp $ 
+ * Source last modified: $Id: main.cpp,v 1.15 2009/05/18 18:59:26 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -67,6 +67,7 @@
 extern int shared_ready;
 extern BOOL g_bFastMallocAll;
 extern BOOL*   g_bEnableClientConnCleanup;
+extern BOOL g_bServerGoingDown;
 
 void terminate(int code);
 
@@ -226,6 +227,7 @@ ServiceStart(LPPARAMETER pParameter)
 void
 ServiceEnd()
 {
+    g_bServerGoingDown = TRUE;
     //shut everything down.
     niam();
 }
@@ -529,20 +531,12 @@ servicemain(int argc, char** argv)
     // cleanup handles
     CloseHandle(ServerDoneEvent);
 
-    if (g_plugin_handler)
-    {
-	g_plugin_handler->FreeAllLibraries();
-    }
-
-    // don't tell stupid ms service control manager that we're stopped 
-    // till we've freed all the libraries, else it gets all freaked
-    // out about perfplin
     ServiceStatus.dwCurrentState = SERVICE_STOPPED;
     ServiceStatus.dwWaitHint = 0;
     ++ServiceStatus.dwCheckPoint;
     SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
 
-    return 0;
+    exit(0);
 }
 
 void
@@ -575,6 +569,7 @@ ConsoleCtrlHandler(DWORD dwCtrlType)
     {
 	case CTRL_C_EVENT:
 	case CTRL_CLOSE_EVENT:
+        g_bServerGoingDown = TRUE;
 	    niam();
 	    
             if (WaitForSingleObject(ServerDoneEvent, INFINITE) == WAIT_FAILED)
@@ -683,7 +678,7 @@ void perform_restart()
 	{
 	    ul += strlen(g_argv[i]);
 	}
-	pCommandLine = new char[ul + 40]; //30 for wPID
+	pCommandLine = (char *)::malloc(ul + 40); //30 for wPID
 	Flatten(g_argc, g_argv, pCommandLine);
 
 	/*
@@ -727,8 +722,8 @@ void perform_restart()
 	PROCESS_INFORMATION pi;
 
         char* cmdadd = " -reservice:";
-        char* pNewCommandLine = new char[strlen(g_argv[0]) + strlen(cmdadd) 
-                                            + strlen(g_szServiceName) + 3];
+        char* pNewCommandLine = (char *)::malloc(strlen(g_argv[0]) + strlen(cmdadd) 
+                                            + strlen(g_szServiceName) + 3);
         sprintf(pNewCommandLine, "%s%s\"%s\"", g_argv[0], cmdadd, 
                 g_szServiceName);
  
@@ -737,13 +732,12 @@ void perform_restart()
 		      pNewCommandLine,
 		      NULL, //processs attributes
 		      NULL, //Thread attributes
-		      TRUE, //Don't inherit my handles
+		      FALSE, //Don't inherit my handles
 		      0, //Creation flags
 		      NULL, //Use my environment
 		      NULL, //Use my current directory
 		      &si,
 		      &pi);
-	delete[] pNewCommandLine;
 	return;
     }
 }
@@ -997,6 +991,8 @@ lib_main(int argc, char **argv)
 
 	if(bIsService == TRUE)
 	{
+            
+
 	    //
 	    // Run as a service
 	    //

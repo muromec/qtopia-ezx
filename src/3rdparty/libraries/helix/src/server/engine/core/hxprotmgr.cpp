@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxprotmgr.cpp,v 1.8 2006/05/11 06:58:16 atin Exp $
+ * Source last modified: $Id: hxprotmgr.cpp,v 1.9 2008/07/28 22:56:06 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -39,6 +39,7 @@
 #include "hxcom.h"
 #include "hxerror.h"
 #include "hxcomm.h"
+#include "errmsg_macros.h"
 
 #include "dict.h"
 #include "debug.h"
@@ -161,22 +162,26 @@ HXProtocolManager::CreateProtocol(CHXServSocket* pSock,
     return HXR_FAIL;
 }
 
-HXSocketConnection::HXSocketConnection(IHXSocket* pSock, HXProtocolType pt) :
-    m_nRefCount(0),
-    m_pSock((CHXServSocket*)pSock),
-    m_pt(pt),
-    m_pProtocol(NULL)
+HXSocketConnection::HXSocketConnection(IHXSocket* pSock, HXProtocolType pt, IHXErrorMessages* pMessages)
+    : m_nRefCount(0)
+    , m_pSock((CHXServSocket*)pSock)
+    , m_pt(pt)
+    , m_pProtocol(NULL)
+    , m_pMessages(pMessages)
 {
     m_pSock->AddRef();
 
     m_pSock->SetResponse(this);
     m_pSock->SelectEvents(HX_SOCK_EVENT_READ|HX_SOCK_EVENT_CLOSE);
+
+    HX_ADDREF(m_pMessages);
 }
 
 HXSocketConnection::~HXSocketConnection(void)
 {
     m_pProtocol = NULL; // NB: We didn't AddRef this
     HX_RELEASE(m_pSock);
+    HX_RELEASE(m_pMessages);
 }
 
 STDMETHODIMP
@@ -230,6 +235,7 @@ HXSocketConnection::EventPending(UINT32 uEvent, HX_RESULT status)
         Release();
         return HXR_UNEXPECTED;
     }
+
     switch (uEvent)
     {
     case HX_SOCK_EVENT_READ:
@@ -253,6 +259,12 @@ HXSocketConnection::EventPending(UINT32 uEvent, HX_RESULT status)
 		HX_RELEASE(pBuf);
                 break;
             }
+
+            // Once we have a protocol object it is responsible for timing out inactive connections
+            // (as appropriate for the given protocol).  So, we reset the socket timeout prior to
+            // handing the socket to the protocol by setting the timeout to zero (meaning disabled).
+            // This was previously set to non-zero in CHXServSocket::Accept().
+            m_pSock->SetOption(HX_SOCKOPT_APP_IDLETIMEOUT, 0);
 
             g_pProtMgr->CreateProtocol(m_pSock, m_pt, m_pProtocol);
             if (m_pProtocol == NULL)
@@ -290,6 +302,43 @@ HXSocketConnection::EventPending(UINT32 uEvent, HX_RESULT status)
             m_pSock->Close();
         }
         break;
+    case HX_SOCK_EVENT_ERROR:
+        if (status == HXR_SOCK_TIMEDOUT)
+        {
+            //The connection was established but it never sent any data.
+
+            IHXSockAddr* pAddr = 0;
+
+            IHXBuffer* pRemoteAddrBuf = 0;
+            const char* pszRemoteAddr = "";
+            m_pSock->GetPeerAddr(&pAddr);
+            if (pAddr)
+            {
+                pAddr->GetAddr(&pRemoteAddrBuf);
+                if (pRemoteAddrBuf)
+                {
+                    pszRemoteAddr = (const char*)pRemoteAddrBuf->GetBuffer();
+                }
+                HX_RELEASE(pAddr);
+            }
+
+            UINT16 uPort = 0;
+            m_pSock->GetLocalAddr(&pAddr); //reuse pAddr
+            if (pAddr)
+            {
+                uPort = pAddr->GetPort();
+                HX_RELEASE(pAddr);
+            }
+
+            LOGMSG(m_pMessages, HXLOG_WARNING, "HXR_SOCK_TIMEDOUT: A connection to local port %d was established from host '%s' but it never sent any data.\n", uPort, pszRemoteAddr);
+
+            m_pSock->Close();
+            HX_RELEASE(m_pSock);
+            HX_RELEASE(pRemoteAddrBuf);
+            break;
+        } 
+        //Fall-through for all other types of errors...
+
     default:
         HX_ASSERT(FALSE);
     }

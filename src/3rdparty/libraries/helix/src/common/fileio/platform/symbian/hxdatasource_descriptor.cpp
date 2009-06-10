@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdatasource_descriptor.cpp,v 1.2 2006/09/19 23:58:42 gashish Exp $ 
+ * Source last modified: $Id: hxdatasource_descriptor.cpp,v 1.5 2008/09/02 19:38:42 shivnani Exp $ 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
  * The contents of this file, and the files included with this file,
@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -109,8 +109,15 @@ UINT32 CHXDataSourceDescriptor::Read(
         requestSize = m_pData->Size() - m_ulPosition;
     }
 
-    if(requestSize <= 0)
+    if(requestSize < 0)
     {
+       SetLastError(HXR_READ_ERROR);
+        return 0;
+    }
+    
+     if(requestSize == 0)
+    {
+       
         return 0;
     }
     
@@ -126,7 +133,7 @@ UINT32 CHXDataSourceDescriptor::Read(
 UINT32 CHXDataSourceDescriptor::Write(
             void *pBuf, ULONG32 size, ULONG32 count)
 {
-
+    SetLastError(HXR_NOTIMPL);
     HX_ASSERT("CHXDataSourceDescriptor::WriteL" == NULL);
     return 0;
 }

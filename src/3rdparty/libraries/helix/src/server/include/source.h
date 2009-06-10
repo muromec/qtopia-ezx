@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: source.h,v 1.5 2003/08/05 19:10:56 damonlan Exp $ 
+ * Source last modified: $Id: source.h,v 1.6 2007/08/18 00:21:15 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -117,8 +117,6 @@ DECLARE_INTERFACE_(IHXPSourcePackets, IUnknown)
 
     STDMETHOD(GetPacket)	(THIS_
     				UINT16 unStreamNumber) PURE;
-
-    STDMETHOD_(UINT32, IsThreadSafe)     (THIS) PURE;
 };
 
 /****************************************************************************

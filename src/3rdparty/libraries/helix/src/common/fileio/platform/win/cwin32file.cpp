@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cwin32file.cpp,v 1.7 2006/02/07 19:21:14 ping Exp $
+ * Source last modified: $Id: cwin32file.cpp,v 1.9 2007/07/25 04:57:10 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -400,12 +400,12 @@ HXBOOL CWin32File::GetTemporaryFileName(const char *tag, char* name, UINT32 ulBu
 
     char szTempPathName[_MAX_PATH] = "."; /* Flawfinder: ignore */
 
-#if !defined(WIN32_PLATFORM_PSPC)
-    if (!GetTempPath(_MAX_PATH,szTempPathName))
+#if !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 211)
+    if (!GetTempPath(_MAX_PATH,OS_STRING2(szTempPathName,_MAX_PATH)))
     {
 	bOk = FALSE;
     }
-#endif /* !defined(WIN32_PLATFORM_PSPC) */
+#endif /* !defined(WIN32_PLATFORM_PSPC) || (_WIN32_WCE >= 211) */
 
     if (bOk && !GetTempFileName(OS_STRING(szTempPathName),
 				OS_STRING(tag),0, OS_STRING2(name,_MAX_PATH)))

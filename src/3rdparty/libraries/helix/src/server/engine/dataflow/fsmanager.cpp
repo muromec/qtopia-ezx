@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fsmanager.cpp,v 1.8 2006/11/20 13:30:22 asrivastava Exp $
+ * Source last modified: $Id: fsmanager.cpp,v 1.20 2009/05/11 19:20:40 svaidhya Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -58,11 +58,13 @@
 #include "chxpckts.h"
 #include "misc_plugin.h"
 #include "hxxfile.h"
-#include "tsfob.h"
 #include "cdist_wrappers.h"
 #include "timeval.h"
 #include "globals.h"
 #include "servsked.h"
+#include "hxmon.h"
+#include "errmsg_macros.h"
+#include "urlparser.h"
 
 #include <signal.h>
 
@@ -93,6 +95,22 @@ FSManager::FSManager(Process *p)
     m_ulHandlingPlusUrl = 0;
     m_bIsCDistEligible = FALSE;
     m_bCollectReadStats = FALSE;
+    m_bEnableAMPDebug = FALSE;
+
+
+    IHXRegistry* pRegistry = NULL;
+    INT32 nVal = 0;
+    proc->pc->server_context->QueryInterface(IID_IHXRegistry,
+                                             (void**)&pRegistry);
+    if (pRegistry)
+    {
+        pRegistry->GetIntByName("config.EnableAMPDebug", nVal);
+        if (nVal)
+        {
+            m_bEnableAMPDebug = TRUE;
+        }
+        HX_RELEASE(pRegistry);
+    }
 }
 
 FSManager::~FSManager()
@@ -114,7 +132,7 @@ FSManager::~FSManager()
     HX_RELEASE(m_scheduler);
     HX_RELEASE(m_pAdvise);
 
-    HX_VECTOR_DELETE(m_url);
+    HX_RELEASE(m_url);
 }
 
 STDMETHODIMP FSManager::QueryInterface(REFIID riid, void** ppvObj)
@@ -204,6 +222,8 @@ FSManager::GetFileObject(IHXRequest* pRequest,
     PluginHandler::Errors       plugin_result;
     PluginHandler::FileSystem*  file_sys_handler;
     UINT32                      mount_point_len = 0;
+    UINT32                      uLen = 0;
+    const char*                 pURL = NULL;
 
     if (!pRequest)
     {
@@ -213,35 +233,61 @@ FSManager::GetFileObject(IHXRequest* pRequest,
     m_pRequest = pRequest;
     m_pRequest->AddRef();
 
-    const char* temp;
+    const char* temp = NULL;
+    IHXURLParser* pURLParser = NULL;
+    IHXURL* pHXURL = NULL;
 
-    if (m_pRequest->GetURL(temp) != HXR_OK)
+    m_pRequest->QueryInterface(IID_IHXURLParser,(void**)&pURLParser);
+    if (pURLParser)
     {
+        pURLParser->GetHXURL(pHXURL);
+        if (pHXURL)
+        {
+            uLen = pHXURL->GetEncPath(temp);
+        }
+        HX_RELEASE(pURLParser);
+    }
+    else
+    {
+        m_pRequest->GetURL(temp);
+        uLen = strlen(temp);
+    }
+
+    if (!temp)
+    {
+        HX_RELEASE(pHXURL);
         m_pResponse->FileObjectReady(HXR_FAILED, NULL);
         return HXR_FAIL;
     }
 
-    HX_VECTOR_DELETE(m_url);
+    HX_RELEASE(m_url);
 
     if (*temp == '/')
     {
-        m_url = new_string(temp);               //XXXGH
+        m_url = new CHXURLParser(temp,uLen);               //XXXGH
     }
     else
     {
-        m_url = new char[strlen(temp) + 2];     //XXXSMP
-        sprintf(m_url,"/%s", temp);             //XXXSMP
+        char* pSep = NULL;
+        pSep = new char[strlen(temp) + 2];     //XXXSMP
+        sprintf(pSep,"/%s", temp);             //XXXSMP
+        m_url = new CHXURLParser(pSep,strlen(temp) + 1);
+        HX_DELETE(pSep);
     }
+    m_url->AddRef();
 
     file_sys_handler = proc->pc->plugin_handler->m_file_sys_handler;
 
-    plugin_result = file_sys_handler->Find(m_url, 0,
+    m_url->GetFullPath(pURL);
+
+    plugin_result = file_sys_handler->Find(pURL, 0,
                                            mount_point_len,
                                            m_last_plugin,
                                            m_last_options);
 
     if (PluginHandler::NO_ERRORS != plugin_result)
     {
+        HX_RELEASE(pHXURL);
         m_pResponse->FileObjectReady(HXR_FAILED, NULL);
         return HXR_FAIL;
     }
@@ -253,6 +299,7 @@ FSManager::GetFileObject(IHXRequest* pRequest,
     m_first_options = m_last_options;
     if (m_first_options) m_first_options->AddRef();
 
+    HX_RELEASE(pHXURL);
     return CheckNextPlugin(m_last_plugin);
 }
 
@@ -270,40 +317,67 @@ FSManager::GetNewFileObject(IHXRequest* pRequest,
     IHXFileSystemObject*        file_system;
     PluginHandler::Plugin*      plugin;
     IHXRequestHandler*         pRequestHandler;
+    UINT32                      uLen = 0;
+    const char*                 pURL = NULL;
 
     HX_RELEASE(m_pRequest);
     m_pRequest = pRequest;
     m_pRequest->AddRef();
 
-    const char* temp;
+    const char* temp = NULL;
+    IHXURLParser* pURLParser = NULL;
+    IHXURL* pHXURL = NULL;
 
-    if (m_pRequest->GetURL(temp) != HXR_OK)
+    pRequest->QueryInterface(IID_IHXURLParser,(void**)&pURLParser);
+    if (pURLParser)
     {
+        pURLParser->GetHXURL(pHXURL);
+        if (pHXURL)
+        {
+            uLen = pHXURL->GetEncPath(temp);
+        }
+        HX_RELEASE(pURLParser);
+    }
+    else
+    {
+        m_pRequest->GetURL(temp);
+        uLen = strlen(temp);
+    }
+
+    if (!temp)
+    {
+        HX_RELEASE(pHXURL);
         m_pResponse->FileObjectReady(HXR_FAILED, NULL);
         return HXR_FAIL;
     }
 
-    HX_VECTOR_DELETE(m_url);
+    HX_RELEASE(m_url);
 
     if (*temp == '/')
     {
-        m_url = new_string(temp);               //XXXGH
+        m_url = new CHXURLParser(temp,uLen);               //XXXGH
     }
     else
     {
-        m_url = new char[strlen(temp) + 2];     //XXXSMP
-        sprintf(m_url,"/%s", temp);             //XXXSMP
+        char* pSep = NULL;
+        pSep = new char[strlen(temp) + 2];
+        sprintf(pSep,"/%s", temp);             //XXXSMP
+        m_url = new CHXURLParser(pSep,strlen(temp) + 1);
+        HX_DELETE(pSep);
     }
+    m_url->AddRef();
 
     file_sys_handler = proc->pc->plugin_handler->m_file_sys_handler;
 
-    plugin_result = file_sys_handler->Find(m_url, 0,
+    m_url->GetFullPath(pURL);
+    plugin_result = file_sys_handler->Find(pURL, 0,
                                            mount_point_len,
                                            m_last_plugin,
                                            m_last_options);
 
     if (PluginHandler::NO_ERRORS != plugin_result)
     {
+        HX_RELEASE(pHXURL);
         m_pResponse->FileObjectReady(HXR_FAILED, NULL);
         return HXR_FAIL;
     }
@@ -354,20 +428,15 @@ FSManager::GetNewFileObject(IHXRequest* pRequest,
             if (HXR_OK == h_result)
             {
                 h_result = file_system->CreateFile(&m_file_object);
-
-                if (!g_bForceThreadSafePlugins)
-                {
-                    ThreadSafeFileObjectWrapper::MakeThreadSafe(m_file_object,
-                                                                proc);
-                }
-
                 file_system->Release();
             }
 
             if(HXR_OK == h_result)
             {
-                const char* pURL = m_url + m_mount_point_len;
-
+                const char* pURL = NULL;
+                m_url->GetEncPath(pURL);
+                pURL += m_mount_point_len - 1;
+             
                 // pURL shouldn't have a leading slash.  However, we need a
                 // trailing slash, so something at the top level needs a fixup.
 
@@ -402,6 +471,7 @@ FSManager::GetNewFileObject(IHXRequest* pRequest,
         //XXXJR FIXME
         ASSERT(0);
     }
+    HX_RELEASE(pHXURL);
     return h_result;
 }
 
@@ -485,8 +555,6 @@ FSManager::FileObjectReady(HX_RESULT status,
     {
         pUnknown->AddRef();
 
-        ThreadSafeFileObjectWrapper::MakeThreadSafe(pUnknown, proc);
-
         if (HXR_OK == pUnknown->QueryInterface(IID_IHXRequestHandler,
                                             (void**)&pRequestHandler))
         {
@@ -538,6 +606,44 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
     IHXFileSystemObject*        file_system;
     PluginHandler::Plugin*      plugin = plugininfo->m_pPlugin;
     IHXRequestHandler*          pRequestHandler;
+
+    if (m_bEnableAMPDebug)
+    {
+        IHXErrorMessages*   pErrorHandler = NULL;
+        plugin->GetErrorHandler(pErrorHandler);
+        IHXValues*  pOptions = NULL;
+        plugininfo->GetOptions(pOptions);
+        IHXBuffer*  pMountPoint = 0;
+        IHXBuffer*  pBasePath = 0;
+        IHXBuffer*  pShortName = 0;
+        UINT32      uSearchOrder = 0;
+        CHXString* pBasePathStr = NULL;
+
+        pOptions->GetPropertyBuffer("MountPoint", pMountPoint);
+        pOptions->GetPropertyBuffer("ShortName", pShortName);
+        pOptions->GetPropertyBuffer("BasePath", pBasePath);
+        pOptions->GetPropertyULONG32("MountPointSearchOrder", uSearchOrder);
+        if (0 != pBasePath)
+        {
+            const char *find = "\\";
+            const char *replace = "\\\\";
+
+            pBasePathStr = new CHXString(pBasePath->GetBuffer());
+            pBasePathStr->FindAndReplace(find, replace, TRUE);
+        }
+
+        LOGMSG(pErrorHandler, HXLOG_INFO, "\nMountPoint: %s\nShortName: %s\n"
+            "BasePath: %s\nMountPointSearchOrder: %u\n",
+            pMountPoint->GetBuffer(), pShortName->GetBuffer(),
+            (pBasePathStr)? pBasePathStr->GetBuffer(1024): "", uSearchOrder);
+
+         HX_DELETE(pBasePathStr);
+         HX_RELEASE(pBasePath);
+         HX_RELEASE(pMountPoint);
+         HX_RELEASE(pShortName);
+         HX_RELEASE(pErrorHandler);
+         HX_RELEASE(pOptions);
+    }
 
     if(plugin->m_load_multiple)
     {
@@ -600,8 +706,6 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
                 m_file_object->Release();
             }
             h_result = file_system->CreateFile(&m_file_object);
-
-            ThreadSafeFileObjectWrapper::MakeThreadSafe(m_file_object, proc);
         }
 
         if(m_file_exists)
@@ -643,8 +747,45 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
 
             if (bOk)
             {
-                const char* pURL = m_url + m_mount_point_len;
+                const char* pURL = NULL;
+                // Check if it's a mount point description instead of mount point name.
+                // In Browse Content page now we are having link on description which 
+                // will be appended to URL and passed on.
+                // And, we are expecting the string 'MPDESC' along with this description
+                // delimited by '~' char.
+                m_url->GetFullPath(pURL);
+                const char* pID = NULL;
+                const char* pDecURL = NULL;
+                const char* pParam = NULL;
+                m_url->GetDecodedUrl(pDecURL);
+                pID = strstr(pDecURL,"~MPDESC");
+                if (pID)
+                {
+                    // URL can be of form:
+                    // '/admin/browse_content.html?/My Content 1~MPDESC/realvideo10.rm'
+                    // In this case we should consider only '/admin/browse_content.html'
+          
+                    m_url->GetQueryParams(pParam);
+                    if (pParam && pParam < pID)
+                    {
+                        pURL = pURL + m_mount_point_len - 1;
+                        goto go_normal;
+                    }
 
+                    pID = strstr(pURL, "~MPDESC");
+                    pID += 7;   // Bypass "~MPDESC" string ID
+                    if (*pID != '\0')
+                    {
+                        pID++;  // Bypass '/' to take only file/dir name
+                    }
+                    pURL = pID;
+                }
+                else
+                {
+                    pURL = pURL + m_mount_point_len - 1;
+                }
+
+go_normal:
                 m_pRequest->SetURL(pURL);
 
                 if(HXR_OK == m_file_object->QueryInterface(IID_IHXRequestHandler,
@@ -677,7 +818,9 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
                      * Strip off parameters
                      */
 
-                    char* pPtr = (char*)::strrchr(pURL, '?');
+                    char* pPath = new char [strlen(pURL) + 1];
+                    strcpy(pPath, pURL);
+                    char* pPtr = (char*)::strchr(pPath, '?');
 
                     if (pPtr)
                     {
@@ -687,10 +830,10 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
                     /*
                      * Plus url hack. Need to does exist each side.
                      */
-                    if (HXXFile::IsPlusURL(pURL))
+                    if (HXXFile::IsPlusURL(pPath))
                     {
                         m_ulHandlingPlusUrl = 1;
-                        m_plusPathLeft = pURL;
+                        m_plusPathLeft = pPath;
                         CHXString plusFileName;
 
                         INT32 index = m_plusPathLeft.ReverseFind('+');
@@ -716,9 +859,14 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
                     }
                     else
                     {
-                        if (strlen(pURL))
+                        // URL like http://<serv>:<port>/test/ is valid for
+                        // Browse Content functionality and because now if
+                        // the request is from browse content it will have
+                        // "~MPDESC" string ID and pID will be valid, changing
+                        // the if condition.
+                        if (pID || strlen(pPath))
                         {
-                            h_result = m_file_exists->DoesExist(pURL, this);
+                            h_result = m_file_exists->DoesExist(pPath, this);
                         }
                         else
                         {
@@ -731,7 +879,9 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
 
                     DPRINTF(D_ENTRY, ("FSM::CNP(%d) -- after %ld "
                             "m_file_exists(%p)->DoesExist(%s)\n",
-                            in_here, h_result, m_file_exists, pURL));
+                            in_here, h_result, m_file_exists, pPath));
+
+                    HX_VECTOR_DELETE(pPath);
                 }
             }
         }
@@ -748,7 +898,7 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
         BOOL                        bRet = TRUE;
 
         bRet = proc->pc->misc_plugins->Lookup(plugin, (void *&)pFSPlugin);
-        ASSERT(bRet == TRUE);
+        HX_ASSERT(bRet == TRUE);
 
         if (bRet)
         {
@@ -771,6 +921,7 @@ FSManager::CheckNextPlugin(PluginHandler::FileSystem::PluginInfo* plugininfo)
         else
         {
             h_result = HXR_FAIL;
+            m_pResponse->FileObjectReady(h_result, NULL);
         }
     }
 
@@ -817,14 +968,16 @@ FSManager::AsyncCreateFileDone(HX_RESULT status,
                                                  (void**)&m_file_exists);
     }
 
-    const char* pURL = m_url + m_mount_point_len;
+    const char* pURL = NULL;
+    m_url->GetEncPath(pURL);
+    pURL += m_mount_point_len - 1;
 
     m_pRequest->SetURL(pURL);
 
     if (HXR_OK == h_result)
     {
-        if(HXR_OK == m_file_object->QueryInterface(IID_IHXRequestHandler,
-                                                 (void**)&pRequestHandler))
+        if (HXR_OK == m_file_object->QueryInterface(IID_IHXRequestHandler,
+                                                    (void**)&pRequestHandler))
         {
             pRequestHandler->SetRequest(m_pRequest);
             pRequestHandler->Release();
@@ -834,17 +987,16 @@ FSManager::AsyncCreateFileDone(HX_RESULT status,
          * Strip off parameters
          */
 
-        char* pPtr = (char*)::strrchr(pURL, '?');
+        const char* pPath = NULL;
+        m_url->GetPath(pPath);
+        pPath += m_mount_point_len - 1;
 
-        if (pPtr)
-        {
-            *pPtr = '\0';
-        }
-
-        h_result = m_file_exists->DoesExist(pURL, this);
+        h_result = m_file_exists->DoesExist(pPath, this);
 
         if (HXR_OK != h_result)
+        {
             DoesExistDone(FALSE);
+        }
     }
 
     return h_result;
@@ -976,7 +1128,9 @@ FSManager::DoesExistDone(BOOL bExists)
         }
 
         file_sys_handler = proc->pc->plugin_handler->m_file_sys_handler;
-        plugin_result = file_sys_handler->FindAfter(m_url,
+        const char* pURL = NULL;
+        m_url->GetFullPath(pURL);
+        plugin_result = file_sys_handler->FindAfter(pURL,
                                                     mount_point_len,
                                                     m_last_plugin,
                                                     m_last_options);
@@ -1243,3 +1397,10 @@ FSManager::AddRTSPImportHeader()
     HX_RELEASE(pValues);
     HX_RELEASE(pBuffer);
 }
+
+void
+FSManager::GetLastPlugin(PluginHandler::FileSystem::PluginInfo* & pPlugin)
+{
+    pPlugin = m_last_plugin;
+}
+

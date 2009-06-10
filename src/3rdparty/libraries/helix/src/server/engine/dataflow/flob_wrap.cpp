@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: flob_wrap.cpp,v 1.3 2003/09/04 22:35:34 dcollins Exp $ 
+ * Source last modified: $Id: flob_wrap.cpp,v 1.4 2008/03/20 01:13:11 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -778,6 +778,7 @@ DoesExistCallback::func(Process* p)
 {
     HX_RESULT h_result;
     h_result = m_fow->m_pFileExists->DoesExist(m_pPath, m_fow);
+    HX_VECTOR_DELETE(m_pPath);
     if(HXR_OK != h_result)
     {
 	m_fow->DoesExistDone(FALSE);

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: usockio.cpp,v 1.3 2006/02/14 21:35:26 bobclark Exp $ 
+ * Source last modified: $Id: usockio.cpp,v 1.4 2008/07/03 21:53:48 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,6 +41,11 @@
 
 #include "sockio.h"
 #include "tcpio.h"
+
+#if defined(_LSB)
+#include "hlxclib/sys/ioctl.h"
+#endif
+
 
 const UINT32 SocketIO::MAX_HOSTNAME_LEN = 1024;
 

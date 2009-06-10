@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sdpchunk.cpp,v 1.16 2006/03/06 21:03:00 tknox Exp $
+ * Source last modified: $Id: sdpchunk.cpp,v 1.18 2007/10/05 22:32:47 darrick Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1355,34 +1355,38 @@ static HX_RESULT PullBandwidth	(char* pData,
         ulBandwidth = (ULONG32)strtol(pNumBuffer, &pNumEnd, 10);
 
         if (pNumEnd > pNumBuffer)
-        {	    
-	    // skip b=
-	    pData += 2;
-	    ulLength -= 2;
-	    if (StrNStr((char*)pData, "AS:", ulLength, 3))
-	    {        
-		pPropName = "AvgBitRate";
-		ulBandwidth *= 1000;
-	    }
-	    else if (StrNStr((char*)pData, "RR:", ulLength, 3))
-	    {        
-		pPropName = "RtcpRRRate";
-	    }
-	    else if (StrNStr((char*)pData, "RS:", ulLength, 3))
-	    {        
-		pPropName = "RtcpRSRate";
-	    }
-	    else
-	    {
-		// fine, ignore
-		retVal = HXR_OK;
-	    }	   
+        {
+            // skip b=
+            pData += 2;
+            ulLength -= 2;
+            if (!strncmp((char*)pData, "TIAS:", 5))
+            {        
+                pPropName = "TIASAvgBitRate";
+            }
+            else if (!strncmp((char*)pData, "AS:", 3))
+            {        
+                pPropName = "AvgBitRate";
+                ulBandwidth *= 1000;
+            }
+            else if (!strncmp((char*)pData, "RR:", 3))
+            {        
+                pPropName = "RtcpRRRate";
+            }
+            else if (!strncmp((char*)pData, "RS:", 3))
+            {        
+                pPropName = "RtcpRSRate";
+            }
+            else
+            {
+                // fine, ignore
+                retVal = HXR_OK;
+            }	   
         }
 
-	if (pPropName)
-	{
-	    retVal = pSDPValues->SetPropertyULONG32(pPropName, ulBandwidth);	    
-	}
+        if (pPropName)
+        {
+            retVal = pSDPValues->SetPropertyULONG32(pPropName, ulBandwidth);	    
+        }
     }
 
     return retVal;

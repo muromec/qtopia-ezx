@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: string.h,v 1.22 2004/07/09 18:21:09 hubbe Exp $
+ * Source last modified: $Id: string.h,v 1.25 2008/01/18 19:18:40 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,6 +52,16 @@
 
 #if defined(_OPENWAVE)
 #include "platform/openwave/hx_op_stdc.h"
+#elif defined(_BREW)
+#ifdef AEE_SIMULATOR 
+#define _WIN32
+#endif 
+#include "AEEStdLib.h"
+#ifdef AEE_SIMULATOR
+#undef _WIN32
+#else
+#define HLX_INLINE __inline
+#endif
 #else
 #include <string.h>
 #endif /* !_OPENWAVE */
@@ -71,11 +81,13 @@
  * a .c file and are using Visual C++,
  * then use __inline instead of inline.
  */
-#if (defined(_WINDOWS) || defined(_OPENWAVE)) && \
+#if !defined(HLX_INLINE)
+#if (defined(_WINDOWS) || defined(_OPENWAVE) || defined(_BREW)) && \
     !defined(__cplusplus) && defined(_MSC_VER)
 #define HLX_INLINE __inline
 #else
 #define HLX_INLINE inline
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -176,6 +188,185 @@ strcasecmp(const char* str1, const char* str2)
 
 
 #endif /* _MACINTOSH */
+
+#if defined(_BREW)
+
+HLX_INLINE void*
+memmove(const void* str1, const void* str2, size_t size)
+{
+    return MEMMOVE((void* )str1, (void*)str2, size);
+}
+
+HLX_INLINE void*
+memset(void* dest, int c, size_t count)	
+{
+    return MEMSET(dest, c, count);
+}
+
+HLX_INLINE int
+memcmp(const void* buf1, const void* buf2, size_t count)
+{
+    return MEMCMP(buf1, buf2, count);
+}
+
+HLX_INLINE void*
+memchr(const void *buf, int c, size_t length )
+{
+    return MEMCHR(buf, c, length );
+}
+	
+HLX_INLINE void*
+memcpy(void *p1, const void *p2, size_t count )
+{
+    return MEMCPY(p1, p2, count);
+}
+
+HLX_INLINE char *
+strcat(char *dest, const char *src )
+{
+    return STRCAT(dest, src );
+}
+
+HLX_INLINE char *
+strchr(const char *string, int c )
+{
+    return STRCHR(string, c);
+}
+
+HLX_INLINE int 
+strcmp(const char *str1, const char *str2 )
+{
+    return STRCMP(str1, str2);
+}
+
+HLX_INLINE int
+strincmp(const char *str1, const char *str2 , size_t length)
+{
+    return STRNICMP(str1, str2, length);
+}
+
+HLX_INLINE int
+strncasecmp(const char *str1, const char *str2 , size_t length)
+{
+    return STRNICMP(str1, str2 , length);
+}
+	
+HLX_INLINE int
+strncmp(const char *str1, const char *str2 , size_t length)
+{
+    return STRNCMP(str1, str2, length);
+}
+
+HLX_INLINE char *
+strncpy(char *strDest, const char *strSource, size_t count)
+{
+    return STRNCPY(strDest, strSource, count);
+}
+
+HLX_INLINE char *
+strlwr(char *psz)
+{
+    return STRLOWER(psz);
+}
+
+HLX_INLINE char
+*strrchr(const char *string, int c )
+{
+    return STRRCHR(string, c);
+}
+
+HLX_INLINE long
+strtol(const char *nptr, char **endptr, int base )
+{
+    return (long)STRTOUL(nptr, endptr, base);
+}
+
+HLX_INLINE int 
+strcasecmp(const char *str1, const char *str2)
+{
+    return STRICMP(str1, str2);
+}
+
+HLX_INLINE int 
+strnicmp(const char *str1, const char *str2 , size_t length)
+{
+    return STRNICMP(str1, str2, length);
+}
+
+HLX_INLINE int 
+stricmp(const char *str1, const char *str2 )
+{
+    return STRICMP(str1, str2 );
+}
+
+HLX_INLINE int 
+strlen(const char *str)
+{
+    return STRLEN(str);
+}
+
+HLX_INLINE char
+*strcpy(char *dest, const char *src )
+{
+    return STRCPY(dest, src);
+}
+
+HLX_INLINE char *
+strstr(const char *pszHaystack, const char *pszNeedle)
+{
+    return STRSTR(pszHaystack, pszNeedle);
+}
+
+HLX_INLINE double
+strtod(const char *pszFloat, char ** ppszEnd)
+{
+    return STRTOD(pszFloat, ppszEnd);
+}
+
+HLX_INLINE uint32
+strtoul(const char *nptr, char **endptr, int base )
+{
+    return STRTOUL(nptr, endptr, base);
+}
+
+HLX_INLINE char*
+strncat(char *strDest, const char *strSource, size_t count )
+{
+    if(STRLCAT(strDest, strSource, count) != (size_t) - 1)
+	return strDest;
+    else 
+	return NULL;
+}
+
+HLX_INLINE int 
+wcslen(const wchar_t * str)
+{
+    return WSTRLEN((AECHAR *)str);
+}
+
+HLX_INLINE void 
+free(void *po)
+{
+    FREE(po);
+}
+unsigned long __helix_strspn ( const char * str1, const char * str2 );
+unsigned long __helix_strcspn ( const char * str1, const char * str2 );
+int __helix_tolower ( int c );
+int __helix_toupper ( int c );	
+char * __helix_strncat ( char * destination, const char * source, size_t num );
+char * __helix_strtok ( char * str, const char * delimiters );
+char *  __helix_strpbrk (const char * str1, const char * str2 );
+
+#define strpbrk  __helix_strpbrk 
+#define strtok __helix_strtok 
+#define strspn __helix_strspn
+#define strcspn __helix_strcspn
+#define strncat __helix_strncat
+#define strrev __helix_strrev
+#define tolower __helix_tolower
+#define toupper __helix_toupper 
+
+#endif //_BREW
 
 #if defined (_UNIX) && !defined (__QNXNTO__)
 

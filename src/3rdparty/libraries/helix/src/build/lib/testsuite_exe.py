@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: testsuite_exe.py,v 1.2 2006/07/06 19:28:05 jfinnecy Exp $ 
+#  Source last modified: $Id: testsuite_exe.py,v 1.3 2007/07/17 00:17:48 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -88,7 +88,7 @@ def run():
         # Check only *.py files.    
         if re.match( '^.*\.py$' , module ):
             modCount += 1
-            print ('test_%s...' %  module )
+            print ('%-35s' %  ( 'test_' + module + '...' )),
             # If a test module exists for a particular .py.
             if os.path.exists( os.path.join( testPath , 'test_%s' % module )):
                 testCount += 1
@@ -98,20 +98,31 @@ def run():
                 proc    = os.popen( cmd , 'r')
                 results = proc.close()
                 if results:
-                   print( 'test_%s errors - run %s for more details' % (module , testDriver) )
-                   errorList.append( module )            
+                   print( '* FAILED *' )
+                   errorList.append( module )
+                else:
+                   print( 'ok' )
             else:
                 # Report no test module.
-                print ( 'test_%s skipped - no test module' % module )            
+                print ( 'skip' )        
     
     print
-    print ('%s of %s modules tested.' % ( testCount , modCount ) )
-    print
+    print ('%s of %s modules tested.' % ( testCount , modCount ) ),
     
     # Re-report on failed modules with number of errors.
     if errorList:
+        print  
+        print
+        print ('***')
+        print ('*' )
+        print ('*  UNIT TESTS FAILED!' )
+        print ('*' )
+        print ('***')
+        print
         print ('The following modules had errors:' )
+        print
         for item in errorList:
             print item
+        print
     else:
-        print ('No errors found.')    
+        print ('All unit tests passed.')    

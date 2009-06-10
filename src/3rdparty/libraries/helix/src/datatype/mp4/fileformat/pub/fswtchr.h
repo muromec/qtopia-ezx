@@ -63,7 +63,6 @@
  */
 class CFileSwitcher :	public IHXFileSwitcher,
 			public IHXFileResponse,
-			public IHXThreadSafeMethods,
 			public IHXGetFileFromSamePoolResponse,
 			public IHXCallback
 {
@@ -143,11 +142,6 @@ public:
     STDMETHOD(FileObjectReady)	(THIS_
 				HX_RESULT status,
 				IUnknown* pUnknown);
-
-    /*
-     *  IHXThreadSafeMethods method
-     */
-   STDMETHOD_(UINT32,IsThreadSafe) (THIS);
 
    /*
     *  IHXCallback methods

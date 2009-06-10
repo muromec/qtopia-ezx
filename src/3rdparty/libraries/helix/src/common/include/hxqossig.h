@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxqossig.h,v 1.18 2007/04/25 00:56:30 darrick Exp $
+ * Source last modified: $Id: hxqossig.h,v 1.27 2008/02/04 06:56:57 yphadke Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -91,37 +91,50 @@ typedef UINT16 HX_QOS_SIGNAL;
 #define HX_QOS_SIGNAL_RELEVANCE_SESSIONCTL     3
 #define HX_QOS_SIGNAL_RELEVANCE_CTL            4
 
-/* QoS Common Profile Signals  */
-#define HX_QOS_SIGNAL_COMMON_COUNT            12
+/* XXX:TDK Rules for adding new signals:
+ * 1. All signal numbers must be unique.
+ * 2. When you add a signal to a section, be sure to
+ *    increment the count for that section.
+ * 3. Be sure that HX_QOS_SIGNAL_COUNT is the same as your
+ *    last signal number.
+ */
+enum
+{
+    /* QoS Common Profile Signals  */
+      HX_QOS_SIGNAL_COMMON_PROFILE
+    , HX_QOS_SIGNAL_COMMON_MEDIA_RATE        
+    , HX_QOS_SIGNAL_COMMON_PKT_SZ            
+    , HX_QOS_SIGNAL_COMMON_THRUPUT            
+    , HX_QOS_SIGNAL_COMMON_BUFSTATE          
+    , HX_QOS_SIGNAL_COMMON_SDB               
+    , HX_QOS_SIGNAL_COMMON_MAX_RATE           
+    , HX_QOS_SIGNAL_COMMON_LINK_CHAR_HDR     
+    , HX_QOS_SIGNAL_COMMON_STREAM_ADAPT_HDR  
+    , HX_QOS_SIGNAL_COMMON_INIT_MEDIA_RATE       // Authoritative initial media rate
+    , HX_QOS_SIGNAL_COMMON_LOWEST_MEDIA_RATE    // Lowest non-thinning media rate
+    , HX_QOS_SIGNAL_COMMON_RTT                   // RTT in ms
+    , HX_QOS_SIGNAL_COMMON_BANDWIDTH             // "Bandwidth" header value.
+    , HX_QOS_SIGNAL_COMMON_BEGIN_UNDERSEND
+    , HX_QOS_SIGNAL_COMMON_END_UNDERSEND
+    , HX_QOS_SIGNAL_COMMON_TCP
 
-#define HX_QOS_SIGNAL_COMMON_PROFILE           1
-#define HX_QOS_SIGNAL_COMMON_MEDIA_RATE        2
-#define HX_QOS_SIGNAL_COMMON_PKT_SZ            3
-#define HX_QOS_SIGNAL_COMMON_THRUPUT           4 
-#define HX_QOS_SIGNAL_COMMON_BUFSTATE          5
-#define HX_QOS_SIGNAL_COMMON_SDB               6
-#define HX_QOS_SIGNAL_COMMON_MAX_RATE          7 
-#define HX_QOS_SIGNAL_COMMON_LINK_CHAR_HDR     8
-#define HX_QOS_SIGNAL_COMMON_STREAM_ADAPT_HDR  9
-#define HX_QOS_SIGNAL_COMMON_INIT_MEDIA_RATE  10    // Authoritative initial media rate
-#define HX_QOS_SIGNAL_COMMON_RTT              18    // RTT in ms
-#define HX_QOS_SIGNAL_COMMON_BANDWIDTH        19    // "Bandwidth" header value.
+    /* Common Profile Signals */
+    , HX_QOS_SIGNAL_RTCP_CC_MAX_BURST 
+    , HX_QOS_SIGNAL_RTCP_RR           
+    , HX_QOS_SIGNAL_BUF_STATE         
+    , HX_QOS_SIGNAL_RTCP_NADU         
+    , HX_QOS_SIGNAL_FEEDBACK_TIMEOUT  
+    , HX_QOS_SIGNAL_WINDOWED_RECEIVE_RATE    
+    , HX_QOS_SIGNAL_SLOWDOWN_PARAMS
 
-/* RTP Common Profile Signals */
-#define HX_QOS_SIGNAL_RTP_COUNT                4
-#define HX_QOS_SIGNAL_RTCP_CC_MAX_BURST        11
-#define HX_QOS_SIGNAL_RTCP_RR                  12
-#define HX_QOS_SIGNAL_BUF_STATE                13
-#define HX_QOS_SIGNAL_RTCP_NADU                14
+    /* Common Profile Signals */
+    , HX_QOS_SIGNAL_RDT_METRICS              
+    , HX_QOS_SIGNAL_RDT_BUFFER_STATE         
+    , HX_QOS_SIGNAL_RDT_RTT                  
 
-/* RDT Common Profile Signals */
-#define HX_QOS_SIGNAL_RDT_COUNT                3
-#define HX_QOS_SIGNAL_RDT_METRICS              15
-#define HX_QOS_SIGNAL_RDT_BUFFER_STATE         16
-#define HX_QOS_SIGNAL_RDT_RTT                  17
-
-/* Total of all signals */
-#define HX_QOS_SIGNAL_COUNT                    HX_QOS_SIGNAL_COMMON_COUNT + HX_QOS_SIGNAL_RTP_COUNT +  HX_QOS_SIGNAL_RDT_COUNT
+    /* Total of all signals */
+    , HX_QOS_SIGNAL_COUNT
+};
 
 struct BufferMetricsSignal
 {
@@ -143,6 +156,19 @@ struct RTTSignal
     UINT16 m_unStreamNumber;
     double m_fRTT;  /* milliseconds */
 };
+
+struct WindowedRRSignal
+{
+    UINT16 m_unStreamNumber;
+    float  m_fWindowedReceiveRate;  /* bps */
+};
+
+typedef struct _SlowdownParamsSignalData
+{
+    UINT32 ulMaxAdvance;
+    UINT32 ulSlowdownModeExit;
+
+} SlowdownParamsSignalData; 
 
 typedef struct _LinkCharParams LinkCharSignalData;
 typedef struct _StreamAdaptationParams StreamAdaptSignalData;

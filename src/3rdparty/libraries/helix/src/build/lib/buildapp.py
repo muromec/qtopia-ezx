@@ -394,11 +394,10 @@ class BuildApp:
             outmsg.send('compiling')
             self.collate_modules()
 
-## Disable md5 signing for Qtopia
-##        if not self.settings.get('umake_only_flag'):
-##            ## md5 sign the binaries
-##            outmsg.send('signing output binaries')
-##            self.sign()
+        if not self.settings.get('umake_only_flag'):
+            ## md5 sign the binaries
+            outmsg.send('signing output binaries')
+            self.sign()
 
         ## archive build
         if self.settings.get('archive_build_flag'):

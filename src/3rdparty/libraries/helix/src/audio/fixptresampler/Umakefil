@@ -41,7 +41,7 @@ project.AddModuleIncludes("common/include"
 			)
 
 if project.IsDefined("ARM_COTULLA"):
-	if project.IsDefined("__GCC32__"):
+	if project.IsDefined("__GCC32__") | project.IsDefined("__GCC42__"):
 		project.AddSources("platform/arm/core_ARMv5E_gcc.s")	
 	else:
 		project.AddSources("platform/arm/core_ARMv5E.s")

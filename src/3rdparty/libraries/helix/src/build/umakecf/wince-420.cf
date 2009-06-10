@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: wince-420.cf,v 1.5 2006/07/06 19:28:06 jfinnecy Exp $ 
+#  Source last modified: $Id: wince-420.cf,v 1.6 2007/06/13 01:12:50 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -148,7 +148,7 @@ class WinCELinker(WinLinker):
         arg_list.append(static_libs)
         arg_list.append(dynamic_libs)
         cmd = "python %s -basefile:%s -basedir:%s /entry:_DllMainCRTStartup /base:0x00100000 /stack:0x10000,0x1000 %s" % (
-            os.path.join(BUILD_ROOT,"bin","pylink.py"),
+            os.path.join("$(BUILD_ROOT)","bin","pylink.py"),
             os.path.join(project.src_root_path,dbg,"rebase.lst"),
             project.module_directory(),
             string.join(arg_list))

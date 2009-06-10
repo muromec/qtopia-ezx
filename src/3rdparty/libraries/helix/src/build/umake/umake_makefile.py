@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: umake_makefile.py,v 1.34 2006/08/03 19:58:51 jfinnecy Exp $ 
+#  Source last modified: $Id: umake_makefile.py,v 1.35 2007/06/13 01:12:50 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -73,7 +73,7 @@ import re
 import sysinfo
 
 import log
-log.debug( 'Imported: $Id: umake_makefile.py,v 1.34 2006/08/03 19:58:51 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: umake_makefile.py,v 1.35 2007/06/13 01:12:50 jfinnecy Exp $' )
 
 def prepend_str_list(prepend_str, list):
     """Given a string and a list of strings, returns a new list with the
@@ -93,15 +93,15 @@ class makefile_generator(umake_lib.Targets):
         self.makefile.append(text)
         
     def wantsSign( self ):
-        if self.project.getTargetType() == 'dll' and \
-               self.project.BuildOption("drmsign") and \
-               self.project.CheckDRMSign():
-                   return 1
+        if self.project.isSignable() and \
+           self.project.BuildOption("drmsign") and \
+           self.project.CheckDRMSign():
+            return 1
         else:
             return 0
             
     def signFile( self , target ):
-        command = "python %s" % os.path.join(os.environ.get("BUILD_ROOT"), "bin", "sign.py")
+        command = "python %s" % os.path.join("$(BUILD_ROOT)", "bin", "sign.py")
 
         # Add the arguments to the command line.
         signType = self.project.getSignType()

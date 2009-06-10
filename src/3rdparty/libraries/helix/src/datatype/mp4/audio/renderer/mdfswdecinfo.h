@@ -42,6 +42,7 @@ class CRAACDecInfo;
 class CAACDecInfo;
 class CAMRNBDecInfo;
 class CAMRWBDecInfo;
+class CMP3DecInfo;
 class CMP4ADecoder;
 
 class CMDFSWDecInfo : public CDecoderInfo
@@ -61,6 +62,7 @@ private:
     CAACDecInfo     m_AACDecInfo;
     CAMRNBDecInfo   m_AMRNBDecInfo;
     CAMRWBDecInfo   m_AMRWBDecInfo;
+    CMP3DecInfo     m_MP3DecInfo;
     CMP4ADecoder*   m_pDecoder;
 };
 

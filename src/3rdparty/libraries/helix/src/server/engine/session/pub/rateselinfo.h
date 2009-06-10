@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rateselinfo.h,v 1.2 2007/05/01 18:17:22 darrick Exp $
+ * Source last modified: $Id: rateselinfo.h,v 1.3 2007/05/23 00:43:01 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -56,6 +56,8 @@ public:
     HX_RESULT GetSubscribedRules(UINT16 ulNumRules, 
                                  UINT16* Rules);
 
+    void Dump();
+
 protected:
     BOOL            m_bGotTrackId;
     CHXSimpleList   m_RuleSubs;
@@ -111,6 +113,9 @@ public:
                                 (THIS_
                                  UINT16 ulArraySize,
                                  UINT16* StreamIds);
+
+    void Dump();
+
 
 protected:
 

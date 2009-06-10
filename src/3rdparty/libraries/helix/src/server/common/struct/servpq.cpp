@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servpq.cpp,v 1.6 2004/12/02 22:08:52 atin Exp $ 
+ * Source last modified: $Id: servpq.cpp,v 1.10 2007/09/20 14:18:05 rdolas Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -63,11 +63,17 @@ ServPQ::ServPQ(CHXID* pIds)
     , m_bCleanFinish(TRUE)
     , m_pNextZeroInsertion(NULL)
     , m_pHead(0)
+    , m_pOutlist(0)
+    , m_pCurrent(0)
+    , m_pRestoreHead(0)
+    , m_pPrevHead(0)
     , m_lBucketElementCount(0)
     , m_lZeroElementCount(0)
     , m_lListElementCount(0)
     , m_pProc(0)
     , m_uBucket0Index(0)
+    , m_uCrashCount(0)
+    , m_uCurrentBucketNum(0)
 {
     m_HeadTime.tv_sec = SERVPQ_UNINITIALIZED;
 
@@ -86,6 +92,7 @@ ServPQ::ServPQ(CHXID* pIds)
     }
 
     memset(m_pBuckets, 0, SERVPQ_NUM_BUCKETS * sizeof(ServPQElem*));
+    m_CrashState = NONE;
 }
 
 ServPQ::~ServPQ()
@@ -299,6 +306,42 @@ ServPQ::get_execute_list(Timeval now)
 }
 
 ServPQElem*     
+ServPQ::execute_locked_element(ServPQElem* pElem) 
+{
+    if (m_bCleanFinish && pElem)
+    {
+        ServPQElem* pElemNext = pElem->m_pNext;
+        if (!pElem->m_bDefunct)
+        {
+	    m_bCleanFinish = FALSE;
+
+            pElem->m_pCallback->Func();
+            m_bCleanFinish = TRUE;
+            if (pElem->m_bDefunct)
+            {
+                HX_ASSERT(0 && "Someone removed me while I was executing!!!");
+            }
+            else
+            {
+                free_callback(pElem->m_pCallback);
+            }
+        }
+        m_pIds->destroy(pElem->m_Id);
+        free_elem(pElem);
+        pElem = pElemNext;
+    }
+    else if (m_bCleanFinish == FALSE)
+    {
+	/* Previous Func() must have caused a GPF */
+
+	m_bCleanFinish = TRUE;
+	return pElem->m_pNext;
+    }
+
+    return pElem;
+}
+
+ServPQElem*     
 ServPQ::execute_element(ServPQElem* pElem) 
 {
     if (m_bCleanFinish && pElem)
@@ -362,13 +405,20 @@ ServPQElem*
 ServPQ::_remove_head(Timeval now)
 {
     UINT16 i;
-    ServPQElem* out_list = 0;
-    ServPQElem* current = 0;
+
+    if (m_CrashState != SPQ_HANDLING_CRASH)
+    {
+        m_pOutlist = 0;
+        m_pCurrent = 0;
+        m_pPrevHead = 0;
+    }
+
     UINT16 uMaxBucket = 0;
 
     INT64 bucket = (((INT64)(now.tv_sec - m_Bucket0Time.tv_sec) * 1000000) + 
 	(INT64)(now.tv_usec - m_Bucket0Time.tv_usec)) / SERVPQ_USEC_PER_BUCKET;
 
+    m_CrashState = SPQ_BUCKETS;
     // We are not yet ready to empty the first bucket
     if (bucket < 0)
     {
@@ -414,23 +464,25 @@ ServPQ::_remove_head(Timeval now)
 	 */
     	for (i = m_uBucket0Index; m_lBucketElementCount > 0 && i != uMaxBucket; i++)
     	{
+            m_uCurrentBucketNum = i;
+
     	    if (!m_pBuckets[i])
     	    	continue;
 
-    	    if (!out_list)
-    	    	out_list = m_pBuckets[i];
+    	    if (!m_pOutlist)
+    	    	m_pOutlist = m_pBuckets[i];
 
-    	    if (current)
+    	    if (m_pCurrent)
     	    {
     	    	// Concatenate with previous bucket's list
-    	    	current->m_pNext = m_pBuckets[i];
+    	    	m_pCurrent->m_pNext = m_pBuckets[i];
     	    }
+            
+    	    m_pCurrent = m_pBuckets[i];
 
-    	    current = m_pBuckets[i];
-
-    	    while (current->m_pNext)
+    	    while (m_pCurrent->m_pNext)
     	    {
-		current = current->m_pNext;
+		m_pCurrent = m_pCurrent->m_pNext;
     	    	m_lBucketElementCount--;
     	    }
 	    m_lBucketElementCount--;
@@ -473,12 +525,10 @@ ServPQ::_remove_head(Timeval now)
 	}
     }
 
-    ServPQElem* h;
-
     if (!m_pHead)
-	return out_list;
+        return m_pOutlist;
 
-    h = m_pHead;
+    m_pRestoreHead = m_pHead;
 
     /*
      * Keep track of the head time from the buckets
@@ -486,24 +536,28 @@ ServPQ::_remove_head(Timeval now)
 
     Timeval TempHeadTime = m_HeadTime;
     
-    if (m_HeadTime.tv_sec == SERVPQ_UNINITIALIZED || h->m_Time < m_HeadTime)
-    	m_HeadTime = h->m_Time;
+    if (m_HeadTime.tv_sec == SERVPQ_UNINITIALIZED || m_pRestoreHead->m_Time < m_HeadTime)
+        m_HeadTime = m_pRestoreHead->m_Time;
 
-    if (h->m_Time != (LONG32)0 && now < h->m_Time)
-	return out_list;
+    if (m_pRestoreHead->m_Time != (LONG32)0 && now < m_pRestoreHead->m_Time) 
+        return m_pOutlist;
 
     ServPQElem* last;
     if (m_pNextZeroInsertion)
     {
+        m_CrashState = SPQ_ZERO_LIST;
 	last = m_pNextZeroInsertion;
 	m_pHead = last->m_pNext;
+        m_pPrevHead = m_pHead;
 	m_pNextZeroInsertion = NULL;
 	m_lZeroElementCount = 0;
     }
     else
     {
+        m_CrashState = SPQ_OVERFLOW_LIST;
 	last = m_pHead;
 	m_lListElementCount--;
+        m_pPrevHead = m_pHead;
 	m_pHead = last->m_pNext;
     }
 
@@ -516,6 +570,7 @@ ServPQ::_remove_head(Timeval now)
 	}
 	last = m_pHead;
 	m_lListElementCount--;
+        m_pPrevHead = m_pHead;
 	m_pHead = last->m_pNext;
     }
 
@@ -536,13 +591,148 @@ ServPQ::_remove_head(Timeval now)
     if (m_HeadTime == (LONG32)0 || TempHeadTime < m_HeadTime)
     	m_HeadTime = TempHeadTime;
 
-    if (current)
+    m_CrashState = NONE;
+    m_uCrashCount = 0;
+
+    if (m_pCurrent)
     {
-	last->m_pNext = out_list;
-	out_list = h;
+        last->m_pNext = m_pOutlist;
+        m_pOutlist = m_pRestoreHead;
     }
     else
-    	return h;
+        return m_pRestoreHead;
 
-    return out_list;
+    return m_pOutlist;
+
 }
+
+
+void
+ServPQ::crash_recovery()
+{
+    m_uCrashCount++;
+
+    switch (m_CrashState)
+    {
+        case SPQ_ZERO_LIST:
+        {
+            if (!m_pPrevHead)
+            {
+                ServPQElem *zeroList = m_pRestoreHead;
+                while (zeroList->m_pNext != m_pNextZeroInsertion)
+                {
+                    zeroList = zeroList->m_pNext;
+                }
+                zeroList->m_pNext = 0;
+                m_pHead = m_pRestoreHead;
+                m_pRestoreHead = 0;
+            }
+            else
+            {
+                if (m_uCrashCount < 3)
+                {
+                    if ((m_uCrashCount < 2) && (m_pPrevHead->m_pNext != 0))
+                    {
+                        //Skip the overflow list node having corrupted data members
+                        m_pPrevHead->m_pNext = m_pPrevHead->m_pNext->m_pNext;
+                    }
+                    else
+                    { 
+                        /*
+                         * Truncate the overflow list if not recoverable
+                         * by skipping the corrupted node.
+                         */
+                        m_pPrevHead->m_pNext = 0;
+                    }
+
+                    m_pHead = m_pRestoreHead;
+                    m_lListElementCount--;
+                    m_pRestoreHead = 0;
+                }
+                else 
+                {
+                    if (m_pNextZeroInsertion)
+                    {
+                        m_pNextZeroInsertion = NULL;
+                        m_lZeroElementCount = 0;
+                    }
+                    m_pHead = 0;
+                    m_lListElementCount = 0;
+                    m_pRestoreHead = 0;
+                    m_uCrashCount = 0;
+                }
+            }
+        }
+        break;
+
+        case SPQ_OVERFLOW_LIST:
+        {
+            if (!m_pPrevHead)
+            {
+                m_pHead = 0;
+                m_lListElementCount = 0;
+            }
+            else
+            {
+                if (m_uCrashCount < 3)
+                {
+                    if ((m_uCrashCount < 2) && (m_pPrevHead->m_pNext != 0))
+                    {
+                        //Skip the overflow list node having corrupted data members
+                        m_pPrevHead->m_pNext = m_pPrevHead->m_pNext->m_pNext;
+                    }
+                    else
+                    {
+                        /*
+                         * Truncate the overflow list if not recoverable
+                         * by skipping the corrupted node.
+                         */
+                        m_pPrevHead->m_pNext = 0;
+                    }
+
+                    m_pHead = m_pRestoreHead;
+                    m_lListElementCount--;
+                    m_pRestoreHead = 0;
+                }
+                else
+                {
+                    m_pHead = 0;
+                    m_lListElementCount = 0;
+                    m_pRestoreHead = 0;
+                    m_uCrashCount = 0;
+                }
+            }
+        }
+        break;
+
+        case SPQ_BUCKETS:
+        {
+            if (m_pOutlist)
+            {
+                ServPQElem * getPrev = m_pOutlist;
+
+                while (getPrev->m_pNext != m_pCurrent)
+                {
+                    getPrev = getPrev->m_pNext;
+                }
+
+                m_pCurrent = getPrev;
+                getPrev->m_pNext = 0;
+
+                m_lBucketElementCount--;
+                m_pBuckets[m_uCurrentBucketNum] = 0;
+            }
+        }
+        break;
+
+        case NONE:
+            break;
+
+        default:
+            break;
+    } 
+
+    m_CrashState = SPQ_HANDLING_CRASH;
+    m_HeadTime.tv_sec = m_HeadTime.tv_usec = SERVPQ_UNINITIALIZED;
+}
+

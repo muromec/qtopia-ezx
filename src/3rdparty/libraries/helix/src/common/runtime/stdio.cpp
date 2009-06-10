@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: stdio.cpp,v 1.7 2004/07/09 18:21:24 hubbe Exp $
+ * Source last modified: $Id: stdio.cpp,v 1.9 2008/01/18 09:17:26 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,6 +50,7 @@
 
 #include "hlxclib/stdio.h"
 #include "hlxclib/assert.h"
+#include "hxassert.h"
 
 extern "C" {
 int __helix_vsnprintf(char *str, size_t size, const char  *format, va_list ap)
@@ -78,4 +79,27 @@ int __helix_snprintf(char *str, size_t size, const char  *format, ...)
     return ret;
 }
 
+#if defined(_BREW)
+
+int __helix_fflush(FILE *stream)
+{
+    int ret = 0;
+    HX_ASSERT(0);
+    return ret;
+}
+
+int __helix_fprintf(FILE* f, const char  *format, ...)
+{
+    int ret = 0;
+    HX_ASSERT(0);
+    return ret;
+}
+
+int __helix_sscanf(const char *buffer, const char *format, ...)
+{
+    HX_ASSERT(0);
+    return 0;
+}
+
+#endif //_BREW
 }

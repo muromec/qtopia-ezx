@@ -231,6 +231,17 @@ HX_RESULT CQTSwitchTrackMemberTable::EstablishASMRuleBook(IHXCommonClassFactory*
 
 	if (SUCCEEDED(retVal))
 	{
+#ifdef QTCONFIG_SERVER
+            const int uInterDepStrLen = 32;
+            char pszInterDepStr1[uInterDepStrLen];
+            char pszInterDepStr2[uInterDepStrLen];
+            pszInterDepStr1[0] = '\0';
+            pszInterDepStr2[0] = '\0';
+#else
+            const char* pszInterDepStr1 = "";
+            const char* pszInterDepStr2 = "";
+#endif
+
 	    if (m_uNumTrackTableEntries > 1)
 	    {
 		UINT16 uIdx = 0;
@@ -240,6 +251,10 @@ HX_RESULT CQTSwitchTrackMemberTable::EstablishASMRuleBook(IHXCommonClassFactory*
 		do
 		{
 		    ulBandwidth = m_pTrackTable[uIdx].m_ulBandwidth;
+#ifdef QTCONFIG_SERVER
+                    SafeSprintf(pszInterDepStr1, uInterDepStrLen, ",InterDepend=%d", uIdx * 2 + 1);
+                    SafeSprintf(pszInterDepStr2, uInterDepStrLen, ",InterDepend=%d", uIdx * 2);
+#endif
 
 		    if (uIdx == 0)
 		    {
@@ -248,14 +263,15 @@ HX_RESULT CQTSwitchTrackMemberTable::EstablishASMRuleBook(IHXCommonClassFactory*
 
 			pRuleBookWriter += SafeSprintf(pRuleBookWriter, 
 				    ulMaxBookSize - (pRuleBookWriter - pRuleBook), 
-				    "#($Bandwidth < %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE;"
-				    "#($Bandwidth < %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE;",
+				    "#($Bandwidth < %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE%s;"
+				    "#($Bandwidth < %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE%s;",
 				    ulBandwidthTo,
 				    (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 				    ulBandwidth,
+                                    pszInterDepStr1,
 				    ulBandwidthTo,
 				    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1,
-				    ulBandwidth);
+                                    pszInterDepStr2);
 		    }
 		    else if ((uIdx + 1) < m_uNumTrackTableEntries)
 		    {
@@ -264,30 +280,32 @@ HX_RESULT CQTSwitchTrackMemberTable::EstablishASMRuleBook(IHXCommonClassFactory*
 
 			pRuleBookWriter += SafeSprintf(pRuleBookWriter, 
 				    ulMaxBookSize - (pRuleBookWriter - pRuleBook), 
-				    "#($Bandwidth >= %d) && ($Bandwidth < %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE;"
-				    "#($Bandwidth >= %d) && ($Bandwidth < %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE;",
+				    "#($Bandwidth >= %d) && ($Bandwidth < %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE%s;"
+				    "#($Bandwidth >= %d) && ($Bandwidth < %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE%s;",
 				    ulBandwidth,
 				    ulBandwidthTo,
 				    (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 				    ulBandwidth,
+                                    pszInterDepStr1,
 				    ulBandwidth,
 				    ulBandwidthTo,
 				    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1,
-				    ulBandwidth);
+                                    pszInterDepStr2);
 		    }
 		    else
 		    {
 			// last entry
 			pRuleBookWriter += SafeSprintf(pRuleBookWriter, 
 				    ulMaxBookSize - (pRuleBookWriter - pRuleBook), 
-				    "#($Bandwidth >= %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE;"
-				    "#($Bandwidth >= %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE;",
+				    "#($Bandwidth >= %d),Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE%s;"
+				    "#($Bandwidth >= %d),Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE%s;",
 				    ulBandwidth,
 				    (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 				    ulBandwidth,
+                                    pszInterDepStr1,
 				    ulBandwidth,
 				    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1,
-				    ulBandwidth);
+                                    pszInterDepStr2);
 		    }
 
 		    m_pTrackTable[uIdx].m_pQTTrack->SetBaseRuleNumber(
@@ -298,13 +316,19 @@ HX_RESULT CQTSwitchTrackMemberTable::EstablishASMRuleBook(IHXCommonClassFactory*
 	    }
 	    else
 	    {
+#ifdef QTCONFIG_SERVER
+                SafeStrCpy(pszInterDepStr1, ",InterDepend=1", uInterDepStrLen);
+                SafeStrCpy(pszInterDepStr2, ",InterDepend=0", uInterDepStrLen);
+#endif
 		pRuleBookWriter += SafeSprintf(pRuleBookWriter, 
 			    ulMaxBookSize - (pRuleBookWriter - pRuleBook), 
-			    "Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE;"
-			    "Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE;",
+			    "Marker=%d,AverageBandwidth=%d,TimeStampDelivery=TRUE%s;"
+			    "Marker=%d,AverageBandwidth=0,TimeStampDelivery=TRUE%s;",
 			    (QTASM_MARKER_ON_RULE == 0) ? 1 : 0,
 			    m_pTrackTable[0].m_ulBandwidth,
-			    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1);
+                            pszInterDepStr1,
+			    (QTASM_MARKER_ON_RULE == 0) ? 0 : 1,
+                            pszInterDepStr2);
 	    }
 	}
 

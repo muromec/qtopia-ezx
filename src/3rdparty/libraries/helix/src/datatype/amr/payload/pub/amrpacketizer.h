@@ -50,12 +50,24 @@
                                 ".MaxPacketSize"
 
 #include "amr_frame_info.h"
+#include "baseobj.h"
+#include "hxplugn.h"
+#include "hxplgns.h"
 
-class AMRPacketizer	: public IHXPayloadFormatObject
+
+class AMRPacketizer	: public IHXPayloadFormatObject,
+                         public IHXPlugin,
+                         public IHXPluginProperties,
+                         public CHXBaseCountingObject
+
 {
 public:
     AMRPacketizer(AMRFlavor flavor = NarrowBand);
     ~AMRPacketizer();
+
+    static HX_RESULT STDAPICALLTYPE HXCreateInstance(IUnknown** ppIUnknown);
+    static HX_RESULT STDAPICALLTYPE CanUnload(void);
+    static HX_RESULT STDAPICALLTYPE CanUnload2(void);
 
     /*
      *	IUnknown methods
@@ -76,9 +88,32 @@ public:
     STDMETHOD(GetPacket)        (THIS_ REF(IHXPacket*) pPacket);
     STDMETHOD(Flush)            (THIS);
 
+    /*
+     *	IHXPlugin methods
+     */
+    STDMETHOD(InitPlugin)	(THIS_ IUnknown*   /*IN*/  pContext);
+    STDMETHOD(GetPluginInfo)	(THIS_
+				REF(HXBOOL) bLoadMultiple,
+				REF(const char*) pDescription,
+				REF(const char*) pCopyright,
+				REF(const char*) pMoreInfoURL,
+				REF(ULONG32) ulVersionNumber
+				);
+ 
+    /*
+     *	IHXPluginProperties
+     */
+    STDMETHOD(GetProperties)  (THIS_
+				REF(IHXValues*) pIHXValuesProperties
+				);		
+
+
 private:
     class SampleInfo;
     struct PacketInfo;
+    static const char* const zm_pDescription;
+    static const char* const zm_pCopyright;
+    static const char* const zm_pMoreInfoURL;
 
     void HandleMaxPacketSize        (void);
     HX_RESULT AddHeaderMimeType     (void);

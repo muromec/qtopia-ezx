@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: urlutil.cpp,v 1.6 2004/07/09 19:14:47 jgordon Exp $ 
+ * Source last modified: $Id: urlutil.cpp,v 1.9 2009/05/08 23:27:48 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -100,6 +100,7 @@ DecodeURL(const BYTE* pEnc, size_t nEncLen, char* szDec)
         }
         if (*pDec < 0x20)
         {
+            HX_ASSERT(0 && "URL character < 0x20 detected!");
             // Somebody is playing games, convert CTLs to dots
             *pDec = '.';
         }
@@ -177,4 +178,34 @@ GetStreamId(const char* pBuf, UINT32* puStreamId)
         *puStreamId = (UINT32)strtoul(pStreamId, NULL, 10);
     }
     return rc;
+}
+
+const char*
+GetPort(const char *host)
+{
+    const char *pTemp = host;
+    const char *pPort=NULL;
+    HXBOOL bOpen=FALSE, bClose=FALSE;
+    pPort = NULL;
+    while(*pTemp)
+    {
+        if( *pTemp == '[' ) //indicates ipv6 address 
+            bOpen = TRUE;
+
+        if( *pTemp == ']' ) //indicates ipv6 address 
+            bClose = TRUE;
+        if( *pTemp == ':' && bOpen && bClose )
+        {
+            pPort = pTemp;
+            break;
+        }
+        else if( *pTemp == ':' && !bOpen )
+        {
+            //ipv4 address port
+            pPort = pTemp;
+            break;
+        }
+        pTemp++;
+    }
+    return pPort;
 }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: callback_container.h,v 1.5 2005/09/02 20:21:10 seansmith Exp $
+ * Source last modified: $Id: callback_container.h,v 1.7 2007/08/18 00:21:11 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -41,6 +41,7 @@
 #include "servcallback.h"
 #include "hxengin.h"
 #include "asyncio.h"
+#include "hxerror.h"
 
 enum SocketType
 {
@@ -58,12 +59,12 @@ public:
     ~CallbackContainer();
 
 
-    void                add(int type, SOCKET socket, IHXCallback* cb, BOOL bThreadSafe = FALSE);
-    void                add(int type, AsyncIO* io, IHXCallback *cb, BOOL bThreadSafe = FALSE);
+    void                add(int type, SOCKET socket, IHXCallback* cb, BOOL bThreadSafe = TRUE);
+    void                add(int type, AsyncIO* io, IHXCallback *cb, BOOL bThreadSafe = TRUE);
     void                remove(int type, SOCKET socket);
     void                remove(int type, AsyncIO* io);
-    void                enable(int type, SOCKET socket, BOOL bThreadSafe = FALSE);
-    void                enable(int type, AsyncIO* io, BOOL bThreadSafe = FALSE);
+    void                enable(int type, SOCKET socket, BOOL bThreadSafe = TRUE);
+    void                enable(int type, AsyncIO* io, BOOL bThreadSafe = TRUE);
     void                disable(int type, SOCKET socket);
     void                disable(int type, AsyncIO* io);
     fd_set*             get_set(int type);
@@ -72,6 +73,7 @@ public:
                                  UINT32* pNumReads, UINT32* pNumWrites);
     BOOL                invoke_n_ts(int nNumReaders, int nNumWriters);
     int                 Select(struct timeval* timeoutp);
+    void                HandleBadFds(IHXErrorMessages* pErrorHandler);
 
 private:
     Callbacks*          m_pCallbacks[4];
@@ -231,6 +233,68 @@ CallbackContainer::Select(struct timeval* timeoutp)
     return select(0, m_pCallbacks[HX_READERS]->GetSet(),
                   m_pCallbacks[HX_WRITERS]->GetSet(),m_pCallbacks[HX_CONNECTORS]->GetSet(), timeoutp);
 
+}
+
+inline void
+CallbackContainer::HandleBadFds(IHXErrorMessages* pErrorHandler)
+{
+    int ret, fd, i;
+    struct sockaddr name;
+    socklen_t namelen;
+
+    Callbacks* pReaders = m_pCallbacks[HX_READERS];
+    pReaders->Prepare();
+    fd_set* read_set = pReaders->GetSet();
+    int nRfds = read_set->fd_count;
+
+    for (i = 0; i < nRfds; i++)
+    {
+        fd = read_set->fd_array[i];
+        ret = getsockname(fd, &name, &namelen);
+        if (ret < 0 && WSAGetLastError() == WSAENOTSOCK)
+        {
+            char buf[64];
+            sprintf(buf, "select error (r fd=%d) = WSAENOTSOCK\n", fd);
+            pErrorHandler->Report(HXLOG_ERR, HXR_FAIL, (ULONG32)HXR_FAIL, buf, 0);
+            pReaders->Remove(fd);
+        }
+    }
+
+    Callbacks* pWriters = m_pCallbacks[HX_WRITERS];
+    pWriters->Prepare();
+    fd_set* write_set = pWriters->GetSet();
+    int nWfds = write_set->fd_count;
+
+    for (i = 0; i < nWfds; i++)
+    {
+        fd = write_set->fd_array[i];
+        ret = getsockname(fd, &name, &namelen);
+        if (ret < 0 && WSAGetLastError() == WSAENOTSOCK)
+        {
+            char buf[64];
+            sprintf(buf, "select error (w fd=%d) = WSAENOTSOCK\n", fd);
+            pErrorHandler->Report(HXLOG_ERR, HXR_FAIL, (ULONG32)HXR_FAIL, buf, 0);
+            pWriters->Remove(fd);
+        }
+    }
+
+    Callbacks* pConnectors = m_pCallbacks[HX_CONNECTORS];
+    pConnectors->Prepare();
+    fd_set* connector_set = pConnectors->GetSet();
+    int nCfds = connector_set->fd_count;
+
+    for (i = 0; i < nCfds; i++)
+    {
+        fd = connector_set->fd_array[i];
+        ret = getsockname(fd, &name, &namelen);
+        if (ret < 0 && WSAGetLastError() == WSAENOTSOCK)
+        {
+            char buf[64];
+            sprintf(buf, "select error (c fd=%d) = WSAENOTSOCK\n", fd);
+            pErrorHandler->Report(HXLOG_ERR, HXR_FAIL, (ULONG32)HXR_FAIL, buf, 0);
+            pConnectors->Remove(fd);
+        }
+    }
 }
 
 #endif /*_CALLBACK_CONTAINER_H_*/

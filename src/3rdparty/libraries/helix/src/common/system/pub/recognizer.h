@@ -51,9 +51,30 @@ private:
 			    IHXBuffer* /* IN */ pBuffer,
 			    REF(IHXBuffer*) /* OUT*/ pMimeType);
 
-    HXBOOL    IsSDPFile(IHXBuffer* pBuffer);
+    HXBOOL  IsSDPFile(IHXBuffer* pBuffer);
+    HXBOOL  IsRMFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsMP3File(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsISOMediaFile(UCHAR* pData, UINT32 ulSize, const char* pBrand);
+    HXBOOL  IsMP4File(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  Is3GPPFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsWMFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsAVIFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsOGGFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsMIDIFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsWAVEFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsMPEGFile(UCHAR* pData, UINT32 ulSize);
+    HXBOOL  IsQuickTimeFile(UCHAR* pData, UINT32 ulSize);
     void    DoFileRecognize(void);
 
+    UINT32  LoadMP3Header(UCHAR* pData);
+    HXBOOL  IsValidMP3Header(UINT32 ulHdr);
+    INT32   getFrameSync(UINT32 ulHdr)	    { return (int)((ulHdr>>21) & 2047); };
+    INT32   getVersionIndex(UINT32 ulHdr)   { return (int)((ulHdr>>19) & 3); };
+    INT32   getLayerIndex(UINT32 ulHdr)	    { return (int)((ulHdr>>17) & 3); };
+    INT32   getBitrateIndex(UINT32 ulHdr)   { return (int)((ulHdr>>12) & 15); };
+    INT32   getFrequencyIndex(UINT32 ulHdr) { return (int)((ulHdr>>10) & 3); };
+    INT32   getEmphasisIndex(UINT32 ulHdr)  { return (int)(ulHdr & 3); }; 
+    
 private:
     LONG32 m_lRefCount;
     IUnknown* m_pContext;

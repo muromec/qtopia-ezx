@@ -79,6 +79,20 @@
 
 #include "hxstrutl.h"
 
+//whether we have libiconv support
+#ifdef _UNIX
+#ifdef ANDROID
+   //Android has no libiconv support
+#else
+   // normal unix has libiconv
+   #define HAS_ICONV 1
+#endif 
+#endif  //_UNIX
+
+#ifdef HAS_ICONV
+#include <iconv.h>
+#endif
+
 #define MP3FF_4BYTE_SYSTEM 0x000001ba
 #define MP3FF_4BYTE_VIDEO  0x000001b3
 #define MP3FF_4BYTE_RIFF   0x52494646
@@ -291,18 +305,6 @@ CRnMp3Fmt::GetPluginInfo(REF(int)         bLoadMultiple,
 }
 
 
-///////////////////////////////////////////////////////////////////////////////
-//  IHXThreadSafeMethods::IsThreadsafe                        ref:  hxengin.h
-//
-//  This routine returns threadsafeness informaiton about the plugin
-//  which is used by the server for improved performance.
-//
-STDMETHODIMP_(UINT32)
-    CRnMp3Fmt::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FF_GETPACKET | HX_THREADSAFE_METHOD_FSR_READDONE;
-}
-
 STDMETHODIMP CRnMp3Fmt::Advise(ULONG32 ulInfo)
 {
     HX_RESULT retVal = HXR_FAIL;
@@ -476,7 +478,7 @@ CRnMp3Fmt::InitPlugin(IUnknown* pHXCore)
         return HXR_NOTIMPL;
 
     m_bStreaming = 1;
-
+	
     // Check if we are being loaded by the player or ther server.  If
     // the context contains IHXPlayer, we are in the player, else, we
     // are in the server.  This determines whether packet loss is possilbe
@@ -491,6 +493,7 @@ CRnMp3Fmt::InitPlugin(IUnknown* pHXCore)
     if (pPlayer)
     {
 #if defined(HELIX_FEATURE_REGISTRY)
+#if defined(HELIX_FEATURE_STATS)
         // Get the player's registry
         IHXRegistryID *pRegistryId = NULL;
         pPlayer->QueryInterface(IID_IHXRegistryID, (void**)&pRegistryId);
@@ -502,11 +505,13 @@ CRnMp3Fmt::InitPlugin(IUnknown* pHXCore)
             pRegistryId->GetID(ulPlayerRegistryID);
             HX_RELEASE(pRegistryId);
         }
+#endif //HELIX_FEATURE_STATS
 
-        // Get the core's registry
-        pHXCore->QueryInterface(IID_IHXRegistry, (void**)&m_pRegistry);
-        if (m_pRegistry)
+		// Get the core's registry
+		pHXCore->QueryInterface(IID_IHXRegistry, (void**)&m_pRegistry);
+		if (m_pRegistry)
         {
+#if defined(HELIX_FEATURE_STATS)            
             if (ulPlayerRegistryID)
             {
                 m_pRegistry->GetPropName(ulPlayerRegistryID, m_szPlayerReg);
@@ -514,6 +519,28 @@ CRnMp3Fmt::InitPlugin(IUnknown* pHXCore)
                 m_szPlayerReg->SetSize(m_szPlayerReg->GetSize() + 25);
                 strcat((char*)m_szPlayerReg->GetBuffer(), ".Author"); /* Flawfinder: ignore */
             }
+#else            
+            CHXString   strTemp;
+            IHXBuffer* pBuffer = NULL;
+
+            strTemp.Format("%s","Title");
+            if(m_pRegistry->GetStrByName(strTemp,pBuffer) != HXR_OK)
+            {
+                m_pClassFactory->CreateInstance(CLSID_IHXBuffer,(void**)&pBuffer);
+                m_pRegistry->AddStr(strTemp,pBuffer);
+                HXLOGL1(HXLOG_MP3X, "CRnMp3Fmt::InitPlugin entry for title");
+            }
+            HX_RELEASE(pBuffer);
+            
+            strTemp.Format("%s","Author");
+            if(m_pRegistry->GetStrByName(strTemp,pBuffer) != HXR_OK)
+            {
+                m_pClassFactory->CreateInstance(CLSID_IHXBuffer,(void**)&pBuffer);
+                m_pRegistry->AddStr(strTemp,pBuffer);
+                HXLOGL1(HXLOG_MP3X, "CRnMp3Fmt::InitPlugin entry for author");
+            }
+            HX_RELEASE(pBuffer);
+#endif //HELIX_FEATURE_STATS           
         }
 #endif /* #if defined(HELIX_FEATURE_REGISTRY) */
 
@@ -679,6 +706,72 @@ CRnMp3Fmt::GetFileHeader(void)
     return HXR_OK;
 }
 
+#ifdef HAS_ICONV
+static int 
+code_convert(const char* from_charset, const char* to_charset, const char* inbuf, size_t inlen, char* outbuf, size_t outlen)  
+{  
+    iconv_t cd;  
+   
+    cd = iconv_open(to_charset,from_charset);  
+    if (cd == 0)  
+    {
+        iconv_close(cd);
+        return -1;  
+    }
+    memset(outbuf,0,outlen);
+#ifdef __SUNPRO_CC
+    if (iconv(cd, (const char* const*)&inbuf, &inlen, &outbuf, &outlen) == (size_t) -1L)   
+#else
+    if (iconv(cd, (char **)&inbuf, &inlen, &outbuf, &outlen) == (size_t) -1L)   
+#endif
+    {
+        iconv_close(cd);
+        return -1;  
+    }
+    iconv_close(cd);  
+    return 0;  
+}
+#endif
+
+void 
+CRnMp3Fmt::try_convert(char*encoding, char* inbuf, IHXBuffer*& pBuffer, int outlen)
+{
+#ifdef HAS_ICONV 
+    int retVal= -1;
+    if (!pBuffer)
+    {
+        CreateSizedBufferCCF(pBuffer, m_pContext, (outlen+1) * 4);
+    }
+
+    if (encoding && strlen(encoding))
+    {
+        HXBOOL br = TRUE;
+        while(br && retVal== -1)  
+        {
+            char* ptr = strchr(encoding, ':');
+            int n=0;
+            if(!ptr)
+            {
+                n = strlen(encoding);
+                br = FALSE;
+            }
+            else
+            {
+                n = ptr-encoding;
+            }
+            CHXString str(encoding,n);
+            retVal = code_convert(str.GetBuffer(0), "utf-8", inbuf, strlen(inbuf), (char*)pBuffer->GetBuffer(), pBuffer->GetSize());  
+            encoding = ptr +1;
+        }       
+    }
+    if(retVal == -1)
+    {
+        code_convert("iso-8859-1", "utf-8", inbuf, strlen(inbuf), (char*)pBuffer->GetBuffer(), pBuffer->GetSize());
+    }
+    return;
+#endif
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //  CRnMp3Fmt::MyCreateFileHeaderObj_hr             ref:  filefmt1.h
 //
@@ -693,6 +786,7 @@ HX_RESULT
 CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
                                     IHXBuffer* pHeader)
 {
+    HXLOGL4(HXLOG_MP3X,"MyCreateFileHeaderObj_hr");
     // We are in the process of handling the GetFileHeader() request...
     // See GetFileHeader(), SeekDone(), and ReadDone() for previous steps.
     m_State = Ready;
@@ -782,6 +876,16 @@ CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
         // Set title
         int   nLen = 0;
         char* pszTmp = (char*) m_pMp3Fmt->GetId3Title(nLen);
+        IHXBuffer* pBuffer = NULL;
+        char* encoding = NULL;
+#ifdef _UNIX
+        encoding = getenv("HELIX_ID3_TAG_ENCODING");
+#endif
+        try_convert(encoding, pszTmp, pBuffer, nLen);
+        if (pBuffer)
+        {
+            pszTmp = ( char*) pBuffer->GetBuffer();
+        }
         if (nLen)
         {
             SetCStringPropertyCCF(pHeaderObj,
@@ -794,6 +898,12 @@ CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
         // Set artist
         nLen   = 0;
         pszTmp = (char*) m_pMp3Fmt->GetId3Artist(nLen);
+        HX_RELEASE(pBuffer);
+        try_convert(encoding, pszTmp, pBuffer, nLen);
+        if (pBuffer)
+        {
+            pszTmp = ( char*) pBuffer->GetBuffer();
+        }
         if (nLen)
         {
             SetCStringPropertyCCF(pHeaderObj,
@@ -806,6 +916,12 @@ CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
         // Set album
         nLen   = 0;
         pszTmp = (char*) m_pMp3Fmt->GetId3Album(nLen);
+        HX_RELEASE(pBuffer);
+        try_convert(encoding, pszTmp, pBuffer, nLen);
+        if (pBuffer)
+        {
+            pszTmp = ( char*) pBuffer->GetBuffer();
+        }
         if (nLen)
         {
             SetCStringPropertyCCF(pHeaderObj,
@@ -818,6 +934,12 @@ CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
         // Set genre
         nLen   = 0;
         pszTmp = (char*) m_pMp3Fmt->GetId3Genre(nLen);
+        HX_RELEASE(pBuffer);
+        try_convert(encoding, pszTmp, pBuffer, nLen);
+        if (pBuffer)
+        {
+            pszTmp = ( char*) pBuffer->GetBuffer();
+        }
         if (nLen)
         {
             SetCStringPropertyCCF(pHeaderObj,
@@ -826,6 +948,7 @@ CRnMp3Fmt::MyCreateFileHeaderObj_hr(HX_RESULT   status,
                                   m_pContext,
                                   TRUE); // Forces a SetPropertyBuffer()
         }
+        HX_RELEASE(pBuffer);
 
         // Optional Property: "OpaqueData"
         // Any other user defined data
@@ -1109,6 +1232,7 @@ HX_RESULT
 CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
                                 tReadBuffer* pPacketData)
 {
+    HXLOGL4(HXLOG_MP3X,"MyCreatePacketObj_hr");
     m_State = Ready;
 
     HX_ASSERT(!m_bClosed);
@@ -1295,7 +1419,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
                     }
                     else
                     {
-                        // If we get here, then we have gotten
+						// If we get here, then we have gotten
                         // lost on parsing this file, and likely
                         // the file is corrupt or unsupported.
                         // If we had tried to advance the buffer
@@ -1329,7 +1453,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
 
                     if (pPacketBuffer->GetSize() != (UINT32)nModFrameSize+m_RtpPackets.ulHeaderSize)
                     {
-                        HX_RELEASE(pPacketBuffer);
+						HX_RELEASE(pPacketBuffer);
                         HX_RELEASE(pPacketObj);
 
                         return HXR_OUTOFMEMORY;
@@ -1353,7 +1477,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
 #endif //MPA_FMT_DRAFT00
                 if( m_bStreaming || m_bRtp || m_pMp3Fmt->GetMetaRepeat() )
                 {
-                    pPacketBuffer->Set(pModFrameStart,nModFrameSize);
+					pPacketBuffer->Set(pModFrameStart,nModFrameSize);
                 }
 
 #if defined(HELIX_FEATURE_MP3FF_SHOUTCAST)
@@ -1361,7 +1485,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
                 // data over the meta data.
                 if (m_bMetaPacket)
                 {
-                    UCHAR *pTemp = pPacketBuffer->GetBuffer();
+					UCHAR *pTemp = pPacketBuffer->GetBuffer();
 
                     if (m_bRtp)
                         pTemp += 4;
@@ -1398,7 +1522,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
 
             if(m_bIsVBR && (m_ulNextPacketDeliveryTime > m_ulCurrentDuration))
             {
-                // Compute a new duration
+				// Compute a new duration
                 UINT32 ulRemainingFilesSize = m_ulFileSize -
                     (m_ulBytesRead - pPacketData->dwBytesRemaining);
                 double ulRemainingDuration =
@@ -1428,7 +1552,7 @@ CRnMp3Fmt::MyCreatePacketObj_hr(HX_RESULT   status,
     // No more packets are available for this stream
     else
     {
-        // Notify the RMA core that the stream is done
+		// Notify the RMA core that the stream is done
         m_pStatus->StreamDone(0);
     }
 
@@ -1552,6 +1676,7 @@ STDMETHODIMP
 CRnMp3Fmt::ReadDone(HX_RESULT   status,
                     IHXBuffer* pBufferRead)
 {
+    HXLOGL4(HXLOG_MP3X,"ReadDone");
     /* This may happen in HTTP streaming when the file system
      * is in still a seeking mode when the next seek is issued.
      * The file system will then call SeekDone with a status of
@@ -1624,6 +1749,7 @@ CRnMp3Fmt::ReadDone(HX_RESULT   status,
                // to so sync the first location.
                if (m_bFirstMeta)
                {
+                    HXLOGL4(HXLOG_MP3X,"ReadDone First MetaData");
                    int nBytes = m_ReadBuf.dwBufferSize;
                    char *pScan = (char*)m_ReadBuf.pBuffer;
                    char *p = NULL;
@@ -1736,6 +1862,7 @@ CRnMp3Fmt::ReadDone(HX_RESULT   status,
                                }
                            }
 
+#if !defined(HELIX_FEATURE_SERVER)
 #if defined(HELIX_FEATURE_REGISTRY)
                            if(m_ulMetaLength)
                            {
@@ -1743,9 +1870,15 @@ CRnMp3Fmt::ReadDone(HX_RESULT   status,
                                pTitle->Set(m_ReadBuf.pBuffer+ulBytesToMeta+14,
                                            nLen+1);
                                pTitle->GetBuffer()[nLen] = '\0';
-
-                               m_pRegistry->SetStrByName(
+#if defined(HELIX_FEATURE_STATS)
+							   m_pRegistry->SetStrByName(
                                    (char*)m_szPlayerReg->GetBuffer(), pTitle);
+#else 
+                                HXLOGL1(HXLOG_MP3X, "CRnMp3Fmt::ReadDone set author");                                   
+                                CHXString   strTemp;
+                                strTemp.Format("%s","Author");
+                                m_pRegistry->SetStrByName(strTemp, pTitle);
+#endif //HELIX_FEATURE_STATS                                
                                HX_RELEASE(pTitle);
 
                                m_pClassFactory->CreateInstance(
@@ -1761,16 +1894,24 @@ CRnMp3Fmt::ReadDone(HX_RESULT   status,
 
                                    // Put the song title in the registry
                                    char szTitle[128]; /* Flawfinder: ignore */
-
-                                   SafeStrCpy(szTitle,
+#if defined(HELIX_FEATURE_STATS)
+								   SafeStrCpy(szTitle,
                                               (char*)m_szPlayerReg->GetBuffer(), 128);
-                                   strcpy(&szTitle[strlen(szTitle)-6], /* Flawfinder: ignore */
+								   strcpy(&szTitle[strlen(szTitle)-6], /* Flawfinder: ignore */
                                           "Title");
-                                   m_pRegistry->SetStrByName(szTitle, pTitle);
+	                                   m_pRegistry->SetStrByName(szTitle, pTitle);
+#else   
+                                    HXLOGL1(HXLOG_MP3X, "CRnMp3Fmt::ReadDone set title");                                 
+                                    CHXString   strTemp;
+                                    strTemp.Format("%s","Title");
+                                    m_pRegistry->SetStrByName(strTemp, pTitle);
+                                    HX_RELEASE(pTitle);
+#endif                                    
                                }
                            }
 #endif /* #if defined(HELIX_FEATURE_REGISTRY) */
 
+#endif
                            HX_RELEASE(pTitle);
                        }
                    }
@@ -2091,13 +2232,6 @@ CRnMp3Fmt::QueryInterface(REFIID interfaceID,
         return HXR_OK;
     }
 #endif /* #if defined(MPA_FMT_DRAFT00) */
-    // IHXThreadSafeMethods interface is supported
-    else if (IsEqualIID(interfaceID, IID_IHXThreadSafeMethods))
-    {
-        AddRef();
-        *ppInterfaceObj = (IHXThreadSafeMethods*)this;
-        return HXR_OK;
-    }
 #if defined(HELIX_FEATURE_PROGDOWN)
     else if (IsEqualIID(interfaceID, IID_IHXAdvise))
     {
@@ -2194,7 +2328,7 @@ UCHAR* CRnMp3Fmt::GetMP3Frame_p(tReadBuffer* pPacketData, int &nSyncSize)
         lScan = m_pMp3Fmt->ScanForSyncWord(pPacketData->pBuffer,
                                            pPacketData->dwBytesRemaining,
                                            nSyncSize);
-
+   
 #if defined(HELIX_FEATURE_MP3FF_SHOUTCAST)
     // Check this frame for meta data
     if (m_ulNextMetaPos <= m_ulBytesRead - pPacketData->dwBytesRemaining + nSyncSize)
@@ -2203,8 +2337,11 @@ UCHAR* CRnMp3Fmt::GetMP3Frame_p(tReadBuffer* pPacketData, int &nSyncSize)
             return NULL;
 
         m_bMetaPacket = 1;
-        nSyncSize += m_ulMetaLength;
-        lScan = 0;
+        if (!(m_bStreaming && !m_bRtp))
+        {
+            nSyncSize += m_ulMetaLength;
+            lScan = 0;
+        }
     }
 #endif //HELIX_FEATURE_MP3FF_SHOUTCAST
 

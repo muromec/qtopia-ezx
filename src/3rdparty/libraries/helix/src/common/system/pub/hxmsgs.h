@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxmsgs.h,v 1.6 2005/08/19 02:39:04 rggammon Exp $
+ * Source last modified: $Id: hxmsgs.h,v 1.8 2008/09/03 14:21:11 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -92,7 +92,10 @@
 #define HXMSG_TASKDONE_2     (HXMSG_BASE + 115) // test
 
 // HXNetThreadSocketProxy/Stub
-#define HXMSG_THREADEDSOCK   (HXMSG_BASE + 116) 
+#define HXMSG_THREADEDSOCK   (HXMSG_BASE + 116)
+
+// MSGs used by Flash proxy in flashhost
+#define FLASHPROXYMSG_BASE   (HXMSG_BASE + 0x500)
 
 //
 // Generic

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: fsmanager.h,v 1.6 2004/06/18 19:31:49 tmarshall Exp $
+ * Source last modified: $Id: fsmanager.h,v 1.11 2008/10/06 21:34:41 ckarusala Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -44,6 +44,7 @@
 #include "proc.h"
 #include "safe_object_delete.h"
 #include "plgnhand.h"
+#include "ihxurlparser.h"
 
 class URL;
 class PluginHandler;
@@ -127,6 +128,7 @@ public:
 
 
     HX_RESULT           AsyncCreateFileDone(HX_RESULT, FileObjectWrapper*);
+    void                GetLastPlugin(PluginHandler::FileSystem::PluginInfo* & pPlugin);
 
     UINT32              m_mount_point_len;
     BOOL                m_bIsDone;
@@ -143,7 +145,7 @@ private:
     IHXFileSystemManagerResponse*   m_pResponse;
     Process*                        proc;
     IHXScheduler*                   m_scheduler;
-    char*                           m_url;
+    IHXURL*                         m_url;
     IUnknown*                       m_file_object;
     IHXFileExists*                  m_file_exists;
     IHXGetFileFromSamePool*         m_pool;
@@ -171,6 +173,7 @@ private:
     BOOL                            m_bCheckingCache;
     BOOL                            m_bIsCDistEligible;
     BOOL                            m_bFound;
+    BOOL                            m_bEnableAMPDebug;
 
 
     HX_RESULT CheckNextPlugin(PluginHandler::FileSystem::PluginInfo*);

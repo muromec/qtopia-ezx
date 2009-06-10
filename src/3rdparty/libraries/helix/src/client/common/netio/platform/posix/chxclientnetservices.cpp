@@ -36,6 +36,7 @@
 
 #include "hxtypes.h"
 #include "hxcom.h"
+#include "ihxpckts.h"
 #include "hxnet.h"
 #include "hxprefs.h"
 #include "hxprefutil.h"
@@ -44,6 +45,9 @@
 #include "chxresolver.h"
 #if defined (THREADS_SUPPORTED)
 #include "hxthreadedsocket.h"
+#endif
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+#include "securesock.h"
 #endif
 #include "thrdutil.h"
 #include "chxclientsocket.h"
@@ -81,7 +85,11 @@ CHXClientNetServices* CreateClientNetServices(IUnknown* pContext)
 #endif
         if( !pRet)
         {
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+            pRet = new CHXSecureNetServices();
+#else
             pRet = new CHXClientNetServices();
+#endif        
         }
     }
     
@@ -302,6 +310,36 @@ CHXNetThreadClientNetServices::CreateResolver(IHXResolve** ppResolver)
     return hr;
 }
 
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+HX_RESULT
+CHXNetThreadClientNetServices::CreateSecureSocket(IHXSecureSocket** ppSock)
+{
+    HX_RESULT   hr = HXR_OK;
+
+    HX_ASSERT(ppSock);
+    HX_ASSERT(m_ulDriverThreadID);
+
+    if (HXGetCurrentThreadID() == m_ulDriverThreadID)
+    {
+        // this ensures that sockets created on the net thread
+        // are regular client sockets, not threaded sockets 
+        hr = CHXSecureNetServices::CreateSecureSocket(ppSock);
+    }
+    else
+    {
+        // create client socket that provides actual implementation
+        IHXSecureSocket* pActual = 0;
+        HX_RESULT hr = CHXSecureNetServices::CreateSecureSocket(&pActual);
+        if (SUCCEEDED(hr))
+        {
+            // create wrapper
+            hr = HXThreadedSocket::CreateSecureSocket(m_punkContext, pActual, *ppSock);
+            HX_RELEASE(pActual);
+        }
+    }
+    return hr;
+}
+#endif
 //
 // Create and run the network thread. 
 //
@@ -346,3 +384,61 @@ CHXNetThreadClientNetServices::DoDriverInit()
 }
 
 #endif // THREADS_SUPPORTED
+
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+
+CHXSecureNetServices::CHXSecureNetServices():
+CHXClientNetServices()
+{
+}
+
+CHXSecureNetServices::~CHXSecureNetServices()
+{
+}
+
+
+HX_RESULT
+CHXSecureNetServices::CreateSecureSocket(IHXSecureSocket** ppSock)
+{
+    HX_RESULT hr = HXR_OK;
+   CHXSecureSocket* pClientSock = 0;
+    pClientSock = new CHXSecureSocket(this, m_punkContext);
+    if (pClientSock)
+    {
+        pClientSock->AddRef();
+        hr = pClientSock->QueryInterface(IID_IHXSecureSocket, (void**)ppSock);
+        HX_RELEASE(pClientSock);
+    }
+    else
+    {
+        hr = HXR_OUTOFMEMORY;
+    }
+    return hr;
+}
+
+STDMETHODIMP_(ULONG32)
+CHXSecureNetServices::AddRef(void)
+{
+    return CHXNetServices::AddRef();
+}
+
+STDMETHODIMP_(ULONG32)
+CHXSecureNetServices::Release(void)
+{
+    return CHXNetServices::Release();
+}
+
+STDMETHODIMP
+CHXSecureNetServices::QueryInterface(REFIID riid, void** ppvObj)
+{
+    if (IsEqualIID(riid, IID_IHXSecureNetServices))
+    {
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXSecureNetServices*)this;
+        return HXR_OK;
+    }
+    return CHXNetServices::QueryInterface(riid, ppvObj);
+}
+
+#endif
+

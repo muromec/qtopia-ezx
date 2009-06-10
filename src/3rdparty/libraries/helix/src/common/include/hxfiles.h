@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxfiles.h,v 1.13 2006/08/19 15:24:50 dcollins Exp $
+ * Source last modified: $Id: hxfiles.h,v 1.20 2008/12/02 13:34:13 qluo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,6 +53,7 @@
 /*
  * Forward declarations of some interfaces defined here-in.
  */
+typedef _INTERFACE      IHXContentRecordability         IHXContentRecordability;
 typedef _INTERFACE      IHXFileObject                   IHXFileObject;
 typedef _INTERFACE      IHXFileObjectExt                IHXFileObjectExt;
 typedef _INTERFACE      IHXFileResponse         IHXFileResponse;
@@ -82,6 +83,7 @@ typedef _INTERFACE      IHXFileRename                  IHXFileRename;
 typedef _INTERFACE      IHXFileMove                     IHXFileMove;
 typedef _INTERFACE      IHXDirHandler                   IHXDirHandler;
 typedef _INTERFACE      IHXDirHandlerResponse           IHXDirHandlerResponse;
+typedef _INTERFACE      IHXNestedDirHandler             IHXNestedDirHandler;
 typedef _INTERFACE      IHXFileRemove                  IHXFileRemove;
 // $Private:
 typedef _INTERFACE      IHXFastFileFactory             IHXFastFileFactory;
@@ -279,6 +281,75 @@ DECLARE_INTERFACE_(IHXFileObject, IUnknown)
                         ULONG32 ulInfo) PURE;
 };
 
+/****************************************************************************
+ *  Defines:
+ *      CONTENT_RECORD_BLOCKING
+ *  Purpose:
+ *      Flags for Content Record Blocking Feature
+ */
+#define CONTENT_RECORD_BLOCKING (1<<4)
+
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *      IHXContentRecordability
+ *
+ *  Purpose:
+ *
+ *      Object that exports Content Recordability control API
+ *
+ *  IID_IHXContentRecordability:
+ *
+ *      {DDEE2378-F9F1-4767-B68F-ED7DA088F330}
+ *
+ */
+
+DEFINE_GUID(IID_IHXContentRecordability, 0xddee2378, 0xf9f1, 0x4767, 0xb6, 0x8f,0xed, 0x7d, 0xa0, 0x88, 0xf3, 0x30);
+
+#undef  INTERFACE
+#define INTERFACE   IHXContentRecordability
+
+DECLARE_INTERFACE_(IHXContentRecordability, IUnknown)
+{
+    /*
+    *  IUnknown methods
+    */
+    STDMETHOD(QueryInterface)(THIS_
+                            REFIID riid,void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)(THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release)(THIS) PURE;
+
+    /*
+     *  IHXContentRecordability methods
+     */
+
+ /************************************************************************
+    *   Method:
+    *   IHXContentRecordability::SetContentMarker
+    *   Purpose:
+    *       Sets the ContentMarker value associated with a mount point.
+    *		
+    */
+    
+    STDMETHOD(SetContentMarker)(THIS_
+                                const UINT8 value) PURE;
+	
+	/************************************************************************
+    *	Method:
+    *		IHXContentRecordability::GetContentMarker
+    *	Purpose:
+    *		Returns the ContentMarker value associated with a mount point.
+    *	
+    */
+    STDMETHOD(GetContentMarker)(THIS_
+	                        REF(UINT8) value) PURE;
+    
+};
+
+
 
 /****************************************************************************
  *
@@ -426,6 +497,102 @@ DECLARE_INTERFACE_(IHXFileResponse, IUnknown)
      */
     STDMETHOD(SeekDone)                 (THIS_
                                         HX_RESULT           status) PURE;
+};
+
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *      IHXFileResponse2
+ *
+ *  Purpose:
+ *
+ *      Object that exports file response with ID API
+ *	IHXFileResponse2 should be used if you need to differentiate responses 
+ *	from multiple file objects
+ *
+ *  IID_IHXFileResponse2:
+ *
+ *      {3CAE5D27-D12B-423a-9067-91CA79F32CDC}
+ *
+ */
+DEFINE_GUID(IID_IHXFileResponse2, 0x3cae5d27, 0xd12b, 0x423a, 0x90, 0x67, 0x91,
+	    0xca, 0x79, 0xf3, 0x2c, 0xdc);
+
+#undef  INTERFACE
+#define INTERFACE   IHXFileResponse2
+
+DECLARE_INTERFACE_(IHXFileResponse2, IUnknown)
+{
+    /*
+     *  IUnknown methods
+     */
+    STDMETHOD(QueryInterface)           (THIS_
+                                        REFIID riid,
+                                        void** ppvObj) PURE;
+
+    STDMETHOD_(ULONG32,AddRef)          (THIS) PURE;
+
+    STDMETHOD_(ULONG32,Release)         (THIS) PURE;
+
+    /*
+     *  IHXFileResponse2 methods
+     */
+
+    /************************************************************************
+     *  Method:
+     *      IHXFileResponse2::InitDone
+     *  Purpose:
+     *      Notification interface provided by users of the IHXFileObject
+     *      interface. This method is called by the IHXFileObject when the
+     *      initialization of the file is complete. If the file is not valid
+     *      for the file system, the status HXR_FAILED should be
+     *      returned.
+     */
+    STDMETHOD(InitDone)                 (THIS_ HX_RESULT status, UINT32 uID) PURE;
+
+    /************************************************************************
+     *  Method:
+     *      IHXFileResponse2::CloseDone
+     *  Purpose:
+     *      Notification interface provided by users of the IHXFileObject
+     *      interface. This method is called by the IHXFileObject when the
+     *      close of the file is complete.
+     */
+    STDMETHOD(CloseDone)                (THIS_ HX_RESULT status, UINT32 uID) PURE;
+
+    /************************************************************************
+     *  Method:
+     *      IHXFileResponse2::ReadDone
+     *  Purpose:
+     *      Notification interface provided by users of the IHXFileObject
+     *      interface. This method is called by the IHXFileObject when the
+     *      last read from the file is complete and a buffer is available.
+     */
+    STDMETHOD(ReadDone)                 (THIS_
+                                        HX_RESULT           status,
+                                        IHXBuffer*          pBuffer,
+					UINT32		    uID	    ) PURE;
+
+    /************************************************************************
+     *  Method:
+     *      IHXFileResponse::WriteDone
+     *  Purpose:
+     *      Notification interface provided by users of the IHXFileObject
+     *      interface. This method is called by the IHXFileObject when the
+     *      last write to the file is complete.
+     */
+    STDMETHOD(WriteDone)                (THIS_ HX_RESULT status, UINT32 uID) PURE;
+
+    /************************************************************************
+     *  Method:
+     *      IHXFileResponse2::SeekDone
+     *  Purpose:
+     *      Notification interface provided by users of the IHXFileObject
+     *      interface. This method is called by the IHXFileObject when the
+     *      last seek in the file is complete.
+     */
+    STDMETHOD(SeekDone)                 (THIS_ HX_RESULT status, UINT32 uID) PURE;
 };
 
 /****************************************************************************
@@ -1739,6 +1906,71 @@ DECLARE_INTERFACE_(IHXDirHandlerResponse, IUnknown)
                                         IHXBuffer*          pBuffer) PURE;
 };
 
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *      IHXNestedDirHandler
+ *
+ *  Purpose:
+ *
+ *      Interface to handle Nested Directory Structure.
+ *
+ *  IID_IHXNestedDirHandler:
+ *
+ *      {2d937815-3c27-4016-ba34-d13fd4fe47a6}
+ *
+ */
+
+DEFINE_GUID(IID_IHXNestedDirHandler, 0x2d937815, 0x3c27, 0x4016, 0xba, 0x34, 0xd1, 0x3f, 0xd4, 0xfe, 0x47, 0xa6);
+
+#undef  INTERFACE
+#define INTERFACE   IHXNestedDirHandler
+
+DECLARE_INTERFACE_(IHXNestedDirHandler, IUnknown)
+{
+
+  /*
+   *  IUnknown methods
+   */
+  STDMETHOD(QueryInterface)   (THIS_
+			       REFIID riid,
+			       void** ppvObj) PURE;
+
+  STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
+
+  STDMETHOD_(ULONG32,Release) (THIS) PURE;
+
+  /************************************************************************
+   *  Method:
+   *      IHXNestedDirHandler::InitNestedDirHandler
+   *  Purpose:
+   *      Associates a Nested directory handler with the directory handler
+   *      response, it should notify of operation completness.
+   */
+  
+  STDMETHOD(InitNestedDirHandler)   (THIS_
+                                IHXDirHandlerResponse*    /*IN*/  pDirResponse) PURE;
+
+  /************************************************************************
+   *  Method:
+   *      IHXNestedDirHandler::MakeNestedDir
+   *  Purpose:
+   *      Creates a directory structure(Nested)
+   */
+
+  STDMETHOD(MakeNestedDir)  (THIS) PURE;
+
+  /************************************************************************
+   *  Method:
+   *      IHXNestedDirHandler::CloseNestedDirHandler
+   *  Purpose:
+   *      Closes the nested directory handler resource and releases all resources
+   *      associated with the object.
+   */
+
+  STDMETHOD(CloseNestedDirHandler)  (THIS) PURE;
+};
 
 // $Private:
 /****************************************************************************

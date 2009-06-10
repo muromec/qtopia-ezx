@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: corshare.cpp,v 1.13 2006/09/15 04:09:54 ping Exp $
+ * Source last modified: $Id: corshare.cpp,v 1.16 2008/07/30 20:17:56 amsaleem Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -82,6 +82,10 @@
 #include "hxsrc.h"
 #include "srcinfo.h"
 #include "pckunpck.h"
+
+#include "clntcore.ver"
+#include "hxver.h"
+#include "hxwinver.h"
 
 // will be taken out once flags are defined in a separate file
 #include "rmfftype.h"	
@@ -154,7 +158,20 @@ SetRequest(const char*		pURL,
 	strTemp += ".Language";
 	pRegistry->GetStrByName(strTemp, pLanguage);
     }
-
+    if (pClientID == NULL)
+    {
+        // Encode the client ID with the pieces of interest.
+        HXVERSIONINFO verInfo;
+        HXGetWinVer(&verInfo);
+        const char* pszClientID = HXGetVerEncodedName(&verInfo,
+                                                      PRODUCT_ID,
+                                                      TARVER_STRING_VERSION,
+                                                      LANGUAGE_CODE,
+                                                      "RN01");
+        // Set clientID
+        CreateStringBufferCCF(pClientID, pszClientID, pCCF);
+    }
+ 
     if(bCanSendGuid &&
        pPreferences && 
        pPreferences->ReadPref(CLIENT_GUID_REGNAME, pGUID) == HXR_OK)

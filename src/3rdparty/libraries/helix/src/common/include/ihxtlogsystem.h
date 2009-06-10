@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxtlogsystem.h,v 1.36 2007/04/16 15:29:37 ehyche Exp $
+ * Source last modified: $Id: ihxtlogsystem.h,v 1.54 2009/05/06 02:48:50 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,6 +50,7 @@
 #ifndef IHXTLOGSYSTEM_H
 #define IHXTLOGSYSTEM_H
 
+#include "ihxpckts.h"
 #include "hlxclib/stdarg.h"
 
 enum EHXTLogCode
@@ -150,6 +151,7 @@ enum EHXTLogFuncArea
     HXLOG_AVIX = HX_MAKE4CC('A','V','I','X'), // AVI 
     HXLOG_BAND = HX_MAKE4CC('B','A','N','D'), // Bandwidth manager
     HXLOG_BUFF = HX_MAKE4CC('B','U','F','F'), // Buffer Control
+    HXLOG_CNKT = HX_MAKE4CC('C','N','K','T'), // hxclientkit
     HXLOG_CORE = HX_MAKE4CC('C','O','R','E'), // Core load time
     HXLOG_EVEN = HX_MAKE4CC('E','V','E','N'), // RealEvents
     HXLOG_FSRC = HX_MAKE4CC('F','S','R','C'), // File source
@@ -163,13 +165,16 @@ enum EHXTLogFuncArea
     HXLOG_PIXX = HX_MAKE4CC('P','I','X','X'), // RealPix
     HXLOG_PNAX = HX_MAKE4CC('P','N','A','X'), // PNA protocol
     HXLOG_PROT = HX_MAKE4CC('P','R','O','T'), // Protocol generic
+    HXLOG_RECF = HX_MAKE4CC('R','E','C','F'), // Superbuffer Record File.
     HXLOG_RECO = HX_MAKE4CC('R','E','C','O'), // Reconnect
+    HXLOG_RECS = HX_MAKE4CC('R','E','C','S'), // Record Service And Superbuffer
     HXLOG_RTSP = HX_MAKE4CC('R','T','S','P'), // RTSP protocol
     HXLOG_SITE = HX_MAKE4CC('S','I','T','E'), // Site
     HXLOG_SMIL = HX_MAKE4CC('S','M','I','L'), // SMIL
     HXLOG_STRE = HX_MAKE4CC('S','T','R','E'), // Stream source map
     HXLOG_SWFX = HX_MAKE4CC('S','W','F','X'), // Flash
     HXLOG_THRD = HX_MAKE4CC('T','H','R','D'), // Threading
+    HXLOG_TLCX = HX_MAKE4CC('T','L','C','X'), // Top-Level Client
     HXLOG_TRAN = HX_MAKE4CC('T','R','A','N'), // Transport
     HXLOG_TRIK = HX_MAKE4CC('T','R','I','K'), // TrickPlay
     HXLOG_TURB = HX_MAKE4CC('T','U','R','B'), // TurboPlay
@@ -182,8 +187,11 @@ enum EHXTLogFuncArea
     ,HXLOG_SMMF = HX_MAKE4CC('S','M','M','F') // Symbian MMF
     ,HXLOG_ASFF = HX_MAKE4CC('A','S','F','F')  // ASF file format
     ,HXLOG_WMA9 = HX_MAKE4CC('W','M','A','9')  // WMA 9 audio codec
+    ,HXLOG_WMAA = HX_MAKE4CC('W','M','A','A')  // WMA 10 audio codec    
+    ,HXLOG_WMAV = HX_MAKE4CC('W','M','A','V')  // WMA 9 Voice audio codec
     ,HXLOG_WMAR = HX_MAKE4CC('W','M','A','R')  // WMA renderer
     ,HXLOG_BAUD = HX_MAKE4CC('B','A','U','D')  // Base audio renderer
+    ,HXLOG_WMV8 = HX_MAKE4CC('W','M','V','8')  // WMV 7/8 video codec
     ,HXLOG_WMV9 = HX_MAKE4CC('W','M','V','9')  // WMV 9 video codec
     ,HXLOG_WMVR = HX_MAKE4CC('W','M','V','R')  // WMV renderer
     ,HXLOG_BVID = HX_MAKE4CC('B','V','I','D')  // Base video renderer
@@ -197,10 +205,44 @@ enum EHXTLogFuncArea
     ,HXLOG_FPHR = HX_MAKE4CC('F','P','H','R')  // Flash player hosted renderer
     ,HXLOG_CORP = HX_MAKE4CC('C','O','R','P')  // Core performance logging
     ,HXLOG_BMET = HX_MAKE4CC('B','M','E','T')  // Base meta renderer
+    ,HXLOG_SXPS = HX_MAKE4CC('S','X','P','S') // Symbian eXternal Packet Source
     ,HXLOG_ASXR = HX_MAKE4CC('A','S','X','R')  // ASX meta renderer
     ,HXLOG_WMER = HX_MAKE4CC('W','M','E','R')  // WM events renderer
     ,HXLOG_FLVF = HX_MAKE4CC('F','L','V','F')  // FLV file format plugin
     ,HXLOG_FLVR = HX_MAKE4CC('F','L','V','R')  // FLV renderer
+    ,HXLOG_DTDR = HX_MAKE4CC('D','T','D','R')  // dtdrive
+    ,HXLOG_HXPE = HX_MAKE4CC('H','X','P','E')  // Helix Playback Engine(player_rn/kit/realplayer)
+    ,HXLOG_COOK = HX_MAKE4CC('C','O','O','K')  // Helix Cookie DB
+    ,HXLOG_HXAU = HX_MAKE4CC('H','X','A','U')  // Helix AutoUpgrade manager
+    ,HXLOG_HXDL = HX_MAKE4CC('H','X','D','L')  // Helix Download manager
+    ,HXLOG_ENON = HX_MAKE4CC('E','N','O','N')  // Encoding services - NONE
+    ,HXLOG_EACT = HX_MAKE4CC('E','A','C','T')  // Encoding services - ACTIVEX
+    ,HXLOG_EAUC = HX_MAKE4CC('E','A','U','C')  // Encoding services - AUDCODEC
+    ,HXLOG_EAUP = HX_MAKE4CC('E','A','U','P')  // Encoding services - AUDPREFIL
+    ,HXLOG_EBCA = HX_MAKE4CC('E','B','C','A')  // Encoding services - BCAST
+    ,HXLOG_ECAP = HX_MAKE4CC('E','C','A','P')  // Encoding services - CAPTURE
+    ,HXLOG_ECMD = HX_MAKE4CC('E','C','M','D')  // Encoding services - CMDLINE
+    ,HXLOG_EFLO = HX_MAKE4CC('E','F','L','O')  // Encoding services - FILEOUT
+    ,HXLOG_EFLR = HX_MAKE4CC('E','F','L','R')  // Encoding services - FILEREAD
+    ,HXLOG_EGUI = HX_MAKE4CC('E','G','U','I')  // Encoding services - GUI
+    ,HXLOG_EJOB = HX_MAKE4CC('E','J','O','B')  // Encoding services - JOBFILE
+    ,HXLOG_ELIC = HX_MAKE4CC('E','L','I','C')  // Encoding services - LIC
+    ,HXLOG_EPOS = HX_MAKE4CC('E','P','O','S')  // Encoding services - POSFIL
+    ,HXLOG_EREM = HX_MAKE4CC('E','R','E','M')  // Encoding services - REMOTE
+    ,HXLOG_ECON = HX_MAKE4CC('E','C','O','N')  // Encoding services - FA_SDK_CONFIG
+    ,HXLOG_EENC = HX_MAKE4CC('E','E','N','C')  // Encoding services - FA_SDK_ENCODE
+    ,HXLOG_ECOR = HX_MAKE4CC('E','C','O','R')  // Encoding services - FA_SDK_CORE
+    ,HXLOG_EFLT = HX_MAKE4CC('E','F','L','T')  // Encoding services - FA_GEN_FILTER
+    ,HXLOG_ESTA = HX_MAKE4CC('E','S','T','A')  // Encoding services - STATS
+    ,HXLOG_EVIC = HX_MAKE4CC('E','V','I','C')  // Encoding services - VIDCODEC
+    ,HXLOG_EVIP = HX_MAKE4CC('E','V','I','P')  // Encoding services - VIDPREFIL
+    ,HXLOG_EVIR = HX_MAKE4CC('E','V','I','R')  // Encoding services - VIDRENDR
+    ,HXLOG_EMED = HX_MAKE4CC('E','M','E','D')  // Encoding services - MEDIASAMPLES
+    ,HXLOG_EPUB = HX_MAKE4CC('E','P','U','B')  // Encoding services - PUB
+    ,HXLOG_CAPF = HX_MAKE4CC('C','A','P','F')  // Capture file format
+    ,HXLOG_AVCQ = HX_MAKE4CC('A','V','C','Q')  // Quicktime-based H.264 decoder
+    ,HXLOG_MP4W = HX_MAKE4CC('M','P','4','W')  // MP4 file writer
+    ,HXLOG_RVXV = HX_MAKE4CC('R','V','X','V')  // Real Video Decoder
 };
 
 static const struct _ClientLogging4CC
@@ -250,8 +292,11 @@ static const struct _ClientLogging4CC
     {HXLOG_SMMF, "SymbianMMF"},
     {HXLOG_ASFF, "ASF File Format"},
     {HXLOG_WMA9, "Windows Media Audio 9 Codec"},
+    {HXLOG_WMAA, "Windows Media Audio 10 Codec"}, 
+    {HXLOG_WMAV, "Windows Media Audio 9 Voice Codec"}, 
     {HXLOG_WMAR, "Windows Media Audio Renderer"},
     {HXLOG_BAUD, "Base Audio Renderer"},
+    {HXLOG_WMV8, "Windows Media Video 7/8 Codec"},
     {HXLOG_WMV9, "Windows Media Video 9 Codec"},
     {HXLOG_WMVR, "Windows Media Video Renderer"},
     {HXLOG_BVID, "Base Video Renderer"},
@@ -269,6 +314,39 @@ static const struct _ClientLogging4CC
     {HXLOG_WMER, "Windows Media Events Renderer"},
     {HXLOG_FLVF, "FLV File Format Plugin"},
     {HXLOG_FLVR, "FLV Renderer"},
+    {HXLOG_DTDR, "Dtdrive Engine"},
+    {HXLOG_HXPE, "Helix Playback Engine"},
+    {HXLOG_COOK, "Helix Cookie DB"},
+    {HXLOG_HXAU, "Helix AutoUpgrade"},
+    {HXLOG_HXDL, "Helix Downloader"},
+    {HXLOG_ENON, "Encoding Services None"},
+    {HXLOG_EACT, "Encoding Services ActiveX Control"},
+    {HXLOG_EAUC, "Encoding Services Audio Codec"},
+    {HXLOG_EAUP, "Encoding Services Audio Pre-Filter"},
+    {HXLOG_EBCA, "Encoding Services Broadcast"},
+    {HXLOG_ECAP, "Encoding Services Capture"},
+    {HXLOG_ECMD, "Encoding Services Command Line"},
+    {HXLOG_EFLO, "Encoding Services File Output"},
+    {HXLOG_EFLR, "Encoding Services File Reader"},
+    {HXLOG_EGUI, "Encoding Services GUI"},
+    {HXLOG_EJOB, "Encoding Services Job File"},
+    {HXLOG_ELIC, "Encoding Services License"},
+    {HXLOG_EPOS, "Encoding Services POSFILE"},
+    {HXLOG_EREM, "Encoding Services Remote"},
+    {HXLOG_ECON, "Encoding Services SDK Config Objects"},
+    {HXLOG_EENC, "Encoding Services SDK Encoding"},
+    {HXLOG_ECOR, "Encoding Services Core"},
+    {HXLOG_EFLT, "Encoding Services Generic Filter"},
+    {HXLOG_ESTA, "Encoding Services Stats"},
+    {HXLOG_EVIC, "Encoding Services Video Codec"},
+    {HXLOG_EVIP, "Encoding Services Video Pre-Filter"},
+    {HXLOG_EVIR, "Encoding Services Video Rendering"},
+    {HXLOG_EMED, "Encoding Services Media Samples"},
+    {HXLOG_EPUB, "Encoding Services PUB"},
+    {HXLOG_CAPF, "Capture File Format"},
+    {HXLOG_AVCQ, "H.264 decoder based on QuickTime SDK"},
+    {HXLOG_MP4W, "MP4 File Writer"},
+    {HXLOG_RVXV, "Real Video Decoder"},
     {0,          NULL}  // This entry should ALWAYS remain the last entry
 };
 
@@ -378,7 +456,7 @@ DEFINE_GUID(IID_IHXTLogObserver2,
 
 
 #undef INTERFACE
-#define INTERFACE IHXTLogObserver
+#define INTERFACE IHXTLogObserver2
 
 DECLARE_INTERFACE_(IHXTLogObserver2, IHXTLogObserver)
 {
@@ -392,6 +470,49 @@ DECLARE_INTERFACE_(IHXTLogObserver2, IHXTLogObserver)
      *      HXR_FAIL - failure.
      */
     STDMETHOD(Flush)() PURE;
+};
+
+/****************************************************************************
+ *
+ *  Interface:
+ *
+ *  IHXTLogObserver3
+ *
+ *  Purpose:
+ *
+ *      IID_IHXTLogObserver3:
+ *
+ *  This interface must be implemented by an object registering with the log
+ *  system to receive message tick counts
+ *
+ *  // {6DB6A063-5CCD-4352-BEA3-66BC67EDB3B4}
+ *
+ */
+
+DEFINE_GUID(IID_IHXTLogObserver3, 
+0x6db6a063, 0x5ccd, 0x4352, 0xbe, 0xa3, 0x66, 0xbc, 0x67, 0xed, 0xb3, 0xb4);
+
+
+#undef INTERFACE
+#define INTERFACE IHXTLogObserver3
+
+DECLARE_INTERFACE_(IHXTLogObserver3, IHXTLogObserver2)
+{
+    /************************************************************************
+     * Method:
+     *      IHXTLogObserver3::SetMsgTick()
+     *  Purpose:
+     *      Method called on an observer to set the system tick count
+     *      when the log message it is about to receive entered the log system
+     *  Parameters:
+     *      ulTickCount - [in] System tick count when the next message
+     *                         received by IHXTLogObserver::ReceiveMsg()
+     *                         or IHXTLogContextObserver::ReceiveMsg()
+     *                         entered the log system.
+     *  Returns:
+     *      Ignored.
+     */
+    STDMETHOD(SetMsgTick) (THIS_ UINT32 ulTickCount) PURE;
 };
 
 
@@ -805,6 +926,8 @@ DECLARE_INTERFACE_(IHXTInternalLogWriter, IUnknown)
 DEFINE_GUID(IID_IHXTLogSystem, 
 0xe50f7e51, 0x4640, 0x11d5, 0x93, 0x5b, 0x0, 0xd0, 0xb7, 0x49, 0xde, 0x42);
 
+#define CLSID_IHXTLogSystem IID_IHXTLogSystem
+
 #undef INTERFACE
 #define INTERFACE IHXTLogSystem
 
@@ -903,6 +1026,133 @@ DECLARE_INTERFACE_(IHXTLogSystem, IUnknown)
 };
 
 /****************************************************************************
+ *
+ *  Interface:
+ *
+ *  IHXLogSystemManager
+ *
+ *  Purpose: Defines a service for managing the log system
+ *  
+ *  IID_IHXLogSystemManager:
+ *
+ *  {1D6824A4-269E-4f85-B373-81F276F806D1}
+ *
+ */
+
+DEFINE_GUID(IID_IHXLogSystemManager, 
+0x1d6824a4, 0x269e, 0x4f85, 0xb3, 0x73, 0x81, 0xf2, 0x76, 0xf8, 0x6, 0xd1);
+
+#undef INTERFACE
+#define INTERFACE IHXLogSystemManager
+
+DECLARE_INTERFACE_(IHXLogSystemManager, IUnknown)
+{
+    /*
+     * IUnknown methods
+     */
+    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj) PURE;
+    STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
+    STDMETHOD_(ULONG32,Release) (THIS) PURE;
+
+    /*
+     * IHXLogSystemManager methods
+     */
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::InitializeLogSystem()
+     *      Purpose:
+     *          Load and initialize the log system
+     *      Parameters:
+     *          None.
+     *      Returns:
+     *          HXR_OK - If success.
+     *          HXR_FAIL - Log system could not be loaded or initialized properly.
+     */
+    STDMETHOD(InitializeLogSystem) (THIS_ IUnknown* pContext) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::GetLogSystem
+     *      Purpose:
+     *          Returns a reference to the IHXTLogSystem
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK - If success.
+     *          HXR_UNEXPOECTED - If the IHXLogSystemManager has not been successfully initialized
+     */
+    STDMETHOD(GetLogSystem) (THIS_ REF(IHXTLogSystem*) rpLogSystem) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::SetLogSystemConfig()
+     *      Purpose:
+     *          Allows the user to configure the log system with a set of properties
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK - If success.
+     *          HXR_UNEXPOECTED - If the IHXLogSystemManager has not been successfully initialized
+     */
+    STDMETHOD(SetLogSystemConfig) (THIS_ IHXValues* pConfig) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::GetLogSystemConfig()
+     *      Purpose:
+     *          Allows the user to retrieve the current configuration for the log system
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK - If success.
+     *          HXR_UNEXPOECTED - If the IHXLogSystemManager has not been successfully initialized
+     */
+    STDMETHOD(GetLogSystemConfig) (THIS_ REF(IHXValues*) rpConfig) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::InitializeLogObservers()
+     *      Purpose:
+     *          Uses the plugin handler to load all log observers, initializes
+     *          them, and then subscribes them to the log system.
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK   - If success. If there are no log observers, then this will
+     *                     still return HXR_OK
+     *          HXR_FAIL - If one or more log observers failed to load or initialize.
+     */
+    STDMETHOD(InitializeLogObservers) (THIS) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::TerminateLogObservers()
+     *      Purpose:
+     *          Flushes all log observers, unsubscribes them from the
+     *          log system, and then unloads them.
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK         - If success.
+     *          HXR_UNEXPECTED - If log system has not been successfully initialized
+     */
+    STDMETHOD(TerminateLogObservers) (THIS) PURE;
+
+    /************************************************************************
+     *      Method:
+     *          IHXLogSystemManager::TerminateLogSystem
+     *      Purpose:
+     *          Shuts down and unloads the log system.
+     *      Parameters:
+     *          None
+     *      Returns:
+     *          HXR_OK         - If success.
+     *          HXR_UNEXPECTED - Log system not properly initialized.
+     */
+    STDMETHOD(TerminateLogSystem) (THIS) PURE;
+};
+
+/****************************************************************************
  *  Function:
  *      RMAGetLogSystemInterface
  *  Purpose:
@@ -921,6 +1171,18 @@ HXT_MAKE_SMART_PTR(IHXTLogObserverManager2)
 HXT_MAKE_SMART_PTR(IHXTLogWriter)
 HXT_MAKE_SMART_PTR(IHXTInternalLogWriter)
 HXT_MAKE_SMART_PTR(IHXTLogSystem)
+HXT_MAKE_SMART_PTR(IHXLogSystemManager)
+#else
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXTLogObserver)
+DEFINE_SMART_PTR(IHXTLogObserver2)
+DEFINE_SMART_PTR(IHXTFuncAreaEnum)
+DEFINE_SMART_PTR(IHXTLogObserverManager)
+DEFINE_SMART_PTR(IHXTLogObserverManager2)
+DEFINE_SMART_PTR(IHXTLogWriter)
+DEFINE_SMART_PTR(IHXTInternalLogWriter)
+DEFINE_SMART_PTR(IHXTLogSystem)
+DEFINE_SMART_PTR(IHXLogSystemManager)
 #endif
 
 #endif /* #ifndef IHXTLOGSYSTEM_H */

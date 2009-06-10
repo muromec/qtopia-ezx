@@ -171,7 +171,6 @@ class CRnMp3Fmt : public IHXFileFormatObject,
                   public IHXPacketFormat,
 #endif
                   public IHXPlugin,
-                  public IHXThreadSafeMethods,
                   public IHXAdvise,
                   public CHXBaseCountingObject
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
@@ -243,10 +242,6 @@ public:
 
     STDMETHOD(InitPlugin) (THIS_ IUnknown* pHXCore);
 
-    ///////////////////////////////////////////////////////////////////////////
-    // IHXThreadSafeMethods methods                        ref: hxengin.h
-    STDMETHOD_(UINT32,IsThreadSafe) (THIS);
-
     // IHXAdvise methods
     STDMETHOD(Advise)   (THIS_ ULONG32 ulInfo);
 
@@ -272,7 +267,7 @@ public:
     STDMETHOD_(UINT32, AddRef ) (THIS);
     STDMETHOD_(UINT32, Release) (THIS);
 
-
+    void try_convert(char*encoding, char* inbuf, IHXBuffer*& pBuffer, int outlen);
 private:
     // Buffered Read
     typedef struct

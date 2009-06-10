@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_tran_aimd.cpp,v 1.6 2005/01/18 21:33:51 damonlan Exp $ 
+ * Source last modified: $Id: qos_tran_aimd.cpp,v 1.8 2007/07/31 06:24:27 yphadke Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -51,7 +51,6 @@ QoSCongestionEqn_AIMD::QoSCongestionEqn_AIMD() :
     m_fDecreaseCoefficient (QOS_CC_AIMD_DEC_RATE),
     m_ulRate(0),
     m_ulMediaRate(0),
-    m_ulMaxRate(QOS_CC_AIMD_MAX_RATE),
     m_bSlowStart(TRUE)
 {
 }
@@ -88,8 +87,6 @@ QoSCongestionEqn_AIMD::Update (UINT32 ulNumRecvd,
     {
 	m_ulRate = (UINT32)((m_bSlowStart) ? (m_ulRate * 2) : 
 			    (m_ulRate + (m_ulRate*m_fIncreaseCoefficient)));
-
-	m_ulRate = (m_ulRate >= m_ulMaxRate) ? m_ulMaxRate : m_ulRate;
     }
 
     
@@ -119,16 +116,16 @@ QoSCongestionEqn_AIMD::SetMediaPacketSize (UINT32 ulMediaPacketSize)
 }
 
 STDMETHODIMP
-QoSCongestionEqn_AIMD::SetMaximumRate(UINT32 ulMaxRate)
+QoSCongestionEqn_AIMD::GetRate (REF(UINT32) /* OUT */ ulRate)
 {
-    m_ulMaxRate = ulMaxRate;
+    ulRate = m_ulRate;
     return HXR_OK;
 }
 
 STDMETHODIMP
-QoSCongestionEqn_AIMD::GetRate (REF(UINT32) /* OUT */ ulRate)
+QoSCongestionEqn_AIMD::SetRate (REF(UINT32) ulRate)
 {
-    ulRate = m_ulRate;
+    m_ulRate = ulRate;
     return HXR_OK;
 }
 

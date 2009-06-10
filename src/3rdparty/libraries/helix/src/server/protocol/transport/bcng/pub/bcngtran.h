@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bcngtran.h,v 1.10 2007/03/30 19:08:38 tknox Exp $
+ * Source last modified: $Id: bcngtran.h,v 1.13 2009/05/04 18:13:37 atin Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -101,6 +101,7 @@ public:
     void Restart(void)            { /*NO-OP*/ }
     HX_RESULT pauseBuffers(void)  { /*NO-OP*/ return HXR_OK;}
     HX_RESULT resumeBuffers(void) { /*NO-OP*/ return HXR_OK;}
+    void SetSessionStatsObj(IHXSessionStats* pStats);
 
     /* BCNGTransport */
 
@@ -129,6 +130,7 @@ public:
     void PingTimeoutFunc();
     void OutputPacket(IHXBuffer* pBuffer);
     void SendDisconnectPacket();
+    void SetPre12Dot1Proxy() { m_buseRTPPayload = FALSE; }
 
 private:
     IHXSockAddr*            m_pAddr;
@@ -171,6 +173,7 @@ private:
     BOOL                    m_bNeedsRemoval;
     BOOL                    m_bReadyForInit;
     BOOL                    m_bConfigurationChanged;
+    BOOL                    m_buseRTPPayload;
 
     IHXSocket*              m_pUDPOutput;
     IHXBufferedSocket*      m_pFastTCPOutput;
@@ -194,8 +197,19 @@ private:
     ConfigWatcher*                m_pConfigWatcher;
 
     BdstStatistics*               m_pSharedStats;
+    IHXQoSTransportAdaptationInfo*	m_pQTAInfo;
 
-    friend class RTSPServerProtocol;
+    void GetBDSTPayloadBuffer(IHXPacket* pPacket, 
+            IHXBuffer*& pBuffer,
+            UINT32& ulSize,
+            UINT32& ulPacketSequenceNumber);
+
+    void GetBDSTRTPPayloadBuffer(IHXRTPPacket* pPacket, 
+            IHXBuffer*& pBuffer,
+            UINT32& ulSize,
+            UINT32& ulPacketSequenceNumber);
+
+    friend class CRTSPBaseProtocol;
     friend class BCNGTransportDestructTimeout;
     friend class BCNGSessionTimeout;
     friend class CUTBCNGTransportTestDriver;

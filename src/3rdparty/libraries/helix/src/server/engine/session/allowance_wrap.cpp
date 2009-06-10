@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: allowance_wrap.cpp,v 1.10 2006/10/03 23:19:07 tknox Exp $
+ * Source last modified: $Id: allowance_wrap.cpp,v 1.13 2007/09/14 06:53:16 manvendras Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -48,7 +48,7 @@
 #include "proc.h"
 #include "dispatchq.h"
 #include "simple_callback.h"
-#include "player.h"
+#include "clientsession.h"
 #include "allowance_mgr.h"
 #include "allowance_wrap.h"
 
@@ -248,7 +248,7 @@ AllowanceWrapperControllerCallback::func(Process* proc)
 
 AllowanceWrapper::AllowanceWrapper
 (
-    Player::Session* pSession,
+    ClientSession* pSession,
     Process* pProc,
     Process* pPluginProc,
     const char* pszFileSysMountPoint,
@@ -716,7 +716,7 @@ AllowanceWrapper::PrintDebugInfo(THIS)
 STDMETHODIMP_(BOOL)
 AllowanceWrapper::AcceptMountPoint(THIS_ const char* pszMountPoint, INT32 uLen)
 {
-    if (pszMountPoint && uLen &&
+    if (pszMountPoint && uLen && m_pszMountPoint &&
            !strncasecmp(pszMountPoint, (const char*)m_pszMountPoint, uLen))
     {
         return TRUE;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: source_finder.cpp,v 1.9 2003/11/18 18:16:23 jmevissen Exp $ 
+ * Source last modified: $Id: source_finder.cpp,v 1.15 2008/12/11 00:08:07 ckarusala Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -42,6 +42,7 @@
 #include "hxstring.h"
 #include "hxmap.h"
 #include "proc.h"
+#include "urlparser.h"
 #include "server_context.h"
 #include "streamer_container.h"
 #include "source_finder.h"
@@ -53,6 +54,9 @@
 #include "srcerrs.h"
 #include "server_request.h"
 #include "ff_source.h"
+#include "defslice.h"
+
+
 
 CServerSourceFinder::CServerSourceFinder
 (
@@ -179,7 +183,8 @@ CServerSourceFinder::Find
 	return HXR_FAIL;
     }
 
-    m_pURL = new URL(pURL, strlen(pURL));
+    m_pURL = new CHXURLParser(pURL, strlen(pURL));
+    m_pURL->AddRef();
 
     m_bFindPending = TRUE;
     //XXXJR see who's using this and how to get an authenticator here
@@ -211,7 +216,7 @@ CServerSourceFinder::Done()
     HX_RELEASE(m_pFileObject);
     
     HX_RELEASE(m_pRequest);
-    HX_DELETE(m_pURL);
+    HX_RELEASE(m_pURL);
     return HXR_OK;
 }
 
@@ -242,6 +247,12 @@ CServerSourceFinder::FileObjectReady
     IUnknown* pFileObject
 )
 {
+    const char* pPath = NULL;
+    const char* pExt = NULL;
+    UINT32 uExt = 0;
+    m_pURL->GetFullPath(pPath);
+    m_pURL->GetExt(pExt);
+
     if (!m_bFindPending)
     {
 	return HXR_OK;
@@ -253,7 +264,7 @@ CServerSourceFinder::FileObjectReady
 	if (HXR_OK == pFileObject->QueryInterface(IID_IHXBroadcastMapper,
 						  (void**)&m_pBroadcastMapper))
 	{
-	    m_pBroadcastMapper->FindBroadcastType(m_pURL->full, this);
+            m_pBroadcastMapper->FindBroadcastType(pPath, this);
 	}
 	else
 	{
@@ -266,11 +277,11 @@ CServerSourceFinder::FileObjectReady
 		m_pFileObject = pFileObject;
 		m_pFileObject->AddRef();
 		
-		m_pMimeMapper->FindMimeType(m_pURL->full, this);
+                m_pMimeMapper->FindMimeType(pPath, this);
 	    }
 	    else
 	    {
-		FindStatic(pFileObject, NULL, m_pURL->ext);
+                FindStatic(pFileObject, NULL, pExt);
 	    }
 	}
     }
@@ -297,6 +308,8 @@ CServerSourceFinder::FindStatic(IUnknown* pFileObject,
 				const char* pMimeType,
 				const char* extension)
 {
+    const char* pExt = NULL;
+    
     if (!m_bFindPending)
     {
 	return HXR_OK;
@@ -314,11 +327,12 @@ CServerSourceFinder::FindStatic(IUnknown* pFileObject,
     PluginHandler::Errors	plugin_result;
 
     PluginHandler::FileFormat::PluginInfo* pPluginInfo = NULL;
- 
+
     pFileFormatHandler = m_pProc->pc->plugin_handler->m_file_format_handler;
+    m_pURL->GetExt(pExt);
     if (pFileFormatHandler)
     {
-	pPluginInfo = pFileFormatHandler->FindPluginInfo(pMimeType,m_pURL->ext);
+        pPluginInfo = pFileFormatHandler->FindPluginInfo(pMimeType,pExt);
     }
 
     if (pPluginInfo)
@@ -333,13 +347,13 @@ CServerSourceFinder::FindStatic(IUnknown* pFileObject,
     HX_RESULT rc = HXR_OK;
     if (PluginHandler::NO_ERRORS != plugin_result)
     {
-        ERRMSG(m_pProc->pc->error_handler, "No handler for %s\n", m_pURL->ext);
+        ERRMSG(m_pProc->pc->error_handler, "No handler for %s\n", pExt);
         rc = HXR_INVALID_FILE;
     }
     else if (PluginHandler::NO_ERRORS != (plugin_result =
 	    pPluginInfo->m_pPlugin->GetInstance(&pInstance)))
     {	
-        ERRMSG(m_pProc->pc->error_handler, "No handler for %s\n", m_pURL->ext);
+        ERRMSG(m_pProc->pc->error_handler, "No handler for %s\n", pExt);
         rc = HXR_INVALID_FILE;
     }
     else if ( (HXR_OK == pInstance->QueryInterface(IID_IHXPlugin, 
@@ -348,12 +362,43 @@ CServerSourceFinder::FindStatic(IUnknown* pFileObject,
 						   (void**)&pFileFormatObject))
 	      && (HXR_OK == pPlugin->InitPlugin(m_pProc->pc->server_context)) )
     {
-	HX_RELEASE(pInstance);
-
-	pFileFormatSource = new FileFormatSource(m_pProc, pFileFormatObject, 
+        HX_RELEASE(pInstance);
+         IHXValues *pOptionInfo=NULL;
+        if (m_pFSManager)
+        {
+            PluginHandler::FileSystem::PluginInfo* pPluginInfo=NULL;
+            m_pFSManager->GetLastPlugin(pPluginInfo);
+            if (pPluginInfo)
+            {
+                pPluginInfo->GetOptions(pOptionInfo);
+            }
+            if (pOptionInfo)
+            {
+                IHXRegistry *pRegistry=NULL;
+                m_pProc->pc->server_context->QueryInterface(IID_IHXRegistry, (void**)&pRegistry);
+                INT32 iLicenseContentMarker=0;
+                if (!pRegistry || pRegistry->GetIntByName(REGISTRY_CDIST_PUBLISHER, iLicenseContentMarker) != HXR_OK)
+                {
+                    iLicenseContentMarker = 0;
+                }
+                ULONG32 ulValue;
+                if (iLicenseContentMarker  && HXR_OK == pOptionInfo->GetPropertyULONG32("ContentMarker", ulValue))
+                {
+                    IHXContentRecordability *pContRecord=NULL;
+                    pPlugin->QueryInterface(IID_IHXContentRecordability, (void**)&pContRecord );
+                    if (pContRecord)
+                    {
+                        pContRecord->SetContentMarker((UINT8)ulValue);
+                        HX_RELEASE(pContRecord);
+                    }
+                }
+                HX_RELEASE(pOptionInfo);
+            }
+       }
+        pFileFormatSource = new FileFormatSource(m_pProc, pFileFormatObject, 
 						  m_pFSManager->m_mount_point_len, 
 						  pFileObject, m_pRequest, FALSE);
-	rc = HXR_OK;
+        rc = HXR_OK;
     }
 
     if (rc != HXR_OK)
@@ -393,13 +438,16 @@ STDMETHODIMP
 CServerSourceFinder::MimeTypeFound(HX_RESULT status,
 				   const char* pMimeType)
 {
+    const char* pExt = NULL;
+    
   if (pMimeType)
   {
       FindStatic(NULL, pMimeType, NULL);
   }
   else
   {
-      FindStatic(NULL, NULL, m_pURL->ext);
+        m_pURL->GetExt(pExt);
+        FindStatic(NULL, NULL, pExt);
   }
   return HXR_OK;
 }
@@ -411,6 +459,8 @@ CServerSourceFinder::BroadcastTypeFound
     const char* pType
 )
 {
+    const char* pPath = NULL;
+    
     //XXXJHUG we will ignor any callbacks after we have been closed.
     if (!m_bFindPending)
     {
@@ -469,18 +519,19 @@ CServerSourceFinder::BroadcastTypeFound
      * Make sure that LiveSourceList is initialized
      */
 
+    m_pURL->GetPath(pPath);
     if (pBroadcastAlias != NULL)
     {
 	m_pProc->pc->broadcast_manager->GetStream(pType,
 						  (const char*)pBroadcastAlias->GetBuffer(),
-						  pSource, m_pProc, FALSE);
+						  pSource, m_pProc);
     }
     else
     {
 	m_pProc->pc->broadcast_manager->GetStream(pType,
-						  m_pURL->name +
+                                                  pPath +
 						  m_pFSManager->m_mount_point_len - 1,
-						  pSource, m_pProc, FALSE);
+						  pSource, m_pProc);
     }
 
     IUnknown* pUnk = (IUnknown*)(IHXPSinkPackets*)

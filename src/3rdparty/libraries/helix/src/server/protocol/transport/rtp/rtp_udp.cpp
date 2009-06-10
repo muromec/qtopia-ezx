@@ -94,8 +94,8 @@
 static const char HX_THIS_FILE[] = __FILE__;
 #endif
 
-ServerRTPUDPTransport::ServerRTPUDPTransport(HXBOOL bIsSource)
-    : ServerRTPBaseTransport(bIsSource)
+ServerRTPUDPTransport::ServerRTPUDPTransport(HXBOOL bIsSource, HXBOOL bOldTS)
+    : ServerRTPBaseTransport(bIsSource, bOldTS)
     , m_pUDPSocket(NULL)
     , m_pPeerAddr(NULL)
     , m_pMulticastAddr(NULL)
@@ -130,10 +130,9 @@ ServerRTPUDPTransport::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXSourceBandwidthInfo*)this;
         return HXR_OK;
     }
-    else if (ServerRTPBaseTransport::QueryInterface(riid, ppvObj) == HXR_OK)
+    else 
     {
-        HX_ASSERT(!"Missing IID");
-        return HXR_OK;
+        return ServerRTPBaseTransport::QueryInterface(riid, ppvObj);
     }
 
     *ppvObj = NULL;
@@ -539,7 +538,7 @@ ServerRTPUDPTransport::sendPacket(BasePacket* pPacket)
 
         /* send SR if necessary */
         if (HXR_OK == theErr && m_pRTCPTran->m_bSendReport &&
-            m_pRTCPTran->m_bSendRTCP)
+            m_pRTCPTran->m_bSendRTCP && m_bFirstTSSet)
         {
             m_pRTCPTran->sendSenderReport();
             m_pRTCPTran->m_bSendReport = FALSE;

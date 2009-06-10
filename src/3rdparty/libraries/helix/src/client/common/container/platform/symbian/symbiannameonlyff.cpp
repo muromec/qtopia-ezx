@@ -55,10 +55,14 @@
 #include "hxprefutil.h"
 #include "chxliteprefs.h"
 
+#include "symbian_string.h"
 #define READ_SIZE 1024
 
 HXSymbianNameOnlyFindFile::HXSymbianNameOnlyFindFile(IUnknown* pContext) :
 CFindFile(NULL, NULL, NULL),
+m_ScanDir(NULL,0),
+m_FilePattern(NULL,0),
+m_pPluginDLLFileName(NULL),
 m_pContext(pContext),
 m_pFile(NULL),
 m_State(eParsingWhiteSpace),
@@ -72,87 +76,163 @@ m_Count(NULL)
     }
 }
 
+
+void HXSymbianNameOnlyFindFile::ResetList()
+{
+    CHXSimpleList::Iterator iter; 
+    for(iter = m_entries.Begin(); iter!=m_entries.End(); ++iter)
+    {
+	    CHXString* name = (CHXString*) *iter;
+	    HX_DELETE(name);
+    }
+    m_entries.RemoveAll();
+}
+
 HXSymbianNameOnlyFindFile::~HXSymbianNameOnlyFindFile()
 {
     HX_RELEASE(m_pContext);
+    m_Fs.Close(); 
+    ResetList();
+    HX_DELETE(m_pPluginDLLFileName); 
     HX_DELETE(m_pBuffer);
     HX_DELETE(m_pFile);
 }
 
-HX_RESULT HXSymbianNameOnlyFindFile::Open()
+
+HX_RESULT HXSymbianNameOnlyFindFile::ReadPatternFromPrefs()
 {
-   
     HX_RESULT rv = HXR_FAIL;
-    
+    CHXString aFilePattern; 
+   
     if(m_pContext != NULL)
     {
         IHXPreferences *pPref = NULL;
-        // get the full name of the file.
         if(m_pContext->QueryInterface(IID_IHXPreferences, (void**) &pPref) == HXR_OK)
         {
-            rv = ReadPrefCSTRING(pPref, "PluginDLLFileName", m_ConfigFileName);
-            HX_RELEASE(pPref);
-
-            if(rv != HXR_OK)
+            CHXString preference("PluginDLLFileName");
+			CHXSymbianString::PrefixNameSpace(preference);
+            if ( SUCCEEDED(ReadPrefCSTRING(pPref, preference, aFilePattern) ) )
             {
-                return rv;
+                m_pPluginDLLFileName = CHXSymbianString::StringToHBuf(aFilePattern);
+                if(m_pPluginDLLFileName)
+                {
+                    if(KErrNone == m_parser.Set(*m_pPluginDLLFileName,NULL,NULL))
+                    {
+                        m_ScanDir.Set(m_parser.Path());
+                        m_FilePattern.Set(m_parser.NameAndExt());
+                        rv = HXR_OK; 
+                    }
+                }
             }
+            HX_RELEASE(pPref);
         }
-
-        // open the dll_names file for reading
-        m_pFile = CHXDataFile::Construct(m_pContext);
-        if (m_pFile)
-        {
-            rv = m_pFile->Open(m_ConfigFileName, O_RDONLY, TRUE);
-        }
-        else
-        {
-            rv = HXR_OUTOFMEMORY;
-        }
-    } // End of if(m_pContext != NULL)
-
+    } 
     return rv;
 }
 
+HX_RESULT HXSymbianNameOnlyFindFile::Open()
+{
+    HX_RESULT rv = HXR_FAIL;
+    CDir*   aFileList = NULL; 
+    
+    if(SUCCEEDED(ReadPatternFromPrefs()))
+    {
+        if( KErrNone == m_Fs.Connect() )
+        {
+            TFindFile aFileFinder(m_Fs); 
+            TInt err = aFileFinder.FindWildByDir(m_FilePattern, m_ScanDir, aFileList); 
+            while (err == KErrNone)
+            {
+                for(TInt i = 0 ; i < aFileList->Count(); i++)
+                {
+                    TParse aFullEntry; 
+                    aFullEntry.Set( (*aFileList)[i].iName,& aFileFinder.File(), NULL); 
+                    const TDesC& aFileName = aFullEntry.FullName(); 
+                    ProcessFile(aFileName);
+                }
+                delete aFileList; 
+                err = aFileFinder.FindWild(aFileList); 
+            }
+        }
+    }
+}
+
+
+void HXSymbianNameOnlyFindFile::ProcessFile(const TDesC& aFile)
+{
+    CHXString aFileName; 
+    CHXSymbianString::DesToString(aFile,aFileName);
+
+        m_pFile = CHXDataFile::Construct(m_pContext);
+	if (m_pFile)
+	{
+		HX_RESULT hxr = m_pFile->Open(aFileName, O_RDONLY, TRUE);
+		if ( FAILED(hxr) ) return; 
+	}
+	char* str = _FindFirst(); 
+	while(str)
+	{
+		m_entries.AddTail(new CHXString(str));
+		str = _FindNext(); 
+	}
+	// We are done with this file.
+	HX_DELETE(m_pFile);
+}
+
+
 char* HXSymbianNameOnlyFindFile::FindFirst()
+{
+    Open();
+	m_idx = 0 ;
+    return FindNext();
+}
+
+char* HXSymbianNameOnlyFindFile::FindNext()
+{
+	LISTPOSITION pos = m_entries.FindIndex(m_idx); 
+	if(pos) 
+	{
+		CHXString* ret = NULL; 
+		ret =  (CHXString*) m_entries.GetAt(pos); 
+		m_idx++;
+		return (char*)  (const char*) (*ret); 
+	}
+	else
+		return NULL;
+}
+
+
+
+
+char* HXSymbianNameOnlyFindFile::_FindFirst()
 {
     HX_RESULT hxr = HXR_FAIL;
     char* strReturn = NULL;
    
-    // If file is already opened, seek to start of the file
-    if(m_pFile != NULL)
+
+    // Reset members
+    m_State = eParsingWhiteSpace;
+    m_Count = 0; // bytes we have read
+    m_pPos  = NULL;
+    
+    if(m_pBuffer == NULL)
     {
-        hxr = m_pFile->Seek(0, 0);
+        m_pBuffer = new char [READ_SIZE];
     }
-    else
+    
+    if(m_pBuffer)
     {
-        hxr = Open();
+        memset(m_pBuffer, 0, READ_SIZE);
+        m_started = TRUE;
+        strReturn = _FindNext();
     }
 
-    if(SUCCEEDED(hxr))
-    {
-        // Reset members
-        m_State = eParsingWhiteSpace;
-        m_Count = 0; // bytes we have read
-        m_pPos  = NULL;
-        
-        if(m_pBuffer == NULL)
-        {
-            m_pBuffer = new char [READ_SIZE];
-        }
-        
-        if(m_pBuffer)
-        {
-            memset(m_pBuffer, 0, READ_SIZE);
-            m_started = TRUE;
-            strReturn = FindNext();
-        }
-    } // End of if(SUCCESS(hxr))
-
-    return strReturn;
+	return strReturn;
 }
 
-char* HXSymbianNameOnlyFindFile::FindNext()
+
+
+char* HXSymbianNameOnlyFindFile::_FindNext()
 {
     if(!m_started)
     {
@@ -168,6 +248,7 @@ char* HXSymbianNameOnlyFindFile::FindNext()
         {
             // need to read more data
             m_Count = m_pFile->Read(m_pBuffer, READ_SIZE);
+
             if (m_Count <= 0)
             {
                 // end of file

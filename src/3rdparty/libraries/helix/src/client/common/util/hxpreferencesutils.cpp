@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-* Source last modified: $Id: hxpreferencesutils.cpp,v 1.1 2006/03/22 17:51:58 stanb Exp $
+* Source last modified: $Id: hxpreferencesutils.cpp,v 1.3 2008/01/25 05:40:53 vkathuria Exp $
 * 
 * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 * 
@@ -18,7 +18,7 @@
 * contents of the file.
 * 
 * Alternatively, the contents of this file may be used under the
-* terms of the GNU General Public License Version 2 or later (the
+* terms of the GNU General Public License Version 2 (the
 * "GPL") in which case the provisions of the GPL are applicable
 * instead of those above. If you wish to allow use of your version of
 * this file only under the terms of the GPL, and not to allow others
@@ -50,6 +50,7 @@
 #include "hxpreferencesutils.h"
 #include "hxbufferutils.h"          // HXBufferUtils
 #include "hxprefs.h"
+#include "hlxclib/stdlib.h"			//atol
 
 
 namespace HXPreferencesUtils

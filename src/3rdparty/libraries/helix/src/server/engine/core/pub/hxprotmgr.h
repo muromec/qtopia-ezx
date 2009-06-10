@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxprotmgr.h,v 1.4 2006/10/03 23:19:07 tknox Exp $
+ * Source last modified: $Id: hxprotmgr.h,v 1.5 2008/07/28 22:56:06 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -144,7 +144,7 @@ extern HXProtocolManager* g_pProtMgr;
 class HXSocketConnection : public IHXSocketResponse
 {
 public:
-    HXSocketConnection(IHXSocket* pSock, HXProtocolType pt);
+    HXSocketConnection(IHXSocket* pSock, HXProtocolType pt, IHXErrorMessages* pMessages);
     virtual ~HXSocketConnection(void);
 
     STDMETHOD(QueryInterface)       (THIS_ REFIID riid, void** ppvObj);
@@ -158,6 +158,7 @@ protected:
     CHXServSocket*      m_pSock;
     HXProtocolType      m_pt;
     HXProtocol*         m_pProtocol;
+    IHXErrorMessages*   m_pMessages;
 };
 
 #endif /* _HXPROTMGR_H_ */

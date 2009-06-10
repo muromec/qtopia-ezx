@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: server_request.cpp,v 1.4 2003/09/04 22:35:35 dcollins Exp $ 
+ * Source last modified: $Id: server_request.cpp,v 1.7 2008/03/09 12:18:34 npatil Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -43,6 +43,8 @@
 #include "hxstrutl.h"
 #include "chxpckts.h"
 #include "server_request.h"
+#include "clone_values.h"
+#include "urlparser.h"
 
 ServerRequest::ServerRequest()
     : m_lRefCount(0)
@@ -58,10 +60,7 @@ ServerRequest::ServerRequest()
 
 ServerRequest::~ServerRequest()
 {
-    if (m_pURL)
-    {
-	delete[] m_pURL;
-    }
+    HX_RELEASE(m_pURL);
 
     if (m_pFSRequestHeaders)
     {
@@ -86,6 +85,54 @@ ServerRequest::~ServerRequest()
     HX_RELEASE(m_pIUnknownUserContext);
 
     HX_RELEASE(m_pIUnknownRequester);
+}
+
+ServerRequest* ServerRequest::Clone(IHXCommonClassFactory* pCCF)
+{
+    const char* pEncUrl = NULL;
+    ServerRequest* pNew = new ServerRequest();
+    pNew->AddRef();
+
+    m_pURL->GetEncodedUrl(pEncUrl);
+    pNew->SetURL(pEncUrl);
+
+    if(this->m_pFSRequestHeaders)
+    {
+        pNew->m_pFSRequestHeaders = this->m_pFSRequestHeaders;
+        pNew->m_pFSRequestHeaders->AddRef();
+    }
+
+    if(this->m_pFSResponseHeaders)
+    {
+        pNew->m_pFSResponseHeaders = this->m_pFSResponseHeaders;
+        pNew->m_pFSResponseHeaders->AddRef();
+    }
+
+    if(this->m_pFFRequestHeaders)
+    {
+        pNew->m_pFFRequestHeaders = this->m_pFFRequestHeaders;
+        pNew->m_pFFRequestHeaders->AddRef();
+    }
+
+    if(this->m_pFFResponseHeaders)
+    {
+        pNew->m_pFFResponseHeaders = this->m_pFFResponseHeaders;
+        pNew->m_pFFResponseHeaders->AddRef();
+    }
+
+    pNew->m_pIUnknownUserContext = this->m_pIUnknownUserContext;
+    if(pNew->m_pIUnknownUserContext)
+    {
+        m_pIUnknownUserContext->AddRef();
+    }
+
+    pNew->m_pIUnknownRequester = this->m_pIUnknownRequester;
+    if(pNew->m_pIUnknownRequester)
+    {
+        m_pIUnknownRequester->AddRef();
+    }
+
+    return pNew;
 }
 
 STDMETHODIMP_(ULONG32)
@@ -198,15 +245,12 @@ ServerRequest::GetResponseHeaders(REQUEST_HEADER_TYPE HeaderType,
 STDMETHODIMP
 ServerRequest::SetURL(const char* pURL)
 {
-    if (m_pURL)
-    {
-	delete[] m_pURL;
-	m_pURL = 0;
-    }
+    HX_RELEASE(m_pURL);
 
     if (pURL)
     {
-	m_pURL = new_string(pURL);
+        m_pURL = new CHXURLParser(pURL,strlen(pURL));
+        m_pURL->AddRef();
     }
 
     return HXR_OK;
@@ -215,13 +259,30 @@ ServerRequest::SetURL(const char* pURL)
 STDMETHODIMP
 ServerRequest::GetURL(REF(const char*) pURL)
 {
-    pURL = m_pURL;
+    m_pURL->GetDecodedUrl(pURL);
 
     return HXR_OK;
 }
 
 /************************************************************************
  *	Method:
+ *      IHXURLParser::GetHXURL
+ *  Purpose:
+ *      Gets the IHXURL object 
+ */
+STDMETHODIMP
+ServerRequest::GetHXURL(REF(IHXURL*) pURL)
+{
+    pURL = m_pURL;
+    if(pURL)
+    {
+        pURL->AddRef();
+    }
+    return HXR_OK;
+}
+
+/************************************************************************
+ *  Method:
  *	    IHXRequest::SetUserContext
  *	Purpose:
  *	    Sets the Authenticated users Context.
@@ -363,6 +424,12 @@ ServerRequestWrapper::QueryInterface(REFIID riid, void** ppvObj)
 	*ppvObj = (IHXRequestContext*)this;
 	return HXR_OK;
     }
+    else if (IsEqualIID(riid, IID_IHXURLParser))
+    {
+        AddRef();
+        *ppvObj = (IHXURLParser*)this;
+        return HXR_OK;
+    }
 
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
@@ -429,6 +496,18 @@ ServerRequestWrapper::GetURL(REF(const char*) pURL)
 
 /************************************************************************
  *	Method:
+ *      IHXURLParser::GetHXURL
+ *  Purpose:
+ *      Gets the IHXURL object 
+ */
+STDMETHODIMP
+ServerRequestWrapper::GetHXURL(REF(IHXURL*) pURL)
+{
+    return m_pServerRequest->GetHXURL(pURL);
+}
+
+/************************************************************************
+ *  Method:
  *	    IHXRequest::SetUserContext
  *	Purpose:
  *	    Sets the Authenticated users Context.

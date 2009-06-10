@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: expatprs.h,v 1.5 2005/03/14 19:36:33 bobclark Exp $
+ * Source last modified: $Id: expatprs.h,v 1.7 2009/02/20 20:09:45 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,18 +68,25 @@ private:
     IHXXMLParserResponse*	    m_pResponse;
     IUnknown*			    m_pContext;
     IHXCommonClassFactory*	    m_pClassFactory;
+    char*                           m_pszEncoding;
     XML_Parser			    m_pParser;
 
     IHXBuffer*			    m_pCurrentBuffer;
     UINT32			    m_ulCurrentOffset;
+    HXBOOL                          m_bLastParseIsFinal;
 
     IHXXMLNamespaceResponse*	    m_pNSResp;
-    HXBOOL			    m_bInited;
     char			    m_cSepChar;
 
     void SetAttBuffer(IHXBuffer* pBuf, const char* p);
 
     virtual ~HXExpatXMLParser	    ();
+
+    void      FreeParser();
+    HX_RESULT CreateAndInitParser();
+    HX_RESULT CreateAndInitNamespaceParser();
+    HX_RESULT InitParser(XML_Parser pParser);
+    HX_RESULT TranslateExpatErrorCode(XML_Error eCode);
 
 public:
     HXExpatXMLParser(IUnknown* pContext);

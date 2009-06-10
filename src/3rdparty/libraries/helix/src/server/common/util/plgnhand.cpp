@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: plgnhand.cpp,v 1.11 2006/02/07 19:41:37 ping Exp $ 
+ * Source last modified: $Id: plgnhand.cpp,v 1.15 2007/07/04 14:15:22 imakandar Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -4144,6 +4144,7 @@ PluginHandler::FileSystem::FileSystem(PluginHandler* pparent)
     m_pProtocolMap = new CHXMapStringToOb();
     m_pShortNameMap = new CHXMapStringToOb();
     m_pMountPointHandler = new MountPointHandler;
+    m_pMountPointHandler->SetTreeID(MP_TREE_FSMOUNT);
     m_pparent = pparent;
 }
 
@@ -6059,7 +6060,7 @@ PluginHandler::AllowancePlugins::AddMountPoint(IHXBuffer* pShortNameBuff,
     //XXXVS: Commented out the deletion part as OnConnection() needs
     // to be called on all allowance plugins.
     //
-    //Player::Session will not add Plugins that are non-multiload 
+    //ClientSession will not add Plugins that are non-multiload 
     // and have a mount-point set to the AllowanceManager list
     /* ***
     if (pDeletePluginInfo)
@@ -6827,6 +6828,7 @@ PluginHandler::InitMountPoints()
     IHXBuffer*			mount_point = 0;
     IHXBuffer*			real_short_name = 0;
     const char*			short_name = 0;
+    UINT32              uSearchOrder = 0;
     IHXValues*			options = 0;
     int				which = 0;
     
@@ -6947,7 +6949,15 @@ PluginHandler::InitMountPoints()
 		    {
 			short_name = (const char*) real_short_name->GetBuffer();
 		    }
-							    
+			
+			// Check if "MountPointSearchOrder" property is defined or not.
+			// If not, add default value "1".
+			if(HXR_OK != options->GetPropertyULONG32("MountPointSearchOrder",
+								uSearchOrder))
+		    {
+				options->SetPropertyULONG32("MountPointSearchOrder", 1);
+		    }
+			
 		    switch (which)
 		    {
 			case 0:
@@ -6977,9 +6987,9 @@ PluginHandler::InitMountPoints()
 		res = pNameList->GetNextPropertyULONG32(plugName, plug_id);
 	    }
 	}
+	pNameList->Release();
 	pMountPointString = "config.DataConvertMount";
     }
-    pNameList->Release();
     pRegistry->Release();
 }
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: expatapi.cpp,v 1.2 2004/07/19 21:13:16 hubbe Exp $
+ * Source last modified: $Id: expatapi.cpp,v 1.3 2007/07/06 20:43:46 jfinnecy Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,7 +46,7 @@
  * Contributor(s):
  * 
  * ***** END LICENSE BLOCK ***** */
-//  $Id: expatapi.cpp,v 1.2 2004/07/19 21:13:16 hubbe Exp $
+//  $Id: expatapi.cpp,v 1.3 2007/07/06 20:43:46 jfinnecy Exp $
 
 #include "hxtypes.h"
 #include "hxcom.h"

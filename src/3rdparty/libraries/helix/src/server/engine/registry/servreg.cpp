@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servreg.cpp,v 1.9 2005/06/30 00:01:58 dcollins Exp $ 
+ * Source last modified: $Id: servreg.cpp,v 1.11 2009/05/30 19:09:56 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -73,17 +73,10 @@
 extern BOOL g_bFastMalloc;
 
 ServerRegistry::ServerRegistry(Process* pProc)
-    : _proc(pProc)
-    , m_iPropCount(0)
+    : m_iPropCount(0)
     , m_nLockedBy(-1)
-    , m_pRegMemCache(0)
 {
-    if (g_bFastMalloc)
-    {
-        m_pRegMemCache = new RegistryMemCache(this);
-    }
-
-    m_pRootDB = new (m_pRegMemCache) ServRegDB_dict(m_pRegMemCache);
+    m_pRootDB = new ServRegDB_dict();
     m_pIdTable = new CHXID(1000);
 
     m_pMutex = HXMutexCreate();
@@ -126,17 +119,17 @@ ServerRegistry::~ServerRegistry()
 UINT32
 ServerRegistry::AddComp(const char* szPropName, Process* pProc)
 {
-    DPRINTF(D_REGISTRY, ("SR::AddComp(%s, pid(%pNode))\n", szPropName,
-	pProc->procid(pProc->procnum())));
+    DPRINTF(D_REGISTRY, ("SR::AddComp(%s, procnum(%pNode))\n", szPropName,
+	Process::get_procnum()));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     
     /*
      * call AddComp(), which should in turn call AddDone() response 
      * method with the ServRegDB_dict*, ServRegDB_node* pointers
      */
     UINT32 ulId = AddComp(szPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulId;
 }
 
@@ -164,7 +157,7 @@ ServerRegistry::AddComp(const char* szPropName)
     ServRegDB_node* pNewNode = NULL;
     ServRegDB_node* pNode    = NULL;
     ServRegProperty* pProp   = NULL;
-    ServRegKey* pKey         = new (m_pRegMemCache) ServRegKey(szPropName, m_pRegMemCache);
+    ServRegKey* pKey         = new ServRegKey(szPropName);
     if (pKey && !pKey->is_valid())
     {
 	HX_DELETE(pKey);
@@ -277,18 +270,18 @@ cleanup:
 UINT32
 ServerRegistry::AddInt(const char* szPropName, const INT32 iValue, Process* pProc)
 {
-    DPRINTF(D_REGISTRY, ("SR::AddInt(%s, %ld, pid(%pNode))\n", szPropName, iValue,
-	pProc->procid(pProc->procnum())));
+    DPRINTF(D_REGISTRY, ("SR::AddInt(%s, %ld, procnum(%pNode))\n", szPropName, iValue,
+	Process::get_procnum()));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if (IsActive(szPropName, pProc))
+    if (IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return 0;
     }
     UINT32 ulId = AddInt(szPropName, iValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulId;
 }
 
@@ -297,10 +290,10 @@ ServerRegistry::GetInt(const char* szPropName, INT32* pValue, Process* pProc)
 {
     DPRINTF(D_REGISTRY, ("SR::GetInt(%s)\n", szPropName));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetInt(szPropName, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -309,10 +302,10 @@ ServerRegistry::GetInt(const UINT32 ulId, INT32* pValue, Process* pProc)
 {
     DPRINTF(D_REGISTRY, ("SR::GetInt(%lu)\n", ulId));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetInt(ulId, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -330,15 +323,15 @@ ServerRegistry::SetInt(const char* szPropName, const INT32 iValue, Process* pPro
 {
     DPRINTF(D_REGISTRY, ("SR::SetInt(%s, %ld)\n", szPropName, iValue));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if(IsActive(szPropName, pProc))
+    if(IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
     HX_RESULT res = SetInt(szPropName, iValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -357,22 +350,22 @@ ServerRegistry::SetInt(const UINT32 ulId, const INT32 iValue, Process* pProc)
     DPRINTF(D_REGISTRY, ("SR::SetInt(%lu, %ld)\n", ulId,
             iValue));
             
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer = NULL;
     if (HXR_OK == GetPropName(ulId, pBuffer))
     {
-	if (IsActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
     }
 
     HX_RESULT res = SetInt(ulId, iValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -399,7 +392,7 @@ ServerRegistry::AddInt(const char* szPropName, const INT32 iValue)
     ServRegDB_dict* pTempDB  = m_pRootDB;
     ServRegDB_node* pNewNode = NULL;
 
-    ServRegKey* pKey         = new (m_pRegMemCache) ServRegKey(szPropName, m_pRegMemCache);
+    ServRegKey* pKey         = new ServRegKey(szPropName);
     if (pKey && !pKey->is_valid())
     {
 	HX_DELETE(pKey);
@@ -743,18 +736,18 @@ UINT32
 ServerRegistry::AddStr(const char* szPropName, IHXBuffer* pValue, Process* pProc)
 {
     DPRINTF(D_REGISTRY, ("SR::AddStr(%s, pValue(%pProp), proc(%pProp))\n",
-	    szPropName, pValue, pProc));
+	    szPropName, pValue, Process::get_proc()));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if (IsActive(szPropName, pProc))
+    if (IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return 0;
     }
 
     UINT32 ulId = AddStr(szPropName, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulId;
 }
 
@@ -772,16 +765,16 @@ ServerRegistry::AddStr(const char* szPropName, IHXBuffer* pValue, Process* pProc
 HX_RESULT
 ServerRegistry::SetStr(const char* szPropName, IHXBuffer* pValue, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if (IsActive(szPropName, pProc))
+    if (IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
 
     HX_RESULT res = SetStr(szPropName, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -790,10 +783,10 @@ ServerRegistry::GetStr(const char* szPropName, REF(IHXBuffer*) pValue, Process* 
 {
     DPRINTF(D_REGISTRY, ("SR::GetStr(%s)\n", szPropName));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetStr(szPropName, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -802,10 +795,10 @@ ServerRegistry::GetStr(const UINT32 ulId, REF(IHXBuffer*) pValue, Process* pProc
 {
     DPRINTF(D_REGISTRY, ("SR::GetStr(%lu)\n", ulId));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetStr(ulId, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -823,21 +816,21 @@ HX_RESULT
 ServerRegistry::SetStr(const UINT32 ulId, IHXBuffer* pValue, 
                        Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer = NULL;
     if (HXR_OK == GetPropName(ulId, pBuffer))
     {
-	if (IsActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
     }
     HX_RESULT res = SetStr(ulId, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -861,7 +854,7 @@ ServerRegistry::AddStr(const char* szPropName, IHXBuffer* pValue)
     ServRegDB_node* pNode    = NULL;
     ServRegProperty* pProp   = NULL;
 
-    ServRegKey* pKey         = new (m_pRegMemCache) ServRegKey(szPropName, m_pRegMemCache);
+    ServRegKey* pKey         = new ServRegKey(szPropName);
     if (pKey && !pKey->is_valid())
     {
 	HX_DELETE(pKey);
@@ -1163,17 +1156,17 @@ UINT32
 ServerRegistry::AddBuf(const char* szPropName, IHXBuffer* pBuffer, Process* pProc)
 {
     DPRINTF(D_REGISTRY, ("SR::AddBuf(%s, pBuffer(%pProp), proc(%pProp))\n",
-	    szPropName, pBuffer, pProc));
+	    szPropName, pBuffer, Process::get_proc()));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if (IsActive(szPropName, pProc))
+    if (IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return 0;
     }
     UINT32 ulRet = AddBuf(szPropName, pBuffer);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -1182,10 +1175,10 @@ ServerRegistry::GetBuf(const char* szPropName, IHXBuffer** ppBuffer, Process* pP
 {
     DPRINTF(D_REGISTRY, ("SR::GetBuf(%s)\n", szPropName));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetBuf(szPropName, ppBuffer);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -1194,47 +1187,47 @@ ServerRegistry::GetBuf(const UINT32 ulId, IHXBuffer** ppBuffer, Process* pProc)
 {
     DPRINTF(D_REGISTRY, ("SR::GetBuf(%lu)\n", ulId));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetBuf(ulId, ppBuffer);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::SetBuf(const char* szPropName, IHXBuffer* pBuffer, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if(IsActive(szPropName, pProc))
+    if(IsActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
     
     HX_RESULT res = SetBuf(szPropName, pBuffer);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::SetBuf(const UINT32 ulId, IHXBuffer* pBuffer, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pTmpBuf = NULL;
     if (HXR_OK == GetPropName(ulId, pTmpBuf))
     {
-	if (IsActive((const char*)pTmpBuf->GetBuffer(), pProc))
+	if (IsActive((const char*)pTmpBuf->GetBuffer(), Process::get_proc()))
 	{
 	    pTmpBuf->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pTmpBuf->Release();
     }
     HX_RESULT res = SetBuf(ulId, pBuffer);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -1249,7 +1242,7 @@ ServerRegistry::AddBuf(const char* szPropName, IHXBuffer* pBuffer)
     ServRegDB_node* pNode   = NULL;
     ServRegProperty* pProp  = NULL;
 
-    ServRegKey* pKey        = new (m_pRegMemCache) ServRegKey(szPropName, m_pRegMemCache);
+    ServRegKey* pKey        = new ServRegKey(szPropName);
     if (pKey && !pKey->is_valid())
     {
 	HX_DELETE(pKey);
@@ -1530,10 +1523,10 @@ ServerRegistry::AddIntRef(const char* szPropName, INT32* pValue, Process* pProc)
     DPRINTF(D_REGISTRY, ("SR::AddIntRef(%s, %ld)\n", 
             szPropName, *pValue));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     UINT32 ulId = AddIntRef(szPropName, pValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulId;
 }
 
@@ -1547,7 +1540,7 @@ ServerRegistry::AddIntRef(const char* szPropName, INT32* pValue)
     ServRegDB_node* pNode   = NULL;
     ServRegProperty* pProp  = NULL;
 
-    ServRegKey* pKey        = new (m_pRegMemCache) ServRegKey(szPropName, m_pRegMemCache);
+    ServRegKey* pKey        = new ServRegKey(szPropName);
     if (pKey && !pKey->is_valid())
     {
 	HX_DELETE(pKey);
@@ -1623,20 +1616,20 @@ ServerRegistry::AddIntRef(const char* szPropName, INT32* pValue)
 HX_RESULT
 ServerRegistry::SetReadOnly(const char* szPropName, BOOL bValue, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = SetReadOnly(szPropName, bValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::SetReadOnly(UINT32 ulRegId, BOOL bValue, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = SetReadOnly(ulRegId, bValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -1702,15 +1695,15 @@ ServerRegistry::SetReadOnly(UINT32 ulRegId, BOOL bValue)
 UINT32
 ServerRegistry::Del(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if (IsDeleteActive(szPropName, pProc))
+    if (IsDeleteActive(szPropName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return 0;
     }
     UINT32 ulRet = Del(szPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -1727,22 +1720,22 @@ ServerRegistry::Del(const char* szPropName, Process* pProc)
 UINT32
 ServerRegistry::Del(const UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer;
 
     if (HXR_OK == GetPropName(ulId, pBuffer))
     {
-	if (IsDeleteActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsDeleteActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return (UINT32)HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
     }
     UINT32 ulRet = Del(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -1884,9 +1877,9 @@ ServerRegistry::Del(const UINT32 ulId)
 HXPropType
 ServerRegistry::GetType(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HXPropType type = GetType(szPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return type;
 }
 
@@ -1895,9 +1888,9 @@ ServerRegistry::GetType(const char* szPropName, Process* pProc)
 HXPropType
 ServerRegistry::GetType(const UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HXPropType type = GetType(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return type;
 }
 
@@ -1962,27 +1955,27 @@ ServerRegistry::GetType(const UINT32 ulId)
 HX_RESULT
 ServerRegistry::GetPropList(REF(IHXValues*) pValues, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropList(pValues);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::GetPropList(const char* szPropName, REF(IHXValues*) pValues, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropList(szPropName, pValues);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::GetPropList(const UINT32 ulId, REF(IHXValues*) pValues, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropList(ulId, pValues);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2111,18 +2104,18 @@ ServerRegistry::GetPropList(const UINT32 ulId, REF(IHXValues*) pValues)
 HX_RESULT
 ServerRegistry::GetChildIdList(const char* szPropName, REF(UINT32*) pChildIds, REF(UINT32) ulCount, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetChildIdList(szPropName, pChildIds, ulCount);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
 HX_RESULT
 ServerRegistry::GetChildIdList(const UINT32 ulId, REF(UINT32*) pChildIds, REF(UINT32) ulCount, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetChildIdList(ulId, pChildIds, ulCount);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2232,9 +2225,9 @@ ServerRegistry::GetChildIdList(const UINT32 ulId, REF(UINT32*) pChildIds, REF(UI
 HX_RESULT
 ServerRegistry::Copy(const char* szFrom, const char* szTo, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = Copy(szFrom, szTo);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2345,9 +2338,9 @@ ServerRegistry::Copy(const char* szFrom, const char* szTo)
 HX_RESULT
 ServerRegistry::SetStringAccessAsBufferById(UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT ret = SetStringAccessAsBufferById(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ret;
 }
 
@@ -2387,18 +2380,18 @@ ServerRegistry::SetStringAccessAsBufferById(UINT32 hash_key)
 UINT32
 ServerRegistry::FindParentKey(const char* pName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     UINT32 ulRet = FindParentKey(pName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
 UINT32
 ServerRegistry::FindParentKey(const UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     UINT32 ulRet = FindParentKey(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -2452,27 +2445,27 @@ ServerRegistry::FindParentKey(const UINT32 hash_key)
 INT32
 ServerRegistry::Count(Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     INT32 nRet = m_iPropCount;
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return nRet;
 }
 
 INT32
 ServerRegistry::Count(const char* pName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     INT32 nRet = Count(pName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return nRet;
 }
 
 INT32
 ServerRegistry::Count(const UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     INT32 nRet = Count(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return nRet;
 }
 
@@ -2569,9 +2562,9 @@ ServerRegistry::Count(const UINT32 hash_key)
 HX_RESULT
 ServerRegistry::GetPropStatus(const UINT32 ulId, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropStatus(ulId);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2594,9 +2587,9 @@ ServerRegistry::GetPropStatus(const UINT32 ulId, Process* pProc)
 HX_RESULT
 ServerRegistry::GetPropStatus(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropStatus(szPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2687,9 +2680,9 @@ ServerRegistry::GetPropStatus(const char* szPropName)
 HX_RESULT
 ServerRegistry::GetPropName(const UINT32 ulId, REF(IHXBuffer*) pPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT res = GetPropName(ulId, pPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -2727,9 +2720,9 @@ ServerRegistry::GetPropName(const UINT32 ulId, REF(IHXBuffer*) pPropName)
 UINT32
 ServerRegistry::GetId(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     UINT32 ulRet = GetId(szPropName);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -2845,9 +2838,9 @@ ServerRegistry::SetWatch(const UINT32 hash_key, ServerPropWatch* cb)
 HX_RESULT
 ServerRegistry::ClearWatch(IHXPropWatchResponse* response, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
     HX_RESULT ret = _clearWatch(response);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ret;
 }
 
@@ -2859,12 +2852,12 @@ ServerRegistry::ClearWatch(const char* szName,
     ServRegDB_node*  d = 0;
     ServRegProperty* p = 0;
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT ret = _find(&d, &p, szName);
     if (ret == HXR_OK)
         ret = _clearWatch(p, response);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ret;
 }
 
@@ -2877,17 +2870,17 @@ ServerRegistry::ClearWatch(const UINT32 hash_key,
     ServRegDB_node*  d = 0;
     ServRegProperty* p = 0;
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     d = (ServRegDB_node *)m_pIdTable->get(hash_key);
     if (!d)
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_NOT_FOUND;
     }
 
     HX_RESULT ret = _clearWatch(d->get_data(), response);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ret;
 }
 
@@ -2920,11 +2913,11 @@ ServerRegistry::ModifyInt(const char* szName,
 {
     DPRINTF(D_REGISTRY, ("SR::ModifyInt(%s, %ld)\n", szName, nDelta));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if(IsActive(szName, pProc))
+    if(IsActive(szName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
 
@@ -2936,7 +2929,7 @@ ServerRegistry::ModifyInt(const char* szName,
         ulRet = SetInt(ulId, *pValue);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -2949,15 +2942,15 @@ ServerRegistry::ModifyInt(const UINT32 id,
 {
     DPRINTF(D_REGISTRY, ("SR::ModifyInt(%lu, %ld)\n", id, nDelta));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer = 0;
     if (HXR_OK == GetPropName(id, pBuffer))
     {
-	if (IsActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
@@ -2970,7 +2963,7 @@ ServerRegistry::ModifyInt(const UINT32 id,
         ulRet = SetInt(id, *pValue);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -2985,11 +2978,11 @@ ServerRegistry::BoundedModifyInt(const char* szName,
     DPRINTF(D_REGISTRY, ("SR::BoundedModifyInt(%s, %ld, %ld, %ld)\n",
 			szName, nDelta, nMin, nMax));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if(IsActive(szName, pProc))
+    if(IsActive(szName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
 
@@ -3042,7 +3035,7 @@ ServerRegistry::BoundedModifyInt(const char* szName,
     else if (!nDelta)
         ulRet2 = SetInt(ulId, *pValue);
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return (ulRet2 != HXR_OK ? ulRet2 : ulRet);
 }
 
@@ -3057,15 +3050,15 @@ ServerRegistry::BoundedModifyInt(const UINT32 id,
     DPRINTF(D_REGISTRY, ("SR::BoundedModifyInt(%lu, %ld, %ld, %ld)\n",
 			id, nDelta, nMin, nMax));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer = 0;
     if (HXR_OK == GetPropName(id, pBuffer))
     {
-	if (IsActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
@@ -3117,7 +3110,7 @@ ServerRegistry::BoundedModifyInt(const UINT32 id,
         ulRet2 = SetInt(id, *pValue);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return (ulRet2 != HXR_OK ? ulRet2 : ulRet);
 }
 
@@ -3129,11 +3122,11 @@ ServerRegistry::SetAndReturnInt(const char* szName,
 {
     DPRINTF(D_REGISTRY, ("SR::SetAndReturnInt(%s, %ld)\n", szName, nValue));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
-    if(IsActive(szName, pProc))
+    if(IsActive(szName, Process::get_proc()))
     {
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_PROP_ACTIVE;
     }
 
@@ -3144,7 +3137,7 @@ ServerRegistry::SetAndReturnInt(const char* szName,
         ulRet = SetInt(ulId, nValue);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -3156,15 +3149,15 @@ ServerRegistry::SetAndReturnInt(const UINT32 id,
 {
     DPRINTF(D_REGISTRY, ("SR::SetAndReturnInt(%lu, %ld)\n", id, nValue));
 
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     IHXBuffer* pBuffer = 0;
     if (HXR_OK == GetPropName(id, pBuffer))
     {
-	if (IsActive((const char*)pBuffer->GetBuffer(), pProc))
+	if (IsActive((const char*)pBuffer->GetBuffer(), Process::get_proc()))
 	{
 	    pBuffer->Release();
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_PROP_ACTIVE;
 	}
 	pBuffer->Release();
@@ -3176,7 +3169,7 @@ ServerRegistry::SetAndReturnInt(const UINT32 id,
         ulRet = SetInt(id, nValue);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return ulRet;
 }
 
@@ -3187,10 +3180,10 @@ ServerRegistry::GetIntRef(const char* szPropName,
 {
     DPRINTF(D_REGISTRY, ("SR::GetIntRef(%s)\n", szPropName));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetIntRef(szPropName, ppValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -3232,10 +3225,10 @@ ServerRegistry::GetIntRef(const UINT32 ulId,
 {
     DPRINTF(D_REGISTRY, ("SR::GetIntRef(%lu)\n", ulId));
     
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     HX_RESULT res = GetIntRef(ulId, ppValue);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return res;
 }
 
@@ -3379,10 +3372,7 @@ ServerRegistry::AddDone(ServRegDB_dict* pParentDB, ServRegDB_node* pNode)
 {
     ISLOCKED();
     DPRINTF(D_REGISTRY, ("SR::AddDone()\n"));
-    if (_proc) 
-    {
         _dispatchParentCallbacks(pParentDB, pNode, DBE_ADDED);
-    }
     return HXR_OK;
 }
 
@@ -3391,10 +3381,7 @@ ServerRegistry::SetDone(ServRegDB_node* pNode, ServRegProperty* pProp)
 {
     ISLOCKED();
     DPRINTF(D_REGISTRY, ("SR::SetDone()\n"));
-    if (_proc) 
-    {
         _dispatchCallbacks(pNode, pProp, DBE_MODIFIED);
-    }
     return HXR_OK;
 }
 
@@ -3405,11 +3392,8 @@ ServerRegistry::DeleteDone(ServRegDB_dict* pParentDB, ServRegDB_node* pNode,
     ISLOCKED();
     DPRINTF(D_REGISTRY, ("SR::DeleteDone(db(%pProp), node(%pProp), prop(%pProp))\n",
 	pParentDB, pNode, pProp));
-    if (_proc) 
-    {
         _dispatchCallbacks(pNode, pProp, DBE_DELETED);
         _dispatchParentCallbacks(pParentDB, pNode, DBE_DELETED);
-    }
     return HXR_OK;
 }
 
@@ -3420,7 +3404,7 @@ ServerRegistry::_addComp(ServRegKey* pKey, char* szPropName, ServRegDB_dict* pOw
     DPRINTF(D_REGISTRY, ("SR::_addComp()\n"));
 
     ServRegProperty* pNewProp =
-        new(m_pRegMemCache) ServRegProperty(pKey, PT_COMPOSITE, m_pRegMemCache);
+        new ServRegProperty(pKey, PT_COMPOSITE);
 
     ServRegDB_node* pNewNode = pOwnerDB->add(szPropName, pNewProp);
 
@@ -3430,7 +3414,7 @@ ServerRegistry::_addComp(ServRegKey* pKey, char* szPropName, ServRegDB_dict* pOw
 	return 0;
     }
 
-    pNewProp->db_val(new (m_pRegMemCache) ServRegDB_dict(pNewNode, m_pRegMemCache));
+    pNewProp->db_val(new ServRegDB_dict(pNewNode));
 
     UINT32 ulId = m_pIdTable->create((void *)pNewNode);
     pNewNode->id(ulId);
@@ -3449,7 +3433,7 @@ ServerRegistry::_addInt(ServRegKey* pKey,
     DPRINTF(D_REGISTRY, ("SR::_addInt()\n"));
 
     ServRegProperty* pNewProp =
-        new(m_pRegMemCache) ServRegProperty(pKey, PT_INTEGER, m_pRegMemCache);
+        new ServRegProperty(pKey, PT_INTEGER);
     pNewProp->int_val(iValue);
 
     ServRegDB_node* pNewNode = pOwnerDB->add(szPropName, pNewProp);
@@ -3477,7 +3461,7 @@ ServerRegistry::_addBuf(ServRegKey* pKey,
     DPRINTF(D_REGISTRY, ("SR::_addBuf()\n"));
 
     ServRegProperty* pNewProp =
-        new(m_pRegMemCache) ServRegProperty(pKey, type, m_pRegMemCache);
+        new ServRegProperty(pKey, type);
     // AddRef gets called within the buf_val() method
     pNewProp->buf_val(pBuffer, type);
 
@@ -3505,7 +3489,7 @@ ServerRegistry::_addIntRef(ServRegKey* pKey,
     DPRINTF(D_REGISTRY, ("SR::_addIntRef()\n"));
 
     ServRegProperty* pNewProp =
-        new(m_pRegMemCache) ServRegProperty(pKey, PT_INTREF, m_pRegMemCache);
+        new ServRegProperty(pKey, PT_INTREF);
     pNewProp->int_ref_val(pValue);
 
     ServRegDB_node* pNewNode = pOwnerDB->add(szPropName, pNewProp);
@@ -3653,7 +3637,6 @@ ServerRegistry::_getChildIdList(ServRegDB_dict* pOwnerDB, REF(UINT32*) pChildIds
     pChildIds = new UINT32[pOwnerDB->count()];
    
     pNode = pOwnerDB->first();
-
     while (pNode)
     {
         ServRegProperty* pProp = pNode->get_data();
@@ -3671,7 +3654,6 @@ ServerRegistry::_getChildIdList(ServRegDB_dict* pOwnerDB, REF(UINT32*) pChildIds
 	}
 
 	ServRegDB_node* pNextNode = pOwnerDB->next(pNode);
-
 	pNode = pNextNode;
     }
     return HXR_OK;
@@ -3737,7 +3719,7 @@ ServerRegistry::_buildSubstructure4Prop(const char* pFailurePoint,
      */
     ISLOCKED();
     UINT32 len = strlen(pProp) + 1;
-    ServRegKey* lame = new (m_pRegMemCache) ServRegKey(pProp, m_pRegMemCache);
+    ServRegKey* lame = new ServRegKey(pProp);
     if (lame && !lame->is_valid())
     {
 	HX_DELETE(lame);
@@ -3781,7 +3763,8 @@ ServerRegistry::_dispatchParentCallbacks(ServRegDB_dict* db, ServRegDB_node* cur
 {
     ISLOCKED();
     DPRINTF(D_REGISTRY, ("SR::_dispatchParentCallback(db(%p), ServRegDB_node(%p), "
-            "ServRegDB_event(%d), _proc(%p))\n", db, currNode, e, _proc));
+            "ServRegDB_event(%d), procnum(%d))\n", db, currNode, e,
+            Process::get_procnum()));
     ServRegDB_node*	   parNode = 0;		// parent's node
     ServRegProperty* 	   parProp = 0;		// parent's property
     UINT32 	   par_hash_key = 0;
@@ -3823,10 +3806,9 @@ ServerRegistry::_dispatchParentCallbacks(ServRegDB_dict* db, ServRegDB_node* cur
                     GetPropName(hash_key, pwcb->m_pKey);
                 }
             }
-	    ASSERT(_proc != 0);
             DPRINTF(0x00800000, ("SR::_dPC -- 1. pwcb(%p)->procnum(%d)\n", 
 		pwcb, pwcb->m_procnum));
-	    _proc->pc->dispatchq->send(_proc, pwcb, pwcb->m_procnum);
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), pwcb, pwcb->m_procnum);
             DPRINTF(0x00800000, 
 		("SR::_dPC -- 1. after send(pwcb(%p)->procnum(%d)\n", 
 		pwcb, pwcb->m_procnum));
@@ -3843,7 +3825,7 @@ ServerRegistry::_dispatchParentCallbacks(ServRegDB_dict* db, ServRegDB_node* cur
 	    parProp = parNode->get_data();
 	    if (!parProp)
 	    {
-		ERRMSG(_proc->pc->error_handler,
+		ERRMSG(Process::get_proc()->pc->error_handler,
 		       "%s has an INVALID parent ServRegProperty\n",
 		       currNode->get_data()->get_key_str());
 		return;
@@ -3851,7 +3833,7 @@ ServerRegistry::_dispatchParentCallbacks(ServRegDB_dict* db, ServRegDB_node* cur
 	}
 	else
 	{
-	    ERRMSG(_proc->pc->error_handler,
+	    ERRMSG(Process::get_proc()->pc->error_handler,
 	           "%s has an INVALID parent ServRegDB_node\n",
 		   currNode->get_data()->get_key_str());
 	    return;
@@ -3893,10 +3875,9 @@ ServerRegistry::_dispatchParentCallbacks(ServRegDB_dict* db, ServRegDB_node* cur
             }
 	    DPRINTF(D_REGISTRY, ("_dPC -- hash(%lu) - par_hash(%lu)\n",
 		    hash_key, par_hash_key));
-	    ASSERT(_proc != 0);
             DPRINTF(0x00800000, ("SR::_dPC -- 2. pwcb(%p)->procnum(%d)\n",
 		pwcb, pwcb->m_procnum));
-	    _proc->pc->dispatchq->send(_proc, pwcb, pwcb->m_procnum);
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), pwcb, pwcb->m_procnum);
             DPRINTF(0x00800000,
 		("SR::_dpC -- 2. after send(pwcb(%p)->procnum(%d))\n",
 		pwcb, pwcb->m_procnum));
@@ -3919,7 +3900,8 @@ ServerRegistry::_dispatchCallbacks(ServRegDB_node* d, ServRegProperty* p, ServRe
 {
     ISLOCKED();
     DPRINTF(0x00800000, ("SR::_dispatchCallbacks(ServRegDB_node(%p), "
-	    "Property(%p), ServRegDB_event(%d), _proc(%p))\n", d, p, e, _proc));
+	    "Property(%p), ServRegDB_event(%d), procnum(%d))\n", d, p, e,
+            Process::get_procnum()));
     if (p->m_lWatchCount <= 0)
     {
 	return;
@@ -3964,10 +3946,9 @@ ServerRegistry::_dispatchCallbacks(ServRegDB_node* d, ServRegProperty* p, ServRe
                 GetPropName(hash_key, pwcb->m_pKey);
             }
         }
-	ASSERT(_proc != 0);
         DPRINTF(0x00800000, ("SR::_dC -- pwcb(%p)->procnum(%d)\n", pwcb,
                 pwcb->m_procnum));
-	_proc->pc->dispatchq->send(_proc, pwcb, pwcb->m_procnum);
+	Process::get_proc()->pc->dispatchq->send(Process::get_proc(), pwcb, pwcb->m_procnum);
     }
 }
 
@@ -4055,7 +4036,7 @@ ServerRegistry::_find(ServRegDB_node** ppNode, ServRegProperty** ppProp, const c
     ISLOCKED();
     DPRINTF(D_REGISTRY, ("SR::_find(szPropName(%s))\n", szPropName));
 
-    ServRegKey key(szPropName, m_pRegMemCache);
+    ServRegKey key(szPropName);
     if (!key.is_valid())
 	return 0;
 
@@ -4173,7 +4154,7 @@ ServerRegistry::SetAsActive(const char* pName,
 			IHXActivePropUser* pUser,
 			Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * Add this new user the list of users for this prop.
@@ -4194,16 +4175,16 @@ ServerRegistry::SetAsActive(const char* pName,
     {
 	if (((ActivePropUserInfo *)*i)->m_pUser == pUser)
 	{
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return HXR_OK;
 	}
     }
     /*
      * Add to list.
      */
-    p = new ActivePropUserInfo(pUser, pProc);
+    p = new ActivePropUserInfo(pUser, Process::get_proc());
     pList->AddHead((void*)p);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4217,7 +4198,7 @@ ServerRegistry::SetAsInactive(const char* pName,
 			      IHXActivePropUser* pUser,
                               Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * Find this user on the list for this prop and
@@ -4244,7 +4225,7 @@ ServerRegistry::SetAsInactive(const char* pName,
 	    }
 	}
     }
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4258,7 +4239,7 @@ ServerRegistry::SetAsInactive(const char* pName,
 STDMETHODIMP_(BOOL)
 ServerRegistry::IsActive(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     CHXSimpleList* pList = NULL;
 
@@ -4283,7 +4264,7 @@ ServerRegistry::IsActive(const char* szPropName, Process* pProc)
 	if(m_ActiveMap2.Lookup(szNameTemp, (void*&)pList))
 	{
             DELETE_FAST_TEMP_STR(szNameTemp);
-            UNLOCK(pProc);
+            UNLOCK(Process::get_proc());
 	    return TRUE;
 	}
 	if (!bEnd)
@@ -4294,14 +4275,14 @@ ServerRegistry::IsActive(const char* szPropName, Process* pProc)
     }
 
     DELETE_FAST_TEMP_STR(szNameTemp);
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return FALSE;
 }
 
 BOOL
 ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * If we are a composite
@@ -4358,9 +4339,10 @@ ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
 		// If composite, recurse down.
 
 		bHadSubComp = TRUE;
-		if (IsActive(pProp->get_key_str(), pProc))
+		if (IsActive(pProp->get_key_str(), Process::get_proc()))
 		{
-                    UNLOCK(pProc);
+		    HX_VECTOR_DELETE(pChildList);
+                    UNLOCK(Process::get_proc());
 		    return TRUE;
 		}
 	    }
@@ -4370,7 +4352,8 @@ ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
 	    CHXSimpleList* pList = NULL;
 	    if (m_ActiveMap2.Lookup(pProp->get_key_str(), (void*&)pList))
 	    {
-                UNLOCK(pProc);
+		HX_VECTOR_DELETE(pChildList);
+                UNLOCK(Process::get_proc());
 		return TRUE;
 	    }
         }
@@ -4379,9 +4362,6 @@ ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
 
     }
 
-
-
-    
     // If this is the deepest composite,
     // find out if any of the base composites of this prop,
     // or this prop itself are registered.
@@ -4412,7 +4392,7 @@ ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
 	    if(m_ActiveMap2.Lookup(szNameTemp, (void*&)pList))
 	    {
                 DELETE_FAST_TEMP_STR(szNameTemp);
-                UNLOCK(pProc);
+                UNLOCK(Process::get_proc());
 		return TRUE;
 	    }
 	    if (!bEnd)
@@ -4424,7 +4404,7 @@ ServerRegistry::IsDeleteActive(const char* szPropName, Process* pProc)
         DELETE_FAST_TEMP_STR(szNameTemp);
     }
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return FALSE;
 }
 
@@ -4442,26 +4422,26 @@ ServerRegistry::SetActiveInt(const char* pName,
                              IHXActivePropUserResponse* pResponse,
                              Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * If it is not active, just set it / create it, send the
      * response, and return ok.
      */
-    if(!IsActive(pName, pProc))
+    if(!IsActive(pName, Process::get_proc()))
     {
-	HX_RESULT hr = SetInt(pName, ul, pProc);
+	HX_RESULT hr = SetInt(pName, ul, Process::get_proc());
 
     // SetInt returns three possible values, HXR_OK, HXR_FAILED,
     // HXR_PROP_TYPE_MISMATCH. Only bother to AddInt() if fail and 
     // not a type mismatch.
 	if (hr != HXR_OK && hr != HXR_PROP_TYPE_MISMATCH)
 	{
-	    hr = AddInt(pName, ul, pProc) ? HXR_OK : HXR_FAIL;
+	    hr = AddInt(pName, ul, Process::get_proc()) ? HXR_OK : HXR_FAIL;
 	}
 
 	pResponse->SetActiveIntDone(hr, pName, ul, 0, 0);
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_OK;
     }
 
@@ -4475,7 +4455,7 @@ ServerRegistry::SetActiveInt(const char* pName,
     if (m_PendingMap2.Lookup(pTemp, (void*&)cb))
     {
 	delete[] pTemp;
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_UNEXPECTED;
     }
 
@@ -4504,7 +4484,7 @@ ServerRegistry::SetActiveInt(const char* pName,
 	0,
 	pName,
 	ulNumUsers, //num users for this prop.
-	pProc);
+	Process::get_proc());
 
     m_PendingMap2.SetAt(pTemp, (void*)cb);
 
@@ -4532,7 +4512,7 @@ ServerRegistry::SetActiveInt(const char* pName,
 	     * Schedule on the dq for the process who registered the object
 	     * for active notification.
 	     */
-	    _proc->pc->dispatchq->send(_proc, cb, pUserInfo->m_pProc->procnum());
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, pUserInfo->m_pProc->procnum());
 	}
     }
 
@@ -4542,7 +4522,7 @@ ServerRegistry::SetActiveInt(const char* pName,
     }
     delete[] pTemp;
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4555,26 +4535,26 @@ ServerRegistry::SetActiveStr(const char* pName,
                              IHXActivePropUserResponse* pResponse,
                              Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * If it is not active, just set it / create it, send the
      * response, and return ok.
      */
-    if(!IsActive(pName, pProc))
+    if(!IsActive(pName, Process::get_proc()))
     {
-	HX_RESULT hr = SetStr(pName, pBuffer, pProc);
+	HX_RESULT hr = SetStr(pName, pBuffer, Process::get_proc());
 
     // SetInt returns three possible values, HXR_OK, HXR_FAILED,
     // HXR_PROP_TYPE_MISMATCH. Only bother to AddInt() if fail and 
     // not a type mismatch.
 	if (hr != HXR_OK && hr != HXR_PROP_TYPE_MISMATCH)
 	{
-	    hr = AddStr(pName, pBuffer, pProc) ? HXR_OK : HXR_FAIL;
+	    hr = AddStr(pName, pBuffer, Process::get_proc()) ? HXR_OK : HXR_FAIL;
 	}
 
 	pResponse->SetActiveStrDone(hr, pName, pBuffer, 0, 0);
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_OK;
     }
 
@@ -4588,7 +4568,7 @@ ServerRegistry::SetActiveStr(const char* pName,
     if (m_PendingMap2.Lookup(pTemp, (void*&)cb))
     {
 	delete[] pTemp;
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_UNEXPECTED;
     }
 
@@ -4617,7 +4597,7 @@ ServerRegistry::SetActiveStr(const char* pName,
 	pBuffer,
 	pName,
 	ulNumUsers, //num users for this prop.
-	pProc);
+	Process::get_proc());
 
     m_PendingMap2.SetAt(pTemp, (void*)cb);
 
@@ -4646,7 +4626,7 @@ ServerRegistry::SetActiveStr(const char* pName,
 	    * Schedule on the dq for the process who registered the object
 	    * for active notification.
 	    */
-	    _proc->pc->dispatchq->send(_proc, cb, pUserInfo->m_pProc->procnum());
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, pUserInfo->m_pProc->procnum());
 	}
     }
 
@@ -4656,7 +4636,7 @@ ServerRegistry::SetActiveStr(const char* pName,
     }
     delete[] pTemp;
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4669,27 +4649,27 @@ ServerRegistry::SetActiveBuf(const char* pName,
                              IHXActivePropUserResponse* pResponse,
                              Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * If it is not active, just set it / create it, send the
      * response, and return ok.
      */
-    if(!IsActive(pName, pProc))
+    if(!IsActive(pName, Process::get_proc()))
     {
-	HX_RESULT hr = SetBuf(pName, pBuffer, pProc);
+	HX_RESULT hr = SetBuf(pName, pBuffer, Process::get_proc());
 
     // SetInt returns three possible values, HXR_OK, HXR_FAILED,
     // HXR_PROP_TYPE_MISMATCH. Only bother to AddInt() if fail and 
     // not a type mismatch.
 	if (hr != HXR_OK && hr != HXR_PROP_TYPE_MISMATCH)
 	{
-	    hr = AddBuf(pName, pBuffer, pProc) ? HXR_OK : HXR_FAIL;
+	    hr = AddBuf(pName, pBuffer, Process::get_proc()) ? HXR_OK : HXR_FAIL;
 	}
 
 	pResponse->SetActiveBufDone(hr, pName, pBuffer, 0, 0);
 
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_OK;
     }
 
@@ -4703,7 +4683,7 @@ ServerRegistry::SetActiveBuf(const char* pName,
     if (m_PendingMap2.Lookup(pTemp, (void*&)cb))
     {
 	delete[] pTemp;
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_UNEXPECTED;
     }
 
@@ -4732,7 +4712,7 @@ ServerRegistry::SetActiveBuf(const char* pName,
 	pBuffer,
 	pName,
 	ulNumUsers, //num users for this prop.
-	pProc);
+	Process::get_proc());
 
     m_PendingMap2.SetAt(pTemp, (void*)cb);
 
@@ -4760,7 +4740,7 @@ ServerRegistry::SetActiveBuf(const char* pName,
 	     * Schedule on the dq for the process who registered the object
 	     * for active notification.
 	     */
-	    _proc->pc->dispatchq->send(_proc, cb, pUserInfo->m_pProc->procnum());
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, pUserInfo->m_pProc->procnum());
 	}
     }
 
@@ -4770,7 +4750,7 @@ ServerRegistry::SetActiveBuf(const char* pName,
     }
     delete[] pTemp;
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4784,18 +4764,18 @@ ServerRegistry::DeleteActiveProp(const char* pName,
                                  IHXActivePropUserResponse* pResponse,
                                  Process* pProc)
 {
-    LOCK(pProc);
+    LOCK(Process::get_proc());
 
     /*
      * If it is not active, just set it / create it, send the
      * response, and return ok.
      */
-    if(!IsActive(pName, pProc))
+    if(!IsActive(pName, Process::get_proc()))
     {
-	Del(pName, pProc);
+	Del(pName, Process::get_proc());
 	//XXXPM check return code
 	pResponse->DeleteActivePropDone(HXR_OK, pName, 0, 0);
-        UNLOCK(pProc);
+        UNLOCK(Process::get_proc());
 	return HXR_OK;
     }
 
@@ -4809,7 +4789,7 @@ ServerRegistry::DeleteActiveProp(const char* pName,
     if (m_PendingMap2.Lookup(pTemp, (void*&)cb))
     {
 	delete[] pTemp;
-	UNLOCK(pProc);
+	UNLOCK(Process::get_proc());
 	return HXR_UNEXPECTED;
     }
 
@@ -4848,7 +4828,7 @@ ServerRegistry::DeleteActiveProp(const char* pName,
 	0,
 	pName,
 	ulNumUsers, //num users for this prop.
-	pProc);
+	Process::get_proc());
 
     /*
      * Since for this one, we only succeed if they all succeed, start with
@@ -4882,7 +4862,7 @@ ServerRegistry::DeleteActiveProp(const char* pName,
 	     * Schedule on the dq for the process who registered the object
 	     * for active notification.
 	     */
-	    _proc->pc->dispatchq->send(_proc, cb, pUserInfo->m_pProc->procnum());
+	    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, pUserInfo->m_pProc->procnum());
 	}
     }
 
@@ -4892,7 +4872,7 @@ ServerRegistry::DeleteActiveProp(const char* pName,
     }
     delete[] pTemp;
 
-    UNLOCK(pProc);
+    UNLOCK(Process::get_proc());
     return HXR_OK;
 }
 
@@ -4965,7 +4945,7 @@ ServerRegistry::SetActiveIntDone(HX_RESULT res, const char* pName, UINT32 ul,
      * Schedule on the dq.
      */
     delete[] pTemp;
-    _proc->pc->dispatchq->send(_proc, cb, cb->m_pProc->procnum());
+    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, cb->m_pProc->procnum());
     
     return HXR_OK;
 
@@ -5037,7 +5017,7 @@ ServerRegistry::SetActiveStrDone(HX_RESULT res, const char* pName,
      * Schedule on the dq.
      */
     delete[] pTemp;
-    _proc->pc->dispatchq->send(_proc, cb, cb->m_pProc->procnum());
+    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, cb->m_pProc->procnum());
     
     return HXR_OK;
 }
@@ -5107,7 +5087,7 @@ ServerRegistry::SetActiveBufDone(HX_RESULT res, const char* pName,
      * Schedule on the dq.
      */
     delete[] pTemp;
-    _proc->pc->dispatchq->send(_proc, cb, cb->m_pProc->procnum());
+    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, cb->m_pProc->procnum());
     
     return HXR_OK;
 }
@@ -5168,7 +5148,7 @@ ServerRegistry::DeleteActivePropDone(HX_RESULT res, const char* pName,
      * Schedule on the dq.
      */
     delete[] pTemp;
-    _proc->pc->dispatchq->send(_proc, cb, cb->m_pProc->procnum());
+    Process::get_proc()->pc->dispatchq->send(Process::get_proc(), cb, cb->m_pProc->procnum());
     
     return HXR_OK;
 }

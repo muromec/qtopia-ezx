@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: version.py,v 1.8 2007/04/30 22:51:13 jfinnecy Exp $ 
+#  Source last modified: $Id: version.py,v 1.10 2007/07/17 00:17:48 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -77,7 +77,7 @@ import sys
 import re
 
 import log
-log.debug( 'Imported: $Id: version.py,v 1.8 2007/04/30 22:51:13 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: version.py,v 1.10 2007/07/17 00:17:48 jfinnecy Exp $' )
 
 class VersionException( Exception ):
     def __init__( self , value ):
@@ -319,7 +319,7 @@ class Version:
 ###
 
 # Ribosome version handling.
-__ribosome = Version( '2.4.6' )
+__ribosome = Version( '2.4.8' )
 
 def getMajorVersion():
     return __ribosome.getMajor()
@@ -343,7 +343,5 @@ def enforcePythonVersion():
         error = 'Ribosome requires Python version %s' % __requiredPython
         msg = error + '\nVersion invoked is %s' % sys.version
         msg += '\nPath is %s' % os.environ.get('PATH')
-
-# Disable version exception for Qtopia
-#        log.error( msg )
-#        raise VersionException( error )
+        log.error( msg )
+        raise VersionException( error )

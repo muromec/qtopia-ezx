@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: UnixThreads.cpp,v 1.19 2006/08/16 17:30:13 gwright Exp $
+ * Source last modified: $Id: UnixThreads.cpp,v 1.21 2008/08/27 10:07:09 lovish Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -62,7 +62,7 @@
 #include "hxmsgs.h" //for HXMSG_ASYNC_TIMER message.
 #include "hxtick.h"  //for GetTickCount()
 #include "pckunpck.h"
-
+#include "hxthreadmessagesink.h"
 
 //=================================================================
 // In this section here include the OS specific headerfiles for
@@ -299,9 +299,16 @@ HX_RESULT HXUnixThread::Resume()
 HX_RESULT HXUnixThread::PostMessage(HXThreadMessage* pMsg, void* pWindowHandle)
 {
     HX_RESULT retVal = HXR_OK;
+    if(pWindowHandle)
+    {
+        HXThreadMessageSink* pThreadMessageSink = NULL;
+        pThreadMessageSink = (HXThreadMessageSink*)pWindowHandle;
+        if(pThreadMessageSink)
+        {
+            pThreadMessageSink->MessagePosted();    
+        }
+    }
 
-    //Assert that we don't use pWindowHandle. 
-    HX_ASSERT( pWindowHandle == NULL );
     
     //To mimic the windows PostMessage we must COPY the pMsg and put
     //it on our que. pMsg is going to go out of scope most likely

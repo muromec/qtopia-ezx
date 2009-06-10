@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: vidrend.h,v 1.46 2007/04/12 18:16:27 ehyche Exp $
+ * Source last modified: $Id: vidrend.h,v 1.49 2009/02/13 15:34:27 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -910,6 +910,7 @@ public:
     void      ClearClipRect();
     HXBOOL    IsDisplaySizeFixed() { return m_bWinSizeFixed; }
     HXxSize   GetViewSize() { return m_SetWinSize; }
+    void      SignalDecoderThread();
 protected:
 
     /*
@@ -1038,6 +1039,10 @@ protected:
      &			      the report of the related values to the core
      */
     void SetSyncInterval(ULONG32 ulSyncInterval);
+
+    // Central method where we change the player state
+    void ChangePlayState(PlayState eState);
+    void SetPlayStateStopped();
 
     /*
      *	Renderer's member variables sharable with the derived renderer

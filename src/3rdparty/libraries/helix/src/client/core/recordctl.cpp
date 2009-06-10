@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: recordctl.cpp,v 1.20 2006/07/20 20:25:54 milko Exp $
+ * Source last modified: $Id: recordctl.cpp,v 1.25 2008/06/26 05:52:59 qluo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -85,7 +85,10 @@ HXRecordControl::HXRecordControl(IUnknown* pUnkPlayer, IUnknown* pUnkSource) :
     m_pStreamInfo(NULL),
     m_bFirstTimestampWritten(FALSE),
     m_ulLatestTimestampWritten(0),
+    m_bFirstTimestampRead(FALSE),
+    m_ulLatestTimestampRead(0),
     m_bFinishedWriting(FALSE),
+    m_bFinishedReading(FALSE),
     m_bDisableRSVelocity(FALSE),
     m_bDisableRSMergeSort(DEFAULT_MERGESORT_DISABLED),
     m_ulRSTimeSpanLimit(DEFAULT_MERGESORT_TIMESPAN_LIMIT),
@@ -223,8 +226,13 @@ HX_RESULT
 HXRecordControl::Seek(ULONG32 seekTime)
 {
     HXLOGL4(HXLOG_TRIK, "HXRecordControl Seek(%lu)", seekTime);
-    if(!m_pRecordSource)
+    if (!m_pRecordSource)
+    {
 	return HXR_NOT_INITIALIZED;
+    }
+	
+    m_bFirstTimestampRead = FALSE;
+    m_ulLatestTimestampRead = 0;
 
     HX_RESULT nResult = HXR_FAILED;
     if(m_bCanGetPackets)
@@ -248,6 +256,14 @@ HXRecordControl::Seek(ULONG32 seekTime)
 
     if(nResult != HXR_OK)
     {
+        // reset internal states when record source is flushed(actual seek is issued)
+        m_bFinishedReading = FALSE;
+        m_bFinishedWriting = FALSE;
+        for (UINT32 i = 0; i < m_ulNumStreams; i++)
+        {
+            m_pStreamInfo[i].m_bStreamDone = FALSE;
+        }
+
 	m_pRecordSource->Flush();
 
 	for(UINT16 nStream = 0; nStream < m_PendingGetPackets.GetSize(); nStream++)
@@ -270,24 +286,87 @@ HXRecordControl::GetPacket(UINT16 usStreamNumber, IHXPacket*& pPacket)
     if(!m_pRecordSource || !m_bCanGetPackets)
 	return HXR_FAILED;
 
-    if (m_PendingGetPackets.IsEmpty())
+    if (m_bFinishedReading || m_PendingGetPackets.IsEmpty())
         return HXR_NO_DATA;
     
     HX_RESULT nResult = HXR_OK;
     pPacket = (IHXPacket*)m_PendingGetPackets.GetAt(usStreamNumber);
 
-    if(!pPacket)
+    if (!pPacket)
     {
 	nResult = m_pRecordSource->GetPacket(usStreamNumber);
-	if(nResult == HXR_OK)
+	if (nResult == HXR_OK)
 	{
 	    pPacket = (IHXPacket*)m_PendingGetPackets.GetAt(usStreamNumber);
-	    if(!pPacket)
-		nResult = HXR_WOULD_BLOCK;
+	    if (!pPacket)
+	    {
+		nResult = HXR_RETRY;
+	    }
+	}
+	
+	if ((nResult != HXR_OK) &&	    // OK means we got packet
+	    (nResult != HXR_RETRY) &&	    // RETRY means no packet but are encouraged to try again immediately
+	    m_bFinishedWriting &&
+	    (nResult != HXR_WOULD_BLOCK))   // HXR_WOULD_BLOCK means no packet and are encouraged to try a bit later
+	{
+	    // We did not get a packet and no more packet will be written into the
+	    // record control.
+	    // It is time to check if we have any packets left in record source.
+	    UINT16 uStrmIdx = 0;
+	    HXBOOL bRecordSourceDone = TRUE;
+	    
+	    for (uStrmIdx = 0; uStrmIdx < m_PendingGetPackets.GetSize(); uStrmIdx++)
+	    {
+		if (uStrmIdx != usStreamNumber)
+		{
+		    if (m_PendingGetPackets.GetAt(uStrmIdx))
+		    {
+			// Found a packet - not done yet
+			bRecordSourceDone = FALSE;
+			break;
+		    }
+		
+		    if (m_pRecordSource->GetPacket(uStrmIdx) == HXR_OK)
+		    {
+			// Stream still accepting packet requests - not done yet
+			bRecordSourceDone = FALSE;
+			break;
+		    }
+		}
+	    }
+	    
+	    if (bRecordSourceDone)
+	    {
+		m_bFinishedReading = TRUE;
+		nResult = HXR_NO_DATA;
+	    }	    
 	}
     }
 
     m_PendingGetPackets.SetAt(usStreamNumber, NULL);
+    
+    // we only track the last timestamp of non-Sparse stream
+    if (pPacket && !m_pStreamInfo[usStreamNumber].m_bSparseStream)
+    { 
+	// This is not quite right but best we can do given that offset is not being 
+	// passed through the record source.  It works as long as the packet offsets 
+	// are not changing within the source.  Currently, there are no such cases.
+	UINT32 ulTime = pPacket->GetTime() - m_lTimeOffset; 
+
+        if (m_bFirstTimestampRead)
+        {
+            // Save the latest timestamp and handle 32-bit rollover
+	    if (((LONG32) (ulTime - m_ulLatestTimestampRead)) > 0)
+	    {
+                m_ulLatestTimestampRead = ulTime;
+            }
+        }
+        else
+        {
+            m_ulLatestTimestampRead = ulTime;
+            m_bFirstTimestampRead = TRUE;
+        }
+    }
 
     return nResult;
 }
@@ -315,6 +394,7 @@ HXRecordControl::OnFileHeader(IHXValues* pValues)
             memset((void*) m_pStreamInfo, 0, nStreamCount * sizeof(HXRecordControlStreamInfo));
             // Clear the flag that says all streams are done
             m_bFinishedWriting = FALSE;
+	    m_bFinishedReading = FALSE;
         }
         else
         {
@@ -365,14 +445,28 @@ HXRecordControl::OnFileHeader(IHXValues* pValues)
 HX_RESULT
 HXRecordControl::OnStreamHeader(IHXValues* pValues)
 {
-    HX_RESULT nResult = HXR_FAILED;
+    HX_RESULT   nResult = HXR_FAILED;
+    UINT32      ulStreamNumber = 0;
+    IHXBuffer*  pMimeTypeBuffer = NULL;
+
     if(m_pRecordSource)
 	nResult = m_pRecordSource->OnStreamHeader(pValues);
 
     if(nResult != HXR_OK && 
        nResult != HXR_RECORD &&
        nResult != HXR_RECORD_NORENDER)
+    {
 	Cleanup();
+    }
+    else
+    {
+        if (SUCCEEDED(pValues->GetPropertyULONG32("StreamNumber", ulStreamNumber)) &&
+            SUCCEEDED(pValues->GetPropertyCString("MimeType", pMimeTypeBuffer)))
+        {
+            m_pStreamInfo[ulStreamNumber].m_bSparseStream = IsSparseStream((const char*) pMimeTypeBuffer->GetBuffer());
+        }
+        HX_RELEASE(pMimeTypeBuffer);
+    }
 
     return nResult;
 }
@@ -389,6 +483,9 @@ HXRecordControl::OnPacket(IHXPacket* pPacket, INT32 nTimeOffset)
             (pPacket ? pPacket->IsLost() : 0));
     HX_RESULT nResult = HXR_UNEXPECTED;
 
+    // Save the time offset
+    m_lTimeOffset = nTimeOffset;
+
 #if defined(HELIX_FEATURE_RECORDCONTROL_MERGESORT)
     if (m_bDisableRSMergeSort)
     {
@@ -396,8 +493,6 @@ HXRecordControl::OnPacket(IHXPacket* pPacket, INT32 nTimeOffset)
     }
     else if (m_pMergeSorter)
     {
-        // Save the time offset
-        m_lTimeOffset = nTimeOffset;
         // Get the stream number
         UINT32 ulStreamNum = (UINT32) pPacket->GetStreamNumber();
         // Is the packet lost?
@@ -616,15 +711,12 @@ HX_RESULT HXRecordControl::SendPacket(IHXPacket* pPacket, INT32 lTimeOffset)
 
     if (m_pRecordSource)
     {
-        UINT32 ulTime = pPacket->GetTime();
+        UINT32 ulTime = pPacket->GetTime() - lTimeOffset;
         if (m_bFirstTimestampWritten)
         {
             // Save the latest timestamp and handle 32-bit rollover
-            if ((ulTime > m_ulLatestTimestampWritten &&
-                 ulTime - m_ulLatestTimestampWritten < MAX_TIMESTAMP_GAP) ||
-                (ulTime < m_ulLatestTimestampWritten &&
-                 m_ulLatestTimestampWritten - ulTime > MAX_TIMESTAMP_GAP))
-            {
+	    if (((LONG32) (ulTime - m_ulLatestTimestampWritten)) > 0)
+	    {
                 m_ulLatestTimestampWritten = ulTime;
             }
         }
@@ -694,4 +786,19 @@ void HXRecordControl::ChangeLostPacketTimestamp(IHXPacket* pPacket, UINT32 ulNew
         }
         HX_RELEASE(pBuffer);
     }
+}
+
+HXBOOL
+HXRecordControl::IsSparseStream(const char* pszMimeType)
+{
+    if (0 == ::strcasecmp(pszMimeType, "application/x-pn-realevent") ||
+	0 == ::strcasecmp(pszMimeType, "syncMM/x-pn-realvideo")      ||
+        0 == ::strcasecmp(pszMimeType, "application/x-pn-realad")    ||
+	0 == ::strcasecmp(pszMimeType, "application/x-pn-imagemap")  ||
+        0 == ::strcasecmp(pszMimeType, "image_map/x-pn-realvideo"))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }

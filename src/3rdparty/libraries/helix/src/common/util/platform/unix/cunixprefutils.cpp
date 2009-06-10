@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cunixprefutils.cpp,v 1.7 2004/07/09 18:23:15 hubbe Exp $
+ * Source last modified: $Id: cunixprefutils.cpp,v 1.11 2009/03/03 17:32:59 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -54,7 +54,7 @@
 #include <ctype.h>
 #include "dbcs.h"
 //#include "machdep.h"
-#if defined (_SOLARIS) || defined (_FREEBSD) || defined (_OPENBSD) || defined (_NETBSD)
+#if defined (_SOLARIS) || defined (_FREEBSD) || defined (_OPENBSD) || defined (_NETBSD) || defined (ANDROID)
 #include <dirent.h>
 #elif defined (__hpux)
 #include <sys/dirent.h>
@@ -71,6 +71,11 @@
 
 void CUnixPrefUtils::GetUserHomeDirectory(uid_t uid, CHXString &dir)
 {
+#if defined(ANDROID)
+    // Android doesn't have the concept of 'user'. 
+    // /data/data is non-root writable.
+    dir = "/data/data/";
+#else
     struct passwd *passwd = NULL;
     if ( passwd = getpwuid( uid ) )
     {
@@ -87,6 +92,7 @@ void CUnixPrefUtils::GetUserHomeDirectory(uid_t uid, CHXString &dir)
 	    dir = "/tmp/";
 	}
     }
+#endif
 }
 
 void CUnixPrefUtils::GetPrefPath(char* pszPrefPath, int nLength, const char* pszCompanyName)

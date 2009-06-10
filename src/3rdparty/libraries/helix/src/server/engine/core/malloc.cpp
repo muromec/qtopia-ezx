@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: malloc.cpp,v 1.24 2007/03/05 23:24:05 atin Exp $
+ * Source last modified: $Id: malloc.cpp,v 1.28 2009/04/29 19:59:58 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -46,7 +46,8 @@
 #include "hxassert.h"
 #include "mutex.h"
 #include "trace.h"
-
+#include "atomicbase.h"
+#include "servertrace.h"
 
 #ifdef _WIN32
 #  include "hlxclib/windows.h"
@@ -56,6 +57,7 @@ extern BOOL* volatile g_pbTrackAllocs;
 extern BOOL* volatile g_pbTrackFrees;
 extern BOOL g_bLeakCheck;
 extern BOOL g_bNoAutoRestart;
+extern BOOL g_bServerGoingDown;
 
 //#define JMEVISSEN_PRINTF
 //#define SHMEM_VERIFY
@@ -77,6 +79,8 @@ _Page** g_pFirstPage;                   // Only init'd and used by ValidateMemor
 _Page** g_pLastPage;                    // Mutex: FreeListLock
 _FreePage** g_pFreePageListBySize;      // Mutex: FreeListLock
 
+UINT32 SharedMemory::m_ulSingleMaxAllocation = SINGLE_MAX_MEMORY_ALLOCATION;
+
 extern void* g_pSecondHeapBottom;
 #ifdef _LINUX
 extern void* g_pSbrkHeapBottom;
@@ -84,6 +88,21 @@ extern void* g_pSbrkHeapTop;
 extern int   shared_ready;
 #endif // _LINUX
 
+// thread local storage of procnum
+#ifdef _WIN32
+extern __declspec(thread) HX_MUTEX g_pTLSBucketLock;                 // Level 1
+extern __declspec(thread) HX_MUTEX g_pTLSFreeListLock;               // Level 2
+extern __declspec(thread) HX_MUTEX g_pTLSSbrkLock;                   // Level 3
+#elif ((defined _LINUX && LINUX_EPOLL_SUPPORT) || (defined _SOLARIS && defined DEV_POLL_SUPPORT)) && defined PTHREADS_SUPPORTED
+__thread BOOL g_bTLSOnce = FALSE;
+extern __thread HX_MUTEX g_pTLSBucketLock;                 // Level 1
+extern __thread HX_MUTEX g_pTLSFreeListLock;               // Level 2
+extern __thread HX_MUTEX g_pTLSSbrkLock;                   // Level 3
+#else
+extern HX_MUTEX g_pTLSBucketLock;                 // Level 1
+extern HX_MUTEX g_pTLSFreeListLock;               // Level 2
+extern HX_MUTEX g_pTLSSbrkLock;                   // Level 3
+#endif // _WIN32
 
 #ifdef AREA51_ENABLED
 Area51PageHeader** g_pArea51FreePages;  // Mutex: Area51Lock
@@ -494,11 +513,21 @@ SharedMemory::hx_malloc(size_t nbytes)
 
     if (nbytes >> 4 > 65047)
     {
+        if (nbytes > m_ulSingleMaxAllocation)
+        {
+            ServerTrace::Print("Huge Memory Allocation Request", "Memory Requested: %lu MB\n"
+                "The memory allocator is configured to allocate up to %lu MB per request.\n"
+                "This limit can be increased by adding \"SingleMaxMemoryAllocation\" to the config\n"
+                "file with a higher value in MB.\n", nbytes >> 20, m_ulSingleMaxAllocation >> 20);
+            return NULL;
+        }
+
         size_t allocation = pageround(nbytes + sizeof(_InUseBigPage) + sizeof(_Block));
         UINT32 allocPages = allocation >> PAGESIZE_OFFSET;
         _InUseBigPage* pPage = NULL;
 
         HXMutexLock(g_pFreeListLock);
+	g_pTLSFreeListLock = g_pFreeListLock;
 
         // is there a big enough page in the free list already?
 
@@ -522,7 +551,9 @@ SharedMemory::hx_malloc(size_t nbytes)
         if (!pPage)
         {
             HXMutexLock(g_pSbrkLock);
+	    g_pTLSSbrkLock = g_pSbrkLock;
             pPage = (_InUseBigPage*)(SharedMemory::sbrk(allocation));
+	    g_pTLSSbrkLock = 0;
             HXMutexUnlock(g_pSbrkLock);
 
             // link newly-allocated page into address-sorted global page list
@@ -543,6 +574,7 @@ SharedMemory::hx_malloc(size_t nbytes)
         _Block* pBlock = (_Block*)((PTR_INT)pPage + (int)sizeof(_InUseBigPage));
 
         pBlock->pPageHeader = (_InUsePage*) pPage;
+	g_pTLSFreeListLock = 0;
         HXMutexUnlock(g_pFreeListLock);
 
         return (void *)((PTR_INT)pBlock + (int)sizeof(_Block));
@@ -554,6 +586,7 @@ SharedMemory::hx_malloc(size_t nbytes)
     SHMEM_ASSERT(g_pBucketBlocksPerPage[bucket]);
 
     HXMutexLock(&g_pBucketLocks[bucket]);
+    g_pTLSBucketLock = &g_pBucketLocks[bucket];
 
     // If no block available, lay out a new page from either the free list
     // or from new (sbrk-returned) memory.
@@ -568,6 +601,7 @@ SharedMemory::hx_malloc(size_t nbytes)
         // is there a free page of the correct size?
 
         HXMutexLock(g_pFreeListLock);
+	g_pTLSFreeListLock = g_pFreeListLock;
 
         _FreePage* pFree = g_pFreePageListBySize[ulPageInd];
         if (pFree)
@@ -632,7 +666,10 @@ SharedMemory::hx_malloc(size_t nbytes)
             // No, get a totally new one at the end of memory
 
             HXMutexLock(g_pSbrkLock);
-            pPage = (_InUsePage *)SharedMemory::sbrk(ulSize);
+	    g_pTLSSbrkLock = g_pSbrkLock;
+
+            pPage = (_InUsePage *)SharedMemory::sbrk(ulSize, bucket);
+	    g_pTLSSbrkLock = 0;
             HXMutexUnlock(g_pSbrkLock);
 
             // link newly-allocated page into address-sorted global page list
@@ -665,6 +702,7 @@ SharedMemory::hx_malloc(size_t nbytes)
         }
 
         *g_pPagesAllocated += g_pBucketPageSize[bucket];
+	g_pTLSFreeListLock = 0;
         HXMutexUnlock(g_pFreeListLock);
 
         // Lay out unallocated blocks on page, and add them to bucket.
@@ -758,6 +796,7 @@ SharedMemory::hx_malloc(size_t nbytes)
     }
     g_pBuckets[bucket] = pBlock;
 
+    g_pTLSBucketLock = 0;
     HXMutexUnlock(&g_pBucketLocks[bucket]);
     return ret;
 }
@@ -783,6 +822,7 @@ SharedMemory::hx_free(void *cp)
     }
 
     HXMutexLock(&g_pBucketLocks[ulBucketNumber]);
+    g_pTLSBucketLock = &g_pBucketLocks[ulBucketNumber];
 
 #ifdef MEMORY_SCRIBBLE_VALIDATE_ENABLED
     HX_ASSERT(pBlock->pBlockFlags & MEMORY_BLOCK_IN_USE);
@@ -855,6 +895,7 @@ SharedMemory::hx_free(void *cp)
     }
 #endif //_EFENCE_ALLOC
 
+    g_pTLSBucketLock = 0;
     HXMutexUnlock(&g_pBucketLocks[ulBucketNumber]);
 }
 
@@ -980,6 +1021,7 @@ SharedMemory::ReclaimPage(_InUsePage* pPage)
 #endif
 
     HXMutexLock(g_pFreeListLock);
+    g_pTLSFreeListLock = g_pFreeListLock;
 
     // the last bucket doesn't have a bucket list... it's for big allocations
     // that are done case-by-case outside the fast-allocation scheme.
@@ -1120,6 +1162,7 @@ SharedMemory::ReclaimPage(_InUsePage* pPage)
     }
     g_pFreePageListBySize[sizeInd] = pFree;
 
+    g_pTLSFreeListLock = 0;
     HXMutexUnlock(g_pFreeListLock);
 
 #ifdef JMEVISSEN_PRINTF
@@ -1200,6 +1243,7 @@ SharedMemory::ReclaimByAge(INT32 age, INT32 bucket)
     ASSERT(now);
 
     HXMutexLock(&g_pBucketLocks[bucket]);
+    g_pTLSBucketLock = &g_pBucketLocks[bucket];
 
     _FreeBlock* block = g_pBuckets[bucket];
     while (block)
@@ -1221,6 +1265,7 @@ SharedMemory::ReclaimByAge(INT32 age, INT32 bucket)
         block = next;
     }
 
+    g_pTLSBucketLock = 0;
     HXMutexUnlock(&g_pBucketLocks[bucket]);
     return retval;
 }
@@ -1338,10 +1383,12 @@ SharedMemory::malloc(INT32 size)
     {
         if (size > 65535)
         {
-            g_pSizes[65535]++;
+            HXAtomicIncUINT32(&(g_pSizes[65535]));
         }
         else
-            g_pSizes[size]++;
+        {
+            HXAtomicIncUINT32(&(g_pSizes[size]));
+        }
     }
 #if defined HEAP_VALIDATE
     size = size + 2 * MEM_GUARD_SIZE;
@@ -1397,6 +1444,22 @@ SharedMemory::malloc(INT32 size)
     char* ret = (char *)hx_malloc(size);
 #endif
 
+    if (ret == NULL)
+    {
+        if (g_pSizes)
+        {
+            if (size > 65535)
+            {
+                HXAtomicDecUINT32(&(g_pSizes[65535]));
+            }
+            else
+            {
+                HXAtomicDecUINT32(&(g_pSizes[size]));
+            }
+        }
+        return ret;
+    }
+
 #if defined PAULM_ALLOCTRACK
     if(*self->ogre_debug && *g_pbTrackAllocs)
     {
@@ -1433,6 +1496,7 @@ SharedMemory::malloc(INT32 size)
         }
     }
 #endif
+
 #ifdef MEMORY_SCRIBBLE_VALIDATE_ENABLED
     char* ptr = ret;
 #endif //MEMORY_SCRIBBLE_VALIDATE_ENABLED
@@ -1626,6 +1690,7 @@ SharedMemory::free(char *ptr)
         }
     }
 #endif
+
 #ifdef MEMORY_SCRIBBLE_VALIDATE_ENABLED
 #ifdef _EFENCE_ALLOC
     _Block* pBlock = (_Block*)(ptr - efence_offset - sizeof(_Block));
@@ -1728,6 +1793,8 @@ SharedMemory::free(char *ptr)
     {
 #if defined HEAP_VALIDATE
         size = size - 2 * MEM_GUARD_SIZE;
+#else
+        size -= sizeof(INT32) * 2;
 #endif
 
         if (size > 65535)
@@ -1737,7 +1804,7 @@ SharedMemory::free(char *ptr)
 
         if (g_pSizes[size])
         {
-            g_pSizes[size]--;
+            HXAtomicDecUINT32(&(g_pSizes[size]));
         }
     }
 }
@@ -1932,6 +1999,8 @@ SharedMemory::setogredebug(BOOL set)
 
 #endif
 
+#define SIZEMAPLOG "memoryleak.log"
+
 void
 SharedMemory::reportsizes()
 {
@@ -1940,7 +2009,7 @@ SharedMemory::reportsizes()
         return;
     }
 
-    FILE* f = fopen("memoryleak.log", "a");
+    FILE* f = fopen(SIZEMAPLOG, "a");
 
     if (!f)
     {
@@ -1948,15 +2017,39 @@ SharedMemory::reportsizes()
     }
 
     fprintf (f, "=========================================================\n");
-    fprintf (f, "Allocation SizeMap:\n");
+    fprintf (f, "*** Allocation SizeMap Dump\n");
+
+    char buffer[64];
+    struct tm tm;
+    HXTime now;
+    gettimeofday(&now, 0);
+    hx_localtime_r((const time_t *)&now.tv_sec, &tm);
+    strftime(buffer, sizeof buffer, "When: %d-%b-%y %H:%M:%S\n", &tm);
+    fprintf (f, "%s", buffer);
+    fprintf (f, "\n");
+
+    fprintf (f, "Size     Count     Memory\n");
+
+    UINT32 ulTotBuckets=0;
+    UINT32 ulTotAllocs=0;
+    UINT32 ulTotMem=0;
 
     for (INT32 i = 0; i < 65536; i++)
     {
-        if (g_pSizes[i])
+        UINT32 ulCount = g_pSizes[i];
+        if (ulCount)
         {
-            fprintf (f, "%5d\t%06ld\n", i, g_pSizes[i]);
+            fprintf (f, "%5d %8ld   %8ld bytes\n", i, ulCount, i * ulCount);
+            ulTotBuckets++;
+            ulTotAllocs += ulCount;
+            ulTotMem += i * ulCount;
         }
     }
+
+    //NOTE: "65535" includes all allocs >= size 65535, so the bytes will be under-counted.
+    fprintf (f, "TOTALS: %d sizes, %ld allocs, %ld bytes (approx.)\n", 
+        ulTotBuckets, ulTotAllocs, ulTotMem);
+
     fprintf (f, "=========================================================\n");
     fclose(f);
 }
@@ -1969,15 +2062,26 @@ SharedMemory::resetsizes()
         return;
     }
 
-    for (INT32 i = 0; i < 65536; i++)
-    {
-        g_pSizes[i] = 0;
-    }
+    memset (g_pSizes, 0, 65536 * sizeof(UINT32));
+
     g_bDoSizes = TRUE;
+
+    FILE* f = fopen(SIZEMAPLOG, "a");
+    if (f)
+    {
+        char buffer[64];
+        struct tm tm;
+        HXTime now;
+        gettimeofday(&now, 0);
+        hx_localtime_r((const time_t *)&now.tv_sec, &tm);
+        strftime(buffer, sizeof buffer, "*** Allocation SizeMap Reset at %d-%b-%y %H:%M:%S\n", &tm);
+        fprintf (f, "%s", buffer);
+        fclose(f);
+    }
 }
 
 void*
-SharedMemory::sbrk(UINT32 amt)
+SharedMemory::sbrk(UINT32 amt, UINT32 bucket)
 {
     BOOL bHaveMemory = TRUE;
 
@@ -1993,6 +2097,20 @@ SharedMemory::sbrk(UINT32 amt)
             HXAtomicAddUINT32(g_pTotalMemUsed, amt);
             *self->bytes_allocated = *self->bytes_allocated + amt;
             *self->bytes_remaining -= amt;
+            return pMem;
+        }
+        else if(!g_bServerGoingDown)
+        {
+            g_bServerGoingDown = TRUE;
+	    g_pTLSSbrkLock = 0;
+            HXMutexUnlock(g_pSbrkLock);
+	    g_pTLSFreeListLock = 0;
+            HXMutexUnlock(g_pFreeListLock);
+	    g_pTLSBucketLock = 0;
+            HXMutexUnlock(&g_pBucketLocks[bucket]);
+        }
+        else
+        {
             return pMem;
         }
     }
@@ -2174,6 +2292,7 @@ SharedMemory::ValidateSinglePage(_InUsePage* pPage, INT32 nPageNum, UINT32 ulFla
     UINT32 size;
 
     HXMutexLock(&g_pBucketLocks[bucket]);
+    g_pTLSBucketLock = &g_pBucketLocks[bucket];
 
     blocksInUse = pPage->ulBlocksInUse;
 
@@ -2225,6 +2344,7 @@ SharedMemory::ValidateSinglePage(_InUsePage* pPage, INT32 nPageNum, UINT32 ulFla
         pBlock = (_Block*)((PTR_INT)pBlock + sizeof(_Block) + blocksize);
     }
 
+    g_pTLSBucketLock = 0;
     HXMutexUnlock(&g_pBucketLocks[bucket]);
 
     // did the free-block count agree?
@@ -2407,6 +2527,7 @@ _ValidateBuckets()
     for (int i=0; i<SHMEM_NUM_BUCKETS; i++)
     {
         HXMutexLock(&g_pBucketLocks[i]);
+	g_pTLSBucketLock = &g_pBucketLocks[i];
 
         _FreeBlock* pBlock = g_pBuckets[i];
         _InUsePage* pLastPage = NULL;
@@ -2432,6 +2553,8 @@ _ValidateBuckets()
             }
             pBlock = pBlock->pNextInBucket;
         }
+
+	g_pTLSBucketLock = 0;
         HXMutexUnlock(&g_pBucketLocks[i]);
     }
 }
@@ -2442,6 +2565,7 @@ _ValidateFreeLists()
     // Validate that the free pages on the free lists match their size.
 
     HXMutexLock(g_pFreeListLock);
+    g_pTLSFreeListLock = g_pFreeListLock;
     for (unsigned int i=0; i<=MAX_PAGE_SIZE_PAGES; i++)
     {
 
@@ -2464,6 +2588,7 @@ _ValidateFreeLists()
             pPage = pPage->pFreePageNext;
         }
     }
+    g_pTLSFreeListLock = 0;
     HXMutexUnlock(g_pFreeListLock);
 }
 
@@ -2473,6 +2598,7 @@ _ValidatePageList()
     // only works in shared-memory case.  Validate linked-list of all pages.
 
     HXMutexLock(g_pFreeListLock);
+    g_pTLSFreeListLock = g_pFreeListLock;
 
     _Page* pPage = *g_pLastPage;
     UINT32 ulSize;
@@ -2498,6 +2624,7 @@ _ValidatePageList()
 
         pPage = pPrev;
     }
+    g_pTLSFreeListLock = 0;
     HXMutexUnlock(g_pFreeListLock);
 }
 #endif  // DEBUG

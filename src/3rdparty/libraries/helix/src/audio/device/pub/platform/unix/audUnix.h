@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audUnix.h,v 1.7 2006/02/23 22:32:48 ping Exp $
+ * Source last modified: $Id: audUnix.h,v 1.10 2008/07/16 13:35:02 vtyagi Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -289,8 +289,18 @@ class CAudioOutUNIX : public CHXAudioDevice
     IHXThread*	m_audioThread;
     HXBOOL      m_bUserWantsThreads;
     ULONG32	m_ulSleepTime;
+    IHXEvent*	m_pAvailableDataEvent;
 #endif    
+    ULONG32 m_ulALSAPeriodSize;
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+    CHXSimpleList	m_bufferList;
+    UINT32 m_ulByteCount;       /* Number of bytes in the buffer list*/
+    IHXCommonClassFactory* m_pCCF;
     
+    void ClearBufferList();
+    HX_RESULT AddToBufferList(IHXBuffer* pBuffer);
+    virtual ULONG32 _GetPeriodSize() { return 0;}	
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE    
   private:
     
     //protect the unintentional copy ctor.

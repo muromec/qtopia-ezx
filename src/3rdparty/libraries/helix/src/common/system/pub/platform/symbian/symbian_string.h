@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbian_string.h,v 1.2 2006/08/23 00:41:11 gashish Exp $
+ * Source last modified: $Id: symbian_string.h,v 1.4 2009/03/04 00:47:00 girish2080 Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -59,6 +59,14 @@
 #include "hxstring.h"
 #include "hxbuffer.h"
 
+#ifdef HELIX_CONFIG_SYMBIAN_GENERATE_MMP
+//Symbian MMP file does not support String constant definition using MACRO, 
+//so use STRINGIFY to get the string value of HELIX_DEFINE_DLL_NAMESPACE
+#define STRINGIFY(x) _STRINGIFY(x)
+#define _STRINGIFY(x) #x
+#else
+#define STRINGIFY(x) x
+#endif // HELIX_CONFIG_SYMBIAN_GENERATE_MMP
 
 namespace CHXSymbianString
 {
@@ -69,6 +77,14 @@ namespace CHXSymbianString
     CHXString DescToString(const TDesC& desc);
     HBufC* StringToHBuf(const CHXString& s);
     HBufC* AllocTextL(const CHXString& str);
+    //Prefix name space to a string descriptor 
+    HBufC* PrefixNameSpaceLC(const TDesC& aPath, const char* const aNameSpace);
+    void PrefixNameSpace(const TDesC& aPath, const char* const aNameSpace, TDes& aDllNamePath);
+
+	//Prefix HELIX_DEFINE_DLL_NAMESPACE to a string descriptor only if its defined
+    HBufC* PrefixNameSpaceLC(const TDesC& aPath);
+    void PrefixNameSpace(const TDesC& aPath, TDes& aDllNamePath);
+    void PrefixNameSpace(CHXString& aDest);
 }
 
 

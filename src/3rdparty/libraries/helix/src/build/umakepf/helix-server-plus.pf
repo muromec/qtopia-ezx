@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-server-plus.pf,v 1.14 2007/04/27 00:59:01 dcollins Exp $ 
+#  Source last modified: $Id: helix-server-plus.pf,v 1.17 2007/05/16 19:49:25 dcollins Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -76,6 +76,7 @@ project.AddDefines('HELIX_FEATURE_SERVER_BCNG')
 
 project.AddDefines('HELIX_FEATURE_SERVER_RMFF')
 project.AddDefines('HELIX_FEATURE_SERVER_MP4FF')
+project.AddDefines('HELIX_FEATURE_SERVER_SWFF')
 
 project.AddDefines('HELIX_FEATURE_HTTPFSYS_MEM_GROWTH_LIMIT')
 project.AddDefines('HELIX_FEATURE_LOGLEVEL_NONE') # client style logging OFF

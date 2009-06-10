@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxtime.h,v 1.8 2004/07/09 18:19:32 hubbe Exp $
+ * Source last modified: $Id: hxtime.h,v 1.10 2008/01/18 07:35:20 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -69,7 +69,7 @@
 
 class HXTime : public timeval {};
 
-#elif defined (_WINDOWS) || defined (_WIN32) || defined(_VXWORKS) || defined(_OPENWAVE)
+#elif defined (_WINDOWS) || defined (_WIN32) || defined(_VXWORKS) || defined(_OPENWAVE) || defined(_BREW)
 
 #       include "hlxclib/time.h"
 
@@ -110,9 +110,9 @@ class HXTime : public timeval {};
 #	error need to include time functions (and timeval).
 #endif /* _UNIX */
 
-#if defined (_WINDOWS) || defined (_WIN32) || defined (_MACINTOSH) || defined(_VXWORKS) || defined(_OPENWAVE)
+#if defined (_WINDOWS) || defined (_WIN32) || defined (_MACINTOSH) || defined(_VXWORKS) || defined(_OPENWAVE) || defined(_BREW)
 	int gettimeofday(HXTime* time, void* unused);
-#endif /* WINDOWS OR MAC*/
+#endif /* WINDOWS OR MAC OR BREW*/
 
 #if (defined _MACINTOSH)
 /* Mac time is secs since 1904 */

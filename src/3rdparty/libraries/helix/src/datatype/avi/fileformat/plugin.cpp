@@ -45,10 +45,11 @@
 #include "hxformt.h"
 #include "hxpends.h"
 #include "hxcore.h"
+#include "ihxfgbuf.h"
 #include "ihxtlogsystem.h"
 #include "ihxtlogsystemcontext.h"
 #include "hxdllaccess.h"
-#include "ihxfgbuf.h"
+#include "baseobj.h"
 
 #include "riff.h"
 #include "riffres.h"
@@ -62,12 +63,17 @@
 ENABLE_MULTILOAD_DLLACCESS_PATHS(Avifformat);
 #endif
 
-STDAPI ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppIUnknown)
+STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppIUnknown)
 {
     return CAVIFileFormat::HXCreateInstance(ppIUnknown);
 }
 
-STDAPI ENTRYPOINT(CanUnload)(void)
+STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(CanUnload2)(void)
 {
-    return CAVIFileFormat::CanUnload();
+    return (CHXBaseCountingObject::ObjectsActive() > 0 ? HXR_FAIL : HXR_OK);
+}
+
+STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(CanUnload)(void)
+{
+    return ENTRYPOINT(CanUnload2)();
 }

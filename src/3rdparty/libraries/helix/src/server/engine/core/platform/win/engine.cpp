@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: engine.cpp,v 1.3 2006/03/24 23:56:29 atin Exp $ 
+ * Source last modified: $Id: engine.cpp,v 1.4 2007/06/27 14:40:52 srao Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -45,7 +45,7 @@
 
 
 extern BOOL	terminated;
-
+extern BOOL g_bServerGoingDown;
 extern Engine** volatile g_ppLastEngine;
 
 void
@@ -54,8 +54,11 @@ Engine::KillSelect()
     char x = 0;
     if (send(m_sock, &x, 1, 0) < 0)
     {
-	printf("KillSelect: -- send() failed - error(%d)\n",
-	    WSAGetLastError());
+        if (!g_bServerGoingDown)
+        {
+            printf("KillSelect: -- send() failed - error(%d)\n",
+                WSAGetLastError());
+        }
     }
 }
 

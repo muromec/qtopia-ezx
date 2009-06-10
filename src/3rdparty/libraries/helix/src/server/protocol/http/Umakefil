@@ -1,6 +1,6 @@
 # -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.14 2006/12/21 18:48:11 tknox Exp $ 
+# Source last modified: $Id: Umakefil,v 1.17 2008/11/17 21:49:16 svaidhya Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -78,7 +78,8 @@ project.AddSources("httpprotmgr.cpp",
 		"httpprot.cpp",
 		"servhttppost.cpp",
 		"http_demux.cpp",
-                "servhttpmsg.cpp")
+        "servhttpmsg.cpp",
+        "httpbaseproto.cpp")
 
 if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
     project.AddModuleIncludes("server_rn/protocol/wmt/http/pub",
@@ -87,5 +88,12 @@ if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
 
 if "HELIX_FEATURE_SERVER_CLOAKV2" in project.defines:
     project.AddModuleIncludes("server_rn/protocol/cloakv2")
+
+if "HELIX_FEATURE_SERVER_CONTENT_MGMT" in project.defines:
+    project.AddModuleIncludes("server-restricted/protocol/http-ctrl/pub")
+        
+if "HELIX_FEATURE_SERVER_FCS" in project.defines:
+    project.AddModuleIncludes("server-restricted/protocol/http-ctrl/pub")
+
 
 LibraryTarget("servhttplib")

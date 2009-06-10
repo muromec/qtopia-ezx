@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: math.h,v 1.3 2004/07/09 18:21:09 hubbe Exp $
+ * Source last modified: $Id: math.h,v 1.5 2008/01/18 09:17:27 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,10 +57,81 @@
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
 
+#if !defined (_BREW) 
 #include <math.h>
+#endif
 
 #ifdef LIMITS_UNDEF_WIN32
 #undef _WIN32
 #undef LIMITS_UNDEF_WIN32
 #endif /* LIMITS_UNDEF_WIN32 */
+
+#ifdef _BREW
+#include "hlxclib/stdio.h"
+#include "AEEStdlib.h"
+#endif
+
+#if defined(_BREW)
+
+HLX_INLINE double
+floor(double num)
+{
+    return FFLOOR(num);
+}
+
+HLX_INLINE double 
+ceil(double num)
+{
+    return FCEIL(num);
+}
+
+HLX_INLINE double
+exp(double num)
+{
+    return FPOW(2.71, num);
+}
+
+HLX_INLINE double
+sqrt(double num)
+{
+    return FSQRT(num);
+}
+
+HLX_INLINE double
+cos(double num)
+{
+    return FCOS(num);
+}
+
+HLX_INLINE double
+sin(double num)
+{
+    return FSIN(num);
+}
+
+HLX_INLINE double
+pow(double num1, double num2)
+{
+    return FPOW(num1, num2);
+}
+
+HLX_INLINE double
+fabs( double num )
+{
+    return FABS(num);
+}
+
+HLX_INLINE double
+copysign(double x, double y)
+{
+    return(((x<0 && y>0)||(x>0 && y<0))? (-x) : x);
+}
+
+HLX_INLINE int
+abs(int num)
+{
+    return ABS(num);
+}
+
+#endif //_BREW
 #endif /* HLXSYS_MATH_H */

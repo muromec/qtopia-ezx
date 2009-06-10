@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxurl.h,v 1.19 2006/11/29 14:56:44 ehyche Exp $
+ * Source last modified: $Id: hxurl.h,v 1.22 2009/03/11 05:06:51 gvalverde Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -90,6 +90,7 @@
 #define PROPERTY_FRAGMENT	"fragment"
 #define PROPERTY_USERNAME	"username"
 #define PROPERTY_PASSWORD	"password"
+#define PROPERTY_EXTENSION      "extension"
 
 enum 
 {
@@ -167,7 +168,7 @@ private:
     IHXValues*	m_pProperties;
     IHXValues*	m_pOptions;
     IHXCommonClassFactory* m_pCCF;
-
+    IUnknown*   m_pContext;
 
 };
 

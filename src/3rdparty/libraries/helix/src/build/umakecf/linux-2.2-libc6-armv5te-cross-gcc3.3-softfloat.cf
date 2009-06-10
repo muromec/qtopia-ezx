@@ -64,9 +64,9 @@
 
 exec_config_file('linux-2.2-libc6-armv4l-cross-gcc3.2.cf') 
 
-platform.cc.cmd = 'iwmmxt_le-gcc'
-platform.cxx.cmd = 'iwmmxt_le-g++'
-platform.link.xplatform = "iwmmxt_le-"
+platform.cc.cmd = 'arm-iwmmxt-linux-gnu-gcc'
+platform.cxx.cmd = 'arm-iwmmxt-linux-gnu-g++'
+platform.link.xplatform = "arm-iwmmxt-linux-gnu-"
 
 
 platform.cc.args["default"] = \

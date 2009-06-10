@@ -101,7 +101,7 @@ protected:
     //	Sends packets when have aged
     HX_RESULT SendPackets(BOOL bSendAll = FALSE, INT32 nStreamNumber = ALL_STREAMS);
     HX_RESULT SendPacketsForStream(BOOL bSendAll, INT32 nStreamNumber);
-    HX_RESULT CreateLostPacket(UINT32 ulStream, InOrderPacketDeliveryEntry* pQueueEntry);
+    HX_RESULT CreateLostPacket(UINT32 ulStream, CQueueEntry* pQueueEntry);
 
     BOOL m_bInitialized;
 
@@ -121,7 +121,7 @@ protected:
     CPacketAgedCallback** m_ppPacketAgedCallback;
 
     //	Queue implementation for ordering packets
-    CInOrderPacketDeliveryQueue* m_pqueueInOrderPacket;
+    CInorderPacketQueue* m_pqueueInOrderPacket;
 
 //#define _LOG_PACKET_ORDERING
 

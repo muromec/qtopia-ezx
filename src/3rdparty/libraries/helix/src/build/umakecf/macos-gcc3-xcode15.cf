@@ -2,7 +2,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: macos-gcc3-xcode15.cf,v 1.5 2006/04/24 23:34:08 jfinnecy Exp $ 
+#  Source last modified: $Id: macos-gcc3-xcode15.cf,v 1.7 2007/05/30 01:16:15 milko Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -90,9 +90,12 @@ if project.IsDefined('HELIX_CONFIG_MINIMIZE_SIZE'):
     w=string.replace(w,' -finline-functions','')
     w=string.replace(w,' -finline-limit=50','')
     platform.cxx.args['release'] = w
-
-    platform.cc.args['release'] = platform.cc.args['release'] + ' -fno-exceptions -fno-rtti '
-    platform.cxx.args['release'] = platform.cxx.args['release'] + '-fno-exceptions -fno-rtti '
+    if not project.IsDefined('HELIX_CONFIG_CPP_EXCEPTIONS'):
+    	platform.cc.args['release'] = platform.cc.args['release'] + ' -fno-exceptions '
+    	platform.cxx.args['release'] = platform.cxx.args['release'] + '-fno-exceptions '
+    if not project.IsDefined('HELIX_CONFIG_RTTI'):
+        platform.cc.args['release'] = platform.cc.args['release'] + ' -fno-rtti '
+        platform.cxx.args['release'] = platform.cxx.args['release'] + '-fno-rtti '
 
 
 

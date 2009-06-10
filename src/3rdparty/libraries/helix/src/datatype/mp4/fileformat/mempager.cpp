@@ -386,19 +386,6 @@ HX_RESULT CMemPager::HandleResponse(HX_RESULT status, IHXBuffer* pBuffer)
 
 
 /****************************************************************************
- *  IHXThreadSafeMethods method
- */
-/****************************************************************************
- *  IsThreadSafe
- */
-STDMETHODIMP_(UINT32)
-CMemPager::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FSR_READDONE;
-}
-
-
-/****************************************************************************
  *  IUnknown methods
  */
 /////////////////////////////////////////////////////////////////////////
@@ -417,12 +404,6 @@ STDMETHODIMP CMemPager::QueryInterface(REFIID riid, void** ppvObj)
     {
 	AddRef();
 	*ppvObj = this;
-	return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
-    {
-	AddRef();
-	*ppvObj = (IHXThreadSafeMethods*) this;
 	return HXR_OK;
     }
 

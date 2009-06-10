@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxhttp.h,v 1.2 2005/06/15 02:40:24 rggammon Exp $
+ * Source last modified: $Id: chxhttp.h,v 1.4 2007/07/13 16:56:03 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -80,8 +80,8 @@ public:
     // Client is responsible for supplying in pContext:
     // IHXPreferences - to supply proxy, timeout and HTTP cache preferences.
     // IHXErrorMessages - for error reporting (optional).
-    STDMETHOD_(BOOL,Initialize)		(THIS_ IUnknown* pContext);
-    STDMETHOD_(BOOL,Get)		(THIS_ const char* szURL);
+    STDMETHOD_(HXBOOL,Initialize)       (THIS_ IUnknown* pContext);
+    STDMETHOD_(HXBOOL,Get)		(THIS_ const char* szURL);
     STDMETHOD_(UINT32,GetBufferSize)	(THIS);
     STDMETHOD(SetBufferSize)		(THIS_ UINT32 nBufferSize);
     STDMETHOD(SetConnectionTimeout)	(THIS_ UINT32 nSeconds);
@@ -98,7 +98,7 @@ public:
     STDMETHOD(SendHTTPRequest)(THIS_ const char* szURL, UINT32 nPostDataSize, 
                                UINT32 nPosition, const char* pLastModified);
 
-    void SendOnGetDone(BOOL bSuccess);
+    void SendOnGetDone(HXBOOL bSuccess);
     void SendOnDataReceived(IHXBuffer* pBuffer);
     void SendOnHeaders(IHXValues* pHeaders);
 
@@ -110,7 +110,7 @@ public:
     IHXCommonClassFactory* m_pCCF;
     IHXHttpResponse*    m_pIHttpResponse; 
     IHXFileResponse*	m_pFileResponse; 
-    BOOL		m_bGetDoneSent; 
+    HXBOOL		m_bGetDoneSent; 
     IHXRequest*         m_pRequest; 
     IHXFileObject*      m_pFileObject; 
     UINT32		m_ulBufferSize;
@@ -118,18 +118,18 @@ public:
     IHXPlugin*          m_pHttpFS;
     IHXHTTPRedirectResponse* m_pRedirectResponse;
 
-    BOOL		m_bIsHttpPost;
+    HXBOOL		m_bIsHttpPost;
 
     // Buffer retrieved from client is stored in case we need to resend it
     IHXBuffer*		m_pPostDataBuffer;
 
-    BOOL                m_bInitialized;
+    HXBOOL              m_bInitialized;
 
     HX_RESULT           m_statResult;
     UINT32		m_nContentLength;
     UINT32              m_nBytesWritten;
     UINT32              m_nTotalBytesToRead;
-    BOOL                m_bChunkedResponse;
+    HXBOOL              m_bChunkedResponse;
 };
 
 class CHXHttpFileResponse : public IHXFileResponse,
@@ -180,7 +180,7 @@ class CHXHttpFileResponse : public IHXFileResponse,
 
  private:
     CHXHttp*	        m_pHttp;
-    BOOL                m_bReadSucceeded;
+    HXBOOL              m_bReadSucceeded;
 };
 
 #endif // _CHXHTTP_H_

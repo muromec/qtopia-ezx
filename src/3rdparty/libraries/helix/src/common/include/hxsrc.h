@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsrc.h,v 1.6 2004/11/08 19:43:26 hwatson Exp $
+ * Source last modified: $Id: hxsrc.h,v 1.9 2009/02/09 23:24:52 dcollins Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,11 +53,13 @@
 /*
  * Forward declarations of some interfaces defined or used here-in.
  */
-typedef _INTERFACE	IHXRawSourceObject		IHXRawSourceObject;
-typedef _INTERFACE	IHXRawSinkObject		IHXRawSinkObject;
-typedef _INTERFACE	IHXSourceFinderObject		IHXSourceFinderObject;
-typedef _INTERFACE	IHXSourceFinderResponse	IHXSourceFinderResponse;
-typedef _INTERFACE	IHXRequest			IHXRequest;
+typedef _INTERFACE      IHXRawSourceObject		IHXRawSourceObject;
+typedef _INTERFACE      IHXRawSinkObject                IHXRawSinkObject;
+typedef _INTERFACE      IHXSourceFinderObject           IHXSourceFinderObject;
+typedef _INTERFACE      IHXSourceFinderResponse         IHXSourceFinderResponse;
+typedef _INTERFACE      IHXRequest                      IHXRequest;
+typedef _INTERFACE      IHXValues                       IHXValues;
+typedef _INTERFACE      IHXPacket                       IHXPacket;
 
 
 /****************************************************************************
@@ -329,6 +331,11 @@ DECLARE_INTERFACE_(IHXSourceFinderFileResponse, IUnknown)
 
 };
 
-
+#include "hxcomptr.h"
+DEFINE_SMART_PTR(IHXRawSourceObject)
+DEFINE_SMART_PTR(IHXRawSinkObject)
+DEFINE_SMART_PTR(IHXSourceFinderObject)
+DEFINE_SMART_PTR(IHXSourceFinderResponse)
+DEFINE_SMART_PTR(IHXSourceFinderFileResponse)
 
 #endif /* _HXSRC_H_ */

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxnetif.cpp,v 1.23 2006/03/08 19:17:01 ping Exp $
+ * Source last modified: $Id: hxnetif.cpp,v 1.26 2009/05/08 20:03:17 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -732,7 +732,8 @@ HXNetInterface::HXGetAdaptersInfo(CHXSimpleList*& pNetInterfaceList)
     }
 
     // allocate right amount of space for adapter info
-    pAdapterInfo = (PIP_ADAPTER_INFO)(new char[ulSize]);
+    char* pszAdapterInfo = new char[ulSize];
+    pAdapterInfo = (PIP_ADAPTER_INFO) pszAdapterInfo;
     if (!pAdapterInfo)
     {
 	rc = HXR_OUTOFMEMORY;
@@ -882,7 +883,8 @@ HXNetInterface::HXGetAdaptersInfo(CHXSimpleList*& pNetInterfaceList)
 
 cleanup:
 
-    HX_VECTOR_DELETE(pAdapterInfo);
+    HX_VECTOR_DELETE(pszAdapterInfo);
+    pAdapterInfo = NULL;
 
     return rc;
 }
@@ -1105,7 +1107,7 @@ void* NIThreadRoutine(void * pArg)
                                                                     &pHXNetInterface->m_overLapped))
 #else
 	// Overlapped param is not supported in wince 3.0 in the second param to NotifyAddrChange	
-	if(NO_ERROR == pHXNetInterface->_pNotifyAddrChange(&pHXNetInterface->m_hAddrChangeEvent, NULL))
+	if(NO_ERROR == pHXNetInterface->_pNotifyAddrChange(&pHXNetInterface->m_handle, NULL))
 #endif /* _WINCE */    
         {
             if (WaitForSingleObject(pHXNetInterface->m_hAddrChangeEvent, INFINITE) == WAIT_OBJECT_0 )

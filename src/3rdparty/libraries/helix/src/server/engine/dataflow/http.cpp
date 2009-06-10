@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http.cpp,v 1.18 2005/02/25 21:30:41 darrick Exp $
+ * Source last modified: $Id: http.cpp,v 1.23 2008/10/15 00:00:44 ckarusala Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -102,12 +102,6 @@ HTTPFileResponse::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXFileStatResponse*)this;
         return HXR_OK;
     }
-    else if(IsEqualIID(riid, IID_IHXThreadSafeMethods))
-    {
-        AddRef();
-        *ppvObj = (IHXThreadSafeMethods*)this;
-        return HXR_OK;
-    }
 
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
@@ -131,12 +125,6 @@ HTTPFileResponse::Release()
     return 0;
 }
 
-STDMETHODIMP_(UINT32)
-HTTPFileResponse::IsThreadSafe()
-{
-    return HX_THREADSAFE_METHOD_FSR_READDONE;
-}
-
 HTTPFileResponse::HTTPFileResponse(HTTP* h)
 {
     m_lRefCount = 0;
@@ -144,6 +132,13 @@ HTTPFileResponse::HTTPFileResponse(HTTP* h)
     m_pFileStat = 0;
     m_file_mime = 0;
     m_bDefunct  = 0;
+
+    // Copy the m_pFileObject and m_pClient from the HTTP object
+    // because if the m_pFileObject->Close() triggers CloseDone()
+    // on us asynchronously, then we will not have access to these
+    // members as HTTP object would have been destroyed by that time.
+    m_pHTTPFileObject = m_pHTTP->m_pFileObject;
+    m_pHTTPClient = m_pHTTP->m_pClient;
 }
 
 HTTPFileResponse::~HTTPFileResponse()
@@ -211,22 +206,17 @@ HTTPFileResponse::InitDone (HX_RESULT status)
 STDMETHODIMP
 HTTPFileResponse::CloseDone (HX_RESULT status)
 {
-    if (m_bDefunct)
-        return HXR_FAIL;
-
-    if(m_pHTTP->m_pFileObject)
+    if(m_pHTTPFileObject)
     {
-        m_pHTTP->m_pFileObject->Release();
-        m_pHTTP->m_pFileObject = NULL;
+        HX_RELEASE(m_pHTTPFileObject);
     }
 
-    if (m_pHTTP->m_pClient)
+    if (m_pHTTPClient)
     {
 #ifdef PAULM_CLIENTAR
-        REL_NOTIFY(m_pHTTP->m_pClient, 14);
+        REL_NOTIFY(m_pHTTPClient, 14);
 #endif
-        m_pHTTP->m_pClient->Release();
-        m_pHTTP->m_pClient = NULL;
+        HX_RELEASE(m_pHTTPClient);
     }
 
     return HXR_OK;
@@ -361,7 +351,7 @@ HTTPFileResponse::MimeTypeFound(HX_RESULT status,
     return HXR_OK;
 }
 
-HTTP::HTTP(IHXSocket* pSock, HTTPProtocol* pProtocol, Client* pClient) :
+HTTP::HTTP(IHXSocket* pSock, HTTPBaseProtocol* pProtocol, Client* pClient) :
     m_url(NULL),
     m_pRequestContextCurrent(NULL),
     m_pChallengeResponseRequester(NULL),
@@ -552,7 +542,7 @@ HTTP::InitFileSystem(BOOL bAutoRedirect)
     m_pFSMR = new HTTPFileSystemManagerResponse(this);
     m_pFSMR->AddRef();
 
-    m_FSManager = new FSManager(m_pClient->proc);
+    m_FSManager = new FSManager(m_pClient->m_pProc);
     m_FSManager->AddRef();
 
     if (!bAutoRedirect)
@@ -722,53 +712,8 @@ HTTP::http_post_done()
     return HXR_OK;
 }
 
-
-STDMETHODIMP
-HTTPFileSystemManagerResponse::QueryInterface(REFIID riid, void** ppvObj)
-{
-    if(IsEqualIID(riid, IID_IUnknown))
-    {
-        AddRef();
-        *ppvObj = (IUnknown*)(IHXFileSystemManagerResponse*)this;
-        return HXR_OK;
-    }
-    else if(IsEqualIID(riid, IID_IHXFileSystemManagerResponse))
-    {
-        AddRef();
-        *ppvObj = (IHXFileSystemManagerResponse*)this;
-        return HXR_OK;
-    }
-    else if(IsEqualIID(riid, IID_IHXHTTPRedirectResponse))
-    {
-        AddRef();
-        *ppvObj = (IHXHTTPRedirectResponse*)this;
-        return HXR_OK;
-    }
-
-    *ppvObj = NULL;
-    return HXR_NOINTERFACE;
-}
-
-STDMETHODIMP_(ULONG32)
-HTTPFileSystemManagerResponse::AddRef()
-{
-    return InterlockedIncrement(&m_lRefCount);
-}
-
-STDMETHODIMP_(ULONG32)
-HTTPFileSystemManagerResponse::Release()
-{
-    if (InterlockedDecrement(&m_lRefCount) > 0)
-    {
-        return m_lRefCount;
-    }
-
-    delete this;
-    return 0;
-}
-
-STDMETHODIMP_(BOOL)
-HTTPFileSystemManagerResponse::IsAccessAllowed(char* url, char*** HTTP_paths)
+BOOL
+HTTP::IsAccessAllowed(char* url, char*** HTTP_paths)
 {
     BOOL bOK = TRUE;
 
@@ -884,6 +829,50 @@ HTTPFileSystemManagerResponse::IsAccessAllowed(char* url, char*** HTTP_paths)
 }
 
 STDMETHODIMP
+HTTPFileSystemManagerResponse::QueryInterface(REFIID riid, void** ppvObj)
+{
+    if(IsEqualIID(riid, IID_IUnknown))
+    {
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXFileSystemManagerResponse*)this;
+        return HXR_OK;
+    }
+    else if(IsEqualIID(riid, IID_IHXFileSystemManagerResponse))
+    {
+        AddRef();
+        *ppvObj = (IHXFileSystemManagerResponse*)this;
+        return HXR_OK;
+    }
+    else if(IsEqualIID(riid, IID_IHXHTTPRedirectResponse))
+    {
+        AddRef();
+        *ppvObj = (IHXHTTPRedirectResponse*)this;
+        return HXR_OK;
+    }
+
+    *ppvObj = NULL;
+    return HXR_NOINTERFACE;
+}
+
+STDMETHODIMP_(ULONG32)
+HTTPFileSystemManagerResponse::AddRef()
+{
+    return InterlockedIncrement(&m_lRefCount);
+}
+
+STDMETHODIMP_(ULONG32)
+HTTPFileSystemManagerResponse::Release()
+{
+    if (InterlockedDecrement(&m_lRefCount) > 0)
+    {
+        return m_lRefCount;
+    }
+
+    delete this;
+    return 0;
+}
+
+STDMETHODIMP
 HTTPFileSystemManagerResponse::InitDone(HX_RESULT status)
 {
     DPRINTF(D_INFO, ("HTTPFSMR::InitDone\n"));
@@ -894,7 +883,7 @@ HTTPFileSystemManagerResponse::InitDone(HX_RESULT status)
 
         if (m_pHTTP->m_state == HS_GetInit)
         {
-            if (!IsAccessAllowed(m_pHTTP->m_url, m_pHTTP->m_pClient->proc->pc->HTTP_deliver_paths))
+            if (!HTTP::IsAccessAllowed(m_pHTTP->m_url, m_pHTTP->m_pClient->m_pProc->pc->HTTP_deliver_paths))
             {
                 if (!m_pHTTP || !m_pHTTP->m_pFSMR)
                 {
@@ -906,7 +895,7 @@ HTTPFileSystemManagerResponse::InitDone(HX_RESULT status)
         }
         else if (m_pHTTP->m_state == HS_PostInit)
         {
-            if (!IsAccessAllowed(m_pHTTP->m_url, m_pHTTP->m_pClient->proc->pc->HTTP_postable_paths))
+            if (!HTTP::IsAccessAllowed(m_pHTTP->m_url, m_pHTTP->m_pClient->m_pProc->pc->HTTP_postable_paths))
             {
                 if (!m_pHTTP || !m_pHTTP->m_pFSMR)
                 {

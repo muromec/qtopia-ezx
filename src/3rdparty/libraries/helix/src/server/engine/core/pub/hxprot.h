@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxprot.h,v 1.17 2006/10/03 23:19:07 tknox Exp $
+ * Source last modified: $Id: hxprot.h,v 1.19 2007/05/23 18:53:06 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -50,8 +50,7 @@ class  Transport;
 #include "hxcom.h"
 #include "hxresult.h"
 #include "srcerrs.h"
-
-#include "player.h"
+#include "clientsession.h"
 
 class HXProtocol
 {
@@ -63,14 +62,14 @@ public:
 
     virtual void        init(Process* proc, IHXSocket* pSock) = 0;
     virtual int         setupHeader(IHXValues* pHeader,
-                                    Player::Session* pSession,
+                                    ClientSession* pSession,
                                     HX_RESULT status);
     virtual int         addToHeader(const char* pName, IHXBuffer* pValue)
                         {
                             return -1;
                         };
     virtual int         setupStreams(CHXSimpleList* headers,
-                                     Player::Session* pSession,
+                                     ClientSession* pSession,
                                      HX_RESULT result);
     virtual int         playDone(const char* pSessionID);
     virtual int         disconnect(const char* pSessionID);
@@ -81,7 +80,7 @@ public:
                                      UINT32 ulSecsFromNow);
     virtual int         sendProxyRedirect(const char* pSessionID,
                                      const char* pURL) { return HXR_NOTIMPL; }
-    virtual Transport*  getTransport(Player::Session* pSession,
+    virtual Transport*  getTransport(ClientSession* pSession,
                                      UINT16 streamNumber, UINT32 bIsReliable);
     virtual UINT32      controlBytesSent();
     /*
@@ -106,7 +105,7 @@ public:
     virtual void        SessionDone(const char* sessionID) {}
 
     virtual void        SetScaleDone(HX_RESULT status,
-                                     Player::Session* pSession,
+                                     ClientSession* pSession,
                                      FIXED32 fScale) {}
 
     virtual void        SeekByPacketDone(HX_RESULT status, UINT32 ulStartingTimestamp) {}

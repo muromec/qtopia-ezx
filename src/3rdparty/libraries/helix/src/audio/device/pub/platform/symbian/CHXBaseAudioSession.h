@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXBaseAudioSession.h,v 1.2 2007/04/13 23:41:14 rrajesh Exp $
+ * Source last modified: $Id: CHXBaseAudioSession.h,v 1.3 2008/10/19 05:14:53 gajia Exp $
  * Copyright Notices: 
  *  
  * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
@@ -148,7 +148,7 @@ protected:
     void InitStoppedState();
     void InitClosedState();
     void Trans(State state);
-
+	TInt SetSecureOutput(HXBOOL bSecureAudio);
 
   protected:
     

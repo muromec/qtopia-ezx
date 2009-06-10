@@ -83,7 +83,7 @@ public:
 
     STDMETHOD(Flush)            (THIS);
 
-private:
+protected:
     HXConcatenatePayloadFormat();
     ~HXConcatenatePayloadFormat();
 

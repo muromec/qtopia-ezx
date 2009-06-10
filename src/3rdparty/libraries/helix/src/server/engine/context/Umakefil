@@ -1,5 +1,5 @@
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.11 2004/09/30 02:50:44 jc Exp $ 
+# Source last modified: $Id: Umakefil,v 1.13 2007/09/28 22:17:06 atin Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -67,12 +67,12 @@ project.AddModuleIncludes(
 	, "server/protocol/sap/pub"
 	, "server/protocol/http/pub"
 	, "server/qos/core/pub"
+	, "server/qos/transport/pub"
         , "server/capex/pub"
 	)
 
 project.AddSources(
-	"idist_lic_requester.cpp"
-	, "altserverproxy.cpp"
+	  "altserverproxy.cpp"
 	, "cdist_wrappers.cpp"
 	, "engine_desc_reg.cpp"
 	, "errhand.cpp"
@@ -84,6 +84,7 @@ project.AddSources(
 	, "hxclfact.cpp"
 	, "hxreg.cpp"
 	, "hxrdonly.cpp"
+	, "pkt_loss_discrim_alg.cpp"
 	, "server_control.cpp"
 	, "server_fork.cpp"
 	, "server_intrpm.cpp"

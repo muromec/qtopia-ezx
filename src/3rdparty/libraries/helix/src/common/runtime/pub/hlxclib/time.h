@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: time.h,v 1.18 2005/09/06 15:14:20 singerb Exp $
+ * Source last modified: $Id: time.h,v 1.21 2008/01/18 09:17:27 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -55,18 +55,23 @@
 #endif 
 
 #if defined(WIN32_PLATFORM_PSPC)
-#if _WIN32_WCE < 420
 # include "hxtypes.h"
 # include "hlxclib/windows.h"
-#else
+#if _WIN32_WCE >= 420
 #include <time.h>
 #endif
-#elif !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE)
+#elif !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE) && !defined(_BREW)
 # include <time.h>
 #endif /* !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE) */
 
 #if defined(_OPENWAVE)
 # include "platform/openwave/hx_op_timeutil.h"
+#endif
+
+#if defined(_BREW)
+#include "hxtypes.h"
+#include "AEETime.h"
+#include "hxassert.h"
 #endif
 
 #if !defined(_REENTRANT) || defined(_WIN32)
@@ -93,10 +98,8 @@ struct timeval {
 	time_t tv_usec;
 };
 
+#elif defined(_BREW) || (defined(WIN32_PLATFORM_PSPC) && (_WIN32_WCE < 420))
 
-#elif defined(WIN32_PLATFORM_PSPC)
-
-#if _WIN32_WCE < 420
 struct tm {
     int tm_sec;
     int tm_min;
@@ -108,8 +111,10 @@ struct tm {
     int tm_yday;
     int tm_isdst;
 };
-#endif
 
+#endif /* defined(_BREW) || defined(WIN32_PLATFORM_PSPC) && (_WIN32_WCE < 420) */
+
+#if defined(WIN32_PLATFORM_PSPC)
 #define timezone _timezone
 extern long _timezone;
 
@@ -252,6 +257,56 @@ struct tm* gmtime(time_t *timep)
 #define hx_asctime_r(tm,pRes)       ((char*)memcpy(pRes, asctime(tm), 26))
 #define hx_ctime_r(pClock,pRes)     ((char*)memcpy(pRes, asctime(localtime(pClock)), 26))
 #endif /* _REENTRANT */
+
+#if defined (_BREW)
+
+#define localtime(t)	__helix_gmtime(t) 
+typedef unsigned long time_t;
+typedef struct _SYSTEMTIME { 
+    UINT16 wYear; 
+    UINT16 wMonth; 
+    UINT16 wDayOfWeek; 
+    UINT16 wDay; 
+    UINT16 wHour; 
+    UINT16 wMinute; 
+    UINT16 wSecond; 
+    UINT16 wMilliseconds; 
+}SYSTEMTIME;
+
+#ifndef _CLOCK_T_DEFINED
+typedef long clock_t;
+#define _CLOCK_T_DEFINED
+#endif
+#ifndef CLOCKS_PER_SEC
+#define CLOCKS_PER_SEC  1000
+#endif
+
+#define strftime __helix_strftime
+
+HLX_INLINE long
+mktime(struct tm* tm)
+{
+    return __helix_mktime(tm);
+}
+
+long __helix_convertTime(SYSTEMTIME *pS, int *pDayOfYear);
+
+HLX_INLINE long
+time(long *t) 
+{
+    HX_ASSERT(0);
+    return 0;
+}
+
+HLX_INLINE
+struct tm* gmtime(time_t *timep)
+{
+    return __helix_gmtime((long*)timep);
+}
+
+size_t __helix_strftime(char *ptr,size_t maxsize,const char *format,const struct tm *timeptr);
+
+#endif //_BREW
 
 #ifdef __cplusplus
 };

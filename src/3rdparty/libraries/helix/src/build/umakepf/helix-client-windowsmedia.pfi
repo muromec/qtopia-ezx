@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-client-windowsmedia.pfi,v 1.5 2006/08/16 21:14:22 ehyche Exp $ 
+#  Source last modified: $Id: helix-client-windowsmedia.pfi,v 1.6 2007/08/07 19:42:22 yuryrp Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -73,6 +73,9 @@ project.AddDefines("HELIX_FEATURE_ASF_FILEFORMAT")
 # Windows Media Format 9.5 SDK on platforms 
 # that the SDK is supported (currently only Windows, of course)
 #project.AddDefines("HELIX_FEATURE_ASF_FILEFORMAT_WMFSDK")
+# build WM RTSP streaming library
+project.AddDefines("HELIX_FEATURE_ASF_FILEFORMAT_RTSP")
+#project.AddDefines("HELIX_FEATURE_ASF_FILEFORMAT_RTSP_AUTO_BW_DETECTION")
 
 #
 # Windows Media Audio related features

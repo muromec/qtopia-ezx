@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxxml.h,v 1.4 2005/03/14 19:27:09 bobclark Exp $
+ * Source last modified: $Id: hxxml.h,v 1.6 2009/02/20 20:07:16 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -145,7 +145,12 @@ DECLARE_INTERFACE_(IHXXMLParser, IUnknown)
      *	Purpose:
      *	    Parse the buffer calling any IHXXMLParserResponse methods as various
      *	    XML entities are parsed. The boolean bIsFinal should be set to TRUE
-     *	    when the last buffer to parse is passed to this method.
+     *	    when the last buffer to parse is passed to this method. Parse()
+     *      can be called multiple times without calling Close() and then
+     *      Init() again, even if bIsFinal is TRUE each time.
+     *
+     *      Also note that pBuffer should NOT be NULL terminated since
+     *      the NULL terminator is not considered part of the XML document.
      *	
      */
     STDMETHOD(Parse)	(THIS_
@@ -263,7 +268,8 @@ DECLARE_INTERFACE_(IHXXMLParserResponse, IUnknown)
      *	    IHXXMLParser::HandleCharacterData
      *	Purpose:
      *	    Called with stuff outside of tags
-     *	    Line/column numbers are for the start of the entity
+     *	    Line/column numbers are for the start of the entity.
+     *      Note that you CANNOT assume that pBuffer contains a NULL-terminated string.
      */
     STDMETHOD(HandleCharacterData)	(THIS_
 					IHXBuffer*	/*IN*/	pBuffer,

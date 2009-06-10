@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxthreadedsocket.cpp,v 1.19 2006/08/17 04:38:12 milko Exp $ 
+ * Source last modified: $Id: hxthreadedsocket.cpp,v 1.21 2008/12/02 14:00:10 gahluwalia Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 or later (the 
+ * terms of the GNU General Public License Version 2 (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -92,6 +92,9 @@ static const char HX_THIS_FILE[] = __FILE__;
 // com interface implementation
 BEGIN_INTERFACE_LIST(HXThreadedSocket)
     INTERFACE_LIST_ENTRY(IID_IHXSocket, IHXSocket)
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+    INTERFACE_LIST_ENTRY(IID_IHXSecureSocket, IHXSecureSocket)
+#endif
     INTERFACE_LIST_ENTRY(IID_IHXSocketResponse, IHXSocketResponse)
     INTERFACE_LIST_ENTRY(IID_IHXMulticastSocket, IHXMulticastSocket)
     INTERFACE_LIST_ENTRY(IID_IHXCallback, IHXCallback)
@@ -127,6 +130,51 @@ HXThreadedSocket::Create(IUnknown* pContext,
     return hr;
 }
 
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+HX_RESULT 
+HXThreadedSocket::CreateSecureSocket(IUnknown* pContext,
+                         IHXSecureSocket* pActualSock,
+                         IHXSecureSocket*& pThreadedSock)
+{
+    HX_ASSERT(pActualSock);
+
+    HX_RESULT hr = HXR_FAIL;
+        
+    HXThreadedSocket* pSock = new HXThreadedSocket();
+    if(pSock)
+    {
+        pSock->AddRef();
+        hr = pSock->DoConstructInit(pContext, pActualSock);
+        if( SUCCEEDED(hr))
+        {
+            hr = pSock->QueryInterface(IID_IHXSecureSocket, reinterpret_cast<void**>(&pThreadedSock));
+        }
+        HX_RELEASE(pSock);
+    }
+    else
+    {
+        hr = HXR_OUTOFMEMORY;
+    }
+   
+    return hr;
+}
+
+HX_RESULT HXThreadedSocket::DoConstructInit(IUnknown* pContext, IHXSecureSocket* pSecSock)
+{
+    HX_RESULT hr = HXR_OUTOFMEMORY;
+    HX_ASSERT(pContext);
+    HX_ASSERT(pSecSock);
+    IHXSocket* pSock = NULL;
+    pSecSock->QueryInterface(IID_IHXSocket, reinterpret_cast<void**>(&pSock));
+    if(pSock)
+    {
+        hr = DoConstructInit(pContext, pSock);
+    }
+    HX_RELEASE(pSock);
+    return hr;
+}
+
+#endif
 
 HXThreadedSocket::HXThreadedSocket() 
 : m_pSock(0)
@@ -140,6 +188,9 @@ HXThreadedSocket::HXThreadedSocket()
 , m_hCallback(0)
 , m_isResponseSafe(FALSE)
 , m_pSchedulerMutex(0)
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+,m_pSecureSock(0)
+#endif
 {
 }
 
@@ -1113,9 +1164,11 @@ HXThreadedSocket::Close()
     HX_RELEASE(m_pSchedulerMutex);
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pSock);
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+    HX_RELEASE(m_pSecureSock);
+#endif
     HX_RELEASE(m_pDriver);
     HX_RELEASE(m_pResponse);
-    
     m_state = TS_CLOSED;
     m_selectedEvents = 0;
 
@@ -1262,4 +1315,29 @@ HXThreadedSocket::SetAccessControl(IHXSocketAccessControl* pControl)
     return SendWait( AllocDispatch1(m_pSock, &IHXSocket::SetAccessControl, pControl) ); 
 }
 
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+STDMETHODIMP 
+HXThreadedSocket::SetClientCertificate(IHXList* pCertChain, IHXBuffer* pPrvKey)
+{
+   return SendWait( AllocDispatch2(m_pSecureSock, &IHXSecureSocket::SetClientCertificate, pCertChain, pPrvKey));
+}
+
+STDMETHODIMP
+HXThreadedSocket::InitSSL(IHXCertificateManager* pContext)
+{
+    return SendWait( AllocDispatch1(m_pSecureSock, &IHXSecureSocket::InitSSL, pContext));
+}
+
+STDMETHODIMP
+HXThreadedSocket::SetSessionID(IHXBuffer* pBuff)
+{
+    return SendWait( AllocDispatch1(m_pSecureSock, &IHXSecureSocket::SetSessionID, pBuff));
+}
+
+STDMETHODIMP
+HXThreadedSocket::GetSessionID(IHXBuffer** pBuff)
+{
+    return SendWait( AllocDispatch1(m_pSecureSock, &IHXSecureSocket::GetSessionID, pBuff));
+}
+#endif
 

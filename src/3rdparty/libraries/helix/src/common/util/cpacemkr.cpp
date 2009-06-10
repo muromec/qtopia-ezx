@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cpacemkr.cpp,v 1.13 2006/03/08 19:13:39 ping Exp $
+ * Source last modified: $Id: cpacemkr.cpp,v 1.15 2008/04/22 15:03:34 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,6 +64,8 @@
 #include "hxthread.h"
 #include "pckunpck.h"
 #include "cpacemkr.h"
+#define HELIX_FEATURE_LOGLEVEL_NONE // comment out to enable logging
+#include "hxtlogutil.h"
 
 #if defined(HELIX_CONFIG_NOSTATICS)
 # include "globals/hxglobals.h"
@@ -95,11 +97,14 @@ CVideoPaceMaker::CVideoPaceMaker(IUnknown* pContext)
     , m_lRefCount(0)
     , m_pContext(pContext)
 {
+    HX_ENABLE_LOGGING(m_pContext);
+    HXLOGL4(HXLOG_BVID, "CON CVideoPaceMaker %p", this);
     HX_ADDREF(m_pContext);
 }
 
 CVideoPaceMaker::~CVideoPaceMaker(void)
 {
+    HXLOGL4(HXLOG_BVID, "DES CVideoPaceMaker %p", this);
     if (m_pThread)
     {
         m_pThread->Exit(0);
@@ -121,6 +126,7 @@ STDMETHODIMP CVideoPaceMaker::Start(IHXPaceMakerResponse* pResponse,
 				    ULONG32 ulInterval,
 				    ULONG32 &ulId)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::Start(,lPriority=%ld,ulInterval=%lu,)",  this, lPriority, ulInterval);
     HX_RESULT retVal = HXR_UNEXPECTED;
 
     m_bActive = TRUE;
@@ -191,6 +197,7 @@ STDMETHODIMP CVideoPaceMaker::Start(IHXPaceMakerResponse* pResponse,
  */
 STDMETHODIMP CVideoPaceMaker::Stop(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::Stop()",  this);
     HX_RESULT retVal = HXR_UNEXPECTED;
 
     if (m_bActive)
@@ -208,11 +215,24 @@ STDMETHODIMP CVideoPaceMaker::Stop(void)
  */
 STDMETHODIMP CVideoPaceMaker::Suspend(HXBOOL bSuspend)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::Suspend(bSuspend=%lu)",  this, bSuspend);
     HX_RESULT retVal = HXR_UNEXPECTED;
 
+    // Overly complicated exclusive-OR test
     if ((!(m_bSuspend && bSuspend)) && (bSuspend || m_bSuspend))
     {
+        // If we are being resumed, then we need to
+        // signal the event since the thread is waiting forever
+        HXBOOL bSignal = m_bSuspend;
+        // Assign the new value
 	m_bSuspend = bSuspend;
+        // Are we supposed to signal?
+        if (bSignal && m_pEvent)
+        {
+            // Signal the event
+            m_pEvent->SignalEvent();
+        }
+        // Clear the return value
 	retVal = HXR_OK;
     }
 
@@ -222,6 +242,7 @@ STDMETHODIMP CVideoPaceMaker::Suspend(HXBOOL bSuspend)
 
 HX_RESULT CVideoPaceMaker::Signal(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::Signal()",  this);
     HX_RESULT retVal = HXR_UNEXPECTED;
 
     if (m_pEvent)
@@ -235,6 +256,7 @@ HX_RESULT CVideoPaceMaker::Signal(void)
 
 STDMETHODIMP CVideoPaceMaker::WaitForStop(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::WaitForStop() enter",  this);
     HX_RESULT retVal = HXR_FAIL;
     IHXEvent* pEvent = NULL;
 
@@ -251,12 +273,15 @@ STDMETHODIMP CVideoPaceMaker::WaitForStop(void)
 
     HX_RELEASE(pEvent);
 
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::WaitForStop() returns 0x%08x", this, retVal);
+
     return retVal;
 }
 
 
 STDMETHODIMP CVideoPaceMaker::WaitForSuspend(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::WaitForSuspend()", this);
     HX_RESULT retVal = HXR_FAIL;
     IHXEvent* pEvent = NULL;
 
@@ -273,12 +298,15 @@ STDMETHODIMP CVideoPaceMaker::WaitForSuspend(void)
 
     HX_RELEASE(pEvent);
 
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::WaitForSuspend() returns 0x%08x", this, retVal);
+
     return retVal;
 }
 
 
 STDMETHODIMP CVideoPaceMaker::SetPriority(LONG32 lPriority)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::SetPriority(lPriority=%ld)", this, lPriority);
     HX_RESULT retVal = HXR_UNEXPECTED;
 
     if (m_pThread)
@@ -292,6 +320,7 @@ STDMETHODIMP CVideoPaceMaker::SetPriority(LONG32 lPriority)
 
 STDMETHODIMP CVideoPaceMaker::SetInterval(ULONG32 ulInterval)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::SetInterval(ulInterval=%lu)", this, ulInterval);
     m_ulInterval = ulInterval;
 
     return HXR_OK;
@@ -305,6 +334,7 @@ STDMETHODIMP CVideoPaceMaker::SetInterval(ULONG32 ulInterval)
  */
 void CVideoPaceMaker::OnThreadStart(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::OnThreadStart()", this);
     HX_ASSERT(m_pResponse);
     HX_ASSERT(!m_pEvent);
 
@@ -322,6 +352,7 @@ void CVideoPaceMaker::OnThreadStart(void)
  */
 void CVideoPaceMaker::OnThreadEnd(void)
 {
+    HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::OnThreadEnd()", this);
     HX_ASSERT(m_pResponse);
 
     HX_RELEASE(m_pEvent);
@@ -348,25 +379,24 @@ void* CVideoPaceMaker::ThreadRoutine(void* pArg)
 
     do
     {
+        // Call the user's OnPace method
+        HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::ThreadRoutine() calling OnPace()", pThis);
 	pThis->m_bThreadIdle = FALSE;
 	pThis->m_pResponse->OnPace(pThis->m_ulId);
 	pThis->m_bThreadIdle = TRUE;
-	do
-	{
-	    if (pThis->m_pEvent->Wait(pThis->m_ulInterval) == HXR_OK)
+        // Check the user's suspend flag
+        pThis->m_bSuspended = pThis->m_bSuspend;
+        // Get the amount to wait
+        UINT32 ulWait = (pThis->m_bSuspended ? HX_EVENT_WAIT_FOREVER : pThis->m_ulInterval);
+        // Wait the specified time. If we are suspended, then
+        // we will wait forever, until we are resumed OR until
+        // the user signals the event.
+        HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::ThreadRoutine() enter Wait(%lu)", pThis, ulWait);
+        if (pThis->m_pEvent->Wait(ulWait) == HXR_OK)
 	    {
 		pThis->m_pEvent->ResetEvent();
 	    }
-
-	    if (pThis->m_bSuspend)
-	    {
-		pThis->m_bSuspended = TRUE;
-	    }
-	    else
-	    {
-		pThis->m_bSuspended = FALSE;
-	    }
-	} while (pThis->IsActive() && pThis->IsSuspended());
+        HXLOGL4(HXLOG_BVID, "CVideoPaceMaker[%p]::ThreadRoutine() leave Wait(%lu)", pThis, ulWait);
     } while (pThis->IsActive());
 
     pThis->OnThreadEnd();

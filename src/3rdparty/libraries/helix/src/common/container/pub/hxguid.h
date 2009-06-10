@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxguid.h,v 1.9 2006/10/30 21:59:46 gwright Exp $
+ * Source last modified: $Id: hxguid.h,v 1.12 2008/01/18 04:24:51 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,7 @@
 #include "hxcom.h"
 
 #if defined(HELIX_FEATURE_FULLGUID)
-#if defined _MACINTOSH || defined _UNIX || defined _SYMBIAN || defined _OPENWAVE
+#if defined _MACINTOSH || defined _UNIX || defined _SYMBIAN || defined _OPENWAVE || defined _WINCE || defined _BREW
 extern const GUID GUID_NULL;
 #endif
 #endif

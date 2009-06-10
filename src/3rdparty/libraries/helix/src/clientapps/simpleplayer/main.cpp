@@ -573,7 +573,10 @@ DoEvent()
 
     if(retval)
     {
+        ch = 0;
+#ifndef ANDROID
         read(0, &ch, 1);
+#endif
     }
     
 #elif defined(__TCS__)
@@ -1551,8 +1554,10 @@ extern  "C"     int helixmain( int argc, char *argv[] )
 #endif
 
 #ifdef _UNIX
+#ifndef ANDROID
     // Set the terminal to cbreak mode so that splay terminal commands work
     SetupTerminal();
+#endif
 #endif
     
     for (i = 1; i < argc; i++)
@@ -1944,7 +1949,7 @@ extern  "C"     int helixmain( int argc, char *argv[] )
         goto cleanup;
     }
 
-#if defined(USE_XWINDOWS)
+#if defined(USE_XWINDOWS) && defined(HELIX_FEATURE_VIDEO)
     XInitThreads();
 #endif
     

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxwintyp.h,v 1.6 2006/03/13 21:47:33 shy_ward Exp $
+ * Source last modified: $Id: hxwintyp.h,v 1.9 2007/07/06 20:43:42 jfinnecy Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -168,12 +168,22 @@ inline HXBOOL HXxRect_IsEmpty( const HXxRect& rect )
 	   ( rect.top  >= rect.bottom );
 }
 
+inline void HXxRect_Offset( HXxRect& rect, INT32 x, INT32 y )
+{
+    rect.left   += x;
+    rect.top    += y;
+    rect.right  += x;
+    rect.bottom += y;
+}
+
 inline void HXxRect_Intersection( const HXxRect& r1, const HXxRect& r2, HXxRect* result )
 {
     result->left   = ( r1.left   > r2.left   ) ? r1.left   : r2.left;
     result->top    = ( r1.top    > r2.top    ) ? r1.top    : r2.top;
     result->right  = ( r1.right  < r2.right  ) ? r1.right  : r2.right;
     result->bottom = ( r1.bottom < r2.bottom ) ? r1.bottom : r2.bottom;
+    result->left   = ( result->right > result->left) ? result->left : result->right;
+    result->top   = ( result->bottom > result->top) ? result->top : result->bottom;
 }
 
 inline void HXxRect_Set( HXxRect& rect, INT32 l, INT32 t, INT32 r, INT32 b )
@@ -190,6 +200,14 @@ inline void HXxRect_SetWithSize( HXxRect& rect, INT32 x, INT32 y, INT32 w, INT32
     rect.top = y;
     rect.right = x + w;
     rect.bottom = y + h;
+}
+
+inline HXBOOL HXxRect_IsBounding( HXxRect& rect, INT32 x, INT32 y )
+{
+    return ((rect.left <= x) &&
+	    (rect.right > x) &&
+	    (rect.top <= y) &&
+	    (rect.bottom > y));
 }
 
 #endif // __cplusplus

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: plgnhand.h,v 1.6 2004/08/23 19:07:04 jgordon Exp $ 
+ * Source last modified: $Id: plgnhand.h,v 1.9 2007/07/04 14:17:02 imakandar Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -44,6 +44,9 @@
 #ifdef _WINCE
 #include <sys/stat.h>
 #endif
+
+#include "hxcomm.h"
+#include "hxerror.h"
 
 struct IUnknown;
 struct IHXBuffer;
@@ -452,6 +455,13 @@ public:
 						  char** ppszCopyright,
 						  char** ppszMoreInfo,
 						  BOOL*  pbMultiple);
+
+    void GetErrorHandler(IHXErrorMessages*& pErrorHandler)
+    {
+        pErrorHandler = m_pErrorMessages;
+        pErrorHandler->AddRef();
+    }
+
 	
     BOOL			    m_load_multiple;
     BOOL			    m_generic;
@@ -529,6 +539,15 @@ public:
 	public:
 	    Plugin*		  	m_pPlugin;
 	    UINT32			m_ulID;
+
+        // MountPointHandler need BasePath & MountPointSearchOrder properties
+        // present in m_options data-member.
+        void GetOptions(IHXValues*& pOptions) 
+        {
+            pOptions = m_options;
+            pOptions->AddRef();
+        }
+
 	private:
 	    static UINT32		m_cNextID;
 	    PluginInfo();
@@ -540,12 +559,12 @@ public:
 	    CHXString			m_mount_point;
 	    CHXString			m_szProtocol;
 	    CHXString			m_szShortName;
-	    IHXValues*                 m_options;
+        IHXValues*          m_options;
 	};
 
 
-	Errors			    StoreToRegistry(IHXPreferences** ppRegistry);
-	Errors			    ReadFromRegistry(IHXPreferences* pRegistry);
+    Errors			    StoreToRegistry(IHXPreferences** ppRegistry);
+    Errors			    ReadFromRegistry(IHXPreferences* pRegistry);
 
 	Errors			    Find(const char*	pszFilePath,
 					 const char*	pszProtocol,

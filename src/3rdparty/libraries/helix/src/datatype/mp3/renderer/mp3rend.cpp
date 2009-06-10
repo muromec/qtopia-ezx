@@ -826,6 +826,47 @@ CRnMp3Ren::OnEndofPackets(void)
     if(m_pDefaultPacketHookHelper)
 	m_pDefaultPacketHookHelper->OnEndOfPackets();
 
+    if (m_pStream)
+    {
+        IHXLayoutStream* pLayoutStream = NULL;
+        m_pStream->QueryInterface(IID_IHXLayoutStream, (void**) &pLayoutStream);
+        if (pLayoutStream)
+        {
+            IHXValues* pProps = NULL;
+            pLayoutStream->GetProperties(pProps);
+            if (pProps)
+            {
+                UINT32 ulStreamDuration = 0;
+                // Compute a new duration
+                UINT32 ulLastPacketDuration = UINT32(m_pPacketParser->GetLastPCMTime() + m_pPacketParser->GetTimePerPkt());
+                if (FAILED(pProps->GetPropertyULONG32("Duration", ulStreamDuration)))
+                {
+                    if (m_pHeader)
+                    {
+                        if (FAILED(m_pHeader->GetPropertyULONG32("Duration", ulStreamDuration)))
+                        {
+                            ulStreamDuration = ulLastPacketDuration;
+                        }
+                    }
+                    else
+                    {
+                        ulStreamDuration = ulLastPacketDuration;
+                    }
+                }
+                if (ulStreamDuration >= ulLastPacketDuration)
+                {
+                    // Set the duration
+                    pProps->SetPropertyULONG32("Duration", ulLastPacketDuration);
+                    // Set the properties back into the layout stream
+                    HXLOGL3(HXLOG_MP3X, "Calling LayoutStream with new new Duration = %lu", ulLastPacketDuration);
+                    pLayoutStream->SetProperties(pProps);
+                }
+            }
+            HX_RELEASE(pProps);
+        }
+        HX_RELEASE(pLayoutStream);
+    }
+
     return HXR_OK;
 }
 

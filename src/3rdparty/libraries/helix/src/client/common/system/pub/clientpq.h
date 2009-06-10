@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: clientpq.h,v 1.5 2006/02/16 23:07:06 ping Exp $
+ * Source last modified: $Id: clientpq.h,v 1.8 2008/09/07 11:14:32 pbasic Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -67,7 +67,12 @@ class HXMutex;
 class ClientPQ : public PQ
 {
 public:
-    ClientPQ(IUnknown* pContext, CHXID* pIds = NULL);
+    // IMPORTANT: If externally created CHXID object is passed into constructor, make sure
+    // you also provide externally created mutex, otherwise the created ClientPQ object
+    // won't be completely thread-safe. Such mutex must be shared by all ClientPQ instances
+    // which access the same CHXID object.
+    //
+    ClientPQ(IUnknown* pContext, CHXID* pIds = NULL, IHXMutex* pMutex = NULL);
     virtual ~ClientPQ();
 
     virtual int    execute(Timeval now);
@@ -80,6 +85,7 @@ public:
 
     inline PQElem* new_elem(void);
     inline void free_elem(PQElem*& pElem);
+    ULONG32 m_lastTime;
 
 protected:
     PQElem*	m_pFreeList;

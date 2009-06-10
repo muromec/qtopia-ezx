@@ -16,7 +16,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -55,6 +55,7 @@
 #include "pckunpck.h"
 #include "hxslist.h"
 #include "chxmetainfo.h"
+#include "buffutil.h"
 
 #include "hxheap.h"
 #ifdef _DEBUG
@@ -64,6 +65,9 @@ static const char HX_THIS_FILE[] = __FILE__;
 
 const char* const g_pMetaProperties[] =
 {
+#ifdef HELIX_FEATURE_DRM
+    "LicenseInfo",
+#endif
     "Title",
     "Author",
     "Copyright",
@@ -320,6 +324,7 @@ CHXMetaInfo::UpdateMetaInfo(IHXValues* pValues)
 {
     HX_RESULT   res = HXR_FAIL;
     HXBOOL      bUpdate = FALSE;
+    IHXBuffer*  pTmpPropValue = NULL;
     IHXBuffer*  pNewPropValue = NULL;
     IHXBuffer*  pOldPropValue = NULL;
     UINT32 i = 0;
@@ -351,7 +356,9 @@ CHXMetaInfo::UpdateMetaInfo(IHXValues* pValues)
         {
             for (UINT32 i = 0; i < m_ulKnownProperties; i++)
             {
-                if (SUCCEEDED(pValues->GetPropertyBuffer(g_pMetaProperties[i], pNewPropValue)))
+		// make sure all MetaInfo GetPropertyBuffer are NULL terminated
+                if (SUCCEEDED(pValues->GetPropertyBuffer(g_pMetaProperties[i], pTmpPropValue)) && 
+		    SUCCEEDED(PXUtilities::GetNullTerminatedBuffer(m_pContext, pTmpPropValue, pNewPropValue)))
                 {
                     if (m_pPropertyMap->Lookup(g_pMetaProperties[i], (void*&)pOldPropValue))
                     {
@@ -364,6 +371,7 @@ CHXMetaInfo::UpdateMetaInfo(IHXValues* pValues)
                         m_pPropertyMap->SetAt(g_pMetaProperties[i], pNewPropValue);                               
                         MetaInfoAdded(g_pMetaProperties[i], pNewPropValue);
                     }
+		    HX_RELEASE(pTmpPropValue);
                 }
                 else if (m_pPropertyMap->Lookup(g_pMetaProperties[i], (void*&)pOldPropValue))
                 {

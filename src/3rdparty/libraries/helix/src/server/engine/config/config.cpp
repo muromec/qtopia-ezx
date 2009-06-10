@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: config.cpp,v 1.11 2004/07/20 23:51:58 dcollins Exp $
+ * Source last modified: $Id: config.cpp,v 1.12 2008/02/12 06:34:24 vijendrakumara Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -91,7 +91,7 @@ Config::SetDefaults(Process* proc)
 
     m_registry->AddInt("configdefaults.HTTPPort",               8080,           proc);
 
-    m_registry->AddInt("configdefaults.KeepAliveInterval",              80,             proc);
+    m_registry->AddInt("configdefaults.KeepAliveInterval",              79,             proc);
 
     m_registry->AddInt("configdefaults.LoggingStyle",           0,              proc);
     m_registry->AddInt("configdefaults.MaxBandwidth",           0,              proc);

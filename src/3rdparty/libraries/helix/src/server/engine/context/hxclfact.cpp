@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxclfact.cpp,v 1.11 2006/02/07 19:41:39 ping Exp $
+ * Source last modified: $Id: hxclfact.cpp,v 1.15 2009/04/07 19:26:46 jgordon Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -77,7 +77,7 @@
 
 //  Begin:  For PacketReorderShim
 #include "servlist.h"
-#include "packetreorderqueue.h"
+#include "pktreorderqueue.h"
 #include "ihxpacketorderer.h"
 #include "packetreordershim.h"
 //  End:  For PacketReorderShim
@@ -146,20 +146,22 @@ HXCommonClassFactory::CreateInstance
     }
     else if (IsEqualCLSID(rclsid, CLSID_IHXPacket))
     {
-        if (!g_bFastMallocAll && !g_bFastMalloc)
-            *ppUnknown = (IUnknown*)(IHXPacket*)(new ServerPacket(TRUE));
-        else
-            *ppUnknown = (IUnknown*)(IHXPacket*)(new(m_pMemCache)
-                ServerPacket(TRUE));
+        *ppUnknown = (IUnknown*)(IHXPacket*)(new ServerPacket(TRUE));
         return HXR_OK;
     }
     else if (IsEqualCLSID(rclsid, CLSID_IHXRTPPacket))
     {
-        if (!g_bFastMallocAll && !g_bFastMalloc)
-            *ppUnknown = (IUnknown*)(IHXRTPPacket*)(new ServerRTPPacket(TRUE));
-        else
-            *ppUnknown = (IUnknown*)(IHXRTPPacket*)(new(m_pMemCache)
-                ServerRTPPacket(TRUE));
+        *ppUnknown = (IUnknown*)(IHXRTPPacket*)(new ServerRTPPacket(TRUE));
+        return HXR_OK;
+    }
+    else if (IsEqualCLSID(rclsid, CLSID_IHXServerPacketExt))
+    {
+        *ppUnknown = (IUnknown*)(IHXServerPacketExt*)(new ServerPacket(TRUE));
+        return HXR_OK;
+    }
+    else if (IsEqualCLSID(rclsid, CLSID_IHXServerPacketRTP))
+    {
+        *ppUnknown = (IUnknown*)(IHXServerPacketExt*)(new ServerRTPPacket(TRUE));
         return HXR_OK;
     }
     else if (IsEqualCLSID(rclsid, CLSID_IHXValues))

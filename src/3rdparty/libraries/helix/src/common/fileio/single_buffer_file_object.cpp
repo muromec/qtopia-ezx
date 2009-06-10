@@ -58,6 +58,11 @@
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "hxfiles.h"
+#include "hxurl.h"
+#include "hxurlutil.h"
+#include "filespecutils.h"
+#include "hxxfile.h"
+#include "pckunpck.h"
 #include "ihxpckts.h"
 #include "baseobj.h"
 #include "nestbuff.h"
@@ -233,7 +238,7 @@ STDMETHODIMP CHXSingleBufferFileObject::Seek(ULONG32 ulOffset, HXBOOL bRelative)
             ulNewOffset = m_ulFileOffset + ulOffset;
         }
         // We will allow seeks to the very end of the file, but not beyond
-        if (ulNewOffset > m_pBuffer->GetSize())
+        if (ulNewOffset <= m_pBuffer->GetSize())
         {
             // Clear the return value
             retVal = HXR_OK;
@@ -367,5 +372,91 @@ CHXSingleBufferFileObject::CHXSingleBufferFileObject(IHXBuffer* pBuffer)
 CHXSingleBufferFileObject::~CHXSingleBufferFileObject()
 {
     Close();
+}
+
+//
+// Create an IHXFileObject from the IHXBuffer and set the request with pszURL
+//
+HX_RESULT
+CHXSingleBufferFileObject::CreateFileObjectWithRequest(IHXBuffer* pBuffer, const char* pszURL, REF(IHXFileObject*) rpFileObject,
+						   IUnknown* pContext)
+{
+    HX_RESULT retVal=HXR_FAIL;
+    
+    retVal = CreateFileObject(pBuffer, rpFileObject);
+
+    if (SUCCEEDED(retVal))
+    {
+	// QI the file object for IHXRequestHandler
+	IHXRequestHandler* pHandler = NULL;
+	retVal = rpFileObject->QueryInterface(IID_IHXRequestHandler, (void**) &pHandler);
+	if (SUCCEEDED(retVal))
+	{
+	    // Create a IHXRequest
+	    IHXRequest* pRequest = NULL;
+	    if (SUCCEEDED(CreateInstanceCCF(CLSID_IHXRequest, (void**) &pRequest, pContext)))
+	    {
+		// Set a dummy URL
+		if (SUCCEEDED(pRequest->SetURL(pszURL)))
+		{
+		    // Set the request into the file object
+		    retVal = pHandler->SetRequest(pRequest);
+		}
+	    }
+	    HX_RELEASE(pRequest);
+	}
+	HX_RELEASE(pHandler);
+    }
+
+    if (FAILED(retVal))
+    {
+	HX_RELEASE(rpFileObject);
+    }
+
+    return retVal;
+}
+
+//
+// Read the local URL into an IHXBuffer, create the IHXFileObject, and set the request.
+//
+HX_RESULT
+CHXSingleBufferFileObject::CreateLocalFileObject(const CHXString& pszURL, REF(IHXFileObject*) rpFileObject, IUnknown* pContext)
+{
+    HX_RESULT retVal=HXR_FAIL;
+    HXURLRep urlRep = HXURLRep(pszURL);
+    HXURLUtil::ProtocolInfo urlProtocolInfo = HXURLUtil::GetProtocolInfo(urlRep.Scheme());
+
+    if (HXURLUtil::ProtocolInfo::SCHEME_FILE == urlProtocolInfo.type)
+    {
+	CHXString strLocalURL(pszURL);
+	HXXFile::GetReasonableLocalFileName(strLocalURL);	// Strip off protocol, for FileExists
+	INT16 nSep = strLocalURL.ReverseFind('?');
+	if (nSep >= 0)
+	{
+	    strLocalURL = strLocalURL.Left(nSep);		 // Strip off the options from the URL
+	}
+
+	CHXFileSpecifier dataFile((const char*)strLocalURL);
+	if (CHXFileSpecUtils::FileExists(dataFile, pContext))
+	{
+	    IHXBuffer* pBuffer = NULL;
+	    retVal = CreateBufferCCF(pBuffer, pContext);
+	    if (SUCCEEDED(retVal))
+	    {
+		retVal = CHXFileSpecUtils::ReadBinaryFile(dataFile, pBuffer);
+		if (SUCCEEDED(retVal))
+		{
+		    retVal = CreateFileObjectWithRequest(pBuffer, pszURL, rpFileObject, pContext);
+		}
+		HX_RELEASE(pBuffer);
+	    }
+	}
+	else
+	{
+	    retVal = HXR_FAIL;
+	}
+    }
+
+    return retVal;
 }
 

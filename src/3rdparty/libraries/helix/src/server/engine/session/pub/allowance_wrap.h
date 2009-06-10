@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: allowance_wrap.h,v 1.6 2005/04/26 03:55:13 jc Exp $ 
+ * Source last modified: $Id: allowance_wrap.h,v 1.7 2007/05/10 18:44:48 seansmith Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -152,7 +152,7 @@ class AllowanceWrapper : public AllowanceMgr,
                          public IHXPlayerControllerProxyRedirect
 {
 public:
-    AllowanceWrapper(Player::Session*,
+    AllowanceWrapper(ClientSession*,
                      Process*,
                      Process*,
                      const char*,
@@ -230,7 +230,7 @@ public:
 
 private:
     Process*			m_pPluginProc;
-    Player::Session*		m_pSession;
+    ClientSession*		m_pSession;
     IHXRequest*		m_pRequest;
     UINT32			m_ulRegistryID;
     IHXPlayerConnectionAdviseSinkManager*

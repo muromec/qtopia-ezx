@@ -270,6 +270,10 @@ HX_RESULT MP4APayloadFormat::SetAssemblerHeader(IHXValues* pHeader)
 	{
 	    m_PayloadID = PYID_X_HX_MP4_RAWAU;
 	}
+	else if (strcasecmp(pMimeTypeData, "audio/X-RN-QT-RAWAU") == 0)
+	{
+	    m_PayloadID = PYID_X_HX_QT_RAWAU;
+	}
 	else if (strcasecmp(pMimeTypeData, "audio/mpeg4-simple-A2") == 0)
 	{
 	    m_PayloadID = PYID_MPEG4_SIMPLE_A2;
@@ -297,6 +301,7 @@ HX_RESULT MP4APayloadFormat::SetAssemblerHeader(IHXValues* pHeader)
 	switch (m_PayloadID)
 	{
 	case PYID_X_HX_MP4_RAWAU:
+	case PYID_X_HX_QT_RAWAU:	
 	    retVal = SetAssemblerHXHeader(pHeader);
 	    break;
 	case PYID_MP4A_LATM:
@@ -632,6 +637,7 @@ MP4APayloadFormat::SetPacket(IHXPacket* pPacket)
     {
     case PYID_X_HX_3GPP_QCELP:
     case PYID_X_HX_MP4_RAWAU:
+    case PYID_X_HX_QT_RAWAU:		
     case PYID_X_HX_AAC_GENERIC:
 	pPacket->AddRef();
 	m_InputPackets.AddTail(pPacket);
@@ -653,13 +659,15 @@ MP4APayloadFormat::SetPacket(IHXPacket* pPacket)
 	    {
 		IHXBuffer* pBuffer = pPacket->GetBuffer();
 
-		if (pBuffer &&
-		    m_pLATMDepack->OnPacket(GetPacketTime(pPacket),
-					    pBuffer->GetBuffer(),
-					    pBuffer->GetSize(),
-                                            (pPacket->GetASMRuleNumber() % 2 == 1)))
+		if (pBuffer)
 		{
-		    retVal = HXR_OK;
+        if (m_pLATMDepack->OnPacket(GetPacketTime(pPacket),
+					  pBuffer->GetBuffer(),
+					  pBuffer->GetSize(),
+            (pPacket->GetASMRuleNumber() % 2 == 1)))
+        {		    
+		        retVal = HXR_OK;
+		    }
 
 		    pBuffer->Release();
 		}
@@ -789,6 +797,7 @@ HX_RESULT MP4APayloadFormat::CreateMediaPacket(CMediaPacket* &pOutMediaPacket)
     {
     case PYID_X_HX_AAC_GENERIC:
     case PYID_X_HX_MP4_RAWAU:
+    case PYID_X_HX_QT_RAWAU:		
 	retVal = CreateRawAUMediaPacket(pOutMediaPacket);
 	break;
 

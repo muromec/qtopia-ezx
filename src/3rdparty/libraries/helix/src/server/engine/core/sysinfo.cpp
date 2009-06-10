@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sysinfo.cpp,v 1.16 2005/08/23 23:37:46 richardjones Exp $ 
+ * Source last modified: $Id: sysinfo.cpp,v 1.18 2008/07/25 16:52:37 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -60,7 +60,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#if !defined(_HPUX) && !defined(_AIX) && !defined(_FREEBSD) && !defined(_OPENBSD) && !defined(_NETBSD) && !defined(_MAC_UNIX)
+#if !defined(_HPUX) && !defined(_AIX) && !defined(_FREEBSD) && !defined(_OPENBSD) && !defined(_NETBSD) && !defined(_MAC_UNIX) && !defined(_LSB)
 #include <sys/procfs.h>
 #endif
 
@@ -93,9 +93,9 @@ ComputeTimeDelta(struct timeval* pStartTime, struct timeval* pEndTime);
  * CSYSINFO
  */
 CSysInfo::CSysInfo():
-    m_ulLastUserCPUUsage(0),
-    m_ulLastKernCPUUsage(0),
-    m_ulLastAggCPUUsage(0)
+    m_uLastUserCPUUsage(0),
+    m_uLastKernCPUUsage(0),
+    m_uLastAggCPUUsage(0)
 {
 }
 
@@ -117,7 +117,7 @@ HX_RESULT
 CSysInfo::InitCPUCalc (void)
 {
     InitProcUsage();
-    GetTotalCPUUsage(&m_ulLastAggCPUUsage);
+    GetTotalCPUUsage(&m_uLastAggCPUUsage);
     return HXR_OK;
 }
 
@@ -128,26 +128,26 @@ CSysInfo::InitProcUsage (void)
 {
     struct timezone tz;
     
-    m_ulLastUserCPUUsage = 0;
-    m_ulLastKernCPUUsage = 0;
-    m_ulLastAggCPUUsage = 0;
+    m_uLastUserCPUUsage = 0;
+    m_uLastKernCPUUsage = 0;
+    m_uLastAggCPUUsage = 0;
     memset(&m_StartTime, 0, sizeof(struct timeval));
     gettimeofday(&m_StartTime, &tz);
-    GetTotalProcUsage(&m_ulLastUserCPUUsage, &m_ulLastKernCPUUsage);
+    GetTotalProcUsage(&m_uLastUserCPUUsage, &m_uLastKernCPUUsage);
 
     return HXR_OK;
 }
 
 
 HX_RESULT
-CSysInfo::GetCPUUsage (REF(INT32) lUserUsage, REF(INT32) lKernUsage, REF(INT32) lAggUsage)
+CSysInfo::GetCPUUsage (REF(INT32) lUserUsagePct, REF(INT32) lKernUsagePct, REF(INT32) lAggUsagePct)
 {
     struct timeval  EndTime;
     struct timezone tz;
     UINT32 ulDuration = 0;
-    UINT32 ulUserUsedTime = 0;
-    UINT32 ulKernUsedTime = 0;
-    UINT32 ulCumulativeUsedTime = 0;
+    UsageCounter uUserUsedTime = 0;
+    UsageCounter uKernUsedTime = 0;
+    UsageCounter uCumulativeUsedTime = 0;
 
     if (gettimeofday(&EndTime, &tz) == 0)
     {
@@ -156,32 +156,46 @@ CSysInfo::GetCPUUsage (REF(INT32) lUserUsage, REF(INT32) lKernUsage, REF(INT32) 
         memcpy(&m_StartTime, &EndTime, sizeof(struct timeval));
     }
 
-    GetTotalProcUsage(&ulUserUsedTime, &ulKernUsedTime);
+    GetTotalProcUsage(&uUserUsedTime, &uKernUsedTime);
 
-    lUserUsage = (ulUserUsedTime - m_ulLastUserCPUUsage) / (ulDuration * (*g_pCPUCount));
-    m_ulLastUserCPUUsage = ulUserUsedTime;
+    lUserUsagePct = (uUserUsedTime - m_uLastUserCPUUsage) / (ulDuration * (*g_pCPUCount));
+    m_uLastUserCPUUsage = uUserUsedTime;
 
-    lKernUsage = (ulKernUsedTime - m_ulLastKernCPUUsage) / (ulDuration * (*g_pCPUCount));
-    m_ulLastKernCPUUsage = ulKernUsedTime;
+    lKernUsagePct = (uKernUsedTime - m_uLastKernCPUUsage) / (ulDuration * (*g_pCPUCount));
+    m_uLastKernCPUUsage = uKernUsedTime;
 
 
-    GetTotalCPUUsage(&ulCumulativeUsedTime);
-    lAggUsage = (ulCumulativeUsedTime - m_ulLastAggCPUUsage) / (ulDuration * (*g_pCPUCount));
+    GetTotalCPUUsage(&uCumulativeUsedTime);
+    lAggUsagePct = (uCumulativeUsedTime - m_uLastAggCPUUsage) / (ulDuration * (*g_pCPUCount));
 #ifdef _LINUX
     //see CLinuxSysInfo::GetTotalCPUUsage for why this is backwards on Linux:
-    lAggUsage = 100 - lAggUsage;
+    lAggUsagePct = 100 - lAggUsagePct;
 #endif
-    m_ulLastAggCPUUsage = ulCumulativeUsedTime;
+    m_uLastAggCPUUsage = uCumulativeUsedTime;
+
+    //Add a sanity-check since agg may be calculated differently than user and kern (os-dependent behavior)
+    if (lAggUsagePct < lUserUsagePct + lKernUsagePct)
+    {
+        lAggUsagePct = lUserUsagePct + lKernUsagePct;
+    }
+
+    //Add some bounds-checks since occasionally the OS will report wacky results
+    if (lUserUsagePct < 0)   lUserUsagePct = 0;
+    if (lKernUsagePct < 0)   lKernUsagePct = 0;
+    if (lAggUsagePct  < 0)   lAggUsagePct  = 0;
+    if (lUserUsagePct > 100) lUserUsagePct = 100;
+    if (lKernUsagePct > 100) lKernUsagePct = 100;
+    if (lAggUsagePct  > 100) lAggUsagePct  = 100;
 
     return HXR_OK;
 }
 
 
 HX_RESULT
-CSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
-    *plUserUsage = 0;
-    *plKernUsage = 0;
+    *pUserUsage = 0;
+    *pKernUsage = 0;
 
     for (UINT32 i=0; i < SYSINFO_MAX_THREADS; i++) 
     {
@@ -190,11 +204,11 @@ CSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
             break;
         }
 
-        UINT32 ulUserUsage = 0;
-        UINT32 ulKernUsage = 0;
-        GetProcUsageById(i, &ulUserUsage, &ulKernUsage);
-        *plUserUsage += ulUserUsage;
-        *plKernUsage += ulKernUsage;
+        UsageCounter uUserUsage = 0;
+        UsageCounter ullKernUsagePct = 0;
+        GetProcUsageById(i, &uUserUsage, &ullKernUsagePct);
+        *pUserUsage += uUserUsage;
+        *pKernUsage += ullKernUsagePct;
     }
 
     return HXR_OK;
@@ -209,14 +223,14 @@ CSysInfo::InitProcUsage (void)
 }
 
 HX_RESULT
-CSysInfo::GetCPUUsage (REF(INT32) lUserUsage, REF(INT32) lKernUsage, REF(INT32) lAggUsage)
+CSysInfo::GetCPUUsage (REF(INT32) lUserUsagePct, REF(INT32) lKernUsagePct, REF(INT32) lAggUsagePct)
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
 }
 
 HX_RESULT
-CSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
@@ -232,7 +246,7 @@ CSysInfo::GetMemUsage (REF(UINT32) ulMemUsage)
 
 
 HX_RESULT
-CSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CSysInfo::GetProcUsageById(UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
@@ -240,7 +254,7 @@ CSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
 
 
 HX_RESULT
-CSysInfo::GetTotalCPUUsage (UINT32* plUsage)
+CSysInfo::GetTotalCPUUsage (UsageCounter* plUsage)
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
@@ -278,7 +292,18 @@ CLinuxSysInfo::~CLinuxSysInfo()
 UINT32
 CLinuxSysInfo::GetNumberofCPU(void)
 {
-    int nNumProc = sysconf(_SC_NPROCESSORS_ONLN);
+    int nNumProc = 0;
+
+#ifdef _LSB
+    //_SC_NPROCESSORS_ONLN is (yet) available with LSB.
+    FILE* fpCmd = popen("grep '^processor' /proc/cpuinfo | tail -1 | awk '{print $3}'", "r");
+    fscanf(fpCmd, "%d", &nNumProc);
+    fclose(fpCmd);
+    if (nNumProc > 0) { ++nNumProc; }
+#else
+    nNumProc = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+
     if (nNumProc < 1)
     {
         HX_ASSERT(0); //Shouldn't happen!
@@ -295,7 +320,7 @@ CLinuxSysInfo::GetNumberofCPU(void)
 // The values are in ticks.
 #include <dirent.h>
 HX_RESULT
-CLinuxSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CLinuxSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     int fd = 0;
     UINT32 i = 0;
@@ -339,24 +364,24 @@ CLinuxSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
                 pszbuff = p;
             }
 
-            UINT32 lUser = strtoul(pszbuff, &pszbuff, 0);
-            UINT32 lKern = strtoul(pszbuff, &pszbuff, 0);
-            *plUserUsage += lUser;
-            *plKernUsage += lKern;
+            UsageCounter llUser = (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
+            UsageCounter llKern = (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
+            *pUserUsage += llUser;
+            *pKernUsage += llKern;
         }
         closedir(pDir);
         return HXR_OK;
     }
 
-    *plUserUsage = 0;
-    *plKernUsage = 0;
+    *pUserUsage = 0;
+    *pKernUsage = 0;
 
     return HXR_FAIL;
 }
 
 
 HX_RESULT
-CLinuxSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CLinuxSysInfo::GetProcUsageById(UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     HX_ASSERT(0);
     return HXR_NOTIMPL;
@@ -367,15 +392,15 @@ CLinuxSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUs
 #else //old LinuxThreads threading model
 
 HX_RESULT
-CLinuxSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CLinuxSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
-    return CSysInfo::GetTotalProcUsage(plUserUsage, plKernUsage);
+    return CSysInfo::GetTotalProcUsage(pUserUsage, pKernUsage);
 }
 
 
 // On Linux, we get the user and system time from /proc/$pid/stat file in ticks
 HX_RESULT
-CLinuxSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CLinuxSysInfo::GetProcUsageById(UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     int fd = 0;
     UINT32 i = 0;
@@ -395,22 +420,22 @@ CLinuxSysInfo::GetProcUsageById(UINT32 id, UINT32* plUserUsage, UINT32* plKernUs
             pszbuff = p;
         }
 
-        *plUserUsage += strtoul(pszbuff, &pszbuff, 0);
-        *plKernUsage += strtoul(pszbuff, &pszbuff, 0);
+        *pUserUsage += (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
+        *pKernUsage += (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
 
         return HXR_OK;
     }
     else 
     {
-        *plUserUsage = 0;
-        *plKernUsage = 0;
+        *pUserUsage = 0;
+        *pKernUsage = 0;
         return HXR_FAIL;
     }
 }
 #endif
 
 HX_RESULT
-CLinuxSysInfo::GetTotalCPUUsage(UINT32* pulUsage)
+CLinuxSysInfo::GetTotalCPUUsage(UsageCounter* pUsage)
 {
     int fd = 0;
     char szbuff[4097]; 
@@ -423,17 +448,17 @@ CLinuxSysInfo::GetTotalCPUUsage(UINT32* pulUsage)
         close(fd);
         szbuff[len] = '\0';
         pszbuff = SkipToken(szbuff);
-        UINT32 lUser = strtoul(pszbuff, &pszbuff, 0); // User mode time in ticks
-        UINT32 lNice = strtoul(pszbuff, &pszbuff, 0); // Nice mode time in ticks
-        UINT32 lKern = strtoul(pszbuff, &pszbuff, 0); // System mode time in ticks
-        UINT32 lIdle = strtoul(pszbuff, &pszbuff, 0); // Idle time in ticks
+        UsageCounter llUser = (UsageCounter)strtoull(pszbuff, &pszbuff, 0); // User mode time in ticks
+        UsageCounter llNice = (UsageCounter)strtoull(pszbuff, &pszbuff, 0); // Nice mode time in ticks
+        UsageCounter llKern = (UsageCounter)strtoull(pszbuff, &pszbuff, 0); // System mode time in ticks
+        UsageCounter llIdle = (UsageCounter)strtoull(pszbuff, &pszbuff, 0); // Idle time in ticks
 
         //XXXDC testing has shown that user+nice+kern is not accurate with
         //current kernels, at least with RHEL4-based kernels.
         //So... we have to return the idle time and reverse the logic
         //in the calling routine to determine the total system busy time
-        //*pulUsage += lUser + lNice + lKern;
-        *pulUsage += lIdle;
+        //*pUsage += llUser + llNice + llKern;
+        *pUsage += llIdle;
 
         return HXR_OK;
     }
@@ -476,21 +501,21 @@ CBSDSysInfo::GetNumberofCPU(void)
 
 
 HX_RESULT
-CBsdSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CBsdSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     for (UINT32 i=0; i < SYSINFO_MAX_THREADS; i++) 
     {
-        UINT32 ulUserUsage = 0;
-        UINT32 ulKernUsage = 0;
-        GetProcUsageById(i, &ulUserUsage, &ulKernUsage);
-        *plUserUsage += ulUserUsage;
-        *plKernUsage += ulKernUsage;
+        UsageCounter uUserUsage = 0;
+        UsageCounter ullKernUsagePct = 0;
+        GetProcUsageById(i, &uUserUsage, &ullKernUsagePct);
+        *pUserUsage += uUserUsage;
+        *pKernUsage += ullKernUsagePct;
     }
 }
 
 // On FreeBSD, we get the user and system time from /proc/$pid/status file in secs and microsecs.
 HX_RESULT
-CBsdSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CBsdSysInfo::GetProcUsageById (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     int fd = 0;
     UINT32 i = 0;
@@ -510,21 +535,21 @@ CBsdSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsa
             pszbuff = p;
         }
 
-        *plUserUsage += strtoul(pszbuff, &pszbuff, 0);
-        *plKernUsage += strtoul(pszbuff, &pszbuff, 0);
+        *pUserUsage += (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
+        *pKernUsage += (UsageCounter)strtoull(pszbuff, &pszbuff, 0);
 
         return HXR_OK;
     }
     else 
     {
-        *plUserUsage = 0;
-        *plUserUsage = 0;
+        *pUserUsage = 0;
+        *pUserUsage = 0;
         return HXR_FAIL;
     }
 }
 
 HX_RESULT
-CBsdSysInfo::GetTotalCPUUsage(UINT32* pUsage)
+CBsdSysInfo::GetTotalCPUUsage(UsageCounter* pUsage)
 {
     static long cp_time[CPUSTATES];
     size_t nLen = sizeof(cp_time);
@@ -588,20 +613,20 @@ CHPSysInfo::GetProcUsage (UINT32 id, float* pfUsage)
 }
 
 HX_RESULT
-CHPSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CHPSysInfo::GetProcUsageById (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     pst_status pst;
     if (pstat_getproc(&pst, sizeof(pst), (size_t)0, g_GlobalProcessList[id]) != -1) 
     {
-        *plUserUsage += pst.pst_cptickstotal;
-        //*plKernUsage += ?
+        *pUserUsage += pst.pst_cptickstotal;
+        //*pKernUsage += ?
     }
     
     return HXR_OK;
 }
 
 HX_RESULT
-CHPSysInfo::GetTotalCPUUsage(UINT32* plUsage)
+CHPSysInfo::GetTotalCPUUsage(UsageCounter* plUsage)
 {
     int count = 0;
     pst_processor pst[SYSINFO_MAX_PROCS];
@@ -623,7 +648,7 @@ CHPSysInfo::GetTotalCPUUsage(UINT32* plUsage)
 
 #if 0
 HX_RESULT
-CHPSysInfo::GetCPUUsage (REF(INT32) ulServerUsage, REF(INT32) ulAggUsage)
+CHPSysInfo::GetCPUUsage (REF(INT32) lServerUsage, REF(INT32) uAggUsage)
 {
     struct timeval  EndTime;
     struct timezone tz;
@@ -648,11 +673,11 @@ CHPSysInfo::GetCPUUsage (REF(INT32) ulServerUsage, REF(INT32) ulAggUsage)
         GetProcUsage(i, &fProcPctCPU);
         fPctCPU += fProcPctCPU;
     }
-    ulServerUsage = fPctCPU / (*g_pCPUCount);
-    //    m_ulLastServerCPUUsage = ulUsedTime;
+    lServerUsage = fPctCPU / (*g_pCPUCount);
+    //    m_ulLastServerCPUUsage = ullUsedTime;
 
     GetTotalCPUUsage(&ulCumulativeUsedTime);
-    ulAggUsage = (ulCumulativeUsedTime - m_ulLastAggCPUUsage) / (ulDuration * (*g_pCPUCount));
+    uAggUsage = (ulCumulativeUsedTime - m_ulLastAggCPUUsage) / (ulDuration * (*g_pCPUCount));
 
     m_ulLastAggCPUUsage = ulCumulativeUsedTime;
     return HXR_OK;
@@ -706,23 +731,23 @@ CAIXSysInfo::GetNumberofCPU(void)
 }
 
 HX_RESULT
-CAIXSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CAIXSysInfo::GetProcUsageById(UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     procsinfo pInfo;
     pid_t pid = g_GlobalProcessList[id];
 
     if (getprocs(&pInfo, sizeof(pInfo), NULL, sizeof(fdsinfo), &pid, 1) != -1)
     {
-        *plUserUsage += (pInfo.pi_ru.ru_utime.tv_sec * 100);
-        *plUserUsage += (pInfo.pi_ru.ru_utime.tv_usec * 1e-7);
-        *plKernUsage += (pInfo.pi_ru.ru_stime.tv_sec * 100);
-        *plKernUsage += (pInfo.pi_ru.ru_stime.tv_usec * 1e-7);
+        *pUserUsage += (pInfo.pi_ru.ru_utime.tv_sec * 100);
+        *pUserUsage += (pInfo.pi_ru.ru_utime.tv_usec * 1e-7);
+        *pKernUsage += (pInfo.pi_ru.ru_stime.tv_sec * 100);
+        *pKernUsage += (pInfo.pi_ru.ru_stime.tv_usec * 1e-7);
     }
     return HXR_OK;
 }
 
 HX_RESULT
-CAIXSysInfo::GetTotalCPUUsage (UINT32* plUsage)
+CAIXSysInfo::GetTotalCPUUsage (UsageCounter* plUsage)
 {
     struct sysinfo s_info;
     getkval(m_ulSysinfoOffset, (caddr_t)&s_info, sizeof(s_info));
@@ -800,7 +825,7 @@ CSolarisSysInfo::InitCPUCalc (void)
         m_pkc = NULL;
     }
 
-    GetTotalCPUUsage(&m_ulLastAggCPUUsage);
+    GetTotalCPUUsage(&m_uLastAggCPUUsage);
     kstat_close(m_pkc);
     m_pkc = NULL;
     return HXR_OK;
@@ -808,14 +833,14 @@ CSolarisSysInfo::InitCPUCalc (void)
 
 
 HX_RESULT
-CSolarisSysInfo::GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage)
+CSolarisSysInfo::GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
-    return CSysInfo::GetTotalProcUsage(plUserUsage, plKernUsage);
+    return CSysInfo::GetTotalProcUsage(pUserUsage, pKernUsage);
 }
 
 
 HX_RESULT
-CSolarisSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+CSolarisSysInfo::GetProcUsageById(UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     int fd = 0;
     prusage_t prbuff;
@@ -827,9 +852,9 @@ CSolarisSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKer
     {
         if(read(fd, &prbuff, sizeof(prusage_t)) != -1)
         {
-            *plUserUsage = (prbuff.pr_utime.tv_sec * 100.0) +
+            *pUserUsage = (prbuff.pr_utime.tv_sec * 100.0) +
                             (prbuff.pr_utime.tv_nsec / 10000000);
-            *plKernUsage = (prbuff.pr_stime.tv_sec * 100.0) +
+            *pKernUsage = (prbuff.pr_stime.tv_sec * 100.0) +
                             (prbuff.pr_stime.tv_nsec / 10000000);
         }
         else 
@@ -845,7 +870,7 @@ CSolarisSysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKer
 
 
 HX_RESULT
-CSolarisSysInfo::GetTotalCPUUsage(UINT32* pulUsage)
+CSolarisSysInfo::GetTotalCPUUsage(UsageCounter* pUsage)
 {
     kstat_t* ks = NULL;
     kid_t nkcid;
@@ -886,9 +911,9 @@ CSolarisSysInfo::GetTotalCPUUsage(UINT32* pulUsage)
                     break;
                 }
 
-                *pulUsage += cpuStat.cpu_sysinfo.cpu[CPU_USER] +
-                             cpuStat.cpu_sysinfo.cpu[CPU_KERNEL] +
-                             cpuStat.cpu_sysinfo.cpu[CPU_WAIT];
+                *pUsage += cpuStat.cpu_sysinfo.cpu[CPU_USER] +
+                              cpuStat.cpu_sysinfo.cpu[CPU_KERNEL] +
+                              cpuStat.cpu_sysinfo.cpu[CPU_WAIT];
             }
         }
         return HXR_OK;
@@ -926,7 +951,7 @@ COSF1SysInfo::GetNumberofCPU(void)
 }
 
 HX_RESULT
-COSF1SysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage)
+COSF1SysInfo::GetProcUsageById (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage)
 {
     int fd = 0;
     prstatus_t prbuff;
@@ -936,10 +961,10 @@ COSF1SysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUs
     {
         if (ioctl(fd, PIOCSTATUS, &prbuff) != -1) 
         {
-            *plUserUsage += (prbuff.pr_utime.tv_sec * 100.0) +
+            *pUserUsage += (prbuff.pr_utime.tv_sec * 100.0) +
                            (prbuff.pr_utime.tv_nsec / 10000000);
-            *plKernUsage += (prbuff.pr_stime.tv_sec * 100.0) +
-                            (prbuff.pr_stime.tv_nsec / 10000000);
+            *pKernUsage += (prbuff.pr_stime.tv_sec * 100.0) +
+                           (prbuff.pr_stime.tv_nsec / 10000000);
         }
         else 
         {
@@ -953,12 +978,12 @@ COSF1SysInfo::GetProcUsageById (UINT32 id, UINT32* plUserUsage, UINT32* plKernUs
 }
 
 HX_RESULT
-COSF1SysInfo::GetTotalCPUUsage(UINT32* pulUsage)
+COSF1SysInfo::GetTotalCPUUsage(UsageCounter* pUsage)
 {
     tbl_sysinfo stab;
 
     table(TBL_SYSINFO, 0, &stab, 1, sizeof(tbl_sysinfo));
-    *pulUsage = (stab.usr + stab.si_nice + stab.sys) / 10;
+    *pUsage = (stab.usr + stab.si_nice + stab.sys) / 10;
     
     return HXR_OK;
 }
@@ -1053,7 +1078,7 @@ CWindowsSysInfo::InitCPUCalc()
 }
 
 HX_RESULT
-CWindowsSysInfo::GetCPUUsage (REF(INT32) lUserUsage, REF(INT32) lKernUsage, REF(INT32) lAggUsage)
+CWindowsSysInfo::GetCPUUsage (REF(INT32) lUserUsagePct, REF(INT32) lKernUsagePct, REF(INT32) lAggUsagePct)
 
 {
     PDH_STATUS pdhStatus = ERROR_SUCCESS;
@@ -1072,21 +1097,21 @@ CWindowsSysInfo::GetCPUUsage (REF(INT32) lUserUsage, REF(INT32) lKernUsage, REF(
 
             if (pdhStatus == ERROR_SUCCESS)
             {
-                lUserUsage = pValue.longValue/(*g_pCPUCount);
+                lUserUsagePct = pValue.longValue/(*g_pCPUCount);
             }
             
             pdhStatus = PdhGetFormattedCounterValue(m_pKernCPUCounter, PDH_FMT_LONG,
                                                     NULL, &pValue);
             if (pdhStatus == ERROR_SUCCESS)
             {
-                lKernUsage = pValue.longValue/(*g_pCPUCount);
+                lKernUsagePct = pValue.longValue/(*g_pCPUCount);
             }
             
             pdhStatus = PdhGetFormattedCounterValue(m_pAggCPUCounter, PDH_FMT_LONG,
                                                     NULL, &pValue);
             if (pdhStatus == ERROR_SUCCESS)
             {
-                lAggUsage = pValue.longValue;
+                lAggUsagePct = pValue.longValue;
             }
     }
 

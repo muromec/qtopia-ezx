@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  *
- * Version: $Id: wchar.h,v 1.2 2007/01/26 15:18:35 rrajesh Exp $
+ * Version: $Id: wchar.h,v 1.8 2009/04/09 23:01:40 cbailey Exp $
  * 
  * Copyright Notices: 
  *  
@@ -67,10 +67,51 @@
 // the header has the inclusion for the wchar string operations
 
 #ifdef _SYMBIAN
+    #include "platform/symbian/symbian_wchar_functions.h"
     #include <libc/string.h>
+#elif _BREW
+#elif ANDROID
+    //Android has no wide-char support
+#ifdef ANDROID_RELEASE_1
+    //Android release 1.0  has a stub wchar.h that re-defines wchar_t to char
+    //this conflicts with gcc 4 builtin wchar_t
+    #define wchar_t _wchar_t_
+#endif
+    #include <wchar.h>
+    #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
 #else
     #include <wchar.h>
 #endif // End of #ifdef _SYMBIAN
+
+#if defined(_MAC_UNIX)
+    #include <wctype.h>
+    #include "hlxclib/string.h"
+	
+HLX_INLINE 
+int wcsncasecmp (const wchar_t *str1, const wchar_t *str2, size_t n)
+{
+    INT32 l1  = 0;
+    INT32 l2  = 0;
+    INT32 diff = 0;
+
+    while (n--)
+    {
+	l1 = towlower (*str1);
+	l2 = towlower (*str2);
+
+	diff = l1 - l2;
+	if (diff)
+	    return diff;
+
+	if (!l1)
+	    return 0;
+
+	++str1;
+	++str2;
+    }
+    return diff;
+}
+#endif
 
 #endif // End of #ifndef HLXLIB_WCHAR_H
 

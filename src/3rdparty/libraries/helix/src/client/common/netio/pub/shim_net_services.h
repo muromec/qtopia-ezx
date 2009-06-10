@@ -49,6 +49,9 @@
 
 class CHXClientNetServicesShim : public CUnknownIMP
 			       , public IHXNetServices
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+			       , public IHXSecureNetServices
+#endif
 			       , public IHXContextUser
 			       , public CHXBaseCountingObject
 {
@@ -62,7 +65,9 @@ public:
     STDMETHOD(CreateSockAddr)       (THIS_ HXSockFamily f, IHXSockAddr** ppAddr);
     STDMETHOD(CreateListeningSocket)(THIS_ IHXListeningSocket** ppSock);
     STDMETHOD(CreateSocket)         (THIS_ IHXSocket** ppSock);
-
+#ifdef HELIX_FEATURE_SECURE_SOCKET
+    STDMETHOD(CreateSecureSocket)(THIS_ IHXSecureSocket** ppSock) ;
+#endif
     // IHXContextUser
     STDMETHOD (RegisterContext)	    (THIS_  IUnknown* pIContext);
 

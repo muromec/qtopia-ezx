@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: bitstream.h,v 1.3 2006/01/04 07:13:18 pankajgupta Exp $
+ * Source last modified: $Id: bitstream.h,v 1.5 2008/11/11 15:16:00 alokjain Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,7 +57,7 @@ class Bitstream
 public:
     Bitstream();
 
-    void SetBuffer(const UINT8* pBuf);
+    void SetBuffer(const UINT8* pBuf, ULONG32 ulBufSize);
     const UINT8* GetBuffer(void);
     void SetBufSize(ULONG32 ulBufSize);
     ULONG32 GetBufSize(void);
@@ -68,6 +68,7 @@ public:
     ULONG32 PeekBits(ULONG32 bitCount);
 
     void FlushBits(ULONG32 bitCount);
+    UINT32 BitsLeft(void);	
 
 private:
     const UINT8* m_pBuf;
@@ -76,6 +77,7 @@ private:
     ULONG32 m_bitBuf;
     ULONG32 m_bitCount;
     ULONG32 m_ulBufSize;
+    ULONG32 m_ulBufSizeBits;
 };
 
 #endif // BITSTREAM_H

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: factory.h,v 1.2 2004/07/09 18:40:30 hubbe Exp $
+ * Source last modified: $Id: factory.h,v 1.4 2008/02/08 18:22:44 praveenkumar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,9 +68,10 @@ public:
 
     LONG32 m_lRefCount;
     UINT16  m_usNumOfPlugins;
-    static HX_RESULT (STDAPICALLTYPE  *m_fpEntryArray[])(IUnknown**);
-    static HX_RESULT (STDAPICALLTYPE  *m_fpExitArray[])();
-    static HX_RESULT (*m_fpUnloadArray[])();
+    static HX_RESULT (STDAPICALLTYPE * const m_fpEntryArray [])(IUnknown**);
+    static HX_RESULT (STDAPICALLTYPE * const m_fpExitArray [])();
+    static HX_RESULT (* const  m_fpUnloadArray [])();
+        
 };
 
 /****************************************************************************

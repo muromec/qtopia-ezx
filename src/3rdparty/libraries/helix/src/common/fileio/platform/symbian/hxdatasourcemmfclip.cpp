@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdatasourcemmfclip.cpp,v 1.4 2007/03/27 14:59:28 aperiquet Exp $
+ * Source last modified: $Id: hxdatasourcemmfclip.cpp,v 1.6 2007/07/06 20:35:15 jfinnecy Exp $
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
  * The contents of this file, and the files included with this file,
@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -119,6 +119,8 @@ UINT32 CHXDataSourceMMFClip::Read(
     if(error != KErrNone)
     {
         HXLOGL1(HXLOG_FILE, "CHXDataSourceMMFClip::Read error=%d", error);
+        SetLastError(HXR_READ_ERROR);
+        retVal = 0;
     }
 
     return retVal;
@@ -135,6 +137,7 @@ UINT32 CHXDataSourceMMFClip::Write(
     if(error != KErrNone)
     {
         HXLOGL1(HXLOG_FILE, "CHXDataSourceMMFClip::Write error=%d", error);
+        SetLastError(HXR_WRITE_ERROR);
     }
 
     return retVal;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: source_container.cpp,v 1.3 2003/09/04 22:35:34 dcollins Exp $ 
+ * Source last modified: $Id: source_container.cpp,v 1.4 2009/03/06 01:04:41 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -99,7 +99,7 @@ SourceContainer::QueryInterface(REFIID riid, void** ppvObj)
 	*ppvObj = (IHXRawSourceObject*)this;
 	return HXR_OK;
     }
-    else if(IsEqualIID(riid, IID_IHXASMSource))
+    else if(m_pSourceLivePackets && IsEqualIID(riid, IID_IHXASMSource))
     {
 	return m_pSourceLivePackets->QueryInterface(riid, ppvObj);
     }

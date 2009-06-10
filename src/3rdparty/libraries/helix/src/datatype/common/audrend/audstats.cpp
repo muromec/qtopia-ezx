@@ -41,7 +41,7 @@
 /****************************************************************************
  *  Includes
  */
-#include <stdio.h>
+#include "hlxclib/stdio.h"
 #include "rendstats.h"
 #include "audstats.h"
 #include "hxstrutl.h"

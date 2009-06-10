@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: altgrputil.h,v 1.2 2004/08/04 16:45:30 acolwell Exp $
+ * Source last modified: $Id: altgrputil.h,v 1.6 2009/02/02 17:20:36 svaidhya Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -67,6 +67,18 @@ public:
     static HX_RESULT SelectAltGroups(IUnknown* pContext,
                                      ULONG32 ulMaxBW, const char* pLanguages,
                                      UINT16 nValues, IHXValues** ppValues);
+
+	static HX_RESULT CreateStreamGroups(IHXCommonClassFactory* pCCF, UINT16 nValues,
+									REF(IHXValues**) ppValues, REF(UINT16) nStreamGrpCount);
+#ifdef HELIX_FEATURE_SERVER_MR_RTP
+	static HX_RESULT CreateSwitchGroups(UINT16 nValues, REF(IHXValues**) ppValues, HXBOOL bSourceQtbc);
+#endif
+        static HX_RESULT SetTrackID(UINT16 nValues, REF(IHXValues**) ppValues,REF (IHXValues*) pFileHeader);
+	static HX_RESULT CreateASMRuleBook(IHXCommonClassFactory* pCCF,
+									UINT16 nValues, REF(IHXValues**) ppValues);
+        static HX_RESULT SortStreams ( REF(IHXValues**) ppHdrs, UINT32 nVal);
+        static HX_RESULT AddASMRuleBook(REF(IHXValues**) ppHdrs, UINT32 nVal, IHXCommonClassFactory* pCCF);
+
 private:
     static HX_RESULT AddLanguageFilter(CHXAltGroupSelector& selector,
                                        const char* pLanguages);

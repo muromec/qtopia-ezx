@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: commreg.cpp,v 1.19 2006/05/25 15:00:37 dcollins Exp $
+ * Source last modified: $Id: commreg.cpp,v 1.23 2009/05/14 15:02:13 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -2085,7 +2085,7 @@ CommonRegistry::GetPropName(const UINT32 id, IHXBuffer*& prop_name) const
 		return CreateAndSetBufferCCF(prop_name, (UCHAR*)p->get_key_str(),
 					     p->get_key_str_len(), m_pContext);
 	    }
-#ifndef HELIX_FEATURE_CLIENT
+#if !defined(HELIX_FEATURE_CLIENT)
 	    prop_name = new CHXBuffer;
 	    prop_name->Set((const unsigned char *)p->get_key_str(), 
 			   p->get_key_str_len());
@@ -2318,7 +2318,7 @@ CommonRegistry::_getPropList(DB_implem* ldb, IHXValues*& pValues) const
 	CreateValuesCCF(pValues, m_pContext);
     }
     // Client should always provide m_pContext
-#ifndef HELIX_FEATURE_CLIENT
+#if !defined(HELIX_FEATURE_CLIENT)
     else
     {
 	pValues = new CHXHeader;

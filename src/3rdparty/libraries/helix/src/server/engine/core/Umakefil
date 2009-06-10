@@ -1,5 +1,5 @@
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.22 2005/08/05 01:09:26 atin Exp $ 
+# Source last modified: $Id: Umakefil,v 1.30 2009/05/27 17:45:08 atin Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -62,12 +62,14 @@ project.AddModuleIncludes(
 	, "server/engine/dataflow/pub"
 	, "server/engine/session/pub"
 	, "server/engine/dataflow/pub"
+	, "server/engine/inputsource/pub"
 	, "server/engine/netio/pub"
 	, "server/common/util/pub"
 	, "server/common/netio/pub"
 	, "server/common/struct/pub"
 	, "server/protocol/http/pub"
 	, "server/qos/core/pub"
+	, "server/qos/transport/pub"
         , "server/capex/pub"
 	, "protocol/http/pub"
 	, "protocol/rtsp/pub"
@@ -103,16 +105,19 @@ if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
     	, "server_rn/protocol/wmt/mms/pub"
 	)
 
+if "HELIX_FEATURE_SECURE_LICENSE" in project.defines:
+    project.AddModuleIncludes("server-restricted/common/util/pub")
+
 
 project.AddSources(
 	  "_main.cpp"
 	, "aliveprot.cpp"
 	, "bcastmgr.cpp"
+	, "bcastfilter.cpp"
         , "clientguid.cpp"
 	, "clientregtree.cpp"
 	, "core_proc.cpp"
 	, "dispatchq.cpp"
-	, "dist_lic_requester.cpp"
 	, "iids.cpp"
 	, "loadinfo.cpp"
 	, "malloc.cpp"
@@ -138,10 +143,8 @@ project.AddSources(
 	, "streamer_container.cpp"
 	, "streamer_proc.cpp"
 	, "sysinfo.cpp"
-	, "tsfob.cpp"
         , "shregion.cpp"
         , "shutdown.cpp"
-        , "osdetect.cpp"
 	)
 
 LibraryTarget('servenglib')

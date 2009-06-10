@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxpluginmanager.cpp,v 1.13 2006/08/17 17:15:54 ping Exp $
+ * Source last modified: $Id: hxpluginmanager.cpp,v 1.17 2009/03/04 00:42:59 girish2080 Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,6 +64,7 @@
 #include "pathutil.h"
 #include "hxver.h"
 
+#include "hlxclib/stdlib.h" //atoi
 #include "hxheap.h"
 #ifdef _DEBUG
 #undef HX_THIS_FILE
@@ -83,6 +84,9 @@ static const char HX_THIS_FILE[] = __FILE__;
 #include "symbiannameonlyff.h"
 #endif
 
+#if defined (HELIX_FEATURE_PREFERENCES) && defined (HELIX_DEFINE_DLL_NAMESPACE)
+#include "hxstrutl.h"
+#endif //HELIX_FEATURE_PREFERENCES && HELIX_DEFINE_DLL_NAMESPACE
 
 #if(0)
 // helper
@@ -339,7 +343,12 @@ HX_RESULT HXPluginManager::ReloadPluginsWithFindFile(
     HXBOOL bCanWriteArchive = FALSE;
     IHXPreferences* pPrefs = 0;
     m_pContext->QueryInterface(IID_IHXPreferences, (void**) &pPrefs);
-    hr = ReadPrefCSTRING(pPrefs, "PluginArchiveFileName", strArchiveFile);
+    CHXString preference("PluginArchiveFileName");
+#ifdef HELIX_DEFINE_DLL_NAMESPACE
+    const char* const pNameSpace = STRINGIFY(HELIX_DEFINE_DLL_NAMESPACE);
+    preference = pNameSpace + preference;
+#endif //HELIX_DEFINE_DLL_NAMESPACE
+    hr = ReadPrefCSTRING(pPrefs, preference, strArchiveFile);
     HX_RELEASE(pPrefs);
     if(SUCCEEDED(hr))
     {
@@ -831,7 +840,20 @@ STDMETHODIMP
 HXPluginManager::FindGroupOfPluginsUsingValues( IHXValues* pValues,
 				REF(IHXPluginSearchEnumerator*) pIEnumerator)
 {
-    return HXR_NOTIMPL;
+    HX_RESULT result = HXR_OK;
+    HXPluginEnumerator *pEnumerator = NULL;
+	
+	
+    result = FindGroupOfPluginsUsingValues(pValues, pEnumerator);
+							
+    // If we have our enumerator, get the appropriate interface
+    if( SUCCEEDED( result ) )
+    {
+        result = pEnumerator->QueryInterface( IID_IHXPluginSearchEnumerator,
+                                              (void**) &pIEnumerator );
+    }
+
+    return result;
 }
 
 STDMETHODIMP

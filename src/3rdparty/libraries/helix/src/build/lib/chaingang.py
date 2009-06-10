@@ -5,7 +5,7 @@ import copy
 #tracelog=open("trace.log","w")
 
 import log
-log.debug( 'Imported: $Id: chaingang.py,v 1.20 2006/06/19 23:11:27 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: chaingang.py,v 1.21 2007/06/13 01:12:50 jfinnecy Exp $' )
 
 ## Helper
 
@@ -446,6 +446,9 @@ if have_threads:
             self.output_hash={}
             self.old_stdout=0
             self.traces={}
+            # Attributes track if a SystemExit was requested during threaded phase.
+            self.exit    = False
+            self.exitVal = 0
 
         def start_jobs(self):
             if self.running_threads:
@@ -524,12 +527,18 @@ if have_threads:
                 sys.stdout = self.old_stdout
                 chdir_lock.acquire()
                 os.chdir(self.cwd)
-               
-            if self.error:
-                log.error( 'Error during job threading: %s' % self.error )
-                raise err.error, self.error
 
             log.info( 'Thread scheduler run completed.' )
+               
+            if self.error:
+                log.error( 'Error occurred during job threading: %s' % self.error )
+                raise err.error, self.error
+
+            if self.exit:
+                log.info( 'System exit requested during job threading.' )
+                raise SystemExit( self.exitVal )
+
+            log.info( 'No abnormal events encountered.' )
             log.trace( 'exit' )
 
         def write(self, text):
@@ -760,6 +769,10 @@ if have_threads:
                     e.SetTraceback(sys.exc_info())
                     self.error=e
                     print e.Text()
+                except SystemExit, e:
+                    log.info( "System exit requested. Waiting for threads to finish." )
+                    self.exit    = True
+                    self.exitVal = e
                 except:
                     print "***Thread error trapped!"
                     e = err.Error()

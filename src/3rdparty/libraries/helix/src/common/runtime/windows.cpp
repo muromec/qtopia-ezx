@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: windows.cpp,v 1.5 2005/03/14 19:36:37 bobclark Exp $
+ * Source last modified: $Id: windows.cpp,v 1.7 2007/07/25 05:22:32 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -85,10 +85,9 @@ LONG __helix_RegCreateKey(HKEY hKey, const char* lpSubKey, PHKEY phkResult)
 
 LONG __helix_RegEnumKey(HKEY hKey, DWORD dwIndex, char* lpName, DWORD cbName)
 {
-    DWORD dwNameSize = cbName / sizeof(TCHAR);
     FILETIME fileTime;
     return RegEnumKeyEx(hKey, dwIndex, OS_STRING2(lpName, cbName),
-			&dwNameSize, 0, 0, 0, &fileTime);
+			&cbName, 0, 0, 0, &fileTime);
 }
 
 LONG __helix_RegSetValue(HKEY hKey, const char* lpSubKey, DWORD dwType, 

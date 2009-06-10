@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: srcinfo.cpp,v 1.83 2007/02/27 06:21:16 gbajaj Exp $
+ * Source last modified: $Id: srcinfo.cpp,v 1.93 2008/12/11 01:11:08 umakantg Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -108,7 +108,7 @@
 static const char HX_THIS_FILE[] = __FILE__;
 #endif
 
-#define TIME_SYNC_FUDGE_FACTOR      10
+#define TIME_SYNC_FUDGE_FACTOR      60
 
 SourceInfo::SourceInfo(HXPlayer* pPlayer)
 {
@@ -779,10 +779,10 @@ SourceInfo::DoCleanup(EndCode endCode)
                 IHXBuffer* pMimeTypeBuffer = NULL;
 	        pRendInfo->m_pStreamInfo->m_pHeader->GetPropertyCString("MimeType", pMimeTypeBuffer);
 
-	        if (pMimeTypeBuffer && pMimeTypeBuffer->GetBuffer() &&
-                    ::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/vnd.rn-objectsstream") == 0 ||
-                    ::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/x-rn-objects") == 0 ||
-		    ::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/vnd.rn-objects") == 0)
+	        if ((pMimeTypeBuffer && pMimeTypeBuffer->GetBuffer()) &&
+                (::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/vnd.rn-objectsstream") == 0 ||
+                 ::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/x-rn-objects") == 0 ||
+		         ::strcasecmp((const char*) pMimeTypeBuffer->GetBuffer(), "application/vnd.rn-objects") == 0))
 	        {
 	            m_pPlayer->m_pEngine->m_lROBActive--;
                     HX_ASSERT(m_pPlayer->m_pEngine->m_lROBActive >=0 );
@@ -1359,6 +1359,15 @@ SourceInfo::ProcessIdle(ULONG32&    ulNumStreamsToBeFilled,
 		bSkipDeliveryTimeCheck = TRUE;
 		bDeliver = FALSE;
 	    }
+            else if (pRendInfo->m_bRendererDrivenPacketDelivery &&
+                     pRendInfo->m_pRendererDrivenPacketDelivery)
+            {
+                // The renderer will tell us whether to deliver additional
+                // packets or not. So we don't need to check the delivery time.
+                bSkipDeliveryTimeCheck = TRUE;
+                // Ask the renderer whether to deliver this packet or not
+                bDeliver = pRendInfo->m_pRendererDrivenPacketDelivery->CanAcceptPackets();
+            }
 	    else
 	    {
 		ulDeliveryTime = m_pPlayer->ComputeFillEndTime(m_pPlayer->m_ulCurrentPlayTime,
@@ -2122,6 +2131,32 @@ SourceInfo::InitializeRenderers(HXBOOL& bSourceInitialized)
     // attemp to load all the plugins
     m_bLoadPluginAttempted = TRUE;
 
+    HXBOOL bAllRenderersDriveBuffering = TRUE;
+
+
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+    //to enforce max number of video streams and/or audio streams allowed
+    UINT16 usNumberOfVideoStreams = 0;
+    UINT16 usNumberOfAudioStreams = 0;
+    HXBOOL bIsNullRenderer = FALSE;
+
+    UINT16 usMaxNumOfVideoStreams = 0;
+    UINT16 usMaxNumOfAudioStreams = 0;
+
+    // Read the min number of valid renderer reqd for playback
+    if( ReadPrefUINT16(m_pPlayer->m_pPreferences, "MaxNumOfVideoStreamsAllowed", usMaxNumOfVideoStreams) != HXR_OK )
+    {
+        usMaxNumOfVideoStreams = 0x7FFF;
+    }
+
+    if( ReadPrefUINT16(m_pPlayer->m_pPreferences, "MaxNumOfAudioStreamsAllowed", usMaxNumOfAudioStreams) != HXR_OK )
+    {
+        usMaxNumOfAudioStreams = 0x7FFF;
+    }
+
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
+    
+
     CHXMapLongToObj::Iterator ndxRend = m_pRendererMap->Begin();
     for (UINT16 i = 0; ndxRend != m_pRendererMap->End(); ++ndxRend, i++)
     {
@@ -2138,6 +2173,10 @@ SourceInfo::InitializeRenderers(HXBOOL& bSourceInitialized)
 	pUnkRenderer    = NULL;
 	bAddDefaultUpgrade  = FALSE;
 	HX_RELEASE(pMimeTypeBuffer);
+
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+    bIsNullRenderer = FALSE;
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
 
 	pHeader->GetPropertyCString("MimeType", pMimeTypeBuffer);
 
@@ -2175,6 +2214,27 @@ SourceInfo::InitializeRenderers(HXBOOL& bSourceInitialized)
 	}
 
 	IHXPluginHandler3* pPlugin2Handler3 = NULL;
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+    //to enforce max number of video streams and/or audio streams allowed
+    //note that pRendInfo->m_pRendererEnumerator is not created yet
+    if( ::strncasecmp( (const char*)pMimeTypeBuffer->GetBuffer(), "video/", 6) == 0 )
+    {
+        if( usNumberOfVideoStreams >= usMaxNumOfVideoStreams )
+        {
+            theErr = HXR_NO_RENDERER;
+        }
+    }
+    else if( ::strncasecmp( (const char*)pMimeTypeBuffer->GetBuffer(), "audio/", 6) == 0 )
+    {
+        if( usNumberOfAudioStreams >= usMaxNumOfAudioStreams )
+        {
+            theErr = HXR_NO_RENDERER;
+        }
+    }
+    
+    if( theErr != HXR_NO_RENDERER )
+    {
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
 
 	if (m_pSource->GetRenderingDisabledMask() == HXRNDR_DISABLED_NONE)
 	{
@@ -2196,6 +2256,9 @@ SourceInfo::InitializeRenderers(HXBOOL& bSourceInitialized)
 	    }
 
 	    HX_RELEASE(pPlugin2Handler3);
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+    } //if( theErr != HXR_NO_RENDERER )
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
 
 	    GOTOEXITONERROR(theErr, nextrend);
 
@@ -2248,9 +2311,26 @@ tryNextRendererForSameMimeType:
 
 	theErr = SetupRenderer(pRendInfo, pRenderer, pStreamInfo, pStream);
 
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+    if( SUCCEEDED( theErr ) && bIsNullRenderer == FALSE )
+    {
+        //to enforce at most only one video stream and/or one audio stream allowed on phone device
+        if( ::strncasecmp( (const char*)pMimeTypeBuffer->GetBuffer(), "video/", 6) == 0 )
+        {
+            usNumberOfVideoStreams++;
+        }
+        else if( ::strncasecmp( (const char*)pMimeTypeBuffer->GetBuffer(), "audio/", 6) == 0 )
+        {
+            usNumberOfAudioStreams++;
+        }
+    }
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
 nextrend:
 	if (theErr)
 	{
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+        bIsNullRenderer = FALSE;
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
 	    if (theErr == HXR_OUTOFMEMORY)
 	    {
 		m_pPlayer->Report( HXLOG_ERR, theErr, 0, NULL, NULL );
@@ -2270,6 +2350,8 @@ nextrend:
 	    {
 		theErr = HXR_OK;
 		HX_RELEASE(pRendInfo->m_pRenderer);
+		HX_RELEASE(pRendInfo->m_pRendererDrivenPacketDelivery);
+                HX_RELEASE(pRendInfo->m_pRendererPendingStatus);
 		goto tryNextRendererForSameMimeType;
 	    }
 	    else
@@ -2293,8 +2375,13 @@ nextrend:
                         ulNumNULLRenderer++;
                         theErr = HXR_OK;
                         HX_RELEASE(pRendInfo->m_pRenderer);
+                        HX_RELEASE(pRendInfo->m_pRendererDrivenPacketDelivery);
+                        HX_RELEASE(pRendInfo->m_pRendererPendingStatus);
                         HX_RELEASE(pUnkRenderer);
                         pNULLRenderer->QueryInterface(IID_IHXRenderer, (void**) &pUnkRenderer);
+#if defined(HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS)
+                        bIsNullRenderer = TRUE;
+#endif //HELIX_FEATURE_RESTRICT_NUMBER_OF_AV_STREAMS
                         goto tryNextRendererForSameMimeType;
                     }
                     else
@@ -2305,6 +2392,11 @@ nextrend:
 #endif
             }
         } // End of if (theErr)
+        // Check if this renderer controls it's own buffering.
+        if (!pRendInfo->m_bRendererDrivenBuffering)
+        {
+            bAllRenderersDriveBuffering = FALSE;
+        }
     } // End of for (UINT16 i = 0; ndxRend != m_pRendererMap->End(); ++ndxRend, i++)
     
 exit:
@@ -2390,6 +2482,12 @@ exit:
 	    m_pCurrentScheduleList->AddTail((void*) pRendInfo);
 	}
     }
+
+    // Check to see if all the renderers want to control
+    // their own packet buffering. If so, then we must
+    // inform the HXSource, so that it can direct
+    // all IHXPendingStatus calls to the renderers.
+    m_pSource->m_bRenderersControlBuffering = bAllRenderersDriveBuffering;
 
     return theFinalErr;
 }
@@ -2606,6 +2704,37 @@ SourceInfo::SetupRenderer(RendererInfo*& pRendInfo, IHXRenderer*& pRenderer,
 	    pRenderer->EndStream();
 	    goto exit;
 	}
+
+        // Get the IHXRendererDrivenPacketDelivery interface (not required)
+        HX_RELEASE(pRendInfo->m_pRendererDrivenPacketDelivery);
+        pRenderer->QueryInterface(IID_IHXRendererDrivenPacketDelivery,
+                                  (void**) &pRendInfo->m_pRendererDrivenPacketDelivery);
+
+        // Now that the renderer has received the stream header, it
+        // should know whether or not the renderer is driving
+        // buffering and packet delivery or not
+        if (pRendInfo->m_pRendererDrivenPacketDelivery)
+        {
+            pRendInfo->m_bRendererDrivenPacketDelivery =
+                pRendInfo->m_pRendererDrivenPacketDelivery->IsPacketDeliveryEnabled();
+            pRendInfo->m_bRendererDrivenBuffering =
+                pRendInfo->m_pRendererDrivenPacketDelivery->IsBufferingEnabled();
+            if (pRendInfo->m_bRendererDrivenBuffering)
+            {
+                // If a renderer claims to want to control it's
+                // own buffering, then it should support IHXPendingStatus.
+                // Here we check that it actually does.
+                HX_RELEASE(pRendInfo->m_pRendererPendingStatus);
+                HX_RESULT rv = pRenderer->QueryInterface(IID_IHXPendingStatus,
+                                                         (void**) &pRendInfo->m_pRendererPendingStatus);
+                if (FAILED(rv))
+                {
+                    // If the renderer does not support IHXPendingStatus, then 
+                    // disable renderer-controlled buffering.
+                    pRendInfo->m_bRendererDrivenBuffering = FALSE;
+                }
+            }
+        }
 
 	// start the stream
 	/* get the minimum granularity */
@@ -2890,6 +3019,8 @@ SourceInfo::RenderersCleanup()
 	RenderersCleanupExt(pRendInfo);
 
 	HX_RELEASE(pRendInfo->m_pRenderer);
+	HX_RELEASE(pRendInfo->m_pRendererDrivenPacketDelivery);
+	HX_RELEASE(pRendInfo->m_pRendererPendingStatus);
 	HX_RELEASE(pRendInfo->m_pRendererEnumerator);
 	HX_DELETE(pRendInfo);
     }
@@ -3021,7 +3152,7 @@ SourceInfo::OnTimeSync(RendererInfo* pRendInfo, HXBOOL bUseCurrentTime)
     m_pMutex->Lock();
 
     // no OnTimeSync() when the source(track) is paused
-    if (!m_pSource || m_pSource->IsPaused())
+    if (!m_pSource || m_pSource->IsPaused() || !m_pPlayer->m_bIsPlaying)
     {
 	m_pMutex->Unlock();
 	m_bLocked = FALSE;
@@ -3135,7 +3266,7 @@ SourceInfo::OnTimeSync(RendererInfo* pRendInfo, HXBOOL bUseCurrentTime)
      */
 //{FILE* f1 = ::fopen("c:\\temp\\sync.txt", "a+"); ::fprintf(f1, "SourceInfo::OnTimeSync: lastsynctime: %lu currentplaytime: %lu\n", pRendInfo->m_ulLastSyncTime, ulCurrentPlayTime );::fclose(f1);}
 
-    bLegalTimeSync = HX_EARLIER_USING_VELOCITY(pRendInfo->m_ulLastSyncTime,
+    bLegalTimeSync = HX_EARLIER_OR_SAME_USING_VELOCITY(pRendInfo->m_ulLastSyncTime,
                                                ulCurrentPlayTime,
                                                m_pPlayer->GetVelocity());
     if (pRendInfo->m_bIsFirstCallback || bLegalTimeSync)
@@ -4084,7 +4215,8 @@ SourceInfo::KeepSourceActive(void)
 		
     if (m_pPlayer->IsAtSourceMap(this)	&& 
 	!m_pSource->IsPaused()		&&
-	GetActiveDuration() < m_pPlayer->m_ulCurrentPlayTime)
+	((GetActiveDuration() <= m_pPlayer->m_ulCurrentPlayTime && (m_pSource->isRestrictedLiveStream() || !m_pSource->IsLive()))  ||
+             (m_pSource->IsLive() && m_pSource->IsSourceDone())))
     {
 	bResult = FALSE;
 	goto cleanup;

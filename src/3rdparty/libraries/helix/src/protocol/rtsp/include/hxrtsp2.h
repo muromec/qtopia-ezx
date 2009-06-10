@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxrtsp2.h,v 1.10 2006/12/07 15:17:42 jc Exp $
+ * Source last modified: $Id: hxrtsp2.h,v 1.12 2007/08/09 20:00:43 jgordon Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -112,7 +112,6 @@ enum RTSPMethod
     , RTSP_SETUP
     , RTSP_SET_PARAM
     , RTSP_TEARDOWN
-    , RTSP_PLAYNOW
     , RTSP_EXTENSION
     , RTSP_RESP
 };
@@ -129,8 +128,7 @@ enum RTSPMethod
 #define RTSP_VERB_SETUP      9
 #define RTSP_VERB_SETPARAM  10
 #define RTSP_VERB_TEARDOWN  11
-#define RTSP_VERB_PLAYNOW   12
-#define RTSP_VERB_EXTENSION 13
+#define RTSP_VERB_EXTENSION 12
 
 #define RTSP_RES_AGAIN   1
 #define RTSP_RES_DONE    2

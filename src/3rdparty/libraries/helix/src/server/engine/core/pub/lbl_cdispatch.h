@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: lbl_cdispatch.h,v 1.10 2007/03/05 23:24:06 atin Exp $
+ * Source last modified: $Id: lbl_cdispatch.h,v 1.11 2008/07/03 21:54:17 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -57,9 +57,11 @@
 
 #include "common_dispatch.h"
 
+#ifndef SHARED_FD_SUPPORT
 #if defined _LINUX || defined PTHREADS_SUPPORTED
 #    define SHARED_FD_SUPPORT
 #endif // _LINUX || PTHREADS_SUPPORTED
+#endif //!SHARED_FD_SUPPORT
 
 #if defined SHARED_FD_SUPPORT
 extern BOOL g_bSharedDescriptors;

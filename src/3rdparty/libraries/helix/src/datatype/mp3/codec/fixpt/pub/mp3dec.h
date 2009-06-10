@@ -60,6 +60,8 @@
 #
 #elif defined(_OPENWAVE_SIMULATOR) || defined(_OPENWAVE_ARMULATOR)
 #
+#elif defined(_AEE_SIMULATOR) || defined(_BREW)
+#
 #else
 #error No platform defined. See valid options in mp3dec.h
 #endif

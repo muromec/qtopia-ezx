@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: noiseless.c,v 1.1 2005/02/26 01:47:35 jrecker Exp $ 
+ * Source last modified: $Id: noiseless.c,v 1.2 2008/04/21 01:58:42 zhuao Exp $ 
  *   
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -468,6 +468,10 @@ int DecodeNoiselessData(AACDecInfo *aacDecInfo, unsigned char **buf, int *bitOff
 	*buf += ((bitsUsed + *bitOffset) >> 3);
 	*bitOffset = ((bitsUsed + *bitOffset) & 0x07);
 	*bitsAvail -= bitsUsed;
+    if( *bitsAvail <0 )
+    {
+        return ERR_AAC_INDATA_UNDERFLOW;
+    }
 
 	aacDecInfo->sbDeinterleaveReqd[ch] = 0;
 	aacDecInfo->tnsUsed |= psi->tnsInfo[ch].tnsDataPresent;	/* set flag if TNS used for any channel */

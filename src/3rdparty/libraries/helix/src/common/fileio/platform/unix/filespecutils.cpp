@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: filespecutils.cpp,v 1.18 2006/05/19 17:19:54 ping Exp $
+ * Source last modified: $Id: filespecutils.cpp,v 1.22 2009/06/01 19:09:54 qluo Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,6 +51,7 @@
 #include "hxtick.h"
 #include "hxrand.h"
 #include "dbcs.h"
+#include "hxstring.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -71,7 +72,7 @@
 #else
 #include <sys/vfs.h>
 #endif
-#if defined(_SOLARIS) || defined(_LSB_)
+#if defined(_SOLARIS) || defined(_LSB_) || defined(_LSB)
 #include <sys/statfs.h>
 #include <sys/statvfs.h>
 #endif
@@ -88,7 +89,7 @@
 #define STATFS_PATH_TYPE const char*
 #endif
 
-#if defined(_SOLARIS) || defined(_LSB_)
+#if defined(_SOLARIS) || defined(_LSB_) || defined(_LSB)
 #define HXStatfsStruct        struct statvfs
 #define HXStatfs(path,sf)     statvfs((STATFS_PATH_TYPE)(path),(sf))
 #define HXStatfsBlockSize(sf) ((sf).f_blocks)
@@ -150,6 +151,18 @@ HX_RESULT CHXFileSpecUtils::GetTotalSpaceOnDisk(const CHXDirSpecifier& volSpec,
 //******************************************************************************
 HXBOOL CHXFileSpecUtils::IsDiskEjectable(const CHXDirSpecifier& volSpec)
 {
+#if defined(HELIX_CONFIG_MOBLIN)
+    const char *szPath = volSpec.GetPathName();
+    if(szPath)
+    {
+        char *removable=strstr(szPath,"/media/");
+        char *temp=strstr(szPath,"/mnt/");	 	
+        if(((szPath-removable)==0)||((szPath-temp)==0))
+        {
+            return TRUE;
+        }
+    }
+#endif
     return FALSE;
 }
 
@@ -168,7 +181,7 @@ HXBOOL CHXFileSpecUtils::IsDiskLocal(const CHXDirSpecifier& volSpec)
     HXStatfsStruct sf;
     if (-1 != HXStatfs(szPath, &sf))
     {
-#if !defined(_LSB_)
+#if !defined(_LSB_) && !defined(_LSB)
 #if defined(_SOLARIS)
         if (strcmp("nfs", sf.f_basetype) == 0)
         {
@@ -236,26 +249,36 @@ HX_RESULT CHXFileSpecUtils::GetFileSize(const CHXFileSpecifier& fileSpec, INT64&
 //******************************************************************************
 HX_RESULT CHXFileSpecUtils::GetDirectorySize(const CHXDirSpecifier& dirSpec, HXBOOL shouldDescend, INT64& fSize)
 {
-    DIR *dir = opendir(dirSpec.GetPathName());
+    //XXX qluo
+    // the current implementation will follow the symbolic links to regular files.
+    // if "du -sk" type of size is desired, we should then use lstat().
+    CHXString szCurrentDirName = dirSpec.GetPathName();
+    DIR *dir = opendir((const char*)szCurrentDirName);
+    szCurrentDirName += "/";
     HX_RESULT result = HXR_FAIL;
     while (struct dirent *dirent_ = readdir(dir))
     {
         result = HXR_OK;
-        struct stat st;
-        if (-1 != stat(dirent_->d_name, &st))
-        {
-            if (S_ISDIR(st.st_mode))
-            {
-                if (shouldDescend)
-                {
-                    GetDirectorySize(CHXDirSpecifier(dirent_->d_name), TRUE, fSize);
-                }
-            }
-            else
-            {
-                fSize = st.st_size;
-            }
-        }
+	if (strcmp(dirent_->d_name, ".") != 0 &&
+	    strcmp(dirent_->d_name, "..") != 0)
+	{
+	    CHXString szFileName = szCurrentDirName + dirent_->d_name;
+	    struct stat st;
+	    if (stat((const char*)szFileName, &st) == 0)
+	    {
+		if (S_ISDIR(st.st_mode))
+		{
+		    if (shouldDescend)
+		    {
+			result = GetDirectorySize(CHXDirSpecifier((const char*)szFileName), TRUE, fSize);
+		    }
+		}
+		else if (S_ISREG(st.st_mode))
+		{
+		    fSize += st.st_size;
+		}
+	    }
+	}
     }
     if (dir)
     {

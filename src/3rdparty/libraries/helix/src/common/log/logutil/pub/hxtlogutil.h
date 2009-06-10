@@ -117,24 +117,25 @@ void HXLogFprintf(const char* szMsg, ...);
 // Support for 64-bit arguments varies.
 //
 #if defined(_SYMBIAN)
-#if defined(HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY) || defined (_SYMBIAN_81_)
-#define HX_I64d_ARG(x) INT64_TO_UINT32(x >>32), INT64_TO_UINT32(x)
-#define HX_I64d_SUBST "%p%X"
-#else
-#define HX_I64d_ARG(x) x.High(), x.Low()
-#define HX_I64d_SUBST "%lu:%lu"
-#endif
-#else
-#define HX_I64d_ARG(x) (x)
-#define HX_I64d_SUBST "%I64d"
+#    if defined(HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY) || defined (_SYMBIAN_81_)
+#        define HX_I64d_ARG(x) INT64_TO_UINT32(x >>32), INT64_TO_UINT32(x)
+#        define HX_I64d_SUBST "%p%X"
+#    else
+#        define HX_I64d_ARG(x) x.High(), x.Low()
+#        define HX_I64d_SUBST "%lu:%lu"
+#    endif
+#elif defined(_LONG_IS_64)
+#    define HX_I64d_ARG(x) (x)
+#    define HX_I64d_SUBST "%ld"
+#elif defined(WIN32)
+#    define HX_I64d_ARG(x) (x)
+#    define HX_I64d_SUBST "%I64d"
+#else 
+#    define HX_I64d_ARG(x) INT64_TO_UINT32(x >>32), INT64_TO_UINT32(x)
+#    define HX_I64d_SUBST "%u:%u"
 #endif
 
 typedef HX_RESULT (HXEXPORT_PTR FPCREATELOGSYSTEMINTERFACE)(IHXTLogSystem**);
-
-// These functions will attempt to create a DLLAccess
-// class and therefore you must link against DLLAccess
-// in common_system before they will work
-#if defined(HELIX_FEATURE_LOG_STATICDLLACCESS)
 
 void RSLog(const char* szMsg, ...);
 void RSLog(UINT32 nMsg, const char* szMsg, ...);
@@ -143,54 +144,19 @@ void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, UINT32 nMsg, const c
 void RSLog(EHXTLogCode nLogCode, const char* szMsg, ...);
 void RSLog(EHXTLogCode nLogCode, EHXTLogFuncArea nFuncArea, const char* szMsg, ...);
 
-void HXTLog_Push_Context(const char* szContext);
-void HXTLog_Pop_Context();
-void HXTLog_Set_FileAndLine(const char * szFilename, int nLineNum);
-void HXTLog_SetThreadJobName(const char* szJobName, UINT32 nThreadId);
-void HXTLog_CreateChildThread(UINT32 nParentThreadId, UINT32 nChildThreadId);
-void HXTLog_EndThread(UINT32 nThreadId);
-
-// Define producer-related macros
-#if defined(COMPILE_OUT_RSLOG)
-
-#define HXTLOG             if(0)
-#define HXTLOG_APPROVED    if(0)
-#define RSLOG_PUSH_CONTEXT if(0)
-#define RSLOG_POP_CONTEXT  if(0)
-
-#else /* #if defined(COMPILE_OUT_RSLOG) */
-
-#define HXTLOG                    HXTLog_Set_FileAndLine(__FILE__, __LINE__), RSLog
-#define HXTLOG_APPROVED           HXTLog_Set_FileAndLine(__FILE__, __LINE__), RSLog
-#define RSLOG_PUSH_CONTEXT        HXTLog_Push_Context
-#define RSLOG_POP_CONTEXT         HXTLog_Pop_Context
-#define RSLOG_SET_THREAD_JOB_NAME HXTLog_SetThreadJobName
-#define RSLOG_CREATE_CHILD_THREAD HXTLog_CreateChildThread
-#define RSLOG_END_THREAD          HXTLog_EndThread
-
-#endif /* #if defined(COMPILE_OUT_RSLOG) */
-
-// logging for debug builds only
-#if defined(_DEBUG)
-#define HXTLOG_DEBUG HXTLOG  // set to whatever HXTLOG is currently defined as
-#else /* #if defined(_DEBUG) */
-#define HXTLOG_DEBUG if(0)   // compile out
-#endif /* #if defined(_DEBUG) */
-
-#endif /* #if defined(HELIX_FEATURE_LOG_STATICDLLACCESS) */
-
-#include "hxdllaccess.h"
-#include "hxccf.h"
-
 HXBOOL HXLoggingEnabled();
 // These functions require HXEnableLogging() to be called
 // first before they will work
 void HXEnableLogging(IUnknown* pContext);
+void HXEnableCoreLogging();
 void HXEnableLogging_New(IUnknown* pContext);
 void HXDisableLogging(HXBOOL bShutdown = TRUE);
 void HXLog_Push_Context(const char* szContext);
 void HXLog_Pop_Context();
 void HXLog_Set_FileAndLine(const char * szFilename, int nLineNum);
+void HXLog_SetThreadJobName(const char* szJobName, UINT32 nThreadId);
+void HXLog_CreateChildThread(UINT32 nParentThreadId, UINT32 nChildThreadId);
+void HXLog_EndThread(UINT32 nThreadId);
 void HXLog1(const char* szMsg, ...);
 void HXLog2(const char* szMsg, ...);
 void HXLog3(const char* szMsg, ...);
@@ -217,18 +183,49 @@ inline void HXLog_Push_ContextNull(const char* szContext) {}
 inline void HXLog_Pop_ContextNull() {}
 #endif
 
+// The HXTLOGxxx and RSLOGxxx macros are used
+// by encoding services (client/encodesvc) and
+// the Producer SDK.
+#if defined(COMPILE_OUT_RSLOG)
+
+#define HXTLOG                    if(0)
+#define HXTLOG_APPROVED           if(0)
+#define RSLOG_PUSH_CONTEXT        if(0)
+#define RSLOG_POP_CONTEXT         if(0)
+#define RSLOG_SET_THREAD_JOB_NAME if(0)
+
+#else /* #if defined(COMPILE_OUT_RSLOG) */
+
+#define HXTLOG                    HXLog_Set_FileAndLine(__FILE__, __LINE__), RSLog
+#define HXTLOG_APPROVED           HXLog_Set_FileAndLine(__FILE__, __LINE__), RSLog
+#define RSLOG_PUSH_CONTEXT        HXLog_Push_Context
+#define RSLOG_POP_CONTEXT         HXLog_Pop_Context
+#define RSLOG_SET_THREAD_JOB_NAME HXLog_SetThreadJobName
+#define RSLOG_CREATE_CHILD_THREAD HXLog_CreateChildThread
+#define RSLOG_END_THREAD          HXLog_EndThread
+
+#endif /* #if defined(COMPILE_OUT_RSLOG) */
+
+// logging for debug builds only
+#if defined(_DEBUG)
+#define HXTLOG_DEBUG HXTLOG  // set to whatever HXTLOG is currently defined as
+#else /* #if defined(_DEBUG) */
+#define HXTLOG_DEBUG if(0)   // compile out
+#endif /* #if defined(_DEBUG) */
+
 // Is any HELIX_FEATURE_LOGLEVEL_xxx defined?
 #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && !defined(HELIX_FEATURE_LOGLEVEL_1) && !defined(HELIX_FEATURE_LOGLEVEL_2) && !defined(HELIX_FEATURE_LOGLEVEL_3) && !defined(HELIX_FEATURE_LOGLEVEL_4) && !defined(HELIX_FEATURE_LOGLEVEL_ALL)
 // No HELIX_FEATURE_LOGLEVEL_xxx defined, so
 // if we are release we will define level 2
 // and if we are debug we will define all levels
-#  if defined(_DEBUG)
-#    define HELIX_FEATURE_LOGLEVEL_ALL
-#    define HELIX_FEATURE_LOGLEVEL_4
-#  else
-#    define HELIX_FEATURE_LOGLEVEL_2
-#  endif
-#endif
+#if defined(_DEBUG)
+#define HELIX_FEATURE_LOGLEVEL_ALL
+#define HELIX_FEATURE_LOGLEVEL_4
+#else /* #if defined(_DEBUG) */
+#define HELIX_FEATURE_LOGLEVEL_2
+#endif /* #if defined(_DEBUG) #else */
+
+#endif /* #if !defined(HELIX_FEATURE_LOGLEVEL_NONE) && !defined(HELIX_FEATURE_LOGLEVEL_1) && !defined(HELIX_FEATURE_LOGLEVEL_2) && !defined(HELIX_FEATURE_LOGLEVEL_3) && !defined(HELIX_FEATURE_LOGLEVEL_4) && !defined(HELIX_FEATURE_LOGLEVEL_ALL) */
 
 // Define client-related macros
 #if defined(HELIX_FEATURE_LOGLEVEL_NONE)
@@ -275,9 +272,11 @@ inline void HXLog_Pop_ContextNull() {}
 
 #endif // !HELIX_FEATURE_LOGLEVEL_NONE
 
-#if defined(_STATICALLY_LINKED)
-#define HXLOG_DLLSUFFIX ""
-#elif defined(WIN32) || defined(_WIN32) || defined(_SYMBIAN)
+// This function can map from old-style [0,PUB] functional
+// areas to 4cc-style functional areas
+EHXTLogFuncArea MapFunctionalArea(EHXTLogFuncArea eFuncArea);
+
+#if defined(WIN32) || defined(_WIN32) || defined(_SYMBIAN)
 #define HXLOG_DLLSUFFIX  ".dll"
 #elif defined(_MAC_UNIX)
 #define HXLOG_DLLSUFFIX  ".bundle"

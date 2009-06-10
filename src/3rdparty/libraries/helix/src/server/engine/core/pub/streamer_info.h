@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: streamer_info.h,v 1.5 2005/08/15 17:36:53 srobinson Exp $ 
+ * Source last modified: $Id: streamer_info.h,v 1.6 2007/08/31 20:49:41 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -151,10 +151,10 @@ StreamerInfo::BestStreamer(Process* proc)
 	// more streams at a given capacity
 #ifdef SHARED_DESCRIPTORS
 	if (enabled[MapNumToProcNum[i]] &&
-	    lowest > total && ((total < (int)*capacity)||g_bSharedDescriptors))
+	    lowest > total && ((total < (unsigned int)*capacity)||g_bSharedDescriptors))
 #else
 	if (enabled[MapNumToProcNum[i]] && 
-	    lowest > total && (total < (int)*capacity))
+	    lowest > total && (total < (unsigned int)*capacity))
 #endif
 	{
 	    lowest = total;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: context.h,v 1.5 2004/08/02 18:30:17 damonlan Exp $
+ * Source last modified: $Id: context.h,v 1.6 2009/02/09 21:23:26 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -39,7 +39,7 @@
 
 typedef _INTERFACE  IHXSapManager       IHXSapManager;
 
-class HXCommonClassFactory;
+class RBSCommonClassFactory;
 class HXScheduler;
 class HXPreferences;
 class HXNetworkServices;
@@ -70,7 +70,7 @@ private:
     CallbackContainer       callbacks;
 
     HXScheduler*                m_pScheduler;
-    HXCommonClassFactory*       m_pCommonClassFactory;
+    RBSCommonClassFactory*      m_pCommonClassFactory;
     PluginHandler*              m_plugin_handler;
     IHXSapManager*              m_pSapManager;
     MulticastAddressPool*       m_pMulticastAddressPool;

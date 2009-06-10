@@ -52,7 +52,6 @@
 #include "mp4vdec.h"
 #include "mp4vdfmt.h"
 #include "mp4video.h"
-#include "addupcol.h"
 #include "hlxclib/string.h"
 
 #include "hxheap.h"
@@ -61,6 +60,7 @@
 static char HX_THIS_FILE[] = __FILE__;
 #endif
 
+#define MP4V_HX_AVC1_PAYLOAD_MIME_TYPE	    "video/X-HX-AVC1"
 
 /****************************************************************************
  *  Statics
@@ -115,6 +115,7 @@ HX_RESULT CMP4VDecoder::Close(void)
     }
 
     HX_DELETE(m_pCodecLib);
+    HX_RELEASE(m_pContext);
     HX_RELEASE(m_pInputAllocator);
     HX_RELEASE(m_pOutputAllocator);
     HX_VECTOR_DELETE(m_pImageInfoBuffer);
@@ -139,6 +140,7 @@ HX_RESULT CMP4VDecoder::Init(IUnknown* pContext,
 
     HX_RELEASE(m_pContext);
     m_pContext = pContext;
+    HX_ADDREF(m_pContext);
 
     HX_ASSERT(m_pContext);
     if (m_pContext)
@@ -164,12 +166,14 @@ HX_RESULT CMP4VDecoder::Init(IUnknown* pContext,
 
     if (SUCCEEDED(retVal))
     {
+        HX_RELEASE(m_pInputAllocator);
 	m_pInputAllocator = pInputAllocator;
 	if (m_pInputAllocator)
 	{
 	    m_pInputAllocator->AddRef();
 	}
 
+        HX_RELEASE(m_pOutputAllocator);
 	m_pOutputAllocator = pOutputAllocator;
 	if (m_pOutputAllocator)
 	{
@@ -192,7 +196,7 @@ HX_RESULT CMP4VDecoder::Init(IUnknown* pContext,
 
     if (SUCCEEDED(retVal))
     {
-	retVal = OpenStream();
+	retVal = OpenStream(STRINGTOMOFTAG(m_pCodecId));
     }
 #endif	// _DRY_RUN
 
@@ -250,6 +254,13 @@ HX_RESULT CMP4VDecoder::Decode(CMediaPacket* pFrameToDecode,
     return retVal;
 }
 
+void 
+CMP4VDecoder::ReleaseBuffer(UINT8* pBuff)
+{
+    HXCODEC_DATA sData;
+    sData.data = pBuff;
+    m_pCodecLib->PNStream_ReleaseFrame(m_pStream,&sData);
+}
 
 /****************************************************************************
  *  Method:
@@ -361,20 +372,6 @@ HX_RESULT CMP4VDecoder::OpenCodec(HX_MOFTAG mofTag)
 	retVal = m_pCodecLib->LoadCodecLib(mofTag);
         if (FAILED(retVal))
         {
-            // Generate the string
-            // XXXMEH - we really should centralize this code
-            // into CRADynamicCodecLibrary
-            char szAUStr[5]; /* Flawfinder: ignore */
-            szAUStr[0] = (char) ((mofTag >> 24) & 0x000000FF);
-            szAUStr[1] = (char) ((mofTag >> 16) & 0x000000FF);
-            szAUStr[2] = (char) ((mofTag >>  8) & 0x000000FF);
-            szAUStr[3] = (char) ( mofTag        & 0x000000FF);
-            szAUStr[4] = '\0';
-            // Make sure it's lower-case
-            strlwr(szAUStr);
-            // We failed to load the codec binary, so
-            // we need to add the string to the upgrade collection
-            AddToAutoUpgradeCollection(szAUStr, m_pContext);
             // Make sure we return HXR_REQUEST_UPGRADE
             // so that we know we failed due to not being able
             // to load the codec as opposed to some other reason
@@ -401,7 +398,7 @@ HX_RESULT CMP4VDecoder::OpenCodec(HX_MOFTAG mofTag)
  *  Method:
  *    CMP4VDecoder::OpenStream
  */
-HX_RESULT CMP4VDecoder::OpenStream(void)
+HX_RESULT CMP4VDecoder::OpenStream(HX_MOFTAG mofTag)
 {
     ULONG32 ulMofInDataSize = 0;
     ULONG32* pMofInData = NULL;
@@ -431,10 +428,45 @@ HX_RESULT CMP4VDecoder::OpenStream(void)
 			   (pMofIn->data - ((UINT8*) pMofIn));
 	pMofIn->moftag = HX_MEDIA_NATIVE;
 	pMofIn->submoftag = STRINGTOMOFTAG(m_pCodecId);
-
-	memcpy(pMofIn->data,
-	       m_pVideoFormat->GetBitstreamHeader(),
-	       m_pVideoFormat->GetBitstreamHeaderSize());
+#if defined HELIX_FEATURE_OMX_VIDEO_DECODER_MP4 || defined HELIX_FEATURE_OMX_VIDEO_DECODER_AVC1
+//  Set MofTag to "MP4V" or "AVC1", so that omx video decoder wrapper can identify which decoder to load
+    if(pMofIn->submoftag == 0x4f4d5856) // "OMXV"
+    {
+        IHXValues* pHeader = NULL;
+        const char* pMimeTypeData = NULL;
+        IHXBuffer* pMimeType = NULL;
+ 
+        retVal = m_pVideoFormat->GetStreamHeader(pHeader);
+        if (SUCCEEDED(retVal))
+        {
+	        retVal = pHeader->GetPropertyCString("MimeType", pMimeType);
+        }
+        if (SUCCEEDED(retVal))
+        {
+	        pMimeTypeData = (char*) pMimeType->GetBuffer();
+            if (strcasecmp(pMimeTypeData, MP4V_HX_AVC1_PAYLOAD_MIME_TYPE) == 0)
+	        {
+                pMofIn->submoftag = 0x41564331; // AVC1
+	        }
+            else
+            {
+                pMofIn->submoftag = 0x4d503456; // MP4v
+            }
+        }
+        HX_RELEASE(pMimeType);
+    }
+#endif
+        if ((m_pVideoFormat->GetBitstreamHeaderSize() > 0)&& 
+             (m_pVideoFormat->GetBitstreamHeader()))
+        {
+	    memcpy(pMofIn->data,
+	        m_pVideoFormat->GetBitstreamHeader(),
+	        m_pVideoFormat->GetBitstreamHeaderSize());
+        }
+        else
+        {
+            pMofIn->cbLength = 0;
+        }
     }
 
     if (SUCCEEDED(retVal))
@@ -458,6 +490,32 @@ HX_RESULT CMP4VDecoder::OpenStream(void)
 	retVal = m_pCodecLib->PNCodec_StreamOpen(m_pCodec, 
 						 &m_pStream,
 						 &codecInit);
+    }
+
+    if (SUCCEEDED(retVal))
+    {
+        // Get the stream header from the video format
+        IHXValues* pStreamHdr = NULL;
+        retVal = m_pVideoFormat->GetStreamHeader(pStreamHdr);
+        if (SUCCEEDED(retVal))
+        {
+            // Get the "FrameWidth" and "FrameHeight" properties
+            UINT32 ulFrameWidth  = 0;
+            UINT32 ulFrameHeight = 0;
+            pStreamHdr->GetPropertyULONG32("FrameWidth", ulFrameWidth);
+            pStreamHdr->GetPropertyULONG32("FrameHeight", ulFrameHeight);
+            // If we have framewidth and frameheight, set them into the decoder
+            if (ulFrameWidth && ulFrameHeight)
+            {
+	        m_pCodecLib->PNStream_SetProperty(m_pStream,
+                                                  SP_FRAME_WIDTH,
+                                                  &ulFrameWidth);
+	        m_pCodecLib->PNStream_SetProperty(m_pStream,
+                                                  SP_FRAME_HEIGHT,
+                                                  &ulFrameHeight);
+            }
+        }
+        HX_RELEASE(pStreamHdr);
     }
 
     if (retVal == HXR_OK)
@@ -493,6 +551,14 @@ HX_RESULT CMP4VDecoder::OpenStream(void)
        {
            SetCPUScalability(FALSE);
        }
+    }
+
+    if (FAILED(retVal))
+    {
+        // Make sure we return HXR_REQUEST_UPGRADE
+        // so that we know we failed due to not being able
+        // to load the codec as opposed to some other reason
+        retVal = HXR_REQUEST_UPGRADE;
     }
 
     return retVal;
@@ -581,4 +647,12 @@ void CMP4VDecoder::SetCodecQuality(void)
     m_pCodecLib->PNStream_SetProperty(m_pStream, 
 				      SP_DECODE_B_FRAMES,
 				      &bDecodeBFrames);
+}
+
+HX_RESULT 
+CMP4VDecoder::GetProperty(UINT32 id, void* pPropVal)
+{
+    return m_pCodecLib->PNStream_GetProperty(m_pStream, 
+				      id,
+				      pPropVal);
 }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: stat.h,v 1.7 2006/06/06 08:52:22 pankajgupta Exp $
+ * Source last modified: $Id: stat.h,v 1.9 2008/01/18 09:17:28 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 #ifndef HLXSYS_SYS_STAT_H
 #define HLXSYS_SYS_STAT_H
 
-#if !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE) && !defined(_WINCE)
+#if !defined(WIN32_PLATFORM_PSPC) && !defined(_OPENWAVE) && !defined(_WINCE) && !defined(_BREW)
 #if defined(_MACINTOSH) && !defined(_MAC_MACHO)
 #include <stat.h>
 #else
@@ -77,9 +77,9 @@ extern "C" {
 int __helix_fstat(int filedes, struct stat *buf);
 int __helix_stat(const char* pFilename, struct stat *buf);
 
-#if defined(WIN32_PLATFORM_PSPC) || defined(_OPENWAVE)
+#if defined(WIN32_PLATFORM_PSPC) || defined(_OPENWAVE) || defined(_BREW)
 
-#ifdef _OPENWAVE
+#if defined(_OPENWAVE) || defined (_BREW)
 #define S_IFDIR		0x1000	/* specify a directory*/
 #endif 
 

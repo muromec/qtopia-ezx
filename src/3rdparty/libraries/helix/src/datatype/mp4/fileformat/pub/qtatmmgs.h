@@ -130,6 +130,10 @@ public:
 	return m_ulCurrentMediaStartTime + m_ulCurrentInEditTime;
     }
 
+    ULONG32 GetRealMediaTime(void)  // in media units
+    {
+	return m_ulCurrentEditTime + m_ulCurrentInEditTime;
+    }
     double ConvertMediaToRealTime(ULONG32 ulMediaTime) // in miliseconds
     {
 	return (((double) ulMediaTime) *
@@ -208,6 +212,11 @@ public:
 private:
     HXBOOL SequenceToChunk(void);
     inline HXBOOL SequenceReverseToChunk(void);
+    ULONG32       GetFirstChunk(ULONG32 i);
+    ULONG32       GetSamplesPerChunk(ULONG32 i);
+    ULONG32       GetSampleDescID(ULONG32 i);
+    ULONG32       GetNextFirstChunk(ULONG32 i, ULONG32& rulNextIdx);
+    ULONG32       GetPrevFirstChunk(ULONG32 i, ULONG32& rulPrevIdx);
 
     CQT_stsc_Atom* m_pSampleToChunkAtom;
 
@@ -216,6 +225,7 @@ private:
     ULONG32 m_ulCurrentChunk;
     ULONG32 m_ulNextEntryChunk;
     ULONG32 m_ulCurrentEntryIdx;
+    ULONG32 m_ulNextEntryIdx;
     ULONG32 m_ulSamplesPerChunk;
     ULONG32 m_ulSampleNumber;
     ULONG32 m_ulSampleDescIdx;
@@ -608,6 +618,7 @@ public:
     ULONG32 GetAvgBitrate(void)	    { return m_ulAvgBitrate; }
 
     ULONG32 GetMaxBitrate(void)	    { return m_ulMaxBitrate; }
+    ULONG32 GetMaxRawBitrate(void)	    { return m_ulMaxRawBitrate; }    	
 
     ULONG32 GetNeededBandwidth(void){ return m_ulBandwidth; }
     void SetNeededBandwidth(ULONG32 ulBandwidth)
@@ -652,7 +663,7 @@ private:
 			    CQT_SampleDescription_Manager* pSampleDescManager,
 			    CQTTrackManager* pTrackManager,
 			    CQT_MovieInfo_Manager* pMovieInfo);
-    
+    HX_RESULT SkipToAvcC(UINT8*& pData, ULONG32 ulSize);
     ULONG32 m_ulMediaTimeScale;
     ULONG32 m_ulPayloadType;
     ULONG32 m_ulTrackDuration;
@@ -662,6 +673,7 @@ private:
     ULONG32 m_ulTrackSelectionMask;
     ULONG32 m_ulAvgBitrate;
     ULONG32 m_ulMaxBitrate;
+    ULONG32 m_ulMaxRawBitrate;
     ULONG32 m_ulBandwidth;
     ULONG32 m_ulPreroll;
     ULONG32 m_ulPredata;
@@ -724,8 +736,8 @@ public:
         return m_pNameAtom ? m_pNameAtom->GetData() : NULL;
     }
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
-    //*** Titl Atom **********************************************
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+    //*** Title Atom *********************************************
 
     ULONG32 GetTitleLength(void)
     {
@@ -864,7 +876,7 @@ public:
         return m_pKywdAtom ? m_pKywdAtom->Get_KeywordCnt() : 0;
     }
 
-    ULONG32 GetKeywordLength(ULONG32 ulKeywordIdx)
+    UINT8 GetKeywordLength(ULONG32 ulKeywordIdx)
     {
         if (ulKeywordIdx >= (ULONG32) GetKeywordCount())
             return 0;
@@ -882,8 +894,7 @@ public:
 
     ULONG32 GetLocationNameLength(void)
     {
-        UINT8* pValue = GetLocationName();
-        return pValue ? strlen((const char*) pValue) : 0;
+        return m_pLociAtom ? m_pLociAtom->GetNameLength() : 0;
     }
 
     UINT8* GetLocationName(void)
@@ -891,21 +902,19 @@ public:
         return m_pLociAtom ? m_pLociAtom->GetName() : NULL;
     }
 
-    ULONG32 GetAstronomicalBodyLength(void)
+    ULONG32 GetLocationAstronomicalBodyLength(void)
     {
-        UINT8* pValue = GetAstronomicalBody();
-        return pValue ? strlen((const char*) pValue) : 0;
+        return m_pLociAtom ? m_pLociAtom->GetAstronomicalBodyLength() : 0;
     }
 
-    UINT8* GetAstronomicalBody(void)
+    UINT8* GetLocationAstronomicalBody(void)
     {
         return m_pLociAtom ? m_pLociAtom->GetAstronomicalBody() : NULL;
     }
 
     ULONG32 GetLocationAdditionalNotesLength(void)
     {
-        UINT8* pValue = GetLocationAdditionalNotes();
-        return pValue ? strlen((const char*) pValue) : 0;
+        return m_pLociAtom ? m_pLociAtom->GetAdditionalNotesLength() : 0;
     }
 
     UINT8* GetLocationAdditionalNotes(void)
@@ -960,21 +969,67 @@ public:
         return m_pLociAtom ? m_pLociAtom->GetAltitude_FractionalPart() : -99999;
     }
 
+    //*** Album Atom *********************************************
+
+    UINT32 GetAlbumTitleLength(void)
+    {
+        return m_pAlbmAtom ? m_pAlbmAtom->GetAlbumTitleLength() : 0;
+    }
+
+    UINT8* GetAlbumTitle(void)
+    {
+        return m_pAlbmAtom ? m_pAlbmAtom->GetAlbumTitle() : NULL;
+    }
+
+    HXBOOL HasTrackNumber(void)
+    {
+        return m_pAlbmAtom ? m_pAlbmAtom->HasTrackNumber() : FALSE;
+    }
+
+    UINT8 GetTrackNumber(void)
+    {
+        return m_pAlbmAtom ? m_pAlbmAtom->GetTrackNumber() : 0;
+    }
+
+    //*** Recording Year Atom ************************************
+
+    HXBOOL HasRecordingYear()
+    {
+        return (m_pYrrcAtom ? TRUE : FALSE);
+    }
+
+    UINT16 GetRecordingYear(void)
+    {
+        return m_pYrrcAtom ? m_pYrrcAtom->GetRecordingYear() : 0;
+    }
+
+    //*** Language Encoding **************************************
+
+    // If the encodings of all atoms are equal, <out> is filled with unambiguous encoding and TRUE is returned.
+    // If the encodings of atoms differ, <out> is filled with 'und' (for undetermined) and TRUE is returned.
+    // If no encodings are found, <out> is filled with 'und' (for undetermined) and FALSE is returned.
+    HXBOOL GetGlobalLanguageEncoding(char out[3]);
+
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
+
+    char* GetRefURL(void)
+    {
+        return m_pRefURL;
+    }
 
     ULONG32 GetSDPLength(void);
     UINT8* GetSDP(void);
 
 private:
     HX_RESULT ParseMovieHintInfo(CQTAtom* pAtom);
-
+    char *m_pRefURL;
     ULONG32 m_ulMovieTimeScale;
     ULONG32 m_ulMovieDuration;
 
     CQT_name_Atom*    m_pNameAtom;
 
-#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
+#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
     CQT_titl_Atom*    m_pTitlAtom;
     CQT_auth_Atom*    m_pAuthAtom;
     CQT_cprt_Atom*    m_pCprtAtom;
@@ -986,6 +1041,8 @@ private:
     CQT_clsf_Atom*    m_pClsfAtom;
     CQT_kywd_Atom*    m_pKywdAtom;
     CQT_loci_Atom*    m_pLociAtom;
+    CQT_albm_Atom*    m_pAlbmAtom;
+    CQT_yrrc_Atom*    m_pYrrcAtom;
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
 

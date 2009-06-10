@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: shmem.h,v 1.10 2007/03/05 23:24:06 atin Exp $ 
+ * Source last modified: $Id: shmem.h,v 1.12 2008/10/17 18:58:07 ckarusala Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -148,6 +148,8 @@ extern BOOL g_bEFenceProtectFreedMemory;
 #else
 #define ALIGNMENT_PADDING(foo) 0
 #endif
+
+#define SINGLE_MAX_MEMORY_ALLOCATION 64 //in MB
 
 // Includes
 
@@ -409,7 +411,7 @@ public:
     static void*	    	    realloc(char* ptr, INT32 size);
     static void		    	    free(char *ptr);
     inline static INT32	    	    getpagesize() {return _PAGESIZE;};
-    static void*	    	    sbrk(UINT32 amt);
+    static void*	    	    sbrk(UINT32 amt, UINT32 bucket=0);
     static INT32	    	    checkblock(char* ptr);
     static INT32	    	    blocksize(char* ptr);
     inline static size_t            getsize(char* ptr);
@@ -457,6 +459,8 @@ public:
     inline static UINT32            BytesInPool()
                                         { return self->region->size();    }
 #endif
+    inline static void              SetSingleMaxAllocation(INT32 nVal)
+                                        { m_ulSingleMaxAllocation = nVal*1024*1024; }
 #ifdef PAULM_ALLOCTRACK
     static void                     checkguards();
     static void                     checkleaks();
@@ -513,6 +517,7 @@ private:
     BOOL* VOLATILE		    in_first_heap;
     UINT32* VOLATILE		    second_heap_size;
     Timeval**		    	    m_pNow;
+    static UINT32               m_ulSingleMaxAllocation;
 #ifdef PAULM_ALLOCTRACK
     BOOL* VOLATILE                  ogre_debug;
 #endif

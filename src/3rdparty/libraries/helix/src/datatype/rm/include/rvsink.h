@@ -125,6 +125,8 @@ DECLARE_INTERFACE_(IRVSinkMgr, IUnknown)
     STDMETHOD(AddRVEventSink)(IRVSink* pSink) PURE;
 
     STDMETHOD(GetSiteSize)(REF(HXxRect) size) PURE;
+
+    STDMETHOD(GetOriginalSize)(REF(HXxRect) size) PURE;
 };
 
 #endif // _RVSINK_H_

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcolor.cpp,v 1.8 2005/03/11 19:58:04 bobclark Exp $
+ * Source last modified: $Id: hxcolor.cpp,v 1.11 2009/05/06 05:55:11 eepaul Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -239,6 +239,7 @@ static CCLINK pcclRGB32  [] = { {CID_I420,    RGB32toI420},
 #endif
                                 {CID_ARGB32,  RGB32toRGB32},
                                 {CID_YUVA,    ARGBtoYUVA},
+                                {CID_YUY2,    RGB32toYUY2},
                                 {CID_UNKNOWN, 0} };
 
 static CCLINK pcclARGB32  [] = { {CID_I420,    RGB32toI420},
@@ -253,6 +254,7 @@ static CCLINK pcclARGB32  [] = { {CID_I420,    RGB32toI420},
                                  {CID_BGR32,   RGB32toBGR32},
                                  {CID_RGB32,   RGB32toRGB32},
                                  {CID_YUVA,    ARGBtoYUVA},
+                                 {CID_YUY2,    RGB32toYUY2},
                                  {CID_UNKNOWN, 0} };
 
 static CCLINK pcclYUVA  [] = { {CID_UNKNOWN, 0} };
@@ -349,7 +351,14 @@ static CCLINK pcclBGR24  [] = { {CID_I420,    BGR24toI420},
 								};
 
 
-
+#ifdef _FAT_HXCOLOR
+/* CID_LIBVA to * converter */
+ static CCLINK pcclLIBVA [] = { {CID_LIBVA,    LIBVAtoLIBVA},
+    {CID_UNKNOWN, 0}
+}; 
+#else
+static CCLINK pcclLIBVA [] = { {CID_UNKNOWN, 0} };
+#endif
 
 /* unsupported input formats: */
 static CCLINK pcclUNKNOWN [] = {{CID_UNKNOWN, 0}};
@@ -375,7 +384,15 @@ static PCCLINK ppcclColorMap[] =
 	pcclYUVU,
     pcclUNKNOWN,
     pcclBGR32,
-    pcclBGR24
+    pcclBGR24,
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclUNKNOWN,    /* placeholder */
+    pcclLIBVA
 };
 
 /*

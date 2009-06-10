@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: recordctl.h,v 1.8 2005/07/26 15:51:54 ehyche Exp $
+ * Source last modified: $Id: recordctl.h,v 1.11 2008/04/17 21:43:51 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,8 +68,9 @@ typedef struct _PendingPutPacket
 struct HXRecordControlStreamInfo
 {
     HXBOOL m_bPacketRequested;
+    HXBOOL m_bSparseStream;
     HXBOOL m_bStreamDone;
-    UINT32 m_ulLastTimestamp;
+    UINT32 m_ulLastTimestamp;    
 };
 
 class HXRecordControl : public IHXFormatResponse
@@ -105,7 +106,11 @@ public:
     HX_RESULT           GetRecordSource(REF(IHXRecordSource*) rpSource);
     HX_RESULT           HandleStreamDone(HX_RESULT status, UINT16 usStreamNumber);
     UINT32              GetLatestTimestampWritten() { return m_ulLatestTimestampWritten; }
+    UINT32              GetLatestTimestampRead() { return m_ulLatestTimestampRead; }
+    HXBOOL              IsWritten() { return m_bFirstTimestampWritten; }
+    HXBOOL		IsRead() { return m_bFirstTimestampRead; }
     HXBOOL              IsFinishedWriting() { return m_bFinishedWriting; }
+    HXBOOL		IsFinishedReading() { return m_bFinishedReading; }
 
 protected:
     virtual             ~HXRecordControl(void);
@@ -113,6 +118,7 @@ protected:
     HX_RESULT           WritePacket(IHXPacket* pPacket, INT32 lTimeOffset);
     HX_RESULT           SendPacket(IHXPacket* pPacket, INT32 lTimeOffset);
     HX_RESULT           WriteAllAvailablePackets();
+    HXBOOL              IsSparseStream(const char* pszMimeType);
     void                ChangeLostPacketTimestamp(IHXPacket* pPacket, UINT32 ulNewTime);
 
     LONG32                     m_lRefCount;
@@ -123,7 +129,10 @@ protected:
     HXRecordControlStreamInfo* m_pStreamInfo;
     HXBOOL                     m_bFirstTimestampWritten;
     UINT32                     m_ulLatestTimestampWritten;
+    HXBOOL                     m_bFirstTimestampRead;
+    UINT32                     m_ulLatestTimestampRead;
     HXBOOL                     m_bFinishedWriting;
+    HXBOOL                     m_bFinishedReading;
     HXBOOL                     m_bDisableRSVelocity;
     HXBOOL                     m_bDisableRSMergeSort;
     UINT32                     m_ulRSTimeSpanLimit;

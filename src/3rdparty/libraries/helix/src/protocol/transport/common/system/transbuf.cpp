@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: transbuf.cpp,v 1.36 2007/04/29 03:33:23 e3423c Exp $
+ * Source last modified: $Id: transbuf.cpp,v 1.38 2007/08/18 05:30:13 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1423,6 +1423,18 @@ RTSPTransportBuffer::SetEndPacket
     UINT32 ulReasonCode
 )
 {
+	// if a seek has been issued and we are yet to receive play response OR 
+	// are still waiting to flush the packets since a post seek packet has 
+	// not been received yet, ignore this packet end since it must be 
+	// from the pre-seek. This can happen if a user seeks near the very end of the clip
+	// and the server has already sent the 5 end of packet notifications but the client
+	// is yet to receive them and has issues a Seek request to the server.. and receives
+	// these end packet notifications after sending the seek request.
+	if (m_uSeekCount > 0 || m_bWaitingForSeekFlush)
+	{
+		return;
+	}
+
     if (m_bIsEnded)
     {
         return;

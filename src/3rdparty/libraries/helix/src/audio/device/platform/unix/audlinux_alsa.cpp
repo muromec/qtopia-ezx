@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: audlinux_alsa.cpp,v 1.8 2006/02/07 19:33:51 ping Exp $
+ * Source last modified: $Id: audlinux_alsa.cpp,v 1.15 2009/03/06 04:59:58 jain_1982s Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -94,8 +94,15 @@ CAudioOutLinuxAlsa::CAudioOutLinuxAlsa() :
 
     m_nLastBytesPlayed(0),
 
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+    m_PeriodSize(0),
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
     m_bGotInitialTrigger(FALSE),
+#ifdef _XANDROS
     m_bUseMMAPTStamps(TRUE)
+#else
+    m_bUseMMAPTStamps(FALSE)
+#endif
 {
 }
 
@@ -536,21 +543,21 @@ HX_RESULT CAudioOutLinuxAlsa::_SetDeviceConfig( const HXAudioFormat* pFormat )
 
     /* Apply to ALSA */
     int err = 0;
-	snd_pcm_hw_params_t *hwparams;
-	snd_pcm_sw_params_t *swparams;
+    snd_pcm_hw_params_t *hwparams;
+    snd_pcm_sw_params_t *swparams;
 
-	snd_pcm_hw_params_alloca(&hwparams);
-	snd_pcm_sw_params_alloca(&swparams);
+    snd_pcm_hw_params_alloca(&hwparams);
+    snd_pcm_sw_params_alloca(&swparams);
 
     /* Hardware parameters */
-	err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
-	if (err < 0) 
+    err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
+    if (err < 0) 
     {
         HXLOGL1 ( HXLOG_ADEV, "snd_pcm_hw_params_any: %s", snd_strerror(err));
         m_wLastError = RA_AOE_NOTENABLED;
-	}
+    }
 
-    if (err == 0)
+    if (err >= 0)
     {
         err = snd_pcm_hw_params_set_access(m_pAlsaPCMHandle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED);
         if (err < 0) 
@@ -657,7 +664,9 @@ HX_RESULT CAudioOutLinuxAlsa::_SetDeviceConfig( const HXAudioFormat* pFormat )
     snd_pcm_uframes_t buffer_size = 0;
     snd_pcm_uframes_t period_size = 0;
 
-    if (err == 0)
+    /*positive return value is not defined for alsa API (snd_pcm_hw_params)
+      we make a work around here to tolerance it to fix bug #8040  */
+    if (err >= 0)
     {
         err = snd_pcm_hw_params_get_buffer_size(hwparams, &buffer_size);
         if (err < 0) 
@@ -675,6 +684,9 @@ HX_RESULT CAudioOutLinuxAlsa::_SetDeviceConfig( const HXAudioFormat* pFormat )
     if (err == 0)
     {
         err = snd_pcm_hw_params_get_period_size(hwparams, &period_size, 0);
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+        m_PeriodSize = period_size;
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
         if (err < 0) 
         {
             HXLOGL1 ( HXLOG_ADEV, "snd_pcm_hw_params_get_period_size: %s", 
@@ -849,6 +861,14 @@ HX_RESULT CAudioOutLinuxAlsa::_SetDeviceConfig( const HXAudioFormat* pFormat )
     
     return m_wLastError;
 }
+
+#ifdef HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
+//Returns the Period Size
+ULONG32 CAudioOutLinuxAlsa::_GetPeriodSize()
+{
+	return (m_PeriodSize * (m_uSampFrameSize*m_unNumChannels));
+}
+#endif //HELIX_FEATURE_ALSA_WRITE_PERIOD_SIZE
 
 //Device specific method to write bytes out to the audiodevice and return a
 //count of bytes written.
@@ -1129,9 +1149,6 @@ UINT64 CAudioOutLinuxAlsa::_GetBytesActualyPlayed(void) const
 
         break;
     }
-
-    // XXXRGG: Always use the delay method for now.
-    m_bUseMMAPTStamps = FALSE;
 
     if (m_bUseMMAPTStamps)
     {
@@ -1421,18 +1438,18 @@ HX_RESULT CAudioOutLinuxAlsa::_CheckFormat( const HXAudioFormat* pFormat )
 
     /* Apply to ALSA */
     int err = 0;
-	snd_pcm_hw_params_t *hwparams;
+    snd_pcm_hw_params_t *hwparams;
 
-	snd_pcm_hw_params_alloca(&hwparams);
+    snd_pcm_hw_params_alloca(&hwparams);
 
-	err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
-	if (err < 0) 
+    err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
+    if (err < 0) 
     {
         HXLOGL1 ( HXLOG_ADEV, "snd_pcm_hw_params_any: %s", snd_strerror(err));
         m_wLastError = RA_AOE_NOTENABLED;
-	}
+    }
 
-    if (err == 0)
+    if (err >= 0)
     {
         err = snd_pcm_hw_params_test_rate (m_pAlsaPCMHandle, hwparams, sample_rate, 0);
         if (err < 0)
@@ -1476,20 +1493,20 @@ HX_RESULT CAudioOutLinuxAlsa::_CheckSampleRate( ULONG32 ulSampleRate )
     }
 
     int err = 0;
-	snd_pcm_hw_params_t *hwparams;
+    snd_pcm_hw_params_t *hwparams;
 
-	snd_pcm_hw_params_alloca(&hwparams);
+    snd_pcm_hw_params_alloca(&hwparams);
 
     m_wLastError = RA_AOE_NOERR;
 
-	err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
-	if (err < 0) 
+    err = snd_pcm_hw_params_any(m_pAlsaPCMHandle, hwparams);
+    if (err < 0) 
     {
-        HXLOGL1 ( HXLOG_ADEV, "snd_pcm_hw_params_any: %s", snd_strerror(err));
-        m_wLastError = RA_AOE_NOTENABLED;
-	}
+	HXLOGL1 ( HXLOG_ADEV, "snd_pcm_hw_params_any: %s", snd_strerror(err));
+	m_wLastError = RA_AOE_NOTENABLED;
+    }
     
-    if (err == 0)
+    if (err >= 0)
     {
         err = snd_pcm_hw_params_test_rate (m_pAlsaPCMHandle, hwparams, ulSampleRate, 0);
         if (err < 0)

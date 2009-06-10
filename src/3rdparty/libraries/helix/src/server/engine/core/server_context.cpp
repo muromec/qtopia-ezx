@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: server_context.cpp,v 1.19 2006/07/25 23:53:45 tknox Exp $
+ * Source last modified: $Id: server_context.cpp,v 1.22 2007/09/28 22:28:05 atin Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -96,9 +96,11 @@
 #include "logoutputs.h"
 #include "rssmgr.h"
 #include "qos_prof_mgr.h"
+#include "qos_prof_conf.h"
 #include "qos_sig_bus_ctl.h"
 #include "qos_diffserv_cfg.h"
 #include "namedlock.h"
+#include "pkt_loss_discrim_alg.h"
 
 #ifdef HELIX_FEATURE_SERVER_WMT_MMS
 #include "mmsrsend.h"
@@ -200,12 +202,6 @@ ServerContext::QueryInterface(REFIID riid, void** ppvObj)
     {
         m_proc->pc->network_services->AddRef();
         *ppvObj = (IHXNetworkServices*) m_proc->pc->network_services;
-        return HXR_OK;
-    }
-    else if (IsEqualIID(riid, IID_IHXNetworkServices2))
-    {
-        m_proc->pc->network_services->AddRef();
-        *ppvObj = (IHXNetworkServices2*) m_proc->pc->network_services;
         return HXR_OK;
     }
     else if (IsEqualIID(riid, IID_IHXNetServices))
@@ -420,6 +416,19 @@ ServerContext::QueryInterface(REFIID riid, void** ppvObj)
     {
         m_proc->pc->named_lock_manager->AddRef();
         *ppvObj = (IHXNamedLock*)m_proc->pc->named_lock_manager;
+        return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXQoSProfileConfigurator))
+    {
+        QoSProfileConfigurator* pQoSProfCfg = new QoSProfileConfigurator((IUnknown*)this);
+        HX_ADDREF(pQoSProfCfg);
+        *ppvObj = pQoSProfCfg;
+        return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXPacketLossDiscriminationAlgorithm))
+    {
+        *ppvObj = new CPacketLossDiscriminationAlgorithm((IUnknown *)this);
+        ((IUnknown*)*ppvObj)->AddRef();
         return HXR_OK;
     }
 

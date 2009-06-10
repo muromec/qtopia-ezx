@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: basicpcktflow.h,v 1.22 2007/01/30 00:48:42 jzeng Exp $
+ * Source last modified: $Id: basicpcktflow.h,v 1.27 2008/03/24 06:58:38 manvendras Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -77,7 +77,8 @@ public:
 				   PacketFlowManager* pFlowMgr,
 				   IHXServerPacketSource* pSource,
 				   BOOL bIsMulticast,
-				   BOOL bIsLive);
+				   BOOL bIsLive,
+                   BOOL bIsFCS = FALSE);
     
     virtual ~BasicPacketFlow();
 
@@ -173,7 +174,7 @@ protected:
 
     virtual void      Pause(BOOL bWouldBlock, UINT32 ulPausePoint = 0);
 
-    virtual void      SetPlayerInfo(Player* pPlayerControl, 
+    virtual void      SetPlayerInfo(Client* pClient, 
                                     const char* szPlayerSessionId,
                                     IHXSessionStats* pSessionStats);
 
@@ -241,7 +242,7 @@ protected:
     BOOL                    m_bWouldBlockAvailable;
     DataConvertShim*	    m_pConvertShim;
     IHXPacket*		    m_pConvertingPacket;
-    Player*                 m_pPlayerControl;
+    Client*                 m_pClient;
     IHXBuffer*              m_pPlayerSessionId;
     BOOL                    m_bSeekPacketPending;
     BOOL                    m_bSessionPlaying;
@@ -286,3 +287,4 @@ public:
 };
 
 #endif //_BASICPCKTFLOW_H_
+

@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: utils.py,v 1.3 2006/06/19 23:11:27 jfinnecy Exp $ 
+#  Source last modified: $Id: utils.py,v 1.4 2007/07/17 00:17:48 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -64,6 +64,7 @@
 
     appendStringToFile()   - Appends a string to a file.
     formatHash()           - Formats a hash of data into an attractive string.
+    globNoMetaPath()       - glob.glob wrapper that ignores meta chars in path.
     indentString()         - Prepends spaces to a string.
     mkdirTree()            - Makes a directory node, and all parent nodes that
                              don't exist.
@@ -73,9 +74,10 @@
                              flushing (appends '\n' to each line).
 """
 import os
+import glob
 
 import log
-log.debug( 'Imported: $Id: utils.py,v 1.3 2006/06/19 23:11:27 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: utils.py,v 1.4 2007/07/17 00:17:48 jfinnecy Exp $' )
 
 
 
@@ -127,6 +129,38 @@ def formatHash( name, hash, indent = 0, step = 3, string = ''):
     string += indentString( '}\n', indent )
     
     return string
+    
+
+def globNoMetaPath( target ):
+    """globNoMetaPath(t) --> list
+    
+    Wrapper to built-in glob.glob that ignores meta characters in the path
+    portion of the search string (like "[" and "]", which are common in 
+    internal branch names - and hence, BIF paths and archive paths).
+    """
+    # Save the working dir.
+    origDir   = os.getcwd()
+    
+    # Extract the path and chdir to it. These functions don't view "[" and "]"
+    # as special characters. If it doesn't exist, than glob returns empty list.
+    targetDir = os.path.dirname( target )
+    if not os.path.exists( targetDir ):
+        return []   
+        
+    os.chdir( targetDir )
+    
+    # Now glob with the file pattern.
+    globList = glob.glob( os.path.basename( target ) )
+
+    # Restore the working dir.
+    os.chdir( origDir )
+
+    # Piece together the result files with the directory we peeled off.
+    results = []
+    for item in globList:
+        results.append( os.path.join( targetDir, item ) )
+        
+    return results
     
     
 def indentString( string , indent ):

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rdt_tcp.cpp,v 1.12 2007/03/22 19:16:56 tknox Exp $
+ * Source last modified: $Id: rdt_tcp.cpp,v 1.15 2008/03/27 23:08:50 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -200,7 +200,7 @@ RDTTCPTransport::EventPending(UINT32 uEvent, HX_RESULT status)
         }
         else
         {
-            HX_ASSERT (m_pBlockQueue [m_unBlockQueueRead] >= 0);
+            //HX_ASSERT (m_pBlockQueue [m_unBlockQueueRead] >= 0); //disabling noisy assert, tracking with PR 186027
             HX_ASSERT (m_pBlockMarker [m_pBlockQueue [m_unBlockQueueRead]]);
 
             while ((m_pBlockQueue [m_unBlockQueueRead] >= 0) && !m_bBlocked)
@@ -559,7 +559,7 @@ RDTTCPTransport::SignalBusReady (HX_RESULT hResult, IHXQoSSignalBus* pBus,
     }
 
     lTemp = 0;
-    if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_TRAN_RDT_BUFF, lTemp)))
+    if (SUCCEEDED(pConfig->GetConfigInt(QOS_CFG_CC_BUFF, lTemp)))
     {
         m_ulPktsPerBufferRequest = (UINT32)lTemp;
     }
@@ -620,7 +620,7 @@ RDTTCPTransport::sendBWProbingPackets(UINT32 ulCount, UINT32 ulSize, REF(INT32) 
     ulPayloadSize = ulPacketSize - (UINT16)pkt.static_size();
     lSeqNo = -1;
 
-    pBuffer = new CHXStaticBuffer((UCHAR*)g_pABDBuf,(ulPacketSize+ulPacketCount));
+    pBuffer = new CHXStaticBuffer((UCHAR*)g_pABDBuf, (ulPacketSize + ulPacketCount));
     if (NULL == pBuffer)
     {
         return HXR_FAIL;
@@ -659,7 +659,7 @@ RDTTCPTransport::sendBWProbingPackets(UINT32 ulCount, UINT32 ulSize, REF(INT32) 
         putshort(&pPacketData[2], (UINT16)ulPacketSize);
         memcpy(&pPacketData[4], pc, HX_SAFESIZE_T(ulPacketSize));
 
-        pc++;
+        pc++; //offset one byte each time so they're not exactly the same
 
 
         if (SUCCEEDED(m_pSocket->Write(pSendBuf)))

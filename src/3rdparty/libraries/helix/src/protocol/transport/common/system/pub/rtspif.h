@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspif.h,v 1.41 2007/01/11 21:19:42 milko Exp $
+ * Source last modified: $Id: rtspif.h,v 1.45 2009/01/19 23:38:07 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -179,7 +179,7 @@ enum RTPInfoEnum
     RTPINFO_SEQ,                /* only Seq found */
     RTPINFO_RTPTIME,            /* only rtptime found */
     RTPINFO_SEQ_RTPTIME,        /* both seq & rtptime found */
-    RTPINFO_EMPTY		/* neither seq nor rtptime found */
+    RTPINFO_EMPTY       /* neither seq nor rtptime found */
 };
 
 typedef enum
@@ -187,7 +187,8 @@ typedef enum
     RTSPMEDIA_TYPE_UNKNOWN,
     RTSPMEDIA_TYPE_AUDIO,
     RTSPMEDIA_TYPE_VIDEO,
-    RTSPMEDIA_TYPE_APP
+    RTSPMEDIA_TYPE_APP,
+    RTSPMEDIA_TYPE_EVENT
 } RTSPMediaType;
 
 typedef struct _RTSPASMRule
@@ -200,22 +201,27 @@ typedef struct _RTSPSubscription
 {
     UINT16      m_ruleNumber;
     UINT16      m_streamNumber;
-    HXBOOL        m_bIsSubscribe; // Only used in RuleChanges()
+    HXBOOL      m_bIsSubscribe; // Only used in RuleChanges()
 } RTSPSubscription;
 
 typedef struct _RTSPStreamInfo
 {
     _RTSPStreamInfo()
-        : m_uStreamGroupNumber(0xFFFF)
+        : m_streamNumber(0)
+        , m_uStreamGroupNumber(0xFFFF)
         , m_ulControlID((UINT32)-1)
+        , m_bNeedReliablePackets(FALSE)
+        , m_sPort(0)
         , m_bForceRTP(FALSE)
         , m_bHasOutOfOrderTS(FALSE)
+        , m_eMediaType(RTSPMEDIA_TYPE_UNKNOWN)
         , m_uByteLimit(0)
         , m_rtpPayloadType(101)
         , m_bHasMarkerRule(0)
         , m_markerRule(1)
         , m_bHasRTCPRule(0)
         , m_ulPayloadWirePacket(0)
+        , m_bIsSyncMaster(0)
         , m_RTCPRule(1)
         , m_sampleRate(1)
         , m_sampleSize(1)
@@ -230,10 +236,10 @@ typedef struct _RTSPStreamInfo
         , m_pMulticastAddr(NULL)
         , m_bRealMedia(FALSE)
         , m_pStreamHeader(NULL)
-	, m_ulSSRCFromSetup(0)
+    , m_ulSSRCFromSetup(0)
     {}
 
-    _RTSPStreamInfo::~_RTSPStreamInfo()
+    ~_RTSPStreamInfo()
     {
         HX_RELEASE(m_pMulticastAddr);
         HX_RELEASE(m_pStreamHeader);
@@ -241,35 +247,35 @@ typedef struct _RTSPStreamInfo
     UINT16      m_streamNumber;
     UINT16      m_uStreamGroupNumber;
     UINT32      m_ulControlID;
-    HXBOOL        m_bNeedReliablePackets;
+    HXBOOL      m_bNeedReliablePackets;
     CHXString   m_streamControl;
     UINT16      m_sPort;
-    HXBOOL        m_bForceRTP;
-    HXBOOL        m_bHasOutOfOrderTS;
+    HXBOOL      m_bForceRTP;
+    HXBOOL      m_bHasOutOfOrderTS;
     RTSPMediaType m_eMediaType;
     UINT32      m_uByteLimit;
     // rest of them are only for RTP
     INT16       m_rtpPayloadType;
-    HXBOOL        m_bHasMarkerRule;
+    HXBOOL      m_bHasMarkerRule;
     UINT16      m_markerRule;
-    HXBOOL        m_bHasRTCPRule;
+    HXBOOL      m_bHasRTCPRule;
     UINT32      m_ulPayloadWirePacket;
-    HXBOOL        m_bIsSyncMaster;
+    HXBOOL      m_bIsSyncMaster;
     UINT16      m_RTCPRule;
     UINT32      m_sampleRate;
     UINT32      m_sampleSize;
     UINT32      m_RTPFactor;
     UINT32      m_HXFactor;
-    HXBOOL        m_bIsLive;
-    HXBOOL        m_bExtensionSupport;
-    HXBOOL        m_bActive;
+    HXBOOL      m_bIsLive;
+    HXBOOL      m_bExtensionSupport;
+    HXBOOL      m_bActive;
     UINT32      m_ulAvgBitRate;
     UINT32      m_ulRtpRRBitRate;
     UINT32      m_ulRtpRSBitRate;
     IHXSockAddr* m_pMulticastAddr;
-    HXBOOL        m_bRealMedia;
+    HXBOOL      m_bRealMedia;
     IHXValues*  m_pStreamHeader;
-    UINT32	m_ulSSRCFromSetup;
+    UINT32  m_ulSSRCFromSetup;
 } RTSPStreamInfo;
 
 typedef struct _RTSPSocketInfo
@@ -631,7 +637,7 @@ DECLARE_INTERFACE_(IHXRTSPServerProtocolResponse, IUnknown)
      *      IHXRTSPServerProtocolResponse::Handle3GPPLinkChar
      *  Purpose:
      *      Called to set client provided Link Charateristics using
-     *      	3GPP-Link-Char header
+     *          3GPP-Link-Char header
      */
     STDMETHOD(Handle3GPPLinkChar)      (THIS_
                                         const char* pSessionID,
@@ -643,7 +649,7 @@ DECLARE_INTERFACE_(IHXRTSPServerProtocolResponse, IUnknown)
      *  Purpose:
      *      Called to set avg bandwidth from Bandwidth Header
      */
-    STDMETHOD(HandleClientAvgBandwidth)	(THIS_
+    STDMETHOD(HandleClientAvgBandwidth) (THIS_
                                         const char* pSessionID,
                                         UINT32 ulAvgBandwidth) PURE;   
 
@@ -654,9 +660,9 @@ DECLARE_INTERFACE_(IHXRTSPServerProtocolResponse, IUnknown)
      *      Called for each stream SETUP recevied
      */
     STDMETHOD(HandleStreamSetup) (THIS_
-				const char* pSessionID,
-				UINT16 uStreamNumber,
-				UINT16 uStreamGroupNumber) PURE;
+                const char* pSessionID,
+                UINT16 uStreamNumber,
+                UINT16 uStreamGroupNumber) PURE;
 };
 
 
@@ -1105,7 +1111,7 @@ DECLARE_INTERFACE_(IHXRTSPClientProtocolResponse, IUnknown)
 };
 
 DEFINE_GUID(IID_IHXRTSPClientProtocol, 0x00000405, 0xb4c8, 0x11d0, 0x99, 0x95, 0x0, 
-				       0xa0, 0x24, 0x8d, 0xa5, 0xf0);
+                       0xa0, 0x24, 0x8d, 0xa5, 0xf0);
 
 #undef  INTERFACE
 #define INTERFACE   IHXRTSPClientProtocol
@@ -1392,7 +1398,7 @@ DECLARE_INTERFACE_(IHXRTSPClientProtocol, IUnknown)
 };
 
 DEFINE_GUID(IID_IHXRTSPClientProtocol2, 0x00000405, 0xb4c8, 0x11d0, 0x99, 0x95, 0x0, 
-				        0xa0, 0x24, 0x8d, 0xa5, 0xf1);
+                        0xa0, 0x24, 0x8d, 0xa5, 0xf1);
 
 #undef  INTERFACE
 #define INTERFACE   IHXRTSPClientProtocol2
@@ -1412,17 +1418,17 @@ DECLARE_INTERFACE_(IHXRTSPClientProtocol2, IUnknown)
     STDMETHOD_(ULONG32,Release) (THIS) PURE;
 
     STDMETHOD_(UINT16, GetRDTFeatureLevel)  (THIS)  PURE;
-    STDMETHOD(EnterPrefetch)		    (THIS)  PURE;
-    STDMETHOD(LeavePrefetch)		    (THIS)  PURE;
-    STDMETHOD(EnterFastStart)		    (THIS)  PURE;
-    STDMETHOD(LeaveFastStart)		    (THIS)  PURE;
-    STDMETHOD(InitCloak)		    (THIS_
-					    UINT16* pCloakPorts, 
-					    UINT8 nCloakPorts, 
-					    IHXValues* pValues)	PURE;
-    STDMETHOD(SetStatistics)		    (THIS_
-					    UINT16 uStreamNumber, 
-					    STREAM_STATS* pStats) PURE;
+    STDMETHOD(EnterPrefetch)            (THIS)  PURE;
+    STDMETHOD(LeavePrefetch)            (THIS)  PURE;
+    STDMETHOD(EnterFastStart)           (THIS)  PURE;
+    STDMETHOD(LeaveFastStart)           (THIS)  PURE;
+    STDMETHOD(InitCloak)            (THIS_
+                        UINT16* pCloakPorts, 
+                        UINT8 nCloakPorts, 
+                        IHXValues* pValues) PURE;
+    STDMETHOD(SetStatistics)            (THIS_
+                        UINT16 uStreamNumber, 
+                        STREAM_STATS* pStats) PURE;
     STDMETHOD_(HXBOOL,IsRateAdaptationUsed) (THIS) PURE;
     STDMETHOD(SetUseRTPFlag)                (THIS_
                                             HXBOOL bUseRTP) PURE;

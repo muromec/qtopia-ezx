@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servsockimp.cpp,v 1.51 2006/10/19 00:25:52 jrmoore Exp $
+ * Source last modified: $Id: servsockimp.cpp,v 1.59 2009/05/30 20:16:48 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -44,16 +44,17 @@
 #include "server_context.h"
 #include "servreg.h"
 #include "hxnet.h"
-#include "hxservnet.h"
 #include "iresolv.h"
 #include "servresolvimp.h"
 #include "resolvcache.h"
+#include "writequeue.h"
+#include "servertrace.h"
 #include "servsockimp.h"
-#include "servlbsock.h"
+
 
 #include "core_proc.h"
 
-#include "lbound_listenresp.h"
+#include "listenresp.h"
 #include "servbuffer.h"
 #include "hxsbuffer.h"
 
@@ -70,6 +71,7 @@ static const UINT32 z_ulMaxLBWriteQueueSize = 100;
 
 static const UINT32 DEFAULT_TCP_SNDBUF_SIZE = 32768;
 static const UINT32 DEFAULT_UDP_SNDBUF_SIZE = 16834;
+static const UINT32 DEFAULT_CONNECT_TIMEOUT_SEC = 30;
 
 CServSockCB::CServSockCB(CHXServSocket* pSock, UINT32 event) :
     m_nRefCount(0),
@@ -179,6 +181,12 @@ CHXServSocket::CHXServSocket(HXSockFamily f,
     m_pCBW->AddRef();
     m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
     m_pProc->pc->engine->callbacks.disable(HX_WRITERS, m_sock.sock);
+
+#ifdef _WIN32
+    m_pProc->pc->engine->callbacks.add(HX_CONNECTORS, m_sock.sock, m_pCBW, TRUE);
+    m_pProc->pc->engine->callbacks.disable(HX_CONNECTORS, m_sock.sock);
+#endif
+
     m_pTotalNetReaders = g_pTotalNetReaders;
     m_pTotalNetWriters = g_pTotalNetWriters;
 }
@@ -188,8 +196,8 @@ CHXServSocket::~CHXServSocket(void)
     Select(HX_SOCK_EVENT_NONE);
     if (m_hCorePassSockCbID)
     {
-	m_pSockCreationProc->pc->engine->schedule.remove(m_hCorePassSockCbID);
-	m_hCorePassSockCbID = 0;
+        m_pSockCreationProc->pc->engine->schedule.remove(m_hCorePassSockCbID);
+        m_hCorePassSockCbID = 0;
     }
     if (m_bRemovedCallbacks)
     {
@@ -202,6 +210,12 @@ CHXServSocket::~CHXServSocket(void)
 HX_RESULT
 CHXServSocket::Select(UINT32 uEventMask, BOOL bImplicit /* = TRUE */)
 {
+    HX_ASSERT(m_pProc);
+    if (!m_pProc)
+    {
+        return HXR_UNEXPECTED;
+    }
+
 #if defined(MISSING_DUALSOCKET)
     if (m_pSock4 != NULL)
     {
@@ -227,6 +241,11 @@ CHXServSocket::Select(UINT32 uEventMask, BOOL bImplicit /* = TRUE */)
 
     m_uSelectedEventMask = uEventMask;
 
+    if (!m_pProc)
+    {
+        return HXR_OK;
+    }
+
     if (uEventMask & (HX_SOCK_EVENT_READ |
                       HX_SOCK_EVENT_ACCEPT |
                       HX_SOCK_EVENT_CLOSE))
@@ -243,20 +262,28 @@ CHXServSocket::Select(UINT32 uEventMask, BOOL bImplicit /* = TRUE */)
     {
         m_bBlocked = TRUE;
         m_pProc->pc->engine->callbacks.enable(HX_WRITERS, m_sock.sock, TRUE);
+#ifdef _WIN32
+        m_pProc->pc->engine->callbacks.enable(HX_CONNECTORS, m_sock.sock, TRUE);
+#endif
     }
     else
     {
         m_pProc->pc->engine->callbacks.disable(HX_WRITERS, m_sock.sock);
+#ifdef _WIN32
+        m_pProc->pc->engine->callbacks.disable(HX_CONNECTORS, m_sock.sock);
+#endif
     }
 
     return HXR_OK;
 }
+
 
 void
 CHXServSocket::OnEvent(UINT32 ulEvent)
 {
     CHXSocket::OnEvent(ulEvent);
 }
+
 
 STDMETHODIMP
 CHXServSocket::Init(HXSockFamily f, HXSockType t, HXSockProtocol p)
@@ -284,7 +311,10 @@ CHXServSocket::Init(HXSockFamily f, HXSockType t, HXSockProtocol p)
         m_pCBW->AddRef();
         m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
         m_pProc->pc->engine->callbacks.disable(HX_WRITERS, m_sock.sock);
-
+#ifdef _WIN32
+        m_pProc->pc->engine->callbacks.add(HX_CONNECTORS, m_sock.sock, m_pCBW, TRUE);
+        m_pProc->pc->engine->callbacks.disable(HX_CONNECTORS, m_sock.sock);
+#endif
         // Set the send buffer size, otherwise it is up to the platform.
 
         INT32 iSndBufSize = 0;
@@ -329,15 +359,15 @@ CHXServSocket::Init(HXSockFamily f, HXSockType t, HXSockProtocol p)
     }
     else
     {
-	if (hxr == HXR_SOCK_MFILE)
-	{
-	    char szErr[256];
-	    snprintf(szErr, sizeof(szErr), 
-		    "The server has run out of file descriptors.  It is highly "
-		    "recommended that you raise the file descriptor limit and "
-		    "restart the server. (failed in socket)");
-	    m_pProc->pc->error_handler->Report(HXLOG_ERR, 0, 0, szErr, NULL);
-	}
+        if (hxr == HXR_SOCK_MFILE)
+        {
+            char szErr[256];
+            snprintf(szErr, sizeof(szErr), 
+                    "The server has run out of file descriptors.  It is highly "
+                    "recommended that you raise the file descriptor limit and "
+                    "restart the server. (failed in socket)");
+            m_pProc->pc->error_handler->Report(HXLOG_ERR, 0, 0, szErr, NULL);
+        }
     }
     return hxr;
 }
@@ -345,7 +375,7 @@ CHXServSocket::Init(HXSockFamily f, HXSockType t, HXSockProtocol p)
 STDMETHODIMP
 CHXServSocket::Close(void)
 {
-    HX_ASSERT(m_pProc && m_sock.sock);
+    //HX_ASSERT(m_pProc && m_sock.sock);
     BOOL bRemovedCbs = FALSE;
     
     /*
@@ -354,45 +384,59 @@ CHXServSocket::Close(void)
      */
     if (m_pSockCreationProc->procnum() == Process::get_procnum())
     {
-	if (!m_bRemovedCallbacks && !m_hCorePassSockCbID && m_pProc == m_pSockCreationProc)
-	{  
-	    // core thread: b4 Dispatch()
-	    m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
-	    m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
-	    m_pProc->pc->engine->UnRegisterSock();
-	    m_bDontDispatch = TRUE;
-	    m_bRemovedCallbacks = TRUE;
-    }
+        if (!m_bRemovedCallbacks && !m_hCorePassSockCbID && m_pProc == m_pSockCreationProc)
+        {  
+            // core thread: b4 Dispatch()
+            m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
+            m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
+#ifdef _WIN32
+            m_pProc->pc->engine->callbacks.remove(HX_CONNECTORS, m_sock.sock);
+#endif
+            m_pProc->pc->engine->UnRegisterSock();
+            m_bDontDispatch = TRUE;
+            m_bRemovedCallbacks = TRUE;
+        }
     }
     else
     {
-    /*
-	 * when the caller of this method is in another thread other than
-	 * m_pProc then removing callbacks should not be allowed due to
-	 * re-entrancy issues and the possibility of a deadlock as was
-	 * happening in pr# 178507 on solaris with /dev/poll.
-	 * 
-	 * NOTE:
-	 *    as a quick workaround such callback removal has been disallowed
-	 *    thereby introducing a leak of around 332 bytes per connection
-	 *    and 664 bytes per cloaking connection. here are the objects that
-	 *    leak:
-	 *    1 CHXServSocket (172 bytes)
-	 *    2 CServSockCB (40 * 2 bytes)
-	 *    1 CHXStreamWriteQueue (40 bytes)
-	 *    CHXStreamWriteQueue::IHXBuffer*[] (72 bytes)
-     */
-	if (m_pProc && m_pProc->procnum() == Process::get_procnum())
-	{
-	    // streamer thread: after EnterProc()
-	    if (!m_bRemovedCallbacks)
-    {
-        m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
-        m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
-		m_pProc->pc->engine->UnRegisterSock();
-		m_bRemovedCallbacks = TRUE;
-	    }
-	}
+        /*
+         * when the caller of this method is in another thread other than
+         * m_pProc then removing callbacks should not be allowed due to
+         * re-entrancy issues and the possibility of a deadlock as was
+         * happening in pr# 178507 on solaris with /dev/poll.
+         * 
+         * NOTE:
+         *    as a quick workaround such callback removal has been disallowed
+         *    thereby introducing a leak of around 332 bytes per connection
+         *    and 664 bytes per cloaking connection. here are the objects that
+         *    leak:
+         *    1 CHXServSocket (172 bytes)
+         *    2 CServSockCB (40 * 2 bytes)
+         *    1 CHXStreamWriteQueue (40 bytes)
+         *    CHXStreamWriteQueue::IHXBuffer*[] (72 bytes)
+         */
+        if (m_pProc && m_pProc->procnum() == Process::get_procnum())
+        {
+            // streamer thread: after EnterProc()
+            if (!m_bRemovedCallbacks)
+            {
+                m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
+                m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
+#ifdef _WIN32
+                m_pProc->pc->engine->callbacks.remove(HX_CONNECTORS, m_sock.sock);
+#endif
+                m_pProc->pc->engine->UnRegisterSock();
+                m_bRemovedCallbacks = TRUE;
+            }
+        }
+        else
+        {
+            //This prevents the leaks described above.
+            //Live (BCNG) was triggering this leak as well.
+            //If we don't release these we have a circular reference.
+            HX_RELEASE(m_pCBW);
+            HX_RELEASE(m_pCBR);
+        }
     }
 
     /*
@@ -408,29 +452,32 @@ CHXServSocket::Close(void)
     HX_RESULT hxr = CHXSocket::Close();
     if (HX_SOCK_VALID(s) && !HX_SOCK_VALID(m_sock))
     {
-	// Close() was called between ExitProc() and EnterProc()
-	if (m_pProc == NULL)
-	    return hxr;
+        // Close() was called between ExitProc() and EnterProc()
+        if (m_pProc == NULL)
+            return hxr;
 
-	if (m_bRemovedCallbacks)
-	{
-        HX_RELEASE(m_pCBW);
-        HX_RELEASE(m_pCBR);
-    }
+        if (m_bRemovedCallbacks)
+        {
+            HX_RELEASE(m_pCBW);
+            HX_RELEASE(m_pCBR);
+        }
     }
     else
     {
-	// add the fd back in so that it can get notification of a read/write
-	// operation when ready.
-	if (m_bRemovedCallbacks && m_pProc && m_pProc->procnum() == Process::get_procnum())
+        // add the fd back in so that it can get notification of a read/write
+        // operation when ready.
+        if (m_bRemovedCallbacks && m_pProc && m_pProc->procnum() == Process::get_procnum())
         {
-	    if (m_pCBW && m_pCBR)
-	    {
-		m_pProc->pc->engine->RegisterSock();
-	    m_pProc->pc->engine->callbacks.add(HX_READERS, m_sock.sock, m_pCBR, TRUE);
-	    m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
-		m_bRemovedCallbacks = FALSE;
-	    }
+            if (m_pCBW && m_pCBR)
+            {
+                m_pProc->pc->engine->RegisterSock();
+                m_pProc->pc->engine->callbacks.add(HX_READERS, m_sock.sock, m_pCBR, TRUE);
+                m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
+#ifdef _WIN32
+                m_pProc->pc->engine->callbacks.add(HX_CONNECTORS, m_sock.sock, m_pCBW, TRUE);
+#endif
+                m_bRemovedCallbacks = FALSE;
+            }
         }
     }
     return hxr;
@@ -443,15 +490,26 @@ CHXServSocket::Accept(IHXSocket** ppNewSock, IHXSockAddr** ppSource)
     
     if (HXR_SOCK_MFILE == (hxr = CHXSocket::Accept(ppNewSock, ppSource)))
     {
-	char szErr[256];
-	snprintf(szErr, sizeof(szErr), 
-		"The server has run out of file descriptors.  It is highly "
-		"recommended that you raise the file descriptor limit and "
-		"restart the server. (failed in accept)");
-	m_pProc->pc->error_handler->Report(HXLOG_ERR, 0, 0, szErr, NULL);
+        char szErr[256];
+        snprintf(szErr, sizeof(szErr), 
+                "The server has run out of file descriptors.  It is highly "
+                "recommended that you raise the file descriptor limit and "
+                "restart the server. (failed in accept)");
+        m_pProc->pc->error_handler->Report(HXLOG_ERR, 0, 0, szErr, NULL);
     }
-    else
-	(*g_pSocketAcceptCount)++;
+    else if (ppNewSock && *ppNewSock)
+    {
+        (*g_pSocketAcceptCount)++;
+        INT32 nConnectTimeout = DEFAULT_CONNECT_TIMEOUT_SEC;
+        m_pProc->pc->registry->GetInt("config.ClientConnectionTimeout", &nConnectTimeout, m_pProc);
+        if (nConnectTimeout)
+        {
+            // Set the inactivity timer on this socket.  Note that this will
+            // be reset back to zero in HXSocketConnection::EventPending() 
+            // when handing the socket off to the protocol object.
+            (*ppNewSock)->SetOption(HX_SOCKOPT_APP_IDLETIMEOUT, (UINT32)nConnectTimeout);
+        }
+    }
 
     return hxr;
 }
@@ -468,19 +526,22 @@ CHXServSocket::Dispatch(int iNewProc /* = -1 */)
 
     if (!m_bDontDispatch && HX_SOCK_VALID(m_sock))
     {
-	if (!m_bRemovedCallbacks)
-    {
-	m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
-	m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
-	m_pProc->pc->engine->UnRegisterSock();
-	    m_bRemovedCallbacks = TRUE;
-	}
+        if (!m_bRemovedCallbacks)
+        {
+            m_pProc->pc->engine->callbacks.remove(HX_READERS, m_sock.sock);
+            m_pProc->pc->engine->callbacks.remove(HX_WRITERS, m_sock.sock);
+#ifdef _WIN32
+            m_pProc->pc->engine->callbacks.remove(HX_CONNECTORS, m_sock.sock);
+#endif
+            m_pProc->pc->engine->UnRegisterSock();
+            m_bRemovedCallbacks = TRUE;
+        }
 
-	CorePassSockCallback* cb = new CorePassSockCallback;
-	cb->m_pSock = this;
-	cb->m_pProc = m_pProc;
-	cb->m_iNewProc = iNewProc;
-	m_hCorePassSockCbID = m_pProc->pc->engine->schedule.enter(0.0, cb);
+        CorePassSockCallback* cb = new CorePassSockCallback;
+        cb->m_pSock = this;
+        cb->m_pProc = m_pProc;
+        cb->m_iNewProc = iNewProc;
+        m_hCorePassSockCbID = m_pProc->pc->engine->schedule.enter(0.0, cb);
     }
 }
 
@@ -507,17 +568,20 @@ CHXServSocket::EnterProc(Process* proc)
 {
     // means that Close() was already called on this socket
     if (!m_pResponse)
-	return;
+        return;
 
     HX_ASSERT(m_pProc == NULL && HX_SOCK_VALID(m_sock));
 
     m_pProc = proc;
     if (m_pCBW && m_pCBR)
     {
-    m_pProc->pc->engine->RegisterSock();
-    m_pProc->pc->engine->callbacks.add(HX_READERS, m_sock.sock, m_pCBR, TRUE);
-    m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
-	m_bRemovedCallbacks = FALSE;
+        m_pProc->pc->engine->RegisterSock();
+        m_pProc->pc->engine->callbacks.add(HX_READERS, m_sock.sock, m_pCBR, TRUE);
+        m_pProc->pc->engine->callbacks.add(HX_WRITERS, m_sock.sock, m_pCBW, TRUE);
+#ifdef _WIN32
+        m_pProc->pc->engine->callbacks.add(HX_CONNECTORS, m_sock.sock, m_pCBW, TRUE);
+#endif
+        m_bRemovedCallbacks = FALSE;
     }
 
     m_pNetSvc = proc->pc->net_services;
@@ -560,7 +624,9 @@ CHXServSocket::EnterProc(Process* proc)
 
     SetOption(HX_SOCKOPT_SNDBUF, (UINT32)iSndBufSize);
 
-    m_pResponse->EventPending(HX_SOCK_EVENT_DISPATCH, HXR_OK);
+    HX_ASSERT(m_pResponse);
+    if (m_pResponse)
+        m_pResponse->EventPending(HX_SOCK_EVENT_DISPATCH, HXR_OK);
 }
 
 BOOL
@@ -874,7 +940,7 @@ CHXServerListeningSocket::SetOption(HXSockOpt name, UINT32 val)
         CHXSimpleList::Iterator i;
         for (i = m_pSockList->Begin(); i != m_pSockList->End(); ++i)
         {
-	    pSock = (CHXListeningSocket*)*i;
+            pSock = (CHXListeningSocket*)*i;
             pSock->SetOption(name, val);
         }
     }
@@ -945,12 +1011,6 @@ CServNetServices::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXNetServices*)this;
         return HXR_OK;
     }
-    else if (IsEqualIID(riid, IID_IHXLocalBoundNetServices))
-    {
-        AddRef();
-        *ppvObj = (IHXLocalBoundNetServices*)this;
-        return HXR_OK;
-    }
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -990,18 +1050,6 @@ STDMETHODIMP
 CServNetServices::CreateSocket(IHXSocket** ppSock)
 {
     *ppSock = new CHXServSocket(m_proc, m_bIN6);
-    if (*ppSock == NULL)
-    {
-        return HXR_OUTOFMEMORY;
-    }
-    (*ppSock)->AddRef();
-    return HXR_OK;
-}
-
-STDMETHODIMP
-CServNetServices::CreateLocalBoundSocket(IHXSocket** ppSock)
-{
-    *ppSock = new CLBSocket(m_proc);
     if (*ppSock == NULL)
     {
         return HXR_OUTOFMEMORY;

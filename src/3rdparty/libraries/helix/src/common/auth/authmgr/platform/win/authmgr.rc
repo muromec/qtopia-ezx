@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: authmgr.rc,v 1.3 2004/07/09 18:22:45 hubbe Exp $
+ * Source last modified: $Id: authmgr.rc,v 1.5 2007/08/02 10:17:01 anshuman Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -86,10 +86,10 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // Lang=US English, CharSet=Windows Multilingual
         BEGIN 
-            VALUE "FileDescription", "Authentication Manager plugin for RealMedia®\0"
+            VALUE "FileDescription", "Authentication Manager plugin for RealMedia(R)\0"
             VALUE "InternalName",    "AUTHMGR\0"
             VALUE "OriginalFilename","AUTHMGR.DLL\0"
-            VALUE "ProductName",     "Authentication Manager plugin for RealMedia®" 
+            VALUE "ProductName",     "Authentication Manager plugin for RealMedia(R)"
                                      STRPLATFORM TARVER_STR_BUILD_NAME STREND
 
             VALUE "FileVersion",     TARVER_STRING_VERSION

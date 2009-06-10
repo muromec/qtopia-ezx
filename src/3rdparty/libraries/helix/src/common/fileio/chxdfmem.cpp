@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxdfmem.cpp,v 1.9 2004/07/09 18:20:35 hubbe Exp $
+ * Source last modified: $Id: chxdfmem.cpp,v 1.11 2008/02/05 06:06:08 vkathuria Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 or later (the
+ * terms of the GNU General Public License Version 2 (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,12 +53,16 @@
 
 #include "chxdfmem.h"
 #include "hlxclib/stdio.h"		// for SEEK_*
-#if !defined(_VXWORKS) && !defined(_SYMBIAN) && !defined(_OPENWAVE)
+#if !defined(_VXWORKS) && !defined(_SYMBIAN) && !defined(_OPENWAVE)&& !defined(_BREW)
 #include <memory.h>		// for memcpy
 #endif
 
 #if defined(_SYMBIAN) || defined(_OPENWAVE)
 # include "hlxclib/string.h" //for memcpy
+#endif
+
+#if defined(_BREW)
+#include "hlxclib/sys/types.h" //for SEEK_SET
 #endif
 
 #ifdef _SOLARIS24
