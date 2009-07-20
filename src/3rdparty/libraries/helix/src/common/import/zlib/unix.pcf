@@ -1,0 +1,5 @@
+# Some platforms automatically add this X11R6 dir to the include list, but
+# some versions of XFree86 have a zlib.h in there that causes problems for
+# us. (e.g. Linux with XFree86 4.2.0)
+project.RemoveIncludes("/usr/X11R6/include")
+

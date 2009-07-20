@@ -1,0 +1,212 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: unix.cf,v 1.10 2007/06/13 01:12:50 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Common settings inherited by all UNIX platforms."""
+
+
+## UNIX defines
+## override FD_SETSIZE for large file descriptor sets for select()
+project.AddDefines("_UNIX", "FD_SETSIZE=2048")
+
+
+## filesystem/makefile
+platform.inc_subdir = "unix"
+platform.path_sep = '/'
+platform.parent_dir = '..'
+platform.current_dir = "."
+platform.line_cont = '\\'
+platform.obj_targ_arg = '-o'
+platform.make_obj_arg = '-c'
+platform.make_source = '$<'
+platform.make_target = ' $@'
+platform.make_depend = ':'
+platform.var_begin = '$('
+platform.var_end = ')'
+platform.include_arg = '-I'
+platform.define_arg = '-D'
+platform.type = 'unix'
+platform.make_link_arg = '-o'
+platform.sys_lib_arg = '-l'
+platform.include_arg = '-I'
+platform.define_arg = '-D'
+platform.suffix_list = ['.cpp', '.so']
+
+## suffixes for intermediate objects
+platform.shared_object_suffix = 'o'
+platform.object_suffix = 'o'
+
+## suffixes for target types
+platform.exe_suffix          = ''
+platform.library_suffix      = 'a'
+platform.dll_suffix          = 'so'
+platform.resource_dll_suffix = 'xrs'
+
+## Make Commands/Varibles
+platform.copy.cmd = 'cp'
+platform.copy.make_var = 'CP'
+
+platform.make.cmd = 'make'
+platform.make.make_var = 'MAKE'
+
+platform.rm.cmd = 'rm -f'
+platform.rm.make_var = 'RM'
+
+platform.rmdir.cmd = 'rm -rf'
+platform.rmdir.make_var = 'RM_DIR'
+
+class UnixMakeDir(Command):
+    def __init__(self):
+        self.make_var = ''
+        self.make_flags = ''
+        
+    def execute(self, dir):
+        return 'test -d %s || mkdir %s' % (dir, dir)
+platform.mkdir = UnixMakeDir()
+
+
+class UnixSubdirMake(Command):
+    def __init__(self):
+        self.make_var = ''
+        self.make_flags = ''
+        
+    def execute(self, subdir, indent_str, post_str):
+        return '%s(cd %s; %s%s)' % (
+            indent_str,
+            subdir,
+            platform.make.execute(),
+            post_str)
+platform.subdir_make = UnixSubdirMake()
+
+
+class UnixVersioning(Versioning):
+    def create_dll_name(self, target, path = ''):
+        # In order to properly link a shared library on Solaris (and other
+        # UNIXes?) so that the runtime linker will search for the
+        # library in the LD_LIBRARY_PATH, the library must be passed
+        # as a '-l' option to the link editor.  However, because
+        # the '-l' option requires that the library name start with 'lib'
+        # and end in '.so', we have to return a slightly different name.
+
+        new_name = self.get_name(target, path)
+        if not len(new_name):
+            new_name = target
+
+        ## if project versioning has been shut off
+        if project.versioning_off:
+            return '%s.%s' % (new_name, platform.dll_suffix)
+
+        version = self.get_version(target, path)
+        return '%s.%s.%s.%s' % (
+            new_name,
+            platform.dll_suffix,
+            version[0],
+            version[1])
+platform.versioning = UnixVersioning()
+
+
+class UnixMakeDepend(MakeDepend):
+    def execute(self, sources, output_dir):
+        list = []
+        if project.object_dir:
+            list.append("-t%s" % (project.object_dir))
+        list.append("-m%s" % (project.makefile_name))
+
+        cmd = "%s %s %s %s" % (
+            os.path.join("$(BUILD_ROOT)","bin","mkdepend.py"),
+            string.join(list),
+            platform.form_var("INCLUDES"),
+            sources)
+
+        return cmd      
+
+    def setup_flags_var(self):
+        return ""
+
+platform.make_dep = UnixMakeDepend()
+
+# This is needed so we can include our "hlxclib/HEADER.h" wrapper files
+# instead of directly including system <HEADER.h> files.
+if not project.BuildOption('no_common_runtime'):
+    project.AddModuleIncludes('common/runtime/pub')
+
+## choose the output subdirectory name
+if project.build_choices.count('release') > 0:
+    project.output_dir = 'rel'
+else:
+    project.output_dir = 'dbg'
+
+# Which is the right function to use for getting a tick count?
+# Advanced unix kernels have the ability to use clock_gettime which returns a monotonically increasing tickcount
+# and is thus not vulnerable to system time changes. It has a granularity of clock_getres(), typically 1ms or better
+#project.AddDefines('HELIX_CONFIG_USE_CLOCK_GETTIME')
+
+# The other option instead of gettimeofday is to use the times() system call, 
+# which has a granularity of sysconf(_SC_CLK_TCK) typically 10ms.
+#project.AddDefines('HELIX_CONFIG_USE_TIMES_SYSCALL')
+
+# Use the libc getopt on unix (vs the helix-supplied getopt implementation)
+project.AddDefines('HELIX_CONFIG_USE_SYSTEM_GETOPT')
+
+# Use XWINDOWS
+project.AddDefines('USE_XWINDOWS')
+
+

@@ -1,0 +1,419 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: bif.html,v 1.15 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>Build Information Files (.bif)</title></head>
+<body bgcolor="#ffffff">
+
+<h1>Build Information Files (.bif)</h1>
+<hr>
+
+<p>Build Information Files are XML files which define build targets.
+This information is a list of source code directories (CVS modules),
+their dependencies (other CVS modules), and special attributes.  Some
+of these special attributes are a listing of platforms the module will
+build under.  There are also attributes with can define witch CVS
+branch the module will be taken from.</p>
+
+<p>Build informatation files normally have .bif extension, but some
+   files will have a .biif extention, which means 'build information
+   include file'. BIIF files are inteded to be inherited by other
+   BIF files and not used directly</p>
+
+<p>A BIF file begins with a standard XML header, and basic information about
+the build:</p>
+<pre>
+&lt;?xml version="1.0" ?&#62;
+</pre>
+
+<h1>Build Definitions</h1>
+<h3>&lt;build id="build_id"&#62; expires="YYYY-MM-DD" [version="<i>major.minor</i>"] &lt;/build&#62;</h3>
+<p>The <b>&lt;build&#62;&lt;/build&#62;</b> contain all the data for defining
+a build.  The build's id (name) is set by the <b>id</b> field, and
+<b>MUST BE UNIQUE THROUGHOUT ALL .BIF FILES IN THE DIRECTORY.</b>  If a
+.bif file is checked in with the same <b>id</b> as another .bif file, it will
+break the build system.</p>
+
+<p>Below is the header for the RealMedia-Beta2 branch.  The id field
+for the build tag, which encompasses the entire file, is the text
+name given to this build branch.  The <b>cvs</b> tag specifies the
+default CVS branch modules should come from.</p>
+<pre>
+&lt;build id="RealMedia-Beta2"&#62;
+  &lt;cvs tag="g2beta2"/&#62;
+</pre>
+
+The expiration date should be set to some time in the future, but no
+more than 3 years in the future. Expired BIF files will eventually be
+hidden or moved so they won't clutter up the build menues. If no expiration
+date is given, 2005-01-01 is assumed.
+
+The version attribute specifies what version of ribosome this BIF file
+was written for. Normally you should put the current version of ribosome
+here when writing a BIF file. Ribosome will then attempt to be as compatible
+as possible with the specified version of ribosome when reading this BIF
+file.
+
+The &lt;build&gt; tag can contain the following sub-tags:
+
+<h3>&lt;inherit id="<i>BIF ID</i>" [version="<i>major.minor</i>"]/&gt;</h3>
+<p>
+This tag will inherit all module, cvs and default tags from the
+named BIF file. The name of the BIF file can contain square
+brackets to indicate which <a href="buildrc.html#AddBIFPath">AddBIFPath</a>
+the BIF file comes from. The inherited modules can be re-defined
+by a &lt;module&gt; or &lt;inherit&gt; tag later. The "version" attribute
+is optional, and is only used if the inherited BIF file doesn't actually
+specify a version in the &lt;build&gt; tag. In such a case, it would
+act as if the inherited bif file had specified the version given here.
+<dl>
+<dt>Example:
+<dd>&lt;inherit id="[common]helix" /&gt;
+</dl>
+</p>
+
+<h3>&lt;default [target="<i>default&nbsp;target</i>"]
+                [profile="<i>default&nbsp;profile</i>"]
+                [options="<i>default&nbsp;options</i>"]
+                [for="<i>system_id&nbsp;glob</i>"] /&gt;</h3>
+<p>
+The default tag allows you to specify what default target, profile and options
+will be selected in the build menu when selecting this BIF file.
+You can specify several &lt;default&gt; tags, each with a different
+<b>for</b> attributes, only the tag(s) whos <b>for</b> matches the
+current SYSTEM_ID will be taken into consideration.
+</p>
+
+<h3>&lt;targets&gt; <i>module tags</i> &lt;/targets&gt;</h3>
+<p>
+  All BIF files should contain this tag, all &lt;module&gt; tags should
+  be contained within this tag. See below for a description of &lt;module&gt; tags.
+</p>
+
+
+<h1>Module Definitions</h1>
+<h3>&lt;module id="<i>module_id</i>" [name="<i>name</i>"] [inherit="<i>id</i>"] [type="<i>type</i>"] [version="<i>major.minor</i>"] [group="<i>group</i>"]&#62; <i>module&nbsp;definition</i> &lt;/module&#62;</h3>
+<p>Modules are specified within the <b>&lt;targets&#62;&lt;/targets&#62;</b>
+tags.  There are several kinds of modules defined in .bif files:
+<ul>
+  <li><b>CVS(default)</b>: These are CVS modules (directories).  They usually
+      contain source code and Umakefil/*.pcf files for generating Makefiles
+      to build the source code.</li>
+  <li><b>distribution</b>: These modules are platform-specific binaries,
+      kept in the <i>distribution</i> module of the <i>/home/source</i>
+      CVS repository.  The idea was to have a single module name automatically
+      map to the correct platform binary, by the build system discovering
+      what platform it was running on.  It turns out to be a bad idea, and
+      distribution modules should no longer be used.  Just check the
+      binaries into their own platform-specific areas.</li>
+  <li><b>name_only</b>: A name-only target, used to aggregate several other
+      modules together under a single name.</li>
+  <li><b>profile</b>: This is similar to a name_only module, but it
+      is primarily meant to contain &lt;defines&gt; tags. Profile modules
+      show up in the profile selection menu, and can also be selected using
+      -P on the command line when running <tt>build</tt>.</li>
+  <li><b>code archive</b>: This is a special kind of module.  It looks like
+      a CVS module, but the name field has a <i>.rna</i> extension.  These
+      are large archives of the entire source tree that was built.  They are
+      stored on http://archive.dev.prognet.com/archive, and are sometimes
+      used as a base for patch builds from a released product.</li>
+</ul>
+</p>
+
+<p>Here is an example of the <b>rmacore</b> module.  This is a CVS module
+which has dependencies on several other CVS modules:</p>
+<pre>
+&lt;!-- RMACORE --&#62;
+&lt;module id="rmacore" group="core"&#62;
+  &lt;description&#62;
+    This is the target for the client core.
+  &lt;/description&#62;
+  &lt;dependlist&#62;
+     rmartsp  comlib  pnpasswd  pncont  pnaudio 
+     pndebug  pnio  pnprot  pnmisc  pndepr 
+  &lt;/dependlist&#62;
+&lt;/module&#62;
+</pre>
+
+<p>Module tags can have the following attributes:</p>
+<ul>
+  <li><b>id</b>: A unique string to identify the module within the .bif
+  file.  This is the default CVS module name, but can be overridden with
+  the <b>name</b> attribute.</li>
+  
+  <li><b>name</b>: If the CVS module name is different than the module's
+  id, this sets the real CVS module name.</li>
+
+  <li><b>group</b>: A string to help identify which group in the company
+  owns the module.</li>
+
+  <li><b>type</b>: Not all module entries in the .bif file are CVS
+  modules.  CVS is the default, but there are other types of modules.
+  The type <b>distribution</b> is still used for platform-specific
+  binaries, but is being deprecated.  The module type <b>name_only</b>
+  is used to define a fake module with aggregates several other
+  modules.</li>
+
+  <li><b>inherit</b>: This allows you to modify an inherited module.
+      Basically, the module specified will be copied and any the contents
+      of this tag will be added to the copied module. If the inherit
+      attribute is used, id, name, type and group are not required.
+      (But you may use them if you want.)
+
+  <li><b>version</b>: By specifying the current version of ribsome here,
+      you will guarantee that the semantics of this module will not change
+      as new features are added to ribosome. Normally you will want to
+      use the version attribute in the build tag instead of in the module
+      tag.
+</ul>
+
+
+
+<h1>Tags Used Within &lt;module&#62; Definitions</h1>
+
+<h3>&lt;description&#62;&lt;/description&#62;</h3>
+<p>The text within the <b>description</b> tags is a free-form text
+description of the module</p>
+
+<h3>&lt;cvs [ tag="<i>cvstag</i>" ]  [ branch="<i>cvsbranch</i>" ]  [ root="<i>cvsroot</i>" ]  [ path="<i>path-in-cvs</i>" ] /&#62;</h3>
+<p>Set the CVS tag/branch/root this module should come from. Note that the
+root is only the name of a CVS repository, the CVSROOT itself must be added
+in your <a href=buildrc.html>buildrc</a> file. This tag can also be placed
+outside of all module tags, which makes this the default for all modules
+without a cvs tag.</p> If the <tt>path</tt> attribute is present, it tells
+the build system where in CVS to find the module.
+
+<h3>&lt;cvstag id="<i>cvstag/branch</i>"/&#62;</h3>
+<p>Set the CVS tag/branch ID this module should come from. This tag is obsolete, use the &lt;cvs&gt; tag instead.</p>
+
+<a name="sdk">
+<h3>&lt;sdk name="<i>sdk name</i>"  [ for="<i>platform glob</i>" ]  [ ifexists="<i>path</i>" ]  [ path="<i>default path</i>" ] /&#62; [ <i>message</i> &ltsdk/&gt; ]</h3>
+<p>
+This tag informs the ribosome build system that an SDK is needed for
+this build. The SDK may be located anywhere on your file system, or could
+even be a part of the checked out source. The actual location for the SDK
+can be specified in four different ways:
+
+<ol>
+  <li> With an environment variable with the same name
+  <li> With a call to <a href="buildrc.html#SetSDKPath">SetSDKPath</a> in your <a href="buildrc.html">buildrc</a> file.
+  <li> The path attribute in the BIF file (see below)
+  <li> With a call to <a href="umakefil.html#SetSDKPath">SetSDKPath</a> in your <a href="umakerc.html">umakerc</a> file (Only use this if you are using umake without running 'build' first.)
+</ol>
+
+If the build system is unable to locate the SDK with any of the first three
+methods, a large warning will be printed when you try to build something which
+requires that SDK, and those modules which requires the SDK will fail to
+build. If a <i>message</i> is supplied, it will be a part of that large
+warning.</p>
+
+<p>
+If the <tt>for</tt> attribute is present, it should be a glob pattern
+matching the SYSTEM_ID or an entry in the family list for that platform.
+If it does not match, the sdk tag will be ignored. This makes it possible
+to specify different default locations for the same sdk depending on the
+SYSTEM_ID.</p>
+
+<p>
+If the <tt>ifexists</tt> attribute is present, this tag will be ignored
+if that path does not exist. This can be used to automatically find SDKs
+in shared locations, such as /usr. This could look like this:
+<tt>&lt;sdk name="jpeglib" path="/usr" ifexists="/usr/include/jpeglib.h"&gt;</tt>
+</p>
+
+<p>
+The <tt>path</tt> attribute designates a default path for the given SDK.
+If the path is relative, it is relative to the source root.
+It is possible to have several sdk tags with different path
+attributes in order to specify multiple search paths. If more
+than one default path exist on the file system, the first will
+be used.</p>
+
+<p>
+Please note that if an SDK is found to be not available, but a
+module present in the same BIF file can provide it, that module
+will be included in the build even if no actual dependancy exists
+for that module. This can be particularly useful in combination with
+the <a href=buildrc.html#AddBIFShadow>AddBIFShadow</a> function.
+</p>
+
+</a>
+
+<a name="checkout_error_message">
+<h3>&lt;checkout_error_message&gt<i>Message</i>&lt;/checkout_error_message/&gt;</h3>
+<p> If the module fails to check out, this message will be written if present.
+If not present, a default error message will be printed.
+</p>
+</a>
+
+<h3>&lt;attribute id="<i>random attribute</i>"/&#62;</h3>
+<p>A way to pass generic attributes in for the module.  This was a bad
+XML design decision, as each of these should have just had their own tag,
+since XML skips unknown tags by default.  However, attribute the build
+system understands are:
+<ul>
+  <li><b>build_number</b>: Deprecated.</li>
+  <li><b>has_version_file</b>: Increment any version files found in the
+      top-level module directory, and commit them when running a build
+      farm build.</li>
+  <li><b>update_platform_header</b>: Indicates that this module has
+      a platform.h which should be updated to reflect the current
+      platform when building.</li>
+  <li><b>static_build</b>: Build this module, and all its dependencies
+      twice.  Once with the Umake "-t static" option, and once normally.
+      This only works on Win32, and is a total screwed up hack.</li>
+  <li><b>static_build_only</b>: Like <b>static_build</b>, but only builds
+      the module statically on Win32.</li>
+  <li><b>no_build</b>: Do not try to build this module, only check it out.</li>
+  <li><b>always</b>: This will make this module get considered for checking
+                     out and building regardless of dependencies. This is
+                     primarily useful in conjunction with &lt;umake_includefiles&gt;</li>
+</ul>
+</p>
+
+<h3>&lt;halt priority="red|yellow|green(default)"/&#62;</h3>
+<p>Sets the halt priority of the module.  If a error occurs while building
+this module, the build system will check against the halt priority selected
+by the build system user when the build system was invoked.  If the developer
+selected the build system should halt on "yellow" priority modules, then
+a error on a "red", or "yellow" priority module would halt the build.  The 
+default priority is "green".</p>
+
+<h3>&lt;includeplatforms&#62;&lt;/includeplatforms&#62;</h3>
+<p>This is a space-separated list of platforms this module should be
+included, and built on.  It excludes all other platforms.</p>
+
+<h3>&lt;excludeplatforms&#62;&lt;/excludeplatforms&#62;</h3>
+<p>This is a space-separated list of platforms this module should not be
+built on.  It will be built on all platforms not listed.</p>
+
+<h3>&lt;includeprofiles&#62;&lt;/includeprofiles&#62;</h3>
+<p>This is a space-separated list of profiles for which this module should be
+included, and built.  It excludes all other profiles.
+You may also use stars as wild cards.</p>
+
+<h3>&lt;excludeprofiles&#62;&lt;/excludeprofiles&#62;</h3>
+<p>This is a space-separated list of profiles for which this module
+should not be built.  It will be built for all profiles not listed.
+You may also use stars as wild cards.
+</p>
+
+<h3>&lt;ifdef&#62;&lt;/ifdef&#62;</h3>
+<p>This is a space-separated list of defines, and this module will
+   be omitted from the build unless at least one of these defines
+   are defined with a &lt;defines&gt; tag somewhere inside the BIF.
+</p>
+
+<h3>&lt;ifndef&#62;&lt;/ifndef&#62;</h3>
+<p>This is a space-separated list of defines, and this module will
+   be omitted from the build if any of these defines have been
+   defined with a &lt;defines&gt; tag somewhere inside the BIF.
+</p>
+
+<h3>&lt;dependlist&#62;&lt;/dependlist&#62;</h3>
+<p>This is a space-separated list of module ids within the .bif file that this
+module depends on. These modules are guaranteed to be build before this
+module. Because of this, there can be no cyclic dependencies.</p>
+
+<h3>&lt;source_dependlist&#62;&lt;/source_dependlist&#62;</h3>
+<p>This is a space-separated list of module ids within the .bif file
+that this module has source-file dependencies on. These modules will
+be checked out, but only be built if other modules require it.</p>
+
+<a name="checkin_dependlist">
+<h3>&lt;checkin_dependlist&#62;&lt;/checkin_dependlist&#62;</h3>
+<p>This works a lot like &lt;source_dependlist&gt;, but these dependencies
+are only followed if the one of the options
+<a href="buildoptions.html#distribute">distribute<a> or
+<a href="buildoptions.html#make_distributions">make_distributions</a>
+are used.
+</p>
+</a>
+
+<h3>&lt;defines&#62;&lt;/defines&#62;</h3>
+<p>This is a space-separated list of defines. These defines will be
+added globally to the compilation of <b>all</b> modules, but only
+if this module is one of the modules selected for building or is the
+selected profile. See also the &lt;ifdef&gt; tag</p>
+
+
+<a name="umake_includefiles">
+<h3>&lt;umake_includefiles&#62;&lt;/umake_includefiles&#62;</h3>
+<p>This is a space-separated list of files for umake to include.
+These files (and any relevant .pcf files) will be included for
+<b>all</b> modules in this build. This can be used when the
+interface this module provides, requires certain modifications to
+the compiler environment. For instance, it can be used to add
+*.il (inline assembler) files to the compiler command line when
+using the Sun Forte compiler.
+</p>
+</a>
+
+
+<h3>&lt;default [profile="<i>default&nbsp;profile</i>"]
+                [options="<i>default&nbsp;options</i>"] /&gt;</h3>
+<p>
+The default tag allows you to specify what default profile and options
+will be selected in the build menu when selecting this target.
+</p>
+
+</body>
+</html>

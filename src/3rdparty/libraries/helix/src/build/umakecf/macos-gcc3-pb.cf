@@ -1,0 +1,264 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: macos-gcc3-pb.cf,v 1.25 2007/04/17 22:09:15 milko Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+""" Common MAC Config File """
+
+exec_config_file("unix.cf")
+exec_config_file("gcc.cf")
+
+# Modification
+platform.dll_suffix          = 'bundle'
+platform.exe_suffix          = 'app'
+
+# Default to versioning off
+project.versioning_off       = 1
+
+# Enable static building
+platform.can_build_static = 1
+
+platform.inc_subdir = "unix"
+platform.library_prefix = "lib"
+
+warning_flags = ' -W -Wall -Wno-unused-parameter -Wno-sign-compare -Wstrict-prototypes -Wmissing-prototypes -Wundef'
+platform.cc.args['default'] = platform.cc.args['default'] + warning_flags
+platform.cxx.args['default'] = platform.cxx.args['default'] + warning_flags
+
+# Copy recursively (bundles)
+#platform.copy.cmd = '/Developer/Tools/CpMac -r -p' #broken
+#platform.copy.cmd = '/Developer/Tools/pbxcp -preserve-timestamps -preserve-metadata' #limited
+platform.copy.cmd = 'cp -R -P -p ' #Eureka, it works! (but doesn't copy mac stuff)
+
+# Delete recursively (bundles)
+platform.rm.cmd = 'rm -rf'
+
+## list of PCF files to run
+platform.pcf_prefix_list = ['unix', 'mac-unix']
+
+## Handle a bunch of different C++ files
+platform.build_rules[".cp"] = BuildRule(".cp", ".o", platform.cxx)
+platform.build_rules[".cc"] = BuildRule(".cc", ".o", platform.cxx)
+
+## OBJ-C
+platform.build_rules[".m"] = BuildRule(".m", ".o", platform.cc)
+platform.build_rules[".mm"] = BuildRule(".mm", ".o", platform.cc)
+
+## BOGUS RULE (umake_pb will know what to do...)
+platform.build_rules[".r"] = BuildRule(".r", ".res", platform.cc)
+
+## Prefix include stuff
+cc.prefix_include_arg = '-include '
+project.AddPrefixFileInclude("Carbon/Carbon.h")
+project.prefix_file_include_list.append( [
+    "#ifdef __OBJC__",
+    "#include <Cocoa/Cocoa.h>",
+    "#endif"
+    ])
+
+
+project.AddSystemFrameworks("/System/Library/Frameworks/Carbon.framework")
+
+
+## Defines
+project.RemoveDefines("_UNIX", "FD_SETSIZE=2048")
+
+project.RemoveDefines("USE_XWINDOWS")
+
+project.AddDefines("_DARWIN","_BIG_ENDIAN")
+project.AddDefines("USE_RN_ATOMIC_INTERLOCKED_INC_DEC")
+project.AddDefines("THREADS_SUPPORTED")
+project.AddDefines("_MAC_MACHO")
+project.AddDefines("_UNIX", "FD_SETSIZE=2048")
+project.AddDefines("_MAC_UNIX","_BIG_ENDIAN")
+project.AddDefines("_UNIX_THREADS_SUPPORTED","_UNIX_THREADED_NETWORK_IO")
+project.AddDefines("HELIX_CONFIG_AVOID_BOOL")
+
+
+make_toc = platform.make_toc
+make_toc.cmd = 'ranlib'
+make_toc.make_var = 'RANLIB'
+
+make_lib = platform.make_lib
+make_lib.cmd = 'ar cr '
+make_lib.make_var = 'MAKE_LIB'
+make_lib.make_flags = 'MAKE_LIB_FLAGS'
+
+
+## choose the output subdirectory name
+if project.build_choices.count('release') > 0:
+    project.output_dir = 'release'
+else:
+    project.output_dir = 'debug'
+
+## INIT, don't touch these directly, there are functions below
+## which should be used to modify these.
+project.copy_phases=[]
+project.resource_directories=[]
+project.create_framework=0
+project.public_headers=[]
+project.private_headers=[]
+project.post_build_commands=[]
+project.pre_build_commands=[]
+
+
+class UnixVersioning(Versioning):
+    def create_dll_name(self, target, path = ''):
+	new_name = self.get_name(target, path)
+	if not len(new_name):
+            new_name = target
+
+        suffix=platform.dll_suffix
+        if project.preferences.has_key("WRAPPER_EXTENSION"):
+            suffix=project.preferences["WRAPPER_EXTENSION"]
+        return '%s.%s' % (new_name,suffix)
+
+platform.versioning = UnixVersioning()
+
+### Reasonable defaults (hopefully)
+
+### _NAME_ is the module name
+### _VERSION_ comes from the .ver file (if present)
+### _VER_ is the first three numbers from _VERSION_
+### _ORIGINATOR_ can be set in project.bundle_originator but defaults to
+###              "org.HelixCommunity"    
+
+project.productSettingsXML="""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+	<key>CFBundleDevelopmentRegion</key><string>English</string>
+	<key>CFBundleExecutable</key><string>_NAME_</string>
+	<key>CFBundleName</key><string>_NAME_</string>
+	<key>CFBundleIdentifier</key><string>_ORIGINATOR_._NAME_</string>
+	<key>CFBundlePackageType</key><string>BNDL</string>
+	<key>CFBundleVersion</key><string>_VER_</string>
+	<key>CFBundleShortVersionString</key><string>Version _VERSION_</string>
+	<key>HelixVersion</key><string>_VERSION_</string>
+</dict></plist>
+"""
+
+### Default originator
+project.bundle_originator="org.HelixCommunity"
+
+
+###
+### Only for MAC!!!!
+### The functions below are meant to be called in Umakefiles, but should
+### only be used in mac-only projects and preferably only in mac-pb.pcf
+### since they will cause errors if used on any other platform.
+###
+
+def AddResourceDir(dir):
+    """Add a resource directory to be copied into the resulting bundle.
+    this is essentially a more special form of AddToCOpyPhase()"""
+    project.resource_directories.append(dir)
+
+def AddPostBuildCommand(cmd):
+    """Adds a shell command to run after building the target"""
+    project.post_build_commands.append(cmd)
+
+def AddPreBuildCommand(cmd):
+    """Adds a shell command to run before building the target"""
+    project.pre_build_commands.append(cmd)
+
+def AddToCopyPhase(cp_from, cp_to):
+    """Add a file/dir to be copied into the resulting bundle, the "to" path
+    should be relative to the created bundle."""
+    for (f, t) in project.copy_phases:
+        if t == cp_to:
+            f.append(cp_from)
+            return
+    project.copy_phases = [  ( [ cp_from ], cp_to ) ] + project.copy_phases
+
+def AddModuleToCopyPhase(module_id, cp_from, cp_to):
+    """Similar to AddToCopyPhase, but 'cp_from' is relative to the output
+    directory of 'module'. Example:
+    AddModuleToCopyPhase("client/core","core.framework","corepath")
+    Since this function is platform-specific, you have to specify the suffix
+    for the framework/library/bundle yourself.
+    """
+    
+    AddToCopyPhase(os.path.join( project.src_root_path,
+                                 module_id,
+                                 project.output_dir,
+                                 cp_from),
+                   cp_to)
+
+    
+###
+### Note that if you need to override any of these things, you will need
+### to do so *after* calling FrameworkTarget()
+###
+def FrameworkTarget(target, libname = None):
+    """This is similar to DLLTarget(), but builds a framework instead."""
+    project.Set("WRAPPER_EXTENSION","framework")
+    project.Set("DYLIB_COMPATIBILITY_VERSION","1")
+    project.Set("DYLIB_CURRENT_VERSION","1")
+    project.Set("INSTALL_PATH","@executable_path/../Frameworks")
+    project.Set("FRAMEWORK_VERSION","A")
+    project.create_framework=1
+    DLLTarget(target, libname)
+    
+def AddPublicHeaders(*args):
+    project.public_headers.extend( umake_lib.listify( args ))
+
+def AddPrivateHeaders(*args):
+    project.private_headers.extend( umake_lib.listify( args ))

@@ -1,0 +1,43 @@
+UmakefileVersion(2,1)
+
+
+# _IGNORE_UNSUPPORTED -  The purpose is to allow audio or other accompanying 
+#			 streams to play when unsupported video stream is 
+#                        encountered. 
+# The flag has to be turned on only when Partial playback feature is not 
+# turned on.
+if not project.IsDefined("HELIX_FEATURE_PARTIALPLAYBACK"):
+	project.AddDefines("_IGNORE_UNSUPPORTED")
+
+if project.IsDefined("HELIX_CONFIG_MOBLIN"):
+    project.AddDefines('HW_VIDEO_MEMORY_FRONTEND')
+
+project.AddModuleIncludes("common/include",
+			  "common/runtime/pub",
+			  "common/dbgtool/pub",
+			  "common/container/pub",
+			  "common/log/logutil/pub",
+			  "common/system/pub",
+			  "common/util/pub",
+			  "protocol/sdp/pub",
+			  "protocol/common/util/pub",
+			  "video/vidutil/pub",
+			  "client/include",
+			  "datatype/common/container/pub",
+			  "datatype/common/vidrend/pub",
+			  "datatype/rm/common/pub",
+			  "datatype-restricted/rm/video/common/pub",
+			  "datatype/mp4/common/pub",
+			  "datatype/mp4/payload/pub",
+                          "datatype/common/container/pub",
+                          "datatype/common/util/pub",
+                          "datatype/rm/include",
+                          "datatype/rm/video/common/pub")
+
+project.AddSources("mp4video.cpp",
+                   "mp4vdfmt.cpp",
+                   "mp4vdec.cpp")
+
+LibraryTarget('mp4vrenderlib')
+
+DependTarget()

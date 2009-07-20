@@ -1,0 +1,321 @@
+Ribosome v2.4.8
+===============
+
+  Release version:  2.4.8
+  Release date:     16 July 2007
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_8
+  
+  What's New
+  ==========
+  
+    * Base address of DLLs now settable through the Umakefil for win32-msvc
+      builds. Use: platform.link.args["base"] = "0x59000000". The default
+      remains 0x60000000.
+      
+    * Improved output display of test suite drivers.
+    
+    * Bugs:
+      
+      - (No #): Fixed corrupted gethash.exe binary.
+      
+      - (No #): Fixed broken path determination in rebase_exe.py
+      
+      - (No #): SystemExit() now returns code raised to shell, instead of 0.
+      
+      - (No #): Fixed "bug" where paths with "[" , "]" in them were choking the
+        system glob functions used to determine BIF file locations.
+        
+
+Ribosome v2.4.7
+===============
+
+  Release version:  2.4.7
+  Release date:     12 June 2007
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_7
+  
+  What's New
+  ==========
+  
+    * EXE targets are now eligible for signing (formerly restricted to DLL
+      targets).
+      
+    * Improved error handling of SystemExit requests while inside the threading
+      subsystems.
+      
+    * Makefiles now use $(BUILD_ROOT) to evaluate paths at run-time rather
+      than "Makefile compile-time". (Partial fix related to BUG 5141.)
+      
+      
+Ribosome v2.4.6
+===============
+
+  Release version:  2.4.6
+  Release date:     30 April 2007
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_6
+  
+  What's New
+  ==========
+  
+    * New Timestamp class added to abstract date and time handling.
+    
+    * Updated the URL generation of the diff reporting mechanisms to accomodate
+      the "new" ViewCVS URLs.
+      
+    * Added support for new platforms: linux-powerpc64, linux-lsb3.1-i486, 
+      symbian-91-armv5-gcce, symbian-91-armv5e, symbian-91-armv6.
+      
+    * Bugs:
+    
+      - (No # - dyek): Fixed a "no symbols" crash with certain release builds;
+        http://lists.helixcommunity.org/pipermail/ribosome-dev/2007-February/002014.html
+      
+      - (No #): Fixed time/date issues in datelib related to local to gm time
+        conversions.
+        
+      - (No # - milko): Fixed a bug in nodll mac builds.
+        
+      
+Ribosome v2.4.5 
+===============
+
+  Release version:  2.4.5
+  Release date:     07 February 2007
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_5
+  
+  What's New
+  ==========
+  
+    * New build option for VC8 builds, "-t embed_manifest". Embeds the managed
+      code XML manifest into the binary (exe/dll).
+      See: http://msdn2.microsoft.com/en-us/library/ms235591(VS.80).aspx        
+    
+    * Temporarily silenced log messages from going to stdout when the log 
+      object has not been properly initialized. This is a work-around until
+      necessary fixes can be made in internal automation.
+
+    * Added support for new platforms: FreeBSD-7.0 (still in development),
+      linux-2.2-libc6-armv5te-cross-gcc3.3-ixp4xx-softfloat,
+      linux-2.6-glibc24-gcc41-i486-lsb, wince-500-ppc-armxs-intel.
+      
+    * Bugs:
+    
+      - 5112: Extended the list of "fatal" errors to avoid excessive retries
+        when checking out from CVS.
+      
+      - 5655: Changed the version module to allow text characters after the last
+        version number to be incoporated as addendum information
+        (e.g: 2.4.4c1 becomes 2.4.4-c1).
+
+        
+        
+Ribosome v2.4.4
+===============
+
+  Release version:  2.4.4
+  Release date:     22 August 2006
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_4
+  
+  What's New
+  ==========
+  
+    * Added support for new symbian platforms: symbian-s60-32-winscw-emulator, 
+      symbian-s60-32-armv5, and symbian-s60-32-mmp.
+      
+    * Turned on Windows Media support in helix-client-all-defines.
+    
+    * Added DLLOnlyTarget() to force DLL targets even when 'nodll' or 'static'
+      build option is used.          
+    
+    * Bugs:
+    
+      - 5167: Fixed umake tool break, introduced in 2.4.1. Umake.py will now 
+        work properly again when called from command line.
+      
+      - 5244: Work-around for crashes when globbing on paths with a string like 
+        [clien-restricted] (the offensive string containing a '-' between '[' 
+        and ']'). The core issue is in invoking python's glob.glob() method 
+        with metacharacters ('[',']') in the string.
+
+
+
+Ribosome v2.4.3
+===============
+
+  Release version:  2.4.3
+  Release date:     3 August 2006
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_3
+  
+  What's New
+  ==========
+  
+    * Bugs:
+    
+      - Fixed symbian changes from 2.4.2 to work with product branches in
+        addition to HEAD.
+      
+      - Fixed project.addSignOption(): now works with multi-word values and 
+        values containing the colon (:) character (useful for using URL's as 
+        values).
+        
+
+        
+Ribosome v2.4.2
+===============
+
+  Release version:  2.4.2
+  Release date:     20 July 2006
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_2
+  
+  What's New
+  ==========
+  
+    * Added support for generating MMP files for Symbian build system using
+      the umake.py tool by using SYSTEM_ID 'symbian-91-mmp'.
+      
+    * When using the '-U' option (umake_only), Ribosome will no longer try to
+      MD5-sign "output" binaries.
+            
+    * Bugs:
+   
+      - Fixed a bug related to thread switching and Python's non-atomic 
+        handling of its internal print statement, which could result in 
+        intermingled output lines.
+         
+      - Replaced incorrect HELIX_FEATURE_NO_XWINDOWS with the correct macro,
+        HELIX_CONFIG_NO_XWINDOWS, in linux-2.2-libc6-iwmmxt-xscale.cf
+      
+      
+
+Ribosome v2.4.1
+===============
+
+  Release version:  2.4.1
+  Release date:     6 July 2006
+  Repository:       cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:           HEAD
+  Tag:              ribosome-2_4_1
+  
+  What's New
+  ==========
+
+    * Ribosome now *ENFORCES* Python 2.4.3, and will abort if run against a
+      lesser version.
+      
+    * Many tools in bin\ have a new name, (build|build.bat ==> build.py;
+      umake|umake.bat ==> umake.py, etc), and all "bin" tools will end in .py 
+      from now on.
+      
+    * Signing: the new 'sign.py' tool has been re-enabled, and extends/replaces
+      the old 'drmsign' tool.
+      
+    * Improved the log directory logic. Users can now set RIBOSOME_LOGDIR to
+      specify the location, or the Ribosome tools will determine a
+      RIBOSOME_LOGDIR (<cwd>\ribosome_logs) at initial bootstrap, and all logs 
+      for all child Ribosome processes will go to the same location. 
+      (Previously, logs were going to <cwd>\build_logs where <cwd> was the dir 
+      any given tool was invoked in.)
+      
+    * Dropped support for CodeWarrior Mac builds.
+      
+    * Bugs:
+      
+      * Fixed problems with too much barf on the screen for tools that were 
+        failing to init the log system properly (pylink, for example). 
+        All tools now boot up consistently and have standardized log init, 
+        error handling, etc.
+
+
+
+Ribosome v2.4
+=============
+
+  Release version:   2.4
+  Release date:      19 June 2006
+  Repository:        cvs.helixcommunity.org:/cvsroot/ribosome/build
+  Branch:            HEAD
+  Tag:               ribosome-2_4
+  
+
+  What's New
+  ==========
+
+    * Ribosome now requires Python 2.4.3
+    
+    * Umake:
+        
+        * AddSources() no longer fatals if target is not present.
+        
+        * New directive: NonObjectTarget(). Specifies that a target is going to
+          be built using only a compiler tool (no linker).
+          
+        * Added libpath handling directives [addLibpaths(), getLibpaths(),
+          removeLibpaths()] to manipulate library paths (currently, win32
+          only).
+          
+        * Added a compiler for .wsdl/soap files.
+        
+    * New tools:
+    
+        * rebase.py - Reassign the base addresses of all DLL's in a specified
+          directory subtree.
+          
+        * gethash.exe - Determine if a file is drmsigned (win32 only).
+
+    * Bugs:
+    
+        * 4833: Fix mkdepend for cross compiling. We have reverted to using the
+          python version of mkdepend for all platforms, since the C version was
+          not significantly faster.
+          
+Deprecation Notices:
+
+    These items have all been tagged as deprecated and will be removed in 
+    version 3.0:            
+                
+    * project.target_type: This attribute of the project data should not be 
+      getting accessed directly; use a umake Target directive instead. If 
+      you need to query the target type, use project.getTargetType().
+            
+    * AddDebugOutput(): All output functionality in Ribosome is being 
+      converted to the new-style logging. See the documentation in log.py 
+      for details on using the new logging interface.
+
+    * The following methods had been marked as deprecated for an unknown 
+      period of time, and have been officially marked for final removal:    
+      * SetBuildVersion()
+      * SetBuild2002Version()
+      * AddExportedFunctions()
+            
+Removed items:
+            
+    * linestrip.py - obsolete
+    * umaker.py - obsolete
+    * mkdepend.c - duplicate tool (see Bugs above).
+        
+        
+Contact Information
+===================
+
+  Development and Release Management:
+  
+    Jonathan Finnecy
+    SDE / Build Master
+    jfinnecy@real.com
+    
+  Bugs:
+  
+    https://bugs.helixcommunity.org/enter_bug.cgi?product=ribosome

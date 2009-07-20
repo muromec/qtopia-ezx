@@ -1,0 +1,243 @@
+diff -u ./xmlparse/xmlparse.c ../../../mozilla/mozilla/expat/xmlparse/xmlparse.c
+--- ./xmlparse/xmlparse.c	Mon Mar 27 15:00:13 2000
++++ ../../../mozilla/mozilla/expat/xmlparse/xmlparse.c	Wed Oct 27 00:39:57 1999
+@@ -439,31 +439,6 @@
+ #endif
+ #endif
+ 
+-/* this macro requires an int err has been declared to store the error to 
+-   be returned.  The macro is to be placed in a case statement. */
+-#define CASE_ERROR() \
+-    case XML_TOK_ERR_INVALID_NAME: err = XML_ERROR_INVALID_NAME; goto err_done; \
+-    case XML_TOK_ERR_INVALID_CHAR_IN_DOC: err = XML_ERROR_INVALID_CHAR_IN_DOC; goto err_done; \
+-    case XML_TOK_ERR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT: err = XML_ERROR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT; goto err_done; \
+-    case XML_TOK_ERR_INVALID_DECL: err = XML_ERROR_INVALID_DECL; goto err_done; \
+-    case XML_TOK_ERR_INVALID_PI: err = XML_ERROR_INVALID_PI; goto err_done; \
+-    case XML_TOK_ERR_INVALID_PI_TARGET: err = XML_ERROR_INVALID_PI_TARGET; goto err_done; \
+-    case XML_TOK_ERR_INVALID_CDATA: err = XML_ERROR_INVALID_CDATA; goto err_done; \
+-    case XML_TOK_ERR_NO_CLOSING_GT: err = XML_ERROR_NO_CLOSING_GT; goto err_done; \
+-    case XML_TOK_ERR_INVALID_HEX_CHAR_REF: err = XML_ERROR_INVALID_HEX_CHAR_REF; goto err_done; \
+-    case XML_TOK_ERR_INVALID_CHAR_REF: err = XML_ERROR_INVALID_CHAR_REF; goto err_done; \
+-    case XML_TOK_ERR_INVALID_REF: err = XML_ERROR_INVALID_REF; goto err_done; \
+-    case XML_TOK_ERR_MISSING_EQUALS: err = XML_ERROR_MISSING_EQUALS; goto err_done; \
+-    case XML_TOK_ERR_MISSING_QUOT_APOS: err = XML_ERROR_MISSING_QUOT_APOS; goto err_done; \
+-    case XML_TOK_ERR_MISSING_REQ_SPACE: err = XML_ERROR_MISSING_REQ_SPACE; goto err_done; \
+-    case XML_TOK_ERR_LT_NOT_ALLOWED: err = XML_ERROR_LT_NOT_ALLOWED; goto err_done; \
+-    case XML_TOK_ERR_EXPECTED_GT: err = XML_ERROR_EXPECTED_GT; goto err_done; \
+-    case XML_TOK_ERR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT: err = XML_ERROR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT; goto err_done; \
+-    case XML_TOK_ERR_INVALID_COMMENT: err = XML_ERROR_INVALID_COMMENT; goto err_done; \
+-    err_done:
+-
+-
+-
+ XML_Parser XML_ParserCreate(const XML_Char *encodingName)
+ {
+   XML_Parser parser = malloc(sizeof(Parser));
+@@ -1034,26 +1009,7 @@
+     XML_T("out of memory"),
+     XML_T("syntax error"),
+     XML_T("no element found"),
+-/*    XML_T("not well-formed"), */
+-    XML_T("name is invalid"),					/* XML_ERROR_INVALID_NAME, */
+-    XML_T("character not allowed in doc"),			/* XML_ERROR_INVALID_CHAR_IN_DOC, */
+-    XML_T("comments can not have '--' in them"),		/* XML_ERROR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT, */
+-    XML_T("invalid document type declaration syntax"),		/* XML_ERROR_INVALID_DECL, */
+-    XML_T("invalid processing instructions syntax"),		/* XML_ERROR_INVALID_PI, */
+-    XML_T("xml processing instruction target must be lower case"), /* XML_ERROR_INVALID_PI_TARGET, */
+-    XML_T("error in CDATA"),					/* XML_ERROR_INVALID_CDATA, */
+-    XML_T("end tag requires a closing >"),			/* XML_ERROR_NO_CLOSING_GT, */
+-    XML_T("invalid hexadecimal character reference"),		/* XML_ERROR_INVALID_HEX_CHAR_REF, */
+-    XML_T("invalid character reference"),			/* XML_ERROR_INVALID_CHAR_REF, */
+-    XML_T("invalid entity reference"),				/* XML_ERROR_INVALID_REF, */
+-    XML_T("attribute names must be followed by an equal sign"),	/* XML_ERROR_MISSING_EQUALS, */
+-    XML_T("attribute values must start with a \" or '"),	/* XML_ERROR_MISSING_QUOT_APOS, */
+-    XML_T("attribute values must be followed by a whitespace"), /* XML_ERROR_MISSING_REQ_SPACE, */
+-    XML_T("the < character must be escaped in an attribute value"), /* XML_ERROR_LT_NOT_ALLOWED, */
+-    XML_T("/ character must be followed by > to end empty element"), /* XML_ERROR_EXPECTED_GT, */
+-    XML_T("content can not have the ']]>' string in it"),	/*XML_ERROR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT,*/
+-    XML_T("invalid beginning of comment"),			/* XML_ERROR_INVALID_COMMENT, */
+-/********/
++    XML_T("not well-formed"),
+     XML_T("unclosed token"),
+     XML_T("unclosed token"),
+     XML_T("mismatched tag"),
+@@ -1198,7 +1154,6 @@
+   *eventPP = s;
+   for (;;) {
+     const char *next = s; /* XmlContentTok doesn't always set the last arg */
+-    int err;
+     int tok = XmlContentTok(enc, s, end, &next);
+     *eventEndPP = next;
+     switch (tok) {
+@@ -1230,9 +1185,9 @@
+ 	return XML_ERROR_NONE;
+       }
+       return XML_ERROR_NO_ELEMENTS;
+-    CASE_ERROR()
++    case XML_TOK_INVALID:
+       *eventPP = next;
+-      return err;
++      return XML_ERROR_INVALID_TOKEN;
+     case XML_TOK_PARTIAL:
+       if (nextPtr) {
+ 	*nextPtr = s;
+@@ -1897,7 +1852,6 @@
+   *startPtr = 0;
+   for (;;) {
+     const char *next;
+-    int err;
+     int tok = XmlCdataSectionTok(enc, s, end, &next);
+     *eventEndPP = next;
+     switch (tok) {
+@@ -1942,9 +1896,9 @@
+       else if (defaultHandler)
+ 	reportDefault(parser, enc, s, next);
+       break;
+-    CASE_ERROR()
++    case XML_TOK_INVALID:
+       *eventPP = next;
+-      return err;
++      return XML_ERROR_INVALID_TOKEN;
+     case XML_TOK_PARTIAL_CHAR:
+       if (nextPtr) {
+ 	*nextPtr = s;
+@@ -1997,7 +1951,6 @@
+ {
+   const char *next;
+   int tok;
+-  int err;
+   const char *s = *startPtr;
+   const char **eventPP;
+   const char **eventEndPP;
+@@ -2020,9 +1973,9 @@
+       reportDefault(parser, enc, s, next);
+     *startPtr = next;
+     return XML_ERROR_NONE;
+-  CASE_ERROR()
++  case XML_TOK_INVALID:
+     *eventPP = next;
+-    return err;
++    return XML_ERROR_INVALID_TOKEN;
+   case XML_TOK_PARTIAL_CHAR:
+     if (nextPtr) {
+       *nextPtr = s;
+@@ -2216,19 +2169,17 @@
+   }
+   for (;;) {
+     int role;
+-    int err;
+     *eventPP = s;
+     *eventEndPP = next;
+     if (tok <= 0) {
+-      /* the errors are less than -100... */
+-      if (nextPtr != 0 && tok > -100){
++      if (nextPtr != 0 && tok != XML_TOK_INVALID) {
+ 	*nextPtr = s;
+ 	return XML_ERROR_NONE;
+       }
+       switch (tok) {
+-      CASE_ERROR()
++      case XML_TOK_INVALID:
+ 	*eventPP = next;
+-        return err;
++	return XML_ERROR_INVALID_TOKEN;
+       case XML_TOK_PARTIAL:
+ 	return XML_ERROR_UNCLOSED_TOKEN;
+       case XML_TOK_PARTIAL_CHAR:
+@@ -2692,7 +2643,6 @@
+   eventPtr = s;
+   for (;;) {
+     const char *next;
+-    int err;
+     int tok = XmlPrologTok(encoding, s, end, &next);
+     eventEndPtr = next;
+     switch (tok) {
+@@ -2718,9 +2668,9 @@
+       if (!reportComment(parser, encoding, s, next))
+ 	return XML_ERROR_NO_MEMORY;
+       break;
+-    CASE_ERROR()
++    case XML_TOK_INVALID:
+       eventPtr = next;
+-      return err;
++      return XML_ERROR_INVALID_TOKEN;
+     case XML_TOK_PARTIAL:
+       if (nextPtr) {
+ 	*nextPtr = s;
+@@ -2797,19 +2747,18 @@
+ {
+   for (;;) {
+     const char *next;
+-    int err;
+     int tok = XmlAttributeValueTok(enc, ptr, end, &next);
+     switch (tok) {
+     case XML_TOK_NONE:
+       return XML_ERROR_NONE;
+-    CASE_ERROR()
++    case XML_TOK_INVALID:
+       if (enc == encoding)
+ 	eventPtr = next;
+-      return err;
++      return XML_ERROR_INVALID_TOKEN;
+     case XML_TOK_PARTIAL:
+       if (enc == encoding)
+ 	eventPtr = ptr;
+-      return XML_ERROR_UNCLOSED_TOKEN;
++      return XML_ERROR_INVALID_TOKEN;
+     case XML_TOK_CHAR_REF:
+       {
+ 	XML_Char buf[XML_ENCODE_MAX];
+@@ -2920,7 +2869,6 @@
+   STRING_POOL *pool = &(dtd.pool);
+   for (;;) {
+     const char *next;
+-    int err;
+     int tok = XmlEntityValueTok(enc, entityTextPtr, entityTextEnd, &next);
+     switch (tok) {
+     case XML_TOK_PARAM_ENTITY_REF:
+@@ -3005,11 +2953,11 @@
+     case XML_TOK_PARTIAL:
+       if (enc == encoding)
+ 	eventPtr = entityTextPtr;
+-      return XML_ERROR_UNCLOSED_TOKEN;
+-    CASE_ERROR()
++      return XML_ERROR_INVALID_TOKEN;
++    case XML_TOK_INVALID:
+       if (enc == encoding)
+ 	eventPtr = next;
+-      return err;
++      return XML_ERROR_INVALID_TOKEN;
+     default:
+       abort();
+     }
+diff -u ./xmlparse/xmlparse.h ../../../mozilla/mozilla/expat/xmlparse/xmlparse.h
+--- ./xmlparse/xmlparse.h	Mon Mar 27 15:00:13 2000
++++ ../../../mozilla/mozilla/expat/xmlparse/xmlparse.h	Sat Aug 07 00:23:40 1999
+@@ -463,26 +463,7 @@
+   XML_ERROR_NO_MEMORY,
+   XML_ERROR_SYNTAX,
+   XML_ERROR_NO_ELEMENTS,
+-/*  XML_ERROR_INVALID_TOKEN, */
+-  XML_ERROR_INVALID_NAME,
+-  XML_ERROR_INVALID_CHAR_IN_DOC,
+-  XML_ERROR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT,
+-  XML_ERROR_INVALID_DECL,
+-  XML_ERROR_INVALID_PI,
+-  XML_ERROR_INVALID_PI_TARGET,
+-  XML_ERROR_INVALID_CDATA,
+-  XML_ERROR_NO_CLOSING_GT,
+-  XML_ERROR_INVALID_HEX_CHAR_REF,
+-  XML_ERROR_INVALID_CHAR_REF,
+-  XML_ERROR_INVALID_REF,
+-  XML_ERROR_MISSING_EQUALS,
+-  XML_ERROR_MISSING_QUOT_APOS,
+-  XML_ERROR_MISSING_REQ_SPACE,
+-  XML_ERROR_LT_NOT_ALLOWED,
+-  XML_ERROR_EXPECTED_GT,
+-  XML_ERROR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT,
+-  XML_ERROR_INVALID_COMMENT,
+-/*****/
++  XML_ERROR_INVALID_TOKEN,
+   XML_ERROR_UNCLOSED_TOKEN,
+   XML_ERROR_PARTIAL_CHAR,
+   XML_ERROR_TAG_MISMATCH,

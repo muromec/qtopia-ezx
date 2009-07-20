@@ -1,0 +1,183 @@
+# -*- python -*-
+# 
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: clntcoredll,v 1.37 2007/07/06 21:58:11 jfinnecy Exp $
+# 
+# Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+# 
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+# 
+# Alternatively, the contents of this file may be used under the
+# terms of the GNU General Public License Version 2 (the
+# "GPL") in which case the provisions of the GPL are applicable
+# instead of those above. If you wish to allow use of your version of
+# this file only under the terms of the GPL, and not to allow others
+# to use your version of this file under the terms of either the RPSL
+# or RCSL, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by
+# the GPL. If you do not delete the provisions above, a recipient may
+# use your version of this file under the terms of any one of the
+# RPSL, the RCSL or the GPL.
+# 
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+# 
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+# 
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+# 
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+UmakefileVersion(2,2)
+
+project.AddModuleIncludes("common/include",
+                          "common/container/pub",
+                          "common/util/pub",
+                          "common/system/pub",
+                          "common/dbgtool/pub",
+                          "common/runtime/pub",
+                          "common/fileio/pub",
+                          "common/lang/xml/pub",
+                          "common/netio/pub",
+                          "protocol/transport/common/system/pub",
+                          "protocol/transport/rtp/pub",			  
+                          "protocol/common/util/pub",
+                          "protocol/rtsp/pub",
+                          "protocol/rtsp/include",
+                          "protocol/pna/pub",
+                          "protocol/sdp/pub",
+                          "audio/include",
+                          "video/include",
+                          "video/colconverter/pub")
+
+
+project.AddIncludes("../include",
+                    "../common/container/pub",
+                    "../common/util/pub",
+                    "../common/netio/pub",
+                    "../common/system/pub",
+                    "../audiosvc/pub",
+                    "../videosvc/pub",
+                    "../netwksvc/pub",
+                    "../resource/pub")
+
+project.AddModuleLibraries("common/dbgtool[debuglib]",
+                           "common/util[utillib]",
+                           "common/container[contlib]",
+                           "common/system[syslib]",
+                           "common/runtime[runtlib]",
+                           "common/fileio[fileiolib]",
+                           "common/log/logutil[logutillib]",
+                           "client/common/system[sysclntlib]",
+                           "client/common/container[contclntlib]",
+                           "client/common/util[utlclntlib]",
+                           "client/core[clntcorelib]",
+                           "datatype/common/container[dtcomcontlib]")
+
+if project.IsDefined('HELIX_FEATURE_AUDIO'):
+        project.AddModuleLibraries("audio/device[auddevlib]",
+                                   "client/audiosvc[audsvclib]")
+
+if project.IsDefined('HELIX_FEATURE_GAINTOOL'):
+	project.AddModuleLibraries("audio/gaintool[audgainlib]" )
+if project.IsDefined('HELIX_FEATURE_CROSSFADE'):
+	project.AddModuleLibraries("audio/crossfade[audxfadelib]")
+if project.IsDefined('HELIX_FEATURE_LIMITER'):
+	project.AddModuleLibraries('audio/limiter[audlimiter]')
+
+if project.IsDefined('HELIX_FEATURE_VIDEO'):
+        project.AddModuleLibraries("client/videosvc[vidsvclib]")
+
+if project.IsDefined('HELIX_FEATURE_PLAYBACK_NET'):
+        project.AddModuleLibraries("client/netwksvc[netsvclib]",
+                                   "client/common/netio[netioclntlib]",
+                                   "protocol/transport/common/system[systranlib]",
+                                   "protocol/transport/rtp[rtptranlib]",
+				   "protocol/transport/rdt[rdttranlib]",	
+                                   "protocol/common/util[protutillib]",
+                                   "protocol/rtsp[rtsplib]",     
+                                   "common/netio[netiolib]")
+
+
+if project.IsDefined('HELIX_CONFIG_FIXEDPOINT'):
+        project.AddModuleLibraries('audio/fixptresampler[fixptresampler]')
+
+if project.IsDefined('HELIX_FEATURE_MIXER'):
+        project.AddModuleLibraries('audio/mixer[audmixlib]')
+
+if project.IsDefined('HELIX_FEATURE_HTTPCLOAK') or project.IsDefined('HELIX_FEATURE_HTTP_SERVICE'):
+        project.AddModuleLibraries('protocol/http[httplib]')
+
+if project.IsDefined('HELIX_FEATURE_RESAMPLER'):
+        project.AddModuleLibraries('audio/resampler[audresamplib]')
+
+if project.IsDefined('HELIX_FEATURE_RDT'):
+        project.AddLibraries(GetSDKPath("prtclrdt_lib"))
+
+if project.IsDefined('HELIX_FEATURE_PNA'):
+        project.AddLibraries(GetSDKPath("prtclpna_lib"))
+
+        # PNA uses functions from rmfftype.h. On platforms
+        # that have HELIX_FEATURE_NOINLINE defined you
+        # need to link against rmcomlib so that you can
+        # get the code for the inline functions in that header
+        # file.
+        if project.IsDefined("HELIX_FEATURE_NOINLINE"):
+            project.AddModuleLibraries("datatype/rm/common[rmcommonlib]")
+
+if project.IsDefined('HELIX_FEATURE_XMLPARSER'):
+        project.AddModuleLibraries('common/lang/xml[xmllib]')
+
+if project.IsDefined("HELIX_FEATURE_MIN_HEAP"):
+        project.AddDefines("HELIX_CONFIG_MIN_PCM_PUSHDOWN_BYTES")
+
+if project.IsDefined("HELIX_FEATURE_RECORDCONTROL") and \
+   project.IsDefined("HELIX_FEATURE_RECORDCONTROL_MERGESORT"):
+    project.AddModuleLibraries("datatype/common/filewriter[wrtrlib]")
+
+if project.IsDefined("HELIX_FEATURE_PARTIALPLAYBACK"):
+	project.AddModuleLibraries("datatype/null/renderer[nullrendlib]")
+
+project.AddSources("dlliids.cpp",
+                   "hxdll.cpp")
+
+if project.IsDefined("HELIX_FEATURE_PRESENTATION_FEATURE_SELECTION") and \
+   project.IsDefined("HELIX_FEATURE_EVENTMANAGER"):
+    project.AddSources("pfeventproxy.cpp")
+
+project.ExportFunction("CreateEngine",
+                       "IHXClientEngine** ppEngine",
+                       "common/include",
+                       "hxcore.h")
+project.ExportFunction("CloseEngine",
+                       "IHXClientEngine* pEngine",
+                       "common/include",
+                       "hxcore.h")
+project.ExportFunction("SetDLLAccessPath",
+                       "const char* pszPath")
+
+project.SetDLLTypeCommon()
+DLLTarget('clntcore')
+DependTarget()

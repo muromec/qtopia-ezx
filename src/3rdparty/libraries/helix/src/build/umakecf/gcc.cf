@@ -1,0 +1,248 @@
+# -*- python -*-
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: gcc.cf,v 1.17 2006/06/19 23:11:34 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Common setting for the all gcc compilers.  Other .cf files inherit
+from these settings."""
+
+## Set up the C compiler
+platform.cc = cc = Compiler()
+cc.cmd = 'gcc'
+cc.args['default'] = '-pipe'
+cc.args['debug'] = '-O0 -g -DDEBUG -D_DEBUG'
+
+if project.IsDefined('HELIX_CONFIG_MINIMIZE_SIZE'):
+    cc.args['release'] = '-Os -fomit-frame-pointer -finline-functions -finline-limit=50'
+else:
+    cc.args['release'] = '-O2 '
+
+if not project.BuildOption("nopic"):
+    cc.args['dll'] = '-fPIC -DPIC'
+    cc.args['lib'] = '-fPIC -DPIC'
+cc.args['profile'] = '-pg'
+cc.define_arg = '-D'
+cc.include_arg = '-I'
+cc.prefix_include_arg = '-include '
+cc.source_arg = '-c'
+cc.target_arg = '-o'
+cc.make_var = 'CC'
+cc.make_flags = 'CCFLAGS'
+
+## Set up the C++ Compiler
+platform.cxx = cxx = Compiler()
+cxx.cmd = 'g++'
+cxx.args['default'] = '-pipe'
+cxx.args['debug'] = '-O0 -g -DDEBUG -D_DEBUG'
+
+if project.IsDefined('HELIX_CONFIG_MINIMIZE_SIZE'):
+    cxx.args['release'] = '-Os -fomit-frame-pointer  -finline-functions -finline-limit=50'
+else:
+    cxx.args['release'] = '-O2 '
+
+if project.BuildOption("symbols"):
+    cc.args['release'] = cc.args['release'] + ' -g '
+    cxx.args['release'] = cxx.args['release'] + ' -g '
+
+if not project.BuildOption("nopic"):
+    cxx.args['dll'] = '-fPIC -DPIC'
+    cxx.args['lib'] = '-fPIC -DPIC'
+
+if project.BuildOption('noinline'):
+    cxx.args["release"] = cxx.args["release"] + " " + \
+        "-fno-inline -fno-inline-functions -fno-default-inline "
+    cc.args["release"] = cc.args["release"] + " " + \
+        "-fno-inline -fno-inline-functions -fno-default-inline "
+
+cxx.args['profile'] = '-pg'
+cxx.define_arg = '-D'
+cxx.include_arg = '-I'
+cxx.prefix_include_arg = '-include '
+cxx.source_arg = '-c'
+cxx.target_arg = '-o'
+cxx.make_var = 'CXX'
+cxx.make_flags = 'CXXFLAGS'
+
+## Set up the Linker
+class GCCLinker(Linker):
+    def __init__(self):
+        Linker.__init__(self)
+        self.make_var = 'LD'
+        self.make_flags = 'LDFLAGS'
+        self.args['default'] = '-pipe'
+        self.args['profile'] = '-pg'
+        self.args['static'] = '-static'
+        self.target_arg = '-o'
+        self.ldcmd = 'g++'
+        self.ldargs = ''
+
+    def crti_path(self):
+        return '`%s -print-file-name=crti.o`' % (platform.cxx.cmd)
+
+    def crtn_path(self):
+        return '`%s -print-file-name=crtn.o`' % (platform.cxx.cmd)
+
+    def crtbegin_path(self):
+        return '`%s -print-file-name=crtbegin.o`' % (platform.cxx.cmd)
+
+    def crtend_path(self):
+        return '`%s -print-file-name=crtend.o`' % (platform.cxx.cmd)
+
+    def crtbeginS_path(self):
+        return '`%s -print-file-name=crtbeginS.o`' % (platform.cxx.cmd)
+
+    def crtendS_path(self):
+        return '`%s -print-file-name=crtendS.o`' % (platform.cxx.cmd)
+
+    def crt1_path(self):
+        return '`%s -print-file-name=crt1.o`' % (platform.cxx.cmd)
+
+    def libgcc_path(self):
+        return '`%s -print-file-name=libgcc.a`' % (platform.cxx.cmd)
+
+    def link_paths(self):
+        return string.join(platform.system_paths) +\
+               string.join(project.system_paths)
+
+    def execute(self, target, objects, static_libs, dynamic_libs):
+        link_str = form_string(platform.form_var(self.make_var),
+                               platform.form_var(self.make_flags),
+                               self.target_arg,
+                               target,
+                               objects,
+                               self.link_paths(),
+                               dynamic_libs,
+                               static_libs)
+
+        if project.getTargetType() == 'dll':
+
+            if project.exported_func:
+                tmp=string.join(project.exported_func," -u ")
+                link_str="%s -u %s -lgcc" % (link_str, tmp)
+
+        return link_str
+
+    def set_type(self):
+        self.cmd = self.ldcmd
+
+        if (project.getTargetType() == 'dll'):
+            self.args['default'] = '-shared ' + self.ldargs
+        else:
+            self.args['default'] = self.ldargs
+
+
+    def make_lib_static(self, lib):
+        return "-Wl,-Bstatic "+lib+" -Wl,Bdynamic"
+
+platform.link = GCCLinker()
+
+def DisableRTTIIfNecessary() :
+        global platform
+        global project
+        if project.build_choices.count('no_c++_runtime') :
+                for option in ('-fno-rtti', '-fno-exceptions') :
+                        platform.cxx.args['default'] = platform.cxx.args['default'] + " " + option
+                        platform.cc.args['default'] = platform.cxx.args['default'] + " " + option
+
+def HandleExports (target, funcs, ttype="dll") :
+    if ttype != "dll" or project.build_choices.count("use_exports") == 0:
+        return ""
+    gcclinkscript = 'gcclink.' + os.path.basename(target)
+    out = open (gcclinkscript, "w")
+    out.write ("""
+        VERSION
+        {
+           G2 {
+                global: 
+                        %s
+                local: 
+                        *;
+           };
+        }\n""" % string.join(map (lambda x: x + ";\n\t\t", project.exported_func)))
+    out.close()
+    return gcclinkscript
+
+
+# Gemini uses IOStreams for their debugging.  In order that not everyone has to link with
+# libstdc++ because of this, there exists the -t use_iostreams option which turns on support
+# for iostreams for various client linuxes.  This will enable linking of libstdc++ and 
+# provide the _HAS_IOSTREAMS macro (defined elsewhere).  pjg 2/22/2001
+def HandleCPPRTInclusion (ttype="dll") :
+    if project.build_choices.count("use_iostreams") :
+        return "-lstdc++"
+    else:
+        return ""
+
+def get_compiler_version(compiler):
+    import shell
+    import re
+    str=shell.run(compiler.cmd + " -dumpversion")[1]
+    return string.strip(str)
+
+
+def identify_gcc_callback():
+    import shell
+    print "C Compiler: %s\n%s" % (cc.cmd, shell.run(cc.cmd + " -v")[1])
+    print "C++ Compiler: %s\n%s" % (cxx.cmd, shell.run(cxx.cmd + " -v")[1])
+
+AddIdentifyCallback(identify_gcc_callback)
+
+    

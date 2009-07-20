@@ -1,0 +1,289 @@
+# 
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: RCSL 1.0/RPSL 1.0 
+#  
+# Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+#      
+# The contents of this file, and the files included with this file, are 
+# subject to the current version of the RealNetworks Public Source License 
+# Version 1.0 (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the RealNetworks Community Source License Version 1.0 
+# (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+# in which case the RCSL will apply. You may also obtain the license terms 
+# directly from RealNetworks.  You may not use this file except in 
+# compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+# applicable to this file, the RCSL.  Please see the applicable RPSL or 
+# RCSL for the rights, obligations and limitations governing use of the 
+# contents of the file.  
+#  
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the portions 
+# it created. 
+#  
+# This file, and the files included with this file, is distributed and made 
+# available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+# EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+# 
+# Technology Compatibility Kit Test Suite(s) Location: 
+#    http://www.helixcommunity.org/content/tck 
+# 
+# Contributor(s): 
+#  
+# ***** END LICENSE BLOCK ***** 
+# 
+
+UmakefileVersion(2,0)
+
+project.AddModuleIncludes("common/include",
+                          "common/runtime/pub",
+                          "client/include",
+                          "client/common/system/pub",
+                          "common/container/pub",
+                          "datatype/rm/include")
+
+project.AddSources("main.cpp",
+                   "excontxt.cpp",
+                   "exadvsnk.cpp",
+                   "exerror.cpp",
+                   "iids.cpp",
+		   "print.cpp")
+
+project.AddModuleLibraries(
+                           "common/runtime[runtlib]",
+                           "common/system[syslib]",
+                           "common/container[contlib]",
+                           "common/runtime[runtlib]",
+                           "client/common/system[sysclntlib]",
+                           "common/dbgtool[debuglib]",
+                           "common/util[utillib]"
+                           )
+
+if project.IsDefined("HELIX_FEATURE_PREFERENCES"):
+    project.AddSources("preflist.cpp")
+
+if project.IsDefined("HELIX_FEATURE_AUTHENTICATION"):
+    project.AddSources("exaumgr.cpp")
+
+if project.IsDefined("HELIX_FEATURE_VIDEO"):
+	project.AddSources("exsitsup.cpp",
+                           "fivemmap.cpp")
+	project.AddModuleIncludes('video/include')
+	if project.IsDefined("HELIX_FEATURE_PNG"):
+		project.AddModuleIncludes('datatype/image/png/common/pub')
+		project.AddModuleLibraries("common/import/zlib[zlib]",
+					   "datatype/image/png/import/libpng[libpng]",
+					   "datatype/image/png/common[pngcomlib]")
+
+if project.IsDefined("HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS"):
+	project.AddSources("exprdnld.cpp")
+
+if project.BuildOption("nodll"):
+        ## Client core
+	static_plugin_list = ["clntcore"]
+        project.AddModuleLibraries("common/runtime[runtlib]",
+                                   "common/fileio[fileiolib]",
+                                   "client/common/system[sysclntlib]",
+                                   "client/common/container[contclntlib]",
+                                   "client/core[clntcorelib]")
+        if not project.IsDefined("HELIX_FEATURE_LOGLEVEL_NONE"):
+            project.AddModuleLibraries("common/log/logutil[logutillib]")
+        if not project.IsDefined("HELIX_CONFIG_MINIMIZE_SIZE"):
+            project.AddModuleLibraries("client/common/util[utlclntlib]")
+        ## Client core libraries
+        if project.IsDefined("HELIX_FEATURE_AUDIO"):
+        	project.AddModuleLibraries("audio/device[auddevlib]",
+	        			   "client/audiosvc[audsvclib]")
+	if ('HELIX_FEATURE_VOLUME' in project.defines):
+		project.AddModuleLibraries("audio/gaintool[audgainlib]" )
+	if ('HELIX_FEATURE_VOLUME' in project.defines):
+		project.AddModuleLibraries("audio/crossfade[audxfadelib]")
+        if project.IsDefined("HELIX_FEATURE_MIXER"):
+        	project.AddModuleLibraries("audio/mixer[audmixlib]")
+        if project.IsDefined("HELIX_FEATURE_RESAMPLER"):
+        	project.AddModuleLibraries("audio/resampler[audresamplib]")
+        if project.IsDefined("HELIX_FEATURE_LIMITER"):
+        	project.AddModuleLibraries("audio/limiter[audlimiter]")
+
+        if project.IsDefined("HELIX_FEATURE_VIDEO"):
+        	project.AddModuleLibraries("client/videosvc[vidsvclib]",
+                                           "protocol/sdp[sdplib]")
+        if project.IsDefined("HELIX_FEATURE_PLAYBACK_NET"):
+        	project.AddModuleLibraries("client/netwksvc[netsvclib]",
+                                           "common/netio[netiolib]",
+        				   "client/common/netio[netioclntlib]",
+        				   "protocol/transport/common/system[systranlib]",
+        				   "protocol/transport/rtp[rtptranlib]",
+        				   "protocol/common/util[protutillib]",
+        				   "protocol/rtsp[rtsplib]")
+        if project.IsDefined("HELIX_FEATURE_RDT"):
+		project.AddLibraries(GetSDKPath("prtclrdt_lib"))
+            	project.AddModuleLibraries("protocol/transport/rdt[rdttranlib]")
+        if project.IsDefined("HELIX_FEATURE_PNA"):
+		project.AddLibraries(GetSDKPath("prtclpna_lib"))
+        if project.IsDefined("HELIX_FEATURE_XMLPARSER"):
+        	project.AddModuleLibraries("common/lang/xml[xmllib]")
+        ## Add RAM file format and renderer
+	if project.IsDefined("HELIX_FEATURE_META"):
+		static_plugin_list[-1:-1] = ["ramfformat", "ramrender"]
+                project.AddModuleLibraries("datatype/ram/renderer[ramrendrlib]")
+        ## Add local file system
+	if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL"):
+		static_plugin_list[-1:-1] = ["smplfsys"]
+                project.AddModuleLibraries("common/fileio[fileiolib]")
+        ## Add http file system
+	if project.IsDefined("HELIX_FEATURE_PLAYBACK_NET"):
+		static_plugin_list[-1:-1] = ["hxsdp", "httpfsys"]
+                project.AddModuleLibraries("protocol/http[httplib]",
+                                           "protocol/common/util[protutillib]",
+                                           "protocol/sdp[sdplib]",
+                                           "filesystem/data[datafsys]",
+                                           "common/fileio[fileiolib]",
+                                           "common/import/zlib[zlib]")
+        ## Add realmedia file format
+	if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL") and \
+	    (project.IsDefined("HELIX_FEATURE_AUDIO_REAL") or    \
+             project.IsDefined("HELIX_FEATURE_VIDEO_REAL")):
+		static_plugin_list[-1:-1] = ["rmfformat"]
+                project.AddModuleLibraries("datatype/common/util[dtutillib]",
+                                           "datatype/common/container[dtcomcontlib]")
+		project.AddLibraries(GetSDKPath("rmcom_lib"),
+                                     GetSDKPath("rmacom_lib"),
+                                     GetSDKPath("rmff_lib"),
+			             GetSDKPath("rmvidpyld_lib"))
+
+        ## Add realmedia renderer
+	if project.IsDefined("HELIX_FEATURE_AUDIO_REAL"):
+		static_plugin_list[-1:-1] = ["rarender"]
+                project.AddModuleLibraries("datatype/rm/audio/payload[rapayld]")
+                project.AddLibraries(GetSDKPath("rmarend_lib"),
+                                     GetSDKPath("rmacom_lib"))
+        ## Add mp3 file format and renderer
+	if project.IsDefined("HELIX_FEATURE_AUDIO_MPA_LAYER3") or \
+           project.IsDefined("HELIX_FEATURE_AUDIO_MPA_LAYER2") or \
+           project.IsDefined("HELIX_FEATURE_AUDIO_MPA_LAYER1"):
+		static_plugin_list[-1:-1] = ["mp3render"]
+                project.AddModuleLibraries("datatype/mp3/codec/fltpt[mp3codecfltpt]",
+                                           "datatype/mp3/common[mp3lib]",
+                                           "datatype/mp3/payload[mp3payld]",
+                                           "datatype/common/util[dtutillib]")
+		if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL"):
+			static_plugin_list[-1:-1] = ["mp3fformat"]
+                        project.AddModuleLibraries("datatype/mp3/common[mp3lib]")
+        ## Add gecko realmedia codec
+	if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_GECKO"):
+		static_plugin_list[-1:-1] = ["cook"]
+		if not project.IsDefined("HELIX_CONFIG_FIXEDPOINT"):
+			project.AddLibraries(GetSDKPath("ra8lbrdec_flt_lib"))
+		else:
+			project.AddLibraries(GetSDKPath("ra8lbrdec_fix_lib"))
+                project.AddModuleLibraries("datatype/rm/audio/codec/common[racompat]")
+        ## Add RAAC codec
+	if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_RAAC"):
+		static_plugin_list[-1:-1] = ["raac"]
+		project.AddModuleLibraries("datatype/mp4/common[mp4comlib]",
+                                           "datatype/aac/codec/fixpt/decoder/hxwrap[aacdeclib]")
+        ## Add sipro realmedia codec
+        ## (Right now this only works for floating-point platforms)
+	if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_SIPRO"):
+		static_plugin_list[-1:-1] = ["sipr"]
+		project.AddLibraries(GetSDKPath("sipro_flt_backend_lib"))
+        ## Add tokyo realmedia codec
+	if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_TOKYO"):
+		static_plugin_list[-1:-1] = ["atrc"]
+		project.AddLibraries(GetSDKPath("ra8hbr_lib"))
+        ##
+	if project.IsDefined("HELIX_FEATURE_VIDEO"):
+		static_plugin_list[-1:-1] = ["vidsite"]
+		static_plugin_list[-1:-1] = ["hxltcolor"]
+                project.AddModuleLibraries("datatype/common/vidrend[vidrend]",
+                                           "video/sitelib[sitelib]",
+                                           "video/site[vidsite]",
+                                           "video/colconverter[hxltcolor]",
+                                           "datatype/rm/common[rmcomlib]",
+                                           "video/vidutil[vidutillib]")
+
+		if (project.IsDefined('HELIX_FEATURE_ALTERNATE_SITE_CREATE_LIB')):
+                    project.AddLibraries(GetSDKPath("sitecreate_lib"))
+                else:
+                    project.AddModuleLibraries('video/sitelib[sitecreatelib]')
+                
+        ## Add realvideo renderer
+	if project.IsDefined("HELIX_FEATURE_VIDEO_REAL"):
+		project.AddModuleLibraries("datatype/rm/video/renderer[rvxrendlib]")
+		project.AddLibraries(GetSDKPath("rmvidcom_lib"),
+                                     GetSDKPath("rmvidpyld_lib"),
+                                     GetSDKPath("rvcodcom_lib"))
+                project.AddModuleLibraries("datatype/common/util[dtutillib]")
+		static_plugin_list[-1:-1] = ["rvrender"]
+                
+        ## Add mpeg4 file format
+	if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL")and \
+	   (project.IsDefined("HELIX_FEATURE_VIDEO_H263") or    \
+            project.IsDefined("HELIX_FEATURE_VIDEO_MPEG4") or   \
+            project.IsDefined("HELIX_FEATURE_AUDIO_MPEG4")):
+		static_plugin_list[-1:-1] = ["mp4fformat"]
+                project.AddModuleLibraries("datatype/common/util[dtutillib]",
+                                           "datatype/common/audrend",
+                                           "datatype/mp4/common[mp4comlib]",
+                                           "datatype/mp4/payload[mp4pyldlib]",
+                                           "datatype/mp4/fileformat[mp4fformatlib]")
+                if not project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_M4A_ONLY"):
+                    project.AddModuleLibraries("protocol/sdp[sdplib]",
+                                               "protocol/rtsp[rtsplib]",
+                                               "protocol/common/util[protutillib]",
+                                               "datatype/rm/common[rmcomlib]",
+                                               "datatype/amr/common[amrcomlib]")
+        ## Add h.263 renderer
+	if project.IsDefined("HELIX_FEATURE_VIDEO_H263"):
+		project.AddModuleLibraries("datatype/h263/payload[h263pyldlib]")
+		static_plugin_list[-1:-1] = ["h263render"]
+        ## Add MPEG4 renderer
+#	if project.IsDefined("HELIX_FEATURE_VIDEO_MPEG4"):
+#		static_plugin_list[-1:-1] = ["mp4xrender"]
+        ## Add mpeg 4 audio renderer
+	if project.IsDefined("HELIX_FEATURE_AUDIO_MPEG4"):
+		static_plugin_list[-1:-1] = ["mp4arender"]
+		project.AddModuleLibraries("datatype/mp4/audio/renderer[mp4arenderlib]")
+                if not project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_M4A_ONLY"):
+                    project.AddModuleLibraries("datatype/amr/common[amrcomlib]")
+        ## Add RV10 codec
+        if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV10"):
+            project.AddLibraries(GetSDKPath("rv1dec_libs")+"[rv10lib]",
+                                 GetSDKPath("rv1dec_libs")+"[drv1lib]")
+            static_plugin_list[-1:-1] = ["rv10", "drv1"]
+        ## Add RV20 codec
+	if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV20"):
+		project.AddLibraries(GetSDKPath("rvg2dec_libs")+"[rv20lib]",
+                                     GetSDKPath("rvg2dec_libs")+"[drv2lib]")
+		static_plugin_list[-1:-1] = ["rv20", "drv2"]
+
+	if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV30") or \
+	   project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV40"):
+		static_plugin_list[-1:-1] = ["drvc"]
+		if project.IsDefined("HELIX_FEATURE_ANSIC_RV89COMBO"):
+			project.AddLibraries(GetSDKPath("rv89combo_c_libs")+"[drvc]")
+		else:
+			project.AddLibraries(GetSDKPath("rv89combo_libs")+"[drvclib]")
+
+	if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV30"):
+		static_plugin_list[-1:-1] = ["rv30"]
+		project.AddLibraries(GetSDKPath("rv89combo_libs")+"[rv3xlib]")
+                project.AddModuleLibraries("datatype/rm/video/codec/rv89combo[rv30]")
+
+	if project.IsDefined("HELIX_FEATURE_VIDEO_CODEC_RV40"):
+		static_plugin_list[-1:-1] = ["rv40"]
+		project.AddLibraries(GetSDKPath("rv89combo_libs")+"[rv4xlib]")
+                project.AddModuleLibraries("datatype/rm/video/codec/rv89combo[rv40]")
+
+#	if project.IsDefined("HELIX_FEATURE_AUDIO_CODEC_AAC"):
+#		static_plugin_list[-1:-1] = ["aac4"]
+
+	CreateStaticPluginTable(static_plugin_list)
+
+ProgramTarget("splay")
+
+DependTarget()
+

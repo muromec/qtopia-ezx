@@ -1,0 +1,183 @@
+# 
+# ***** BEGIN LICENSE BLOCK *****
+# Source last modified: $Id: wince-500-ppc.cf,v 1.4 2007/06/13 01:12:50 jfinnecy Exp $
+# 
+# Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
+# 
+# The contents of this file, and the files included with this file,
+# are subject to the current version of the RealNetworks Public
+# Source License (the "RPSL") available at
+# http://www.helixcommunity.org/content/rpsl unless you have licensed
+# the file under the current version of the RealNetworks Community
+# Source License (the "RCSL") available at
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL
+# will apply. You may also obtain the license terms directly from
+# RealNetworks.  You may not use this file except in compliance with
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for
+# the rights, obligations and limitations governing use of the
+# contents of the file.
+# 
+# Alternatively, the contents of this file may be used under the
+# terms of the GNU General Public License Version 2 or later (the
+# "GPL") in which case the provisions of the GPL are applicable
+# instead of those above. If you wish to allow use of your version of
+# this file only under the terms of the GPL, and not to allow others
+# to use your version of this file under the terms of either the RPSL
+# or RCSL, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by
+# the GPL. If you do not delete the provisions above, a recipient may
+# use your version of this file under the terms of any one of the
+# RPSL, the RCSL or the GPL.
+# 
+# This file is part of the Helix DNA Technology. RealNetworks is the
+# developer of the Original Code and owns the copyrights in the
+# portions it created.
+# 
+# This file, and the files included with this file, is distributed
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
+# ENJOYMENT OR NON-INFRINGEMENT.
+# 
+# Technology Compatibility Kit Test Suite(s) Location:
+#    http://www.helixcommunity.org/content/tck
+# 
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+
+"""Wince using embedded VC++"""
+
+exec_config_file('win32.cf')
+
+# Signal that we want the linker to generate pdb files
+if not project.BuildOption('release'):
+	project.AddBuildOption("pdb")
+
+## list of PCF files to run
+platform.pcf_prefix_list = ['win', 'wince', 'wince-300-ppc', 'wince-500', 'wince-500-ppc']
+
+## WinCE platform defines
+project.AddDefines("UNICODE",
+                   "_UNICODE",
+                   "UNDER_CE=0x500",
+                   "_WIN32_WCE=0x500",
+                   "WIN32_PLATFORM_PSPC=310",
+                   "WINVER=0x500")
+
+# Helix related defines
+project.AddDefines("_LITTLE_ENDIAN",
+                   "WINCE",
+                   "_WINCE",
+#                   "USE_WINSOCK1",	# use USE_WINSOCK1 only on ppc-300 platform
+                   "HELIX_CONFIG_DISABLE_ATOMIC_OPERATORS")
+
+# No Threads improves the audio pushdowns and decoding
+if not project.BuildOption('thread_off'):
+	project.AddDefines("THREADS_SUPPORTED")
+
+
+project.AddSystemLibraries('corelibc.lib')
+project.AddSystemLibraries('coredll.lib')
+project.AddSystemLibraries('uuid.lib')
+project.AddSystemLibraries('ws2.lib')
+
+
+# Get the WinCE tools path. In the  Windows Mobile 5.0 installer this
+# defaults to C:\Program Files\Windows CE Tools
+ce_tools_prefix = GetSDKPath("windows_ce_tools")
+pocket_pc_prefix = "%s\\wce500\\Windows Mobile 5.0 Pocket PC SDK" % ce_tools_prefix
+
+# Get the embedded visual tools path. In the  Visual Studio 2005/Windows Mobile 5.0
+# installer this defaults to C:\Program Files\Microsoft Visual Studio 8\VC\ce\bin\<target cpu>
+# target cpu is x86_arm or x86_cex86 or x86_mips or x86_sh
+evc_prefix = GetSDKPath("evc5_visual_tools")
+
+# Get the WinCE commons path in Visual Studio 2005 installation.
+# In the Visual Studio Environment this
+# defaults to C:\Program Files\Microsoft Visual Studio 8\VC\ce
+ce_commons_prefix = GetSDKPath("windows_ce_commons")
+
+
+## define base arguments for build modes
+cc.args['default'] = '/nologo /W3 /X'
+cc.args['debug'] = '/Od'
+
+## no_optimize: no optimization on release builds
+if project.BuildOption('no_optimize'):
+    cc.args['release'] = '/Od'
+else:
+    cc.args['release'] = '/Os /O2'
+
+def wincompiler_add_m_arg(extra_args):
+    return extra_args
+
+class WinCELinker(WinLinker):
+    def subsystem_option(self):
+        return ["/SUBSYSTEM:WINDOWSCE,5.01"]
+
+    def machine_option(self):
+        return []
+
+    def extra_options(self):
+        return [ "/incremental:yes",
+                 "/NODEFAULTLIB",
+                 "/LIBPATH:%s" % ce_lib_dir ]
+        
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        global project
+        cmd_list = []
+
+        if project.BuildOption('debug'):
+            dbg = "debug"
+        else:
+            dbg = "release"
+        
+        arg_list = ["/DLL"] + self.option_arg_list()
+        if project.BuildOption("debug+"):
+            arg_list.append("/debug")
+        arg_list.append("/OUT:%s" % (target_path))
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+        cmd = "python %s -basefile:%s -basedir:%s /entry:_DllMainCRTStartup /base:0x00100000 /stack:0x10000,0x1000 %s" % (
+            os.path.join("$(BUILD_ROOT)","bin","pylink.py"),
+            os.path.join(project.src_root_path,dbg,"rebase.lst"),
+            project.module_directory(),
+            string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+        cmd_list = []
+
+        arg_list = self.option_arg_list()
+        if project.BuildOption("console-app"):
+            arg_list.append("/entry:\"mainACRTStartup\"")
+        arg_list.append("/OUT:%s" % (target_path))
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+        cmd = "\"%s\\link\" %s" % (evc_prefix, string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+# Make the linker object None so that
+# the specific WinCE platform MUST specify it
+platform.link = None
+
+platformDirStr = "wince"
+match = re.match("^wince-500-ppc-(.+)$", os.environ['SYSTEM_ID'])
+if (match):
+    platformDirStr = platformDirStr + "-%s" % match.group(1)
+    
+## target paths
+if project.BuildOption("debug"):
+    project.output_dir = "%s-dbg" % platformDirStr
+else:
+    project.output_dir = "%s-rel" % platformDirStr

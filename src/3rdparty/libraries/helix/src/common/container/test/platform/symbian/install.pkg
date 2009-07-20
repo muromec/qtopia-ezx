@@ -1,0 +1,59 @@
+;
+
+; Use: makesis -v -dpath_to_release_dir install.pkg splay.sis
+
+;      Make sure there is no space between -d and the path.
+
+;Languages
+
+&EN
+
+;
+
+; UID is the app's UID
+
+;
+
+#{"container tests"},(0x02856B5EF),1,0,1
+
+;
+
+;Supports Series 60 v 0.9
+
+;This line indicates that this installation is for the Series 60 platform v0.9
+
+;This line must appear _exactly_ as shown below in the sis file
+
+;If this line is missing or incorrect, the sis file will not be able
+
+;to be installed on Series 60 v0.9 platforms
+
+;(0x101F6F88), 0, 0, 0, {"Series60ProductID"}
+
+
+; copy the DLLs.....
+
+"pmap.exe" -"!:\pmap.exe"
+
+"..\pmap.in" -"!:\pmap.in"
+
+"tmap.exe" -"!:\tmap.exe"
+
+"..\tmap.in" -"!:\tmap.in"
+
+"tptrarray.exe" -"!:\tptrarray.exe"
+
+"..\tptrarray.in" -"!:\tptrarray.in"
+
+"tslist.exe" -"!:\tslist.eexe"
+
+"..\tslist.in" -"!:\tslist.in"
+
+"tstring.exe" -"!:\tstring.exe"
+
+"..\tstring.in" -"!:\tstring.in"
+
+"tstrlist.exe" -"!:\tstrlist.exe"
+
+"..\tstrlist.in" -"!:\tstrlist.in"
+

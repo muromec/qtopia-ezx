@@ -1,0 +1,45 @@
+UmakefileVersion(2,2)
+
+if project.IsDefined("HELIX_CONFIG_MOBLIN"):
+    project.AddDefines('HW_VIDEO_MEMORY_FRONTEND')
+
+project.AddModuleIncludes("common/include",
+                          "client/include",
+                          "datatype/common/container/pub",
+                          "datatype/common/util/pub",
+                          "datatype/rm/include",
+                          "datatype/rm/video/common/pub")
+
+project.AddSources( "plugin.cpp",
+            "guids.cpp") 
+
+project.AddModuleLibraries("datatype/mp4/video/renderer[mp4vrenderlib]",
+                           "common/runtime[runtlib]",
+                           "common/dbgtool[debuglib]", 
+                           "common/util[utillib]", 
+                           "common/container[contlib]",
+                           "common/system[syslib]",
+                           "common/log/logutil[logutillib]",
+                           "protocol/sdp[sdplib]",
+                           "protocol/common/util[protutillib]",
+                           "video/vidutil[vidutillib]",
+                           "datatype/common/vidrend[vidrend]",
+                           "datatype/common/util[dtutillib]",
+                           "datatype/rm/common[rmcommonlib]",
+                           "datatype/mp4/common[mp4comlib]",
+                           "datatype/mp4/payload[mp4pyldlib]")
+
+project.AddLibraries(GetSDKPath("rmvidcom_lib"))
+
+project.ExportFunction("RMACreateInstance",
+                       "IUnknown** ppObj",
+                       "common/include",
+                       "hxcom.h")
+project.ExportFunction("CanUnload", "void")
+project.ExportFunction("CanUnload2", "void")
+if not project.IsDefined("HELIX_FEATURE_DLLACCESS_CLIENT"):
+    project.ExportFunction("SetDLLAccessPath", "const char* pszPath")
+
+DLLTarget('mp4vrender')
+
+DependTarget()

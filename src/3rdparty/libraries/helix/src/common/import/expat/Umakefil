@@ -1,0 +1,14 @@
+
+UmakefileVersion(2,1)
+
+project.AddIncludes("xmlparse", "xmltok")
+
+project.AddSources(
+	'xmlparse/xmlparse.c',
+	'xmltok/xmltok.c',
+	'xmltok/xmlrole.c')
+
+
+project.AddDefines('XML_DTD','XML_NS', 'RNXML_STRICT_FLAG', 'XML_MIN_SIZE')
+
+LibraryTarget('expat')

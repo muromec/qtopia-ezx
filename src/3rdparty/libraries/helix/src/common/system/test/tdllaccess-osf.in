@@ -1,0 +1,82 @@
+# Command List
+# DLLAccess() 
+# DLLAccess(dllName,nLibType) <dll name> <lib type>
+# Open <dll name> <lib type> <expected return value>
+# Close <expected return value>
+# GetSymbol <symbol name> <0 = symbol not present, 1 = got symbol>
+# GetError <expected error code>
+# GetErrorString <expected error string>
+# GetDLLName <0 = name invalid, 1 = name valid> <expected dll name>
+# GetVersion <0 = null pointer expected, 1 = string expected> <expected version string>
+# CreateName1 <short name> <long name> <expected name>
+# CreateName2 <short name> <long name> <major number> <minor number> <expected name>
+# IsOpen < 0 = not open, 1 = open>
+
+# Test an object constructed using the default constructor
+DLLAccess()
+IsOpen 0
+Close 1
+GetSymbol "foo" 0
+GetError 2
+GetErrorString "DLL not loaded"
+GetDLLName 0 ""
+GetVersion 0 ""
+
+# Test opening a non-existant DLL
+DLLAccess()
+IsOpen 0
+Open "foo.dll" 0 1
+IsOpen 0
+GetError 1
+GetErrorString "dlopen: Cannot map library foo.dll"
+
+# Test an object constructed with a non-existant DLL
+DLLAccess(dllName,nLibType) "foo.dll" 0
+IsOpen 0
+GetError 1
+GetErrorString "dlopen: Cannot map library foo.dll"
+Close 1
+GetSymbol "foo" 0
+GetError 2
+GetErrorString "DLL not loaded"
+GetDLLName 0 ""
+GetVersion 0 ""
+
+# Test abcdll with default constructor
+DLLAccess()
+IsOpen 0
+Open "abcdll.so.6.0" 0 0
+IsOpen 1
+GetSymbol "foo" 0
+GetError 2
+GetErrorString "dlsym: symbol \"foo\" not found in \"abcdll.so.6.0\""
+GetSymbol "FuncA" 1
+CallIntFunc "FuncA" 7
+GetSymbol "FuncB" 1
+CallIntFunc "FuncB" 42
+GetSymbol "FuncC" 1
+CallIntFunc "FuncC" 64
+GetDLLName 1 "abcdll.so.6.0"
+GetVersion 0 ""
+Close 0
+IsOpen 0
+
+# Test abcdll with constructor that takes the DLL name
+DLLAccess(dllName,nLibType) "abcdll.so.6.0" 0
+IsOpen 1
+GetSymbol "foo" 0
+GetError 2
+GetErrorString "dlsym: symbol \"foo\" not found in \"abcdll.so.6.0\""
+GetSymbol "FuncA" 1
+CallIntFunc "FuncA" 7
+GetSymbol "FuncB" 1
+CallIntFunc "FuncB" 42
+GetSymbol "FuncC" 1
+CallIntFunc "FuncC" 64
+GetDLLName 1 "abcdll.so.6.0"
+GetVersion 0 ""
+Close 0
+IsOpen 0
+
+CreateName1 abcd abcdll abcdll.so.6.0
+CreateName2 abcd abcdll 6 0 abcdll.so.6.0

@@ -1,0 +1,127 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: macos9.html,v 1.4 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>Build System Installation for MacOS 8-9</title></head>
+<body bgcolor="#ffffff">
+
+<h1>Macintosh Installation</h1>
+
+<p>The build system requires MacOS >= 8.6.  Earlier versions behave badly.
+<p>
+Required tools:
+<ul>
+  <li>MetroWerks 5.3 Compiler (our own version with modified headers)</li>
+  <li>Python 2.1.1</li>
+  <li>Python Extension OSAm</li>
+  <li>Python Extension StuffIt</li>
+  <li>StuffIt Engine (special version, goes with Python StuffIt)</li>
+  <li>MacCVS Pro 2.5 beta 2</li>
+  <li>AkauSweets AppleScript extension</li>
+  <li>ResManip AppleScript extension (our own, lost the source)</li>
+  <li>RMA Build Prefs file in System Folder:Preferences:</li>
+  <li>build module from CVS (cvs checkout build from /home/source)</li>
+</ul>
+</p>
+
+<p>The two Python extensions, OSAm and StuffIt, need to be copied into the
+<i>:Mac:Plugins</i> folder of the Python 2.1 installation.  The AppleScript
+extensions, AkauSweets and ResManip, need to be copied into
+<i>System Folder:Scripting Additions</i>.  There is a copy of the
+<b>StuffIt</b> engine which works with the StuffIt Python extension,
+but you can probably use whatever <b>StuffIt</b> came with your Mac.</p>
+
+<p>One thing missing on the Macintosh is environment variables.  The are
+simulated with a preferences file, <i>RMA Build Prefs</i>, that needs to
+be created in <i>System Filer:Preferences</i>. Here is a example:</p>
+
+<p><b>Example</b>(RMA Build Prefs):
+<pre>
+## Sample RMA Build Prefs
+## Environment Variables:
+##   BUILD_ROOT: The path to the build system.
+##   SOURCE_ROOT: The path to where you want to checkout/build source code.
+##   BUILD_SW: The path to the CodeWarrior IDE.
+##   MACCVS_PATH: The path to the MacCVS Pro program.
+##   CVSSESSION_PATH: The path to the MacCVS Pro session file you created.
+ 
+os.environ = {
+"BUILD_ROOT" : "MacOS:dev:build",
+"SOURCE_ROOT" : "MacOS:dev:src",
+"BUILD_SW" : '"MacOS:CodeWarrior Pro 5:MetroWerks CodeWarrior: CodeWarrior IDE 4.0.4"',
+"MACCVS_PATH" : '"MacOS:dev:tools:MacCVS"',
+"CVSSESSION_PATH" : '"MacOS:dev:cvssession"'
+}
+</pre>
+</p>
+
+<p>Now you need to compile two Python scripts in the build system in Python
+applets.  This is done using the <i>Build Applet</i> tool in the Python install
+directory.  Drag <i>build:bin:build</i>, and <i>build:bin:umake</i> onto
+<i>Build Applet</i>.  For each applet created, you will need to increase the
+memory to about 20MB.  After the applets are created, they can be moved onto
+the desktop, or wherever else you like to keep them.  Double-click on the
+<i>build</i> applet to start the build system, or drag and drop 
+<i>Umakefil</i>s onto the <i>umake</i> applet to generate individual
+makefiles.  The makefiles are AppleScript, and can be run easily by the
+<i>Script Editor</i>.</p>
+
+</html>

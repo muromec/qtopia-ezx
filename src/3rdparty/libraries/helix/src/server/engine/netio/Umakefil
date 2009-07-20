@@ -1,0 +1,110 @@
+# ***** BEGIN LICENSE BLOCK *****  
+# Source last modified: $Id: Umakefil,v 1.18 2007/08/30 17:24:56 seansmith Exp $ 
+#   
+# Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
+#       
+# The contents of this file, and the files included with this file, 
+# are subject to the current version of the RealNetworks Public 
+# Source License (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the current version of the RealNetworks Community 
+# Source License (the "RCSL") available at 
+# http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+# will apply. You may also obtain the license terms directly from 
+# RealNetworks.  You may not use this file except in compliance with 
+# the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+# to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+# the rights, obligations and limitations governing use of the 
+# contents of the file. 
+#   
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the 
+# portions it created. 
+#   
+# This file, and the files included with this file, is distributed 
+# and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY 
+# KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS 
+# ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES 
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET 
+# ENJOYMENT OR NON-INFRINGEMENT. 
+#  
+# Technology Compatibility Kit Test Suite(s) Location:  
+#    http://www.helixcommunity.org/content/tck  
+#  
+# Contributor(s):  
+#   
+# ***** END LICENSE BLOCK *****  
+
+UmakefileVersion(2,1)
+
+project.AddModuleIncludes(
+	"common/include"
+	, "common/container/pub"
+	, "common/dbgtool/pub"
+	, "common/fileio/pub"
+	, "common/netio/pub"
+	, "common/system/pub"
+	, "common/util/pub"
+	, "common/runtime/pub"
+	, "protocol/common/util/pub"
+	, "protocol/rtsp/include"
+	, "protocol/rtsp/pub"
+	, "protocol/http/pub"
+	, "protocol/sdp/pub"
+	, "protocol/transport/common/system/pub"
+	, "server/include"
+	, "server/common/netio/pub"
+	, "server/common/struct/pub"
+	, "server/common/util/pub"
+	, "server/engine/config/pub"
+	, "server/engine/context/pub"
+	, "server/engine/core/pub"
+	, "server/engine/core"
+	, "server/engine/dataflow/pub"
+	, "server/engine/netio/pub"
+	, "server/engine/proxy/pub"
+	, "server/engine/registry/pub"
+	, "server/engine/session/pub"
+	, "server/protocol/common/pub"
+	, "server/protocol/transport/common/pub"
+	, "server/protocol/rtsp/pub"
+	, "server/protocol/http/pub"
+	, "server/protocol/transport/rdt/pub"
+	, "server/qos/core/pub"
+	, "server/qos/transport/pub"
+	)
+
+project.AddSources(
+	"acceptor.cpp"
+	, "access_ctrl.cpp"
+	, "cloaksock.cpp"
+	, "http_listenresp.cpp"
+        , "http_sniffer.cpp"
+	, "servsockimp.cpp"
+	, "servresolvimp.cpp"
+	, "inetwork.cpp"
+	, "inetwork_acceptor.cpp"
+	, "load_balanced_listener.cpp"
+	, "mcast_ctrl.cpp"
+	, "multicast_mgr.cpp"
+	, "listenresp.cpp"
+	, "rtsp_listenresp.cpp"
+	, "rtspmcast.cpp"
+	, "server_inetwork.cpp"
+	, "shared_udp.cpp"
+	, "udp_accept.cpp"
+	)
+
+if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
+    project.AddModuleIncludes(
+          "server_rn/protocol/wmt/mms/pub"
+        , "server_rn/protocol/wmt/mms/include"
+        , "server_rn/protocol/wmt/servermms/pub")
+
+# For mms_listenresp.cpp
+
+
+if "HELIX_FEATURE_SERVER_WMT_MMS" in project.defines:
+    project.AddSources("mms_listenresp.cpp")
+
+LibraryTarget('servengnetiolib')

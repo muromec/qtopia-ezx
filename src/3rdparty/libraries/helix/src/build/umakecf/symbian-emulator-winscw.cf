@@ -1,0 +1,549 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian-emulator-winscw.cf,v 1.18 2007/06/13 01:12:50 jfinnecy Exp $  
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+"""Symbian winscw emulator .cf file. """
+
+exec_config_file('symbian.cf')
+
+project.AddDefines('HELIX_SYMBIAN_WINSCW_EMULATOR')
+
+def initialize_project_data():
+    ##
+    ##  Initialize all global project data
+    if project.BuildOption("debug"):
+        project.output_dir = "winscw-dbg32"
+    else:
+        project.output_dir = "winscw-rel32"
+
+    ## 
+    ##  Add in the symbian winscw lib path.
+    ##
+    if project.BuildOption('debug'):
+        sys_path = '%s' % os.path.join(GetSDKPath('SYMBIANSDK'), "epoc32\\release\\winscw\\udeb")
+    else:
+        sys_path = '%s' % os.path.join(GetSDKPath('SYMBIANSDK'), "epoc32\\release\\winscw\\urel")
+
+    project.AddSystemPaths(sys_path)
+
+def initialize_platform_data():
+    ##
+    ##  Initialize all global platform data
+    ##
+    platform.make.cmd = 'make'
+    platform.make.args['default'] = ''
+    platform.include_arg = '-I'
+    platform.define_arg = '-D'
+    platform.object_suffix = 'o'
+    platform.shared_object_suffix = 'o'
+    platform.path_sep = '/'
+    platform.pcf_prefix_list[-1:-1] = ['symbian-winscw']
+
+def WriteWinscwDeffile(deffile, winscwExports=[]):
+    ##
+    ##  Retrieve ordinal data from file
+    ##
+    ordinalFilename = "%s_ordinal.dat" % project.target_name
+
+    if project.BuildOption("ordinal") and os.path.isfile(ordinalFilename):
+        fil = open(deffile, 'w')
+        fil.write('DESCRIPTION\t\'Symbian Helix Player\'\n')
+        fil.write("EXPORTS\n")
+
+        for (symbol, ordinal) in read_ordinal_file(ordinalFilename):
+            fil.write("\t%s @%s NONAME\n" % (symbol, ordinal))
+
+        ordinalIndex = int(ordinal) + 1
+
+        for x in winscwExports:
+            fil.write("\t%s @%s NONAME\n" % (x, ordinalIndex))
+            ordinalIndex += 1
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            fil.write("\t_E32Dll=__E32Dll\t; Entry point for emulation\n")
+
+        fil.close()
+
+def GetWinscwExtraDefines():
+    ## 
+    ##  Winscw specific defines that are not included in the SDK
+    ##
+    if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+        return ['_EPOC'] 
+    else:
+        return []
+
+def GetWinscwSdkDefines():
+    ## 
+    ##  Winscw specific defines that are included in the SDK
+    ##  Since the symbian build system is not used, we define
+    ##  the includes here
+    ##
+    defs = [ '__CW32__', '__WINS__' ]
+
+    if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+        defs.append('__WINSCW__') 
+        defs.append('__SUPPORT_CPP_EXCEPTIONS__')
+
+    return defs
+
+def GetWinscwCommonCompilerOptions():
+    ##
+    ##  When using a MMP file, additional compiler options 
+    ##  beyond the standard options provided by the SDK are 
+    ##  needed.  This function will return those options.
+    ##
+    return '-dialect c++ -warnings off -U_WIN32 -U_M_IX86 -U_WINDOWS -U__MWERKS__ -opt off'
+
+def GetWinscwSystemIncludes():
+    incs = [ 'EPOC32\INCLUDE',
+             'EPOC32\INCLUDE\oem',
+             'EPOC32\INCLUDE\internal',
+             'EPOC32\INCLUDE\mmf',
+             'EPOC32\INCLUDE\mmf\common',
+             'EPOC32\INCLUDE\mmf\server' ] 
+
+    if project.IsDefined('HELIX_CONFIG_INC_HIERARCHY_CHANGE'):
+        incs.append('epoc32\include\osextensions')
+        incs.append('epoc32\include\middleware')
+    	incs.append('epoc32\include\domain\middleware')
+    	incs.append('epoc32\include\domain\osextensions')
+
+    return incs
+
+
+## Compiler Class
+class SymbianCompiler(Compiler):
+
+    def __init__(self):
+        Compiler.__init__(self)
+
+        project.AddDefines(GetWinscwSdkDefines())
+        project.AddDefines(GetWinscwExtraDefines())
+
+        self.cmd          = 'mwccsym2'
+        self.source_arg   = '-c '
+        self.target_arg   = '-o '
+        self.make_var     = 'CC'
+        self.include_arg  = '-I'
+
+        ##
+        ##  Enumerate the standard SDK compiler options plus any additional options
+        ##
+        self.args['default'] = '-g -wchar_t off -nostdinc -align 4 -nosyspath %s' % GetWinscwCommonCompilerOptions()
+
+        ##
+        ##  Add system includes to the arg list
+        ##
+        system_includes=""
+
+        for inc in GetWinscwSystemIncludes():
+            system_includes += ('-I%s ' % os.path.join(GetSDKPath('SYMBIANSDK'), inc))
+
+        self.args['default'] += ' %s' % system_includes
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            self.args['default'] += ' -include \"%s\"' %  project.PlatSecUtils.configFile
+
+        self.args['debug'] = '-opt off'
+
+        ##  
+        ##  no optimization on release
+        ##  
+        if project.BuildOption('no_optimize'):
+            self.args['release'] = ''
+        else:
+            self.args['release'] = '-opt space'
+
+    def execute(self, target_file, src_file):
+        extra_args = ''
+
+        if project.getTargetType() == 'dll':
+            if self.args.has_key('dll'):
+                extra_args = self.args['dll']
+
+        return form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            extra_args,
+            self.target_arg + target_file,
+            self.source_arg,
+            src_file)
+
+class SymbianMakeDepend(MakeDepend):
+    def execute(self, sources, output_dir):
+        list = []
+        if project.object_dir:
+            list.append("/t%s" % (project.object_dir))
+        list.append("/m%s" % (project.makefile_name))
+
+        cmd = "python %s --gnumake %s %s %s %s" % (
+            os.path.join("$(BUILD_ROOT)", "bin", "mkdepend.py"), 
+            string.join(list),
+            platform.form_var("DEFINES"),
+            platform.form_var("INCLUDES"),
+            sources)
+
+        return cmd        
+
+    def setup_flags_var(self):
+        return ""
+
+class SymbianLinker(Linker2):
+    def __init__(self):
+        Linker2.__init__(self)
+
+        ## these are here to emulate the old linker class
+        ## for Umakefil/*.pcf files which do direct modification
+        ## of this class
+        self.def_file = ""
+        self.implib_file = ""
+
+        self.args = {}
+        self.args["default"] = ""
+        self.args["debug"] = "-sym on"
+        self.args["dll"] = ""
+
+        ## symbols: keep symbols in release builds
+        if project.BuildOption('symbols'):
+            self.args['release'] = self.args['release'] + ' /debug'
+
+    def option_arg_list(self):
+        arg_list = [ "-search" ]
+
+        if project.getTargetType() == "dll":
+            arg_list.append("-subsystem windows")
+            arg_list.append("-export dllexport")
+            arg_list.append("-nocompactimportlib")
+
+        ## add any arguments from old build option/argument hash
+        for choice in project.build_choices:
+            try:
+                temp = string.split(self.args[choice])
+                arg_list = arg_list + temp
+            except KeyError:
+                pass
+
+        ## somewhat nasty behavior because some of the umakefils
+        ## modify this directly
+        if project.getTargetType() == "dll":
+            if project.opt_target_name:
+                implib_basename = project.opt_target_name
+            else:
+                implib_basename = project.target_name
+
+            implib_basename = "%s.lib" % (implib_basename)
+            if self.implib_file:
+                implib_basename = os.path.basename(self.implib_file) 
+            implib_file = os.path.join(project.output_dir, implib_basename)
+            arg_list.append("-implib %s" % (implib_file))
+
+        ## write the .def file
+        if project.getTargetType() == "dll":
+            self.def_file = "%s.def" % (project.target_name)
+            arg_list.append("-f %s" % (self.def_file))
+            WriteWinscwDeffile(self.def_file)
+        
+        return arg_list
+
+    def LinkLIB(self, target_path, objects):
+        cmd_list = []
+
+        arg_list = [
+            "-library",
+            "-o %s" % (target_path),
+            objects]
+        cmd = "mwldsym2 %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanLIB(self, target_path):
+        return [target_path]
+
+    def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
+        global project
+        cmd_list = []
+
+        if project.BuildOption('debug'):
+            dbg = "debug"
+            epoclib = "EPOC32\Release\winscw\UDEB"
+        else:
+            epoclib = "EPOC32\Release\winscw\UDEB"
+            dbg = "release"
+        
+        arg_list = [ "-search",
+                     "-shared -msgstyle gcc", ] + self.option_arg_list()
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append('-noentry')
+        else:
+            arg_list.append( '-m "?_E32Dll@@YGHPAXI0@Z"')
+
+        arg_list.append("-stdlib edll.lib")
+        arg_list.append('-o "%s"' % (target_path))
+        arg_list.append("-addcommand \"out:%s\"" % (target_path))
+        arg_list.append("-heapreserve 4096 -stackcommit 24 -stackreserve 4096")
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)             
+        
+        cmd = "mwldsym2 -L\"%s\" %s " % (
+            os.path.join(GetSDKPath('SYMBIANSDK'), epoclib),
+            string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+
+    def CleanDLL(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+    def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
+
+        if (project.BuildOption('make-app')):
+            # the graphic application are now .exe instead .app
+            # so they must be linked as an Exe instead a PolyDll
+            if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+                cmd_list = self.LinkSymbianExe(target_path, objects, static_libs, dynamic_libs)
+            else:
+                cmd_list = self.LinkSymbianPolyDll(target_path, "app", objects, static_libs, dynamic_libs)
+        elif (project.BuildOption('make-mdl')):
+            cmd_list = self.LinkSymbianPolyDll(target_path, "mdl", objects, static_libs, dynamic_libs)
+        elif (project.BuildOption('make-mmf')):
+            cmd_list = self.LinkSymbianPolyDll(target_path, "dll", objects, static_libs, dynamic_libs)
+        else:
+            cmd_list = self.LinkSymbianExe(target_path, objects, static_libs, dynamic_libs)
+
+        return cmd_list
+    
+    def LinkSymbianPolyDll(self, target_path, outExt, objects, static_libs, dynamic_libs):
+        
+        outExt = string.lower(outExt)
+        baseName = re.match("^(.+)\.%s$" % outExt, target_path).group(1)
+
+
+        cmd_list = []
+        if project.BuildOption('debug'):
+            epoclib = "EPOC32\Release\winscw\UDEB"
+        else:
+            epoclib = "EPOC32\Release\winscw\UDEB"
+
+        # Stage 1 link
+        arg_list = self.option_arg_list()
+        arg_list.append("-msgstyle gcc")
+        arg_list.append("-stdlib edll.lib")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append("-noentry")
+
+        arg_list.append("-shared")
+        arg_list.append("-subsystem windows")
+
+        arg_list.append("-g")
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+
+        arg_list.append('-o "%s"' % (target_path))
+        arg_list.append("-export dllexport")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append("-m __E32Dll")
+            arg_list.append("-nocompactimportlib")
+        else:
+            arg_list.append('-m "?_E32Dll@@YGHPAXI0@Z"')
+
+        arg_list.append('-implib "%s.lib"' % baseName)
+        arg_list.append("-addcommand \"out:%s\"" % (target_path))
+        arg_list.append("-heapreserve 4096 -stackcommit 24 -stackreserve 4096")
+        arg_list.append("-warnings off")
+        arg_list.append('-L"%s"' % (os.path.join(GetSDKPath('SYMBIANSDK'),epoclib)))
+        arg_list.append("-search")
+        arg_list.append(objects)
+
+        cmd = "mwldsym2 %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Generate .inf file
+        arg_list = []
+        arg_list.append('-S -show only,names,unmangled,verbose')
+        arg_list.append('-o "%s.inf"' % baseName)
+        arg_list.append('"%s.lib"' % baseName)
+
+        cmd = "mwldsym2.exe %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Generate .def file
+        arg_list = []
+        arg_list.append("-S makedef.pl")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append("-absent __E32Dll")
+
+        arg_list.append("-Inffile \"%s.inf\"" % baseName)
+        if( outExt == "app"):
+            arg_list.append("-1 ?NewApplication@@YAPAVCApaApplication@@XZ")
+        elif( outExt == "mdl"):
+            arg_list.append("-1 ?CreateRecognizer@@YAPAVCApaDataRecognizerType@@XZ")
+        elif( outExt == "dll"):
+            arg_list.append("-1 ?ImplementationGroupProxy@@YAPBUTImplementationProxy@@AAH@Z")
+        else:
+            raise "don't know what to export for dll type '%s'" % outExt
+
+        arg_list.append("\"%s.def\"" % baseName)
+        cmd = "perl %s" %(string.join(arg_list))
+        cmd_list.append(cmd)
+
+        # Remove the .app file just generated
+        cmd = "%s \"%s\"" % (platform.rm.cmd, target_path)
+        cmd_list.append(cmd)
+
+        # Remove the .exp file just generated
+        cmd = "%s \"%s\"" % (platform.rm.cmd, baseName)
+
+        # Remove the .lib file
+        cmd = "%s \"%s.lib\"" % (platform.rm.cmd, baseName)
+        cmd_list.append(cmd)
+
+        # Remove the .inf file
+        cmd = "%s \"%s.inf\"" % (platform.rm.cmd, baseName)
+        cmd_list.append(cmd)
+
+        # Stage 2 link
+        arg_list = self.option_arg_list()
+        arg_list.append("-msgstyle gcc")
+        arg_list.append("-stdlib edll.lib")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append("-noentry")
+        else:
+            arg_list.append('-m "?_E32Dll@@YGHPAXI0@Z"')
+
+        arg_list.append("-shared")
+        arg_list.append("-subsystem windows")
+
+        arg_list.append("-g")
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+
+        arg_list.append('-o "%s"' % (target_path))
+        arg_list.append('-f "%s.def"' % (baseName))
+        arg_list.append("-noimplib")
+        arg_list.append('-L"%s"' % (os.path.join(GetSDKPath('SYMBIANSDK'),epoclib)))
+
+        arg_list.append("-search")
+        arg_list.append(objects)
+
+        cmd = "mwldsym2 %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+        
+        return cmd_list
+
+    
+    def LinkSymbianExe(self, target_path, objects,
+                       static_libs, dynamic_libs):
+        cmd_list = []
+        if project.BuildOption('debug'):
+            epoclib = "EPOC32\Release\winscw\UDEB"
+        else:
+            epoclib = "EPOC32\Release\winscw\UDEB"
+        
+
+        arg_list = self.option_arg_list()
+        arg_list.append("-msgstyle gcc")
+        arg_list.append("-stdlib eexe.lib")
+        arg_list.append("-subsystem windows")
+        arg_list.append("-noimplib")
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            arg_list.append('-m "?_E32Bootstrap@@YGXXZ"')
+        else:
+            arg_list.append('-m "?_E32Startup@@YGXXZ"')
+            arg_list.append("-export none")
+
+        arg_list.append('-o "%s"' % (target_path))
+        arg_list.append("-search")
+        arg_list.append("-addcommand \"out:%s\"" % (target_path))
+	arg_list.append("-heapreserve 4096 -stackcommit 24 -stackreserve 4096")
+        arg_list.append("-l %s" % (os.path.join(GetSDKPath('SYMBIANSDK'),epoclib)))
+        arg_list.append(objects)
+        arg_list.append(static_libs)
+        arg_list.append(dynamic_libs)
+
+        cmd = "mwldsym2 %s" % (string.join(arg_list))
+        cmd_list.append(cmd)
+
+        return cmd_list
+    
+    def CleanEXE(self, target_path):
+        list = []
+        list.append(target_path)
+        return list
+
+
+if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+    ##
+    ##  Initialize the winscw specific project and platform data
+    ##
+    initialize_project_data()
+    initialize_platform_data()
+
+    ##
+    ##  Add the winscw specific implementations to the platform
+    ##
+    platform.make_dep = SymbianMakeDepend()
+    platform.link     = SymbianLinker()
+    platform.cc       = SymbianCompiler()
+    platform.cxx      = SymbianCompiler()
+
+    ##
+    ##  Update the compiler options that differ from c/c++
+    ##
+    platform.cc.make_flags  = 'CCFLAGS'
+    platform.cxx.make_flags = 'CXXFLAGS'

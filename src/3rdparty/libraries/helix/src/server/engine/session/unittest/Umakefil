@@ -1,0 +1,36 @@
+project.AddModuleIncludes(
+	"common/include"
+	, "common/container/pub"
+	, "common/dbgtool/pub"
+	, "common/fileio/pub"
+	, "common/netio/pub"
+	, "common/system/pub"
+	, "common/util/pub"
+	, "common/runtime/pub"
+	, "server/include"
+	, "server/common/netio/pub"
+	, "server/common/struct/pub"
+	, "server/common/util/pub"
+	, "server/engine/dataflow/pub"
+        , "server/engine/session/pub"
+	, "server/engine/inputsource/pub"
+        , "server/tools/unittest/include"
+        , "server/tools/unittest/framework"
+	)
+
+project.AddModuleLibraries("server/common/util[servutillib]",
+			   "server/common/struct[servstructlib]",
+                           "common/system[syslib]",
+                           "common/dbgtool[debuglib]",
+                           "common/util[utillib]",
+                           "common/container[contlib]",
+                           "common/runtime[runtlib]",
+                           "server/tools/unittest/framework[utframeworklib]")
+
+
+
+project.AddSources ("ut_servsession.cpp", "ut_rateselinfo.cpp", "../rateselinfo.cpp")
+
+ProgramTarget('ut_servsession')
+
+

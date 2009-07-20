@@ -1,0 +1,857 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: umakefil.html,v 1.11 2006/06/19 23:11:26 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="ribosome.css"/>
+    <title>Writing Umakefil/*.pcf Files</title>
+</head>
+
+<body bgcolor="#ffffff">
+
+    <h1>Umake API</h1>
+    <h4>Ribosome v2.4</h4>
+    
+    <div id="description">
+        This API documentation covers the current version of Ribosome's umake
+        tool. Methods marked with a version specify what minimum version of 
+        Ribosome is required to get that feature. Methods without any version
+        were available in v2.3. Deprecation warnings are also listed for those
+        items that are scheduled for removal.
+    </div>
+    
+    <hr>
+    <hr>
+    
+    <div id="section">
+        <h2>Versioning</h2>
+    </div>
+    
+    <a name="UmakefileVersion"></a>
+    <div id="prototype">
+        UmakefileVersion( major:integer , minor:integer )
+    </div>
+    <div id="description">
+        All umake files should start with a call to 
+        <span class="code">UmakefileVersion()</span>,
+        this will tell the build system how to interpret the contents
+        of the umake file in a way that is backwards compatible.
+        When creating a new umake file, you should use the version
+        of the build system you are currently using. This documentation
+        was written for build 2.2 which means that you should use
+        <span class="code">UmakefileVersion(2,2)</span> in order to get the
+        build system to behave as described here.
+    </div>
+    
+    <hr>
+    <hr>
+    
+    <a name="targets"></a>
+    <div id="section">
+        <h2>Targets</h2>
+    </div>
+
+    <a name="DLLTarget"></a>
+    <div id="prototype">
+        DLLTarget( target:string [ , libtarget:string ] )
+    </div>
+    <div id="description">
+        Specifies a dynamic library should be built from the project
+        data, with output name <span class="code">target</span>. Umake may add 
+        a platform-appropriate extension to the output name, and change the 
+        name to include versioning information. There are also several other
+        methods of changing the output name of the DLL.
+        <p>
+        If the optional argument <span class="code">libtarget</span> is 
+        specified, the *.lib file generated by some platforms will use this
+        name instead of <span class="code">target</span>.
+        </p>
+    </div>
+
+    <hr>
+    
+    <a name="DLLWithResourceTarget"></a>
+    <div id="prototype">
+        DLLWithResourceTarget( target:string , rtarget:string , rfile:string , 
+        includes:list )
+    </div>
+    <div id="description">    
+        On the Macintosh OS9, this builds a DLL and Windows .xrs DLL.
+        On all other platforms, this method simply calls <span class="code">
+        <a href="#DLLTarget">DLLTarget( target )</a></span>.        
+    </div>
+
+    <hr>
+
+    <a name="EmptyTarget"></a>
+    <div id="prototype">
+        EmptyTarget()
+    </div>
+    <div id="description">
+        Creates a Makefile with no targets.
+    </div>
+
+    <hr>
+
+    <a name="LibraryTarget"></a>
+    <div id="prototype">
+        LibraryTarget( target:string )
+    </div>
+    <div id="description">
+        Specifies a static library should be built from the project
+        data, with name <span class="code">target</span>.  Umake may add a
+        platform-appropriate extension to the output name.  There are no other
+        ways of changing the output name for a static library, and
+        <span class="code">target</span> must be the same as the CVS module
+        name.
+    </div>
+
+    <hr>
+    
+    <a name="MultiTargetMake"></a>
+    <div id="prototype">
+        MultiTargetMake( umakefil1_path:string [ , umakefil2_path:string  
+        [, ... ]])
+    </div>
+    <div id="description">
+        Specifies multiple "sub targets" to be built. Please see the 
+        <a href="multitarget.html">full documentation</a>.
+    </div>
+
+    <hr>
+
+    <a name="NonObjectTarget"></a>
+    <div id="prototype">
+        NonObjectTarget( target:string )
+    </div>
+    <div id="description">
+        version 2.4
+        <p>
+        Specifies that some target file is going to be built from the project
+        data, using only a compiler. No linker will be applied to this project.
+        Target name should be an exact match for what the expected output name
+        is (the name does not get processed as it does in other target calls).
+        </p>
+    </div>
+    
+    <hr>
+    
+    <a name="ProgramTarget"></a>
+    <div id="prototype">
+        ProgramTarget( target:string )
+    </div>
+    <div id="description">
+        Specifies a executable should be built from the project data,
+        with name name <span class="code">target</span>.  Umake may add a
+        platform-appropriate extension to the output name.
+    </div>
+
+    <hr>
+
+    <a name="ProgramWithResourceTarget"></a>
+    <div id="prototype">
+        ProgramWithResourceTarget( target:string , rtarget:string ,
+        rfile:string , includes:list )
+    </div>
+    <div id="description">
+        On the Macintosh OS9, this builds a program and Windows .xrs
+        DLL.  On all other platforms, this method simply calls 
+        <span class="code"><a href="#ProgramTarget">ProgramTarget( target )</a>
+        </span>.
+    </div>
+
+    <hr>
+    <hr>
+
+    <div id="section">
+        <h2>Other Methods</h2>
+    </div>
+    
+    <a name="addLibpaths"></a>
+    <div id="prototype">
+        addLibpaths( string:libpath ... )
+    </div>
+    <div id="description">
+        This method lets you add paths to be added to the LIBPATH= line in
+        the Makefile. Useful in conjunction with SDKPath methods to automate
+        the building of library paths. Win32 only.
+    </div>
+    
+    <hr>
+    
+    <a name="getLibpaths"></a>
+    <div id="prototype">
+        getLibpaths() : string
+    </div>
+    <div id="description">
+        This method returns a string of the libpaths you have added using 
+        <a href="#addLibpaths"><span class="code">addLibpaths()</span></a>.
+    </div>
+
+    <hr>
+    
+    <a name="GetSDKPath"></a>
+    <div id="prototype">
+        GetSDKPath( string:sdk_name ) : string
+    </div>
+    <div id="description">
+        This function allows you to access the path to an third party library
+        or SDK. These paths should be defined in your
+        <a href="buildrc.html">buildrc</a> file, or using environment
+        variables. For more information on sdk's, see <a href="bif.html#sdk">
+        the SDK BIF tag</a>. <span class="code">GetSDKPath()</span> will always 
+        return an absolute path.
+    </div>
+    
+    <hr>
+
+    <a name="removeLibpaths"></a>
+    <div id="prototype">
+        removeLibpaths( string:libpath ... )
+    </div>
+    <div id="description">
+        This method lets you remove libpaths that have been previously added
+        using <a href="#addLibpaths"><span class="code">addLibpaths()</span></a>.
+    </div>
+
+    <hr>
+    
+    <a name="SetSDKPath"></a>
+    <div id="prototype">
+        SetSDKPath( sdk_name:string , path:string )
+    </div>
+    <div id="description">
+        This function tells the build system where to find an SDK.
+        It is required in order for the build system to be able to
+        find directx and other third party libraries. These paths
+        can later be used in your <a href="umakefil.html">umake files</a>
+        and should also be declared in your <a href="bif.html">BIF</a>
+        files.
+    </div>
+    
+    <hr>
+    <hr>
+
+    <div id="section">
+        <h2>Methods of Project</h2>
+    </div>
+    
+    <div id="description">
+        <h3>A word on project data</h3>
+        Currently, project is a global object that represents the data for the
+        current umake target. There are many many methods, and many attributes
+        within this object that have been presented and are directly accessible. 
+        This leads to some pretty ugly coupling and difficult paths to umake 
+        enhancement. At some point in the future, this style of accessing 
+        project data and methods directly is going to go away completely in 
+        favor of a more clearly defined (and hopefully simpler) umake API.
+    </div>
+        
+    <hr>
+    <a name="SetDLLTypePlugin"></a>
+    <a name="SetDLLTypeCodec"></a>
+    <a name="SetDLLTypeCommon"></a>
+    <div id="prototype">
+        project.SetDLLTypePlugin()<br>
+        project.SetDLLTypeCodec()<br>
+        project.SetDLLTypeCommon()<br>
+    </div>
+    <div id="description">
+        Specifies the DLL being built is a G2 plug-in, codec, or
+        common(normal). This is used when building in a mode which
+        statically links the plug-ins into the player.
+    </div>
+
+    <hr>
+
+    <a name="AddBuildOption"></a>
+    <div id="prototype">
+        project.AddBuildOption( option:string )
+    </div>
+    <div id="description">
+        Sets the same type of build option as the -t option does on the
+        command line.  Results may be mixed, because a particular option may 
+        have to be processed before the Umakefil is executed.
+    </div>
+
+    <hr>
+
+    <a name="RemoveBuildOption"></a>
+    <div id="prototype">
+        project.RemoveBuildOption( option:string )
+    </div>
+    <div id="description">
+        Removes a build option if it was previously set.   Results may be
+        mixed, because a particular option may have already been processed
+        before the Umakefil is executed.
+    </div>
+
+    <hr>
+
+    <a name="BuildOption"></a>
+    <div id="prototype">
+        project.BuildOption( option:string ) : boolean
+    </div>
+    <div id="description">
+        Checks if a build option was set.
+    </div>
+    
+    <hr>
+
+    <a name="AddSources"></a>
+    <div id="prototype">
+        project.AddSources( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Adds sources to the project. This method takes a comma-separated list
+        of strings. Use UNIX-style (/) path separators on all platforms; 
+        Umake will convert these paths to the platform-specific paths 
+        automatically.
+    </div>
+
+    <hr>
+
+    <a name="AddModuleSources"></a>
+    <div id="prototype">
+        project.AddModuleSources( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Similar to AddSources, but each source is relative to the source root
+        rather than the current directory.
+    </div>
+
+    <hr>
+
+    <a name="RemoveSources"></a>
+    <div id="prototype">
+        project.RemoveSources( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Removes sources already added to the project, while not blocking those
+        sources from being included later in the Umakefil.  The paths must
+        match the string they were added with exactly.
+    </div>
+
+    <hr>
+
+    <a name="AddSourceObjects"></a>
+    <div id="prototype">
+        project.AddSourceObjects( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Adds pre-compiled object files to the project. This feature is used in
+        the codes for hand-optimized assembly from Intel.
+    </div>
+
+    <hr>
+
+    <a name="RemoveSourceObjects"></a>
+    <div id="prototype">
+        project.RemoveSourceObjects( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Removes pre-compiled object files from the project. 
+    </div>
+
+    <hr>
+
+    <a name="AddIncludes"></a>
+    <div id="prototype">
+        project.AddIncludes( source1_path:string [, source2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Adds header file include paths to the project. See also
+        <a href="#AddModuleIncludes"><span class="code">AddModuleIncludes()</span></a>.
+    </div>
+
+    <hr>
+
+    <a name="RemoveIncludes"></a>
+    <div id="prototype">
+        project.RemoveIncludes( source1_path:string [, source2_path
+        [, ...]] )
+    </div>
+    <div id="description">
+        Removes header file include paths from the project. See also
+        <a href="#RemoveModuleIncludes"><span class="code">RemoveModuleIncludes()</a></span>.
+    </div>
+
+    <hr>
+
+    <a name="AddModuleIncludes"></a>
+    <div id="prototype">
+        project.AddModuleIncludes( module1:string [, module2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Similar to <a href="#AddIncludes">
+        <span class="code">AddIncludes()</a></span>, but paths should be 
+        relative to the build root and always use "/" as path separators. So, 
+        instead of doing: 
+        <div id="example">
+            project.AddIncludes("../gemctl/pub")
+        </div>
+        you can do:
+        <div id="example">
+            project.AddModuleIncludes("gemctl/pub")
+        </div>
+    </div>
+
+    <hr>
+
+    <a name="RemoveModuleIncludes"></a>
+    <div id="prototype">
+        project.RemoveModuleIncludes( module1:string [, module2 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Removes header file include paths from the project. See also
+        <span class="code"><a href="#RemoveIncludes">RemoveIncludes()</span></a>.
+    </div>
+
+    <hr>
+
+    <a name="AddDefines"></a>
+    <div id="prototype">
+        project.AddDefines( define1:string [, define2
+        [, ...]] )
+    </div>
+    <div id="description">
+        Adds C/C++ defines to the project.  A define string without a string
+        assignment will default to true, otherwise a value can be set by
+        including the assignment in the string with a = sign. For
+        example: 
+        <div id="example">
+            project.AddDefines( "DEBUG=2" )
+        </div>
+        would add the following to the header file:
+        <div id="example">
+            #define DEBUG 2
+        </div>
+    </div>
+
+    <hr>
+
+    <a name="RemoveDefines"></a>
+    <div id="prototype">
+        project.RemoveDefines( define1:string [, define2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        Removes C/C++ defines from the project.  They must appear exactly as
+        they were added.
+    </div>
+
+    <hr>
+
+    <a name="IsDefined"></a>
+    <div id="prototype">
+        project.IsDefined( define:string ) : boolean
+    </div>
+    <div id="description">
+        Returns true if <span class="code">define</span> is defined, false 
+        otherwise.
+    </div>
+
+    <hr>
+
+    <a name="AddLibraries"></a>
+    <div id="prototype">
+        project.AddLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="RemoveLibraries"></a>
+    <div id="prototype">
+        project.RemoveLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="AddSystemLibraries"></a>
+    <div id="prototype">
+        project.AddSystemLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="RemoveSystemLibraries"></a>
+    <div id="prototype">
+        project.RemoveSystemLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="AddDynamicLibraries"></a>
+    <div id="prototype">
+        project.AddDynamicLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+    
+    <a name="RemoveDynamicLibraries"></a>
+    <div id="prototype">
+        project.RemoveDynamicLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="AddModuleLibraries"></a>
+    <div id="prototype">
+        project.AddModuleLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+        This method links against a library created by the build system.
+        Each argument should be the name of the module containing that library.
+        If the module is in a subdirectory, / can be used to specify the name.
+        If the name of the library is not the same as the directory it is in,
+        you can append [libname] to specify the name of the library.
+    
+        <p>Examples: (where "release" is sometimes replaced with "debug")
+        <div id="example">
+            project.AddModuleLibrary("pnmisc") # Link against pnmisc/release/pnmisc.lib<br>
+            project.AddModuleLibrary("foo/bar") # Link against foo/bar/release/bar.lib<br>
+            project.AddModuleLibrary("foo/bar[gazonk]") # Link against foo/bar/release/gazonk.lib<br>
+        </div>
+        
+        When executing <span class="code">AddModuleLibraries</span>, umake will 
+        also look for a file called
+        <span class="code">[module]/[libraryname]_linkhook.cf</span> and execute it 
+        if present. This allows the module to add include paths and other magic 
+        so that the library users don't have to think about it.
+
+        <p>Examples:
+        <div id="example">
+            project.AddModuleLibrary("pnmisc") # Executes pnmisc/pnmisc_linkhook.cf<br>
+            project.AddModuleLibrary("foo/bar") # Executes foo/bar/bar_linkhook.cf<br>
+            project.AddModuleLibrary("foo/bar[gazonk]") # Executes foo/bar/gazonk_linkhook.cf<br>
+        </div>
+    </div>
+
+    <hr>
+
+    <a name="RemoveModuleLibraries"></a>
+    <div id="prototype">
+        project.RemoveModuleLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="AddLocalLibraries"></a>
+    <div id="prototype">
+        project.AddLocalLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="RemoveLocalLibraries"></a>
+    <div id="prototype">
+        project.RemoveLocalLibraries( lib1_path:string [, lib2_path:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="AddSystemPaths"></a>
+    <div id="prototype">
+        project.AddSystemPaths( path1:string [, path2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="RemoveSystemPaths"></a>
+    <div id="prototype">
+        project.RemoveSystemPaths( path1:string [, path2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+
+    <hr>
+
+    <a name="ExportFunction"></a>
+    <div id="prototype">
+        project.ExportFunction( func:string , proto:string [, includedir, 
+        includefile ] )
+    </div>
+    <div id="description">
+        This function should be used in DLLs to export functions which
+        needs to be accessed from outside the DLL. The proto should
+        be a list of arguments accepted by this function. The proto
+        will be used to build prototypes for this function in global header
+        files. If the includeddir and includefile parameters
+        are present, the includefile will be added to the generated
+        header file, and includedir is the directory which contains
+        that include file. Includefile should be relative to the
+        source root as it will be sent to
+        <a href="#AddModuleIncludes"><span class="code">project.AddModuleIncludes()</a></span>
+        in the project which use this header file.
+    </div>
+
+    <hr>
+
+    <a name="RemoveExportedFunctions"></a>
+    <div id="prototype">
+        project.RemoveExportedFunctions( func1:string [, func2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+    
+    <hr>
+
+    <a name="AddCopyTargets"></a>
+    <div id="prototype">
+        project.AddCopyTargets( path1:string [, path2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+    
+    <hr>
+
+    <a name="RemoveCopyTargets"></a>
+    <div id="prototype">
+        project.RemoveCopyTargets( path1:string [, path2:string 
+        [, ...]] )
+    </div>
+    <div id="description">
+    </div>
+    
+    <hr>
+
+    <a name="SetModuleDepth"></a>
+    <div id="prototype">
+        project.SetModuleDepth( depth:integer )
+    </div>
+    <div id="description">
+        This function tells the build system how many directory levels
+        below the build root this module is. The default value is 1.
+    </div>
+    
+    <hr>
+
+    <a name="EnableFeature"></a>
+    <div id="prototype">
+        project.EnableFeature( feature:string )
+    </div>
+    <div id="description">
+        This function allows you to manually do what
+        <a href=#UmakefileVersion><span class="code">UmakefileVersion()</a></span> does.
+        This is the list of features you can turn on using this function:
+        <dl>
+        <dt> submodules
+        <dd> This will enable multi-target umake files to cd into the
+             directory where a submodule is located instead of trying
+             to execute it from the current working directory.
+        </dl>
+        
+        <dt> versioning_off
+        <dd> This will turn off name mangling for DLLs on most platforms.
+             Normally *.ver files are used to create a versioned filename
+             for DLLs, but with this feature. (Which is on by default if
+             you use <tt>UmakeFileVersion(2,1)</tt> or greater)
+        </dl>
+    </div>
+
+    <hr>
+
+    <a name="AddDebugOutput"></a>
+    <div id="prototype">
+        project.AddDebugOutput( env_var:string , rel_path:string )
+    </div>
+    <div id="description">
+        <b>Warning:</b> scheduled for deprecation in version 3.0
+        <p>
+        This function takes an environment variable and a relative
+        path as arguments. If the environment variable exists, a
+        link to/alias to/copy of the output will be placed in that
+        directory. Example:
+        
+        <div id="example">
+            project.AddDebugOutput("RP_DEBUG_BASEDIR","plugins/rv/")
+        </div>
+        
+        This will copy the output into $RP_DEBUG_BASEDIR/plugins/rv/
+        Since the paths are often platform specific, this functions
+        should normally only be used in pcf files.
+        <p>
+        NOTA BENE:<br>
+        The rel_path arguments *must* end with a slash if it
+        is a directory.
+    </div>
+
+    <hr>
+
+    <a name="AddFileDependency"></a>
+    <div id="prototype">
+        project.AddFileDependency( file:string , depend:string [, depend:string 
+        [, ... ]] )
+    </div>
+    <div id="description">
+        This will add a dependency to the generated makefile so that
+        make knows that file depends on depend.
+    </div>
+
+    <hr>
+
+    <a name="SetDistLocation"></a>
+    <div id="prototype">
+        project.SetDistLocation( [release=location:string] 
+        , [debug=location:string] , [any=location:string] )
+    </div>
+    <div id="description">
+        <p>
+        This will tell umake to check in the library/dll/program generated by
+        this umakefile into the location given by 'location'. The location
+        is relative to the source root and must be a directory which has a
+        <a href=bif.html#checkin_dependlist>&lt;checkin_dependlist&gt;</a>
+        from this module.
+        <p/>
+        <p>
+        The location should be given using one of the named parameters
+        <span class="code">release, debug</span> or <span class="code">any</span>.
+        If you use the <span class="code">release</span> parameter, then the 
+        checkin will only be performed if this is a release build.
+        </p>
+        <p>
+        The location can use brackets to specify the location and name of the
+        library, a few examples to illustrate. For simplicity, I will assume
+        that project.SetDistLocation was used in a LibraryTarget umakefile.        
+        <div id="example">
+            project.SetDistLocation(release="foo/bar[../gazonk]")
+        </div>
+        This will check in the library as 'gazonk'. It will be checked in
+        at the top level so that the distribution will be shared by both
+        debug and release builds using this dist. If this is a debug build,
+        then nothing will happen.
+
+        <div id="example">
+            project.SetDistLocation(debug="foo/bar[./gazonk]")
+        </div>
+        This will check in the library as 'gazonk'. It will be checked in
+        into the debug directory of the foo/bar module, but only if this is a
+        debug build, otherwise nothing will happen.
+
+        <div id="example">
+            project.SetDistLocation(any="foo/bar[./gazonk]")
+        </div>
+        This will check in the library as 'gazonk'. It will be checked in
+        into the release/debug directory depending on what kind of build
+        this is.
+        
+        <div id="example">
+            project.SetDistLocation("foo/bar")
+        </div>
+        This will check in the library as 'foo'.
+        It will search the foo/bar directory to see if the library
+        already exists, and if it does check it into the same place.
+        If it does not exist, it will be checked in into the
+        debug/release directory as approperiate. However, no checkin
+        will take place if this is a debug build.
+
+    </div>
+    
+    <hr>
+    <div id="description">
+        Last Updated: $Id: umakefil.html,v 1.11 2006/06/19 23:11:26 jfinnecy Exp $
+    </div>
+
+</body>
+</html>

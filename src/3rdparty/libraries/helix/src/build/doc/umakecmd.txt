@@ -1,0 +1,55 @@
+NAME
+        umake - Helix Ribosome Universal Makefile Generator
+
+SYNOPSIS
+        umake
+        umake [options]
+
+        Options:
+        [-d] [-r target-dir] [-t build-options] [-o object-dir]
+        [-u umakefile-name] [-m makefile-name]
+
+DESCRIPTION
+        Umake takes Umakefil(s) and <platform>.pcf files as input
+        and generates a platform specific Makefile.        
+
+OPTIONS
+        -d      Debug mode.  Prints out extensive debug information as
+                umake is running.
+
+        -r target-dir
+                Override the default directory targets are copied into
+                with "make copy".
+
+        -o object-dir
+                Override the default directory the object files are
+                built to.
+
+        -u umakefile-name
+                Override the default input Umakefil name, "Umakefil".
+
+        -m makefile-name
+                Override the default output Makefile name, "Makefile".
+
+        -t option
+                Multiple -t options can be passed to Umake.  They are
+                the same generic string options which can be passed
+                to the "build" command with the same option.  The most
+                common use is to override the default "debug" mode and
+                build the umake file with release options: umake -t release
+           Options:
+             release
+             debug
+             map
+             pdb
+             nodll
+             noruntime
+             drmsign
+             static
+             static_only
+             no_optimize
+             nt_stackframe
+             suppress_nodefaultlibs
+
+           
+           

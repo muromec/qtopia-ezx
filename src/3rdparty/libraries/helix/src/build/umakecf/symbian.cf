@@ -1,0 +1,787 @@
+# -*- python -*-
+#
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: symbian.cf,v 1.61 2007/08/09 01:56:41 atewari Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+#
+"""Generic symbian .cf file. Common stuff to all symbian platforms."""
+
+import shell
+
+## Symbian PCF file list
+platform.pcf_prefix_list = ['symbian']
+
+## Symbina specific defines.
+project.AddDefines( '__SYMBIAN32__',
+                    '_UNICODE',
+                    '__AVKON_ELAF__',
+                    '_SYMBIAN',
+                    '__DLL__',
+                    'HELIX_CONFIG_FIXEDPOINT',
+                    'HELIX_CONFIG_NOSTATICS',
+                    'HELIX_CONFIG_COMPACT_COM_MACROS',
+                    'HELIX_CONFIG_STDIO',
+                    'HELIX_CONFIG_LITEPREFS_SLUGGISH_OUT',
+                    '_LITTLE_ENDIAN'
+                    )
+
+## enable this for checking to ensure that only COM objects
+## are using the HX_ADDREF and HX_RELEASE COM macros
+# project.AddDefines('HELIX_CONFIG_TYPE_CHECK_COM_MACROS')
+
+## we don't want the normal windows defines.
+project.RemoveDefines('_WIN32', '_M_IX86', '_WINDOWS')
+
+platform.rm.cmd = 'rm -rf'
+platform.rm.args['default'] = ''
+platform.rm.make_var = 'RM'
+platform.rmdir.cmd = 'rm -rf'
+platform.rmdir.args['default'] = ''
+platform.rmdir.make_var = 'RM_DIR'
+platform.path_sep = '\\'
+platform.parent_dir = '..'
+platform.current_dir = '.'
+platform.line_cont = '\\'
+platform.make_source = '$<'
+platform.make_target = '$@'
+platform.make_depend = ':'
+platform.var_begin = '$('
+platform.var_end = ')'
+platform.type = 'symbian'
+platform.sys_lib_arg = ''
+platform.inc_subdir = "symbian"
+platform.include_arg = '/I'
+platform.define_arg = '/D'
+platform.object_suffix = 'obj'
+platform.shared_object_suffix = 'obj'
+platform.copy.cmd = 'copy'
+platform.copy.make_var = 'CP'
+
+## suffexes for target types
+platform.exe_suffix          = 'exe'
+platform.library_suffix      = 'lib'
+platform.dll_suffix          = 'dll'
+platform.resource_dll_suffix = 'xrs'
+
+
+platform.make.cmd = 'nmake'
+platform.make.make_var = 'MAKE'
+platform.make.args['default'] = '/nologo'
+
+# Turn on the ordinal build option since
+# that is the only way Symbian exports symbols
+project.AddBuildOption("ordinal")
+
+if project.BuildOption('static'):
+    project.output_dir = '%ss' % (project.output_dir)
+
+##
+##  Do not add debug/release flags for MMP generation
+##  common defines for release and debug.
+##
+if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+    if project.BuildOption("debug"):
+        project.AddDefines("_DEBUG", "DEBUG", "HELIX_FEATURE_DPRINTF")
+
+    if project.BuildOption("release"):
+        project.AddDefines("NDEBUG")
+
+# All DLL stubs access the global manager now so
+# we always need common/system/pub in the include list
+# and common/system[syslib] in the library list.
+# The global manager code uses HX_ASSERT() so we need
+# common/dbgtool[debuglib] and common/runtime[runtlib] as well
+project.AddModuleIncludes("common/system/pub")
+project.AddModuleLibraries("common/system[syslib]",
+                           "common/dbgtool[debuglib]",
+                           "common/runtime[runtlib]")
+
+# This is needed so we can include our "hlxclib/HEADER.h" wrapper files
+# instead of directly including system <HEADER.h> files.
+if not project.BuildOption('no_common_runtime'):
+    project.AddModuleIncludes('common/runtime/pub')
+
+
+## Define some symbian utilities...
+class SymbianUtils:
+    def __init__(self):
+        self.rss_files = []
+        self.rss_includes = []
+        self.uid1 = 0
+        self.uid2 = 0
+        self.uid3 = 0
+        self.capabilities = 'CAP_ECOM_PLUGIN'
+
+    def write_uid_file(self):
+        # Use this function only for symbian 6.x and 7.x. For
+        # later SDKs use PlatformDependentUtils() function.
+        
+        # first uid (what kind of binary image)
+        KDynamicLibraryUid  = 0x10000079
+        KExecutableImageUid = 0x1000007a
+
+        # second uid (what kind of dll or exe)
+        KUidApp             = 0x100039ce
+        KUidRecognizer      = 0x10003a19
+
+        # third uid = implementation uid
+
+        #
+        # for symbian, target_type is 'exe' for .app and .mdl and .mmf (misleading)
+        #
+        imageType = "unknown"
+        if( project.getTargetType() == "dll" ):
+            imageType = "dll"
+
+        elif ( project.getTargetType() == "exe" ):
+            if (project.BuildOption('make-app') or project.BuildOption('make-mdl') or project.BuildOption('make-mmf')):
+                imageType = "dll"
+            else:
+                imageType = "exe"
+
+        if( self.uid1 == 0 ):
+            # set to default value for target type
+            if (imageType == "exe"):
+                self.uid1 = KExecutableImageUid
+            elif (imageType == "dll"):
+                self.uid1 = KDynamicLibraryUid
+                
+        if( self.uid2 == 0 ):
+            # set to default value for specific type of target
+            if (project.BuildOption('make-app') or project.BuildOption('make-exe')):
+                # app or exe
+                self.uid2 = KUidApp
+            elif (project.BuildOption('make-mdl')):
+                # recognizer
+                self.uid2 = KUidRecognizer
+
+        if (not project.IsDefined('_RVCT_')):
+            uidpath = '%s.uid.cpp' %( project.target_name)
+
+            fil = open(uidpath, 'w')
+            fil.write('//Umake generated UID file.\n')
+            fil.write('#include <E32STD.H>\n')
+            fil.write('#pragma data_seg(".E32_UID")\n')
+            tmp = '__WINS_UID(0x%x, 0x%x, 0x%x)\n' % (self.uid1, self.uid2, self.uid3)
+            fil.write(tmp)
+            fil.write('#pragma data_seg()\n')
+            fil.close()
+
+            project.AddSources(uidpath)
+
+    def SetUIDs(self, uid1, uid2, uid3 ):
+        self.uid1 = uid1
+        self.uid2 = uid2
+        self.uid3 = uid3
+
+    def AddResourceFiles(self, *args):
+        for x in args:
+            self.rss_files.append(x)
+
+    def AddResourceIncludes(self, *args):
+        for x in args:
+            self.rss_includes.append(x)
+
+    def UseARMICompiler(self):
+        if 'symbian-thumb' in sysinfo.family_list:
+            platform.cxx.cmd = platform.cc.cmd = platform.armi_cxx_cmd
+            platform.cxx.args['default'] = platform.cc.args['default'] = platform.armi_cxx_args
+            project.AddDefines('__MARM_ARMI__')
+            project.RemoveDefines('__MARM_THUMB__')
+        elif 'symbian-armv5' in sysinfo.family_list:
+            if project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+                project.symbianMmpUtils.AddArmv5Defines('__MARM_ARMI__')
+            else:
+                platform.cxx.args['default'] = platform.cc.args['default']
+                project.AddDefines('__MARM_ARMI__')
+                project.RemoveDefines('__MARM_THUMB__')            
+
+    def UseARMCCompiler(self):
+        if 'symbian-thumb' in sysinfo.family_list:
+            platform.cc.cmd = platform.cxx.cmd = platform.armi_cc_cmd
+            platform.cc.args['default'] = platform.cxx.args['default'] = platform.armi_cc_args
+            project.AddDefines('__MARM_ARMI__')
+            project.RemoveDefines('__MARM_THUMB__')
+
+    def compile_resource(self, rss_name):
+        # Generate resource file
+
+        if (not os.path.exists(project.output_dir)):
+            os.mkdir(project.output_dir)
+
+        baseName = re.match("(.+)\.rss", rss_name).group(1)
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY') and project.BuildOption('make-mmf'):
+            # name of rsc file is same as the dll name.
+            arg_list = []
+            arg_list.append("-I \".\"  -I-")
+            arg_list.append("-I \"%s\"" % os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\include'))
+            arg_list.append("-I \"%s\"" % os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\include\libc'))
+            arg_list.append("-I \"%s\"" % os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\include\oem'))
+	    arg_list.append("-I \"%s\"" % os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\include\ecom'))
+            arg_list.append("-DLANGUAGE_SC")
+            arg_list.append("-u \"%s.rss\"" % (baseName))
+            arg_list.append("-o\"%s.rsc\"" % os.path.join(project.output_dir, project.target_name))
+            arg_list.append("-uid2 0x101F747D -uid3 0x00000000")
+            arg_list.append("-t%s" % project.output_dir)
+            arg_list.append("-l\"Z\Resource\Plugins:\.\"")
+        else:
+            arg_list = []
+            arg_list.append("-v -u -t\".\"")
+            arg_list.append("-I \"%s\"" % os.path.join(GetSDKPath('SYMBIANSDK'), 'EPOC32\include'))
+            for incFile in self.rss_includes:
+                arg_list.append('-I "%s"' % incFile) 
+       
+            arg_list.append("-h\"%s.rsg\"" % baseName)
+            arg_list.append("-o\"%s.rsc\"" % os.path.join(project.output_dir,
+                                                      os.path.basename(baseName)))
+            arg_list.append("%s.rss" % (baseName))
+
+        cmd = "perl -S epocrc.pl %s" % (string.join(arg_list))
+        (status, output) = shell.run(cmd)
+        print output
+
+        if status:
+            raise "*** resource generation failed (%s) ***" % status
+
+    def compile_resources(self):
+        for x in self.rss_files:
+            self.compile_resource(x)
+
+    def generate_ordinal_info(self):
+        # Add info for the symbol to ordinal function.
+        # It should always have ordinal 1 assigned to it
+        info = [(1, "GetSymbolOrdinal")]
+
+        # Assign ordinals to the exported functions
+        ordinal = 2
+        for func in project.exported_func:
+            info.append((ordinal, func))
+            ordinal = ordinal + 1
+
+        return info
+
+    def create_mbm_file(self, mbmpath, headerpath, options, imagelist):
+        sep = " %s" % options
+        cmd = "bmconv /h%s %s %s%s" % (headerpath, mbmpath, options, string.join(imagelist, sep))
+        (status, output) = shell.run(cmd)
+        print output
+
+        if status:
+            raise "*** mbm generation failed (%s) ***" % status
+
+    def generate_ordinal_file(self, ordinalInfo):
+        ordFileName = "%s_ordinal.dat" % project.target_name
+
+        ordFile = open(ordFileName, 'w')
+        for x in ordinalInfo :
+            ordFile.write("%d %s\n" % (x[0], x[1]))
+        ordFile.close()
+
+    def generate_dll_stub_code(self, ordinalInfo):
+        stubSourceName = "%s_dll_stub.c" % project.target_name
+
+        # find ordinal 1's function name
+        for x in ordinalInfo:
+            if (x[0] == 1):
+                symbol2OrdinalFunc = x[1]
+                break
+
+        dllStub = open(stubSourceName, "w")
+        dllStub.write("#include <e32std.h>\n")
+        dllStub.write("#include <string.h>\n")
+        if(not project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB')):
+                dllStub.write("#include \"hxglobalmgr.h\"\n")
+        
+        dllStub.write("\n")
+        dllStub.write("#ifndef HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY\n")
+        dllStub.write("GLDEF_C TInt E32Dll(TDllReason reason)\n")
+        dllStub.write("{\n")
+        if(not project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB')):
+                dllStub.write("    if (reason == EDllProcessDetach)\n")
+                dllStub.write("    {\n")
+                dllStub.write("        HXGlobalManager* pGM = HXGlobalManager::Instance();\n")
+                dllStub.write("        if (pGM)\n")
+                dllStub.write("        {\n")
+                dllStub.write("            pGM->Shutdown();\n")
+                dllStub.write("        }\n")
+                dllStub.write("    }\n")
+
+        dllStub.write("    return(KErrNone);\n")
+        dllStub.write("}\n")
+        dllStub.write("#endif /* HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY */\n")
+        dllStub.write("\n")
+        dllStub.write("struct SymbolEntry {\n")
+        dllStub.write("    const char* m_pSymbolName;\n")
+        dllStub.write("    int m_ordinal;\n")
+        dllStub.write("};\n")
+        dllStub.write("\n")
+        dllStub.write("static const struct SymbolEntry z_symbolTable[] = {\n")
+        dllStub.write("    {\"%s\", %d}" % (ordinalInfo[0][1], ordinalInfo[0][0]))
+
+        for x in ordinalInfo[1:] :
+            dllStub.write(",\n")
+            dllStub.write("    {\"%s\", %d}" % (x[1], x[0]))
+
+        dllStub.write("\n};\n")
+        dllStub.write("\n")
+        dllStub.write("extern \"C\"\n")
+
+        if(project.IsDefined('HELIX_CONFIG_MICROCORE_DLL_STUB')):
+            dllStub.write("int %s(const SymbolEntry*& pMap, int& magic)\n" % symbol2OrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    magic = 0x23aaff42;\n")
+            dllStub.write("    pMap = z_symbolTable;\n")
+            dllStub.write("    return sizeof(z_symbolTable) / sizeof(SymbolEntry);\n")
+            dllStub.write("}\n")
+        else:
+            dllStub.write("int %s(const char* pSymbolName)\n" % symbol2OrdinalFunc)
+            dllStub.write("{\n")
+            dllStub.write("    int ret = 0;\n")
+            dllStub.write("    int numSymbols = sizeof(z_symbolTable) / sizeof(struct SymbolEntry);\n")
+            dllStub.write("    int i;\n")
+            dllStub.write("    if( NULL != pSymbolName )\n")
+            dllStub.write("    {\n")
+            dllStub.write("       for(i = 0; !ret && (i < numSymbols); i++)\n")
+            dllStub.write("       {\n")
+            dllStub.write("           if (!strcmp(pSymbolName, z_symbolTable[i].m_pSymbolName))\n")
+            dllStub.write("           {\n");
+            dllStub.write("               ret = z_symbolTable[i].m_ordinal;\n")
+            dllStub.write("               break;\n")
+            dllStub.write("           }\n")
+            dllStub.write("       }\n")
+            dllStub.write("    }\n")
+            dllStub.write("    return ret;\n")
+            dllStub.write("}\n")
+        dllStub.close()
+
+        # Add the stub to the source list
+        project.AddSources(stubSourceName)
+
+## Create a global instance to use.
+project.symbianUtil = SymbianUtils()
+
+def HandleSymbianStuff(args):
+    # Generate the DLL stubs if we need to
+    if project.getTargetType() == "dll":
+        if ( project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY')):
+            ordinalInfo = project.PlatSecUtils.generate_ordinal_info()
+        else:
+            ordinalInfo = project.symbianUtil.generate_ordinal_info()
+
+        project.symbianUtil.generate_ordinal_file(ordinalInfo)
+
+        if ( project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY')):
+            project.PlatSecUtils.generate_dll_stub_code(ordinalInfo)
+        else:
+            project.symbianUtil.generate_dll_stub_code(ordinalInfo)
+
+    # Compile any symbian resource files that
+    # were specified
+    project.symbianUtil.compile_resources()
+
+    # Create UID file if we need to
+    if ((project.getTargetType() == "dll") or (project.getTargetType() == "exe")):
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            project.PlatformDependentUtil.write_uid_file()
+        else:
+            project.symbianUtil.write_uid_file()
+            
+if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+    AddUmakeCallback(HandleSymbianStuff, None)
+
+def SetSymbianProgramTargetType(type):
+    """ Set exe suffix and build type for Symbian polymorphic dll.
+        Used with ProgramTarget() in module pcf. 
+    """
+
+    if (type not in ['mdl', 'app', 'mmf', 'exe']):
+        raise "unrecognized Symbian program target type '%s'" % type
+
+    project.AddBuildOption("make-%s" % type)
+    
+    # in most cases (app, mdl) the type is the same as the dll extension 
+    if(type == "mmf"):
+        platform.exe_suffix="dll"
+    else:
+        platform.exe_suffix=type
+
+
+def read_ordinal_file(path):
+    ##
+    ##  Read in the ordinal information
+    ##
+    fil = open(path, "r")
+
+    sym_ord_list = []
+
+    for line in fil.readlines():
+        field_list = string.split(line)
+        symbol = string.strip(field_list[1])
+        ordinal = string.strip(field_list[0])
+
+        sym_ord_list.append((symbol, ordinal))
+
+    return sym_ord_list 
+
+
+class SymbianPkg:
+    def __init__(self, name, appFolderName, langs = ["EN"]):
+        self.name = name
+        self.langs = langs
+        self.files = []
+        self.depends = []
+        self.names = None
+        self.uid = None
+        self.major = None
+        self.minor = None
+        self.build = None
+        self.options = None
+        self.type = None
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            self.appDest = "!:\\sys\\bin"
+        else:
+            self.appDest = "!:\\system\\apps\\%s" % (appFolderName)
+
+    def SetHeader(self, names, uid, major, minor, build, options = None, type = None):
+        self.names = names
+        self.uid = uid
+        self.major = major
+        self.minor = minor
+        self.build = build
+        self.options = options
+        self.type = type
+
+    def AddPackageDependency(self, uid, major, minor, build, type):
+        self.depends.append((uid, major, minor, build, type))
+
+    def AddFile(self, source, dest = None, args = None):
+        ''' if dest is empty, install to app dir
+            if dest begins with '!' install to dest
+            if dest does not begin with '!', assume relative to app dir
+        '''
+
+        if not dest:
+
+            # install to app dir
+
+            #path = string.split(source, "\\")
+            #dest = "%s\\%s" % (self.appDest, path[-1])
+            file = os.path.basename(source)
+            if not file:
+                raise "bad input to AddFile"
+            dest = "%s\\%s" % (self.appDest, file)
+
+        elif (dest[0] != "!"):
+           
+            # intall to dest
+
+            # get rid of leading backslash
+            if (dest[0] == "\\"):
+                dest = dest[1:]
+
+            dest = "%s\\%s" % (self.appDest, dest)
+            
+        self.files.append((source, dest, args))
+
+    def Generate(self):
+        ''' write out the package file '''
+
+        pkgname = "%s.pkg" % self.name
+        f = open(pkgname, "w")
+
+        # format langs
+        f.write(";Language\n");
+        f.write("&%s\n" % string.join(self.langs, ", "))
+
+        # format header
+        f.write("\n;Header\n");
+        names = string.join(self.names, "\"}, {\"")
+        if self.options:
+            options = ", %s" % string.join(self.options, ", ")
+        else:
+            options = ""
+        if self.type:
+            type = ", TYPE=%s" % self.type
+        else:
+            type = ""
+        f.write("# {\"%s\"}, (0x%08x), %u, %u, %u%s%s\n" % (names, self.uid, self.major, self.minor, self.build, options, type))
+
+        # format dependency headers
+        f.write("\n;Dependency header\n");
+        for (uid, major, minor, build, type) in self.depends:
+            if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+	        f.write("[0x%08x], %u, %u, %u, {\"%s\"}\n" % (uid, major, minor, build, type))
+	    else:
+                f.write("(0x%08x), %u, %u, %u, {\"%s\"}\n" % (uid, major, minor, build, type))
+
+        if project.IsDefined('HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY'):
+            f.write("\n;Localised Vendor name\n")
+            f.write("%{\"Vendor-EN\"}\n")
+        
+            f.write("\n;Unique Vendor name\n")
+            f.write(":\"Nokia\"\n")
+        
+            f.write("\n;Optional logofile\n")
+            # <logofile>,<mimetype>[,<targetname>]\n")
+            # ="file\mylogo.jpg","image/jpeg","\public\logos\mylogo.jpg"
+        
+        # format files
+        f.write("\n;Files to install\n")
+        for (source, dest, args) in self.files:
+            if args:
+                args = ", %s" % string.join(args, ",")
+            else:
+                args = ""
+            f.write("\"%s\" - \"%s\"%s\n" % (source, dest, args))
+
+        f.close()
+
+    def GenerateUpgradePackage(self):
+        ''' write out the Package Upgrade file '''
+        self.name = "%s%s" % (self.name, "U")
+        self.type = "%s" % ("PU") 
+        self.Generate()
+
+        
+
+    def CreateMakefile(self, sisname = None):
+        ''' write makefile that builds sis '''
+
+        pkgname = "%s.pkg" % self.name
+
+        if not sisname:
+            sisname = "%s.sis" % self.name
+
+        # output makefile instructions to build the .sis
+        project.writeln("all: %s" % sisname)
+        if project.IsDefined("HELIX_FEATURE_SYMBIAN_MMF"):
+            project.writeln("\t %s" %   "copyDlls.bat" )
+        project.writeln("\n")
+
+        project.writeln("%s:" % sisname)
+        project.writeln("\tmakesis -v %s %s" % (pkgname, sisname))
+        project.writeln("\n")
+
+        project.writeln("depend:")
+        project.writeln("\n")
+
+        project.writeln("clean:")
+        project.writeln("\trm -rf %s" % sisname)
+        project.writeln("\n")
+
+        project.writeln("copy:")
+        project.writeln("\tcopy %s %s" % (sisname, project.target_dir))
+        project.writeln("\n")
+
+        project.writeln("install: %s" % sisname)
+        if (string.find(sysinfo.id, 'emulator') != -1):
+            # copy to emulator install folder so you can use emulator installer to install sis
+            if (string.find(sysinfo.id, 'winscw') != -1):
+                emulSisInstallDir = os.path.join(GetSDKPath('SYMBIANSDK'),"Epoc32\\winscw\\c\\nokia\\installs\\")
+            else:
+                emulSisInstallDir = os.path.join(GetSDKPath('SYMBIANSDK'), "Epoc32\\wins\\c\\nokia\\installs\\")
+                
+            project.writeln("\tcopy %s %s" % (sisname, emulSisInstallDir))
+        
+        project.writeln("\n")
+
+def GetSystemIncludePaths():
+    ## Add in the symbian SDK specific paths here....
+    if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+        return ( ['EPOC32\include', 'EPOC32\include\libc'] )
+    else:
+        return ( ['EPOC32\include\libc'] )
+        
+if not project.IsDefined('HELIX_CONFIG_SYMBIAN_GENERATE_MMP'):
+    for inc in GetSystemIncludePaths():
+        project.AddIncludes('%s' % os.path.join(GetSDKPath('SYMBIANSDK'), inc))
+
+project.AddSystemLibraries("estlib.lib", "euser.lib" );
+
+##
+## The MakeDir, SubDirMake, MakeDepend and Versioning classes are
+## common to all SDK targets. The compiler and linker classes
+## will differ however.
+##    
+class SymbianMakeDir(Command):
+    def __init__(self):
+        self.make_var = ''
+        self.make_flags = ''
+                
+    def execute(self, dir):
+        return 'if NOT exist "%s" mkdir "%s"' % (dir, dir)
+
+platform.mkdir = SymbianMakeDir()
+
+
+class SymbianSubdirMake(Command):
+    def __init__(self):
+        self.make_var = ''
+        self.make_flags = ''
+        
+    def execute(self, subdir, indent, post_str):
+        return indent + 'cd ' + subdir + '\n' + \
+               indent + platform.make.execute() + post_str + '\n' + \
+               indent + 'cd ' + os.pardir
+    
+platform.subdir_make = SymbianSubdirMake()
+
+
+class SymbianVersioning(Versioning):
+    def create_dll_name(self, target, path = ''):
+        if project.versioning_off:
+            return '%s.%s' % (target, platform.dll_suffix)
+    
+        self.get_version(target, path)
+        new_name = self.get_name(target, path)
+        
+        if new_name == '':
+            new_name = target[0:4]
+            
+        return '%s%s%s%s.%s' % (
+            new_name,
+            platform.name[3:6],
+            self.version[0],
+            self.version[1],
+            platform.dll_suffix)
+    
+platform.versioning = SymbianVersioning()
+
+
+class SymbianMakeDepend(MakeDepend):
+    def execute(self, sources, output_dir):
+        list = []
+        if project.object_dir:
+            list.append("/t%s" % (project.object_dir))
+        list.append("/m%s" % (project.makefile_name))
+
+        cmd = "python %s %s %s %s %s" % (
+            os.path.join("$(BUILD_ROOT)", "bin", "mkdepend.py"), 
+            string.join(list),
+            platform.form_var("DEFINES"),
+            platform.form_var("INCLUDES"),
+            sources)
+
+        return cmd        
+
+    def setup_flags_var(self):
+        return ""
+
+platform.make_dep = SymbianMakeDepend()
+
+#
+# ************** class Symbian AIF *************
+#
+
+class SymbianAIF:
+    ''' for creating Symbian application information file '''
+    def __init__(self, sourceDir, inputRssName, iconList):
+        ''' source dir is where input rss and icons are located '''
+        self.sourceDir = sourceDir
+        self.inputRss = os.path.join(sourceDir, inputRssName)
+        self.iconList = iconList
+        self.tempDir = os.getcwd()
+        self.includeDirs = []
+       
+    def SetTempDir(self, dir):
+        ''' optional: specify working directory '''
+        self.tempDir = dir
+
+    def AddIncludeDir(self, dir):
+        ''' optional: add an include directory to pass to aif compiler '''
+        self.includeDirs.append(dir)
+
+    def Generate(self, aifOutputName):
+        ''' generate aif named 'aifOutputName' '''
+
+        # add '/c12{sourcedir}\' to each icon name for aif compiler argument
+        iconArgPrefix = "/c12%s\\" % self.sourceDir
+        finalIconList = AddPrefixForEach(iconArgPrefix , self.iconList)
+        iconArg = '-b"' + string.join(finalIconList, " ") + '"'
+
+        # include path
+        includeArg = ""
+        for dir in self.includeDirs:
+            includeArg = includeArg + '-I"%s" ' % dir
+         
+        # run command to build aif
+        cmd = 'perl -S epocaif.pl -o"%s" "%s" -t"%s" %s %s' % (aifOutputName, self.inputRss, self.tempDir, iconArg, includeArg)
+        os.system("echo %s" % cmd)
+        res = os.system(cmd)
+        if res:
+            raise "*** aif generation failed (%s) ***" % res
+
+#
+# ************* helper functions used in some symbian python scripts ***************
+#
+
+def AddPrefixForEach(base, nameList):
+    '''add 'base' prefix to each item in the list'''
+    newList = []
+    for name in nameList:
+        newList.append(base + name)
+    return newList
+
+def EnsureDirExists(path):
+    '''ensure path exists, creating all intermediate directories if necessary'''
+    if (not os.path.exists(path) ):
+        os.path.makedirs(path)
+

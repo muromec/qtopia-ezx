@@ -1,0 +1,204 @@
+# 
+#  ***** BEGIN LICENSE BLOCK *****  
+#   
+#  Source last modified: $Id: linux-tivo.cf,v 1.4 2006/06/19 23:11:34 jfinnecy Exp $ 
+#   
+#  Copyright Notices: 
+#   
+#  Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+#   
+#  Patent Notices: This file may contain technology protected by one or  
+#  more of the patents listed at www.helixcommunity.org 
+#   
+#  1.   The contents of this file, and the files included with this file, 
+#  are protected by copyright controlled by RealNetworks and its  
+#  licensors, and made available by RealNetworks subject to the current  
+#  version of the RealNetworks Public Source License (the "RPSL")  
+#  available at  * http://www.helixcommunity.org/content/rpsl unless  
+#  you have licensed the file under the current version of the  
+#  RealNetworks Community Source License (the "RCSL") available at 
+#  http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+#  will apply.  You may also obtain the license terms directly from 
+#  RealNetworks.  You may not use this file except in compliance with 
+#  the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+#  to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+#  the rights, obligations and limitations governing use of the 
+#  contents of the file. 
+#   
+#  2.  Alternatively, the contents of this file may be used under the 
+#  terms of the GNU General Public License Version 2 (the 
+#  "GPL") in which case the provisions of the GPL are applicable 
+#  instead of those above.  Please note that RealNetworks and its  
+#  licensors disclaim any implied patent license under the GPL.   
+#  If you wish to allow use of your version of this file only under  
+#  the terms of the GPL, and not to allow others 
+#  to use your version of this file under the terms of either the RPSL 
+#  or RCSL, indicate your decision by deleting Paragraph 1 above 
+#  and replace them with the notice and other provisions required by 
+#  the GPL. If you do not delete Paragraph 1 above, a recipient may 
+#  use your version of this file under the terms of any one of the 
+#  RPSL, the RCSL or the GPL. 
+#   
+#  This file is part of the Helix DNA Technology.  RealNetworks is the 
+#  developer of the Original Code and owns the copyrights in the 
+#  portions it created.   Copying, including reproducing, storing,  
+#  adapting or translating, any or all of this material other than  
+#  pursuant to the license terms referred to above requires the prior  
+#  written consent of RealNetworks and its licensors 
+#   
+#  This file, and the files included with this file, is distributed 
+#  and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+#  WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+#  AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+#  WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+#  FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+#   
+#  Technology Compatibility Kit Test Suite(s) Location:  
+#     http://www.helixcommunity.org/content/tck 
+#   
+# Contributor(s):
+# 
+# ***** END LICENSE BLOCK *****
+# 
+# -*- python -*-
+## $Id: linux-tivo.cf,v 1.4 2006/06/19 23:11:34 jfinnecy Exp $
+## Linux 2.x using GCC 2.95 libc6 (glibc2) on i386
+exec_config_file('linux-common.cf')
+
+## list of PCF files to run
+platform.pcf_prefix_list = ["unix", "linux2", "tivo"]
+
+## platform defines 
+## Override compiler options for tivo
+if 'dev-mips' == os.environ['TIVO_SYSTEM']:
+    project.AddDefines("_BIG_ENDIAN", "_TIVO")
+    cross_dir = os.environ['TOOLROOT'] + '/mips-TiVo-linux'
+else:
+    project.AddDefines("_LITTLE_ENDIAN", "_TIVO")
+    cross_dir = os.environ['TOOLROOT'] + '/i686-pc-linux-gnu'
+
+root_dir = os.environ['ROOT']
+
+## Turn on Threaded Network IO 
+project.AddDefines("_UNIX_THREADED_NETWORK_IO")
+
+## This define enables compiling of the UnixThreads file.
+## It means that that platform has a working threads lib
+## that does everything we need.
+project.AddDefines("_UNIX_THREADS_SUPPORTED")
+
+## make GCC 2.95.x permissive so it won"t barf on our code
+##platform.cc.args["default"] = platform.cxx.args["default"] = \
+##    "--permissive -pipe -W -Wreturn-type -fno-rtti -fno-exceptions"
+
+platform.dynamic_linker = root_dir + '/lib/ld-linux.so.2'
+
+platform.cc.cmd = cross_dir + '/bin/gcc'
+platform.cc.args["default"] = '-B' + cross_dir + '/bin/ -nostdinc';
+
+platform.cxx.cmd = cross_dir + '/bin/g++'
+platform.cxx.args["default"] = '-fpermissive -B' + cross_dir + '/bin/ -nostdinc++'
+DisableRTTIIfNecessary()
+
+# project.AddIncludes(cross_dir + '/include/g++/backward')
+project.AddIncludes(cross_dir + '/include/g++')
+project.AddIncludes(cross_dir + '/include')
+project.AddIncludes(root_dir + '/include')
+
+project.AddSystemPaths('-L' + root_dir + '/lib')
+project.AddSystemPaths('-L' + cross_dir + '/lib')
+project.RemoveIncludes('/usr/X11R6/include')
+# project.RemoveSystemPaths('-L/usr/X11R6/lib')
+
+make_lib.cmd = cross_dir + '/bin/ar cr '
+make_toc.cmd = cross_dir + '/bin/ranlib'
+
+class LinuxLinker(GCCLinker):
+    def __init__(self):
+        GCCLinker.__init__(self)
+
+        self.make_var   = 'LD'
+        self.make_flags = 'LDFLAGS'
+
+        self.ldcmd = platform.cxx.cmd
+        self.ldargs = ""
+        self.args["default"] = ""
+
+    def write_link_script(self):
+        ## if there are no exported functions, die here
+        if len(project.exported_func) == 0:
+            fatal("dll target without exported functions") 
+        
+        ## create a gcc link script
+        path = "%s.exp" % (project.TargetName())
+        fil = open(path, "w")
+        fil.write("VERSION\n")
+        fil.write("{\n")
+        fil.write("  G2 {\n")
+        fil.write("    global:\n")
+
+        for export in project.exported_func:
+            fil.write("      %s;\n" % (export))
+
+        fil.write("    local:\n")
+        fil.write("      *;\n")
+        fil.write("  };\n")
+        fil.write("}\n")
+        fil.close()
+        
+        return path
+
+    def execute_lib(self, target, objects, static_libs, dynamic_libs):
+        ld_cmd = form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            "-o", target, objects, static_libs)
+
+        return ld_cmd
+
+    def execute_dll(self, target, objects, static_libs, dynamic_libs):
+        link_script_path = self.write_link_script()
+
+        ld_cmd = form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            link_script_path, "-o", target, objects, static_libs,
+            self.link_paths(), dynamic_libs)
+        
+        return ld_cmd
+    
+    def execute_exe(self, target, objects, static_libs, dynamic_libs):
+        ld_cmd = form_string(
+            platform.form_var(self.make_var),
+            platform.form_var(self.make_flags),
+            "-o", target, objects, static_libs, self.link_paths(),
+            dynamic_libs, "-lm -lc -lgcc")
+
+        return ld_cmd
+
+    def execute(self, target, objects, static_libs, dynamic_libs):
+        if project.getTargetType() == "dll":
+            return self.execute_dll(target, objects, static_libs, dynamic_libs)
+        elif project.getTargetType() == "exe":
+            return self.execute_exe(target, objects, static_libs, dynamic_libs)
+        elif project.getTargetType() == "lib":
+            return self.execute_lib(target, objects, static_libs, dynamic_libs)
+        else:
+            fatal("unknown target type=\"%s\"" % (project.getTargetType()))
+
+    def set_type(self):
+        self.cmd = self.ldcmd
+        
+        if project.getTargetType() == "dll":
+            self.args["default"] = "-nostdinc -shared -B" + cross_dir + "/bin/ -B" + root_dir + "/mips-TiVo-linux/ -Wl,-rpath-link," + root_dir + "/lib -lgcc"  + self.ldargs
+
+        elif project.getTargetType() == "exe":
+            self.args["default"] = "-nostdinc -nodefaultlibs -B" + cross_dir + "/bin/ -B" + root_dir + "/mips-TiVo-linux/ -Wl,-rpath-link," + root_dir + "/lib -lgcc" + self.ldargs
+
+        ## if we're building a shared lib or executeable, link
+        ## to the standard C++ library
+        if project.getTargetType() in ["dll", "exe"] and \
+           "debug" in project.build_choices:
+            project.AddSystemLibraries("stdc++")
+
+platform.link = LinuxLinker()

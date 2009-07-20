@@ -1,0 +1,134 @@
+// ***** BEGIN LICENSE BLOCK ***** 
+// Version: RCSL 1.0/RPSL 1.0 
+//  
+// Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+//      
+// The contents of this file, and the files included with this file, are 
+// subject to the current version of the RealNetworks Public Source License 
+// Version 1.0 (the "RPSL") available at 
+// http://www.helixcommunity.org/content/rpsl unless you have licensed 
+// the file under the RealNetworks Community Source License Version 1.0 
+// (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+// in which case the RCSL will apply. You may also obtain the license terms 
+// directly from RealNetworks.  You may not use this file except in 
+// compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+// applicable to this file, the RCSL.  Please see the applicable RPSL or 
+// RCSL for the rights, obligations and limitations governing use of the 
+// contents of the file.  
+//  
+// This file is part of the Helix DNA Technology. RealNetworks is the 
+// developer of the Original Code and owns the copyrights in the portions 
+// it created. 
+//  
+// This file, and the files included with this file, is distributed and made 
+// available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+// EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+// INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+// FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+// 
+// Technology Compatibility Kit Test Suite(s) Location: 
+//    http://www.helixcommunity.org/content/tck 
+// 
+// Contributor(s): 
+//  
+//  ***** END LICENSE BLOCK ***** */ 
+
+NAME HEWO
+
+#include <eikon.rh>
+#include <eikcore.rsg>
+
+#include <avkon.rsg>
+#include <avkon.rh>
+
+#include "platform/symbian/splay.hrh"
+
+RESOURCE RSS_SIGNATURE { }
+
+RESOURCE TBUF { buf=""; }
+
+RESOURCE EIK_APP_INFO
+	{
+	status_pane = r_splay_status_pane;
+	}
+
+RESOURCE STATUS_PANE_APP_MODEL r_splay_status_pane
+{
+    panes=
+        {
+        SPANE_PANE
+            {
+            id = EEikStatusPaneUidNavi;
+            type = EAknCtNaviPane;
+            resource = r_splay_navi_decorator;
+            }
+        };
+}
+
+RESOURCE NAVI_DECORATOR r_splay_navi_decorator
+    {
+    type = ENaviDecoratorControlTabGroup;
+    control = TAB_GROUP
+        {
+        tab_width = EAknTabWidthWithOneTab;
+        active = 0;
+        tabs =
+            {
+            TAB
+                {
+                id = 1;
+                txt = "";
+                }
+            };
+        };
+    }
+
+
+RESOURCE CBA r_softkeys_run_exit
+{
+    buttons =
+    {
+        CBA_BUTTON 
+        {
+            id = ESplayCmdRun; 
+            txt = "Run";
+        },
+        CBA_BUTTON 
+        {
+            id = EAknSoftkeyExit; 
+            txt = "Exit";
+        }
+    };
+}
+
+RESOURCE MENU_BAR r_splay_menubar
+    {
+    titles=
+        {
+        MENU_TITLE { txt="Splay"; }
+		};
+    }
+
+RESOURCE AVKON_VIEW r_splay_view
+{	
+    menubar = r_splay_menubar;  
+    cba = r_softkeys_run_exit;
+}
+
+RESOURCE TBUF32 r_splay_label
+{
+    buf = "Command-line";
+}
+RESOURCE EDWIN r_splay_edwin
+{
+    flags = EAknEditorFlagDefault;
+    width = 15;
+    lines= 1;
+    maxlength = 100;
+}
+
+RESOURCE TBUF r_blank_text   { buf=""; }
+RESOURCE TBUF r_playing_text { buf="Playing"; }
+RESOURCE TBUF r_complete_text  { buf="Playback Complete"; }
+RESOURCE TBUF r_failed_text  { buf="Playback Failed"; }
+

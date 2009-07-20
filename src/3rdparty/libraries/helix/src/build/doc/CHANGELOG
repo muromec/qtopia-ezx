@@ -1,0 +1,346 @@
+*** Note: 
+"External submissions" are submissions that have not been tested through the
+development branch prior to inclusion in the main branch, and as such are not
+guaranteed (by the project maintainers) to work, although typically they will
+have been running for several days (at least) in the main branch before making
+their way into a "release".
+
+For best results, all submissions should be discussed with the project
+maintainers prior to embarkation, and should be delivered to the current 
+development branch for testing.
+***
+
+Changes in Ribosome v 2.4.8
+===========================
+    Released: 16 July 2007
+    
+    * Fixed corrupted gethash.exe binary.
+    * SystemExits() now return codes other than 0 to the shell.
+    * new method in utils.py: globNoMetaPath() treats the meta characters
+      "[" and "]" in the path as text characters when globbing.
+    * branchlist.py uses new globNoMetaPath() when searching for BIFs - fixes
+      an issue when the source directory has meta chars in the path.
+    * fixed path determination issues in rebase_exe.py.
+    * testdriver_exe.py now reports errors and failures instead of just errors
+    * improved output display of testdriver for increased readability.
+    * default base dll address (0x60000000) can now be overriden in builds
+      descended from win32-msvc.cf through the umakefil, like so:
+        platform.link.args["base"] = "0x59000000"
+      
+    
+Changes in Ribosome v 2.4.7
+===========================
+    Released: 12 June 2007
+    
+    * Made "signability" of a build target a function of the BuildTarget class
+      (instead of only allowing DLL targets), and enabled signing for EXE
+      targets.
+    * Modified the *.cf files to write $(BUILD_ROOT) to Makefiles as part of
+      tool paths instead of evaluating BUILD_ROOT at the time of umake 
+      execution. This greatly improves the reusability of the makefiles in an 
+      archive rebuild scenario. This area still needs a significant amount of
+      work to fix all the places where paths are being hardcoded. (SDK paths, 
+      and the use of build.reg need to be addressed still.)
+    * Exceptions thrown by SystemExit() while in the threading engine will no
+      longer appear to Ribosome as generic build errors.
+      
+      
+Changes in Ribosome v 2.4.6
+===========================
+    Released: 30 April 2007
+    
+    * Refactored bif, diff, log modules to use new Timestamp class instead of 
+      datelib.
+    * Following methods now return Timestamp objects instead of ticks:
+        * bif.py::bif_data::get_expiration_ticks() --> get_expiration()
+        * bif.py::BIF::getExpirationTicks() --> getExpiration()
+    * Moved static function fix_tag() from datelib.py to cvs.py
+    * Fixed datelib.py::date_to_ticks() bug where one allowable format was not
+      being properly parsed, resulting in the function dropping the time
+      portion of the string.
+    * Fixed datelib.py::date_to_gmticks() bugs: timezone offset was being
+      subtracted instead of added (ie... yielding gmdate_to_localticks in 
+      reality). Also, DST was being ignored, so even with a name change would 
+      have been incorrect.
+    * Refactored diff module to use new Timestamp class instead of datelib.
+    * Modified the html generation in diff.py to return URL's in both formats
+      to support Helix ViewCVS and our Internal ViewCVS.
+    * Fixed bug in diff.py::Diff::__init__(): initializers are not constructors 
+      and cannot return 0. Now raises exception instead if no BIF can be found.
+    * Refactored diff.py::Diff's __init__() method to perform less activity, in
+      an effort to better modularize some of the functionality.
+    * Fix "no symbols" Ribosome crash when doing release build (dyek):
+      http://lists.helixcommunity.org/pipermail/ribosome-dev/2007-February/002014.html
+    * Modified BIF unit tests to accomodate minor interface change detailed
+      above.
+    * Add unit tests for mixed version numbers (of the type enabled by 
+      Ribosome-2.4.5). Somehow the tests didn't get merged into the 2.4.5 
+      release (tests added 12/2007).
+    * Fix nodll mac builds.
+    * Added unit tests for datelib, timestamp modules.
+    * Added support for the following platforms:
+        linux-powerpc64
+        linux-lsb3.1-i486
+        symbian-91-armv5-gcce
+        symbian-91-armv5e
+        symbian-91-armv6        
+
+
+Changes in Ribosome v 2.4.5
+===========================
+    Released: 07 February 2007
+    
+    * New build option for VC8 builds, "-t embed_manifest".
+    * Silenced log object from writing to stdout when not properly initialized.
+    * CVS errors of "cannot find module" are now fatal, and Ribosome will not 
+      attempt excessive retries (5112).
+    * Version numbers of 2.4.4c1 will now be interpreted as 2.4.4-c1 rather
+      than fataling Ribosome (5655).
+      
+    * Added the following new platforms: 
+         FreeBSD-7.0 (still in development)
+         linux-2.2-libc6-armv5te-cross-gcc3.3-ixp4xx-softfloat
+         linux-2.6-glibc24-gcc41-i486-lsb
+         wince-500-ppc-armxs-intel
+
+      
+Changes in Ribosome v 2.4.4
+===========================
+
+    Released: 22 August 2006
+    
+    * Corrected indentation issue in umake_exe.py causing umake break (5167).    
+    * Provided work-around to prevent crashes when globbing paths like 
+      '[client-restricted]' (5244).
+    * Increased usage information for sign tool.
+    * Removed bin\pylink (temporary workaround for Rhapsody introduced in 
+      2.4.2).
+    
+    External submissions:
+    * (cybette) Added symbian-s60-32-winscw-emulator, symbian-s60-32-armv5, and 
+      symbian-s60-32-mmp platform support to sysinfo.py and added following
+      cf files:
+         symbian-s60-32-armv5.cf, 
+         symbian-s60-32-mmp.cf, 
+         symbian-s60-32-winscw-emulator.cf, 
+         symbian-s60-32.cf
+         
+    * (ehyche) Added Windows Media support to helix-client-all-defines.
+    * (ehyche) Turned off DMO in helix-client-windowsmedia.pfi.
+    
+    * (ping) Added DLLOnlyTarget() method.
+    
+
+Changes in Ribosome v 2.4.3
+===========================
+
+    Released: 3 August 2006
+    
+    * project.addSignOption( key , value ) now accepts multi-word values and
+      values containing ':'.
+    * Updated the symbian changes from 2.4.2 to work with additional product
+      branches.
+      
+      
+Changes in Ribosome v 2.4.2
+===========================
+
+    Released: 20 July 2006
+    
+    * '-U' flag to build.py now skips MD5 signing step.
+    * Replaced Python's non-atomic print statement with sys.stdout.write() 
+      calls in buildapp.py to fix threading-related output line intermingling
+      issues.
+    * Added a new umake backend: umake\umake_symbianmmp.py.
+    * Added a new platform: symbian-91-mmp (with umakecf\symbian-91-mmp.cf) to 
+      generate MMP and bld.inf files suitable for use as makefiles for Symbian 
+      build systems (for Nokia S60).
+    * Changes to symbian*.cf files to support MMP generation:
+      - Consolidated duplicate read_ordinal_file() method into symbian.cf.
+      - Removed unnecessary UID members referenced from symbian*.cf from 
+        PlatformDependentUtils class; access directly via SymbianUtils class.
+      - Extended generate_dll_stub_code() to work with MMP.
+      - Additional general refactoring.
+    * Fixed broken macro HELIX_FEATURE_NO_XWINDOWS --> HELIX_CONFIG_NO_XWINDOWS
+      for linux-2.2-libc6-iwmmxt-xscale builds.
+    * Restored bin\pylink as a temporary fix for broken Rhapsody BIFs.
+    
+    
+Changes in Ribosome v 2.4.1
+===========================
+
+    Released: 6 July 2006
+    
+    *** Ribosome now enforces minimum python version (currently 2.4.3).
+    
+    * Re-enabled new sign.py tool (extends/replaces drmsign tool).
+    * All tools in bin now end in .py extension. All non-extensioned and .bat
+      files have been removed. The bin tools are now merely stubs that invoke
+      the new bin\launcher.py. This file provides consolidated and consistent 
+      environment setup, error handling, etc, and fixes any logging issues.
+    * The meat of the bin tools were moved into lib (as lib\<tool>_exe.py) and
+      are meant to be invoked by launcher.py.
+    * Consolidation of code resulted in removal of lib\buildui.py,
+      lib\buildmenu.py and umake\umakeui.py as no-op modules.
+    * Altered the log init behavior. Instead of going to <cwd>/build_logs,
+      where <cwd> is the directory the tool was invoked from, all logs will now
+      go to RIBOSOME_LOGDIR. Ribosome will set RIBOSOME_LOGDIR to 
+      <cwd>/ribosome_logs if it is unset upon invocation of the first tool, 
+      such that all tools spawned by the initial tool's invocation will use the
+      same log dir. Alternately, a user may set RIBOSOME_LOGDIR in their env
+      before invoking any tools to specify a different log location.
+    * Extended version.py to provide an ADT for x.y.z-string formatted 
+      versions.
+    * Added enforcePythonVersion() method to version.py - all Ribosome tools
+      now call this method during bootstrap. Any version less than required
+      will log error and raise exception.
+    * Updated calls to various tools throughout the *.cf files.
+    * Removed obsolete support for CodeWarrior Mac builds (removed 
+      lib\macemu.py).
+    * Removed obsolete CodeWarrior support from lib\archive.py. 
+    
+    Unittest changes:
+    * Added bin\testsuite.py to invoke all Ribosome unittests and report
+      summary results.
+    * Added test_version.py unittests for version.py.
+    * Modified lib\test_exe.py (formerly bin\testdriver.py) to return # of
+      errors discovered during single module test.
+    
+    External submissions (idefix):
+    * Added umakecf/sunos-5.10-sparc-studio11.cf
+    * Added 'sunos-5.10-sparc-studio11' platform to sysinfo.py
+    
+
+Changes in Ribosome v 2.4
+=========================
+
+    Released: 19 June 2006
+
+    *** Ribosome now requires python 2.4.3.
+    
+    * Added a new umake directive: NonObjectTarget(). Specifies that a target 
+      is going to be built using only a compiler tool (no linker).
+    * AddSources() no longer fatals if target is not present.
+    * Added compilers for .wsdl/soap files (wsdl.cf: SOAPCPP2Compiler, 
+      WSDLCompiler).
+    * Added rebase.py tool: reassign the base addresses of all DLL's in a 
+      specified directory subtree (win32 only).
+    * Added gethash.exe tool - determine if a file is drmsigned (win32 only).
+    * Added macos-gcc4-xcode23 platform.
+    * Set DEBUG_INFORMATION_FORMAT="dwarf" for xcode23 in umake_pb.py.    
+    * Added libpath-handling directives to umake.Project class [addLibpaths(), 
+      getLibpaths(), removeLibpaths()] (supported in win32-msvc.cf only) to
+      propagate out to VCPROJ files.
+    * Fixed bug 4833: mkdepend broken for cross compiling: 
+      * Removed mkdepend.c. 
+      * Rempved compile_mkdepend from linux-common.cf and win-nmake.cf (both 
+        revert to using the existing python bin/mkdepend).
+    * Removed linestrip.py tool (obsolete).
+    * Removed umaker.py tool (obsolete).    
+    * Refactored the overloaded boolean link_output attribute. Provided 
+      disableProcessing() and wantsProcessing() methods in umake.BuildRule and
+      added disableLinking() and wantsLinking() to umake.Project class to allow
+      for building targets without a linker step.
+    * Replaced project.target_type with project.getTargetType() universally in
+      Ribosome project, including *.py, *.cf, *.pf* files.
+    * Added wrapper for deprecation warning/handling to direct accesses of 
+      Project.target_type that might exist in external code.
+    * Refactored conditional target_type handling in umake_makefile.py and 
+      umake.py into new buildtarget.BuildTarget class hierarchy. and
+      umake.Project methods getCleanItems(), getAllLine().
+    * Refactored code for building the source and object lists from static 
+      umake_lib.SetupProject() method into umake.Project.setup() and private
+      helper methods, and into new BuildTarget classes.
+    * Refactored kludgy output_path() Project method into getOutputName() and 
+      getOutputPath() in Project class.      
+    * Added getSourceFile(), getObjectFile(), wantsProcessing(), 
+      doesObjectExist(), and doesSourceExist() methods to umake_lib.SourceFile 
+      class.      
+    * Consolidated mkdirhier() calls in armerge, mkdepend, pylink, cvs.py into 
+      utils.makeDirTree()      
+    * Fixed bin/build.bat and bin/umake.bat to handle any number of command 
+      line arguments.
+    * Replaced pylink's network-socket-as-file-lock with new filelock.FileLock
+      class.
+    * Refactored behavior in pylink into new classes: basefile.Basefile and
+      dll.DLL.
+    * Added static method HasPath() to sdk.py
+    * Removed _make_path_relative() [flagged as do not use] from shell.py.
+    * Added static methods to utils.py: appendStringToFile(), indentString(), 
+      mkdirTree(), readFile(), readLineFromFile(), writeStringsToFileNow().
+    * Added static module version.py for centralized Ribosome version tracking.
+    * Added a .cvsignore for test/lib directory (*.pyc, *.pyo).
+          
+    Unittest changes:
+    
+    * Changed the calling convention for testdriver. Test modules should now
+      be named test_<module>.py where <module> is the module you want to 
+      test (e.g: make test_dll.py to test the dll.py module. testdriver is 
+      then invoked 'testdriver.py dll'). 
+    * Moved test/bin/testdriver.py to bin/testdriver.py.
+    * Moved test/lib/test.py to lib/test.py.
+    * Renamed biftests.py --> test_bif.py to fit new convention.
+    * Added test_basefile.py and test_dll.py unittest modules for new dll and
+      basefile classes.
+    * Fixed bug in test_bif.py that was causing false failure report: String 
+      length *should* be 28, not 18.
+    
+    Logging changes:
+    
+    * Added logging of Ribosome version to bin/build, bin/umake, 
+      lib/buildapp.py, lib/buildmenu.py.
+    * Added logging of CVS version upon python import to several files.
+    * Additional logging in buildapp.py around BIF handling.
+    * Improved logging in chaingang.py.
+    * Added logging in shell.py for calls to run().
+    * Improved logging in umake_win_vc7_makefile.py.
+
+    Documentation changes:
+
+    * Added CHANGELOG.
+    * Added RELNOTES.
+    * Added a Ribosome style sheet.
+    * Revamped the Umake API doc page.
+    * Updated several doc pages.
+    * Added requirements.html and removed python.html.
+    * Added license info to test/data/README and test/data/bif/test.bif.
+      
+
+Changes in Ribosome v 2.3.3
+===========================
+
+    18 June 2006
+    
+    External submissions (dcollins):
+    * Server-specific Solaris 10 build configuration.
+    * Server-specific Solaris 11 build configuration.
+    * Server-specific system IDs: sunos-5.10-sparc-server, 
+      sunos-5.11-sparc-server
+      
+Changes in Ribosome v 2.3.2
+===========================
+
+    13 June 2006
+    
+    External submissions (sgadamsetty):
+    * Created helix-client-tone.pfi.
+    * Added helix-client-tone.pfi to helix-client-all-defines.pf.
+    
+Changes in Ribosome v 2.3.1
+===========================
+
+    8 June 2006   
+    
+    External submissions:     
+    (abrouaux)
+    * Initial VC8 support:
+      * Added umake_win_vc8_makefile.py.
+      * Added win32-i386-vc8.cf.
+      * Added win32-i386-vc8 platform (includes 'win-vc8' in 
+        sysinfo.family_list).
+      * win-vc8 in sysinfo.family_list invokes umake_win_vc8_makefile.
+
+    (jfinnecy):
+    * Additional logging in branchlist.py and buildapp.py
+    * Changed join() call in log.py to old-style string support.
+

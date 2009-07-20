@@ -1,0 +1,50 @@
+# Commands:
+# Reset
+# Timeout <operationID> <timeout>
+# CancelLast <operationID> <timeout>
+# RunScheduler
+
+# Test simple case where timeouts are scheduled in order and
+# called in order
+Reset
+Timeout 0 100
+Timeout 1 200
+Timeout 2 300
+Timeout 3 400
+Timeout 4 500
+Timeout 5 600
+Timeout 6 700
+Timeout 7 800
+Timeout 8 900
+Timeout 9 1000
+RunScheduler
+
+# Test case where timeouts are scheduled out of order
+Reset
+Timeout 0 100
+Timeout 8 900
+Timeout 2 300
+Timeout 3 400
+Timeout 5 600
+Timeout 4 500
+Timeout 6 700
+Timeout 7 800
+Timeout 1 200
+Timeout 9 1000
+RunScheduler
+
+
+# Test simple cancel case
+Reset
+Timeout 0 100
+Timeout 1 200
+Timeout 2 300
+Timeout 3 400
+Timeout 0 500
+CancelLast  4 450
+Timeout 5 600
+Timeout 6 700
+Timeout 7 800
+Timeout 8 900
+Timeout 9 1000
+RunScheduler

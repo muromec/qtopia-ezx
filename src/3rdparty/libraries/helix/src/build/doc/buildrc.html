@@ -1,0 +1,196 @@
+<!--  ***** BEGIN LICENSE BLOCK *****  
+  
+ Source last modified: $Id: buildrc.html,v 1.8 2006/04/24 23:34:01 jfinnecy Exp $ 
+  
+ Copyright Notices: 
+  
+ Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
+  
+ Patent Notices: This file may contain technology protected by one or  
+ more of the patents listed at www.helixcommunity.org 
+  
+ 1.   The contents of this file, and the files included with this file, 
+ are protected by copyright controlled by RealNetworks and its  
+ licensors, and made available by RealNetworks subject to the current  
+ version of the RealNetworks Public Source License (the "RPSL")  
+ available at  * http://www.helixcommunity.org/content/rpsl unless  
+ you have licensed the file under the current version of the  
+ RealNetworks Community Source License (the "RCSL") available at 
+ http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ will apply.  You may also obtain the license terms directly from 
+ RealNetworks.  You may not use this file except in compliance with 
+ the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ the rights, obligations and limitations governing use of the 
+ contents of the file. 
+  
+ 2.  Alternatively, the contents of this file may be used under the 
+ terms of the GNU General Public License Version 2 (the 
+ "GPL") in which case the provisions of the GPL are applicable 
+ instead of those above.  Please note that RealNetworks and its  
+ licensors disclaim any implied patent license under the GPL.   
+ If you wish to allow use of your version of this file only under  
+ the terms of the GPL, and not to allow others 
+ to use your version of this file under the terms of either the RPSL 
+ or RCSL, indicate your decision by deleting Paragraph 1 above 
+ and replace them with the notice and other provisions required by 
+ the GPL. If you do not delete Paragraph 1 above, a recipient may 
+ use your version of this file under the terms of any one of the 
+ RPSL, the RCSL or the GPL. 
+  
+ This file is part of the Helix DNA Technology.  RealNetworks is the 
+ developer of the Original Code and owns the copyrights in the 
+ portions it created.   Copying, including reproducing, storing,  
+ adapting or translating, any or all of this material other than  
+ pursuant to the license terms referred to above requires the prior  
+ written consent of RealNetworks and its licensors 
+  
+ This file, and the files included with this file, is distributed 
+ and made available by RealNetworks on an 'AS IS' basis, WITHOUT  
+ WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS  
+ AND ITS LICENSORS HEREBY DISCLAIM  ALL SUCH WARRANTIES, INCLUDING  
+ WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS  
+ FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+  
+ Technology Compatibility Kit Test Suite(s) Location:  
+    http://www.helixcommunity.org/content/tck 
+  
+  Contributor(s):
+  
+  ***** END LICENSE BLOCK *****
+-->
+<html>
+<head><title>The buildrc file</title></head>
+<body bgcolor="#ffffff">
+
+<h1>The buildrc file</h1>
+<hr>
+
+<p>
+The buildrc file tells the ribosome build system where how to access
+CVS and where to look for <a href=bif.html>BIF</a> files. In order to
+find your buildrc file, build looks in the following places:
+<ol>
+<li> $BUILDRC
+<li> $HOME/.buildrc
+<li> $HOMEDRIVE/$HOMEPATH/.buildrc
+<li> "buildrc" in the System Folder:Preferences if you use macpython
+</ol>
+
+As you can see there are lots of ways to specify where your buildrc file goes.
+
+</p>
+
+<p>
+The buildrc file has the same syntax as a python file, but there are only
+two functions available to call:
+</p>
+
+<hr>
+<a name=AddCVS>
+<p>
+<b>AddCVS(<i>name, root [, shadow]</i>)</b><br>
+<i>arguments: name(string), root(string), shadow(string) </i><br>
+<i>returns: none</i><br>
+
+ This function adds a cvs repository and gives it a name.
+ If you are using maccvs, then <i>root</i> should be the
+ name of a CVSSESSION file, otherwise it should be a standard
+ CVSROOT. The <i>name</i> can later be used from a BIF file
+ or in a BIF file search path.
+
+<p>
+Example: <tt>AddCVS("helix",":pserver:yourname@localhost:/cvs")</tt>
+</p>
+
+If the <i>shadow</i> parameter is present, it is assumed to be
+a mirror repository which will be used for the initial checkout.
+The <tt>CVS/Root</tt> file in each directory will then be updated
+to point to the real cvs repository.
+</p>
+</a>
+
+<hr>
+<a name=AddBIFPath>
+<p>
+<b>AddBIFPath(<i>prefix, path</i>)</b><br>
+<i>arguments: prefix(string), path(string)</i><br>
+<i>returns: none</i><br>
+
+ This function adds a search path for <a href=bif.html>BIF</a> files.
+ The <i>prefix</i> is used to give unique names to targets
+ in BIF files, so don't use the same prefix twice.
+ Also, the prefix must be a valid file name. The <i>path</i>
+ can either be a normal file system path, or a reference to
+ a cvs repository. To reference a CVS repository, you must
+ use a string like: "[cvsname]/cvsmodule/subdir"
+ In this case 'cvsname' is the name of a CVS repository which
+ should be added using <a href=#AddCVS>AddCVS</a>.
+ <p>
+ If no AddBIFPath is present in your buildrc file, or if there
+ is no buildrc file, some backwards compatible default will be used.
+ <p>
+ Example: <tt>AddBIFPath("common","[helix]/common/build/BIF")</tt>
+</p>
+</a>
+
+<hr>
+<a name=AddBIFShadow>
+<p>
+<b>SetBIFShadow(<i>bif_id</i>)</b><br>
+<i>arguments: bif_id(string)</i><br>
+<i>returns: none</i><br>
+
+This function instructs the build system to parse the specified BIF
+file after reading any other BIF file. This BIF file can thus redefine
+modules and modify builds accordingly.
+
+</p>
+</a>
+
+
+<hr>
+<a name=AddProfilePath>
+<p>
+<b>AddProfilePath(<i>prefix, path</i>)</b><br>
+<i>arguments: prefix(string), path(string)</i><br>
+<i>returns: none</i><br>
+
+ This function adds a search path for <a href=profiles.html>profile</a> files.
+ The <i>prefix</i> is used to give unique names to profiles
+ in case there are duplicates, so don't use the same prefix twice.
+ Also, the prefix must be a valid file name. The <i>path</i>
+ can either be a normal file system path, or a reference to
+ a cvs repository. To reference a CVS repository, you must
+ use a string like: "[cvsname]/cvsmodule/subdir"
+ In this case 'cvsname' is the name of a CVS repository which
+ should be added using <a href=#AddCVS>AddCVS</a>.
+ <p>
+ If no AddProfilePath is present in your buildrc file, or if there
+ is no buildrc file, some backwards compatible default will be used.
+ <p>
+ Example: <tt>AddProfilePath("common","[helix]/common/build/umakepf")</tt>
+</p>
+</a>
+
+<hr>
+<a name=SetSDKPath>
+<p>
+<b>SetSDKPath(<i>sdk_name, path</i>)</b><br>
+<i>arguments: sdk_name(string), path(string)</i><br>
+<i>returns: none</i><br>
+
+This function tells the build system where to find an SDK.
+It is required in order for the build system to be able to
+find directx and other third party libraries. These paths
+can later be used in your <a href="umakefil.html">Umake files</a>
+and should also be declared in your <a href="bif.html">BIF</a>
+files.
+
+</p>
+</a>
+
+
+<hr>
+</body>
+</html>
