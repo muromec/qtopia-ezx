@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: strmdata.h,v 1.16 2009/04/21 18:38:52 ckarusala Exp $ 
+ * Source last modified: $Id: strmdata.h,v 1.12 2007/02/02 07:09:54 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -46,7 +46,6 @@
 #include "tsconvrt.h"
 
 #define MAX_METER_QUEUE 1024
-#define HX_INVALID_STREAM 0xFFFF
 
 _INTERFACE IHXServerPauseAdvise;
 
@@ -59,6 +58,7 @@ typedef enum
     ACTION_OFF,
     ACTION_ON
 } ActionState;
+
 
 class PPMStreamData
 {
@@ -84,7 +84,6 @@ public:
 	BOOL		    m_bSyncOk;
 	UINT16*		    m_pOnDepends;
 	UINT16*		    m_pOffDepends;
-	INT16		    m_lInterDepends;
     };
 
     class Packets
@@ -122,7 +121,6 @@ public:
 
     void SetSession(PPM::Session* pSession);
     BOOL IsDependOk(BOOL bOn, UINT16 unRule);
-    HXBOOL IsInterDependOk(UINT16 unRule);
     BOOL IsStreamDone();
     void Reset();
     void MeterCallbackFunc();
@@ -142,10 +140,7 @@ public:
     HX_RESULT SetStreamAdaptation(StreamAdaptationSchemeEnum enumAdaptScheme,
 							StreamAdaptationParams* pStreamAdaptParams);
 
-    void SuspendTimeline(Timeval& tvTimelineStart);
-
     UINT16              m_unSequenceNumber;
-    UINT16              m_unStartingSeqNum;
 
     struct SequenceHistory {
         UINT32  m_ulRefCount;
@@ -194,24 +189,14 @@ public:
     BOOL		m_bWouldBlocking;
     BOOL		m_bGotSubscribe;
     BOOL		m_bStreamRegistered;
-    HXBOOL              m_bSwitchGroupRegistered;
-    UINT32              m_ulSwitchGroupID;
-    UINT16              m_unRegisteredStream;
-    HXPacketType        m_nPacketType;
 
     //This is used for live timestampdelivery packets only:
     UINT32		m_ulEncoderTimeMinusPlayerTimeOffset;
     BOOL                m_bSetEncoderOffset;
 
     //Used for range headers in play responses
-    HXBOOL              m_bFirstPacketTSSet;
+    BOOL                m_bFirstPacketTSSet;
     UINT32              m_ulFirstPacketTS;
-    
-    HXBOOL              m_bSyncReady;
-    UINT32              m_ulFirstMediaTS;
-    UINT32              m_ulFirstRTPTS;
-    UINT32              m_ulFirstDeliveryTime;
-
     CHXTimestampConverter* m_pTSConverter;
     UINT32              m_ulPreroll;
 

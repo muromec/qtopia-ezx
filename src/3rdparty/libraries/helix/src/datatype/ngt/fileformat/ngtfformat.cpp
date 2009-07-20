@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ngtfformat.cpp,v 1.7 2008/07/02 14:47:22 gwright Exp $
+ * Source last modified: $Id: ngtfformat.cpp,v 1.5 2007/03/23 00:40:47 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1509,7 +1509,7 @@ HXBOOL CNGTFileFormat::TestStreamHeaderItemMatchBuffer(UINT16 uStrmNumber,
 	    }
 	    else if (pBuffer1->GetSize() == pBuffer2->GetSize())
 	    {
-		if (!memcmp(pBuffer1->GetBuffer(), pBuffer2->GetBuffer(), pBuffer1->GetSize()))
+		if (!memcmp(pBuffer1->GetBuffer(), pBuffer2->GetBuffer(), ulSize))
 		{
 		    bRetVal = TRUE;
 		}

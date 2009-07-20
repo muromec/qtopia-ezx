@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: vidrend.cpp,v 1.100 2009/02/13 15:34:26 ehyche Exp $
+ * Source last modified: $Id: vidrend.cpp,v 1.95 2007/04/12 18:16:26 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -450,7 +450,6 @@ CVideoRenderer::CVideoRenderer(void)
         , m_bAutoSwitch(TRUE)
         , m_bSentKeyFrameModeRequest(FALSE)
 {
-    HXLOGL4(HXLOG_BVID, "CON CVideoRenderer this=%p", this);
     m_SetWinSize.cx            = 0;
     m_SetWinSize.cy            = 0;
     m_LastSetSize.cx           = 0;
@@ -471,7 +470,6 @@ CVideoRenderer::CVideoRenderer(void)
 
 CVideoRenderer::~CVideoRenderer()
 {
-    HXLOGL4(HXLOG_BVID, "DES CVideoRenderer this=%p", this);
     Close();
 
     HX_DELETE(m_pVSurf2InputBIH);
@@ -547,7 +545,6 @@ void CVideoRenderer::Close(void)
 STDMETHODIMP CVideoRenderer::InitPlugin(IUnknown* /*IN*/ pContext)
 {
     HX_ENABLE_LOGGING(pContext);
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::InitPlugin()", this);
     HX_RESULT retVal = HXR_OK;
 
     HX_ASSERT(pContext);
@@ -682,7 +679,6 @@ STDMETHODIMP CVideoRenderer::GetRendererInfo
 STDMETHODIMP CVideoRenderer::StartStream(IHXStream* pStream,
                                            IHXPlayer* pPlayer)
 {
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::StartStream(pStream=%p,pPlayer=%p)", this, pStream, pPlayer);
     m_pStream  = pStream;
 
     if (m_pStream)
@@ -733,10 +729,9 @@ STDMETHODIMP CVideoRenderer::StartStream(IHXStream* pStream,
 //
 STDMETHODIMP CVideoRenderer::EndStream()
 {
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::EndStream()", this);
     // Stop Blts by changing state
     m_pMutex->Lock();
-    ChangePlayState(Stopped);
+    m_PlayState = Stopped;
     m_pMutex->Unlock();
 
     DisplayMutex_Lock();
@@ -829,7 +824,6 @@ STDMETHODIMP CVideoRenderer::EndStream()
 //
 STDMETHODIMP CVideoRenderer::OnHeader(IHXValues* pHeader)
 {
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::OnHeader()", this);
     HX_RESULT retVal = HXR_OK;
 
     HX_DELETE(m_pClipRect);
@@ -1106,7 +1100,7 @@ STDMETHODIMP CVideoRenderer::OnPacket(IHXPacket* pPacket, LONG32 lTimeOffset)
 	return HXR_OK;
     }
 
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::OnPacket() pts=%lu offset=%ld rule=%u flags=0x%02x timenow=%lu decqdepth=%lu",
+    HXLOGL4(HXLOG_BVID, "CVideoRenderer(%p)::OnPacket() pts=%lu offset=%ld rule=%u flags=0x%02x timenow=%lu decqdepth=%lu",
 	    this,
             (pPacket ? pPacket->GetTime() : 0),
 	    lTimeOffset,
@@ -1147,6 +1141,10 @@ STDMETHODIMP CVideoRenderer::OnPacket(IHXPacket* pPacket, LONG32 lTimeOffset)
                 return HXR_OUTOFMEMORY;
             }
         }
+        else
+        {
+            m_pDecoderPump->Signal();
+        }
     }
     else
     {
@@ -1182,7 +1180,7 @@ STDMETHODIMP CVideoRenderer::OnPacket(IHXPacket* pPacket, LONG32 lTimeOffset)
 	}
     }
 
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::OnPacket() Exiting timenow=%lu decqdepth=%lu", this,
+    HXLOGL4(HXLOG_BVID, "CVideoRenderer::OnPacket() Exiting timenow=%lu decqdepth=%lu",
             m_pTimeSyncSmoother->GetTimeNow(),
 	    m_pVideoFormat ? m_pVideoFormat->GetDecodedFrameQueueDepth() : 0);
 
@@ -1201,7 +1199,7 @@ STDMETHODIMP CVideoRenderer::OnPacket(IHXPacket* pPacket, LONG32 lTimeOffset)
 //
 STDMETHODIMP CVideoRenderer::OnTimeSync(ULONG32 ulTime)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnTimeSync(%lu)", this, ulTime);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnTimeSync(%lu)", ulTime);
     m_pTimeSyncSmoother->OnTimeSync(ulTime);
 
     if (m_bSchedulerStartRequested)
@@ -1254,12 +1252,12 @@ STDMETHODIMP CVideoRenderer::OnTimeSync(ULONG32 ulTime)
         if (m_PlayState == Buffering)
         {
             EndBuffering();
-            ChangePlayState(PlayStarting);
+            m_PlayState = PlayStarting;
         }
 
         if (m_PlayState == PlayStarting)
         {
-            ChangePlayState(Playing);
+            m_PlayState = Playing;
 
             BltIfNeeded();
 
@@ -1311,8 +1309,6 @@ HX_RESULT CVideoRenderer::StartSchedulers(void)
 	retVal = CreateInstanceCCF(CLSID_IHXPaceMaker, (void**)&m_pDecoderPump, m_pContext);
         if (SUCCEEDED(retVal))
         {
-            // We will use the decoder pace maker in suspended mode
-            m_pDecoderPump->Suspend(TRUE);
             m_pDecoderPump->Start(this,
                 GetDecodePriority(),
                 DECODER_INTERVAL,
@@ -1349,18 +1345,18 @@ HX_RESULT CVideoRenderer::StartSchedulers(void)
 //
 STDMETHODIMP CVideoRenderer::OnPreSeek(ULONG32 ulOldTime, ULONG32 ulNewTime)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnPreSeek(OldTime=%lu, NewTime=%lu)", this, ulOldTime, ulNewTime);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnPreSeek(OldTime=%lu, NewTime=%lu)", ulOldTime, ulNewTime);
 
     // Change state to stop Blts
     m_pMutex->Lock();
     EndBuffering();
-    ChangePlayState(Seeking);
+    m_PlayState = Seeking;
     m_pMutex->Unlock();
 
-    // Suspend the decoder thread
-    m_pVideoFormat->SuspendDecode(TRUE);
+    // Suspend the Decoder pump
     if (m_pDecoderPump)
     {
+        m_pDecoderPump->Suspend(TRUE);
         m_pDecoderPump->Signal();
         m_pDecoderPump->WaitForSuspend();
     }
@@ -1398,14 +1394,13 @@ STDMETHODIMP CVideoRenderer::OnPreSeek(ULONG32 ulOldTime, ULONG32 ulNewTime)
 //
 STDMETHODIMP CVideoRenderer::OnPostSeek(ULONG32 ulOldTime, ULONG32 ulNewTime)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnPostSeek(OldTime=%lu, NewTime=%lu)", this, ulOldTime, ulNewTime);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnPostSeek(OldTime=%lu, NewTime=%lu)", ulOldTime, ulNewTime);
 
     DisplayMutex_Lock();
 
-    // Resume the decoder thread
-    m_pVideoFormat->SuspendDecode(FALSE);
     if (m_pDecoderPump)
     {
+        m_pDecoderPump->Suspend(FALSE);
         m_pDecoderPump->Signal();
     }
 
@@ -1436,7 +1431,7 @@ STDMETHODIMP CVideoRenderer::OnPostSeek(ULONG32 ulOldTime, ULONG32 ulNewTime)
 
     // PostSeek signals the proper packets are to start arriving
     m_pMutex->Lock();
-    ChangePlayState(PlayStarting);
+    m_PlayState = PlayStarting;
     m_pMutex->Unlock();
 
     return HXR_OK;
@@ -1452,11 +1447,11 @@ STDMETHODIMP CVideoRenderer::OnPostSeek(ULONG32 ulOldTime, ULONG32 ulNewTime)
 //
 STDMETHODIMP CVideoRenderer::OnPause(ULONG32 ulTime)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnPause(Time=%lu)", this, ulTime);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnPause(Time=%lu)", ulTime);
 
     m_pMutex->Lock();
 
-    ChangePlayState(Paused);
+    m_PlayState = Paused;
 
     m_pMutex->Unlock();
 
@@ -1475,7 +1470,7 @@ STDMETHODIMP CVideoRenderer::OnBegin(ULONG32 ulTime)
 {   
     HX_RESULT retVal = HXR_OK;
 
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnBegin(Time=%lu)", this, ulTime);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnBegin(Time=%lu)", ulTime);
 
     m_pMutex->Lock();
 
@@ -1484,7 +1479,7 @@ STDMETHODIMP CVideoRenderer::OnBegin(ULONG32 ulTime)
     // will be starting
     if (m_PlayState != Seeking)
     {
-        ChangePlayState(PlayStarting);
+        m_PlayState = PlayStarting;
     }
 
     // No need to clear the Blt Packet queue here since
@@ -1535,7 +1530,7 @@ STDMETHODIMP CVideoRenderer::OnBuffering(ULONG32 ulFlags, UINT16 unPercentComple
 {
     HX_RESULT retVal = HXR_OK;
 
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnBuffering(Flags=%lu, Percent=%hu)", this, ulFlags, unPercentComplete);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnBuffering(Flags=%lu, Percent=%hu)", ulFlags, unPercentComplete);
 
     m_pMutex->Lock();
 
@@ -1552,7 +1547,7 @@ STDMETHODIMP CVideoRenderer::OnBuffering(ULONG32 ulFlags, UINT16 unPercentComple
 	// on resumption, we'll have a play-time to wall-clock time shift and
 	// will need to restart learning the relation between the two.
 	m_pTimeSyncSmoother->ResetSampleCounts();
-        ChangePlayState(PlayStarting);
+        m_PlayState = PlayStarting;
     }
 
     m_pMutex->Unlock();
@@ -1593,7 +1588,7 @@ STDMETHODIMP CVideoRenderer::GetDisplayType(REF(HX_DISPLAY_TYPE) ulFlags,
 */
 STDMETHODIMP CVideoRenderer::OnEndofPackets(void)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::OnEndofPackets()", this);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::OnEndofPackets()");
 
     if (m_pVideoFormat)
     {
@@ -1623,7 +1618,7 @@ STDMETHODIMP CVideoRenderer::InitializeStatistics(UINT32 ulRegistryID)
     char* pValue = NULL;
     HX_RESULT retVal = HXR_UNEXPECTED;
 
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::InitializeStatistics(RegistryID=%lu)", this, ulRegistryID);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::InitializeStatistics(RegistryID=%lu)", ulRegistryID);
 
     if (m_pVideoStats)
     {
@@ -1703,7 +1698,7 @@ STDMETHODIMP CVideoRenderer::UpdateStatistics()
 #if defined(HELIX_FEATURE_STATS)
     HX_RESULT retVal = HXR_UNEXPECTED;
 
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::UpdateStatistics()", this);
+    HXLOGL4(HXLOG_BVID, "CVideoRenderer::UpdateStatistics()");
 
     if (m_pVideoStats)
     {
@@ -1741,10 +1736,6 @@ STDMETHODIMP_(HX_RESULT) CVideoRenderer::SetUntimedRendering(HXBOOL bUntimedRend
     }
     else
     {
-	if( m_bUntimedRendering && !bUntimedRendering )
-	{
-	    m_hPendingHandle = NULL;
-	}
 	m_bUntimedRendering = bUntimedRendering;
         hr = UntimedModeNotice(bUntimedRendering);
     }
@@ -1763,7 +1754,7 @@ STDMETHODIMP_(HX_RESULT) CVideoRenderer::SetUntimedRendering(HXBOOL bUntimedRend
  */
 STDMETHODIMP CVideoRenderer::UpdatePacketTimeOffset(INT32 lTimeOffset)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::UpdatePacketTimeOffset(Offset=%ld)", this, lTimeOffset);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::UpdatePacketTimeOffset(Offset=%ld)", lTimeOffset);
 
     m_pTimeSyncSmoother->UpdateTimelineOffset(lTimeOffset);
 
@@ -1780,7 +1771,7 @@ STDMETHODIMP CVideoRenderer::UpdatePacketTimeOffset(INT32 lTimeOffset)
 STDMETHODIMP
 CVideoRenderer::UpdatePlayTimes(IHXValues* pProps)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::UpdatePlayTimes()", this);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::UpdatePlayTimes()");
 
     return HXR_OK;
 }
@@ -1794,27 +1785,14 @@ CVideoRenderer::UpdatePlayTimes(IHXValues* pProps)
  */
 STDMETHODIMP CVideoRenderer::GetTimeLineValue(REF(UINT32) ulTime)
 {
-    HX_RESULT retVal = HXR_OK;
-
     ulTime = ((ULONG32) -ComputeTimeAhead(0, 0));
 
-    switch (m_PlayState)
+    if (m_PlayState != Playing)
     {
-        case Stopped:
-            retVal = HXR_TIMELINE_ENDED;
-            break;
-        case Buffering:
-        case PlayStarting:
-        case Paused:
-        case Seeking:
-            retVal = HXR_TIMELINE_SUSPENDED;
-            break;
-        case Playing:
-            retVal = HXR_OK;
-            break;
+        return HXR_TIMELINE_SUSPENDED;
     }
 
-    return retVal;
+    return HXR_OK;
 }
 
 
@@ -1868,7 +1846,7 @@ CVideoRenderer::GetCurrentPushdown(REF(UINT32) ulPushdownMS,
 	ulPushdownMS = ((lPushdownDelta >= 0) ? ((UINT32) lPushdownDelta) : 0);
     }
 
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::GetCurrentPushdown() PastPreSeek=%c ulPushdownMS=%lu ulNumFrames=%lu", this,
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::GetCurrentPushdown() PastPreSeek=%c ulPushdownMS=%lu ulNumFrames=%lu",
 	    m_bPreSeekPointFrames ? 'F' : 'T',
 	    ulPushdownMS, 
 	    ulNumFrames);
@@ -1896,7 +1874,7 @@ CVideoRenderer::IsG2Video()
  */
 STDMETHODIMP CVideoRenderer::AttachSite(IHXSite* /*IN*/ pSite)
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::AttachSite(Site=%p)", this, pSite);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::AttachSite(Site=%p)", pSite);
 
     if (m_pMISUSSite)
     {
@@ -2005,7 +1983,7 @@ STDMETHODIMP CVideoRenderer::AttachSite(IHXSite* /*IN*/ pSite)
 STDMETHODIMP
 CVideoRenderer::DetachSite()
 {
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::DetachSite() Start", this);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::DetachSite() Start");
 
     m_bSiteAttached = FALSE;
 
@@ -2023,7 +2001,7 @@ CVideoRenderer::DetachSite()
     RemoveCallback(m_hPendingHandle);
     m_bPendingCallback = FALSE;
 
-    HXLOGL3(HXLOG_BVID, "CVideoRenderer[%p]::DetachSite() End", this);
+    HXLOGL3(HXLOG_BVID, "CVideoRenderer::DetachSite() End");
 
     return HXR_OK;
 }
@@ -2478,7 +2456,7 @@ void CVideoRenderer::FormatAndSetViewFrame(HXxRect* pClipRect,
 {
     HXxSize szViewFrame;
 
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::FormatAndSetViewFrame() Start", this);
+    HXLOGL4(HXLOG_BVID, "CVideoRenderer::FormatAndSetViewFrame() Start");
 
     if (bMutex)
     {
@@ -2549,7 +2527,7 @@ void CVideoRenderer::FormatAndSetViewFrame(HXxRect* pClipRect,
         DisplayMutex_Unlock();
     }
 
-    HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::FormatAndSetViewFrame() End", this);
+    HXLOGL4(HXLOG_BVID, "CVideoRenderer::FormatAndSetViewFrame() End");
 }
 
 
@@ -2723,15 +2701,6 @@ void CVideoRenderer::SetSyncInterval(ULONG32 ulSyncInterval)
     }
 }
 
-void CVideoRenderer::ChangePlayState(PlayState eState)
-{
-    m_PlayState = eState;
-}
-
-void CVideoRenderer::SetPlayStateStopped()
-{
-    ChangePlayState(Stopped);
-}
 
 /****************************************************************************
  *  InitExtraStats
@@ -2861,7 +2830,7 @@ HX_RESULT CVideoRenderer::UpdateDisplay(HXxEvent* pEvent,
     {
         bNewFrameBlt = TRUE;
 
-	HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::UpdateDisplay GotNewFrame: PTS=%lu", this,
+	HXLOGL4(HXLOG_BVID, "CVideoRenderer::UpdateDisplay GotNewFrame: PTS=%lu",
 	        pVideoPacket->m_ulTime);
 
         if (m_bVSBufferUndisplayed && m_pActiveVideoPacket)
@@ -3282,11 +3251,6 @@ HX_RESULT CVideoRenderer::UpdateVideoSurface(IHXVideoSurface* pVideoSurface,
             destRect,
             sorcRect);
     }
-    if (SUCCEEDED(retVal))
-    {
-        m_bFirstSurfaceUpdate = FALSE;
-    }
-
 
     return retVal;
 }
@@ -3512,7 +3476,7 @@ inline CallbackHandle CVideoRenderer::ScheduleAbsoluteCallback
 
 void CVideoRenderer::RemoveCallback(CallbackHandle &hCallback)
 {
-    if ((!m_bUntimedRendering) && (hCallback != (CallbackHandle)NULL))
+    if (hCallback != (CallbackHandle)NULL)
     {
         if (m_pOptimizedScheduler != NULL)
         {
@@ -4078,7 +4042,7 @@ HX_RESULT CVideoRenderer::BeginBuffering(void)
 
         if (m_ulBufferingTimeOut > 0)
         {
-            ChangePlayState(Buffering);
+            m_PlayState = Buffering;
 
             retVal = m_pStream->ReportRebufferStatus(1, 0);
         }
@@ -4100,7 +4064,7 @@ HX_RESULT CVideoRenderer::EndBuffering(void)
 	
     if (m_PlayState == Buffering)
     {
-        ChangePlayState(PlayStarting);
+        m_PlayState = PlayStarting;
         m_bBufferingOccured = TRUE;
         m_ulBufferingStopTime = HX_GET_BETTERTICKCOUNT();
 
@@ -4222,7 +4186,14 @@ void CVideoRenderer::ReleasePacket(CMediaPacket* pPacket,
         }
     }
 
-    if (!IsDecoderRunning())
+    if (IsDecoderRunning())
+    {
+        if (m_pDecoderPump)
+        {
+            m_pDecoderPump->Signal();
+        }
+    }
+    else
     {
 	if (m_pVideoFormat)
 	{
@@ -5253,14 +5224,7 @@ void CVideoRenderer::ClearClipRect()
     HX_DELETE(m_pClipRect);
 }
 
-void CVideoRenderer::SignalDecoderThread()
-{
-    if (m_pDecoderPump && m_bDecoderRunning)
-    {
-        HXLOGL4(HXLOG_BVID, "CVideoRenderer[%p]::SignalDecoderThread() - signalling decoder pump", this);
-        m_pDecoderPump->Signal();
-    }
-}
+
 
 STDMETHODIMP_(HXBOOL) CVideoRenderer::FirstFrameDisplayed()
 {

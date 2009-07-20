@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXSymbianAudioDevice.h,v 1.3 2009/02/27 22:56:38 shivnani Exp $
+ * Source last modified: $Id: CHXSymbianAudioDevice.h,v 1.1 2007/04/03 18:21:57 rrajesh Exp $
  * Copyright Notices: 
  *  
  * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved. 
@@ -64,7 +64,7 @@
 #include <stdio.h>
 #include <e32base.h>
 #include <bacntf.h>
-#include <mmf/common/Mmfbase.h>
+#include <mmf\common\Mmfbase.h>
 
 #include "hxcom.h"
 #include "hxausvc.h"
@@ -125,8 +125,6 @@ public:
     virtual TInt GetMinVolume() const = 0;
 	// set the current volume
     virtual void SetVolume(TInt volume) = 0;
-
-	virtual TInt SetSecureOutput(HXBOOL bSecureAudio) = 0;
 
     virtual void RequestDeviceTakenNotification(
         CHXAudDevStatusObserver* pDevStatusObserver) = 0;

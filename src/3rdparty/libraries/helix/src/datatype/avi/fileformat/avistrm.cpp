@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -73,7 +73,7 @@
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE
-static const char HX_THIS_FILE[] = __FILE__;
+static char HX_THIS_FILE[] = __FILE__;
 #endif
 
 // Operational defines:
@@ -107,7 +107,6 @@ static const char HX_THIS_FILE[] = __FILE__;
 
 #define AVI_VIDS_TYPE       HX_MAKE4CC('v', 'i', 'd', 's') /* 'vids' */
 #define AVI_AUDS_TYPE       HX_MAKE4CC('a', 'u', 'd', 's') /* 'auds' */
-#define AVI_H261_VIDEO      HX_MAKE4CC('1', '6', '2', 'H') /* 'H261' */
 
 // FourCCs - TODO: make macros?
 #define AVI_MJPG_VIDEO      HX_MAKE4CC('G', 'P', 'J', 'M') /* 'GPJM' */
@@ -248,17 +247,8 @@ static const char HX_THIS_FILE[] = __FILE__;
 #define  WAVE_FORMAT_EXTENSIBLE                 0xFFFE /* Microsoft */
 #define  WAVE_FORMAT_DEVELOPMENT                0xFFFF /* new wave formats in development */
 
-#define  VIDEO_FORMAT_H263 HX_MAKE4CC('3', '6', '2', 'H')
-#define  VIDEO_FORMAT_divx HX_MAKE4CC('x', 'v', 'i', 'd')
-#define  VIDEO_FORMAT_DIVX HX_MAKE4CC('X', 'V', 'I', 'D')
-#define  VIDEO_FORMAT_DX50 HX_MAKE4CC('0', '5', 'X', 'D')
-#define  VIDEO_FORMAT_dx50 HX_MAKE4CC('0', '5', 'x', 'd')
-#define  VIDEO_FORMAT_XVID HX_MAKE4CC('D', 'I', 'V', 'X')
-#define  VIDEO_FORMAT_xvid HX_MAKE4CC('d', 'i', 'v', 'x')
-#define  VIDEO_FORMAT_H264 HX_MAKE4CC('4', '6', '2', 'H') 
-#define  VIDEO_FORMAT_h264 HX_MAKE4CC('4', '6', '2', 'h')  
-#define  VIDEO_FORMAT_AVC1 HX_MAKE4CC('1', 'C', 'V', 'A') 
-#define  VIDEO_FORMAT_avc1 HX_MAKE4CC('1', 'c', 'v', 'a') 
+#define  VIDEO_FORMAT_H263 HX_MAKE4CC('H', '2', '6', '3')
+#define  VIDEO_FORMAT_DIVX HX_MAKE4CC('d', 'i', 'v', 'x')
 
 #define AVI_LIST_OBJECT     0x4c495354 /* 'LIST' */
 #define AVI_RECORD_TYPE     0x72656320 /* 'rec ' */
@@ -313,7 +303,6 @@ CAVIStream::CAVIStream(CAVIFileFormat* pOuter, UINT16 usStream,
     , m_ulSeekTime (0)
     , m_pFile (NULL)
 {
-    HXLOGL2(HXLOG_AVIX, "CAVIStream[%p]::CAVIStream() CTOR", this);
     HX_ASSERT_VALID_PTR(m_pOuter);
     HX_ASSERT_VALID_PTR(m_pContext);
     HX_ADDREF(m_pContext);
@@ -337,7 +326,7 @@ CAVIStream::CAVIStream(CAVIFileFormat* pOuter, UINT16 usStream,
 //
 CAVIStream::~CAVIStream()
 {
-    HXLOGL2(HXLOG_AVIX, "CAVIStream[%p]::~CAVIStream()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::~CAVIStream()\n");
 /*    HX_RELEASE(m_pReader);
     HX_DELETE(m_pFormat);
     HX_RELEASE(m_pPayloadFormatter);
@@ -355,7 +344,7 @@ CAVIStream::~CAVIStream()
 //
 HX_RESULT CAVIStream::SetHeader(UINT16 usStream, IHXBuffer* pHeader)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::SetHeader() usStream=%d", this, usStream);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetHeader()\n");
     HX_RESULT result = HXR_FAIL;
 
     UCHAR* buf;
@@ -363,15 +352,13 @@ HX_RESULT CAVIStream::SetHeader(UINT16 usStream, IHXBuffer* pHeader)
 
     if (pHeader && SUCCEEDED(result = pHeader->Get(buf, len)))
     {
-        HX_ASSERT(len >= SIZE_OF_AVI_VIDEO_HEADER);
-        if (len < SIZE_OF_AVI_VIDEO_HEADER)
+        HX_ASSERT(len >= sizeof(m_header));
+        if (len < sizeof(m_header))
         {
             return HXR_FAIL;
         }
 
-        // use integer to respresent stream type, the absolute value is not important.
-        // it should be consistent with AVI_VIDS_TYPE AVI_AUDS_TYPE AVI_MJPG_VIDEO defined above
-        m_header.ulType                 = HX_MAKE4CC( buf[0] , buf[1] , buf[2] , buf[3] );
+        m_header.ulType                 = LE32_TO_HOST(*(UINT32*) &buf[0]);
         m_header.ulHandler              = LE32_TO_HOST(*(UINT32*) &buf[4]);
         m_header.ulFlags                = LE32_TO_HOST(*(UINT32*) &buf[8]);
         m_header.sPriority              = (INT16) LE16_TO_HOST(*(UINT32*) &buf[12]);
@@ -384,21 +371,10 @@ HX_RESULT CAVIStream::SetHeader(UINT16 usStream, IHXBuffer* pHeader)
         m_header.ulSuggestedBufferSize  = LE32_TO_HOST(*(UINT32*) &buf[36]);
         m_header.ulQuality              = LE32_TO_HOST(*(UINT32*) &buf[40]);
         m_header.ulSampleSize           = LE32_TO_HOST(*(UINT32*) &buf[44]);
-		
-	if(len >= sizeof(m_header))
-	{
-	    m_header.sTop                   = (INT16) LE16_TO_HOST(*(UINT32*) &buf[48]);
-	    m_header.sLeft                  = (INT16) LE16_TO_HOST(*(UINT32*) &buf[50]);
-	    m_header.sBottom                = (INT16) LE16_TO_HOST(*(UINT32*) &buf[52]);
-	    m_header.sRight                 = (INT16) LE16_TO_HOST(*(UINT32*) &buf[54]);
-	}
-	else
-	{
-	    m_header.sTop                   = 0;
- 	    m_header.sLeft                  = 0;
-	    m_header.sBottom                = 0;
-	    m_header.sRight                 = 0;
-	}
+        m_header.sTop                   = (INT16) LE16_TO_HOST(*(UINT32*) &buf[48]);
+        m_header.sLeft                  = (INT16) LE16_TO_HOST(*(UINT32*) &buf[50]);
+        m_header.sBottom                = (INT16) LE16_TO_HOST(*(UINT32*) &buf[52]);
+        m_header.sRight                 = (INT16) LE16_TO_HOST(*(UINT32*) &buf[54]);
     }
 
     return result;
@@ -410,7 +386,7 @@ HX_RESULT CAVIStream::SetHeader(UINT16 usStream, IHXBuffer* pHeader)
 //
 HX_RESULT CAVIStream::SetFormat(IHXBuffer* pFormat)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::SetFormat()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetFormat()\n");
     HX_ASSERT(pFormat);
     HX_RESULT result = HXR_FAIL;
 
@@ -487,7 +463,7 @@ HX_RESULT CAVIStream::SetFormat(IHXBuffer* pFormat)
                 m_pFormat = new UCHAR[len + nPadding];
                 memcpy(m_pFormat, buf, len);
 
-                HXLOGL3(HXLOG_AVIX, "CAVIStream[%p]::SetFormat with wave m_pFormat=%p", this,m_pFormat);
+                HXLOGL3(HXLOG_AVIX, "CAVIStream::SetFormat with wave m_pFormat=%p\n", m_pFormat);
 
                 if(nPadding > 0)
                 {
@@ -522,7 +498,7 @@ HX_RESULT CAVIStream::SetFormat(IHXBuffer* pFormat)
 //
 HX_RESULT CAVIStream::SetPacketFormat(UINT32 ePacketFormat)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::SetPacketFormat()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetPacketFormat()\n");
     HX_ASSERT(m_state <= ePreHeader);
 
     m_ePacketFormat = (PacketFormat) ePacketFormat;
@@ -534,7 +510,7 @@ HX_RESULT CAVIStream::SetPacketFormat(UINT32 ePacketFormat)
 //
 HX_RESULT CAVIStream::SetOpaque(IHXBuffer* pOpaque)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::SetOpaque()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetOpaque()\n");
     return HXR_NOTIMPL;
 }
 
@@ -543,7 +519,7 @@ HX_RESULT CAVIStream::SetOpaque(IHXBuffer* pOpaque)
 //
 HX_RESULT CAVIStream::SetIndex(CAVIIndex* pIndex)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::SetIndex()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetIndex()\n");
     HX_ASSERT(!m_pIndex);
     HX_ASSERT_VALID_PTR(pIndex);
     m_pIndex = pIndex;
@@ -556,7 +532,7 @@ HX_RESULT CAVIStream::SetIndex(CAVIIndex* pIndex)
 //
 void CAVIStream::SetPendingHeaderRequest()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::SetPendingHeaderRequest()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetPendingHeaderRequest()\n");
     m_bPendingHeaderRequest = TRUE;
 }
 
@@ -565,7 +541,7 @@ void CAVIStream::SetPendingHeaderRequest()
 //
 BOOL CAVIStream::PendingHeaderRequest()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::PendingHeaderRequest()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::PendingHeaderRequest()\n");
     return m_bPendingHeaderRequest;
 }
 
@@ -574,7 +550,7 @@ BOOL CAVIStream::PendingHeaderRequest()
 //
 HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
 {
-    HXLOGL3(HXLOG_AVIX,"CAVIStream[%p]::GetHeader()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetHeader()\n");
     HX_ASSERT(pHeader);
 
     HX_ASSERT(m_bPendingHeaderRequest);
@@ -645,13 +621,13 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
 
                     pHeader->SetPropertyULONG32("MicrosecondsPerFrame",
                                (ULONG32) (1e6 * ((double) m_header.ulScale / m_header.ulRate)));
-                    HXLOGL4(HXLOG_AVIX,"\t\tMicrosecondsPerFrame:\t%lu", (ULONG32) 1e6 * ((double) m_header.ulScale / m_header.ulRate));
+                    //HX_TRACE("\t\tMicrosecondsPerFrame:\t%lu\n", (ULONG32) 1e6 * ((double) m_header.ulScale / m_header.ulRate));
                 }
                 else
                 {
+#if 0 // JPEGPayloadFormat not supported (yet)
                     if ( bi->ulCompression == AVI_MJPG_VIDEO )
                     {
-                        #if defined(HELIX_FEATURE_SERVER)
                         if (!m_bLocalPlayback)
                         {
                             m_pPayloadFormatter = new JPEGPayloadFormat();
@@ -666,11 +642,11 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
                             m_pPayloadFormatter->Init(m_pContext, TRUE);
                             // We'll set the headers below.
                         }
-                        #endif
                         strcpy(szMimeType, "video/x-pn-jpeg-plugin");
                         nRTPPayloadType = RTP_PAYLOAD_JPEG;
                     }
                     else
+#endif // 0
                     {
                         if (m_header.ulHandler == VIDEO_FORMAT_H263)
                         {
@@ -680,28 +656,10 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
                             strcpy(szStreamName, "Video Track");
                             strcpy (szMimeType, "video/X-RN-3GPP-H263");
                         }
-                        else if ((m_header.ulHandler == VIDEO_FORMAT_DIVX) ||
-					  (m_header.ulHandler == VIDEO_FORMAT_divx) ||
-					  (m_header.ulHandler == VIDEO_FORMAT_dx50) ||
-                                          (m_header.ulHandler == VIDEO_FORMAT_DX50) ||
-					  (m_header.ulHandler == VIDEO_FORMAT_XVID)||
-					  (m_header.ulHandler == VIDEO_FORMAT_xvid))
+                        else if (m_header.ulHandler == VIDEO_FORMAT_DIVX)
                         {
                             strcpy(szStreamName, "Video Track");
                             strcpy (szMimeType, "video/X-HX-DIVX");
-                        }
-                        else if ((m_header.ulHandler == VIDEO_FORMAT_H264) || 
-                                          (m_header.ulHandler == VIDEO_FORMAT_h264) || 
-                                          (m_header.ulHandler == VIDEO_FORMAT_AVC1) || 
-                                          (m_header.ulHandler == VIDEO_FORMAT_avc1)) 
-                        { 
-                            strcpy(szStreamName, "Video Track"); 
-                            strcpy(szMimeType, "video/X-HX-AVC1"); 
-                        }
-                        else if (m_header.ulHandler == AVI_H261_VIDEO)
-                        {
-                            strcpy(szStreamName, "Video Track");
-                            strcpy(szMimeType, "video/H261");
                         }
                         else
                         {
@@ -853,15 +811,6 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
                                 }                                
                             }
                             break;
-                        case WAVE_FORMAT_MPEG:
-                            {
-                                pMimeType = "audio/MPEG-ELEMENTARY";
-                                if ( m_ePacketFormat == PFMT_RTP )
-                                {
-                                    nRTPPayloadType = RTP_PAYLOAD_MPA;
-                                }               
-                            }
-                            break;       
                         default:
                             {
                                 pMimeType = szMimeTypeACM;
@@ -939,13 +888,13 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
                 }
 
                 pHeader->SetPropertyULONG32("BitsPerSample", pWaveInfo->usBitsPerSample);
-                HXLOGL4(HXLOG_AVIX,"\t\tBitsPerSample:\t%lu", pWaveInfo->usBitsPerSample);
+                //HX_TRACE("\t\tBitsPerSample:\t%lu\n", pWaveInfo->usBitsPerSample);
 
                 pHeader->SetPropertyULONG32("SamplesPerSecond", pWaveInfo->ulSamplesPerSec);
-                HXLOGL4(HXLOG_AVIX,"\t\tSamplesPerSecond:\t%lu", pWaveInfo->ulSamplesPerSec);
+                //HX_TRACE("\t\tSamplesPerSecond:\t%lu\n", pWaveInfo->ulSamplesPerSec);
 
                 pHeader->SetPropertyULONG32("Channels", pWaveInfo->usChannels);
-                HXLOGL4(HXLOG_AVIX,"\t\tChannels:\t%lu", pWaveInfo->usChannels);
+                //HX_TRACE("\t\tChannels:\t%lu\n", pWaveInfo->usChannels);
 
                 m_fChunksPerSecond = m_pIndex->GetChunkTotal(m_usStream) / ((double) m_pIndex->GetByteTotal(m_usStream) / pWaveInfo->ulAvgBytesPerSec);
                 m_fSamplesPerSecond = (double) m_header.ulRate / m_header.ulScale;
@@ -977,16 +926,16 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
         if ( m_ePacketFormat == PFMT_RTP )
         {
             pHeader->SetPropertyULONG32("RTPPayloadType", nRTPPayloadType);
-            HXLOGL4(HXLOG_AVIX,"\t\tRTPPayloadType:\t%lu", nRTPPayloadType);
+            //HX_TRACE("\t\tRTPPayloadType:\t%lu\n", nRTPPayloadType);
         }
 
         // Max packet size:
         pHeader->SetPropertyULONG32("MaxPacketSize", ulMaxPacketSize);
-        HXLOGL4(HXLOG_AVIX,"\t\tMaxPacketSize:\t%lu", ulMaxPacketSize);
+        //HX_TRACE("\t\tMaxPacketSize:\t%lu\n", ulMaxPacketSize);
 
         // Average packet size:
         pHeader->SetPropertyULONG32("AvgPacketSize", ulMaxPacketSize);
-        HXLOGL4(HXLOG_AVIX,"\t\tAvgPacketSize:\t%lu", ulMaxPacketSize);
+        //HX_TRACE("\t\tAvgPacketSize:\t%lu\n", ulMaxPacketSize);
     }
 
     // Format specific data (for future use):
@@ -994,30 +943,26 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
 
     // Stream number:
     pHeader->SetPropertyULONG32("StreamNumber", m_usStream);
-    HXLOGL4(HXLOG_AVIX,"\t\tStreamNumber:\t%lu", m_usStream);
+    //HX_TRACE("\t\tStreamNumber:\t%lu\n", m_usStream);
 
 //    HX_ASSERT(m_fChunksPerSecond && m_fSamplesPerSecond);
 
     // Start time:
     pHeader->SetPropertyULONG32("StartTime", (ULONG32) (m_header.ulStart * m_fChunksPerSecond * 1000));
-    HXLOGL4(HXLOG_AVIX,"\t\tStartTime:\t%lu", (ULONG32) (m_header.ulStart * m_fSamplesPerSecond * 1000));
+    //HX_TRACE("\t\tStartTime:\t%lu\n", (ULONG32) (m_header.ulStart * m_fSamplesPerSecond * 1000));
 
     // Duration:
-    if(m_header.ulLength == 0)
-    {	
-        m_header.ulLength = 0xffffffff;
-    }
     pHeader->SetPropertyULONG32("Duration", (ULONG32) (((double) m_header.ulLength / m_fSamplesPerSecond) * 1000));
-    HXLOGL4(HXLOG_AVIX,"\t\tDuration:\t%lu", (ULONG32) (((double) m_header.ulLength / m_fSamplesPerSecond) * 1000));
+    //HX_TRACE("\t\tDuration:\t%lu\n", (ULONG32) (((double) m_header.ulLength / m_fSamplesPerSecond) * 1000));
 
     // Max bit rate:
     pHeader->SetPropertyULONG32("MaxBitRate", (ULONG32) (8 * m_pIndex->GetMaxChunkSize(m_usStream) * m_fChunksPerSecond));
-    HXLOGL4(HXLOG_AVIX,"\t\tMaxBitRate:\t%lu", (ULONG32) (8 * m_pIndex->GetMaxChunkSize(m_usStream) * m_fChunksPerSecond));
+    //HX_TRACE("\t\tMaxBitRate:\t%lu\n", (ULONG32) (8 * m_pIndex->GetMaxChunkSize(m_usStream) * m_fChunksPerSecond));
 
     // Averate bit rate:
     ULONG32 ulAverageBitrate = (ULONG32) (8 * m_pIndex->GetAverageChunkSize(m_usStream) * m_fChunksPerSecond);
     pHeader->SetPropertyULONG32("AvgBitRate", ulAverageBitrate);
-    HXLOGL4(HXLOG_AVIX,"\t\tAvgBitRate:\t%lu", ulAverageBitrate);
+    //HX_TRACE("\t\tAvgBitRate:\t%lu\n", ulAverageBitrate);
 
     // Preroll:
     UINT32 ulPreroll = (UINT32) (((double) m_pIndex->GetMaxByteDeflict(m_usStream) / ulAverageBitrate) * 1000);
@@ -1054,7 +999,7 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
     }
 
     pHeader->SetPropertyULONG32("Preroll", ulPreroll);
-    HXLOGL4(HXLOG_AVIX,"\t\tPreroll:\t%lu", ulPreroll);
+    //HX_TRACE("\t\tPreroll:\t%lu\n", ulPreroll);
 
     // Set rule book:
     #if 0
@@ -1105,7 +1050,7 @@ HX_RESULT CAVIStream::GetHeader(IHXValues* pHeader)
 //
 BOOL CAVIStream::IsAudio()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::IsAudio() %d",this,(m_header.ulType == AVI_AUDS_TYPE));
+    //HX_TRACE("CAVIFileFormat::CAVIStream::IsAudio()\n");
     return m_header.ulType == AVI_AUDS_TYPE;
 }
 
@@ -1114,7 +1059,7 @@ BOOL CAVIStream::IsAudio()
 //
 double CAVIStream::GetDuration()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::GetDuration()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetDuration()\n");
     HX_ASSERT(m_header.ulScale);
     return  m_header.ulLength / (m_header.ulRate / (double) m_header.ulScale);
 }
@@ -1128,7 +1073,7 @@ double CAVIStream::GetDuration()
 
 HX_RESULT CAVIStream::InitForReading(IUnknown* pContext, IHXFileObject* pFile)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::InitForReading()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::InitForReading()\n");
 
     HX_ASSERT(m_state == ePreReader);
 
@@ -1153,7 +1098,7 @@ HX_RESULT CAVIStream::InitForReading(IUnknown* pContext, IHXFileObject* pFile)
 //
 BOOL CAVIStream::ReadInitialized()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::ReadInitialized()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::ReadInitialized()\n");
     HX_ASSERT(m_pReader ? m_state > ePreReader : TRUE);
     return m_pReader != NULL;
 }
@@ -1163,7 +1108,7 @@ BOOL CAVIStream::ReadInitialized()
 //
 BOOL CAVIStream::HasPackets()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::HasPackets()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::HasPackets()\n");
     return (BOOL) m_pNextPacket;
 }
 
@@ -1172,7 +1117,7 @@ BOOL CAVIStream::HasPackets()
 //
 UINT32 CAVIStream::GetPendingPacketCount()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::GetPendingPacketCount()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetPendingPacketCount()\n");
     return m_ulPendingPacketRequests;
 }
 
@@ -1181,7 +1126,7 @@ UINT32 CAVIStream::GetPendingPacketCount()
 //
 UINT32 CAVIStream::IncrementPendingPacketCount()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::IncrementPendingPacketCount()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::IncrementPendingPacketCount()\n");
     m_ulPendingPacketRequests++;
     return m_ulPendingPacketRequests;
 }
@@ -1191,7 +1136,7 @@ UINT32 CAVIStream::IncrementPendingPacketCount()
 //
 void CAVIStream::ClearPendingPacketCount()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::ClearPendingPacketCount()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::ClearPendingPacketCount()\n");
     m_ulPendingPacketRequests = 0;
 }
 
@@ -1201,7 +1146,7 @@ void CAVIStream::ClearPendingPacketCount()
 //
 void CAVIStream::Seek(UINT32 ulTime)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::Seek()\ttime: %lu", this,ulTime);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::Seek()\ttime: %lu\n", ulTime);
 
     m_ulPendingPacketRequests = 0;
     m_bRead = FALSE;
@@ -1276,7 +1221,7 @@ void CAVIStream::Seek(UINT32 ulTime)
         if (SUCCEEDED(m_pCommonClassFactory->CreateInstance(IID_IHXPacket,
                                                             (void**) &pNewPacket)))
         {
-            HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::Seek()\tstream %d\tpacket time: %lu\t minreadchunk: %lu", this, m_usStream, ulTime, m_ulMinReadChunk);
+            // HX_TRACE("CAVIFileFormat::CAVIStream::Seek()\tstream %d\tpacket time: %lu\t minreadchunk: %lu\n", m_usStream, ulTime, m_ulMinReadChunk);
             if (IsAudio ())
             {
                 WaveInfo* pWaveInfo = (WaveInfo*) m_pFormat;
@@ -1373,7 +1318,7 @@ void CAVIStream::Seek(UINT32 ulTime)
 //  on success, returns an AddRef'd packet
 IHXPacket* CAVIStream::GetNextPacket()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::GetNextPacket()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetNextPacket()\n");
     HX_ASSERT(m_state > ePreReader);
     HX_ASSERT(m_ulPendingPacketRequests > 0);
     HX_ASSERT(m_pNextPacket);
@@ -1404,7 +1349,6 @@ IHXPacket* CAVIStream::GetNextPacket()
             {
                 ulTime = (UINT32) ((m_ulMinReadChunk / m_fChunksPerSecond) * 1000);
             }
-            HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::GetNextPacket()\tstream %d\tpacket time: %lu\t minreadchunk: %lu\n", this, m_usStream, ulTime, m_ulMinReadChunk);
 
             // TODO: Set correct ASM rules
             if (m_bEndianSwap16)
@@ -1465,7 +1409,7 @@ IHXPacket* CAVIStream::GetNextPacket()
 //
 UINT32 CAVIStream::PeekPacketTime()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::PeekPacketTime()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetNextPacketTime()\n");
     if (m_pNextPacket)
     {
         return m_pNextPacket->GetTime();
@@ -1491,7 +1435,7 @@ UINT32 CAVIStream::PeekPacketTime()
 //
 void CAVIStream::GetNextSlice()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::GetNextSlice()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::GetNextSlice()\n");
 
     UINT32 ulNextChunkOffset;
     HX_RESULT indexResult;
@@ -1531,7 +1475,7 @@ void CAVIStream::GetNextSlice()
 //
 BOOL CAVIStream::CanPrefetchSlice()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::CanPrefetchSlice()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::CanPrefetchSlice()\n");
     return (m_ulMaxReadChunk - m_ulMinReadChunk < MAX_CHUNK_PREFETCH) && !m_bRead;
 }
 
@@ -1540,7 +1484,7 @@ BOOL CAVIStream::CanPrefetchSlice()
 //
 UINT32 CAVIStream::PeekPrefetchTime()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::PeekPrefetchSliceTime()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::PeekPrefetchSliceTime()\n");
     UINT32 ulTime;
 
     if (IsAudio ())
@@ -1561,7 +1505,7 @@ UINT32 CAVIStream::PeekPrefetchTime()
 //
 BOOL CAVIStream::AtEndOfStream()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::AtEndOfStream()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::AtEndOfStream()\n");
     //HX_ASSERT( (m_state != eReady) || (m_pNextPacket && m_bRead)); // Currently we don't prime on init
     return m_bRead;
 }
@@ -1627,7 +1571,7 @@ STDMETHODIMP_(ULONG32) CAVIStream::Release()
 // CRiffResponse
 STDMETHODIMP CAVIStream::RIFFOpenDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFOpenDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFOpenDone()\n");
     HX_ASSERT(m_state == ePreReader);
     m_state = eReady;
 
@@ -1649,7 +1593,7 @@ STDMETHODIMP CAVIStream::RIFFCloseDone(HX_RESULT status)
 
 STDMETHODIMP CAVIStream::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFFindChunkDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFFindChunkDone()\n");
 
     HX_ASSERT(m_state == eChunkFind);
     HX_ASSERT(SUCCEEDED(status));
@@ -1692,7 +1636,7 @@ STDMETHODIMP CAVIStream::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 
         if (m_ulChunkReadTarget == m_ulMaxReadChunk)
         {
-            HXLOGL4(HXLOG_AVIX,"\tstream: %d\toffset: %lu", m_usStream, m_pReader->GetOffset());
+            //HX_TRACE("\tstream: %d\toffset: %lu\n", m_usStream, m_pReader->GetOffset());
             if (m_bSeeking)
             {
                 // Find the time of the next packet.
@@ -1709,7 +1653,7 @@ STDMETHODIMP CAVIStream::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
                     ulNextPacketTime = (UINT32) (((m_ulMaxReadChunk + 1)/ m_fChunksPerSecond) * 1000);
                 }
 
-                if (ulNextPacketTime <= m_ulSeekTime)
+                if (ulNextPacketTime < m_ulSeekTime)
                 {
                     // Discard the packet.
                     m_ulChunkReadTarget++;
@@ -1758,7 +1702,7 @@ STDMETHODIMP CAVIStream::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 /* Called after a Descend completes */
 STDMETHODIMP CAVIStream::RIFFDescendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFDescendDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFDescendDone()\n");
     HX_ASSERT(FALSE);   // we don't support multiple MOVI chunks yet
     return HXR_NOTIMPL;
 }
@@ -1766,7 +1710,7 @@ STDMETHODIMP CAVIStream::RIFFDescendDone(HX_RESULT status)
 /* Called after an Ascend completes */
 STDMETHODIMP CAVIStream::RIFFAscendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFAscendDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFAscendDone()\n");
     HX_ASSERT(FALSE);   // we don't support multiple MOVI chunks yet
     return HXR_NOTIMPL;
 }
@@ -1775,7 +1719,7 @@ STDMETHODIMP CAVIStream::RIFFAscendDone(HX_RESULT status)
  */
 STDMETHODIMP CAVIStream::RIFFReadDone(HX_RESULT status, IHXBuffer *pBuffer)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFReadDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFReadDone()\n");
     HX_ASSERT(m_state == eChunkRead);
     HX_ASSERT(CAVIFileFormat::GetStream(ENDIAN_SWAP_32(m_pReader->GetChunkType())) == m_usStream);
     HX_ASSERT(m_ulChunkReadTarget == m_ulMaxReadChunk);
@@ -1873,7 +1817,7 @@ STDMETHODIMP CAVIStream::RIFFReadDone(HX_RESULT status, IHXBuffer *pBuffer)
 /* Called when a seek completes */
 STDMETHODIMP CAVIStream::RIFFSeekDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFSeekDone()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::RIFFSeekDone()\n");
     HX_ASSERT(m_state == eChunkSeek);
     HX_ASSERT(SUCCEEDED(status));
 
@@ -1898,7 +1842,7 @@ STDMETHODIMP CAVIStream::RIFFSeekDone(HX_RESULT status)
 STDMETHODIMP CAVIStream::RIFFGetChunkDone(HX_RESULT status, UINT32 chunkType,
                                          IHXBuffer* pBuffer)
 {
-      HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::RIFFGetChunkDone()", this);
+//HX_TRACE("CAVIFileFormat::CAVIStream::RIFFGetChunkDone()\n");
 //    HX_ASSERT(!"RIFFGetChunkDone is not used");
 //    return HXR_NOTIMPL;
 
@@ -1918,7 +1862,7 @@ CAVIStream::SetRuleBook(PacketFormat packetFormat, IHXValues* pHeader,
                             IHXCommonClassFactory* pCommonClassFactory,
                             ULONG32 ulAvgBitRate, INT32 lRTPPayloadType)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIStream[%p]::SetRuleBook()", this);
+    //HX_TRACE("CAVIFileFormat::CAVIStream::SetRuleBook()\n");
     if ( !pHeader || !pCommonClassFactory )
     {
         return FALSE;
@@ -1960,7 +1904,6 @@ void CAVIStream::CloseStream()
 
 void CAVIStream::Close()
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIStream[%p]::Close()", this);
     if(m_pFile)
     {
         m_pFile->Close();

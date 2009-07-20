@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: clntcorelib,v 1.40 2008/01/10 03:11:12 cdunn Exp $
+# Source last modified: $Id: clntcorelib,v 1.38 2007/04/14 04:36:12 ping Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -107,7 +107,6 @@ project.AddSources("buffmgr.cpp",
                    "latency_mode_hlpr.cpp",
                    "hxconnbwinfo.cpp",
                    "hxnetifsinkhlpr.cpp",
-                   "hxembeddedui.cpp",
 		   "chxmetainfo.cpp")
 
 if project.IsDefined("HELIX_FEATURE_PLAYBACK_LOCAL"):

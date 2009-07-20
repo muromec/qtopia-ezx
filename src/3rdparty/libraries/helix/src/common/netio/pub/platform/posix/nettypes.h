@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: nettypes.h,v 1.33 2007/12/11 23:58:27 ping Exp $ 
+ * Source last modified: $Id: nettypes.h,v 1.31 2006/05/24 22:24:45 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -338,12 +338,8 @@ struct hx_iov : public WSABUF
 
 
 int         inet_aton(const char* cp, struct in_addr* inp);
-// inet_ntop and inet_pton are defined in MS Windows SDK for Vista
-// Microsoft SDKs\Windows\v6.0\Include\ws2tcpip.h
-#if (NTDDI_VERSION < NTDDI_LONGHORN)
 const char* inet_ntop(int af, const void* src, char* dst, socklen_t len);
 int         inet_pton(int af, const char* src, void* dst);
-#endif 
 #endif /* defined(_WIN32) */
 
 // Some platforms have strange and/or outdated headers.

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: unixio.cpp,v 1.5 2008/01/04 21:37:09 dcollins Exp $ 
+ * Source last modified: $Id: unixio.cpp,v 1.4 2003/06/27 02:41:30 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -46,7 +46,6 @@
 #include "debug.h"
 
 #include "bio.h"
-#include "hlxclib/errno.h"
 
 #ifdef RLIMIT_OFILE
 #undef FDLIMIT
@@ -85,6 +84,7 @@ setfdlimit(INT32 limit)
 int
 setfdlimit(INT32 limit)
 {
+    extern int errno;
     struct rlimit rl;
 
     if (getrlimit(FDLIMIT, &rl) < 0) 

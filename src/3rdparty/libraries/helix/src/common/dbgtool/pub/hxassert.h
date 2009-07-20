@@ -1,9 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-<<<<<<< hxassert.h
- * Source last modified: $Id: hxassert.h,v 1.24 2008/07/03 15:54:24 gwright Exp $
-=======
- * Source last modified: $Id: hxassert.h,v 1.24 2008/07/03 15:54:24 gwright Exp $
->>>>>>> 1.22.2.1.4.1
+ * Source last modified: $Id: hxassert.h,v 1.20 2006/05/31 13:02:47 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -22,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -76,12 +72,6 @@
 #define _HXASSERT_H_
 
 #include "hlxclib/assert.h"
-
-#if defined (DEBUG) || defined (_DEBUG)
-#ifdef HELIX_FEATURE_SERVER_PRINTF_ASSERT
-#define ASSERT HX_ASSERT
-#endif
-#endif
 
 #ifndef ASSERT
 #if defined (DEBUG) || defined (_DEBUG)
@@ -162,19 +152,9 @@ void HXUnixDebugBreak();
 #include <stdlib.h>
 #endif
 
-#ifdef _BREW 
-#include "AEEFile.h"
-#include "AEEStdLib.h"
-#define MAXPATHLEN AEE_MAX_FILE_NAME
-#endif  
-
 #ifdef _SYMBIAN
 # include <unistd.h>
 # define _MAX_PATH MAXPATHLEN
-#endif
-
-#ifdef _BREW
-#define _MAX_PATH MAXPATHLEN
 #endif
 
 #ifdef _OPENWAVE
@@ -316,8 +296,6 @@ void HXDebugBreak();
 #else
 void HXDebugBreak();
 #endif //_SYMBIAN
-#elif defined(_BREW)
-void HXDebugBreak();
 #elif  defined(_UNIX)
 void HXDebugBreak();
 #elif defined(_VXWORKS)
@@ -363,8 +341,6 @@ do {						\
 #elif defined(_OPENWAVE)
 // XXXSAB is this right??
 # define HXAbort() exit(1)
-#elif defined(_BREW)
-# define HXAbort() DBGEVENT(EVT_APP_STOP, AEECLSID_OEM_APP)
 #elif defined ( _MACINTOSH )
 # define HXAbort() DebugStr("\pHXAbort: Please exit this program.")
 #elif defined ( _UNIX )
@@ -610,12 +586,6 @@ static __inline void HXTraceNull(const char* x, ...) {}
 }	// end extern "C"
 #endif
 
-#ifdef HELIX_FEATURE_SERVER_PRINTF_ASSERT
-#define HX_ASSERT_BRIEF(f) ( (!(f)) ? printf ("HX_ASSERT(%s) failed at %s:%d\n", #f, __FILE__, __LINE__) : 0 )
-#else
-#define HX_ASSERT_BRIEF HX_ASSERT
-#endif
-
 #ifdef __cplusplus
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -681,11 +651,10 @@ class LogInfo
 #define POST_REQUIRE_VOID_RETURN(stmt) \
 	REQUIRE_VOID_RETURN(stmt)
 
-
 #define REQUIRE_SUCCESS_RETURN_QUIET(expr) \
-    do { HX_RESULT const __res = (expr); if (FAILED (__res)) return __res; } while (0)
+	do { register HX_RESULT const res = expr; if (FAILED (res)) return res; } while (0)
 #define REQUIRE_SUCCESS_RETURN(expr) \
-    do { HX_RESULT const __res = (expr); if (FAILED (__res)) {  REQUIRE_REPORT("False condition, Aborting...",__FILE__,__LINE__); return __res; } } while (0)
+	do { register HX_RESULT const res = expr; if (FAILED (res)) {  REQUIRE_REPORT("False condition, Aborting...",__FILE__,__LINE__); return res; } } while (0)
 
 //
 // REQUIRE_SUCCESS reports the error if an expected result failed

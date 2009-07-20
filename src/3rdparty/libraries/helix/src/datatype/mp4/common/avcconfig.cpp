@@ -37,10 +37,6 @@
  *  Defines
  */
 
-// Certain clips may contain other boxes than avcC in the beginning of the AVC Config data
-// This flag will enable parsing through these boxes until avcC is found, is available.
-#define _SCAN_FOR_AVCC_START
-
 /****************************************************************************
  *  Includes
  */
@@ -113,59 +109,35 @@ HX_RESULT AVCConfigurationBox::Unpack(UINT8* &pData,
 				     ULONG32 ulFlags)
 {
     HX_RESULT retVal = HXR_INVALID_PARAMETER;
-
-#ifdef _SCAN_FOR_AVCC_START
-    while ( (ulSize >= 8) && (retVal != HXR_OK) )
-    {
-    	m_ulSize = GetUL32(pData);
-    	if ((m_ulSize >= 8) &&
-    	    (ulSize >= m_ulSize) &&
-    	    (*(pData + 4) == 'a') &&
-    	    (*(pData + 5) == 'v') &&
-    	    (*(pData + 6) == 'c') &&
-    	    (*(pData + 7) == 'C'))
-    	{
-    	    retVal = HXR_OK;
-    	    pData += 8;
-    	    ulSize -= 8;
-    	} else {
-            if (m_ulSize == 0)
-            {
-                break;
-            }
-    	    pData += m_ulSize;
-    	    ulSize -= m_ulSize;
-    	}
-    }
-#else
+    
     if (ulSize >= 8)
     {
-        m_ulSize = GetUL32(pData);
-        if ((m_ulSize >= 8) &&
-            (ulSize >= m_ulSize) &&
-            (*(pData)+ 4) == 'a') &&
-            (*(pData + 5) == 'v') &&
-            (*(pData + 6) == 'c') &&
-            (*(pData + 7) == 'C'))
-        {
-            retVal = HXR_OK;
-        }
-        pData += 8;
-        ulSize -= 8;
+	m_ulSize = GetUL32(pData);
+	pData += 4;
+	if ((m_ulSize >= 8) &&
+	    (ulSize >= m_ulSize) &&
+	    (*(pData) == 'a') &&
+	    (*(pData + 1) == 'v') &&
+	    (*(pData + 2) == 'c') &&
+	    (*(pData + 3) == 'C'))
+	{
+	    retVal = HXR_OK;
+	}
+	pData += 4;
+	ulSize -= 8;
     }
-#endif
     
     if (retVal == HXR_OK)
     {
-        UINT32 ulConfigSize = m_ulSize - 8;
-        retVal = HXR_OUTOFMEMORY;
-        m_pAVCDecoderConfigurationRecord = new AVCDecoderConfigurationRecord();
-        if (m_pAVCDecoderConfigurationRecord)
-        {
-            ulSize -= ulConfigSize;
-            retVal = m_pAVCDecoderConfigurationRecord->Unpack(pData, ulConfigSize);
-            ulSize += ulConfigSize;
-        }
+	UINT32 ulConfigSize = m_ulSize - 8;
+	retVal = HXR_OUTOFMEMORY;
+	m_pAVCDecoderConfigurationRecord = new AVCDecoderConfigurationRecord();
+	if (m_pAVCDecoderConfigurationRecord)
+	{
+	    ulSize -= ulConfigSize;
+	    retVal = m_pAVCDecoderConfigurationRecord->Unpack(pData, ulConfigSize);
+	    ulSize += ulConfigSize;
+	}
     }
 
     return retVal;

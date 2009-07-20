@@ -64,7 +64,6 @@
 #include "hxplayvelocity.h"
 #include "ihxtlogsystem.h"
 #include "ihxtlogsystemcontext.h"
-#include "hxplgns.h"
 
 #undef INITGUID
 

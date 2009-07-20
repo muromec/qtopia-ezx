@@ -50,15 +50,14 @@ public:
     MP4AAudioSpec& operator=(const MP4AAudioSpec& rhs);
 
     HXBOOL Unpack(Bitstream& bs, ULONG32 nBits);
-    HXBOOL GetAudioObjectType(Bitstream& bs, ULONG32& AudioObjectType);
+    ULONG32 GetAudioObjectType(Bitstream& bs);
     HXBOOL AudioSpecificConfigRead(Bitstream& bs, ULONG32 nBits);
-    HXBOOL GASpecificConfigRead(Bitstream& bs,
+    void GASpecificConfigRead(Bitstream& bs,
                                 UINT32 samplingFrequency,
                                 UINT32 ChannelConfiguration,
                                 UINT32 AudioObjectType);
-    HXBOOL PCERead(Bitstream& bs);
-    HXBOOL SBRPresent(UINT8* pConfig, UINT32 ulConfigSize, HXBOOL& bSBR);
-    ULONG32 GetBaseConfigSize();
+    void PCERead(Bitstream& bs);
+
     const UINT8* Config() const;
     ULONG32 ConfigSize() const;
 
@@ -66,9 +65,6 @@ private:
     UINT8* m_pConfig;
     ULONG32 m_ulConfigSize;
     ULONG32 m_ulConfigBits;
-    HXBOOL  m_bSBRPresent;
-    HXBOOL  m_bSBRFlagValue;
-    ULONG32 m_ulBaseConfigEnd;
 };
 
 class MP4AStreamInfo
@@ -139,7 +135,7 @@ public:
 protected :
     void Reset();
     void AddStream(const MP4AStreamInfo& info);   
-    HXBOOL LatmGetValue(Bitstream& bs, ULONG32& nBits, ULONG32& ulValue);
+    ULONG32 LatmGetValue(Bitstream& bs, ULONG32& nBits);
 
 private:
     HXBOOL m_bAllSameTiming;

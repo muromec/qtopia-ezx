@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: memorymonitor.cpp,v 1.4 2008/05/28 22:41:09 ashkunar Exp $
+ * Source last modified: $Id: memorymonitor.cpp,v 1.2 2006/03/07 21:18:12 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -48,11 +48,9 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "memorymonitor.h"
-#include "symbian_gm_inst.h"
+
 SymbianMemoryMonitor::SymbianMemoryMonitor():
-    m_pErrorMessages(NULL),
-    m_pCallback(NULL),
-    m_TempMem(NULL)
+    m_pErrorMessages(NULL)
 {
 }
 
@@ -61,28 +59,15 @@ SymbianMemoryMonitor::~SymbianMemoryMonitor()
     // If error messages is not released, 
     //close api is not called by the caller.
     HX_ASSERT(!m_pErrorMessages);
-    HX_ASSERT(!m_TempMem);
 }
 
 void SymbianMemoryMonitor::Close()
 {
-    if (m_pCallback)
-    {
-        if (m_pCallback->IsActive())
-        {
-    		m_pCallback->Cancel();
-    		}
-    	  delete m_pCallback;
-    	  m_pCallback = NULL;
-    }
     if (m_pErrorMessages)
     {
         m_pErrorMessages->Release();
         m_pErrorMessages = NULL;
     }
-
-    // Release Mem out buffersize
-    RelaseTempMem();
 }
 
 static void DestroySymbianMemoryMonitor(void* pObj )
@@ -93,24 +78,24 @@ static void DestroySymbianMemoryMonitor(void* pObj )
 
 SymbianMemoryMonitor* SymbianMemoryMonitor::Instance()
 {
+    static const INT32 key = 0;
     SymbianMemoryMonitor* pRet = NULL;
+
     HXGlobalManager* pGM = HXGlobalManager::Instance();
-    //Use Global unique ID so that all Dlls creating object get already exsting SymbianMemoryMonitor
-    //SYMBIAN_GLOBAL_MEMORY_MONITOR_ID
-    SymbianMemoryMonitor** pInstance = reinterpret_cast<SymbianMemoryMonitor**>(pGM->Get((GlobalID)SYMBIAN_GLOBAL_MEMORY_MONITOR_ID));
+
+    SymbianMemoryMonitor** pInstance = reinterpret_cast<SymbianMemoryMonitor**>(pGM->Get(&key));
 
     if (!pInstance)
     {
-        //Create New if it doesnot already exist SymbianMemoryMonitor
         pRet = new SymbianMemoryMonitor();
+
         if (pRet)
         {
-            pGM->Add( (GlobalID)SYMBIAN_GLOBAL_MEMORY_MONITOR_ID, (GlobalType)pRet, &DestroySymbianMemoryMonitor );
+            pGM->Add( (GlobalID)&key, (GlobalType)pRet, &DestroySymbianMemoryMonitor );
         }
     }
     else
     {
-        //Use already existing SymbianMemoryMonitor
         pRet = *pInstance;
     }
 
@@ -118,7 +103,7 @@ SymbianMemoryMonitor* SymbianMemoryMonitor::Instance()
 }
 
 // NOTE: If Init API is called, the caller must call Close API
-HXBOOL  SymbianMemoryMonitor::Init(IUnknown *pContext, const TUint32 buffersize)
+HXBOOL  SymbianMemoryMonitor::Init(IUnknown *pContext)
 {
     HXBOOL retVal = FALSE;
     if (pContext && m_pErrorMessages == NULL)
@@ -131,63 +116,14 @@ HXBOOL  SymbianMemoryMonitor::Init(IUnknown *pContext, const TUint32 buffersize)
             retVal = TRUE;
         }
     }
-    if (m_pCallback == NULL)
-    {
-        //Create AsyncCallback for intimating the Helix about Mem Failure 
-        TCallBack cb(&(SymbianMemoryMonitor::_Callback), (TAny *)this); 
-        m_pCallback = new CAsyncCallBack (cb, EPriorityNormal);
-        if (!m_pCallback)
-        {
-            retVal = FALSE;
-        }
-    }
-    //Allcoate Mem out buffersize
-    AllocateTempMem(buffersize);
-
     return retVal;
 }
 
 void SymbianMemoryMonitor::SendEvent(MemoryEvent event)
 {
-    //Call the AsyncCallback for Mem out  	
-    if (event == EOutOfMemory && m_pErrorMessages && m_pCallback)
-    {
-        m_pCallback->CallBack();
-    }
-}
-
-TInt SymbianMemoryMonitor::_Callback(TAny *p)
-{
-    SymbianMemoryMonitor *pSelf = (SymbianMemoryMonitor *) p;
-    pSelf->Callback();
-    return 0;
-}
-
-void SymbianMemoryMonitor::Callback()
-{
-	  //Reporting Memout Error back to Helix
-    if (m_pErrorMessages)
+    if (event == EOutOfMemory && m_pErrorMessages)
     {
         m_pErrorMessages->Report(HXLOG_ERR, HXR_OUTOFMEMORY , 0, NULL , NULL);
     }
 }
 
-void SymbianMemoryMonitor::AllocateTempMem(const TUint32 buffersize)
-{
-	  //Allocate Memout Buffer
-		if(!m_TempMem)
-    {
-		    m_TempMem = User::Alloc(buffersize); 
-		
-	  }
-}
-
-void SymbianMemoryMonitor::RelaseTempMem()
-{
-  //Release Memout Buffer
-	if(m_TempMem)
-	{
-		User::Free(m_TempMem);
-		m_TempMem = NULL;
-	}
-}

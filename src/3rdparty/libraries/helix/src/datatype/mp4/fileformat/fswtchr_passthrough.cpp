@@ -351,6 +351,19 @@ STDMETHODIMP CFileSwitcherPassthrough::SeekDone(HX_RESULT status)
 
 
 /****************************************************************************
+ *  IHXThreadSafeMethods method
+ */
+/****************************************************************************
+ *  IsThreadSafe
+ */
+STDMETHODIMP_(UINT32)
+CFileSwitcherPassthrough::IsThreadSafe()
+{
+    return HX_THREADSAFE_METHOD_FSR_READDONE;
+}
+
+
+/****************************************************************************
  *  IUnknown methods
  */
 /////////////////////////////////////////////////////////////////////////
@@ -377,6 +390,13 @@ STDMETHODIMP CFileSwitcherPassthrough::QueryInterface(REFIID riid, void** ppvObj
 	*ppvObj = this;
 	return HXR_OK;
     }
+    else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
+    {
+	AddRef();
+	*ppvObj = (IHXThreadSafeMethods*) this;
+	return HXR_OK;
+    }
+
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
     else if (IsEqualIID(riid, IID_IHXMediaBytesToMediaDur))
     {

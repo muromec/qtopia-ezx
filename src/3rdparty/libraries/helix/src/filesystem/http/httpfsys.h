@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpfsys.h,v 1.46 2008/10/24 22:34:43 ping Exp $
+ * Source last modified: $Id: httpfsys.h,v 1.39 2007/04/04 00:21:01 gwright Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -60,10 +60,8 @@
 #include "hxauto.h"
 #include "hxpac.h"
 #include "hxnet.h"
-#include "hxplugncompat.h"
+
 #include "miscsp.h"
-#include "hxthread.h"   // HXMutex
-#include "baseobj.h"
 
 
 /* forward decl. */
@@ -99,7 +97,7 @@ class HXMutex;
 
 class HTTPTCPResponse;
 class HTTPFileObjCallback;
-class CStatisticEntry;
+
 
 #define MAX_CHUNK_SIZE     1024 //max size of chunk in hex digits.
 #define DEFAULT_CHUNK_SIZE 1024 //default size of chunk buffer
@@ -164,9 +162,7 @@ private:
 class CHTTPFileSystem : public CUnknownIMP,
                        public IHXPlugin,
                        public IHXFileSystemObject,
-#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)                       
                        public IHXFileSystemCache,
-#endif                       
                        public IHXHTTPAutoStream
 {
     DECLARE_UNKNOWN(CHTTPFileSystem)
@@ -232,12 +228,11 @@ public:
 
     STDMETHOD(CreateDir)        (THIS_
                                 IUnknown**     /*OUT*/     ppDirObject);
-#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)
+
     // IHXFileSystemCache methods...
     STDMETHOD (RefreshCache) (THIS);
     STDMETHOD (EmptyCache) (THIS);
     STDMETHOD (MoveCache) (THIS_ const char *path);
-#endif    
 
     // IHXHTTPAutoStream methods...
     STDMETHOD_( void, SetDestinationFile) ( THIS_ const char *pFilename );
@@ -246,19 +241,15 @@ public:
 private:
     IUnknown*                   m_pContext;
     IHXValues*                  m_pOptions;
-    static const char* const         zm_pDescription;
-    static const char* const         zm_pCopyright;
-    static const char* const         zm_pMoreInfoURL;
-    static const char* const        zm_pShortName;
-    static const char* const         zm_pProtocol;
-#if !defined(_SYMBIAN)
+    static const char*          zm_pDescription;
+    static const char*          zm_pCopyright;
+    static const char*          zm_pMoreInfoURL;
+    static const char*          zm_pShortName;
+    static const char*          zm_pProtocol;
+
     // Autostreaming support
     static HXBOOL                 m_bSaveNextStream;
     static CHXString            m_SaveFileName;
-#else    
-    HXBOOL                 m_bSaveNextStream;
-	CHXString            m_SaveFileName;
-#endif	
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -551,7 +542,7 @@ public:
         HX_RESULT   HX_RESULTStatus,
         IHXRequest* pIHXRequestResponse
     );
-#if defined(HELIX_FEATURE_HTTP_ENABLE_CACHE)
+
     // Support for cache
     STDMETHOD_ (IHXBuffer*, CreateBufferFromValues)     (THIS_ IHXValues /*IN*/ *pHeaderValues);
     STDMETHOD_ (IHXValues*, CreateValuesFromBuffer)     (THIS_ IHXBuffer *pBuffer);
@@ -560,7 +551,7 @@ public:
     STDMETHOD_ (void,        CacheSupport_ReadDone)      (THIS);
     STDMETHOD_ (void,        CacheSupport_HandleSuccess) (THIS_ HTTPResponseMessage* pMessage);
     STDMETHOD  (ProcessCacheCompletions)                 (THIS_ HXBOOL bRedirected);
-#endif
+
     // Support for autostreaming
     STDMETHOD_( void, SetDestinationFile) ( THIS_ const char *pFilename );
 
@@ -682,12 +673,7 @@ private:
     HX_RESULT       HandleSocketRead(HX_RESULT status, IHXBuffer* pBuffer);
     HX_RESULT       HandleHeaderRead(IHXBuffer* pBuffer);
 
-    void            ResetRequestHeader(IHXRequest* pRequest);
 
-    // MemCache handling
-    HXBOOL	    IsMemCacheFull(void);
-    HXBOOL	    TrimMemCacheIfNeeded(void);
-    
     // Error reporting
     void            ReportDNSFailure        ();
     void            ReportConnectionFailure ();
@@ -696,9 +682,6 @@ private:
     void            ReportDocumentMissing   ();
     void            ReportGeneralFailure    ();
 
-    // Callback helper function
-    void            IssueImmediateCallback  ();
-
     HX_RESULT       _SetDataJustDownloaded(const char* pRawBuf, UINT32 ulLength);
     HX_RESULT	    _SetDataPlain(const char* pRawBuf, UINT32 ulLength);
     HX_RESULT       _SetDataGzipEncoded(const char* pRawBuf, UINT32 ulLength);
@@ -706,7 +689,7 @@ private:
 				 UINT32 ulMetaDataSegmentSize,
 				 UINT32 ulMetaDataSegmentReach,
 				 UINT32 ulMetaDataSize);
-    HX_RESULT	    _SetRegistryValue(const char* pKeyName, const char* pValue, int nLen);
+
     unsigned long   GetMaxChunkSizeAccepted();
     HX_RESULT       DecodeChunkedEncoding(HTTPChunkedEncoding*& pChunkedEncoding,
                                           const char*           pChunk,
@@ -716,7 +699,6 @@ private:
 
     friend class HTTPFileObjCallback;
     friend class HTTPTCPResponse;
-    friend class CChunkyResMap;
 
     HX_RESULT                   m_LastError;
 
@@ -724,9 +706,6 @@ private:
     IHXPreferences*             m_pPreferences;
     IHXScheduler*               m_pScheduler;
     IHXRegistry*                m_pRegistry;
-    IHXBuffer*                  m_pPlayerRegId;
-    CStatisticEntry*            m_pTitle;
-    CStatisticEntry*            m_pAuthor;
     IHXErrorMessages*           m_pErrorMessages;
     IHXHTTPRedirectResponse*    m_pRedirectResponse;
     IHXCookies*         m_pCookies;
@@ -795,10 +774,6 @@ private:
 
     ULONG32                     m_ulCurrentReadPosition;
     UINT32                      m_ulLastKnownEndOfValidContiguousRange;
-    
-    UINT32			m_ulMemCacheSize;
-    UINT32			m_ulMemCacheContigLengthTrimThreshold;
-    UINT32			m_ulMemCacheTrimSize;
 
 #if defined(HELIX_FEATURE_HTTP_GZIP)
     CDecoder*                   m_pDecoder;
@@ -819,6 +794,7 @@ private:
 
     CHXSimpleList               m_PendingReadList;
     CHXSimpleList               m_PreProcessedReadBuffers;
+    static CHXSimpleList        zm_pList;
 
     int                         m_nPort;
 
@@ -950,7 +926,6 @@ private:
     // Resume support.
     HXBOOL                        m_bPartialData;
 
-    IHXBuffer*			m_pMetaDataBuffer;
     HXBOOL                        m_bUseHTTPS;
     HXBOOL                        m_bClosed;
 
@@ -962,7 +937,6 @@ private:
 
     HXBOOL                      m_bHaltSocketReadTemporarily;
     ULONG32                     m_ulMaxBufSize ;
-    HXBOOL                      m_bShoutcastSupportOnly;
 };
 
 class HTTPTCPResponse : public CUnknownIMP,

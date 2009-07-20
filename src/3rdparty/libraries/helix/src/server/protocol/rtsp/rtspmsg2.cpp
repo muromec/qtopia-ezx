@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: rtspmsg2.cpp,v 1.19 2008/04/10 17:19:56 dcollins Exp $ 
+ * Source last modified: $Id: rtspmsg2.cpp,v 1.11 2006/12/19 19:38:11 jc Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -80,7 +80,6 @@
 #include "hxbuffer.h"
 #include "hxsbuffer.h"
 #include "hxlistp.h"
-#include "urlparser.h"
 
 #ifdef _WINCE
 #include <wincestr.h>
@@ -217,6 +216,7 @@ static rtsp_verb s_Verbs[] = {
     { "SETUP",           5 },
     { "SET_PARAMETER",  13 },
     { "TEARDOWN",        8 },
+    { "PLAYNOW",         7 },
     { NULL,              0 }
 };
 static const UINT s_nVerbs = sizeof(s_Verbs)/sizeof(rtsp_verb) - 1;
@@ -297,12 +297,6 @@ CRTSPMessageBase::CRTSPMessageBase(IHXFastAlloc* pFastAlloc)
     , m_bReplaceDelimiters(FALSE)
     , m_nReplacementDelimiter(0)
     , m_pFastAlloc(pFastAlloc)
-    , m_pSessionID(NULL)
-    , m_pHostname(NULL)
-    , m_uPort(0)
-    , m_bFullyQualifiedURL(FALSE)
-    , m_bProxyGeneratedRequest(FALSE)
-    , m_bIsProxy(FALSE)
 {
     if (m_pFastAlloc)
     {
@@ -315,8 +309,6 @@ CRTSPMessageBase::~CRTSPMessageBase(void)
     HX_RELEASE(m_pbufContent);
     HX_RELEASE(m_plistHeaders);
     HX_RELEASE(m_pFastAlloc);
-    HX_RELEASE(m_pSessionID);
-    HX_RELEASE(m_pHostname);
 }
 
 /*** IUnknown methods ***/
@@ -814,20 +806,20 @@ CRTSPMessageBase::ParseHeader(IHXBuffer* pbufLine, UINT32* ppos)
     }
 
     IHXBuffer* pbufHeader = new CHXStaticBuffer(pbufLine, *ppos, linelen);
-    HX_ADDREF(pbufHeader);
     CMIMEHeader* pHdr = new (m_pFastAlloc) CMIMEHeader(m_pFastAlloc);
     if (pHdr->Init(pbufHeader) != HXR_OK)
     {
         // We could AddRef() above and Release() both here and after the
         // AddHeader() call below, but this is less work
         delete pHdr;
-        HX_RELEASE(pbufHeader);
+        delete pbufHeader;
         *ppos += buflen;
         return RTSP_RES_INVALID;
     }
 
     if (m_bReplaceDelimiters)
         pHdr->ReplaceDelimiters(m_bReplaceDelimiters, m_nReplacementDelimiter);
+    AddHeader(pHdr);
 
     // Extract content length manually so we don't force a MIME parse
     if (pbufHeader->GetSize() > 14 &&
@@ -837,20 +829,16 @@ CRTSPMessageBase::ParseHeader(IHXBuffer* pbufLine, UINT32* ppos)
         while (*pval == ' ' || *pval == '\t') pval++;
         //XXX: check overflow?
         m_ulRecvLeft = (UINT32)atoi(pval);
+
         // If the content length is too long, bail
         if (m_ulRecvLeft > RTSP_MAX_ENTITY_SIZE)
         {
-	    delete pHdr;
-            HX_RELEASE(pbufHeader);
             return RTSP_RES_INVALID;
         }
     }
 
-    AddHeader(pHdr);
-
     *ppos += linelen;
 
-    HX_RELEASE(pbufHeader);
     return RTSP_RES_AGAIN;
 }
 
@@ -891,143 +879,6 @@ int CRTSPMessageBase::ParseData(IHXBuffer* pbufLine, UINT32* ppos)
 
     return RTSP_RES_AGAIN;
 }
-
-const char*
-CRTSPMessageBase::GetSessionID(void)
-{
-    if (m_pSessionID)
-    {
-        return (const char*)m_pSessionID->GetBuffer();
-    }
-
-    IHXMIMEHeader* pHeader = 0;
-
-    GetHeader("Session", pHeader);
-
-    if (pHeader)
-    {
-        IHXBuffer* pBufVal = 0;
-
-        pHeader->GetValueAsBuffer(pBufVal);
-        HX_RELEASE(pHeader);
-        if (pBufVal && (pBufVal->GetSize() > 0))
-        {
-            m_pSessionID = pBufVal;
-            return (const char*)m_pSessionID->GetBuffer();
-        }
-        HX_RELEASE(pBufVal);
-    }
-
-    return NULL;
-}
-
-HX_RESULT
-CRTSPMessageBase::SetSessionID(const char* pszNewSessID)
-{
-    HX_RELEASE(m_pSessionID);
-
-    if (!pszNewSessID || !strlen(pszNewSessID))
-    {
-        return RemoveHeader("Session");
-    }
-    
-    CMIMEHeader* pHdr = new (m_pFastAlloc) CMIMEHeader(m_pFastAlloc);
-
-    pHdr->SetFromString("Session", pszNewSessID);
-    pHdr->ReplaceDelimiters(TRUE, '\0');
-
-    return SetHeader(pHdr);
-}
-
-HX_RESULT
-CRTSPMessageBase::CheckURL(IHXBuffer* pURLBuf)
-{
-    const char* pUrl = (const char*)pURLBuf->GetBuffer();
-    UINT32 ulUrlLen = pURLBuf->GetSize();
-    char* pszTmp = NULL;
-
-    if (ulUrlLen == 1)
-    {
-        if (pUrl[0] == '*')
-        {
-            // m_bIsFullyQualified is initially FALSE;
-            return HXR_OK;
-        }
-    }
-
-    // protocol had better be "rtsp"
-    if (ulUrlLen <= 7 || strncasecmp(pUrl, "rtsp://", 7))
-    {
-        return HXR_INVALID_PROTOCOL;
-    }
-    
-    // let the URL class parse the url
-    CHXURLParser theUrl(pUrl, ulUrlLen);
-
-    const char* pszHost = NULL;
-    UINT32 ulHostLen = theUrl.GetHost(pszHost);
-    if (!pszHost || pszHost[0] == 0)
-    {
-        return HXR_INVALID_PROTOCOL;            
-    }
-
-    HX_RELEASE(m_pHostname);
-    m_pHostname = new CHXBuffer;
-    m_pHostname->Set((const UCHAR*)pszHost, ulHostLen+1);
-    pszTmp = (char*)m_pHostname->GetBuffer();
-    pszTmp[ulHostLen] = 0;
-    m_pHostname->AddRef();
-
-    // check hostname length to avoid buffer over flow later
-    if (m_pHostname->GetSize() > 255)
-    {
-        return HXR_INVALID_URL_HOST;
-    }
-
-    const char* pszPort = NULL;
-    UINT32 ulPortLen = theUrl.GetPort(pszPort);
-    if (pszPort && pszPort[0])
-    {
-        m_uPort = strtol(pszPort, NULL, 10);
-    }
-    else
-    {
-        m_uPort = 554;
-    }
-
-    const char* pszName = NULL;
-    UINT32 ulNameLen = theUrl.GetFileName(pszName);
-    if (pszName && pszName[0])
-    {
-        m_bFullyQualifiedURL = TRUE;
-    }
-
-    return HXR_OK;
-}
-
-const char*
-CRTSPMessageBase::GetHostname()
-{
-    if (m_pHostname)
-    {
-        return (const char*)m_pHostname->GetBuffer();
-    }
-    
-    return NULL;
-}
-
-
-HX_RESULT 
-CRTSPMessageBase::ReplaceHeader(const char* szKey, const char* szNewVal)
-{
-    CMIMEHeader* pHdr = new (m_pFastAlloc)CMIMEHeader(m_pFastAlloc);
-
-    pHdr->SetFromString(szKey, szNewVal);
-    pHdr->ReplaceDelimiters(TRUE, '\0');
-
-    return SetHeader(pHdr);
-}
-
 
 /*****************************************************************************
  *
@@ -1157,8 +1008,7 @@ CRTSPRequestMessage::ReadDone(IHXBuffer* pbufPacket, UINT32* ppos)
         {
             // The buffer contains multiple messages
             m_pbufMessage = new CHXStaticBuffer(pbufPacket,
-                                                uOldPos, 
-                                                (*ppos-uOldPos));
+                                                     uOldPos, (*ppos-uOldPos));
             m_pbufMessage->AddRef();
         }
     }
@@ -1180,7 +1030,7 @@ CRTSPRequestMessage::GetSize(void)
 
     HX_ASSERT(m_pbufVerb != NULL && m_pbufUrl != NULL);
 
-    if (m_pbufMessage != NULL && !m_bIsProxy)
+    if (m_pbufMessage != NULL)
     {
         return m_pbufMessage->GetSize();
     }
@@ -1229,14 +1079,7 @@ CRTSPRequestMessage::Write(BYTE* pbuf)
 
     HX_ASSERT(m_pbufVerb != NULL && m_pbufUrl != NULL);
 
-    if (m_bIsProxy)
-    {
-        // proxy messages are modified regularly so we can't depend on the
-        // stored message buffer. release it so we force re-write.
-        HX_RELEASE(m_pbufMessage);
-    }
-
-    if (m_pbufMessage)
+    if (m_pbufMessage != NULL)
     {
         UINT32 len = m_pbufMessage->GetSize();
         memcpy(pbuf, m_pbufMessage->GetBuffer(), len);
@@ -1285,13 +1128,6 @@ CRTSPRequestMessage::Write(BYTE* pbuf)
 STDMETHODIMP_(UINT32)
 CRTSPRequestMessage::AsBuffer(REF(IHXBuffer*) pbuf)
 {
-    if (m_bIsProxy)
-    {
-        // proxy messages are modified regularly so we can't depend on the
-        // stored message buffer. release it so we force re-write.
-        HX_RELEASE(m_pbufMessage);
-    }
-
     if (m_pbufMessage == NULL)
     {
         // We need a local here because if GetSize() or Write() see that
@@ -1388,11 +1224,6 @@ CRTSPRequestMessage::GetUrl(REF(IHXBuffer*) pbufUrl)
 STDMETHODIMP
 CRTSPRequestMessage::SetUrl(IHXBuffer* pbufUrl)
 {
-    if (CheckURL(pbufUrl) != HXR_OK)
-    {
-        return HXR_FAIL;
-    }
-
     HX_RELEASE(m_pbufUrl);
     if (pbufUrl != NULL)
     {
@@ -1411,7 +1242,6 @@ int CRTSPRequestMessage::ParseCommand(IHXBuffer* pbufPkt, UINT32* ppos)
     UINT32 linelen;
     CPCHAR pverb, pverbend;
     CPCHAR purl, purlend;
-    char* pTmp = NULL;
 
     // LF must end line, CR is optional
     CPCHAR peol = (CPCHAR)memchr(pcur, '\n', len);
@@ -1529,29 +1359,16 @@ int CRTSPRequestMessage::ParseCommand(IHXBuffer* pbufPkt, UINT32* ppos)
         return RTSP_RES_INVALID;
     }
 
-    // proxy NULL terminates the verb and URL for ease of use.
-    if (m_bIsProxy)
-    {
-        pTmp = (char*)pverbend;
-        *pTmp = 0;
-        pTmp = (char*)purlend;
-        *pTmp = 0;
-    }
-
     // Everything checks out so save the info
     HX_RELEASE(m_pbufVerb);
-    m_pbufVerb = new CHXStaticBuffer(pbufPkt, 
-                                     (pverb-pbuf),
-                                     (pverbend-pverb));
+    m_pbufVerb = new CHXStaticBuffer(pbufPkt, (pverb-pbuf),
+                                                             (pverbend-pverb));
     m_pbufVerb->AddRef();
 
     HX_RELEASE(m_pbufUrl);
-    m_pbufUrl = new CHXStaticBuffer(pbufPkt, 
-                                     (purl-pbuf),
-                                     (purlend-purl));
+    m_pbufUrl = new CHXStaticBuffer(pbufPkt, (purl-pbuf),
+                                                               (purlend-purl));
     m_pbufUrl->AddRef();
-
-    CheckURL(m_pbufUrl);
 
     m_uVer = (nMajor << 8) + nMinor;
     m_nMajorVersion = nMajor;
@@ -1561,19 +1378,6 @@ int CRTSPRequestMessage::ParseCommand(IHXBuffer* pbufPkt, UINT32* ppos)
     m_iRecvState = RS_HDR;
 
     return RTSP_RES_AGAIN;
-}
-
-const char*
-CRTSPRequestMessage::TagStr()
-{
-    if (m_pbufVerb)
-    {
-        return (const char*)m_pbufVerb->GetBuffer();
-    }
-    else
-    {
-        return ("UNKNOWN");
-    }
 }
 
 /*****************************************************************************
@@ -1586,8 +1390,7 @@ CRTSPResponseMessage::CRTSPResponseMessage(IHXFastAlloc* pFastAlloc) :
     CRTSPMessageBase(pFastAlloc),
     m_pbufMessage(NULL),
     m_statuscode(0),
-    m_pbufReason(NULL),
-    m_reqType(RTSP_UNKNOWN)
+    m_pbufReason(NULL)
 {
     // Empty
 }
@@ -1720,7 +1523,7 @@ CRTSPResponseMessage::GetSize(void)
 
     HX_ASSERT(m_pbufReason != NULL);
 
-    if (m_pbufMessage != NULL && !m_bIsProxy)
+    if (m_pbufMessage != NULL)
     {
         return m_pbufMessage->GetSize();
     }
@@ -1808,13 +1611,6 @@ CRTSPResponseMessage::Write(BYTE* pbuf)
 STDMETHODIMP_(UINT32)
 CRTSPResponseMessage::AsBuffer(REF(IHXBuffer*) pbuf)
 {
-    if (m_bIsProxy)
-    {
-        // proxy messages are modified regularly so we can't depend on the
-        // stored message buffer. release it so we force re-write.
-        HX_RELEASE(m_pbufMessage);
-    }
-
     if (m_pbufMessage == NULL)
     {
         // We need a local here because if GetSize() or Write() see that
@@ -1859,7 +1655,8 @@ CRTSPResponseMessage::SetStatusCode(UINT32 status)
     }
     HX_ASSERT(psme->nCode == status);
 
-    m_pbufReason = new CHXStaticBuffer((UCHAR*)psme->szName, strlen(psme->szName));
+    m_pbufReason = new CHXStaticBuffer((UCHAR*)psme->szName,
+                                                      strlen(psme->szName));
     m_pbufReason->AddRef();
 
     return HXR_OK;
@@ -1955,7 +1752,7 @@ int CRTSPResponseMessage::ParseCommand(IHXBuffer* pbufPkt, UINT32* ppos)
         *ppos += len;
         return RTSP_RES_INVALID;
     }
-    m_pbufReason = new CHXBuffer((UCHAR*)pcur, reasonlen);
+    m_pbufReason = new CHXStaticBuffer(pbufPkt, pos, reasonlen);
     m_pbufReason->AddRef();
 
     *ppos += linelen;

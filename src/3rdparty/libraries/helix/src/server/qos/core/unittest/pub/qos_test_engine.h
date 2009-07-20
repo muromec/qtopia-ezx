@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_test_engine.h,v 1.6 2007/10/11 06:38:58 yphadke Exp $ 
+ * Source last modified: $Id: qos_test_engine.h,v 1.5 2003/04/08 21:42:08 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -67,7 +67,7 @@ class QoSTestEngine
     HX_RESULT TestSignalBus();
     HX_RESULT TestProfileManager();
 
- private:   
+ private:
     IHXBuffer* MakeSessionId();
 
     IHXQoSSignalBusController*  m_pController;

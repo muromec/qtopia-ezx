@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: clientguid.cpp,v 1.12 2007/05/23 18:52:58 seansmith Exp $
+ * Source last modified: $Id: clientguid.cpp,v 1.11 2005/07/20 21:47:53 dcollins Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -275,7 +275,7 @@ ClientGUIDEntry::~ClientGUIDEntry()
     {
         if (m_pClientStats)
         {
-             m_pClient->m_pProc->pc->client_stats_manager->RemoveClient(m_pClientStats->GetID(),  m_pClient->m_pProc);
+            m_pClient->proc->pc->client_stats_manager->RemoveClient(m_pClientStats->GetID(), m_pClient->proc);
         }
         HX_RELEASE(m_pClientStats);
         HX_RELEASE(m_pClient);
@@ -331,17 +331,17 @@ ClientGUIDEntry::ClientGUIDEntryInit(Client* pClient)
         m_pClient->AddRef();
 
         HX_RELEASE(m_pContext);
-         m_pClient->m_pProc->pc->server_context->
+        m_pClient->proc->pc->server_context->
             QueryInterface(IID_IUnknown, (void**) &m_pContext);
 
-        if (pClient->m_pProc->pc->client_stats_manager->UseRegistryForStats())
+        if (pClient->proc->pc->client_stats_manager->UseRegistryForStats())
         {
             m_RegTree.RegTreeInit(pClient, pValue);
         }
 
         if (!m_pClientStats && !m_pClient->m_bIsAProxy)
         {
-            m_pClientStats = new ClientStats(pClient->m_pProc);
+            m_pClientStats = new ClientStats(pClient->proc);
             m_pClientStats->AddRef();
 
             m_pClient->m_pStats = m_pClientStats;
@@ -351,13 +351,13 @@ ClientGUIDEntry::ClientGUIDEntryInit(Client* pClient)
             hx_localtime_r(&start_time, &start_time_struct);
             strftime(start_time_string, MAX_TIME_STRING_LEN, "%d/%b/%Y:%H:%M:%S",
                      &start_time_struct);
-            pClient->m_pProc->pc->common_class_factory->CreateInstance(CLSID_IHXBuffer, (void**)&pValue);
+            pClient->proc->pc->common_class_factory->CreateInstance(CLSID_IHXBuffer, (void**)&pValue);
             pValue->Set((const BYTE*)start_time_string, strlen(start_time_string) + 1);
             m_pClientStats->SetStartTime(pValue);
 
 
-            pClient->m_pProc->pc->client_stats_manager->AddClient(m_pClientStats,  m_pClient->m_pProc);
-            pClient->SetClientStatsObjId(m_pClientStats->GetID());
+            pClient->proc->pc->client_stats_manager->AddClient(m_pClientStats, m_pClient->proc);
+            pClient->set_client_stats_obj_id(m_pClientStats->GetID());
 
         }
     }
@@ -376,7 +376,7 @@ ClientGUIDEntry::Done()
     {
         if (m_pClient)
         {
-             m_pClient->m_pProc->pc->client_stats_manager->RemoveClient(m_pClientStats->GetID(),  m_pClient->m_pProc);
+            m_pClient->proc->pc->client_stats_manager->RemoveClient(m_pClientStats->GetID(), m_pClient->proc);
         }
     }
 

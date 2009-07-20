@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxplay.h,v 1.69 2009/05/05 17:09:14 sfu Exp $
+ * Source last modified: $Id: hxplay.h,v 1.63 2007/03/20 21:34:09 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -91,16 +91,12 @@
 #include "hxsrc.h"
 #include "hxcbobj.h"
 #include "chxmetainfo.h"
-#include "hxembeddedui.h"
 #if defined(HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS)
 #include "hxprdnld.h"
 #endif // /HELIX_FEATURE_PROGRESSIVE_DOWNLD_STATUS.
 #if defined(HELIX_FEATURE_PRESENTATION_FEATURE_SELECTION)
 #include "hxpfs.h"
 #endif // HELIX_FEATURE_PRESENTATION_FEATURE_SELECTION.
-#if defined(HELIX_FEATURE_VIDEO_FRAME_STEP)
-#include "hxframestep.h"
-#endif
 
 #ifdef _SYMBIAN
 //XXXgfw Wow, symbian's unistd.h #defines remove to be unlink.
@@ -148,7 +144,6 @@ _INTERFACE IHXPresentationFeatureSink;
 #endif // HELIX_FEATURE_PRESENTATION_FEATURE_SELECTION.
 _INTERFACE IHXPlayerNavigator;
 _INTERFACE IHXClientRequestSink;
-_INTERFACE IHXCookies3;
 
 class CHXSiteManager;
 
@@ -165,6 +160,7 @@ class CHXAdviseSinkControl;
 class CHXClientStateAdviseSink;
 class CHXErrorSinkControl;
 class CHXErrorSinkTranslator;
+class HXCookies;
 
 class Timeline;
 class Timeval;
@@ -509,9 +505,6 @@ class HXPlayer :   public IHXPlayer,
 #endif // HELIX_FEATURE_PLAYBACK_MODIFIER
                     public IHXPlaybackVelocity,
                     public IHXPlaybackVelocityResponse
-#if defined(HELIX_FEATURE_VIDEO_FRAME_STEP)
-					,public IHXFrameStep
-#endif
 {
 protected:
 
@@ -585,7 +578,6 @@ protected:
 #endif /* HELIX_FEATURE_ADVANCEDGROUPMGR */
 
     CHXMetaInfo*                m_pMetaInfo;
-    CHXEmbeddedUI*              m_pEmbeddedUI;
     HXMasterTAC*		m_pMasterTAC;
 
     CHXSimpleList*		m_pRedirectList;
@@ -604,7 +596,7 @@ protected:
 #else
     void*			m_pEventManager;
 #endif /* #if defined(HELIX_FEATURE_EVENTMANAGER) */
-    IHXCookies3*		m_pCookies3;
+    HXCookies*			m_pCookies;
 
 #if defined(HELIX_FEATURE_NESTEDMETA)
     HXPersistentComponentManager*  m_pPersistentComponentManager;
@@ -1631,11 +1623,6 @@ public:
     STDMETHOD_(UINT32,GetKeyFrameInterval) (THIS);
     STDMETHOD(CloseVelocityControl)        (THIS);
 
-	// IHXFrameStep methods
-#if defined(HELIX_FEATURE_VIDEO_FRAME_STEP)
-	STDMETHOD(StepFrames)         ( THIS_ INT32  lSteps );
-#endif
-
     // IHXPlaybackVelocityResponse methods (system components such
     // as renderers and/or proxies may use this to inform us)
     // IHXPlaybackVelocityResponse methods
@@ -1741,17 +1728,9 @@ public:
     UINT32		GetPlayerUpdateInterval(void)	{ return m_ulPlayerUpdateInterval; }
     UINT32		GetPlayerProcessingInterval(HXBOOL bAtInterruptTime)
     { 
-        // if we are not using core thread, put all load on the system thread
-        UINT32 ulSystemTimeProcessingInterval = m_ulPlayerSystemTimeProcessingInterval;
-        UINT32 ulInterruptTimeProcessingInterval = m_ulPlayerInterruptTimeProcessingInterval;
-        if (!m_bUseCoreThread)
-        {
-             ulSystemTimeProcessingInterval += ulInterruptTimeProcessingInterval;
-             ulInterruptTimeProcessingInterval = 0;
-        } 
 	return (m_bIsPlaying || (m_pEngine && (m_pEngine->GetPlayerCount() > 1)))
-			    ? (bAtInterruptTime ? ulInterruptTimeProcessingInterval : 
-						  ulSystemTimeProcessingInterval)
+			    ? (bAtInterruptTime ? m_ulPlayerInterruptTimeProcessingInterval : 
+						  m_ulPlayerSystemTimeProcessingInterval)
 			    : (m_bIsBuffering ? (m_ulPlayerUpdateInterval << 2) :
 						m_ulPlayerUpdateInterval);
     }
@@ -2043,6 +2022,7 @@ protected:
     HX_BITFIELD		m_bCurrentPresentationClosed : 1;
     HX_BITFIELD		m_bContactingDone : 1;
     HX_BITFIELD		m_bFSBufferingEnd : 1;
+    HX_BITFIELD		m_bAllLocalSources : 1;
     HX_BITFIELD		m_b100BufferingToBeSent : 1;
     HX_BITFIELD		m_bSetupToBeDone : 1;
     HX_BITFIELD		m_bPostSetupToBeDone : 1;

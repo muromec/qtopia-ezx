@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxwinver.cpp,v 1.20 2008/06/25 00:36:50 ping Exp $
+ * Source last modified: $Id: hxwinver.cpp,v 1.17 2006/02/23 23:59:32 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -280,7 +280,7 @@ ULONG32 HXGetWinVer( HXVERSIONINFO* lpVersionInfo )
                    }
                    else
                    {
-                       rVersionInfo.dwMachineType = HX_MACHINE_PENTIUM3PLUS;
+                       rVersionInfo.dwMachineType = HX_MACHINE_UNKNOWN;
                    }
                }
                else
@@ -493,18 +493,6 @@ ULONG32 HXGetWinVer( HXVERSIONINFO* lpVersionInfo )
     rVersionInfo.wReleaseVersion = 0;
     rVersionInfo.bFPUAvailable   = FALSE;
     
-#elif defined(_BREW)
-    rVersionInfo.dwPlatformId  = HX_PLATFORM_BREW;
-#ifndef AEE_SIMULATOR
-    rVersionInfo.dwMachineType = HX_MACHINE_BREWEMULATOR;
-#else
-    rVersionInfo.dwMachineType = HX_MACHINE_ARM;
-#endif
-    //XXGFW need to not hard code this.
-    rVersionInfo.wMajorVersion   = 6;
-    rVersionInfo.wMinorVersion   = 1;
-    rVersionInfo.wReleaseVersion = 0;
-    rVersionInfo.bFPUAvailable   = FALSE;
 #else
 
 
@@ -630,10 +618,6 @@ const char* HXGetMachName(ULONG32 nMachineType)
 
        case HX_MACHINE_686:
            pProcName = "686";
-           break;
-
-       case HX_MACHINE_PENTIUM3PLUS:
-           pProcName = "PentiumIIIPlus";
            break;
 
        case HX_MACHINE_PPC:

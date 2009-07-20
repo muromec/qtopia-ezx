@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: server_info.h,v 1.14 2007/05/24 08:35:56 ckarusala Exp $ 
+ * Source last modified: $Id: server_info.h,v 1.13 2007/03/30 19:08:38 tknox Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -136,7 +136,6 @@ public:
     inline void		ResetMainLoopCounters();
 
     inline void		ChangeBandwidthUsage(INT32 lBandwidth, Process* pProc);
-    inline void		UpdateBandwidthUsage(Process* pProc);
     inline void		UpdateCPUUsage(INT32 lPercentUserCPUUsage, INT32 lPercentKernCPUUsage,
                                        INT32 lPercentAggCPUUsage, Process* pProc);
     inline void		UpdateMemoryUsage(INT32 lBytesMemUsage, Process* pProc);
@@ -592,13 +591,8 @@ ServerInfo::ChangeBandwidthUsage(INT32 lBandwidth, Process* pProc)
 #else
     HXAtomicAddINT32(&m_BandwidthUsage, lBandwidth);
 #endif
-}
-
-inline void
-ServerInfo::UpdateBandwidthUsage(Process* pProc)
-{
-    pProc->pc->registry->SetInt(m_RegID[TOTAL_BW_USAGE], m_BandwidthUsage,
-                                pProc);
+    pProc->pc->registry->SetInt(m_RegID[TOTAL_BW_USAGE], m_BandwidthUsage,  
+			        pProc);
 }
 
 inline void

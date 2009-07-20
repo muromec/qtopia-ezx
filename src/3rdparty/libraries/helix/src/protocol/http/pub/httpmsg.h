@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpmsg.h,v 1.7 2009/04/11 00:15:39 svaidhya Exp $
+ * Source last modified: $Id: httpmsg.h,v 1.5 2005/03/10 20:59:18 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -83,7 +83,7 @@ public:
     static const int MAJ_VERSION;
     static const int MIN_VERSION;
 
-    enum Tag { T_UNKNOWN, T_RESP, T_GET, T_POST, T_HEAD , T_SWITCH};
+    enum Tag { T_UNKNOWN, T_RESP, T_GET, T_POST, T_HEAD };
 
     virtual Tag tag() const = 0;
     virtual const char* tagStr() const = 0;

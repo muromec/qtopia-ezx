@@ -101,20 +101,20 @@ CSwitchGroupContainer::isDuplicate(CRateDescription* pRateDescription, REF(UINT3
     BOOL bIsDuplicate = FALSE;
     for (UINT32 i=0; i<GetNumPhysicalStreams() && !bIsDuplicate; i++)
     {
-    CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
+	CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
 
-    if (pCurPhysicalStream->GetBandwidth() == pPhysicalStream->GetBandwidth())
-    {
-        ulIndex = i;
-        bIsDuplicate = TRUE;
-    }
-    else if (pCurPhysicalStream->IsEntriesSame(pPhysicalStream))
-    {
-        ulIndex = i;
-        bIsDuplicate = TRUE;
-    }
+	if (pCurPhysicalStream->GetBandwidth() == pPhysicalStream->GetBandwidth())
+	{
+	    ulIndex = i;
+	    bIsDuplicate = TRUE;
+	}
+	else if (pCurPhysicalStream->IsEntriesSame(pPhysicalStream))
+	{
+	    ulIndex = i;
+	    bIsDuplicate = TRUE;
+	}
 
-    HX_RELEASE(pCurPhysicalStream);
+	HX_RELEASE(pCurPhysicalStream);
     }
 
     return bIsDuplicate;        
@@ -136,13 +136,13 @@ CSwitchGroupContainer::shouldSwap(UINT32 ulIndex, CRateDescription* pRateDescrip
     // Use bandwidth and number of rules as the tiebreaker
     if (pCurPhysicalStream->GetBandwidth() == 0 && pPhysicalStream->GetBandwidth() > 0)
     {
-    // pick the one with non-zero bandwidth
-    bShouldSwap = TRUE;
+	// pick the one with non-zero bandwidth
+	bShouldSwap = TRUE;
     }
     else if (pCurPhysicalStream->GetNumRules() < pPhysicalStream->GetNumRules())
     {
-    // pick the one with more allocations :)
-    bShouldSwap = TRUE;
+	// pick the one with more allocations :)
+	bShouldSwap = TRUE;
     }    
 
     HX_RELEASE(pCurPhysicalStream);
@@ -162,45 +162,45 @@ CSwitchGroupContainer::GrowRateDescContainer(UINT32 ulMaxRateDescriptions)
     // Validate state -- can't add rate descriptions after rulebook processing is complete
     if (m_bDoneProcessingRulebook)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Resize pending rules array, if necessary
     if (ulMaxRateDescriptions > GetMaxRateDescriptions())
     {
-    // If the container is being resized (beyond the initial allocation), make the
-    // new container a bit larger than necessary to avoid continual resizing
-    if (GetNumPhysicalStreams() > 0)
-        ulMaxRateDescriptions += 5;
+	// If the container is being resized (beyond the initial allocation), make the
+	// new container a bit larger than necessary to avoid continual resizing
+	if (GetNumPhysicalStreams() > 0)
+	    ulMaxRateDescriptions += 5;
 
-    // Update rule pending array
-    if (SUCCEEDED(res))
-    {
-        HX_VECTOR_DELETE(m_pbPendingRule);
-        m_pbPendingRule = new BOOL[ulMaxRateDescriptions];
-        
-        if (!m_pbPendingRule)
-        res = HXR_OUTOFMEMORY;
-        else
-        memset(m_pbPendingRule, 0, sizeof(BOOL)*ulMaxRateDescriptions);
+	// Update rule pending array
+	if (SUCCEEDED(res))
+	{
+	    HX_VECTOR_DELETE(m_pbPendingRule);
+	    m_pbPendingRule = new BOOL[ulMaxRateDescriptions];
+	    
+	    if (!m_pbPendingRule)
+		res = HXR_OUTOFMEMORY;
+	    else
+		memset(m_pbPendingRule, 0, sizeof(BOOL)*ulMaxRateDescriptions);
+	}
+
+	// Update subscribed rule array
+	if (SUCCEEDED(res))
+	{
+	    HX_VECTOR_DELETE(m_pbSubscribedRule);
+	    m_pbSubscribedRule = new BOOL[ulMaxRateDescriptions];
+
+	    if (!m_pbSubscribedRule)
+		res = HXR_OUTOFMEMORY;
+	    else
+		memset(m_pbSubscribedRule, 0, sizeof(BOOL)*ulMaxRateDescriptions);
+	}
     }
 
-    // Update subscribed rule array
     if (SUCCEEDED(res))
-    {
-        HX_VECTOR_DELETE(m_pbSubscribedRule);
-        m_pbSubscribedRule = new BOOL[ulMaxRateDescriptions];
-
-        if (!m_pbSubscribedRule)
-        res = HXR_OUTOFMEMORY;
-        else
-        memset(m_pbSubscribedRule, 0, sizeof(BOOL)*ulMaxRateDescriptions);
-    }
-    }
-
-    if (SUCCEEDED(res))
-    res = CRateDescriptionMgr::GrowRateDescContainer(ulMaxRateDescriptions);
+	res = CRateDescriptionMgr::GrowRateDescContainer(ulMaxRateDescriptions);
 
     return res;
 }
@@ -235,8 +235,8 @@ CSwitchGroupContainer::ReplaceRateDescription(UINT32 ulIndex, CRateDescription* 
     // Validate state -- can't add rate descriptions after rulebook processing is complete
     if (m_bDoneProcessingRulebook)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     res = CRateDescriptionMgr::ReplaceRateDescription(ulIndex, pRateDescription);
@@ -260,8 +260,8 @@ CSwitchGroupContainer::InsertRateDescription(UINT32 ulInsertIndex, CRateDescript
     // Validate state -- can't add rate descriptions after rulebook processing is complete
     if (m_bDoneProcessingRulebook)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     return CRateDescriptionMgr::InsertRateDescription(ulInsertIndex, pRateDescription);
@@ -280,8 +280,8 @@ CSwitchGroupContainer::SetASMSource(IHXASMSource* pASMSource)
     // Validate params
     if (!pASMSource)
     {
-    HX_ASSERT(FALSE);
-    return HXR_POINTER;
+	HX_ASSERT(FALSE);
+	return HXR_POINTER;
     }
 
     HX_RELEASE(m_pASMSource);
@@ -305,8 +305,8 @@ CSwitchGroupContainer::HandlePacket(UINT32 unRuleNum)
     
     if (m_bPending && m_pbPendingRule[unRuleNum])
     {
-    m_bPending = FALSE;
-    memset(m_pbPendingRule, FALSE, sizeof(BOOL)*GetMaxRules()); 
+	m_bPending = FALSE;
+	memset(m_pbPendingRule, FALSE, sizeof(BOOL)*GetMaxRules());	
     }
     return HXR_OK;
 }
@@ -323,15 +323,15 @@ CSwitchGroupContainer::DumpActivation()
     printf("rules: ");
     if (m_pbPendingRule)
     {
-        for (UINT32 i = 0; i < GetMaxRules(); i++)
-        {
-        printf("%6u ", m_pbPendingRule[i]);
-    }
-    printf("\n");
+    	for (UINT32 i = 0; i < GetMaxRules(); i++)
+    	{
+	    printf("%6u ", m_pbPendingRule[i]);
+	}
+	printf("\n");
     }
     else
     {
-    printf(" unknown\n");
+	printf(" unknown\n");
     }
     fflush(0);
 }
@@ -350,8 +350,8 @@ CSwitchGroupContainer::Subscribe(UINT32 ulStreamNum, UINT32 ulRuleNum)
     // Validate state, params
     if (!m_pASMSource || ulRuleNum >= GetMaxRules() || ulStreamNum==kulInvalidLogicalStreamNum)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Sanity check
@@ -363,13 +363,13 @@ CSwitchGroupContainer::Subscribe(UINT32 ulStreamNum, UINT32 ulRuleNum)
 
     // Update subscribed rule array
     if (SUCCEEDED(res))
-    m_pbSubscribedRule[ulRuleNum] = TRUE;
+	m_pbSubscribedRule[ulRuleNum] = TRUE;
 
     // Update the current rate desc -- OK if it fails (expected behavior until all rules
     // contained by a rate description have been subscribed to)
     if (SUCCEEDED(res))
     {
-    HX_RESULT resUpdate = UpdateCurrentRateDesc();
+	HX_RESULT resUpdate = UpdateCurrentRateDesc();
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -389,8 +389,8 @@ CSwitchGroupContainer::Unsubscribe(UINT32 ulStreamNum, UINT32 ulRuleNum)
     // Validate state, params
     if (!m_pASMSource || ulRuleNum >= GetMaxRules() || ulStreamNum==kulInvalidLogicalStreamNum)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Sanity check
@@ -398,17 +398,17 @@ CSwitchGroupContainer::Unsubscribe(UINT32 ulStreamNum, UINT32 ulRuleNum)
 
     // Unubscribe from the rule 
     if (SUCCEEDED(res))
-    res = m_pASMSource->Unsubscribe((UINT16)ulStreamNum, (UINT16)ulRuleNum);
+	res = m_pASMSource->Unsubscribe((UINT16)ulStreamNum, (UINT16)ulRuleNum);
 
     // Update subscribed rule array
     if (SUCCEEDED(res))
-    m_pbSubscribedRule[ulRuleNum] = FALSE;
+	m_pbSubscribedRule[ulRuleNum] = FALSE;
 
     // Update the current rate desc -- OK if it fails (expected behavior until all rules
     // contained by a rate description have been subscribed to)
     if (SUCCEEDED(res))
     {
-    HX_RESULT resUpdate = UpdateCurrentRateDesc();
+	HX_RESULT resUpdate = UpdateCurrentRateDesc();
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -445,66 +445,66 @@ CSwitchGroupContainer::UpdateCurrentRateDesc()
     CPhysicalStream* pNewPhysStream = NULL;
     for (UINT32 i=0; i<GetNumPhysicalStreams(); i++)
     {
-    CPhysicalStream* pPhysicalStream = GetPhysicalStream(i);
+	CPhysicalStream* pPhysicalStream = GetPhysicalStream(i);
 
-    UINT32 ulNumRulesMatched = 0;
-    UINT32* aulStreamRuleArray = pPhysicalStream->GetRuleArray();
-    for (UINT32 j=0; j<pPhysicalStream->GetNumRules(); j++)
-    {
-        if (m_pbSubscribedRule[aulStreamRuleArray[j]])
-        ulNumRulesMatched++;
-        else
-        break;
-    }
+	UINT32 ulNumRulesMatched = 0;
+	UINT32* aulStreamRuleArray = pPhysicalStream->GetRuleArray();
+	for (UINT32 j=0; j<pPhysicalStream->GetNumRules(); j++)
+	{
+	    if (m_pbSubscribedRule[aulStreamRuleArray[j]])
+		ulNumRulesMatched++;
+	    else
+		break;
+	}
 
-    // If the subscribed rule array contains all of the rules associated with
-    // the rate description, and the rate description and subscribed rule array have
-    // the same number of rules, a matching rate description has been found
-    if (ulNumRulesMatched == pPhysicalStream->GetNumRules())
-    {
-        UINT32 ulNumRulesSubscribed = 0;
-        for (UINT32 k=0; k<GetMaxRules(); k++)
-        {
-        if (m_pbSubscribedRule[k])
-            ulNumRulesSubscribed++;
-        }
+	// If the subscribed rule array contains all of the rules associated with
+	// the rate description, and the rate description and subscribed rule array have
+	// the same number of rules, a matching rate description has been found
+	if (ulNumRulesMatched == pPhysicalStream->GetNumRules())
+	{
+	    UINT32 ulNumRulesSubscribed = 0;
+	    for (UINT32 k=0; k<GetMaxRules(); k++)
+	    {
+		if (m_pbSubscribedRule[k])
+		    ulNumRulesSubscribed++;
+	    }
 
-        if (ulNumRulesMatched == ulNumRulesSubscribed)
-        {
-        pNewPhysStream = pPhysicalStream;
-        pNewPhysStream->AddRef();
+	    if (ulNumRulesMatched == ulNumRulesSubscribed)
+	    {
+		pNewPhysStream = pPhysicalStream;
+		pNewPhysStream->AddRef();
 
-        HX_RELEASE(pPhysicalStream);
-        break;
-        }
-    }
+		HX_RELEASE(pPhysicalStream);
+		break;
+	    }
+	}
 
-    HX_RELEASE(pPhysicalStream);
+	HX_RELEASE(pPhysicalStream);
     }
 
     // Return HXR_IGNORE if the subscribed rule array doesn't match any physical stream
     if (pNewPhysStream == NULL)
-    res = HXR_IGNORE;
+	res = HXR_IGNORE;
 
     // Set shift pending flag -- only want this if rate description has changed
     if (SUCCEEDED(res))
     {
-    // OK if current stream is NULL
-    CPhysicalStream* pCurrentPhysStream = GetCurrentPhysicalStream();
+	// OK if current stream is NULL
+	CPhysicalStream* pCurrentPhysStream = GetCurrentPhysicalStream();
 
-    if (pCurrentPhysStream != pNewPhysStream)
-    {
-        m_bPending = TRUE;
-        memcpy(m_pbPendingRule, m_pbSubscribedRule, GetMaxRules()*sizeof(BOOL));        
-    }
+	if (pCurrentPhysStream != pNewPhysStream)
+	{
+	    m_bPending = TRUE;
+	    memcpy(m_pbPendingRule, m_pbSubscribedRule, GetMaxRules()*sizeof(BOOL));	    
+	}
 
-    HX_RELEASE(pCurrentPhysStream);
+	HX_RELEASE(pCurrentPhysStream);
     }
 
     // Update current rate desc
     UINT32 ulIndex = kulInvalidRateDescIndex;
     if (SUCCEEDED(res))
-    res = GetRateDescIndex(pNewPhysStream, ulIndex);
+	res = GetRateDescIndex(pNewPhysStream, ulIndex);
 
     // Set the current rate description (OK to set to invalid index, if that's actually the case)
     SetCurrentRateDesc(ulIndex);
@@ -527,25 +527,25 @@ CStreamGroupContainer::isDuplicate(CRateDescription* pRateDescription, REF(UINT3
     BOOL bIsDuplicate = FALSE;
     for (UINT32 i=0; i<GetNumPhysicalStreams() && !bIsDuplicate; i++)
     {
-    CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
+	CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
 
-    // Note: Requires that all physical streams in the same switch group
-    // have a different bandwidth
-    if (pCurPhysicalStream->GetSwitchGroupID() == pPhysicalStream->GetSwitchGroupID())
-    {
-        if (pCurPhysicalStream->GetBandwidth() == pPhysicalStream->GetBandwidth())
-        {
-        ulIndex = i;
-        bIsDuplicate = TRUE;
-        }
-        else if (pCurPhysicalStream->IsEntriesSame(pPhysicalStream))
-        {
-        ulIndex = i;
-        bIsDuplicate = TRUE;
-        }
-    }
+	// Note: Requires that all physical streams in the same switch group
+	// have a different bandwidth
+	if (pCurPhysicalStream->GetSwitchGroupID() == pPhysicalStream->GetSwitchGroupID())
+	{
+	    if (pCurPhysicalStream->GetBandwidth() == pPhysicalStream->GetBandwidth())
+	    {
+		ulIndex = i;
+		bIsDuplicate = TRUE;
+	    }
+	    else if (pCurPhysicalStream->IsEntriesSame(pPhysicalStream))
+	    {
+		ulIndex = i;
+		bIsDuplicate = TRUE;
+	    }
+	}
 
-    HX_RELEASE(pCurPhysicalStream);
+	HX_RELEASE(pCurPhysicalStream);
     }
 
     return bIsDuplicate;        
@@ -566,13 +566,13 @@ CStreamGroupContainer::shouldSwap(UINT32 ulIndex, CRateDescription* pRateDescrip
 
     if (pCurPhysicalStream->GetBandwidth() == 0 && pPhysicalStream->GetBandwidth() > 0)
     {
-    // pick the one with non-zero bandwidth
-    bShouldSwap = TRUE;
+	// pick the one with non-zero bandwidth
+	bShouldSwap = TRUE;
     }
     else if (pCurPhysicalStream->GetNumRules() < pPhysicalStream->GetNumRules())
     {
-    // pick the one with more allocations :)
-    bShouldSwap = TRUE;
+	// pick the one with more allocations :)
+	bShouldSwap = TRUE;
     }    
 
     HX_RELEASE(pCurPhysicalStream);
@@ -603,7 +603,7 @@ CStreamGroupManager::CStreamGroupManager(IHXCommonClassFactory* pCCF):
     HX_ASSERT(m_pCCF);
     if (m_pCCF)
     {
-    m_pCCF->AddRef();
+	m_pCCF->AddRef();
     }
 }
 
@@ -621,12 +621,12 @@ CStreamGroupManager::~CStreamGroupManager()
 
     if (m_ppSwitchGroup)
     {
-    for (UINT32 i=0; i<m_ulNumSwitchGroups; i++)
-    {
-        HX_RELEASE(m_ppSwitchGroup[i]);
-    }
+	for (UINT32 i=0; i<m_ulNumSwitchGroups; i++)
+	{
+	    HX_RELEASE(m_ppSwitchGroup[i]);
+	}
 
-    HX_VECTOR_DELETE(m_ppSwitchGroup);
+	HX_VECTOR_DELETE(m_ppSwitchGroup);
     }
 
     // All elements' references released above from m_ppSwitchGroup
@@ -687,35 +687,14 @@ CStreamGroupManager::GetLogicalStream(UINT32 ulLogicalStreamNum, REF(IHXRateDesc
     // Validate state, params
     if (!m_ppLogicalStream || ulLogicalStreamNum >= m_ulMaxNumLogicalStreams || !m_ppLogicalStream[ulLogicalStreamNum])
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     pLogicalStreamEnum = m_ppLogicalStream[ulLogicalStreamNum];
     pLogicalStreamEnum->AddRef();
 
     return res;
-}
-
-/////////////////////////////////////////////////////////////////////////
-// Method:
-//  CStreamGroupManager::SelectInitialLogicalStream
-// Purpose:
-//  Subscribes to a logical stream's rule.  Also updates the current rate description.
-HX_RESULT
-CStreamGroupManager::SelectLogicalStream(UINT32 ulLogicalStreamNum)
-{
-    // Validate state
-    if (!m_ppLogicalStream ||
-        ulLogicalStreamNum >= m_ulMaxNumLogicalStreams ||
-        !m_ppLogicalStream[ulLogicalStreamNum])
-    {
-        HX_ASSERT(FALSE);
-        return HXR_FAIL;
-    }
-
-    m_ulSelectedLogicalStream = ulLogicalStreamNum;
-    return HXR_OK;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -731,7 +710,7 @@ CStreamGroupManager::GetSelectedLogicalStreamNum(REF(UINT32)ulSelectedLogicalStr
     // Validate state, params
     if (!m_bInitialRateDescCommitted || m_ulSelectedLogicalStream == kulInvalidLogicalStreamNum)
     {
-    return HXR_FAIL;
+	return HXR_FAIL;
     }
 
     ulSelectedLogicalStreamNum = m_ulSelectedLogicalStream;
@@ -908,15 +887,14 @@ CStreamGroupManager::ProcessRulebook(ASMRuleBook* pRuleBook,
     BOOL bIsRealVideo = FALSE;
     if (SUCCEEDED(res))
     {
-       HX_RELEASE(m_pMimeType);
-    HX_RESULT resMimeType = pStreamHeader->GetPropertyCString("MimeType", m_pMimeType);
+	HX_RESULT resMimeType = pStreamHeader->GetPropertyCString("MimeType", m_pMimeType);
 
-    if (SUCCEEDED(resMimeType) && 
-        (strcasecmp((const char*) m_pMimeType->GetBuffer(), REALVIDEO_MIME_TYPE) == 0 || 
-        strcasecmp((const char*) m_pMimeType->GetBuffer(), REALVIDEO_MULTIRATE_MIME_TYPE) == 0))
-    {
-        bIsRealVideo = TRUE;
-    }
+	if (SUCCEEDED(resMimeType) && 
+	    (strcasecmp((const char*) m_pMimeType->GetBuffer(), REALVIDEO_MIME_TYPE) == 0 || 
+	    strcasecmp((const char*) m_pMimeType->GetBuffer(), REALVIDEO_MULTIRATE_MIME_TYPE) == 0))
+	{
+	    bIsRealVideo = TRUE;
+	}
     }
 
     // Determine number of bandwidth thresholds
@@ -927,97 +905,97 @@ CStreamGroupManager::ProcessRulebook(ASMRuleBook* pRuleBook,
 
     if (SUCCEEDED(res))
     {
-    res = CAsmRuleBookParser::GetThresholdInfo(pRuleBook, m_pCCF, ulNumThreshold, pThresholds);
+	res = CAsmRuleBookParser::GetThresholdInfo(pRuleBook, m_pCCF, ulNumThreshold, pThresholds);
     //    printf("Strm: %u Thresholds %u:", ulStreamNo, ulNumThreshold);fflush(0);
     }
 
     // Create a physical stream for each threshold bandwidth
     for (UINT32 i = 0; i < ulNumThreshold && SUCCEEDED(res); i++)
     {
-    // Handle case of zero bandwidth
-    if ((UINT32)pThresholds[i] == 0)
-    {
-        // If there is more than one threshold, just skip the current threshold (will be duplicate 
-        // of some other stream)
-        if (ulNumThreshold > 1)
-        {
-        continue;
-        }
+	// Handle case of zero bandwidth
+	if ((UINT32)pThresholds[i] == 0)
+	{
+	    // If there is more than one threshold, just skip the current threshold (will be duplicate 
+	    // of some other stream)
+	    if (ulNumThreshold > 1)
+	    {
+		continue;
+	    }
 
-        // Otherwise, if there is only a single threshold, try to get the avg bitrate
-        // from the logical stream header
-        else
-        {
+	    // Otherwise, if there is only a single threshold, try to get the avg bitrate
+	    // from the logical stream header
+	    else
+	    {
                 // If no AvgBitRate available with only one threshold, 
                 // that's okay just stick with 0.
                 // Only happens for live RTP streams with no bandwidth
                 // info. Needs further consideration for MDP case.
-        UINT32 ulAvgRate = 0;
-        pStreamHeader->GetPropertyULONG32("AvgBitRate", ulAvgRate);
+		UINT32 ulAvgRate = 0;
+		pStreamHeader->GetPropertyULONG32("AvgBitRate", ulAvgRate);
 
                 pThresholds[i] = (float)ulAvgRate;
-        }
-    }
+	    }
+	}
 
-    // Create physical stream for the given bandwidth (if one doesn't already exist)
-    CPhysicalStream* pPhysicalStream = NULL;
-    if (SUCCEEDED(res))
-    {
-        pPhysicalStream = new CPhysicalStream((UINT32)pThresholds[i]);      
-        if (pPhysicalStream)
-        pPhysicalStream->AddRef();
-        else
-        res = HXR_OUTOFMEMORY;
+	// Create physical stream for the given bandwidth (if one doesn't already exist)
+	CPhysicalStream* pPhysicalStream = NULL;
+	if (SUCCEEDED(res))
+	{
+	    pPhysicalStream = new CPhysicalStream((UINT32)pThresholds[i]);	    
+	    if (pPhysicalStream)
+		pPhysicalStream->AddRef();
+	    else
+		res = HXR_OUTOFMEMORY;
 
             pPhysicalStream->m_ulSwitchGroupID = pSwitchGroup->GetSwitchGroupID();
 
-        // Determine the ASM rules associated with the current bandwidth threshold
-        if (SUCCEEDED(res))
-        {
-        res = GetPhysicalStreamRules(pRuleBook, pPhysicalStream->m_ulAvgRate, pPhysicalStream->m_ulNumRules,
-                pPhysicalStream->m_aulRule);
-        }
+	    // Determine the ASM rules associated with the current bandwidth threshold
+	    if (SUCCEEDED(res))
+	    {
+		res = GetPhysicalStreamRules(pRuleBook, pPhysicalStream->m_ulAvgRate, pPhysicalStream->m_ulNumRules,
+		        pPhysicalStream->m_aulRule);
+	    }
 
-        if (SUCCEEDED(res) && bIsRealVideo)
+	    if (SUCCEEDED(res) && bIsRealVideo)
             {
-        res = HandleRVThinningStream(pPhysicalStream, pRuleBook, pThresholds, 
+		res = HandleRVThinningStream(pPhysicalStream, pRuleBook, pThresholds, 
                         ulNumThreshold, i);
             }
-        // Sets default maxrate/preroll/predata values, other stream info
-        if (SUCCEEDED(res))
+	    // Sets default maxrate/preroll/predata values, other stream info
+	    if (SUCCEEDED(res))
             {
-        res = InitPhysicalStream(pPhysicalStream, ulLogicalStreamNum, pStreamHeader);
+		res = InitPhysicalStream(pPhysicalStream, ulLogicalStreamNum, pStreamHeader);
             }
-    }
+	}
 
-    // Add the stream to the LogicalStream container
-    if (SUCCEEDED(res))
-    {
+	// Add the stream to the LogicalStream container
+	if (SUCCEEDED(res))
+	{
             res = pSwitchGroup->AddPhysicalStream(pPhysicalStream);
 
-        // Ok if not added
-        if (res == HXR_IGNORE)
-        res = HXR_OK;
-    }
+	    // Ok if not added
+	    if (res == HXR_IGNORE)
+		res = HXR_OK;
+	}
 
-    // Add the physical stream to the StreamGroup container
-    if (SUCCEEDED(res))
-    {
-        res = AddPhysicalStream(pPhysicalStream);
+	// Add the physical stream to the StreamGroup container
+	if (SUCCEEDED(res))
+	{
+	    res = AddPhysicalStream(pPhysicalStream);
 
-        // Ok if not added
-        if (res == HXR_IGNORE)
-        res = HXR_OK;
-    }
+	    // Ok if not added
+	    if (res == HXR_IGNORE)
+		res = HXR_OK;
+	}
 
-    HX_RELEASE(pPhysicalStream);
-    }   
+	HX_RELEASE(pPhysicalStream);
+    }	
 
     //    printf("\n");
     HX_VECTOR_DELETE(pThresholds);
 
     if (SUCCEEDED(res) && GetNumPhysicalStreams() == 0)
-    res = HXR_IGNORE;
+	res = HXR_IGNORE;
 
     HX_ASSERT(SUCCEEDED(res) || res == HXR_IGNORE);
     return res;
@@ -1039,34 +1017,34 @@ CStreamGroupManager::HandleRVThinningStream(CPhysicalStream* pPhysicalStream, AS
     BOOL bIsThinningStream = FALSE;
     if (pPhysicalStream->GetNumRules() == 1)
     {
-    IHXValues* pProps = NULL;
-    HX_RESULT resProps = pRuleBook->GetProperties((UINT16)pPhysicalStream->GetRuleArray()[0], pProps);
+	IHXValues* pProps = NULL;
+	HX_RESULT resProps = pRuleBook->GetProperties((UINT16)pPhysicalStream->GetRuleArray()[0], pProps);
 
-    if (SUCCEEDED(resProps))
-    {
-        IHXBuffer* pBuffer = NULL;
-        resProps = pProps->GetPropertyCString("TimeStampDelivery", pBuffer);
+	if (SUCCEEDED(resProps))
+	{
+	    IHXBuffer* pBuffer = NULL;
+	    resProps = pProps->GetPropertyCString("TimeStampDelivery", pBuffer);
 
-        if (SUCCEEDED(resProps))
-        bIsThinningStream = TRUE;
+	    if (SUCCEEDED(resProps))
+		bIsThinningStream = TRUE;
 
-        HX_RELEASE(pBuffer);
-    }
-    HX_RELEASE(pProps);
+	    HX_RELEASE(pBuffer);
+	}
+	HX_RELEASE(pProps);
     }
 
     // If the physical stream is a thinning stream, tag it, and update bitrate
     if (bIsThinningStream)
     {
-    pPhysicalStream->m_bIsThinningStream = TRUE;
+	pPhysicalStream->m_bIsThinningStream = TRUE;
 
-    // Note: A lot of thinning streams don't have avg bandwidth directives, so just make a 
-    // rough guesstimate -- take 40% of the bitrate of the full stream
-    if (pPhysicalStream->m_ulAvgRate == 1 
-        && ulNumThreshold > 2 && ulCurThresholdIndex < ulNumThreshold - 1)
-    {
-        pPhysicalStream->m_ulAvgRate = (UINT32)(pThresholds[ulCurThresholdIndex+1] * .4);
-    }          
+	// Note: A lot of thinning streams don't have avg bandwidth directives, so just make a 
+	// rough guesstimate -- take 40% of the bitrate of the full stream
+	if (pPhysicalStream->m_ulAvgRate == 1 
+	    && ulNumThreshold > 2 && ulCurThresholdIndex < ulNumThreshold - 1)
+	{
+	    pPhysicalStream->m_ulAvgRate = (UINT32)(pThresholds[ulCurThresholdIndex+1] * .4);
+	}		   
     }
 
     return res;
@@ -1083,8 +1061,8 @@ CStreamGroupManager::GetPhysicalStreamRules(ASMRuleBook* pRuleBook, UINT32 ulBan
     // Validate state
     if (!pRuleBook)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     HX_RESULT theErr = HXR_FAIL;
@@ -1094,7 +1072,7 @@ CStreamGroupManager::GetPhysicalStreamRules(ASMRuleBook* pRuleBook, UINT32 ulBan
     UINT32 ulNumRules = 0;
     if (ulNumRules = pRuleBook->GetNumRules())
     {
-    theErr = CAsmRuleBookParser::GetRuleSubscriptions(pRuleBook, m_pCCF, ulBandwidth, pSubs);
+	theErr = CAsmRuleBookParser::GetRuleSubscriptions(pRuleBook, m_pCCF, ulBandwidth, pSubs);
     }
 
     //    printf("stream: %u\n", ulStreamNo);
@@ -1103,72 +1081,72 @@ CStreamGroupManager::GetPhysicalStreamRules(ASMRuleBook* pRuleBook, UINT32 ulBan
 
     if (HXR_OK == theErr)
     {
-    // unCount shall never be > ulNumRules
-    unCount = 0;
-    pRules = new UINT32[ulNumRules];
-    if (pRules)
-    {
-        memset(pRules, 0, sizeof(UINT32)*ulNumRules);
-    }
-    else
-    {
-        theErr = HXR_OUTOFMEMORY;
-    }
+	// unCount shall never be > ulNumRules
+	unCount = 0;
+	pRules = new UINT32[ulNumRules];
+	if (pRules)
+	{
+	    memset(pRules, 0, sizeof(UINT32)*ulNumRules);
+	}
+	else
+	{
+	    theErr = HXR_OUTOFMEMORY;
+	}
     }
 
     // Update the rules array with the rule numbers that are associated 
     // with the given bandwidth.
     for (UINT32 i = 0; HXR_OK == theErr && i < ulNumRules; i++)
     {
-    if (pSubs[i])
-    {
-        theErr = pRuleBook->GetProperties((UINT16)i, pVal);
-        if (HXR_OK == theErr)
-        {
+	if (pSubs[i])
+	{
+	    theErr = pRuleBook->GetProperties((UINT16)i, pVal);
+	    if (HXR_OK == theErr)
+	    {
 #if 0
-        // XXXLY -- Remove this if not needed from rmevents code (don't know yet)
-        if (m_bCheckAverageBandwidth)
-        {           
-            theErr = pVal->GetPropertyCString("AverageBandwidth", pBuf);
-            if (HXR_OK == theErr)
-            {
-            pRules[unCount++] = i;
+		// XXXLY -- Remove this if not needed from rmevents code (don't know yet)
+		if (m_bCheckAverageBandwidth)
+		{		    
+		    theErr = pVal->GetPropertyCString("AverageBandwidth", pBuf);
+		    if (HXR_OK == theErr)
+		    {
+			pRules[unCount++] = i;
 
-            //          printf("\trule: %u AverageBandwidth: %u\n", i, 
-            //          atoi((char*)pBuf->GetBuffer()));fflush(0);
-            HX_RELEASE(pBuf);           
-            }
-            else
-            {
-            // fine keep going
-            theErr = HXR_OK;
-            }
-        }
-        else
+			//		    printf("\trule: %u AverageBandwidth: %u\n", i, 
+			//			atoi((char*)pBuf->GetBuffer()));fflush(0);
+			HX_RELEASE(pBuf);			
+		    }
+		    else
+		    {
+			// fine keep going
+			theErr = HXR_OK;
+		    }
+		}
+		else
 #endif
-        {
-            pRules[unCount++] = i;          
-        }
-        }            
-        HX_RELEASE(pVal);
-    }
+		{
+		    pRules[unCount++] = i;		    
+		}
+	    }            
+	    HX_RELEASE(pVal);
+	}
     }
     HX_VECTOR_DELETE(pSubs);
 
     if (HXR_OK == theErr)
     {
-    if (unCount)
-    {
-        return HXR_OK;
-    }
-    else
-    {
-        theErr = HXR_IGNORE;
-    }
+	if (unCount)
+	{
+	    return HXR_OK;
+	}
+	else
+	{
+	    theErr = HXR_IGNORE;
+	}
     }
 
     // failed...cleana up   
-    HX_VECTOR_DELETE(pRules);   
+    HX_VECTOR_DELETE(pRules);	
     return theErr;    
 }
 
@@ -1223,13 +1201,6 @@ CStreamGroupManager::HandleDefaults(CPhysicalStream* pPhysicalStream,
         pPhysicalStream->m_ulPredata = pPhysicalStream->m_ulPreroll * 
             pPhysicalStream->m_ulMaxRate / 1000 / 8;
     }
-
-    // Exclude RealVideo thinning (key-frame only) stream from selection &
-    // switching.
-    pPhysicalStream->ExcludeFromSelection(pPhysicalStream->m_bIsThinningStream,
-        HX_SEL_RV_THINNING_STREAM);
-    pPhysicalStream->ExcludeFromSwitching(pPhysicalStream->m_bIsThinningStream,
-        HX_SWI_RV_THINNING_STREAM);
 
     return HXR_OK;
 }
@@ -1304,13 +1275,13 @@ CStreamGroupManager::IsDefaultStream(CPhysicalStream* pPhysicalStream,
 //  Given an ASM rulebook, determines the number of bandwidth threshholds
 HX_RESULT 
 CAsmRuleBookParser::GetThresholdInfo(ASMRuleBook* pRules, IHXCommonClassFactory* pCCF,
-                 REF(UINT32) ulNumThreshold, REF(float*) pThresholds)
+				 REF(UINT32) ulNumThreshold, REF(float*) pThresholds)
 {
     // Validate params
     if (!pRules || !pCCF)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     pThresholds = NULL;
@@ -1322,44 +1293,44 @@ CAsmRuleBookParser::GetThresholdInfo(ASMRuleBook* pRules, IHXCommonClassFactory*
     res = pCCF->CreateInstance(CLSID_IHXValues, (void**)&pValues);
     if (HXR_OK == res)
     {
-    res = pCCF->CreateInstance(CLSID_IHXBuffer, (void**)&pBuffer);
-    }   
+	res = pCCF->CreateInstance(CLSID_IHXBuffer, (void**)&pBuffer);
+    }	
 
     if (HXR_OK == res)
     {
-        // we have to send "Bandwidth" to be 0 in pValues
-        UINT8 pBandwidth[128];
-        sprintf ((char *)pBandwidth, "%ld", 0);
-        
-        res = pBuffer->Set(pBandwidth, strlen((char *)pBandwidth) + 1);
+    	// we have to send "Bandwidth" to be 0 in pValues
+    	UINT8 pBandwidth[128];
+    	sprintf ((char *)pBandwidth, "%ld", 0);
+    	
+    	res = pBuffer->Set(pBandwidth, strlen((char *)pBandwidth) + 1);
     }
     
     if (HXR_OK == res)
     {
-        res = pValues->SetPropertyCString("Bandwidth",  pBuffer);
-    }       
+    	res = pValues->SetPropertyCString("Bandwidth",  pBuffer);
+    }    	
 
     if (HXR_OK == res)
     {
-    res = HXR_FAIL;
-    
-    // can't be more than number of rules.  
-    ulNumThreshold = pRules->GetNumRules();
-    if (ulNumThreshold)
-    {
-        pThresholds = new float[ulNumThreshold];        
-        if (pThresholds)
-        {
-        res = HXR_OK;
-        memset(pThresholds, 0, sizeof(float)*ulNumThreshold);
-        }
-    }
+	res = HXR_FAIL;
+	
+	// can't be more than number of rules.	
+	ulNumThreshold = pRules->GetNumRules();
+	if (ulNumThreshold)
+	{
+	    pThresholds = new float[ulNumThreshold];	    
+	    if (pThresholds)
+	    {
+		res = HXR_OK;
+		memset(pThresholds, 0, sizeof(float)*ulNumThreshold);
+	    }
+	}
     }
     
     if (HXR_OK == res)
     {
-        res = pRules->GetPreEvaluate(pThresholds, ulNumThreshold,
-            pValues, "Bandwidth");
+    	res = pRules->GetPreEvaluate(pThresholds, ulNumThreshold,
+	    	pValues, "Bandwidth");
     }
 
     HX_RELEASE(pValues);
@@ -1367,12 +1338,12 @@ CAsmRuleBookParser::GetThresholdInfo(ASMRuleBook* pRules, IHXCommonClassFactory*
 
     if (HXR_OK == res)
     {
-    return HXR_OK;
+	return HXR_OK;
     }
     else
     {
-    HX_VECTOR_DELETE(pThresholds);
-    return res;
+	HX_VECTOR_DELETE(pThresholds);
+	return res;
     }
 }
 
@@ -1389,21 +1360,21 @@ CAsmRuleBookParser::GetRuleSubscriptions(ASMRuleBook* pRuleBook, IHXCommonClassF
     // Validate params
     if (!pRuleBook || !pCCF)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
     
     if (HXR_OK == res)
     {
-    if (pRuleBook->GetNumRules() > 0)
-    {
-        pSubs = new BOOL[pRuleBook->GetNumRules()];
-    }
+	if (pRuleBook->GetNumRules() > 0)
+	{
+	    pSubs = new BOOL[pRuleBook->GetNumRules()];
+	}
 
-    if (!pSubs)
-    {
-        res = HXR_UNEXPECTED;
-    }
+	if (!pSubs)
+	{
+	    res = HXR_UNEXPECTED;
+	}
     }
 
     IHXValues* pVars = NULL;
@@ -1412,29 +1383,29 @@ CAsmRuleBookParser::GetRuleSubscriptions(ASMRuleBook* pRuleBook, IHXCommonClassF
     // Create bandwidth query string
     if (HXR_OK == res)
     {
-    res = pCCF->CreateInstance(CLSID_IHXValues, (void**) &pVars);
+	res = pCCF->CreateInstance(CLSID_IHXValues, (void**) &pVars);
     }
     if (HXR_OK == res)
     {
-    res = pCCF->CreateInstance(CLSID_IHXBuffer, (void**) &pBuf);
+	res = pCCF->CreateInstance(CLSID_IHXBuffer, (void**) &pBuf);
     }
-    
+	
     if (HXR_OK == res)
     {
-    char pc[32];    
-    sprintf(pc, "%lu", ulBandwidth);
-    res = pBuf->Set((const BYTE*)pc, strlen(pc)+1); 
+	char pc[32];	
+	sprintf(pc, "%lu", ulBandwidth);
+	res = pBuf->Set((const BYTE*)pc, strlen(pc)+1);	
     }        
 
     if (HXR_OK == res)
     {
-    res = pVars->SetPropertyCString("Bandwidth", pBuf);
+	res = pVars->SetPropertyCString("Bandwidth", pBuf);
     }
 
     // Determines which rules will be subscribed to
     if (HXR_OK == res)
     {
-    res = pRuleBook->GetSubscription(pSubs, pVars);
+	res = pRuleBook->GetSubscription(pSubs, pVars);
     }
 
     HX_RELEASE(pVars);
@@ -1457,8 +1428,8 @@ CStreamGroupManager::Switch(CPhysicalStream* pNew, UINT32 ulNewLogical)
     // Validate params
     if (!pNew)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Get the current physical stream -- OK if NULL
@@ -1468,29 +1439,29 @@ CStreamGroupManager::Switch(CPhysicalStream* pNew, UINT32 ulNewLogical)
     // No need to do anything if old and new streams are the same
     if (pOld == pNew && ulNewLogical == ulOldLogical)
     {
-    res = HXR_IGNORE;
+	res = HXR_IGNORE;
     }
 
     // If there is a current stream, unsubscribe from it
     if (SUCCEEDED(res) && pOld)
     {
-    res = UnsubscribePhysicalStream(pOld, ulOldLogical);
+	res = UnsubscribePhysicalStream(pOld, ulOldLogical);
     }
 
     if (SUCCEEDED(res))
     {
-    res = SubscribePhysicalStream(pNew, ulNewLogical);
+	res = SubscribePhysicalStream(pNew, ulNewLogical);
 
-    // If subscription failed for some reason, unsubscribe from the new stream
-    // and re-subscribe to the old stream
+	// If subscription failed for some reason, unsubscribe from the new stream
+	// and re-subscribe to the old stream
         if (FAILED(res))
-    {
-        HX_ASSERT(FALSE);
-        HX_RESULT resSub = UnsubscribePhysicalStream(pNew, ulNewLogical);
+	{
+	    HX_ASSERT(FALSE);
+	    HX_RESULT resSub = UnsubscribePhysicalStream(pNew, ulNewLogical);
 
-        if (pOld)
-        resSub = SubscribePhysicalStream(pOld, ulOldLogical);
-    }
+	    if (pOld)
+		resSub = SubscribePhysicalStream(pOld, ulOldLogical);
+	}
     }
 
     HX_RELEASE(pOld);
@@ -1520,8 +1491,7 @@ CStreamGroupManager::SubscribePhysicalStream(CPhysicalStream* pPhysicalStream,
     }
 
     // If we've committed a logical stream, stick with it
-    if (m_bInitialRateDescCommitted || 
-        m_ulSelectedLogicalStream != kulInvalidLogicalStreamNum)
+    if (m_bInitialRateDescCommitted)
     {
         HX_ASSERT(ulLogicalStream == kulInvalidLogicalStreamNum ||
             ulLogicalStream == m_ulSelectedLogicalStream);
@@ -1562,8 +1532,8 @@ CStreamGroupManager::UnsubscribePhysicalStream(CPhysicalStream* pPhysicalStream,
     // Validate state, params
     if (!m_pASMSource || !pPhysicalStream)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     if (ulLogicalStream == kulInvalidLogicalStreamNum)
@@ -1574,13 +1544,13 @@ CStreamGroupManager::UnsubscribePhysicalStream(CPhysicalStream* pPhysicalStream,
     // Unsubscribe to each rule associated with the physical stream
     for (UINT16 i = 0; i < pPhysicalStream->GetNumRules(); i++)
     {
-    UINT32 ulRuleNum = (UINT16)pPhysicalStream->GetRuleArray()[i];
+	UINT32 ulRuleNum = (UINT16)pPhysicalStream->GetRuleArray()[i];
 
-    //if (m_bDumpSub)
-    //  printf("\tUnsubscribing strm: %u rule: %u\n", ulStreamNo, pPhysicalStream->GetRuleArray()[i]);fflush(0);
+	//if (m_bDumpSub)
+	//	printf("\tUnsubscribing strm: %u rule: %u\n", ulStreamNo, pPhysicalStream->GetRuleArray()[i]);fflush(0);
 
-    res = UnsubscribeLogicalStreamRule(ulLogicalStream, ulRuleNum, NULL);
-    }   
+	res = UnsubscribeLogicalStreamRule(ulLogicalStream, ulRuleNum, NULL);
+    }	
 
     // Ignore unsubscribe failures
     HX_ASSERT(SUCCEEDED(res));
@@ -1600,8 +1570,8 @@ CStreamGroupManager::SetASMSource(IHXASMSource* pASMSource)
     // Validate params
     if (!pASMSource)
     {
-    HX_ASSERT(FALSE);
-    return HXR_POINTER;
+	HX_ASSERT(FALSE);
+	return HXR_POINTER;
     }
 
     HX_RELEASE(m_pASMSource);
@@ -1611,8 +1581,8 @@ CStreamGroupManager::SetASMSource(IHXASMSource* pASMSource)
 
     for (UINT32 i=0; i<m_ulMaxNumLogicalStreams; i++)
     {
-    if (m_ppLogicalStream[i])
-        m_ppLogicalStream[i]->SetASMSource(pASMSource);
+	if (m_ppLogicalStream[i])
+	    m_ppLogicalStream[i]->SetASMSource(pASMSource);
     }
 
     return res;
@@ -1637,24 +1607,24 @@ CStreamGroupManager::SetRateDesc(IHXRateDescription* pRateDesc,
     // Validate params
     if (!pRateDesc)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Get the physical stream associated with the rate desc
     CPhysicalStream* pNewInfo = NULL;
     if (SUCCEEDED(res))
     {
-    UINT32 ulIndex = 0;
-    res = GetRateDescIndex(pRateDesc, ulIndex);
+	UINT32 ulIndex = 0;
+	res = GetRateDescIndex(pRateDesc, ulIndex);
 
-    if (SUCCEEDED(res))
-    {
-        pNewInfo = GetPhysicalStream(ulIndex);
+	if (SUCCEEDED(res))
+	{
+	    pNewInfo = GetPhysicalStream(ulIndex);
 
-        if (!pNewInfo)
-        res = HXR_FAIL;
-    }
+	    if (!pNewInfo)
+		res = HXR_FAIL;
+	}
     }
 
     // Switch streams
@@ -1695,21 +1665,25 @@ CStreamGroupManager::CommitInitialRateDesc(BOOL bEnableAudioRateSwitching)
 {
     HX_RESULT res = HXR_OK;
 
+    // Quick sanity check -- not really a problem if called more than once (the call 
+    // won't do anything after the first time)
+    HX_ASSERT(!m_bInitialRateDescCommitted);
+
     // No stream has been selected -- streamgroup will be inactive
     if (m_ulCurRateDescriptionIndex == kulInvalidRateDescIndex)
     {
-    res = HXR_IGNORE;
+	res = HXR_IGNORE;
     }
 
     if (SUCCEEDED(res) && !m_bInitialRateDescCommitted)
     {
-    CPhysicalStream* pPhysicalStream = GetPhysicalStream(m_ulCurRateDescriptionIndex);
-    if (!pPhysicalStream)
-        res = HXR_FAIL;
-    
+	CPhysicalStream* pPhysicalStream = GetPhysicalStream(m_ulCurRateDescriptionIndex);
+	if (!pPhysicalStream)
+	    res = HXR_FAIL;
+	
         // Mark streams outside of the current switch group as not switchable
-    if (SUCCEEDED(res))
-        res = UpdateSwitchGroups(pPhysicalStream);
+	if (SUCCEEDED(res))
+	    res = UpdateSwitchGroups(pPhysicalStream);
 
         // For some handsets, mark all audio streams except the current one
         // as not switchable.
@@ -1723,8 +1697,8 @@ CStreamGroupManager::CommitInitialRateDesc(BOOL bEnableAudioRateSwitching)
 
         HX_RELEASE(pPhysicalStream);
 
-    if (SUCCEEDED(res))
-        m_bInitialRateDescCommitted = TRUE;
+	if (SUCCEEDED(res))
+	    m_bInitialRateDescCommitted = TRUE;
     }
 
     HX_ASSERT(SUCCEEDED(res) || res == HXR_IGNORE);
@@ -1745,16 +1719,16 @@ CStreamGroupManager::UpdateSwitchGroups(CPhysicalStream* pSelectedPhysicalStream
 
     for (UINT32 i=0; i<GetNumPhysicalStreams() && SUCCEEDED(res); i++)
     {
-    CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
+	CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
 
-    // If the physical stream is in a different switch group, mark it 
-    // as not available for switching
-    if (pCurPhysicalStream->GetSwitchGroupID() != ulSelectedSwitchGroup)
-    {
-        res = pCurPhysicalStream->ExcludeFromSwitching(TRUE, HX_SWI_INACTIVE_SWITCH_GROUP);
-    }
+	// If the physical stream is in a different switch group, mark it 
+	// as not available for switching
+	if (pCurPhysicalStream->GetSwitchGroupID() != ulSelectedSwitchGroup)
+	{
+	    res = pCurPhysicalStream->ExcludeFromSwitching(TRUE, HX_SWI_INACTIVE_SWITCH_GROUP);
+	}
 
-    HX_RELEASE(pCurPhysicalStream);
+	HX_RELEASE(pCurPhysicalStream);
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -1776,15 +1750,15 @@ CStreamGroupManager::DisableRateSwitching(CPhysicalStream* pSelectedPhysicalStre
 
     for (UINT32 i = 0; i < GetNumPhysicalStreams() && SUCCEEDED(res); i++)
     {
-    CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
+	CPhysicalStream* pCurPhysicalStream = GetPhysicalStream(i);
 
         // Mark all streams other than selected as unavailable.
-    if (pCurPhysicalStream != pSelectedPhysicalStream)
-    {
-        res = pCurPhysicalStream->ExcludeFromSwitching(TRUE, HX_SWI_INADEQUATE_CLIENT_CAPABILITIES);
-    }
+	if (pCurPhysicalStream != pSelectedPhysicalStream)
+	{
+	    res = pCurPhysicalStream->ExcludeFromSwitching(TRUE, HX_SWI_INADEQUATE_CLIENT_CAPABILITIES);
+	}
 
-    HX_RELEASE(pCurPhysicalStream);
+	HX_RELEASE(pCurPhysicalStream);
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -1812,8 +1786,8 @@ CStreamGroupManager::Upshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
     // Validate state -- can't upshift until after stream selection has been finalized
     if (!m_bInitialRateDescCommitted)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     CPhysicalStream* pCurPhysicalStream = GetCurrentPhysicalStream();
@@ -1828,7 +1802,7 @@ CStreamGroupManager::Upshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
 
     if (ulRate > 0 && ulRate <= ulCurRate)
     {
-    res = HXR_IGNORE;
+	res = HXR_IGNORE;
     }
 
     HX_RELEASE(pCurPhysicalStream);
@@ -1838,28 +1812,28 @@ CStreamGroupManager::Upshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
 
     if (SUCCEEDED(res))
     {
-    // If bitrate was specified, search for ulRate
-    if (ulRate > 0)
-    {   
-        res = FindRateDescByClosestAvgRate(ulRate, FALSE, TRUE, pPhysicalStream);
+	// If bitrate was specified, search for ulRate
+	if (ulRate > 0)
+	{	
+	    res = FindRateDescByClosestAvgRate(ulRate, FALSE, TRUE, pPhysicalStream);
 
-        // If an appropriate bitrate couldn't be found, find the next closest
-        if (FAILED(res))
-        {
-            res = FindRateDescByMidpoint(ulRate, FALSE, TRUE, pPhysicalStream);         
-        }       
-    }
+	    // If an appropriate bitrate couldn't be found, find the next closest
+	    if (FAILED(res))
+	    {
+	    	res = FindRateDescByMidpoint(ulRate, FALSE, TRUE, pPhysicalStream);		    
+	    }	    
+	}
 
-    // Either appropriate bitrate couldn't be found 
+	// Either appropriate bitrate couldn't be found 
         // or requested rate is 0 (force switch to next-highest).
-    if (FAILED(res) || ulRate == 0)
-    {
-        res = GetNextSwitchableRateDesc(pPhysicalStream);   
-    }
+	if (FAILED(res) || ulRate == 0)
+	{
+	    res = GetNextSwitchableRateDesc(pPhysicalStream);	
+	}
 
-    if (FAILED(res))
+	if (FAILED(res))
         {
-        res = HXR_IGNORE;
+	    res = HXR_IGNORE;
         }
     }
 
@@ -1879,7 +1853,7 @@ CStreamGroupManager::Upshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
 
     if (SUCCEEDED(res))
     {
-    res = SetRateDesc(pPhysicalStream, pResp);
+	res = SetRateDesc(pPhysicalStream, pResp);
     }
 
     if (FAILED(res) && pResp)
@@ -1913,8 +1887,8 @@ CStreamGroupManager::Downshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
     // Validate state -- can't downshift until after stream selection has been finalized
     if (!m_bInitialRateDescCommitted)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     CPhysicalStream* pCurPhysicalStream = GetCurrentPhysicalStream();
@@ -1930,7 +1904,7 @@ CStreamGroupManager::Downshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
     // Downshift a single step if the new rate is greater than current rate
     if (ulRate >= ulCurRate)
     {
-    ulRate = 0;
+	ulRate = 0;
     }
 
     HX_RELEASE(pCurPhysicalStream);
@@ -1939,28 +1913,28 @@ CStreamGroupManager::Downshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
     IHXRateDescription* pPhysicalStream = NULL;
     if (SUCCEEDED(res))
     {
-    // If bitrate was specified, search for ulRate
-    if (ulRate > 0)
-    {   
-        res = FindRateDescByClosestAvgRate(ulRate, FALSE, TRUE, pPhysicalStream);
+	// If bitrate was specified, search for ulRate
+	if (ulRate > 0)
+	{	
+	    res = FindRateDescByClosestAvgRate(ulRate, FALSE, TRUE, pPhysicalStream);
 
-        // If an appropriate bitrate couldn't be found, find the next closest
-        if (FAILED(res))
-        {
-            res = FindRateDescByMidpoint(ulRate, FALSE, TRUE, pPhysicalStream);         
-        }       
-    }
+	    // If an appropriate bitrate couldn't be found, find the next closest
+	    if (FAILED(res))
+	    {
+	    	res = FindRateDescByMidpoint(ulRate, FALSE, TRUE, pPhysicalStream);		    
+	    }	    
+	}
 
-    // Either appropriate bitrate couldn't be found 
+	// Either appropriate bitrate couldn't be found 
         // or requested rate is 0 (force switch to next-lowest).
-    if (FAILED(res) || ulRate == 0)
-    {
-        res = GetPrevSwitchableRateDesc(pPhysicalStream);   
-    }
+	if (FAILED(res) || ulRate == 0)
+	{
+	    res = GetPrevSwitchableRateDesc(pPhysicalStream);	
+	}
 
-    if (FAILED(res))
+	if (FAILED(res))
         {
-        res = HXR_IGNORE;
+	    res = HXR_IGNORE;
         }
     }
 
@@ -1980,7 +1954,7 @@ CStreamGroupManager::Downshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
 
     if (SUCCEEDED(res))
     {
-    res = SetRateDesc(pPhysicalStream, pResp);
+	res = SetRateDesc(pPhysicalStream, pResp);
     }
 
     if (FAILED(res) && pResp)
@@ -1989,7 +1963,7 @@ CStreamGroupManager::Downshift(UINT32 ulRate, IHXStreamRateDescResponse* pResp)
     }
 
     HX_RELEASE(pPhysicalStream);
-       
+	   
     HX_ASSERT(SUCCEEDED(res) || res==HXR_IGNORE || res == HXR_NOTENOUGH_BANDWIDTH);
     return res;
 }
@@ -2011,8 +1985,8 @@ CStreamGroupManager::SubscribeLogicalStreamRule(UINT32 ulLogicalStreamNum,
         ulLogicalStreamNum >= m_ulMaxNumLogicalStreams ||
         !m_ppLogicalStream[ulLogicalStreamNum])
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     CPhysicalStream* pPhysicalStream = GetCurrentPhysicalStream();
@@ -2048,7 +2022,7 @@ CStreamGroupManager::SubscribeLogicalStreamRule(UINT32 ulLogicalStreamNum,
     // Update the current rate description -- OK if it fails
     if (SUCCEEDED(res))
     {
-    HX_RESULT resUpdate = UpdateCurrentRateDesc();
+	HX_RESULT resUpdate = UpdateCurrentRateDesc();
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -2072,13 +2046,13 @@ CStreamGroupManager::UnsubscribeLogicalStreamRule(UINT32 ulLogicalStreamNum,
         ulLogicalStreamNum >= m_ulMaxNumLogicalStreams ||
         !m_ppLogicalStream[ulLogicalStreamNum])
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     // Sanity check 
     HX_ASSERT(m_ulSelectedLogicalStream == kulInvalidLogicalStreamNum || 
-    m_ulSelectedLogicalStream == ulLogicalStreamNum);
+	m_ulSelectedLogicalStream == ulLogicalStreamNum);
 
     // Unsubscribe from the rule
     res = m_ppLogicalStream[ulLogicalStreamNum]->
@@ -2087,7 +2061,7 @@ CStreamGroupManager::UnsubscribeLogicalStreamRule(UINT32 ulLogicalStreamNum,
     // Update the current rate description -- OK if it fails
     if (SUCCEEDED(res))
     {
-    HX_RESULT resUpdate = UpdateCurrentRateDesc();
+	HX_RESULT resUpdate = UpdateCurrentRateDesc();
     }
 
     HX_ASSERT(SUCCEEDED(res));
@@ -2103,12 +2077,12 @@ HX_RESULT
 CStreamGroupManager::UpdateCurrentRateDesc()
 {
     HX_RESULT res = HXR_OK;
- 
+
     // Validate state
     if (m_ulSelectedLogicalStream == kulInvalidLogicalStreamNum)
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     IHXRateDescription* pRateDesc = NULL;
@@ -2116,7 +2090,7 @@ CStreamGroupManager::UpdateCurrentRateDesc()
 
     UINT32 ulIndex = kulInvalidRateDescIndex;
     if (SUCCEEDED(res))
-    res = GetRateDescIndex(pRateDesc, ulIndex);
+	res = GetRateDescIndex(pRateDesc, ulIndex);
 
     // Set the current rate description (OK to set to invalid index, if that's actually the case)
     SetCurrentRateDesc(ulIndex);
@@ -2135,10 +2109,10 @@ CStreamGroupManager::HandlePacket(UINT32 ulRuleNum)
 {
     // Validate state
     if (!m_ppLogicalStream || m_ulSelectedLogicalStream == kulInvalidLogicalStreamNum || 
-    !m_ppLogicalStream[m_ulSelectedLogicalStream])
+	!m_ppLogicalStream[m_ulSelectedLogicalStream])
     {
-    HX_ASSERT(FALSE);
-    return HXR_FAIL;
+	HX_ASSERT(FALSE);
+	return HXR_FAIL;
     }
 
     return m_ppLogicalStream[m_ulSelectedLogicalStream]->HandlePacket(ulRuleNum);
@@ -2149,9 +2123,9 @@ CStreamGroupManager::IsPending()
 {
     // Validate state
     if (!m_ppLogicalStream || m_ulSelectedLogicalStream == kulInvalidLogicalStreamNum || 
-    !m_ppLogicalStream[m_ulSelectedLogicalStream])
+	!m_ppLogicalStream[m_ulSelectedLogicalStream])
     {
-    return FALSE;
+	return FALSE;
     }
 
     return m_ppLogicalStream[m_ulSelectedLogicalStream]->IsPending();

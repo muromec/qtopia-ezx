@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dlliids.cpp,v 1.9 2007/12/13 18:14:04 rrajesh Exp $
+ * Source last modified: $Id: dlliids.cpp,v 1.2 2006/03/22 17:51:59 stanb Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -51,17 +51,10 @@
 #include "hxtypes.h"
 #define INITGUID
 #include "hxcom.h"
-#include "hxccf.h"
 #include "hxiids.h"
 #include "hxpiids.h"
 
-#ifdef HELIX_FEATURE_PROGDOWN
-    #include "ihxdownloadmgr.h"
-#endif
 
-#ifdef HELIX_FEATURE_AUTOUPGRADE
-    #include "ihxautoupgrademgr.h"
-#endif
 #include "hxheap.h"
 #ifdef _DEBUG
 #undef HX_THIS_FILE		

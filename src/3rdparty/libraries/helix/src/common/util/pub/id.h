@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: id.h,v 1.10 2008/09/07 10:26:07 pbasic Exp $
+ * Source last modified: $Id: id.h,v 1.8 2004/07/09 18:23:37 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,6 @@
 #include "hlxclib/string.h" //for memset/memcpy
 
 #include "hxassert.h"
-
 
 /*
  *  The whole table now is zero based and we return id+1 when they ask
@@ -145,20 +144,9 @@ CHXID::set(UINT32 id, void* ptr)
 inline UINT32
 CHXID::create(void* ptr)
 {
-    // we should not be storing NULL pointers
-    ASSERT((ptr != (void*)DEFAULT_VALUE) && "CHXID::create: storing NULL value");
-    ASSERT((slots_used != UINT32(0xFFFFFFFF)) && "CHXID::create: detected possible race condition");
-
     if (slots_used > table_size * 0.7)
     {
         void** tmp_table_ptr = new void* [table_size + increment_factor];
-
-        ASSERT(tmp_table_ptr && "CHXID::create: failed to reserve memory block");
-        if(!tmp_table_ptr)
-        {
-            m_LastError = HXR_OUTOFMEMORY;
-            return 0;
-        }
 
         memcpy (tmp_table_ptr, table_ptr, table_size * sizeof(void*)); /* Flawfinder: ignore */
         memset (tmp_table_ptr + table_size, DEFAULT_VALUE, increment_factor * sizeof(void*));
@@ -191,17 +179,12 @@ CHXID::destroy(UINT32 id)
         return 0;
     }
 
-    // we should not be destroying an empty slot
-    ASSERT((table_ptr[id] != (void*)DEFAULT_VALUE) && "CHXID::destroy: destroying empty slot");
-
     void* ptr = table_ptr[id];
     if (ptr == (void*)DEFAULT_VALUE)
         return 0;
 
     table_ptr[id] = (void*)DEFAULT_VALUE;
     slots_used--;
-
-    ASSERT((slots_used != UINT32(0xFFFFFFFF)) && "CHXID::destroy: detected possible race condition");
 
     return ptr;
 }

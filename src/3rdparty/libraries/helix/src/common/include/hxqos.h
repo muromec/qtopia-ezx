@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxqos.h,v 1.13 2008/02/27 09:19:57 dsingh Exp $
+ * Source last modified: $Id: hxqos.h,v 1.8 2004/07/09 18:20:48 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,16 +50,6 @@
 #ifndef _HX_QOS_H_
 #define _HX_QOS_H_
 
-/* All below RR/RS values are accordign to 3GPP spec "3GPP TS 26.234 V6.10.0 (2006-12)"
- * Section 5.3.3.1
- */
-#define MAX_3GPP_RTCP_RR 5000 // in bits/sec
-#define MAX_3GPP_RTCP_RS 4000 // in bits/sec
-#define DEFAULT_3GPP_RTCP_RR_PERCENTAGE 3.75
-#define DEFAULT_3GPP_RTCP_RS_PERCENTAGE 1.25
-
-#include "chxmapstringtoob.h" //This is required because forward declaration CHXMapStringToOb::Iterator is not possible. See IHXQoSProfileSelector.
-
 /* Foreward Declaration of Interfaces */
 typedef _INTERFACE IHXBuffer                 IHXBuffer;
 typedef _INTERFACE IHXSocket                 IHXSocket;
@@ -84,26 +74,6 @@ typedef enum _HX_QOS_DIFFSERV_CLASS
 } HX_QOS_DIFFSERV_CLASS;
 
 /*
- * IHXUserAgentSettings
- * {75FE922B-3C26-41b3-AAAA-58244D1B7503}
- */
-DEFINE_GUID(IID_IHXUserAgentSettings,
-            0x75fe922b, 0x3c26, 0x41b3, 0xaa, 0xaa, 0x58, 0x24, 0x4d, 0x1b, 0x75, 0x3);
-#undef  INTERFACE
-#define INTERFACE IHXUserAgentSettings
-DECLARE_INTERFACE_(IHXUserAgentSettings, IUnknown)
-{
-    // IUnknown
-    STDMETHOD(QueryInterface)   ( THIS_ REFIID riid, void** ppvObj ) PURE;
-    STDMETHOD_(ULONG32,AddRef)  ( THIS ) PURE;
-    STDMETHOD_(ULONG32,Release) ( THIS ) PURE;
-
-    // IHXUserAgentSettings
-    STDMETHOD_(UINT32,GetPropertyID) (THIS_ const char* pszPropPath) PURE;
-};
-
-
-/*
  * IHXQoSProfileSelector
  * {75DB043B-C5A8-49b2-8D3F-8CF99F9E6444}
  */
@@ -123,18 +93,7 @@ DECLARE_INTERFACE_(IHXQoSProfileSelector, IUnknown)
     STDMETHOD (SelectProfile)   (THIS_ IHXBuffer* pUserAgent,
                                  IHXBuffer* pTransportMime,
                                  IHXBuffer* pMediaMime,
-                                 REF(IHXUserAgentSettings*) /*OUT*/ pUAS) PURE;
-
-    //Dereferencing the iterator returned by GetBegin method gives a pointer 
-    //to IHXUserAgentSettings interface. This method can be used for iterating over
-    //all UAS objects in the UASConfigTree. 
-    STDMETHOD_(CHXMapStringToOb::Iterator,GetBegin)( THIS ) PURE;
-
-    //The iterator returned by GetEnd method should only be used for 
-    //testing whether or not the iterator returned by GetBegin has reached
-    //the end of the list of UAS objects from the UASConfigTree.
-    //It should never be dereferenced.
-    STDMETHOD_(CHXMapStringToOb::Iterator,GetEnd)( THIS ) PURE;
+                                 REF(INT32) /*OUT*/ ulConfigID) PURE;
 };
 
 /*
@@ -154,8 +113,8 @@ DECLARE_INTERFACE_(IHXQoSProfileConfigurator, IUnknown)
     STDMETHOD_(ULONG32,Release) ( THIS ) PURE;
 
     // IHXQoSProfileConfigurator
-    STDMETHOD (SetUserAgentSettings)(THIS_ IHXUserAgentSettings* pUAS) PURE;
-    STDMETHOD (GetUserAgentSettings)(THIS_ REF(IHXUserAgentSettings*) /*OUT*/ pUAS) PURE;
+    STDMETHOD (SetConfigId)         (THIS_ INT32 lConfigId) PURE;
+    STDMETHOD (GetConfigId)         (THIS_ REF(INT32) /*OUT*/ lConfigId) PURE;
     STDMETHOD (GetConfigInt)    (THIS_ const char* pName, REF(INT32) /*OUT*/ lValue) PURE;
     STDMETHOD (GetConfigBuffer) (THIS_ const char* pName, REF(IHXBuffer*) /*OUT*/ pValue) PURE;
 };
@@ -330,7 +289,7 @@ DECLARE_INTERFACE_(IHXQoSClassFactory, IUnknown)
      *      profile for which you are creating the objects.
      */
     STDMETHOD(CreateInstance)           (THIS_
-                                         IHXQoSSignalBus* pSignalBus,
+                                         IHXQoSProfileConfigurator* pConfig,
                                          REFCLSID    /*IN*/  rclsid,
                                          void**     /*OUT*/ ppUnknown) PURE;
 };

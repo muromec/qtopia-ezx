@@ -39,7 +39,7 @@ project.AddIncludes("pub/platform/win")
 
 
 if project.IsDefined("HELIX_CONFIG_MINIMIZE_SIZE"):
-    if "HELIX_FEATURE_DIRECT_SOUND" in project.defines and not 'wince' in sysinfo.family_list:
+    if "HELIX_FEATURE_DIRECT_SOUND" in project.defines:
         project.AddIncludes(GetSDKPath("dxsdk") + "/include")
         project.AddSources("platform/win/hxaudevds.cpp")
         project.AddModuleIncludes("common/system/pub/platform/win")

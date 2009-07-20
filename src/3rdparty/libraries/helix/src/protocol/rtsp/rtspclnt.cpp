@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspclnt.cpp,v 1.243 2008/10/21 21:34:33 jrathore Exp $
+ * Source last modified: $Id: rtspclnt.cpp,v 1.219 2007/04/17 15:10:44 jwei Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -159,9 +159,6 @@ static void GetLogDesc(IHXSockAddr* pAddr, CHXString& strOut)
 
 #define DEFAULT_SERVER_TIMEOUT          90          // in seconds
 #define MINIMUM_TIMEOUT                 5           // in seconds
-
-#define MINIMUM_KEEPALIVE_DURING_PAUSE_TIMEOUT  500         // in milliseconds
-#define DEFAULT_KEEPALIVE_DURING_PAUSE_TIMEOUT  1000         // in milliseconds
 
 #if defined(HELIX_FEATURE_MIN_HEAP)
 #define DEFAULT_TRANSPORT_BYTE_LIMIT	1024000	    // 1MByte
@@ -462,7 +459,7 @@ RTSPClientSession::RTSPClientSession() :
     m_emptySessionLingerTimeout(0),
     m_connectionState(CONN_INIT)
 {
-    m_pInQueue = new CBigByteGrowingQueue(QUEUE_START_SIZE); //XXXLCM move to init
+    m_pInQueue = new CByteGrowingQueue(QUEUE_START_SIZE); //XXXLCM move to init
     m_pInQueue->SetMaxSize(MAX_QUEUE_SIZE);
     m_pParser = new RTSPParser;
 }
@@ -2320,6 +2317,7 @@ END_INTERFACE_LIST
 
 RTSPClientProtocol::RTSPClientProtocol():
     m_bPipelineRTSP(TRUE),
+    m_bTrimTrailingSlashes(FALSE),
     m_pPeerAddr(NULL),
     m_pConnectAddr(NULL),
     m_setupResponseCount(0),
@@ -2408,16 +2406,11 @@ RTSPClientProtocol::RTSPClientProtocol():
     m_bUseLegacyTimeOutMsg(TRUE),
     m_ulServerTimeOut(DEFAULT_SERVER_TIMEOUT),
     m_ulCurrentTimeOut(0),
-#ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
-    m_ulForceKeepAliveDuringPauseTimout(DEFAULT_KEEPALIVE_DURING_PAUSE_TIMEOUT),
-    m_bKeepAliveTimeouToBeReset(FALSE),
-#endif
     m_pRateAdaptInfo(NULL),
     m_pSrcBufStats(NULL),
     m_ulRegistryID(0),
     m_ulLastBWSent(MAX_UINT32),
     m_bHaveSentRemainingSetupRequests(FALSE)
-    ,m_bSDBDisabled(FALSE)
 #if defined(_MACINTOSH)
     , m_pCallback(NULL)
 #endif /* _MACINTOSH */
@@ -2596,6 +2589,17 @@ RTSPClientProtocol::GetAddrInfoDone(HX_RESULT status, UINT32 nVecLen, IHXSockAdd
     if (!m_pSession && !m_pSocket)
     {
         RTSPClientSession* pSession = NULL;
+        IUnknown* pContextToMatch = NULL;
+
+        /* Do not reuse connection for connections coming from the
+         * same player. Check for context (IHXPlayer) equality test
+         * Context check is needed to simulate real-world scenario
+         * for SMIL load testing
+         */
+        if (m_bNoReuseConnection && m_bLoadTest)
+        {
+            pContextToMatch = m_pContext;
+        }
 
         /* We share established connections if
          * 1. m_bNoReuseConnection is FALSE OR
@@ -2618,7 +2622,7 @@ RTSPClientProtocol::GetAddrInfoDone(HX_RESULT status, UINT32 nVecLen, IHXSockAdd
                 m_hostName,
                 m_hostPort,
                 m_bUseProxy,
-                m_pContext);
+                pContextToMatch);
         }
 
         if(pSession)
@@ -2711,17 +2715,6 @@ RTSPClientProtocol::InitExtInitSDP(IHXValues* pInfo, CHXString& strHostOut, UINT
         m_bSDPInitiated = TRUE;
         res = ParseSDP("application/sdp", pSdpData);
         HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::InitExtInitSDP(): got sdp data [%p]", this, pSdpData);
-        
-        HXEscapeUtil::EnsureEscapedURL( m_headerControl ); //to make sure URL has been escaped
-        
-        //Escape control URLs of each stream
-        CHXSimpleList::Iterator i;
-        for(i=m_streamInfoList.Begin();i!=m_streamInfoList.End();++i)
-        {
-            RTSPStreamInfo* pStreamInfo = (RTSPStreamInfo*)(*i);
-            HXEscapeUtil::EnsureEscapedURL(pStreamInfo->m_streamControl);
-        }
-
         if (HXR_OK == res)
         {
             if (m_bMulticast)
@@ -2743,41 +2736,27 @@ RTSPClientProtocol::InitExtInitSDP(IHXValues* pInfo, CHXString& strHostOut, UINT
             }
             else
             {
-                if(!m_headerControl.IsEmpty())
-                {
-                    CHXURL url(m_headerControl, m_pContext);
+                CHXURL url(m_headerControl, m_pContext);
 
-                    IHXValues* pProps = url.GetProperties();
-                    if (pProps)
-                    {
-                        UINT32 port = 0;
-                        pProps->GetPropertyULONG32(PROPERTY_PORT, port);
-                        hostPortOut = UINT16(port);
-                        IHXBuffer* pHost = NULL;
-                        if (HXR_OK == pProps->GetPropertyBuffer(PROPERTY_HOST, pHost))             
-                        {
-                            strHostOut = (const char*)pHost->GetBuffer();
-                            HX_RELEASE(pHost); 
-                        } 
-                        else
-                        {
-                            res = HXR_INVALID_URL_HOST;
-                        }
-                        HX_RELEASE(pProps);
-                        HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::InitExtInitSDP(): unicast:  [%s]:%u", this, (const char*)strHostOut, hostPortOut);
-                    }
-                } 
-                else
+                IHXValues* pProps = url.GetProperties();
+                if (pProps)
                 {
-                    res = HXR_INVALID_PARAMETER;
-                }   
+                    UINT32 port = 0;
+                    pProps->GetPropertyULONG32(PROPERTY_PORT, port);
+                    hostPortOut = UINT16(port);
+                    IHXBuffer* pHost = NULL;
+                    pProps->GetPropertyBuffer(PROPERTY_HOST, pHost);
+                    strHostOut = (const char*)pHost->GetBuffer();
+                    HX_RELEASE(pHost);
+                    HX_RELEASE(pProps);
+                    HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::InitExtInitSDP(): unicast:  [%s]:%u", this, (const char*)strHostOut, hostPortOut);
+                }
             }
 
             HX_RELEASE(pSdpData);
         }
     }
 
-    HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::InitExtInitSDP(): res=%x", this, res);
     return res;
 }
 
@@ -2818,14 +2797,6 @@ RTSPClientProtocol::InitExtInitPrefs()
         m_ulServerTimeOut = MINIMUM_TIMEOUT;
     }
     m_ulServerTimeOut *= MILLISECS_PER_SECOND;
-
-#ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
-    ReadPrefUINT32(m_pPreferences, "KeepAliveDuringPauseTimeOut", m_ulForceKeepAliveDuringPauseTimout);
-    if (m_ulForceKeepAliveDuringPauseTimout < MINIMUM_KEEPALIVE_DURING_PAUSE_TIMEOUT)
-    {
-	m_ulForceKeepAliveDuringPauseTimout = MINIMUM_KEEPALIVE_DURING_PAUSE_TIMEOUT;
-    }
-#endif /*HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE*/
 
     ReadPrefBOOL(m_pPreferences, "RTSPMessageDebug", m_bMessageDebug);
     if (m_bMessageDebug)
@@ -3337,25 +3308,9 @@ RTSPClientProtocol::sendPendingStreamDescription(const char* pURL,
 
     HXURLRep originalURL(pURL);
     HXEscapeUtil::EnsureEscapedURL(originalURL);
-    CHXString oCHXPath = originalURL.Scheme();
-
-    if (oCHXPath.GetLength() && originalURL.GetType() == HXURLRep::TYPE_OPAQUE)
-    {
-        //This code is needed to handle a special case when pURL="test:31285";
-        //This its self is a unique case when parser hits the "TYPE_OPAQUE" case
-        // and scheme is also tokenized from the URL;
-        // This makes originalURL.Scheme() and originalURL.Path() to return "test"  and "31285" repectively;
-        oCHXPath += ":";
-    }
-    else 
-    {
-        oCHXPath = "";
-    }
-
-    oCHXPath += originalURL.Path();
     HXURLRep url(HXURLRep::TYPE_NETPATH, "rtsp", "", /* no user info */
                  m_hostName, m_hostPort,
-                 oCHXPath,
+                 originalURL.Path(),
                  originalURL.Query(),
                  originalURL.Fragment());
 
@@ -4314,18 +4269,6 @@ RTSPClientProtocol::SendPlayRequest(UINT32 lFrom, UINT32 lTo,
     {
         rc = HXR_OUTOFMEMORY;
     }
-
-#ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
-    if (m_bKeepAliveTimeouToBeReset && m_pSessionTimeout && m_pScheduler && m_pKeepAliveCallback && m_ulCurrentTimeOut > 0)
-    {
-	m_bKeepAliveTimeouToBeReset = FALSE;
-
-        m_pSessionTimeout->Init(m_pScheduler,
-                                m_ulCurrentTimeOut/2,
-                                (IHXCallback*)m_pKeepAliveCallback);
-    }
-#endif /* HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE */
-
     m_pMutex->Unlock();
     return rc;
 }
@@ -4426,16 +4369,6 @@ RTSPClientProtocol::SendPauseRequest()
 
     HX_RESULT rc = SendMsgToServer(RTSP_PAUSE);
 
-#ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
-    if (m_pSessionTimeout && m_pScheduler && m_pKeepAliveCallback)
-    {
-	m_bKeepAliveTimeouToBeReset = TRUE;
-        m_pSessionTimeout->Init(m_pScheduler,
-                                m_ulForceKeepAliveDuringPauseTimout,
-                                (IHXCallback*)m_pKeepAliveCallback);
-    }
-#endif /* HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE */
-
     m_pMutex->Unlock();
     return rc;
 }
@@ -4456,25 +4389,7 @@ RTSPClientProtocol::SendResumeRequest()
 
     m_pMutex->Lock();
 
-    if (!m_transportRequestList.IsEmpty())
-    {
-        RTSPTransportRequest* pRequest =
-        (RTSPTransportRequest*)m_transportRequestList.GetHead();
-        RTSPTransportInfo* pTransInfo = pRequest->getFirstTransportInfo();
-        HXBOOL bUsesWallClockTS = ServerProducesWallClockTS();
-
-        while(pTransInfo)
-        {
-            if (bUsesWallClockTS)
-            {
-                // If we use wall-clock TS, we signal transport to defer processing of incomming packets until timing information
-                // is communicated.
-                pTransInfo->m_pTransport->setPlayRange( RTSP_PLAY_RANGE_BLANK , RTSP_PLAY_RANGE_BLANK , TRUE);
-            }
-            pTransInfo->m_pTransport->resumeBuffers();
-            pTransInfo = pRequest->getNextTransportInfo();
-        }
-    }
+    SendMsgToTransport(RESUME_BUFFER);
 
     /*
      * Man, iptv, teracast, and darwin server don't like this even though
@@ -4497,17 +4412,6 @@ RTSPClientProtocol::SendResumeRequest()
 					    ulMsgSeqNum);
     }
     
-  #ifdef HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE
-     if (m_bKeepAliveTimeouToBeReset && m_pSessionTimeout && m_pScheduler && m_pKeepAliveCallback && m_ulCurrentTimeOut > 0)
-     {
- 	m_bKeepAliveTimeouToBeReset = FALSE;
- 
-       m_pSessionTimeout->Init(m_pScheduler,
-                                 m_ulCurrentTimeOut/2,
-                                 (IHXCallback*)m_pKeepAliveCallback);
-     }
- #endif /* HELIX_FEATURE_FORCE_KEEPALIVE_DURING_PAUSE */
-
     m_pMutex->Unlock();
     return rc;
 }
@@ -5641,7 +5545,7 @@ RTSPClientProtocol::InitSockets()
         for(i=m_streamInfoList.Begin();i!=m_streamInfoList.End() && HXR_OK == hr;++i)
         {
             pStreamInfo = (RTSPStreamInfo*)(*i);
-            hr = CreateUDPSockets(pStreamInfo->m_streamNumber, pStreamInfo->m_ulAvgBitRate, pStreamInfo->m_sPort);
+            hr = CreateUDPSockets(pStreamInfo->m_streamNumber, pStreamInfo->m_sPort);
         }
     }
     else
@@ -5698,26 +5602,20 @@ RTSPClientProtocol::InitSockets()
                     continue;
                 }
 
-								datagramPort = (( UINT16 )HX_GET_TICKCOUNT() % (pUDPPort->uTo - pUDPPort->uFrom)) + pUDPPort->uFrom ; 
-                
-                if (datagramPort % 2)
+                for (datagramPort = pUDPPort->uFrom; datagramPort <= pUDPPort->uTo; datagramPort += 2)
                 {
-                    datagramPort = (datagramPort + 1);
-                }								
- 
-                for (UINT16 temp = 0; temp < (pUDPPort->uTo - pUDPPort->uFrom) ; temp += 2, datagramPort += 2)
-                {
-                    if ((pUDPPort->uTo - datagramPort + 1) < 2)
+
+                    if (datagramPort % 2)
                     {
-                    		datagramPort = pUDPPort->uFrom ;
-                    		if (datagramPort % 2)
-                    		{
-                    				datagramPort = (datagramPort + 1);
-                    		}
+                        datagramPort = (UINT16)(datagramPort + 1);
                     }
 
+                    if ((pUDPPort->uTo - datagramPort + 1) < 2)
+                    {
+                        break;
+                    }
                     HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::InitSockets(): trying %lu...", this, datagramPort);
-                    if (HXR_OK == CreateUDPSockets(pStreamInfo->m_streamNumber, pStreamInfo->m_ulAvgBitRate, datagramPort))
+                    if (HXR_OK == CreateUDPSockets(pStreamInfo->m_streamNumber, datagramPort))
                     {
                         bGotSocket = TRUE;
                         break;
@@ -6183,54 +6081,7 @@ RTSPClientProtocol::canSendRemainingSetupRequests(HX_RESULT status)
 HXBOOL
 RTSPClientProtocol::IsRealServer(void)
 {
-    HXBOOL bRealServer = FALSE;
-    IHXBuffer* pAgent  = NULL;
-    IHXKeyValueListIter*  pIter= NULL;
-    
-    if (m_pResponseHeaders &&		
-        SUCCEEDED(m_pResponseHeaders->KeyExists("Server")) && 
-        SUCCEEDED(m_pResponseHeaders->GetIter(pIter)))
-    {
-        const char* pp = "Server";
-        while (pIter->GetNextPair(pp , pAgent) == HXR_OK)
-        {
-            if (strstr((const char *)pAgent->GetBuffer(), "RealServer") || strstr((const char *)pAgent->GetBuffer(), "RealMedia"))
-            {
-                bRealServer = TRUE;		
-                break;
-            }
-            HX_RELEASE(pAgent);
-        }
-        HX_RELEASE(pAgent);
-    }
-    
-    HX_RELEASE(pIter);
-    
-    return bRealServer;
-}
-
-HXBOOL
-RTSPClientProtocol::ServerProducesWallClockTS(void)
-{
-    HXBOOL bRetVal = FALSE;
-  
-    UINT32 major = HX_GET_MAJOR_VERSION(m_ulServerVersion);
-    UINT32 minor = HX_GET_MINOR_VERSION(m_ulServerVersion);
-    UINT32 release = HX_GET_RELEASE_NUMBER(m_ulServerVersion);
-    
-    if (IsRealServer())
-    {            
-    	if(major >= 11 || ( major == 10 && minor == 0 && (release == 5 || release == 6)))
-    	{
-        	bRetVal = TRUE;               
-    	}       
-    }
-    else
-    {
-        	bRetVal = TRUE;
-    }	        
-			
-    return bRetVal;
+    return FALSE;
 }
 
 //
@@ -6286,7 +6137,7 @@ RTSPClientProtocol::_SetRTPInfo(UINT16 uStreamNumber, UINT16 uSeqNum,
     RTSPTransport* pTrans = GetTransport(uStreamNumber);
 
     HX_ASSERT(pTrans);
-    if(pTrans && (!bOnPauseResume || ServerProducesWallClockTS()))
+    if(pTrans)
     {
         /*
          *  RTPTransport needs to know exactly what's in RTP-Info
@@ -6398,19 +6249,9 @@ RTSPClientProtocol::ReadFromDone(HX_RESULT status, IHXBuffer* pBuffer,
 
         if (pTrans)
         {
-            // make sure the unicast packets received are coming from the server
-            // sent in source field of setup response. If source field is not mentioned,
-            // from addr shall be validated against connected addr
-            //
-            // Please note that if source ip is different for diff streams, then 
-            // the packets could be dropped for some streams.
-            //
-            // TODO: Move the check for peer address inside the transport ( OR )
-            //       Obtain the peer address from the respective transport here.
-            //
-            if ( ( (m_pPeerAddr != NULL) && pSource->IsEqualAddr(m_pPeerAddr) ) ||
-                 ( (m_pConnectAddr != NULL) && pSource->IsEqualAddr(m_pConnectAddr) ) ||
-                 (bMCastPort) )
+            // make sure the unicast packets received are coming from the same server
+            // we are connecting to
+            if ((pSource->IsEqualAddr(m_pConnectAddr)) || bMCastPort)
             {
                 ReportSuccessfulTransport();
 
@@ -6427,10 +6268,6 @@ RTSPClientProtocol::ReadFromDone(HX_RESULT status, IHXBuffer* pBuffer,
                         pTrans->releasePackets();
                     }
                 }
-            }
-            else
-            {
-                HXLOGL2(HXLOG_RTSP, "RTSPClientProtocol[%p]::handleSetupResponseExt(): Src address mismatch", this );
             }
         }
         else
@@ -6767,8 +6604,7 @@ RTSPClientProtocol::handleMessage(RTSPMessage* pMsg)
 
                   case RTSPMessage::T_SET_PARAM:
                   {
-                      rc = handleSetParamResponse((RTSPResponseMessage*)pMsg,
-                                                   (RTSPSetParamMessage*)pReqMsg);
+                      rc = handleSetParamResponse((RTSPResponseMessage*)pMsg);
                   }
                   break;
 
@@ -7093,7 +6929,7 @@ RTSPClientProtocol::GetSdpFileTypeWeNeed(IHXValues* pHeaders)
         return NONE_SDP;
     }
 
-    if (IsRealServer())
+    if (strstr((const char*)pAgent->GetBuffer(), "RealMedia"))
     {
         sdpType = BACKWARD_COMP_SDP;
     }
@@ -7326,7 +7162,7 @@ RTSPClientProtocol::handleOptionsResponse
         if (m_pSession->amIDoingABD(this) &&
             (ABD_STATE_INQUERY == m_pSession->getABDState()))
         {
-            CHXString SupportedHeader = pRTSPResponseMessageIncoming->GetHeaderValuesAsString("Supported");
+            CHXString SupportedHeader = pRTSPResponseMessageIncoming->getHeaderValue("Supported");
             // server denies ABD support
             if (SupportedHeader.IsEmpty() || -1 == SupportedHeader.Find("ABD-1.0"))
             {
@@ -7420,27 +7256,6 @@ RTSPClientProtocol::handleOptionsResponse
                         m_pSDPStreamHeaders,
                         pResponseHeaders
                         );
-
-	              //disable rate adaptation for SDP file initiated streaming.
-	              if (m_pRateAdaptInfo)
-	              {
-	                  UINT32 ulStreamNumber = 0;
-	                  UINT32 ulVersionTarget = HX_ENCODE_PROD_VERSION(11L, 1L, 9L, 0L);
-	                  CHXSimpleList::Iterator i;
-	                  for(i=m_pSDPStreamHeaders->Begin();i!=m_pSDPStreamHeaders->End();++i)
-	                  {
-	                      IHXValues* pStreamHeader = (IHXValues*)(*i);
-	                      pStreamHeader->GetPropertyULONG32("StreamNumber", ulStreamNumber);
-	                      if (IsRealServer()&& (m_ulServerVersion < ulVersionTarget))
-	                      {
-	                          // switch off both rate adaptation 
-	                          pStreamHeader->SetPropertyULONG32("Helix-Adaptation-Support", 0); 
-	                          pStreamHeader->SetPropertyULONG32("3GPP-Adaptation-Support", 0); 
-	                      }
-	                      m_pRateAdaptInfo->OnStreamHeader((UINT16)ulStreamNumber,
-	                                                              pStreamHeader);
-	                  }
-	              }
             }
             HX_RELEASE(pResponseHeaders);
         }
@@ -7657,7 +7472,7 @@ RTSPClientProtocol::HandleSetParamMulticastTransportHelper(RTSPResponseMessage* 
 #endif //HELIX_FEATURE_TRANSPORT_MULTICAST
 
 HX_RESULT
-RTSPClientProtocol::handleSetParamResponse(RTSPResponseMessage* pMsg, RTSPSetParamMessage* pReqMsg)
+RTSPClientProtocol::handleSetParamResponse(RTSPResponseMessage* pMsg)
 {
     HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::handleSetParamResponse(): %lu", this, pMsg->errorCodeAsUINT32());
     IHXValues* pValues = NULL;
@@ -7669,16 +7484,6 @@ RTSPClientProtocol::handleSetParamResponse(RTSPResponseMessage* pMsg, RTSPSetPar
 
         if (uErrorCode != 200)
         {
-            
-            // Check whether we are getting 451 (Parameter not understood)
-            // error code for SDB
-            if( (uErrorCode == 451) &&
-                (pReqMsg->GetMsgMode() == RTSPSetParamMessage::T_SDB) )
-            {
-                HXLOGL2(HXLOG_RTSP, "RTSPClientProtocol[%p]::handleSetParamResponse() DISABLE SDB", this);
-                m_bSDBDisabled = TRUE;
-            }
-
             if (m_bNonRSRTP)
             {
                 return m_pResp->HandleSetParameterResponse(HXR_OK);
@@ -7855,7 +7660,7 @@ RTSPClientProtocol::handlePlayResponse(RTSPResponseMessage* pMsg,
     {
         pSeqValue = pRange->getFirstHeaderValue();
 
-        INT32 nFrom = RTSP_PLAY_RANGE_BLANK, nTo = RTSP_PLAY_RANGE_BLANK;
+        INT32 nFrom = 0, nTo = 0;
 
         if (pSeqValue)
         {
@@ -7891,18 +7696,14 @@ RTSPClientProtocol::handlePlayResponse(RTSPResponseMessage* pMsg,
 
             RTSPTransportInfo* pTransInfo = pRequest->getFirstTransportInfo();
 
-            while(pTransInfo && (nFrom != RTSP_PLAY_RANGE_BLANK))
+            while(pTransInfo && nTo)
             {
                 // set the range in transport...only for RTP
-                pTransInfo->m_pTransport->RTSPTransport::setPlayRange((UINT32)nFrom, (UINT32)nTo, bIsResumeResponse);
+                pTransInfo->m_pTransport->RTSPTransport::setPlayRange((UINT32)nFrom, (UINT32)nTo);
                 pTransInfo = pRequest->getNextTransportInfo();
             }
         }
     }
-
-
-    // pSeqValue is reused below for getting the first header value so it needs to be reset
-    pSeqValue = 0;
 
     // If server is operating correcty, we should never see ulNumPlayResponsesTrimmed > 1
     // or ulNumPlayResponsesTrimmed != 0 when bIsResumeResponse == TRUE.
@@ -7940,17 +7741,6 @@ RTSPClientProtocol::handlePlayResponse(RTSPResponseMessage* pMsg,
 	    {
 		RTPErr = parseRTPInfoHeader(pSeqValue, streamID, seqNum,
 		    ulRTPTime, pControl);
-
-                /*Workaround for a bug in Darwin server, for live streaming cases
-                sometimes the server sends the seq=0 and rtptime =0 but the first packet that
-                arrives has a different and large seq and rtptime value, followed by packets with 
-                contiguous seq. As a result of this the client is put into buffering state*/
-                if ((m_bIsLive)&&(seqNum==0)&&(ulRTPTime==0)&&(!IsRealServer()))
-                {
-                    //Setting to RTPINFO_EMPTY, the first packets seq and rtptime will be used
-                    //for synchronization instead.
-                    RTPErr = RTPINFO_EMPTY;
-                }
 
 		// if m_pControlToStreamNoMap, don't trust the parseRTPInfoHeader
 		// because RTP-Info url could be not what we expect and still be ok with
@@ -8137,6 +7927,13 @@ RTSPClientProtocol::handleSetupResponse(RTSPResponseMessage* pMsg,
                 //This is a non-Real proxy. Only real proxies are known to work
                 //with RTSP piplining. If you find another, add it here.
                 m_bPipelineRTSP = FALSE;
+            }
+            //Test for NetCache appliance.
+            if( -1 != it.Find("NetCache NetApp") )
+            {
+                //Found at least one NetCache Proxy.
+                m_bTrimTrailingSlashes = TRUE;
+                break;
             }
             pViaValue = pViaHeader->getNextHeaderValue();
         }
@@ -8497,7 +8294,7 @@ RTSPClientProtocol::handleDescribeResponse(RTSPResponseMessage* pMsg)
     {
         return m_pResp->HandleStreamDescriptionResponse
             (
-                getHXRErrorCode(uErrorCode),
+                HXR_FORBIDDEN,
                 0,
                 0,
                 0
@@ -8565,19 +8362,12 @@ RTSPClientProtocol::handleDescribeResponse(RTSPResponseMessage* pMsg)
                 // responsive for any other request...so don't send
                 // keep alive.
                 m_bNoKeepAlive = TRUE;
-                if(!m_bUseProxy)
-                {
-                    m_bForceUCaseTransportMimeType = TRUE;
-                }
+                m_bForceUCaseTransportMimeType = TRUE;
             }
             else if (strncasecmp((const char*)pAgent->GetBuffer(), "DSS",
                                  3) == 0)
             {
-                if(!m_bUseProxy)
-                {
-                    m_bForceUCaseTransportMimeType = TRUE;
-                }
-
+                m_bForceUCaseTransportMimeType = TRUE;
             }
             HX_RELEASE(pAgent);
         }
@@ -9391,15 +9181,10 @@ STDMETHODIMP
 RTSPClientProtocol::SetDeliveryBandwidth(UINT32 ulBandwidth, UINT32 ulMsBackOff)
 {
     HX_RESULT hr = HXR_OK;
-    HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::SetDeliveryBandwidth(): bw = %lu IsSDBDisabled=%d", this, ulBandwidth, m_bSDBDisabled);
+    HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::SetDeliveryBandwidth(): bw = %lu", this, ulBandwidth);
     if (!m_pIsMethodSupported[SET_PARAM] || !m_pSession)
     {
         return HXR_OK;
-    }
-    if(m_bSDBDisabled == TRUE)
-    {
-        HXLOGL2(HXLOG_RTSP, "RTSPClientProtocol[%p]::SetDeliveryBandwidth(): SDB DISABLED %d", this, m_bSDBDisabled);
-        return HXR_NOT_SUPPORTED;
     }
     m_pMutex->Lock();
 
@@ -9416,7 +9201,6 @@ RTSPClientProtocol::SetDeliveryBandwidth(UINT32 ulBandwidth, UINT32 ulMsBackOff)
         	pMsg->addHeader("Session", m_sessionID);
         }
         UINT32 seqNo = m_pSession->getNextSeqNo(this);
-        pMsg->SetMsgMode(RTSPSetParamMessage::T_SDB);
         hr = sendRequest(pMsg, seqNo);
         m_ulLastBWSent = ulBandwidth;
    }
@@ -9611,7 +9395,7 @@ RTSPClientProtocol::getAggControlURL() const
 
     // If this is a NetCache proxy, we need to strip the trailing '/'. For some
     // reason they can't handle it, as they should per the spec.
-    if( '/' == ret[ret.GetLength()-1] )
+    if( m_bTrimTrailingSlashes && '/' == ret[ret.GetLength()-1] )
     {
         ret = ret.Left(ret.GetLength()-1);
     }
@@ -10268,11 +10052,6 @@ RTSPClientProtocol::handleRateAdaptResponse(RTSPRequestMessage* pReq,
             res = m_pRateAdaptInfo->OnRateAdaptResponse(streamNumber,
                                                         pReqHdrs,
                                                         pRespHdrs);
-            if(SUCCEEDED(res))
-            {
-                HXLOGL2(HXLOG_RTSP, "RTSPClientProtocol[%p]::handleRateAdaptResponse() Disabling SDB as RateAdaptation is turned on", this);
-                m_bSDBDisabled = TRUE;
-            }
         }
         HX_RELEASE(pReqHdrs);
         HX_RELEASE(pRespHdrs);
@@ -10798,38 +10577,27 @@ RTSPClientProtocol::ParseSDP(const char* pszContentType, IHXBuffer* pSDPBuffer)
 
             if (m_pRateAdaptInfo)
             {
-                UINT32 ulHelixAdaptation = 0;
-                UINT32 ul3GPPRateAdaptation = 0;
-                UINT32 ulVersionTarget = HX_ENCODE_PROD_VERSION(11L, 1L, 9L, 0L);
-                
-                //
-                // due to a bug in released Helix Server, the client needs to disable Server Side Rate Adaption"
-                // if the server version < 11.1.9.0
-                //
-                // Problems:
-                // * see https://bugs.helixcommunity.org/show_bug.cgi?id=4989 for details
-                // * Transport buffer overflow problem. Server oversends data resulting in 
-                //   client buffer overflow.
-                //  
-                //
-                
-                if (!m_bSDPInitiated)
-                {
-                if(IsRealServer() && (m_ulServerVersion < ulVersionTarget) )
-                {
-                    HXLOGL2(HXLOG_RTSP, "RTSPClientProtocol[%p]::ParseSDP() Disabling RateAdaptation", this);
-                    
-                    // switch off both rate adaptation
-                    ppRealHeaders[i]->SetPropertyULONG32("Helix-Adaptation-Support", 0);
-                    ppRealHeaders[i]->SetPropertyULONG32("3GPP-Adaptation-Support", 0);
-                    
-                } // End of if(IsRealServer() && (m_ulServerVersion < ulVersionTarget) )
+		UINT32 ulHelixAdaptation = 0;   
+		UINT32 ulVersionTarget = HX_ENCODE_PROD_VERSION(11L, 1L, 0L, 0L);
+
+		//
+		// due to a bug in released Helix Server, the client needs to disable "Helix-Adaption"
+		// if the server version < 11.1.0.0
+		//
+		// see https://bugs.helixcommunity.org/show_bug.cgi?id=4989 for details
+		//
+		if ((m_ulServerVersion < ulVersionTarget) &&
+		    HXR_OK == ppRealHeaders[i]->GetPropertyULONG32("Helix-Adaptation-Support",
+								   ulHelixAdaptation) &&
+		    (1 == ulHelixAdaptation))
+		{
+		    ppRealHeaders[i]->SetPropertyULONG32("Helix-Adaptation-Support", 0);
+		}
 
                 m_pRateAdaptInfo->OnStreamHeader((UINT16)streamNumber,
                                                  ppRealHeaders[i]);
-                }
             }
-            
+
 #if defined(HELIX_FEATURE_TRANSPORT_MULTICAST)
             // get multicast address from the media description
             if (HXR_OK == ppRealHeaders[i]->GetPropertyCString("MulticastAddress", pIPAddress))
@@ -11426,7 +11194,7 @@ RTSPClientProtocol::GetStreamCountNoTrust(IHXValues**   ppHeaders,
 }
 
 HX_RESULT
-RTSPClientProtocol::CreateUDPSockets(UINT32 ulStream, UINT32 ulBitRate, UINT16 uPort)
+RTSPClientProtocol::CreateUDPSockets(UINT32 ulStream, UINT16 uPort)
 {
     HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::CreateUDPSockets() str = %lu; port = %u",this, ulStream, uPort);
     HX_RESULT           rc = HXR_OK;
@@ -11520,26 +11288,6 @@ RTSPClientProtocol::CreateUDPSockets(UINT32 ulStream, UINT32 ulBitRate, UINT16 u
             pUDPSocket1->SelectEvents(HX_SOCK_EVENT_READ|HX_SOCK_EVENT_CLOSE);
             pUDPSocket2->SelectEvents(HX_SOCK_EVENT_READ|HX_SOCK_EVENT_CLOSE);
         }
-
-
-#if defined(HELIX_CONFIG_SYMBIAN_UDP_BUFFER_SIZE)
-
-        const UINT32 MAX_UDPOPT_RECVBUF_SIZE = 256000 - 32000;// 256000 is the tcp/udp stack buffer limit. 32000 is reserved for other sockets.
-        const UINT32 MIN_UDPOPT_RECVBUF_SIZE = 32000;
-        const UINT32 MAX_SOCKET_READ_INTERVAL = 1000;  // millseconds, decided by the longest task inside helix for the single thread configuration.
-        const UINT32 BURST_PROTECTION = 2; // protection factor for the traffic burst
-
-        UINT32 unUDPRecvBufSize = ulBitRate * MAX_SOCKET_READ_INTERVAL * BURST_PROTECTION / 8000;
-
-        unUDPRecvBufSize = HX_MIN(MAX_UDPOPT_RECVBUF_SIZE, unUDPRecvBufSize);
-        unUDPRecvBufSize = HX_MAX(MIN_UDPOPT_RECVBUF_SIZE, unUDPRecvBufSize);
-
-        HXLOGL3(HXLOG_RTSP, "RTSPClientProtocol[%p]::CreateUDPSockets(): recv buffer limit %lu", this, unUDPRecvBufSize);
-
-        pUDPSocket1->SetOption(HX_SOCKOPT_UDP_RCVBUF, unUDPRecvBufSize);
-#endif
-
-
     }
     else
     {

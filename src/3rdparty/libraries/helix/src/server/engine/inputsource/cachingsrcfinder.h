@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: cachingsrcfinder.h,v 1.3 2007/05/23 19:01:11 seansmith Exp $ 
+ * Source last modified: $Id: cachingsrcfinder.h,v 1.1 2004/06/14 14:41:58 lyoung Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -40,6 +40,7 @@
 
 #include "hxfiles.h"
 #include "hxclientprofile.h"
+#include "player.h"
 #include "plgnhand.h"
 #include "srcfinder.h"
 
@@ -57,7 +58,7 @@ class CPacketHandler;
 class CachingSourceFinder : public BasicSourceFinder
 {
 public:
-    CachingSourceFinder(Process* pProc, ClientSession* pPlayerSession);
+    CachingSourceFinder(Process* pProc, Player::Session* pPlayerSession);
     virtual ~CachingSourceFinder(void);
 
     virtual HX_RESULT FindSource(URL* pURL, ServerRequest* pRequest);

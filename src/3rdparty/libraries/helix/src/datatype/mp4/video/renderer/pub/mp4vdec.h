@@ -79,12 +79,9 @@ public:
 						  HXSTREAM fromStreamRef,	
 						  HXCODEC_DATA *pData);
 
-    void ReleaseBuffer(UINT8* pBuff);
-    HX_RESULT GetProperty(UINT32 id, void* pPropVal);
-
 protected:
-    HX_RESULT OpenCodec(HX_MOFTAG mofTag);
-    HX_RESULT OpenStream(HX_MOFTAG mofTag);
+    HX_RESULT OpenCodec(HX_MOFTAG pmofTag);
+    HX_RESULT OpenStream(void);
     virtual CRADynamicCodecLibrary* CreateCodecLibrary();
 
     void SetCodecQuality(void);

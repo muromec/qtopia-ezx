@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: linux-2.2-libc6-i586-server.cf,v 1.13 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: linux-2.2-libc6-i586-server.cf,v 1.12 2006/07/06 19:28:06 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -167,7 +167,7 @@ class LinuxLinker(Linker2):
         ## want to link in the runtime library.
         servruntime_path = ""
 
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         cmd = "python %s -d %s %s %s %s" % (
@@ -203,7 +203,7 @@ class LinuxLinker(Linker2):
     def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
         cmd_list = []
 
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         cmd = "python %s -d %s %s %s" % (armerge_cmd, tmp_path, libpath, static_libs)

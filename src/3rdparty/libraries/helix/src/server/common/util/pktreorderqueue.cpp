@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pktreorderqueue.cpp,v 1.3 2009/04/07 19:19:31 jgordon Exp $ 
+ * Source last modified: $Id: pktreorderqueue.cpp,v 1.1 2004/07/30 17:17:00 ghori Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -76,6 +76,58 @@ CInorderPacketQueue::clear()
     }
 }
 
+UINT32
+CInorderPacketQueue::size()
+{
+    return (UINT32)m_pPacketDeque->size();
+}
+
+BOOL
+CInorderPacketQueue::empty()
+{
+    return m_pPacketDeque->empty();
+}
+
+
+CQueueEntry*
+CInorderPacketQueue::peek_front()
+{
+    return (CQueueEntry*)m_pPacketDeque->front();
+}
+
+
+CQueueEntry*
+CInorderPacketQueue::peek(SequenceNumber& SeqNo)
+{
+    UINT32 index = GetPacketIndex(SeqNo);
+
+    if (index >= (UINT32)m_pPacketDeque->size())
+    {
+        return NULL;
+    }
+
+    return (CQueueEntry*)(*m_pPacketDeque)[index];
+}
+
+CQueueEntry*
+CInorderPacketQueue::peek(UINT32 uIndex)
+{
+    if (uIndex >= (UINT32)m_pPacketDeque->size())
+    {
+        return NULL;
+    }
+
+    return (CQueueEntry*)(*m_pPacketDeque)[uIndex];
+}
+
+
+CQueueEntry*
+CInorderPacketQueue::pop_front()
+{
+    m_FirstSequenceNumber++;
+    return (CQueueEntry*)m_pPacketDeque->pop_front();
+}
+
 HX_RESULT
 CInorderPacketQueue::add(CQueueEntry* pEntry, SequenceNumber& SeqNo)
 {
@@ -108,9 +160,7 @@ CInorderPacketQueue::add(CQueueEntry* pEntry, SequenceNumber& SeqNo)
     // as well, fill the gap with NULLs.
     while (m_pPacketDeque->size() < index)
     {
-        SequenceNumber seqLost = SeqNo;
-        seqLost -= (index - m_pPacketDeque->size());
-	CQueueEntry* pTmpEntry = (CQueueEntry*)CreateLostPacket(seqLost, pEntry->m_tTime);		
+	CQueueEntry* pTmpEntry = (CQueueEntry*)CreateLostPacket(SeqNo, pEntry->m_tTime);		
         m_pPacketDeque->push_back(pTmpEntry);
         
 #ifdef DEBUG_PKT_ORDER_Q

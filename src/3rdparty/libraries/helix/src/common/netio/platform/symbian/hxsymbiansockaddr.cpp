@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -282,14 +282,6 @@ CHXSockAddrIN4::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXSockAddrIN4*)this;
         return HXR_OK;
     }
-    // added IID_IHXSockAddrNative
-    if (IsEqualIID(riid, IID_IHXSockAddrNative))
-    {
-        AddRef();
-        *ppvObj = (IHXSockAddrNative*)this;
-        return HXR_OK;
-    }
-    
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -346,16 +338,6 @@ CHXSockAddrIN4::GetAddrClass(void)
     return clas;
 }
 
-STDMETHODIMP_(void)
-CHXSockAddrIN4::Get(THIS_ sockaddr** ppsa, size_t* psalen)
-{
-    m_nativeAddr.sin_family = AF_INET;
-    m_nativeAddr.sin_port = m_addr.Port();
-    m_nativeAddr.sin_addr.s_addr = m_addr.Address();
-    *ppsa = (sockaddr*)&m_nativeAddr;
-    *psalen = sizeof(m_nativeAddr);
-}
-
 STDMETHODIMP
 CHXSockAddrIN4::Clone(IHXSockAddr** ppNew)
 {
@@ -404,14 +386,6 @@ CHXSockAddrIN6::QueryInterface(REFIID riid, void** ppvObj)
         *ppvObj = (IHXSockAddrIN6*)this;
         return HXR_OK;
     }
-    // added IID_IHXSockAddrNative
-    if (IsEqualIID(riid, IID_IHXSockAddrNative))
-    {
-        AddRef();
-        *ppvObj = (IHXSockAddrNative*)this;
-        return HXR_OK;
-    }
-    
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
 }
@@ -433,21 +407,6 @@ CHXSockAddrIN6::Release(void)
         delete this;
     }
     return rc;
-}
-
-STDMETHODIMP_(void) 
-CHXSockAddrIN6::Get(THIS_ sockaddr** ppsa, size_t* psalen)
-{
-    m_nativeAddr.sin6_family = AF_INET6;
-    m_nativeAddr.sin6_port = m_addr.Port();
-
-    //supposed to be already in network order
-    UINT8* addr6 =  (UINT8*)&m_addr.Ip6Address().u.iAddr8;
-    UINT8* p6addr = (UINT8*)&m_nativeAddr.sin6_addr.s6_addr;
-
-    p6addr = addr6;
-    *ppsa = (sockaddr*)&m_nativeAddr;
-    *psalen = sizeof(m_nativeAddr);
 }
 
 STDMETHODIMP

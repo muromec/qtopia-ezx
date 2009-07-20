@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: basecloak.cpp,v 1.11 2009/05/26 23:34:38 atin Exp $
+ * Source last modified: $Id: basecloak.cpp,v 1.5 2006/10/19 02:02:26 jrmoore Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -38,7 +38,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hlxclib/signal.h"
 
 #include "hxtypes.h"
 #include "hxcom.h"
@@ -63,7 +62,7 @@
 #include "url.h"
 #include "timerep.h"
 #include "plgnhand.h"
-#include "tsmap.h"
+#include "cloaked_guid_dict.h"
 #include "netbyte.h"
 #include "servbuffer.h"
 #include "hxprot.h"
@@ -73,7 +72,9 @@
 #include "tsid.h"
 #include "http_demux.h"
 #include "httpclk.h"    // CloakedHTTPResponse
+#include "rtspprot.h"
 #include "servsockimp.h"
+#include "servlbsock.h"
 #include "cloak_common.h"
 #include "basecloak.h"
 
@@ -155,23 +156,21 @@ CBaseCloakGETHandler::AutoDispatch(void)
     return FALSE;
 }
 
-// always executes inside the CORE thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::Init(IHXHTTPDemux* pDemux)
 {
     m_pDemux = pDemux;
     m_pDemux->AddRef();
-    m_pProc = Process::get_proc();
+    m_pProc = m_pDemux->GetProc();
     m_pCloakedGUIDDict = m_pProc->pc->cloaked_guid_dict;
 }
 
-// always executes inside the CORE thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnDispatch(void)
 {
     AddRef();
 
-    m_pProc = Process::get_proc();
+    m_pProc = m_pDemux->GetProc();
 
     if (m_pConn)
     {
@@ -180,13 +179,12 @@ CBaseCloakGETHandler::OnDispatch(void)
         m_pConn->SetRefSocket(pRealSock);
         HX_RELEASE(pRealSock);
 
-        m_pConn->GETChannelReady(Process::get_proc());
+        m_pConn->GETChannelReady(m_pProc);
     }
 
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnRequest(HTTPRequestMessage* pMsg)
 {
@@ -205,7 +203,7 @@ CBaseCloakGETHandler::OnRequest(HTTPRequestMessage* pMsg)
     {
         char szMsg[256];
         sprintf(szMsg, "REJECTING duplicate GET!");
-        Process::get_proc()->pc->error_handler->Report(HXLOG_ERR, 0, 0, szMsg, NULL);
+        m_pProc->pc->error_handler->Report(HXLOG_ERR, 0, 0, szMsg, NULL);
         pGETHandler->Release();
         goto EndOnRequestOnError;
     }
@@ -219,7 +217,7 @@ CBaseCloakGETHandler::OnRequest(HTTPRequestMessage* pMsg)
     if (pSock)
     {
         pSock->SelectEvents(HX_SOCK_EVENT_WRITE|HX_SOCK_EVENT_READ|HX_SOCK_EVENT_CLOSE);
-        pSock->Dispatch(m_pConn->GetProcNum());
+        pSock->Dispatch(m_pConn->m_iProcNum);
         pSock->Release();
         pSock = NULL;
     }
@@ -234,7 +232,6 @@ EndOnRequestOnError:
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnResponse(HTTPResponseMessage* pMsg)
 {
@@ -242,7 +239,6 @@ CBaseCloakGETHandler::OnResponse(HTTPResponseMessage* pMsg)
     m_pDemux->Close(HXR_FAIL);
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnData(IHXBuffer* pBuf)
 {
@@ -250,7 +246,6 @@ CBaseCloakGETHandler::OnData(IHXBuffer* pBuf)
     m_pDemux->Close(HXR_FAIL);
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnWriteReady(void)
 {
@@ -260,7 +255,6 @@ CBaseCloakGETHandler::OnWriteReady(void)
     }
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakGETHandler::OnClosed(void)
 {
@@ -276,7 +270,7 @@ CBaseCloakGETHandler::OnClosed(void)
     if (m_pProc && !m_ulCGSCHandle)
     {
         CloakGETShutdownCallback* pCGSC = new CloakGETShutdownCallback(this);
-        m_ulCGSCHandle = Process::get_proc()->pc->engine->schedule.enter(0.0, pCGSC);
+        m_ulCGSCHandle = m_pProc->pc->engine->schedule.enter(0.0, pCGSC);
     }
     else if (!m_ulCGSCHandle)
     {
@@ -288,7 +282,6 @@ CBaseCloakGETHandler::OnClosed(void)
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakGETHandler::CleanupConn()
 {
@@ -300,10 +293,8 @@ CBaseCloakGETHandler::CleanupConn()
     if (m_szCloakSessionId)
     {
         CloakConn* pConn = 0;
-        IUnknown* pObj = NULL;
 
-        m_pCloakedGUIDDict->remove(m_szCloakSessionId, pObj);
-        pConn = (CloakConn*)pObj;
+        m_pCloakedGUIDDict->remove(m_szCloakSessionId, pConn);
         HX_ASSERT(pConn == m_pConn || !pConn);
 
         // GUID dict addrefs pConn on remove.
@@ -322,14 +313,13 @@ CBaseCloakGETHandler::CleanupConn()
     m_pConn = NULL;
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(UINT32)
 CBaseCloakGETHandler::GetFeatureFlags()
 {
     return HTTP_FEATURE_IGNORE_CONTENT_LENGTH;
 }
 
-// can execute inside the CORE or STREAMER thread
+
 void
 CBaseCloakGETHandler::Shutdown(void)
 {
@@ -349,7 +339,6 @@ CBaseCloakGETHandler::Shutdown(void)
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 HX_RESULT
 CBaseCloakGETHandler::SendData(IHXBuffer* pBuf)
 {
@@ -360,7 +349,6 @@ CBaseCloakGETHandler::SendData(IHXBuffer* pBuf)
     return HXR_FAIL;
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakGETHandler::sendPostStatus(Byte status)
 {
@@ -380,7 +368,6 @@ CBaseCloakGETHandler::sendPostStatus(Byte status)
     HX_RELEASE(pBuf);
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakGETHandler::sendResponseHeader(const char* szContentType)
 {
@@ -392,7 +379,7 @@ CBaseCloakGETHandler::sendResponseHeader(const char* szContentType)
     pSock = m_pDemux->GetSock();
     // if the demux has been closed
     if (!pSock)
-    return;
+	return;
 
     pSock->GetLocalAddr(&pAddr);
     pAddr->GetAddr(&pAddrBuf);
@@ -484,29 +471,27 @@ CBaseCloakPOSTHandler::AutoDispatch(void)
     return FALSE;
 }
 
-// always executes inside the CORE thread
 STDMETHODIMP_(void)
 CBaseCloakPOSTHandler::Init(IHXHTTPDemux* pDemux)
 {
     m_pDemux = pDemux;
     m_pDemux->AddRef();
-    m_pProc = Process::get_proc();
-    m_pCloakedGUIDDict = Process::get_proc()->pc->cloaked_guid_dict;
+    m_pProc = m_pDemux->GetProc();
+    m_pCloakedGUIDDict = m_pProc->pc->cloaked_guid_dict;
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakPOSTHandler::OnDispatch(void)
 {
     AddRef();
 
-    m_pProc = Process::get_proc();
+    m_pProc = m_pDemux->GetProc();
     ProcessPendingData();
 
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
+
 STDMETHODIMP_(void)
 CBaseCloakPOSTHandler::OnResponse(HTTPResponseMessage* pMsg)
 {
@@ -514,14 +499,12 @@ CBaseCloakPOSTHandler::OnResponse(HTTPResponseMessage* pMsg)
     m_pDemux->Close(HXR_FAIL);
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakPOSTHandler::OnWriteReady(void)
 {
     // nothing to do for POST
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(void)
 CBaseCloakPOSTHandler::OnClosed(void)
 {
@@ -537,7 +520,6 @@ CBaseCloakPOSTHandler::OnClosed(void)
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 // when the GET handler calls CloakConn::RemoveAllPOSTHandlers(), it in turn ends
 // up calling BeginClose() which as u can see prevents a deadlock by
 // disallowing a call to CloakConn::RemovePOSTHandler()
@@ -549,7 +531,7 @@ CBaseCloakPOSTHandler::BeginClose(void)
     if (m_pProc && !m_ulCPSCHandle)
     {
         CloakPOSTShutdownCallback* pCPSC = new CloakPOSTShutdownCallback(this);
-        m_ulCPSCHandle = Process::get_proc()->pc->engine->schedule.enter(0.0, pCPSC);
+        m_ulCPSCHandle = m_pProc->pc->engine->schedule.enter(0.0, pCPSC);
     }
     else if (!m_ulCPSCHandle)
     {
@@ -559,14 +541,12 @@ CBaseCloakPOSTHandler::BeginClose(void)
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP_(UINT32)
 CBaseCloakPOSTHandler::GetFeatureFlags()
 {
     return HTTP_FEATURE_IGNORE_CONTENT_LENGTH;
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakPOSTHandler::QueuePendingData(BYTE* pData, UINT32 ulDataLen)
 {
@@ -591,7 +571,6 @@ CBaseCloakPOSTHandler::QueuePendingData(BYTE* pData, UINT32 ulDataLen)
     }
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakPOSTHandler::ProcessPendingData(void)
 {
@@ -613,7 +592,6 @@ CBaseCloakPOSTHandler::ProcessPendingData(void)
     Release();
 }
 
-// can execute inside the CORE or STREAMER thread
 void
 CBaseCloakPOSTHandler::Shutdown(void)
 {
@@ -626,7 +604,6 @@ CBaseCloakPOSTHandler::Shutdown(void)
     CleanupConn(HXR_STREAM_DONE);
 }
 
-// can execute inside the CORE or STREAMER thread
 void 
 CBaseCloakPOSTHandler::CleanupConn(HX_RESULT status)
 {
@@ -636,14 +613,13 @@ CBaseCloakPOSTHandler::CleanupConn(HX_RESULT status)
     }
 
     // Fatal error, so kill the entire cloaking session.
-    if (m_szCloakSessionId && status != HXR_OK)
+    if (m_szCloakSessionId 
+    &&  status != HXR_OK)
     {
         CloakConn* pConn = NULL;
-        IUnknown* pObj = NULL;
-        m_pCloakedGUIDDict->remove(m_szCloakSessionId, pObj);
-        pConn = (CloakConn*)pObj;
-        
-        //HX_ASSERT(pConn == m_pConn || !pConn);
+        m_pCloakedGUIDDict->remove(m_szCloakSessionId, pConn);
+
+        HX_ASSERT(pConn == m_pConn || !pConn);
 
         if (pConn)
         {
@@ -662,14 +638,12 @@ CBaseCloakPOSTHandler::CleanupConn(HX_RESULT status)
     m_pConn = NULL;
 }
 
-// can execute inside the CORE or STREAMER thread
 CBaseCloakGETHandler::CloakGETShutdownCallback::~CloakGETShutdownCallback()
 {
     m_pCGH->Release();
     m_pCGH = NULL;
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP
 CBaseCloakGETHandler::CloakGETShutdownCallback::Func()
 {
@@ -677,14 +651,12 @@ CBaseCloakGETHandler::CloakGETShutdownCallback::Func()
     return HXR_OK;
 }
 
-// can execute inside the CORE or STREAMER thread
 CBaseCloakPOSTHandler::CloakPOSTShutdownCallback::~CloakPOSTShutdownCallback()
 {
     m_pCPH->Release();
     m_pCPH = NULL;
 }
 
-// can execute inside the CORE or STREAMER thread
 STDMETHODIMP
 CBaseCloakPOSTHandler::CloakPOSTShutdownCallback::Func()
 {

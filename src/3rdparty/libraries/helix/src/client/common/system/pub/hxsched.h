@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsched.h,v 1.19 2009/05/05 16:39:13 sfu Exp $
+ * Source last modified: $Id: hxsched.h,v 1.14 2006/09/12 06:20:47 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -68,8 +68,7 @@ typedef struct _HXTimeval HXTimeval;
 class CAsyncTimer;
 
 class HXScheduler : public IHXScheduler
-		  , public IHXScheduler2, public IHXScheduler3
-		  , public IHXSchedulerInterruptSupport
+		  , public IHXScheduler2
 {
 protected:
     inline CallbackHandle _AbsoluteEnter(IHXCallback* pCallback, Timeval tVal);
@@ -88,7 +87,6 @@ protected:
     ClientPQ*   m_pInterruptTimeScheduler;	/* services at either interrupt or non-interrupt time */
     ClientPQ*   m_pInterruptTimeOnlyScheduler;	/* serevics only at interrupt time */
     CHXID*      m_pID;
-    IHXMutex*   m_pPQMutex;
 
     IUnknown*   m_pContext;
 
@@ -182,12 +180,6 @@ public:
 					    ULONG32 ulTimeout);
     STDMETHOD_(ULONG32, GetThreadID)	    (THIS);
     STDMETHOD_(HXBOOL, AreImmediatesPending)(THIS);
-    
-    /*
-     *	IHXSchedulerInterruptSupport methods
-     */
-    STDMETHOD_(HXBOOL, IsInterruptEnabled)   (THIS);
-    
 
     HX_RESULT	ExecuteCurrentFunctions(HXBOOL bAtInterrupt=FALSE);
 
@@ -200,11 +192,6 @@ public:
 
     UINT32      GetGranularity();
     
-    //IHXScheduler3 methods
-	STDMETHOD(PauseScheduler)	(THIS_);    
-	STDMETHOD(ResumeScheduler)	(THIS_);
-	STDMETHOD_(HXBOOL, IsPaused)  (THIS_);
-
 protected:
     UINT32	    m_ulThreadID;
     Timeval	    m_CurrentTimeVal;
@@ -229,7 +216,6 @@ protected:
 
     Timeline*		m_pTimeline;
     ULONG32		m_ulCurrentGranularity;
-    ULONG32		m_ulMinimumGranularity;
     inline HXBOOL	UpdateCurrentTime(HXBOOL bAtInterrupt,
                                           HXBOOL& bShouldServiceSystem, 
                                           HXBOOL& bShouldServiceInterrupt,

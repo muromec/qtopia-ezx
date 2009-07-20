@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rgb2yuv.c,v 1.8 2007/07/06 20:53:51 jfinnecy Exp $
+ * Source last modified: $Id: rgb2yuv.c,v 1.4 2004/12/29 02:07:37 rascar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1101,144 +1101,6 @@ int ARGBtoYUVA (unsigned char *dest_ptr, int dest_width, int dest_height,
  *      put all the color-dependent stuff here ...
  *  }
  */
-    return 0;
-}
-
-//////////////////////////////////////////////////////
-//
-//	RGB32toYUY2
-//
-//////////////////////////////////////////////////////
-
-int RGB32toYUY2 (unsigned char* dest_ptr,
-                 int            dest_width,
-                 int            dest_height,
-                 int            dest_pitch,
-                 int            dest_x,
-                 int            dest_y,
-                 int            dest_dx,
-                 int            dest_dy,
-                 unsigned char* src_ptr,
-                 int            src_width,
-                 int            src_height,
-                 int            src_pitch,
-                 int            src_x,
-                 int            src_y,
-                 int            src_dx,
-                 int            src_dy)
-{
-    /* scale factors: */
-    int            scale_x = 0;
-    int            scale_y = 0;
-    int            x       = 0;
-    int            y       = 0;
-    unsigned char* pSrc    = NULL;
-    unsigned char* pDst    = NULL;
-    int            iR      = 0;
-    int            iG      = 0;
-    int            iB      = 0;
-    int            iY      = 0;
-    int            iU      = 0;
-    int            iV      = 0;
-
-    /* check arguments: */
-    if (((unsigned) dest_ptr & 3)      ||  /* Make sure dest pointer is 4-byte aligned */
-        ((unsigned)src_ptr  & 3)       ||  /* Make sure src pointer is 4-byte aligned  */
-        (dest_pitch & 1)               ||  /* Make sure dest pitch is even             */
-        (src_pitch  & 3)               ||  /* Make sure src pitch is multiple of 4     */
-        dest_width <= 0                ||  /* Don't allow negative dest widths         */
-        dest_height <= 0               ||  /* Don't allow negative dest heights        */
-        src_width  <= 0                ||  /* Don't allow negative src widths          */
-        src_height  <= 0               ||  /* Don't allow negative src heights         */
-        dest_x < 0 || dest_y < 0       ||  /* Make sure dest rect is valid             */
-        dest_dx <= 0 || dest_dy <= 0   ||
-        src_x  < 0 || src_y  < 0       ||  /* Make sure src rect is valid              */
-        src_dx  <= 0 || src_dy  <= 0   ||
-        dest_width < dest_x + dest_dx  ||  /* Make sure dest rect is valid             */
-        dest_height < dest_y + dest_dy ||
-        src_width  < src_x  + src_dx   || /* Make sure src rect is valid               */
-        src_height < src_y  + src_dy)
-    {
-        return -1;
-    }
-
-    /* scale factors: */
-    if (dest_dx == src_dx)
-    {
-        scale_x = 1;
-    }
-    else if (dest_dx == 2 * src_dx)
-    {
-        scale_x = 2;
-    }
-    if (dest_dy == src_dy)
-    {
-        scale_y = 1;
-    }
-    else if (dest_dy == 2 * src_dy)
-    {
-        scale_y = 2;
-    }
-
-    /* Only support 1:1 scale */
-    if (scale_x != 1 || scale_y != 1)
-    {
-        return -1;
-    }
-
-    /*
-     * If we have a bottom up bitmap, then we can
-     * avoid an if() branch in the loop logic below
-     * by simply adjusting the src_ptr or dst_ptr to
-     * start at the last row in memory.
-     */
-    if (src_pitch < 0)
-    {
-        src_ptr -= (src_height-1) * src_pitch;
-    }
-    if (dest_pitch < 0)
-    {
-        dest_ptr -= (dest_height-1) * dest_pitch;
-    }
-
-    /* Run through each row */
-    for (y = 0; y < src_dy; y++)
-    {
-        /* Get the src and dst row pointers */
-        pSrc = src_ptr  + (src_y + y)  * src_pitch  + src_x * 4;
-        pDst = dest_ptr + (dest_y + y) * dest_pitch + dest_x * 2;
-        /* Loop along each row */
-        for (x = 0; x < src_dx; x++)
-        {
-            /* Convert RGB to YUV, using the following fixed-point formula:
-             *
-             * Y = (r *  2104 + g *  4130 + b *  802 + 4096 +  131072) >> 13
-             * U = (r * -1214 + g * -2384 + b * 3598 + 4096 + 1048576) >> 13
-             * V = (r *  3598 + g * -3013 + b * -585 + 4096 + 1048576) >> 13
-             */
-#if defined(_WINDOWS)
-            iR = pSrc[2];
-            iG = pSrc[1];
-            iB = pSrc[0];
-#else
-            iR = pSrc[0];
-            iG = pSrc[1];
-            iB = pSrc[2];
-#endif
-            iY = (iR *  2104 + iG * 4130 + iB *  802 + 4096 +  131072) >> 13;
-            iU = (iR * -1214 - iG * 2384 + iB * 3598 + 4096 + 1048576) >> 13;
-            iV = (iR *  3598 - iG * 3013 - iB *  585 + 4096 + 1048576) >> 13;
-            /* Write out the Y */
-            pDst[0] = (unsigned char) iY;
-            /* If we are even, write out U. If odd, write V */
-            pDst[1] = (unsigned char) ((x & 1) ? iV : iU);
-            /* Advance the src pointer */
-            pSrc += 4;
-            /* Advance the dst pointer */
-            pDst += 2;
-        }
-    }
-
     return 0;
 }
 

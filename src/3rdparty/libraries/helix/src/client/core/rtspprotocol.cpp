@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspprotocol.cpp,v 1.87 2008/06/23 20:47:44 anuj_dhamija Exp $
+ * Source last modified: $Id: rtspprotocol.cpp,v 1.81 2007/02/27 06:20:50 gbajaj Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1451,49 +1451,29 @@ STDMETHODIMP
 RTSPProtocol::HandleSetParameterRequest(const char* pParamName,
         const char* pParamValue, const char* pContent)
 {
-    HX_RESULT retVal = HXR_NOTIMPL;
-
 #if defined(HELIX_FEATURE_REVERTER)
-    // Check for valid input parameters
-    if (pParamName && !strcmp(pParamName, "DataConvertBuffer"))
+    if (!strcmp(pParamName, "DataConvertBuffer"))
     {
-        // Set the return value 
-        retVal = HXR_INVALID_PARAMETER;
-        // Make sure we have a valid content string
-        if (pContent)
-        {
-            // Get the length of the content string
-            INT32 lContentLen = (INT32) strlen(pContent);
-            if (lContentLen > 0)
-            { 
-                // Create a buffer of this size, and null it out
-                IHXBuffer* pBuffer = NULL;
-                retVal = CreateSizedBufferCCF(pBuffer, m_pContext, (UINT32) lContentLen, TRUE, 0);
-                if (SUCCEEDED(retVal))
-                {
-                    // Set the return value
-                    retVal = HXR_FAIL;
-                    // Convert from base64. If the return value == -1, then
-                    // the base64 decoding failed.
-                    int offset = BinFrom64(pContent, lContentLen, (BYTE*) pBuffer->GetBuffer());
-                    if (offset > 0)
-                    {
-                        // Set the size of this buffer to this size
-                        retVal = pBuffer->SetSize((UINT32) offset);
-                        if (SUCCEEDED(retVal))
-                        {
-                            // Send this buffer to the data reverter
-                            m_pDataRevert->ControlBufferReady(pBuffer);
-                        }
-                    }
-                }
-                HX_RELEASE(pBuffer);
-            }
-        }
+        IHXBuffer* pBuffer = NULL;
+	if (HXR_OK == CreateBufferCCF(pBuffer, m_pContext))
+	{
+	    int contentLen = strlen(pContent);
+	    pBuffer->SetSize(contentLen);
+	    int offset = BinFrom64(pContent, contentLen,
+				  (unsigned char*)pBuffer->GetBuffer());
+	    pBuffer->SetSize(offset);
+	    m_pDataRevert->ControlBufferReady(pBuffer);
+	    HX_RELEASE(pBuffer);
+	    return HXR_OK;
+	}
+	else
+	{
+	    return HXR_FAILED;
+	}
     }
 #endif /* HELIX_FEATURE_REVERTER */
 
-    return retVal;
+    return HXR_NOTIMPL;
 }
 
 STDMETHODIMP
@@ -1877,24 +1857,78 @@ RTSPProtocol::GetStatus
     REF(UINT16) ulPercentDone
 )
 {
-    IUnknown* pContext = NULL;
-    
-    // only report back the connecting status
-    // buffering status will be handled by the BufferManager
+// XXX HP
+// we no longer care about the buffering at the transport layer
+// playback starts as soon as we get enough data at BufferManager
+#if 0
+    /*
+     * XXX...This needs to be properly implemented
+     */
+
+    IHXBuffer*          pStatus = NULL;
+    IUnknown*           pContext = NULL;
+    IHXClientEngine*    pEngine = NULL;
+
+    uStatusCode = HX_STATUS_READY;
+    ulPercentDone = 100;
+    pStatusDesc = NULL;
+
     if (!m_bConnectDone)
     {
-        uStatusCode = HX_STATUS_CONTACTING;
-        ulPercentDone = 0;
-        
+        uStatusCode     = HX_STATUS_CONTACTING;
+        ulPercentDone   = 0;
+
         mOwner->GetContext(pContext);
-        if (!mHost.IsEmpty() && pContext)
+
+#if defined(HELIX_FEATURE_RESOURCEMGR)
+        if (pContext &&
+            HXR_OK == pContext->QueryInterface(IID_IHXClientEngine, (void**)&pEngine))
         {
-            CreateStringBufferCCF(pStatusDesc, mHost, pContext);
+            pStatus = ((HXClientEngine *)pEngine)->GetResMgr()->GetMiscString(IDS_STATUS_CONTACTING);
         }
+
+	CreateBufferCCF(pStatusDesc, m_pContext);
+        if (!pStatusDesc)
+        {
+            return HXR_OUTOFMEMORY;
+        }
+
+        CHXString statusDesc = "";
+        if (pStatus)
+        {
+            statusDesc += (const char*) pStatus->GetBuffer();
+            statusDesc += " ";
+        }
+
+        statusDesc += mHost;
+        statusDesc += "...";
+        pStatusDesc->Set((UCHAR*)(const char*) statusDesc,
+                         strlen((const char*)statusDesc)+1);
+
+        HX_RELEASE(pStatus);
+        HX_RELEASE(pEngine);
+#endif /* HELIX_FEATURE_RESOURCEMGR */
+
         HX_RELEASE(pContext);
+
+        return HXR_OK;
     }
-    
+    else if (m_pPendingStatus)
+    {
+        return m_pPendingStatus->GetStatus(uStatusCode,
+                                           pStatusDesc,
+                                           ulPercentDone);
+    }
+    else
+    {
+        uStatusCode = HX_STATUS_BUFFERING;
+        ulPercentDone = 0;
+    }
+
     return HXR_OK;
+#else
+    return HXR_NOTIMPL;
+#endif
 }
 
 #if defined(HELIX_FEATURE_STATS)
@@ -2236,14 +2270,6 @@ RTSPProtocol::process(void)
                 if (!IS_SERVER_ALERT(theErr))
                 {
                     theErr = HXR_SERVER_ALERT;
-                }
-                else
-                {
-                    //Ignore Alert Code 0
-                    if(theErr == HXR_SE_NO_ERROR)
-                    {
-                        theErr = HXR_OK;
-                    }
                 }
             }
             m_idleState = NULL_STATE;
@@ -2631,14 +2657,12 @@ RTSPProtocol::setup(const char* host, const char* path, UINT16 port,
     }                               
     
 #ifdef HELIX_FEATURE_USER_AGENT_EXTN
+    CHXString strUserAgentExt;
+    ReadPrefCSTRING(m_pPreferences, "UserAgentExtn", strUserAgentExt);
+    if (strUserAgentExt.GetLength() > 0)
     {
-      CHXString strUserAgentExt;
-      ReadPrefCSTRING(m_pPreferences, "UserAgentExtn", strUserAgentExt);
-      if (strUserAgentExt.GetLength() > 0)
-      {
-         m_strUserAgent += " ";
-         m_strUserAgent += strUserAgentExt;
-      }
+        m_strUserAgent += " ";
+        m_strUserAgent += strUserAgentExt;
     }
 #endif
 
@@ -3230,8 +3254,6 @@ void RTSPProtocol::destroyProtocolLib()
 
     if (m_spProtocolLib)
     {
-        if (mOwner)
-        {
         IHXAutoBWDetection* pABD = NULL;
         if (HXR_OK == m_spProtocolLib->QueryInterface(IID_IHXAutoBWDetection, 
                                                      (void**)&pABD))
@@ -3239,7 +3261,6 @@ void RTSPProtocol::destroyProtocolLib()
             mOwner->ShutdownABD(pABD);
         }
         HX_RELEASE(pABD);
-        }
 
         m_spProtocolLib->Done();
 	m_spProtocolLib.Clear();

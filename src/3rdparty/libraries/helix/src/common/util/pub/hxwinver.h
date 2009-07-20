@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxwinver.h,v 1.12 2008/06/25 00:36:50 ping Exp $
+ * Source last modified: $Id: hxwinver.h,v 1.9 2006/02/23 23:59:32 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -77,7 +77,6 @@ typedef struct _HXVERSIONINFO
 #define HX_PLATFORM_SYMBIAN		0x00001000
 #define HX_PLATFORM_OPENWAVE		0x00002000
 #define HX_PLATFORM_MACOSX              0x00004000
-#define HX_PLATFORM_BREW		0x00008000
 #define HX_PLATFORM_UNKNOWN		0xFFFFFFFF
 
 // Old defines used by some windows specific code.
@@ -90,7 +89,6 @@ typedef struct _HXVERSIONINFO
 #define HX_MACHINE_486			0x00000001	// 486 or better
 #define HX_MACHINE_586			0x00000002	// Pentium or better
 #define HX_MACHINE_686			0x00000004	// PentiumPro or better
-#define HX_MACHINE_PENTIUM3PLUS         0x00000005
 #define HX_MACHINE_PPC			0x00000008	// PowerPC
 #define HX_MACHINE_68K			0x00000010
 #define HX_MACHINE_ALPHA		0x00000020
@@ -99,7 +97,6 @@ typedef struct _HXVERSIONINFO
 #define HX_MACHINE_ARM                  0x00000100
 #define HX_MACHINE_SYMEMULATOR          0x00000200
 #define HX_MACHINE_OWEMULATOR           0x00000400
-#define HX_MACHINE_BREWEMULATOR         0x00000800
 #define HX_MACHINE_TOOSLOW		0xFFFFFFFE	// Anything that sucks. 286, 386, etc.
 #define HX_MACHINE_UNKNOWN		0xFFFFFFFF
 

@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: noplusumake,v 1.10 2009/05/06 13:13:41 ehyche Exp $
+# Source last modified: $Id: noplusumake,v 1.8 2006/08/17 17:16:36 ping Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -70,8 +70,7 @@ project.AddModuleLibraries('common/dbgtool[debuglib]',
 project.AddSources('hxcolor.cpp', 'edge.cpp',
                    'env.c', 'setpal.c', 'setclrs.c',
                    'clip.c', 'rgb2rgb.c', 'rgb2yuv.c',
-                   'yuv2rgb.c', 'yuv2yuv.c', 'yuvalpha.c',
-                   'libva2libva.c')
+                   'yuv2rgb.c', 'yuv2yuv.c', 'yuvalpha.c');
 
 project.defines.append('_FAT_HXCOLOR')
 project.defines.append('_8_BIT_SUPPORT')

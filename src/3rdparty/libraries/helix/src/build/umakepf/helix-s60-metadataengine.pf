@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-s60-metadataengine.pf,v 1.2 2007/07/25 22:39:35 atewari Exp $ 
+#  Source last modified: $Id: helix-s60-metadataengine.pf,v 1.1 2006/09/19 21:54:10 gashish Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -79,5 +79,5 @@ project.AddDefines('HELIX_FEATURE_MMF_DATASOURCE')
 project.AddDefines('HELIX_CONFIG_DTDR_DISABLE_LOGGING')
 project.AddDefines('HELIX_FEATURE_MINI_SMPLFSYS')
 
-
+project.AddDefines('HELIX_CONFIG_SYMBIAN_MMF_ROM_ONLY')
 

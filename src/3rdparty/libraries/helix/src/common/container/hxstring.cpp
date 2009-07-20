@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxstring.cpp,v 1.22 2007/11/08 10:43:26 atin Exp $
+ * Source last modified: $Id: hxstring.cpp,v 1.20 2005/03/14 19:33:47 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -48,10 +48,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "hxstring.h"
-
-#ifdef HELIX_FEATURE_SERVER_CHXSTRING_ATOMIC_REFCOUNT
-#include "atomicbase.h"
-#endif
 
 #include "hlxclib/string.h"
 #include "hlxclib/ctype.h"
@@ -142,20 +138,12 @@ CHXStringRep::~CHXStringRep()
 
 void CHXStringRep::AddRef()
 {
-#ifndef HELIX_FEATURE_SERVER_CHXSTRING_ATOMIC_REFCOUNT
     m_refCount++;
-#else
-    HXAtomicIncRetINT32(&m_refCount);
-#endif
 }
 
 void CHXStringRep::Release()
 {
-#ifndef HELIX_FEATURE_SERVER_CHXSTRING_ATOMIC_REFCOUNT
     if ((--m_refCount) == 0)
-#else
-    if (HXAtomicDecRetINT32(&m_refCount) <= 0)
-#endif
 	delete this;
 }
 

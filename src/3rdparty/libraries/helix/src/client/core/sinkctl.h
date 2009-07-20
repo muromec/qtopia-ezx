@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sinkctl.h,v 1.15 2007/10/22 21:08:20 ehyche Exp $
+ * Source last modified: $Id: sinkctl.h,v 1.13 2005/12/02 21:48:48 cdunn Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -75,16 +75,13 @@ class CRingBuffer;
 #define HX_ADVISE_SINK_FLAG_ONBEGIN              0x0100
 #define HX_ADVISE_SINK_FLAG_ONBUFFERING          0x0200
 #define HX_ADVISE_SINK_FLAG_ONCONTACTING         0x0400
-#define HX_ADVISE_SINK_FLAG_UPDATEVELOCITY       0x0800
-#define HX_ADVISE_SINK_FLAG_UPDATEKEYFRAMEMODE   0x1000
-#define HX_ADVISE_SINK_FLAG_ALL                  0x1FFF
+#define HX_ADVISE_SINK_FLAG_ALL                  0x07FF
 
 
 class CHXAdviseSinkControl : public IHXClientAdviseSink,
                              public IHXInterruptSafe,
                              public IHXPlaybackVelocity,
-                             public IHXPlaybackVelocityTimeRegulator,
-                             public IHXPlaybackVelocityResponse
+                             public IHXPlaybackVelocityTimeRegulator
 {
 public:
     CHXAdviseSinkControl();
@@ -249,11 +246,6 @@ public:
     STDMETHOD_(UINT32,GetOriginalTime) (THIS_ UINT32 ulWarpTime);
     STDMETHOD_(UINT32,GetWarpedTime)   (THIS_ UINT32 ulOrigTime);
 
-    // IHXPlaybackVelocityResponse methods
-    STDMETHOD(UpdateVelocityCaps) (THIS_ IHXPlaybackVelocityCaps* pCaps) { return HXR_OK; }
-    STDMETHOD(UpdateVelocity)     (THIS_ INT32 lVelocity);
-    STDMETHOD(UpdateKeyFrameMode) (THIS_ HXBOOL bKeyFrameMode);
-
     /*
      *  CHXAdviseSinkControl methods
      */
@@ -270,15 +262,15 @@ public:
 
 private:
 
-    CHXSimpleList      m_SinkList;
-    LONG32             m_lRefCount;
+    CHXSimpleList       m_SinkList;
+    LONG32              m_lRefCount;
     IHXInterruptState* m_pInterruptState;
-    IHXScheduler*      m_pScheduler;
-    INT32              m_lPlaybackVelocity;
-    HXBOOL             m_bKeyFrameMode;
-    CRingBuffer*       m_pOrigTime;
-    CRingBuffer*       m_pWarpTime;
-    UINT32             m_ulEnabledFlags;
+    IHXScheduler*       m_pScheduler;
+    INT32               m_lPlaybackVelocity;
+    HXBOOL                m_bKeyFrameMode;
+    CRingBuffer*        m_pOrigTime;
+    CRingBuffer*        m_pWarpTime;
+    UINT32              m_ulEnabledFlags;
 
     struct PlayerAdviseSink;
     friend struct PlayerAdviseSink;
@@ -289,10 +281,10 @@ private:
                         HXBOOL bInterruptSafe);
 
         ~PlayerAdviseSink();
-
-        IHXClientAdviseSink* m_pAdviseSink;
-        HXBOOL               m_bInterruptSafe;
-        CHXSimpleList*       m_pPendingAdviseList;
+    
+        IHXClientAdviseSink*    m_pAdviseSink;
+        HXBOOL                    m_bInterruptSafe;
+        CHXSimpleList*          m_pPendingAdviseList;
     };
 
     struct PendingAdvise;

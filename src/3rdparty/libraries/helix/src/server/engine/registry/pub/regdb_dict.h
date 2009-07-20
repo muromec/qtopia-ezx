@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regdb_dict.h,v 1.3 2009/05/30 19:11:00 atin Exp $ 
+ * Source last modified: $Id: regdb_dict.h,v 1.2 2003/01/23 23:42:57 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -95,8 +95,10 @@ typedef UINT32 Keytype;
 class ServRegDB_node
 {
 public:
+    REGISTRY_CACHE_MEM
+
     ServRegDB_node() : obj(0), hash(0), _id(0), next(0), owner_db(0) {}
-    ~ServRegDB_node() { obj = 0; hash = 0; _id = 0; next = 0; owner_db = 0; }
+    ~ServRegDB_node() {}
 
     inline void                 key(Keytype k) { hash = k; }
     inline Keytype              get_key()      { return hash; }
@@ -124,8 +126,11 @@ private:
 class ServRegDB_dict 
 {
 public:
-    ServRegDB_dict();
+    REGISTRY_CACHE_MEM
+
+    ServRegDB_dict(RegistryMemCache* pCache);
     ServRegDB_dict(ServRegDB_node* parent, 
+                   RegistryMemCache* pCache,
                    Keytype nbuckets = 16,
                    Keytype(*hash)(const char*) = serv_hash_torek,
                    int(*comp)(const char*,const char*) = strcmp);
@@ -157,6 +162,7 @@ private:
     void                strtolower(char* str);
 
     ServRegDB_node**    _table;
+    RegistryMemCache*   m_pCache;
 
     // string comparison function
     int                         (*_compare)(const char*,const char*);

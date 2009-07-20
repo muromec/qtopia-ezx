@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: livekeyframe.h,v 1.5 2008/03/28 05:00:45 jzeng Exp $ 
+ * Source last modified: $Id: livekeyframe.h,v 1.4 2006/03/22 22:53:39 jzeng Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -46,6 +46,5 @@ struct IHXRegistry;
 BOOL IsVideoKeyframeStream(IHXRegistry* pReg, const char* szMimeType);
 BOOL IsAudioKeyframeStream(IHXRegistry* pReg, const char* szMimeType);
 BOOL IsRealEventStream(IHXRegistry* pReg, const char* szMimeType);
-BOOL IsRealVideoStream(const char* szMimeType);
 
 #endif /* _LIVEKEYFRAME_H_ */

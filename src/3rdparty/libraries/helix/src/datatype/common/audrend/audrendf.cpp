@@ -391,50 +391,19 @@ void CAudioFormat::DiscardAudioUntil(UINT32 ulTimestamp)
 
     // look through the re-assembled packet queue and delete data
     // from there that's earlier than the discard until time
-    
-    CMediaPacket* pQTPktCurrent = NULL;
-    CMediaPacket* pQTPktNext = NULL;
-    HXBOOL        bPacketDeleted = FALSE;
-	ULONG32       ulLastestDeletedTimestamp;
-    
-    while(!m_pPendingPacketQueue->IsEmpty())
-		{
-    	pQTPktCurrent = (CMediaPacket*) m_pPendingPacketQueue->GetHead();
-    	m_pPendingPacketQueue->RemoveHead();
-    	if(!m_pPendingPacketQueue->IsEmpty())
-    		{
-    		pQTPktNext = (CMediaPacket*) m_pPendingPacketQueue->GetHead();
-    		}
-    	else
-    		{
-    	    m_pPendingPacketQueue->AddHead(pQTPktCurrent);
-    		break;
-    		}
-   	
-    	if (pQTPktCurrent->m_ulTime > ulTimestamp || (pQTPktCurrent->m_ulTime <= ulTimestamp && pQTPktNext->m_ulTime > ulTimestamp))
-    		{
-    	    m_pPendingPacketQueue->AddHead(pQTPktCurrent);
-    		break;
-    		}
-    	else
-    		{
-			ulLastestDeletedTimestamp = pQTPktCurrent->m_ulTime;
-    		CMediaPacket::DeletePacket(pQTPktCurrent);
-    		bPacketDeleted = TRUE;
-    		}
-		}
-    if(bPacketDeleted)
-    	{
-		InputAudioDiscardedNotification(ulTimestamp, ulLastestDeletedTimestamp);
-    	}
+    CMediaPacket* pQTPkt;
+    while (!m_pPendingPacketQueue->IsEmpty())
+    {
+	pQTPkt = (CMediaPacket*) m_pPendingPacketQueue->GetHead();
+	if (pQTPkt->m_ulTime >= ulTimestamp)
+	{
+	    break;
+	}
+
+	m_pPendingPacketQueue->RemoveHead();
+	CMediaPacket::DeletePacket(pQTPkt);
+    }
 }
-
-void CAudioFormat::InputAudioDiscardedNotification(UINT32 /*ulTimestamp*/, ULONG32 /*ulLastDeletedTimestamp*/)
-{
-	//Derived classes have to clean up their variables properly.
-}
-
-
 
 void CAudioFormat::Reset(void)
 {

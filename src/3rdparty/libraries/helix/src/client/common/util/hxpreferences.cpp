@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxpreferences.cpp,v 1.10 2008/07/30 21:45:30 qluo Exp $
+ * Source last modified: $Id: hxpreferences.cpp,v 1.6 2006/05/25 09:44:03 pankajgupta Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,7 +50,7 @@
 // Local
 #include "hxpreferences.h"
 #include "hxpreferencesenumerator.h" // CHXPreferencesEnumerator
-#include "hlxclib/stdlib.h"			 // atoi
+
 // Interfaces / Smart Pointers
 #include "ihxpckts.h"   // SPIHXBuffer
 
@@ -501,18 +501,12 @@ CHXPreferences::DeletePrefNoPrefix(const char* pPrefKey)
     HX_ASSERT(pPrefKey && "Invalid Parameter");
     HX_ASSERT(m_pMemberLock && "Why is the lock NULL?");
     REQUIRE_RETURN_QUIET(pPrefKey, HXR_INVALID_PARAMETER);
-    REQUIRE_RETURN_QUIET(m_pKeyMap, HXR_NOT_INITIALIZED);
 
     CHXString strKeyPrefix, strKeyName;
     HX_RESULT hxres = HXPreferencesUtils::SplitKey(pPrefKey, &strKeyPrefix, &strKeyName);
     if (SUCCEEDED(hxres))
     {
-        hxres = HXR_FAIL;
-
         HXAutoLock autoLock(m_pMemberLock); // Write Lock
-
-        // We need to mimic the behavior of the registry preferences for compatibility.  If the pref key passed in has sub-values which means
-        // there is a trailing '\'.  This initial attempt to delete the exact key will fail.
         PrefKeyValMap* pPrefValueMap = _GetValueMap(strKeyPrefix, FALSE);
         if (pPrefValueMap)
         {
@@ -521,35 +515,6 @@ CHXPreferences::DeletePrefNoPrefix(const char* pPrefKey)
             {
                 // if the pair exist, then set it as deleted.
                 _GetPrefKeyValMapIterValue(mIter)->first = HXPreferencesKeyStatus_Removed;
-                hxres = HXR_OK;
-            }
-        }
-
-        // If we failed to find the exact key see if it matches one of the subkeys and delete everything under the subkeys.
-        if (FAILED(hxres))
-        {
-            for (PrefRootMap::Iterator iterKey = m_pKeyMap->Begin(); iterKey != m_pKeyMap->End(); iterKey++)
-            {
-                CHXString strKeyName = iterKey.get_key();
-
-                // Make sure to map only agains the length of the pref key passed in and starting at the left so we don't find substrings in the middle
-                // by mistake
-                if (!strKeyName.Left(strlen(pPrefKey)).CompareNoCase(pPrefKey))
-                {
-                    PrefKeyValMap* pPrefKeyValMap = _GetPrefRootMapIterValue(iterKey);
-
-                    if (pPrefKeyValMap)
-                    {
-                        PrefKeyValMap::Iterator iterVal = pPrefKeyValMap->Begin();
-
-                        while (iterVal != pPrefKeyValMap->End())
-                        {
-                            PrefKeyValMapValue* pPrefKeyValMapValue = _GetPrefKeyValMapIterValue(iterVal);
-                            pPrefKeyValMapValue->first = HXPreferencesKeyStatus_Removed;
-                            ++iterVal;
-                        }
-                    }
-                }
             }
         }
     }
@@ -657,14 +622,8 @@ CHXPreferences::_LoadFile(const char* szFileFullPath, HXTime* pTime)
         hxres = CHXFileSpecUtils::ReadBinaryFile(xmlFile, pBuffer);
         if (SUCCEEDED(hxres))
         {
-            hxres = _ParseXML(pBuffer, pTime);
+            hxres = _ParseXML(spBuffer.Ptr(), pTime);
         }
-
-	// On mac, ReadBinaryFile() creates a new buffer.  We need to release it.
-	if (pBuffer != spBuffer.Ptr())
-	{
-	    HX_RELEASE(pBuffer);
-	}
     }
     return hxres;
 }

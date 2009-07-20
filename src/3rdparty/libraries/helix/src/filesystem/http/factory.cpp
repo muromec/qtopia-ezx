@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: factory.cpp,v 1.13 2008/05/23 15:49:51 ehyche Exp $
+ * Source last modified: $Id: factory.cpp,v 1.9 2007/02/28 06:25:15 gahluwalia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -64,7 +64,6 @@
 #include "msacm.h"
 #endif
 
-#include "hxcore.h"     // IHXPlayer
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "hxstrutl.h"
@@ -108,32 +107,24 @@
 #undef HX_THIS_FILE		
 static const char HX_THIS_FILE[] = __FILE__;
 #endif
-#if defined(HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS)
 #include "datafsys.h"
-#endif
 #include "httpfsys.h"
 #include "factory.h"
 #include "ihxcookies2.h"
 
-HX_RESULT (STDAPICALLTYPE  * const HTTPPluginFactory::m_fpEntryArray[])(IUnknown**)={
+HX_RESULT (STDAPICALLTYPE  *HTTPPluginFactory::m_fpEntryArray[])(IUnknown**)={
 	CHTTPFileSystem::HXCreateInstance,
-#if defined(HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS)
 	DataFileSystem::HXCreateInstance,
-#endif	
 	0};
 
-HX_RESULT (STDAPICALLTYPE  * const HTTPPluginFactory::m_fpExitArray[])()={
+HX_RESULT (STDAPICALLTYPE  *HTTPPluginFactory::m_fpExitArray[])()={
 	CHTTPFileSystem::HXShutdown,
-#if defined(HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS)
 	DataFileSystem::HXShutdown,
-#endif	
 	0};
 
-HX_RESULT (* const HTTPPluginFactory::m_fpUnloadArray[])()={
+HX_RESULT (*HTTPPluginFactory::m_fpUnloadArray[])()={
 	CHTTPFileSystem::CanUnload,
-#if defined(HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS)
 	DataFileSystem::CanUnload,
-#endif	
 	0};
 
 

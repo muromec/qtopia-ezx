@@ -66,12 +66,9 @@
 #define HX_CLEARVIDEO_ID 0x434C5631 // 'CLV1'
 
 #define HX_YUV420_ID	0x59555632L	// 'YUV2'
-#define HX_YUY2_ID      0x59555932L     // 'YUY2'
 #define HX_YUV411_ID	0x59555631L	// 'YUV1'
 #define HX_YUVRAW_ID	0x59555652L	// 'YUVR'
 #define RA_WTIMAGE_ID	0x52493130L	// 'RI10'
-#define HX_NV21_ID	0x4e563231L     // 'NV21'
-#define HX_OMXV_ID      0x4f4d5856L     // 'OMXV'	
 
 // ICM codecs
 #define ICM_CVID	0x43564944L	// 'CVID'

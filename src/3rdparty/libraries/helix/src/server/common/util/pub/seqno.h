@@ -1,6 +1,6 @@
 /****************************************************************************
  * 
- *  $Id: seqno.h,v 1.3 2009/03/17 16:38:39 jgordon Exp $
+ *  $Id: seqno.h,v 1.2 2004/11/03 16:45:03 jc Exp $
  *
  *  Copyright (C) 2000 RealNetworks.
  *  All rights reserved.
@@ -8,37 +8,111 @@
  *  RealNetworks Confidential and Proprietary information.
  *  Do not redistribute.
  *
- *  Sequence Number Class for 32-bit sequence numbers (BCNG/RBS)
+ *  Sequence Number Class
  *
  */
 
 #ifndef _SEQNO_H_
 #define _SEQNO_H_
 
-inline INT32 DiffUINT32(UINT32 a, UINT32 b)
+inline BOOL
+Seq32GT(UINT32 Seq1, UINT32 Seq2)
 {
-    // Exploit rollover and unsigned->signed cast
-    return (INT32)(a - b);
+	if (Seq1 > Seq2)
+	{
+	    if (Seq1 - Seq2 > 0x7f000000)
+	    {
+            return 0;
+	    }
+
+        return 1;
+	}
+	else if (Seq1 < Seq2)
+	{
+	    if (Seq2 - Seq1 > 0x7f000000)
+	    {
+            return 1;
+	    }
+
+        return 0;
+	}
+
+    return 0;
 }
 
-inline HXBOOL Seq32GT(UINT32 Seq1, UINT32 Seq2)
+inline BOOL
+Seq32GEQ(UINT32 Seq1, UINT32 Seq2)
 {
-    return DiffUINT32(Seq1, Seq2) > 0;
+	if (Seq1 > Seq2)
+	{
+	    if (Seq1 - Seq2 > 0x7f000000)
+	    {
+            return 0;
+	    }
+
+        return 1;
+	}
+	else if (Seq1 < Seq2)
+	{
+	    if (Seq2 - Seq1 > 0x7f000000)
+	    {
+            return 1;
+	    }
+
+        return 0;
+	}
+
+    return 1;
 }
 
-inline BOOL Seq32GEQ(UINT32 Seq1, UINT32 Seq2)
+inline BOOL
+Seq32LT(UINT32 Seq1, UINT32 Seq2)
 {
-    return DiffUINT32(Seq1, Seq2) >= 0;
+	if (Seq1 > Seq2)
+	{
+	    if (Seq1 - Seq2 > 0x7f000000)
+	    {
+            return 1;
+	    }
+
+        return 0;
+	}
+	else if (Seq1 < Seq2)
+	{
+	    if (Seq2 - Seq1 > 0x7f000000)
+	    {
+            return 0;
+	    }
+
+        return 1;
+	}
+
+    return 0;
 }
 
-inline BOOL Seq32LT(UINT32 Seq1, UINT32 Seq2)
+inline BOOL
+Seq32LEQ(UINT32 Seq1, UINT32 Seq2)
 {
-    return DiffUINT32(Seq1, Seq2) < 0;
-}
+	if (Seq1 > Seq2)
+	{
+	    if (Seq1 - Seq2 > 0x7f000000)
+	    {
+            return 1;
+	    }
 
-inline BOOL Seq32LEQ(UINT32 Seq1, UINT32 Seq2)
-{
-    return DiffUINT32(Seq1, Seq2) <= 0;
+        return 0;
+	}
+	else if (Seq1 < Seq2)
+	{
+	    if (Seq2 - Seq1 > 0x7f000000)
+	    {
+            return 0;
+	    }
+
+        return 1;
+	}
+
+	return 1;
 }
 
 
@@ -113,7 +187,6 @@ public:
         return Seq32GT(m_ulSequenceNumber, a.m_ulSequenceNumber);
     }
 
-
     inline operator long int()
     {
 	return m_ulSequenceNumber;
@@ -142,5 +215,4 @@ inline SequenceNumber operator +(const SequenceNumber& a, UINT32 b)
 {
     return SequenceNumber(a.GetSeqNo() + b);
 }
-
 #endif

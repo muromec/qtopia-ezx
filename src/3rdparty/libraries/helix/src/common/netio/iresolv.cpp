@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: iresolv.cpp,v 1.36 2008/05/29 10:51:48 stiwary Exp $
+ * Source last modified: $Id: iresolv.cpp,v 1.33 2006/11/30 13:04:18 srao Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -481,13 +481,11 @@ CNodeQuery::HandleResponse(IHXBuffer* pBuf, IHXSockAddr* pSource)
 
         if (m_qidIN4 == 0 && m_qidIN6 == 0)
         {
-            AddRef();
             m_pOwner->QueryDone(HXR_OK, m_szNode);
             if (m_CallbackHandle)
             {
                 m_pScheduler->Remove(m_CallbackHandle);
             }
-            Release();
         }
     }
     else
@@ -508,7 +506,7 @@ CNodeQuery::HandleResponse(IHXBuffer* pBuf, IHXSockAddr* pSource)
         if (m_qidIN4 == 0 && m_qidIN6 == 0)
         {
             m_nCurDomain++;
-            if ((unsigned int)m_nCurDomain >= g_nSearchDomains)
+            if (m_nCurDomain >= g_nSearchDomains)
             {
                 AddRef();
                 // We exhausted the search list
@@ -956,10 +954,7 @@ CIntResolver::QueryDone(HX_RESULT status, const char* pNode)
             ppAddrVec[n]->Clone(&ppAnswerVec[n]);
             ppAnswerVec[n]->SetPort(m_port);
         }
-        if (m_pResponse)
-        {
-            m_pResponse->GetAddrInfoDone(HXR_OK, uAddrVecLen, ppAnswerVec);
-        }
+        m_pResponse->GetAddrInfoDone(HXR_OK, uAddrVecLen, ppAnswerVec);
         for (n = 0; n < uAddrVecLen; n++)
         {
             HX_RELEASE(ppAnswerVec[n]);
@@ -968,10 +963,7 @@ CIntResolver::QueryDone(HX_RESULT status, const char* pNode)
     }
     else
     {
-        if (m_pResponse)
-        {
-            m_pResponse->GetAddrInfoDone(HXR_FAIL, 0, NULL);
-        }
+        m_pResponse->GetAddrInfoDone(HXR_FAIL, 0, NULL);
     }
 }
 
@@ -1447,7 +1439,7 @@ CIntResolver::ReadConfig(void)
     BYTE  val[255];
     DWORD len;
 
-    rc = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces"), 0, KEY_READ, &hkiflist);
+    rc = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces", 0, KEY_READ, &hkiflist);
     if (rc == ERROR_SUCCESS)
     {
         DWORD dwIdx;
@@ -1461,12 +1453,12 @@ CIntResolver::ReadConfig(void)
             if (rc == ERROR_SUCCESS)
             {
                 len = sizeof(val);
-                rc = RegQueryValueEx(hkif, TEXT("NameServer"), NULL, NULL,
+                rc = RegQueryValueEx(hkif, "NameServer", NULL, NULL,
                                      val, &len);
                 if (rc != ERROR_SUCCESS || val[0] == '\0')
                 {
                     len = sizeof(val);
-                    rc = RegQueryValueEx(hkif, TEXT("DhcpNameServer"), NULL, NULL,
+                    rc = RegQueryValueEx(hkif, "DhcpNameServer", NULL, NULL,
                                          val, &len);
                 }
                 if (rc == ERROR_SUCCESS && val[0] != '\0')

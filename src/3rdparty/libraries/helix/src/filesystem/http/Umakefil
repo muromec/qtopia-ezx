@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.12 2008/02/20 22:12:32 ping Exp $
+# Source last modified: $Id: Umakefil,v 1.9 2004/10/28 20:22:15 bobclark Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -57,18 +57,15 @@ UmakefileVersion(2,2)
 # here for testing purposes.
 #project.AddDefines("HELIX_FEATURE_HTTP_GZIP")
 
-project.AddModuleIncludes("common/include","common/util/pub", "filesystem/data/pub")
+project.AddModuleIncludes("common/include")
 
 project.AddSources("factory.cpp",
-                   "httpfsys.cpp")
-                   
-if project.IsDefined("HELIX_FEATURE_HTTP_ENABLE_CACHE"):
-    project.AddSources("cache.cpp")
+                   "httpfsys.cpp",
+                   "cache.cpp",
+                   "fsdb.cpp")
 
-if project.IsDefined("HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS"):
-    project.AddSources("fsdb.cpp")                       
-
-project.AddModuleLibraries("protocol/http[httplib]",
+project.AddModuleLibraries("filesystem/data[datafsys]",
+                           "protocol/http[httplib]",
                            "protocol/common/util[protutillib]",
                            "common/dbgtool[debuglib]",
                            "common/fileio[fileiolib]",
@@ -78,9 +75,6 @@ project.AddModuleLibraries("protocol/http[httplib]",
                            "common/runtime[runtlib]",
                            "common/netio[netiolib]",
                            "common/log/logutil[logutillib]")
-                           
-if project.IsDefined("HELIX_CONFIG_HTTP_INCLUDE_DATAFSYS"):
-    project.AddModuleLibraries("filesystem/data[datafsys]")                           
 
 if project.IsDefined("HELIX_FEATURE_HTTP_GZIP"):
     project.AddSources("decoder.cpp")

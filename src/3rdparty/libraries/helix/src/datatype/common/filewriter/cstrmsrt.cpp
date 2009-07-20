@@ -55,7 +55,6 @@ CStreamMergeSorter::CStreamMergeSorter(void)
     , m_ulNumStreams(0)
     , m_ulQueueDepthLimit(0)
     , m_lQueueTimespanLimit(0)
-    , m_ulQueueByteLimit(0)
 {
     ;
 }
@@ -75,8 +74,7 @@ CStreamMergeSorter::~CStreamMergeSorter()
  */
 HX_RESULT CStreamMergeSorter::Init(ULONG32 ulNumStreams,
 				   ULONG32 ulQueueDepthLimit,
-				   LONG32  lQueueTimespanLimit,
-                                   ULONG32 ulQueueByteLimit)
+				   LONG32 lQueueTimespanLimit)
 {
     HX_RESULT retVal = HXR_INVALID_PARAMETER;
 
@@ -91,10 +89,9 @@ HX_RESULT CStreamMergeSorter::Init(ULONG32 ulNumStreams,
     {
 	HX_VECTOR_DELETE(m_pStreamBuffers);
 
-	m_ulNumStreams        = ulNumStreams;
-	m_ulQueueDepthLimit   = ulQueueDepthLimit;
+	m_ulNumStreams = ulNumStreams;
+	m_ulQueueDepthLimit = ulQueueDepthLimit;
 	m_lQueueTimespanLimit = lQueueTimespanLimit;
-        m_ulQueueByteLimit    = ulQueueByteLimit;
 
 	retVal = HXR_OUTOFMEMORY;
 	m_pStreamBuffers = new StreamBuffer [ulNumStreams];
@@ -135,8 +132,7 @@ HX_RESULT CStreamMergeSorter::SetPacket(IHXPacket* pPacket)
 /****************************************************************************
  *  GetPacket
  */
-HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
-                                        HXBOOL* pDepthLimit, HXBOOL* pTimespanLimit, HXBOOL* pByteLimit)
+HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove)
 {
     ULONG32 ulQueueDepth;
     ULONG32 ulTime;
@@ -145,7 +141,6 @@ HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
     ULONG32 ulMaxTS = 0;
     ULONG32 ulNextStreamIdx = NO_STREAM_SET;
     ULONG32 ulTotQueueDepth = 0;
-    ULONG32 ulTotQueueBytes = 0;
     LONG32 lTotQueueTimespan = 0;
     ULONG32 ulEmptyQueueCount = 0;
     ULONG32 ulIdx = 0;
@@ -161,7 +156,6 @@ HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
 
 	    if (ulQueueDepth > 0)
 	    {
-                ulTotQueueBytes += m_pStreamBuffers[ulIdx].GetBytes();
 		ulTotQueueDepth += ulQueueDepth;
 
 		if (ulTotQueueDepth == ulQueueDepth)
@@ -204,13 +198,9 @@ HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
 
 	if (ulNextStreamIdx != NO_STREAM_SET)
 	{
-            HXBOOL bTimespanLimit = (lTotQueueTimespan > m_lQueueTimespanLimit);
-            HXBOOL bDepthLimit    = (ulTotQueueDepth > m_ulQueueDepthLimit);
-            HXBOOL bByteLimit     = (ulTotQueueBytes > m_ulQueueByteLimit);
-	    if ((ulEmptyQueueCount == 0)                    ||
-		bTimespanLimit           ||
-		bDepthLimit              ||
-                bByteLimit)
+	    if ((ulEmptyQueueCount == 0) ||
+		(lTotQueueTimespan > m_lQueueTimespanLimit) ||
+		(ulTotQueueDepth > m_ulQueueDepthLimit))
 	    {
 		if (bRemove)
 		{
@@ -225,23 +215,6 @@ HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
 		    }
 		}
 
-                // If pointers to the limit booleans were passed in,
-                // then set them. This way the user can tell if
-                // the merge sorter only gave up a packet because
-                // one or more of the limits was reached.
-                if (pDepthLimit)
-                {
-                    *pDepthLimit = bDepthLimit;
-                }
-                if (pTimespanLimit)
-                {
-                    *pTimespanLimit = bTimespanLimit;
-                }
-                if (pByteLimit)
-                {
-                    *pByteLimit = bByteLimit;
-                }
-
 		retVal = HXR_OK;
 	    }
 	}
@@ -252,19 +225,6 @@ HX_RESULT CStreamMergeSorter::GetPacket(IHXPacket* &pPacket, HXBOOL bRemove,
     }
 
     return retVal;
-}
-
-void CStreamMergeSorter::Reset()
-{
-    if (m_ulNumStreams && m_pStreamBuffers)
-    {
-        // Reset each of the stream buffers
-        UINT32 i = 0;
-        for (i = 0; i < m_ulNumStreams; i++)
-        {
-            m_pStreamBuffers[i].Reset();
-        }
-    }
 }
 
 /****************************************************************************
@@ -288,28 +248,4 @@ HX_RESULT CStreamMergeSorter::Terminate(ULONG32 ulStreamNum)
     }
 
     return retVal;
-}
-
-HXBOOL CStreamMergeSorter::IsTerminated(ULONG32 ulStreamNum)
-{
-    HXBOOL bRet = FALSE;
-
-    if (m_pStreamBuffers && ulStreamNum < m_ulNumStreams)
-    {
-        bRet = m_pStreamBuffers[ulStreamNum].IsTerminated();
-    }
-
-    return bRet;
-}
-
-UINT32 CStreamMergeSorter::NumPacketsQueued(ULONG32 ulStreamNum)
-{
-    UINT32 ulRet = 0;
-
-    if (m_pStreamBuffers && ulStreamNum < m_ulNumStreams)
-    {
-        ulRet = m_pStreamBuffers[ulStreamNum].GetDepth();
-    }
-
-    return ulRet;
 }

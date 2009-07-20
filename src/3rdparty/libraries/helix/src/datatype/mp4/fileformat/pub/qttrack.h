@@ -77,7 +77,8 @@ class CQTPacketizerFactory;
  *	Implements Quick Time Track.
  */
 class CQTTrack : public IQTTrack,
-		 public IHXFileResponse
+		 public IHXFileResponse,
+                 public IHXThreadSafeMethods
 {
 public:
     /*
@@ -211,6 +212,12 @@ public:
     STDMETHOD(SeekDone)	    (THIS_ 
 			    HX_RESULT	status);
  
+    /*
+     *	IHXThreadSafeMethods
+     */
+   STDMETHOD_(UINT32,IsThreadSafe) (THIS);
+
+
     /*
      *	Public Atom Managers
      */

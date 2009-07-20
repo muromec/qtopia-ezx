@@ -262,14 +262,9 @@ CHXClientSocket::Init(HXSockFamily f, HXSockType t, HXSockProtocol p)
     return hr;
 }
     
-HX_RESULT 
+void 
 CHXClientSocket::OnSelectEvent(sockobj_t fd, UINT32 event, HX_RESULT err)
 {    
-    if(m_sock.sock == INVALID_SOCKET)
-    {
-	return HXR_FAIL;
-    }
-
     HX_ASSERT(fd == m_sock.sock);
 
     // selector must be configured to provide basic select semantics only
@@ -284,7 +279,6 @@ CHXClientSocket::OnSelectEvent(sockobj_t fd, UINT32 event, HX_RESULT err)
     AddRef();
     OnEvent(event); //XXXLCM pass err
     Release();
-    return HXR_OK;
 }
 
 HX_RESULT 

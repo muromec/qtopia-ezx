@@ -41,7 +41,6 @@
 #include "netbyte.h"
 #include "hxassert.h"
 #include "hxbuffer.h"
-#include "hlxclib/sys/ioctl.h"
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE
@@ -136,10 +135,7 @@ static const struct { int level; int name; } g_hxopttbl[] =
     { SOL_IP, IP_DROP_MEMBERSHIP },     /* HX_SOCKOPT_IN4_DROP_MEMBERSHIP */
     { SOL_IP, IP_MULTICAST_IF },        /* HX_SOCKOPT_IN4_MULTICAST_IF */
 
-    /* SOL_UDP */
-    { SOL_UDP, 0 },                     /* DUMMY OPTION - Added to match 
-                                           the 'HX_SOCKOPT_UDP_RCVBUF' option
-                                           in 'HXSockOpt' present in 'hxnet.h' */ 
+    /* SOL_UDP (none) */
 
     /* SOL_TCP */
     { SOL_TCP, TCP_MAXSEG },            /* HX_SOCKOPT_TCP_MAXSEG */
@@ -165,6 +161,22 @@ static const struct { int level; int name; } g_hxopttbl[] =
 
 /*** Platform Features ***/
 
+// NB: Solaris 8 implements inet_aton() in libresolv.so.2 but the server
+// does not (currently) link against that library.
+#if defined(_WIN32) || defined(_SOLARIS)
+int
+inet_aton(const char* cp, struct in_addr* inp)
+{
+    UINT32 addr = inet_addr(cp);
+    if (addr == INADDR_NONE)
+    {
+        return 0;
+    }
+    inp->s_addr = addr;
+    return 1;
+}
+#endif
+
 /*
  * Set options common to all sockets:
  *   - Non-blocking I/O (FIONBIO)
@@ -176,11 +188,8 @@ setup_socket(sockobj_t s)
     sioctl_t tmp;
 
     tmp = 1;
-#ifdef FIONBIO
     ::ioctlsocket(s, FIONBIO, &tmp);
-#else
-    ::fcntl(s, F_SETFL, O_NONBLOCK);
-#endif
+
     tmp = 1;
     // NB: Win32 arg 3 is "const char*", everyone else uses "const void*"
     ::setsockopt(s, SOL_SOCKET, SO_OOBINLINE, (const char*)&tmp, sizeof(tmp));
@@ -252,16 +261,13 @@ hx_netdrv_familyavail(int af)
     return rc;
 }
 
+
+
+
 int
 hx_inet_aton(const char* cp, struct in_addr* inp)
 {
-    UINT32 addr = HXinet_addr(cp);
-    if (addr == INADDR_NONE)
-    {
-        return 0;
-    }
-    inp->s_addr = addr;
-    return 1;
+    return inet_aton(cp, inp);
 }
 
 char*
@@ -377,7 +383,6 @@ int
 hx_close(HX_SOCK* s)
 {
     int rc;
-    ::shutdown( s->sock, 0 );
     s->state = HX_SOCK_STATE_CLOSED;
     do
     {
@@ -546,18 +551,7 @@ hx_setsockopt(HX_SOCK* s, UINT32 name, const void* data, UINT32 len)
         len = sizeof(ling);
     }
 
-    // multicast ttl has to have a UCHAR data and len param for SOLARIS
-    if (optname == IP_MULTICAST_TTL)
-    {
-#ifdef _SOLARIS
-	unsigned char ttl = (unsigned char)*(int *)data;
-#else
-	UINT32 ttl = (UINT32)*(int *)data;
-#endif
-	return ::setsockopt(s->sock, optlevel, optname, (const char *)&ttl, sizeof(ttl));
-    }
-
-    return ::setsockopt(s->sock, optlevel, optname, (const char *)data, len);
+    return ::setsockopt(s->sock, optlevel, optname, (const char*)data, len);
 }
 
 int
@@ -578,18 +572,6 @@ hx_readfrom(HX_SOCK* s, void* buf, size_t len,
         n = ::recvfrom(s->sock, (char*)buf, len, f, psa, psalen);
     }
     while (n == INVALID_SOCKET && SOCK_LAST_ERROR() == SOCKERR_INTR);
-
-    /* WM50 socket library does not seem to set the remote socket address in recvfrom calls'
-     * get that address explicitly.
-     */
-#ifdef WINCE
-    if (n != INVALID_SOCKET && psa)
-    {
-	memset( psa, 0, salen );
-	getpeername( s->sock, psa, psalen );
-    }
-#endif
-
     return n;
 }
 

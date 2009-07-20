@@ -211,9 +211,7 @@ typedef void *HXPACKETBUFF;
 #define SP_LATENCY_MODE         0x0001003d
 #define SP_LAST_FRAME_AHEAD           0x0001003e
 #define SP_POST_DECODE_DROP_THRESHOLD 0x0001003f
-#define SP_FRAME_WIDTH                0x00010040
-#define SP_FRAME_HEIGHT               0x00010041
-#define SP_HWMEM_MGT                  0x00010042
+
 
 
 // co-operative multi-tasking callback

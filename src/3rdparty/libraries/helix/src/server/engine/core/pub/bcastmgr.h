@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: bcastmgr.h,v 1.44 2009/04/21 18:52:45 ckarusala Exp $ 
+ * Source last modified: $Id: bcastmgr.h,v 1.32 2007/02/10 14:05:28 srao Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -50,7 +50,6 @@
 #include "servlist.h"
 #include "mutex.h"
 #include "tconverter.h"
-#include "ispifs.h"
 
 /* These defines are for m_pStreamDoneTable[x] in the BroadcastGateway */
 #define BCAST_STREAMDONE_TABLE_OK		0xfffffff0
@@ -61,6 +60,7 @@
 #define BCAST_MAX_QUEUE_SEC 10
 #define BCAST_MAX_QUEUE_USEC 0
 
+#define BCAST_DEFAULT_MAX_CC_QUEUE  2048
 #define BCAST_QUEUE_HIWAT_SEC 7
 #define BCAST_QUEUE_LOWAT_SEC 4
 
@@ -69,17 +69,16 @@
 #define BCAST_QUEUE_MAX_SIZE 4000
 
 class CHXMapStringToOb;
-class BroadcastStreamer;
+class BroadcastStreamer_Base;
+class BroadcastStreamer_Nonblocking;
+class BroadcastStreamer_Blocking;
 class BroadcastPacketManager;
 class BroadcastStreamQueue;
-struct BroadcastPacketListEntry;
+class BroadcastPacketListEntry;
 class PacketSignalCallback;
 class Process;
-class SwitchGroupRSDInfo;
-class AudioSwitchGroupInfo;
 _INTERFACE IHXSessionStats;
 struct IHXBroadcastFormatObject;
-class BroadcastPacketFilter;
 
 struct RuleData
 {
@@ -113,11 +112,28 @@ public:
     HX_MUTEX            m_GatewayLock;
 };
 
+class CongestionQueue
+{
+ public:
+    CongestionQueue (UINT32 ulQueueSize);
+    ~CongestionQueue ();
+
+    HX_RESULT Enqueue (ServerPacket* pPacket);
+    HX_RESULT Peek    (ServerPacket*& pPacket);
+    HX_RESULT ReleaseHead ();
+
+ private:
+    ServerPacket**          m_pCongestionQueue; 
+    UINT32                  m_ulQueueWrite;
+    UINT32                  m_ulQueueRead;
+    UINT32                  m_ulQueueSize;
+};
+
 class CPacketBufferQueue: public IUnknown
 {
 public:
 
-    CPacketBufferQueue(UINT32 ulQueueSize, BOOL bQTrace, UINT32 ulReservedForAudioPackets);
+    CPacketBufferQueue(UINT32 ulQueueSize, BOOL bQTrace);
     ~CPacketBufferQueue();
 
     //IUnknown
@@ -134,16 +150,15 @@ public:
     STDMETHOD(GetPacket)                (THIS_
                                         UINT32 ulIndex,
                                         IHXPacket*& pPacket);
-    STDMETHOD_(ULONG32,GetSize)         (THIS);
+    STDMETHOD_(ULONG32,GetSize)         (THIS) { return m_ulInsertPosition; }
 
+#ifdef FIXED_RTP_ORDERING
+    void Init(CPacketBufferQueue* pPrevQ);
+#endif
     HX_RESULT EnQueue(IHXPacket*  pPacket);
     HX_RESULT AddKeyframe(IHXPacket*  pPacket);
     UINT32 GetStartTime() { return m_ulStartTS; }
     UINT32 GetDuration();
-    void AddAudioPacket(IHXPacket* pPacket);
-    IHXPacket* GetKeyFramePacket();
-    inline BOOL HandlePacketInvalidTimeStamp() { return (m_ulInvalidPacketCount++ > 3 ? TRUE : FALSE); };    
-    inline void ResetPacketInvalidTimeStamp() { m_ulInvalidPacketCount = 0; };
 
 //    HX_RESULT Update();
 
@@ -156,29 +171,34 @@ private:
     IHXPacket** m_PacketBufferQueue;
     UINT32      m_ulQueueSize;
     UINT32      m_ulInsertPosition;
-    UINT32      m_ulQueueBytes;
+    UINT32	m_ulQueueBytes;
     UINT32      m_ulRefCount;
     UINT32      m_ulStartTS;
+    BOOL	m_bHint;
+#ifdef FIXED_RTP_ORDERING
+    CPacketBufferQueue* m_pPrevQ;
+    BOOL        m_bJustAddedKeyFrame;
+    BOOL        m_ulKeyFrameStrmSeqNo;
+    UINT16      m_ulKeyFrameStream;
+#endif
     BOOL        m_bTrace;
-    UINT32      m_ulInvalidPacketCount;
-    IHXPacket*  m_pKeyFrame;
-    UINT32      m_ulStartingPosition;
 };
 
 class BroadcastGateway : public IHXFormatResponse
 {
 public:
-
     enum StateTable
     { 
-    INIT,
-    STREAMING,
-    DONE
+	INIT,
+	STREAMING,
+	DONE
     };
 
-    BroadcastGateway(BroadcastInfo* pInfo, const char* pFilename, Process* pStreamerProc);
+   
 
-    /* IUnknown methods */
+    BroadcastGateway(BroadcastInfo* pInfo, const char* pFilename,
+	Process* pStreamerProc);
+
     STDMETHOD(QueryInterface)           (THIS_
                                         REFIID riid,
                                         void** ppvObj);
@@ -187,7 +207,6 @@ public:
 
     STDMETHOD_(ULONG32,Release)         (THIS);
 
-    /* IHXFormatResponse methods */
     STDMETHOD(InitDone)                 (THIS_
                                         HX_RESULT       status);
 
@@ -209,35 +228,34 @@ public:
     STDMETHOD(SeekDone)                 (THIS_
                                         HX_RESULT       status);
 
-    void AddBroadcastStreamer(Process* pProc, BroadcastStreamer* pStreamer);
-    void RemoveBroadcastStreamer(Process* pProc, BroadcastStreamer* pStreamer);
+    HX_RESULT Done			();
 
-    IHXValues* GetFileHeader();
-    IHXValues* GetStreamHeaders(UINT32 ulStreamNumber);
-    HX_RESULT Done();
-    void LatencyCalc(UINT32 msDiff);
-    INT32 GetRegEntryIndex()	{ return m_nRegEntryIndex; }
+    IHXLivePacketBufferQueue* GetPacketBufferQueue(UINT16 strmNum, UINT16 ruleNum); 
 
-    IHXLivePacketBufferQueue* GetPacketBufferQueue(void); 
-    IHXLivePacketBufferQueue* GetLongPacketBufferQueue(void); 
     HX_RESULT HandlePacketBufferQueue(IHXPacket* pPacket,
-                                      UINT32 uStreamNumber,
+                                      UINT16 uStreamNumber,
                                       UINT16 unRule);
 
-    StateTable          m_State;
-    IHXValues*          m_pFileHeader;
-    IHXValues**         m_pStreamHeaders;
-    IHXValues**         m_ppPerStreamerFileHeaders;
-    IHXValues***        m_pppPerStreamerStreamHeaders;
-    UINT32              m_ulStreamCount;
-    UINT32              m_ulStreamGroupCount;
-    UINT32              m_ulSwitchGroupCount;
-    UINT32*             m_aulLogicalStreamToStreamGroup;
-    UINT32*             m_aulLogicalStreamToSwitchGroup;
-    UINT32              m_unKeyframeStreamGroup;
+    HX_RESULT GetRTCPPacket(UINT16 strmNum, IHXPacket*& pPacket);
 
-    UINT32              m_ulPlayerCount;
-    UINT32*             m_pStreamDoneTable;
+    enum StateTable	    	m_State;
+    IHXValues*			m_pFileHeader;
+    IHXValues**		m_pStreamHeaders;
+    UINT32			m_ulStreamCount;
+    UINT16                      m_unSyncStream;
+    UINT16                      m_unKeyframeStream;
+    IHXPacket*                  m_pSyncPacket;
+
+    UINT32		    	m_ulPlayerCount;
+    UINT32*			m_pStreamDoneTable;
+    UINT32*			m_pCurrentSequenceNumbers;
+
+    void               AddBroadcastStreamer(Process* pProc,
+					    BroadcastStreamer_Base* pStreamer);
+    void               RemoveBroadcastStreamer(Process* pProc,
+					       BroadcastStreamer_Base* pStreamer);
+
+    void            LatencyCalc(UINT32 msDiff);
 
     /* manage data flow on a per streamer basis */
     BroadcastPacketManager*    m_pBroadcastPacketManagers [MAX_THREADS];
@@ -253,12 +271,14 @@ public:
     float                      m_fz;
 
     /* LatencyRequirements set by broadcast format object */ 
-    UINT32                      m_ulRequestedBackOff;
+    UINT32		        m_ulRequestedBackOff;
     BOOL                        m_bUsePreBuffer;
     BOOL                        m_bUseLatencyRequirements;
 
     /* ASM Rule Tracking */
     RuleData**                  m_ppRuleData;
+    BOOL*                       m_pbIsSubscribed;
+    BOOL**                      m_pbTimeStampDelivery;
     
     /* synchs access to: m_State */
     HX_MUTEX                    m_StateLock;
@@ -273,39 +293,44 @@ public:
     /* synchs access to: m_ppRuleData */
     HX_MUTEX                    m_RuleDataLock;
 
-    HX_MUTEX                    m_pPerStreamerFileHeaderLock;
-    HX_MUTEX                    m_pPerStreamerStreamHeaderLock;
+    BroadcastInfo*	    	m_pInfo;
 
-    BroadcastInfo*              m_pInfo;
-
-    IHXASMSource*               m_pASMSource;
-    HXBOOL                      m_bIsSubscribed;
+    IHXASMSource* m_pASMSource;
 
 protected:
     virtual ~BroadcastGateway();
 
-    INT32                       m_lRefCount;
-    IHXBroadcastFormatObject*   m_pBCastObj;
-    char*                       m_pFilename;
-    UINT32                      m_ulStreamHeadersSeen;
-    UINT32                      m_ulStreamDonesSeen;
-    INT32                       m_nRegEntryIndex;
-    BOOL                        m_bLowLatency;
+    INT32		    	m_lRefCount;
+    IHXBroadcastFormatObject*	m_pBCastObj;
+    char*			m_pFilename;
+    UINT32			m_ulStreamHeadersSeen;
+    UINT32			m_ulStreamDonesSeen;
+
+    INT32			m_nRegEntryIndex;
 
     BOOL                        m_bDisableLiveTurboPlay;
-    CPacketBufferQueue*        m_pPacketBufferQueue;
-    CPacketBufferQueue*        m_pLongPacketBufferQueue;
-    CPacketBufferQueue*        m_pFuturePacketBufferQueue;
-    BOOL                       m_bQTrace;
+
+    CPacketBufferQueue**        m_ppPacketBufferQueue;
+    CPacketBufferQueue**	m_ppFuturePacketBufferQueue;
+    BOOL*                       m_pbIsKeyframeRule;
+    BOOL			m_bQTrace;
     BOOL                        m_bEnableRSDDebug;
     BOOL                        m_bEnableRSDPerPacketLog;
+    
+    UINT32                      m_ulNumofPktBufQ;
+    BOOL                        m_bLowLatency;
     INT32                       m_lQueueSize;
-    INT32                       m_lQueueDuration;
-    INT32                       m_lMinPreroll;
-    INT32                       m_lExtraPrerollPercentage;
+    INT32			m_lQueueDuration;
+    INT32			m_lMinPreroll;
+    INT32			m_lExtraPrerollPercentage;
+    UINT32                      m_ulLastPacketTS;
+
     BOOL                        m_bQSizeTooSmallReported;
     HX_MUTEX                    m_PacketBufferQueueLock;
-    HX_MUTEX                    m_LongPacketBufferQueueLock;
+
+    BOOL*                       m_pIsPayloadWirePacket; 
+    UINT32*                     m_pRTCPRule;
+    IHXPacket**                 m_ppRTCPPacket;
 
     UINT32                      m_ulGwayLatencyTotal;
     UINT32                      m_ulGwayLatencyReps;
@@ -314,34 +339,20 @@ protected:
     UINT32                      m_ulMaxGwayLatencyRegID;
 
     BOOL                        m_bSureStreamAware;
-    UINT32                      m_lMaxDurationOfPacketBufferQueue;
-    SwitchGroupRSDInfo**        m_ppSwitchGroupRSDInfo;
-    UINT32*                     m_aulTmpSwitchGroupMap;
-    UINT32                      m_ulAudioStreamGroup;
-    AudioSwitchGroupInfo**      m_ppAudioSwitchGroupInfo;
+    UINT32          m_lMaxDurationOfPacketBufferQueue;
+public:
+    INT32 GetRegEntryIndex()	{ return m_nRegEntryIndex; }
 
 private:
     void Init(Process* pProc);
-    HX_RESULT FixupFileHeader(IHXValues* pFileHeader);
-    HX_RESULT FixupStreamHeader(UINT32 ulLogicalStreamNum, IHXValues* pStreamHeader);
-    BOOL IsKeyFrameStream(UINT32 ulStreamNumber);
-    BOOL IsKeyFrameRule(UINT32 ulStreamNumber, UINT16 unRule);
-    BOOL IsMinRSDQueueDuration(IHXPacket* pPacket);
-    void ResetSwitchGroupRSDInfo();
-    BOOL HasAllAudioPackets();
-    UINT32 GetNumOfReservedAudioPackets();
-    void AddPacketToQueue(CPacketBufferQueue*& pQueue,
-            IHXPacket* pPacket,
-            BOOL& bIncQSize,
-            HX_MUTEX queueLock);
 
     class InitCallback : public SimpleCallback
     {
     public:
-    void                func(Process* proc);
-    BroadcastGateway*   m_pGateway;
+	void                func(Process* proc);
+	BroadcastGateway*   m_pGateway;
     private:
-    virtual             ~InitCallback() {};
+	virtual		    ~InitCallback() {};
 
     };
     friend class InitCallback;
@@ -372,12 +383,13 @@ private:
 
     friend class ASMUpdateCallback;
 
-    DestructCallback*    m_pDestructCallback;
-    IdleStopCallback*    m_pIdleStopCallback;
+    DestructCallback*	 m_pDestructCallback;
+    IdleStopCallback*	 m_pIdleStopCallback;
     LatencyCalcCallback* m_pLatencyCalcCallback;
-    UINT32               m_ulIdleStopCBHandle;
+    UINT32		         m_ulIdleStopCBHandle;
     UINT32               m_ulDestructCBHandle;
     UINT32               m_ulLatencyCalcCBHandle;
+
 };
 
 
@@ -393,21 +405,16 @@ BroadcastGateway::LatencyCalc(UINT32 msDiff)
     m_ulGwayLatencyReps++;
 }
 
-class BroadcastStreamer : public IHXPSourceControl,
-                          public IHXASMSource,
-                          public IHXLivePacketBufferProvider,
-                          public HXListElem,
-                          public IHXPSourceLivePackets,
-                          public IHXPSourceLiveResync,
-                          public IHXServerPacketSource,
-                          public IHXSyncHeaderSource
-
+class BroadcastStreamer_Base : public IHXPSourceControl,
+			       public IHXThreadSafeMethods,
+			       public IHXASMSource,
+                               public IHXLivePacketBufferProvider,
+			       public HXListElem
 {
 public:
-    BroadcastStreamer(BroadcastInfo* pInfo, const char* pFilename,
-                      Process* pStreamerProc, IHXSessionStats* pSessionStats);
+    BroadcastStreamer_Base(BroadcastInfo* pInfo, const char* pFilename,
+                           Process* pStreamerProc, IHXSessionStats* pSessionStats);
 
-    /* IUnknown */
     STDMETHOD(QueryInterface)   (THIS_
                                 REFIID riid,
                                 void** ppvObj);
@@ -416,7 +423,6 @@ public:
 
     STDMETHOD_(ULONG32,Release) (THIS);
 
-    /* IHXPSourceControl */
     STDMETHOD(Init)     	(THIS_
 				IHXPSinkControl*		pSink);
 
@@ -440,51 +446,32 @@ public:
 				 BOOL bStartAtHead);
 
 
+    STDMETHOD_(UINT32,IsThreadSafe)         (THIS) {return 0;}
+   
     /* IHXSMSource */
     STDMETHOD(Subscribe)   (THIS_ UINT16  uStreamNumber, UINT16 uRuleNumber);
     STDMETHOD(Unsubscribe)  (THIS_ UINT16 uStreamNumber, UINT16	uRuleNumber);
 
-    /* IHXLivePacketBufferProvider */
+    //IHXLivePacketBufferProvider
     STDMETHOD(GetPacketBufferQueue)    (THIS_
+                                        UINT16 strmNum,
+                                        UINT16 ruleNum,
                                         IHXLivePacketBufferQueue*& pQueue);
-    STDMETHOD(GetLongPacketBufferQueue) (THIS_
-                                         IHXLivePacketBufferQueue*& pQueue);
 
-    /* IHXPSourceLivePackets */
-    STDMETHOD(Init)           (THIS_ IHXPSinkPackets* pSinkPackets);
-    STDMETHOD(StartPackets)   (THIS_ UINT16 unStreamNumber);
-    STDMETHOD(StopPackets)    (THIS_ UINT16 unStreamNumber);
-   
-    /* IHXPSourceLiveResync */
-    STDMETHOD(Resync)		(THIS);
-
-    /* IHXServerPacketSource */
-    STDMETHOD(SetSink)          (THIS_ IHXServerPacketSink* pSink);
-    STDMETHOD(StartPackets)     (THIS);
-    STDMETHOD(GetPacket)        (THIS);
-    STDMETHOD(SinkBlockCleared) (THIS_ UINT32 ulStream);
-    STDMETHOD(EnableTCPMode)    (THIS);
-
-     /* IHXSyncHeaderSource */
-    STDMETHOD(GetFileHeader)	(THIS_ REF(IHXValues*)pHeader);
-    STDMETHOD(GetStreamHeader)	(THIS_ UINT32 ulStreamNo, REF(IHXValues*)pHeader);
-
-    
+    virtual void			GatewayCheck();
 private:
-    ~BroadcastStreamer();
+    ~BroadcastStreamer_Base();
 
-    void      GatewayCheck();
-    HX_RESULT SendPacket(IHXPacket* pPacket);
-    HX_RESULT PushPacketsFromQueue(void);
+    virtual HX_RESULT SendPacket(IHXPacket* pPacket) {return HXR_OK;}
 
-    HX_RESULT CreateRegEntries();
-    HX_RESULT UpdateRegClientsLeaving();
+    HX_RESULT		CreateRegEntries();
+    HX_RESULT           UpdateRegClientsLeaving();
 
     class GatewayCheckCallback : public BaseCallback                      
     {
     public:                                                           
         STDMETHOD(Func) (THIS);                                          
-        BroadcastStreamer*    m_pBS;
+        BroadcastStreamer_Base*    m_pBS;
     };
     friend class GatewayCheckCallback;
 
@@ -492,7 +479,7 @@ private:
     {
     public:                                                           
         STDMETHOD(Func) (THIS);                                          
-        BroadcastStreamer*    m_pBS;
+        BroadcastStreamer_Base*    m_pBS;
     };
     friend class StreamDoneCallback;
 
@@ -515,15 +502,90 @@ private:
     // Broadcast dist sender and QT DESCRIBE sesssions won't have this.
     IHXSessionStats*        m_pSessionStats;
     BOOL                    m_bNeedXmit;
-    
-    // PPM sink
-    IHXPSinkPackets*	    m_pSinkPackets;
-    
-    //MDP sink
-    IHXServerPacketSink*    m_pServerPacketSink;
-    BroadcastPacketFilter*      m_pPacketFilter;
-    BOOL                    m_bIsMDPSink;
+
     friend class BroadcastPacketManager;
+    friend class BroadcastStreamer_Nonblocking;
+    friend class BroadcastStreamer_Blocking;
+
+};
+
+class BroadcastStreamer_Nonblocking :  public BroadcastStreamer_Base,
+				       public IHXPSourceLivePackets,
+				       public IHXPSourceLiveResync
+{
+ public:
+    BroadcastStreamer_Nonblocking (BroadcastInfo* pInfo, const char* pFilename,
+				   Process* pStreamerProc, 
+                                   IHXSessionStats* pSessionStats);
+    ~BroadcastStreamer_Nonblocking ();
+
+    /* IUnknown */
+    STDMETHOD(QueryInterface) (THIS_
+			       REFIID riid,
+			       void** ppvObj);
+    STDMETHOD_(ULONG32,AddRef)  (THIS);
+    STDMETHOD_(ULONG32,Release) (THIS);
+
+    /* IHXPSourceControl */
+    STDMETHOD(Done)		(THIS);
+    
+    /* IHXPSourceLivePackets */
+    STDMETHOD(Init)           (THIS_ IHXPSinkPackets* pSinkPackets);
+    STDMETHOD(StartPackets)   (THIS_ UINT16 unStreamNumber);
+    STDMETHOD(StopPackets)    (THIS_ UINT16 unStreamNumber);
+   
+    /* IHXPSourceLiveResync */
+    STDMETHOD(Resync)		(THIS);
+
+ private:
+    HX_RESULT SendPacket(IHXPacket* pPacket);
+
+    IHXPSinkPackets*	    m_pSinkPackets;
+};
+
+class BroadcastStreamer_Blocking :  public BroadcastStreamer_Base,
+				    public IHXServerPacketSource 
+{
+ public:
+    BroadcastStreamer_Blocking (BroadcastInfo* pInfo, const char* pFilename,
+				Process* pStreamerProc, 
+                                IHXSessionStats* pSessionStats);
+    ~BroadcastStreamer_Blocking ();
+
+    /* IUnknown */
+    STDMETHOD(QueryInterface) (THIS_
+			       REFIID riid,
+			       void** ppvObj);
+    STDMETHOD_(ULONG32,AddRef)  (THIS);
+    STDMETHOD_(ULONG32,Release) (THIS);
+
+    /* IHXPSourceControl */
+    STDMETHOD(Done)		(THIS);
+    
+    /* IHXServerPacketSource */
+    STDMETHOD(SetSink)          (THIS_ IHXServerPacketSink* pSink);
+    STDMETHOD(StartPackets)     (THIS);
+    STDMETHOD(GetPacket)        (THIS);
+    STDMETHOD(SinkBlockCleared) (THIS_ UINT32 ulStream);
+    STDMETHOD(EnableTCPMode)    (THIS);
+
+    void			GatewayCheck();
+
+ private:
+    HX_RESULT SendPacket(IHXPacket* pPacket);
+    HX_RESULT SendPacketFromQueue(UINT16 unStream);
+    HX_RESULT SyncPacket(ServerPacket* pPacket);
+    
+    IHXServerPacketSink*    m_pSink;
+    CongestionQueue**       m_ppQueue;
+    UINT32                  m_ulSyncTime;
+    BOOL                    m_bBlockSync;
+    
+    /* synchs access to the CongestionQueue */
+    HX_MUTEX                    m_QueueLock;
+
+    /* synchs access to the Timestamp Sync data */
+    HX_MUTEX                    m_SyncLock;
 };
 
 class BroadcastManager
@@ -538,7 +600,8 @@ public:
 
     HX_RESULT	    GetStream(const char* pType, const char* pFilename,
 			      REF(IHXPSourceControl*) pControl,
-			      Process* pStreamerProc, IHXSessionStats* pSessionStats=NULL);
+			      Process* pStreamerProc, BOOL bBlocking,
+                              IHXSessionStats* pSessionStats=NULL);
 private:
     CHXMapStringToOb*	m_pBroadcastManagers;
     Process*		m_pProc;
@@ -566,8 +629,8 @@ class BroadcastPacketManager : public IHXCallback
     void Done();
     void QueuePacket(IHXPacket* pPacket);
     void SendStreamDone(UINT16 unStreamNumber);
-    void AddBroadcastStreamer(BroadcastStreamer* pStreamer);
-    void RemoveBroadcastStreamer(BroadcastStreamer* pStreamer);
+    void AddBroadcastStreamer(BroadcastStreamer_Base* pStreamer);
+    void RemoveBroadcastStreamer(BroadcastStreamer_Base* pStreamer);
     HX_RESULT DispatchPacket(UINT32 uMaxSinkSends, REF(UINT32)uTotalSinkSends);
 
     class JumpStartCallback : public SimpleCallback
@@ -647,25 +710,21 @@ class BroadcastStreamQueue
     BroadcastPacketManager* m_pParent;
     BroadcastPacketListEntry* m_pQueue;
 
+    HX_MUTEX                m_QueueLock;
     UINT32                  m_uHead;
     UINT32                  m_uTail;
     UINT32                  m_uMaxSize;
-    UINT32                  m_uReaders;
-    UINT32                  m_uWriters;
 };
 
 
 inline UINT32
 BroadcastStreamQueue::QueueDepth()
 {
-    UINT32 uHead = m_uHead;
-    UINT32 uTail = m_uTail;
+    UINT32 uDepth = m_uTail - m_uHead;
 
-    UINT32 uDepth = uTail - uHead;
-
-    if (uDepth > m_uMaxSize)
+    if (uDepth> m_uMaxSize)
     {
-        uDepth = m_uMaxSize - uHead + uTail;
+        uDepth = m_uMaxSize - m_uHead + m_uTail;
     }
 
     return uDepth;
@@ -693,76 +752,6 @@ class ASMUpdateCallback : public SimpleCallback
     
 };
 
-class SwitchGroupRSDInfo
-{
-public:
-    SwitchGroupRSDInfo(UINT16 unNumRules)
-    {
-        m_unNumRules = unNumRules;
-
-        m_pbIsKeyFrameRule = new BOOL[m_unNumRules];
-        m_pbKeyFrameReceived = new BOOL[m_unNumRules];
-        m_plInterDependent = new INT32[m_unNumRules];
-
-        for (int i=0; i<m_unNumRules; i++)
-        {
-            m_pbIsKeyFrameRule[i] = FALSE;
-            m_pbKeyFrameReceived[i] = FALSE;
-            m_plInterDependent[i] = -1;
-        }
-
-        m_ulLastKeyFrameTS = 0;
-        m_bAllKeyFramesReceived = FALSE;
-    }
-
-    ~SwitchGroupRSDInfo()
-    {
-        HX_VECTOR_DELETE(m_pbIsKeyFrameRule);
-        HX_VECTOR_DELETE(m_pbKeyFrameReceived);
-        HX_VECTOR_DELETE(m_plInterDependent);
-    }
-
-    void SetKeyFrameRule(UINT16 ulRuleNum, BOOL bIsKeyFrameRule);
-    void SetInterDependency(UINT16 ulRuleNum, INT16 lInterDepend);
-    void OnKeyFramePacket(IHXPacket* pPacket, UINT16 unRule);
-    BOOL IsPrerollSatisfied(IHXPacket* pPacket, INT32 lPreroll);
-    void ResetInfo(void);
-    BOOL IsKeyFrameRule(UINT16 unRule);
-
-private:
-    UINT16      m_unNumRules;
-    BOOL*       m_pbIsKeyFrameRule;
-    INT32*      m_plInterDependent;
-    BOOL*       m_pbKeyFrameReceived;
-    UINT32      m_ulLastKeyFrameTS;
-    BOOL        m_bAllKeyFramesReceived;
-};
-
-class AudioSwitchGroupInfo
-{
-public:
-    AudioSwitchGroupInfo(UINT32 ulNumofRules);
-    ~AudioSwitchGroupInfo();
-
-    void SetVideoKeyframePacket(IHXPacket* pVideoKeyFrame);
-    void SetCurrentRSDQueue(CPacketBufferQueue* pQueue);
-    void GetAudioPackets(IHXPacket**& pPackets, UINT32& ulNumOfPackets);
-    void Reset();
-    void OnPacket(IHXPacket* pPacket);
-    void SetOnDepend(UINT16 unRuleNum, BOOL bOnDepend);
-    void SetInterDepend(UINT16 ulRuleNum, UINT16 lInterDepend);
-    BOOL HasAllAudioPackets();
-    UINT32 GetNumOfPacket();
-
-private:
-    UINT32 m_ulNumOfRules;
-    IHXPacket** m_ppPackets;
-    IHXPacket* m_pVideoKeyframe;
-    BOOL* m_pOnDepend;
-    UINT16* m_pInterDepend;
-
-    BOOL IsEarlier(IHXPacket* pPacket, IHXPacket* pPacketCompared);
-};
 
 #endif /* _BCASTMGR_H_ */
 

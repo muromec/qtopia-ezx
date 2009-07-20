@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: buildinfo.h,v 1.4 2007/07/06 20:43:41 jfinnecy Exp $
+ * Source last modified: $Id: buildinfo.h,v 1.3 2004/07/09 18:20:48 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,15 +47,14 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-
 #ifndef _BUILDINFO_H_
 #define _BUILDINFO_H_
 
-#define BUILDINFO_BUILDID     190886
-#define BUILDINFO_BUILDID_STR "190886"
-#define BUILDINFO_TIMESTAMP   "2009/06/06 03:40:04"
-#define BUILDINFO_TAG         "all_clients-060609-3440"
-#define BUILDINFO_TAGID       3440
-#define BUILDINFO_TAGID_STR   "3440"
+#define BUILDINFO_BUILDID     -1
+#define BUILDINFO_BUILDID_STR "-1"
+#define BUILDINFO_TIMESTAMP   __DATE__
+#define BUILDINFO_TAG         "-"
+#define BUILDINFO_TAGID       -1
+#define BUILDINFO_TAGID_STR   "-1"
 
 #endif

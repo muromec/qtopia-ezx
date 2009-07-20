@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servsockimp.h,v 1.34 2007/08/30 17:31:15 seansmith Exp $
+ * Source last modified: $Id: servsockimp.h,v 1.33 2006/10/19 00:25:52 jrmoore Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -53,6 +53,7 @@ class IHXNetworkServicesContext;
 class SharedUDPPortReader;
 
 #include "hxnet.h"
+#include "hxservnet.h"
 #include "netdrv.h"
 #include "sockimp.h"
 #include "sockaddrimp.h"
@@ -183,7 +184,8 @@ protected:
     HX_RESULT CreateOneListeningSocket(IHXSockAddr* pAddr, IHXListeningSocket** ppSock, BOOL bIPv6Only);
 };
 
-class CServNetServices : public CHXNetServices
+class CServNetServices : public CHXNetServices,
+                         public IHXLocalBoundNetServices
 {
 public:
     CServNetServices(Process* proc);
@@ -206,6 +208,8 @@ public:
                                            IHXSockAddr** ppAddr);
     STDMETHOD(CreateListeningSocket)(THIS_ IHXListeningSocket** ppSock);
     STDMETHOD(CreateSocket)         (THIS_ IHXSocket** ppSock);
+
+    STDMETHOD(CreateLocalBoundSocket)   (THIS_ IHXSocket** ppSock);
 
 private:
     Process*                    m_proc;

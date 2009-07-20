@@ -47,7 +47,6 @@ project.AddModuleIncludes("common/include",
                           "datatype/common/util/pub",
                           "datatype/common/include")
 
-
 project.AddSources("pcmrend.cpp",
                    "pcmfmt.cpp",
 	           "pcm_convert.c")

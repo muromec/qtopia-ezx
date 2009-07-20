@@ -80,24 +80,13 @@ public:
     
     MsgSinkHandle GetSinkHandle() const;
     UINT32 GetTID() const;
-    virtual void* GetThread()
-    { 
-        return NULL;
-    }
-    virtual HX_RESULT MessagePosted()
-    {
-        return HXR_OK;
-    }
-    virtual HX_RESULT HandleMessage(const HXThreadMessage& msg){return HXR_OK;}
-	
+
 protected:
     HXThreadMessageSink();
     virtual ~HXThreadMessageSink();
 
     virtual HX_RESULT Init(IUnknown* pContext);
     static HX_RESULT Create(HXThreadMessageSink*& pMsgSink, IUnknown* pContext);
-    IHXThread* m_pThread;	
-	
 private:
     // HXRefCounted
     void FinalRelease();

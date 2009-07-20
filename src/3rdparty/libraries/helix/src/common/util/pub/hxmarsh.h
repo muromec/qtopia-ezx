@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxmarsh.h,v 1.12 2008/10/09 21:19:14 ping Exp $
+ * Source last modified: $Id: hxmarsh.h,v 1.10 2007/02/28 05:45:11 gahluwalia Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -74,7 +74,7 @@ getlong(UINT8* data)
 inline UINT64 getlonglong(UINT8* data)                           
 {
     return (UINT64)( ((UINT64)getshort(data))<<48 | ((UINT64)getshort(data+2))<<32 |
-                     ((UINT64)getshort(data+4))<<16 | (UINT64)getshort(data+6)
+                     ((UINT64)getshort(data+4))<<16 | (UINT64)getshort(data+8)
                      );
 }
 

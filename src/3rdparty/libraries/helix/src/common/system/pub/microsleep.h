@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: microsleep.h,v 1.11 2008/01/18 07:35:20 vkathuria Exp $
+ * Source last modified: $Id: microsleep.h,v 1.8 2004/12/22 18:29:45 nhart Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,7 @@
 #if defined _HPUX || defined _AIX
 #include <sys/time.h>
 #endif
-#include "hlxclib/time.h"
+#include <time.h>
 
 #ifdef _UNIX
 #include <unistd.h>
@@ -105,8 +105,6 @@ microsleep(unsigned int uSecs)
     snooze(uSecs);
 #elif defined _SYMBIAN
     User::After(uSecs);
-#elif defined _BREW
-    MSLEEP(uSecs/1000);
 #else
     usleep(uSecs);
 #endif

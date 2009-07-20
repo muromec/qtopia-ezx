@@ -45,7 +45,6 @@
 #include "hxcomm.h"
 
 #include "hxheap.h"
-#include "hxtlogutil.h"
 #ifdef _DEBUG
 #undef HX_THIS_FILE
 static const char HX_THIS_FILE[] = __FILE__;
@@ -63,6 +62,7 @@ STDMETHODIMP CRIFFReader::QueryInterface(REFIID riid, void** ppvObj)
     {
 	{ GET_IIDHANDLE(IID_IUnknown), this},
 	{ GET_IIDHANDLE(IID_IHXFileResponse), (IHXFileResponse*)this},
+	{ GET_IIDHANDLE(IID_IHXThreadSafeMethods), (IHXThreadSafeMethods*)this},
     };
 
     HX_RESULT retVal = ::QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj);
@@ -109,13 +109,10 @@ CRIFFReader::CRIFFReader(IUnknown* pContext,
     : m_pReassemblyBuffer(NULL)
     , m_ulChunkBytesRead(0)
     , m_ulChunkSize(0)
-    , m_ulChunkType(0)
 {
     m_pContext = pContext;
     m_pResponse = pResponse;
     m_pFileObject = pFileObject;
-
-    HXLOGL2(HXLOG_AVIX,"CRIFFReader[%p]::CRIFFReader CTOR ctx=%p resp=%p fob=%p", this,m_pContext,m_pResponse,m_pFileObject);
 
     if ( m_pFileObject )
     {
@@ -145,7 +142,6 @@ CRIFFReader::CRIFFReader(IUnknown* pContext,
 
 CRIFFReader::~CRIFFReader()
 {
-    HXLOGL2(HXLOG_AVIX,"CRIFFReader[%p]::~CRIFFReader() DES ctx=%p resp=%p fob=%p", this,m_pContext,m_pResponse,m_pFileObject);
     if ( m_bFileIsOpen )
         Close();
 
@@ -215,7 +211,6 @@ CRIFFReader::InitDone(HX_RESULT status)
 HX_RESULT
 CRIFFReader::Close()
 {
-    HXLOGL2(HXLOG_AVIX,"CRIFFReader[%p]::Close() ctx=%p resp=%p fob=%p", this,m_pContext,m_pResponse,m_pFileObject);
     if ( m_pFileObject )
     {
         m_pFileObject->Close();
@@ -570,10 +565,10 @@ CRIFFReader::ReadDone(HX_RESULT status, IHXBuffer* pBuffer)
 				}
 
                 if ( (m_ulFileType == RIFF_FILE_MAGIC_NUMBER) &&
-                     (m_ulChunkType == (UINT32)0) )
+                     (m_ulGetChunkType == (UINT32)0) )
                 {
                     m_state = RS_Ready;
-                    m_pResponse->RIFFFindChunkDone(HXR_FAILED, 0);
+                    m_pResponse->RIFFGetChunkDone(HXR_FAILED, 0, NULL);
                     return HXR_OK;
                 }
 
@@ -714,6 +709,12 @@ CRIFFReader::Seek(UINT32 offset, HXBOOL bRelative)
                      m_ulThisChunkOffset + offset;
     m_state = RS_UserSeekPending;
     return m_pFileObject->Seek(m_ulSeekOffset, FALSE);
+}
+
+UINT32
+CRIFFReader::IsThreadSafe()
+{
+    return HX_THREADSAFE_METHOD_FSR_READDONE;
 }
 
 HX_RESULT

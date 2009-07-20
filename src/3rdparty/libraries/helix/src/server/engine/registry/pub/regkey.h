@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regkey.h,v 1.4 2009/05/30 19:11:00 atin Exp $ 
+ * Source last modified: $Id: regkey.h,v 1.3 2003/08/22 22:40:17 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -54,7 +54,9 @@
 class ServRegKey
 {
 public:
-    ServRegKey(const char* szKey, char chDelim = '.');
+    REGISTRY_CACHE_MEM
+  
+    ServRegKey(const char* szKey, RegistryMemCache* pMemCache, char chDelim = '.');
     ~ServRegKey();
     
     inline char*    get_key_str() const { return m_pszKey; }
@@ -77,25 +79,27 @@ private:
     int             m_nSize;
     int             m_nLevels;
     char**          m_pSubStrs;
+    RegistryMemCache* m_pRegMemCache;
 
 };
 
 inline
 ServRegKey::~ServRegKey()
 {
+    if (m_pRegMemCache)
+    {
+	if (m_pszKey)
+	    m_pRegMemCache->RegistryAllocator()->CacheDelete(m_pszKey);
+	if (m_pSubStrs)
+	    m_pRegMemCache->RegistryAllocator()->CacheDelete((char*)m_pSubStrs);
+    }
+    else
+    {
         if (m_pszKey)
 	    delete[] m_pszKey;
 	if (m_pSubStrs)
 	    delete[] m_pSubStrs;
-
-    m_pszKey = 0;
-    m_pCurrPtr = 0;
-    m_nCurrLevel = 0;
-    m_pszLastSubStr = 0;
-    m_chDelim = 0;
-    m_nSize = 0;
-    m_nLevels = 0;
-    m_pSubStrs = 0;
+    }
 }
 
 

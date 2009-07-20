@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: trace.c,v 1.15 2008/07/03 21:54:17 dcollins Exp $ 
+ * Source last modified: $Id: trace.c,v 1.14 2005/09/15 16:18:19 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -40,21 +40,6 @@
 #else
 #define FRAME_LIMIT 250
 #endif /* _LINUX */
-
-#if defined(i386) && defined(_UNIX)
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ucontext.h>
-#if defined(__i386__)
-#if !defined(REG_EBP)
-#define REG_EBP 6
-#endif
-#if !defined(REG_EIP)
-#define REG_EIP 14
-#endif
-#endif
-#endif
 
 #if defined(__GNUC__) && defined (DEBUG) && \
     (defined(_FREEBSD) || defined(_OPENBSD) || defined(_NETBSD)) && \
@@ -212,11 +197,13 @@ setup_trace(char *prog)
 }
 
 #elif defined(DEBUG) && defined(_LINUX) && !defined(__amd64__)
-#if !defined(_LSB)
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <bfd.h>
-#endif
 #define __USE_GNU
 #include <dlfcn.h>
+#include <ucontext.h>
 
 void
 setup_trace(char* prog)
@@ -400,6 +387,10 @@ get_trace_from_stack(void** stack, int size)
 }
 
 #elif !defined(DEBUG) && defined(i386) && defined(_UNIX)
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ucontext.h>
 
 extern void* pMakeProcess;
 

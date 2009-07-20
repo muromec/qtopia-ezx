@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: expatprs.cpp,v 1.13 2009/02/20 20:09:44 ehyche Exp $
+ * Source last modified: $Id: expatprs.cpp,v 1.11 2005/06/24 16:52:01 albertofloyd Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,7 +46,7 @@
  * Contributor(s):
  * 
  * ***** END LICENSE BLOCK ***** */
-//  $Id: expatprs.cpp,v 1.13 2009/02/20 20:09:44 ehyche Exp $
+//  $Id: expatprs.cpp,v 1.11 2005/06/24 16:52:01 albertofloyd Exp $
 
 #include "hlxclib/string.h"
 #include "hxtypes.h"
@@ -86,12 +86,11 @@ HXExpatXMLParser::HXExpatXMLParser(IUnknown* pContext)
 , m_pResponse(NULL)
 , m_pContext(pContext)
 , m_pClassFactory(NULL)
-, m_pszEncoding(NULL)
 , m_pParser(NULL)
 , m_pCurrentBuffer(NULL)
 , m_ulCurrentOffset(0)
-, m_bLastParseIsFinal(FALSE)
 , m_pNSResp(NULL)
+, m_bInited(FALSE)
 {
     m_pContext->AddRef();
     m_pContext->QueryInterface(IID_IHXCommonClassFactory, 
@@ -103,151 +102,6 @@ HXExpatXMLParser::~HXExpatXMLParser()
     Close();
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pClassFactory);
-}
-
-void HXExpatXMLParser::FreeParser()
-{
-    if (m_pParser)
-    {
-        XML_ParserFree(m_pParser);
-        m_pParser = NULL;
-    }
-}
-
-HX_RESULT HXExpatXMLParser::CreateAndInitParser()
-{
-    HX_RESULT retVal = HXR_UNEXPECTED;
-
-    if (m_pszEncoding)
-    {
-        // Free any existing parser
-        FreeParser();
-        // Set the return value
-        retVal = HXR_OUTOFMEMORY;
-        // Create the parser
-        m_pParser = XML_ParserCreate(m_pszEncoding);
-        if (m_pParser)
-        {
-            // Init the parser
-            retVal = InitParser(m_pParser);
-            if (SUCCEEDED(retVal))
-            {
-                // Set the current offset
-                m_ulCurrentOffset = 0;
-                // Release the current buffer
-                HX_RELEASE(m_pCurrentBuffer);
-            }
-        }
-    }
-
-    return retVal;
-}
-
-HX_RESULT HXExpatXMLParser::CreateAndInitNamespaceParser()
-{
-    HX_RESULT retVal = HXR_UNEXPECTED;
-
-    if (m_pszEncoding)
-    {
-        // Free any existing parser
-        FreeParser();
-        // Set the return value
-        retVal = HXR_OUTOFMEMORY;
-        // Create the namespace parser
-        m_pParser = XML_ParserCreateNS(m_pszEncoding, m_cSepChar);
-        if (m_pParser)
-        {
-            // Init the parser
-            retVal = InitParser(m_pParser);
-            if (SUCCEEDED(retVal))
-            {
-                // Additional handler for namespace
-                XML_SetNamespaceDeclHandler(m_pParser, ::handleStartNamespaceDecl, ::handleEndNamespaceDecl);
-                // Set the current offset
-                m_ulCurrentOffset = 0;
-                // Release the current buffer
-                HX_RELEASE(m_pCurrentBuffer);
-            }
-        }
-    }
-
-    return retVal;
-}
-
-HX_RESULT HXExpatXMLParser::InitParser(XML_Parser pParser)
-{
-    HX_RESULT retVal = HXR_INVALID_PARAMETER;
-
-    if (pParser)
-    {
-        // Clear the return value
-        retVal = HXR_OK;
-        // Initialize the handlers
-        XML_SetUserData(pParser, this);
-        XML_SetElementHandler(pParser, ::handleStartElement, ::handleEndElement);
-        XML_SetCharacterDataHandler(pParser, ::handleCharacterData);
-        XML_SetProcessingInstructionHandler(pParser, ::handleProcessingInstruction);
-        XML_SetCommentHandler(pParser, ::handleComment);
-        //XML_SetCdataSectionHandler(pParser, ::handleStartCdataSection,  ::handleEndCdataSection);
-        XML_SetCharacterDataHandler(pParser, ::handleCharacterData);
-        XML_SetUnparsedEntityDeclHandler(pParser, ::handleUnparsedEntityDecl);
-        XML_SetNotationDeclHandler(pParser, ::handleNotationDecl);
-        XML_SetDefaultHandler(pParser, ::handleDefault);
-    }
-
-    return retVal;
-}
-
-HX_RESULT HXExpatXMLParser::TranslateExpatErrorCode(XML_Error eCode)
-{
-    HX_RESULT retVal = HXR_OK;
-
-    switch (eCode)
-    {
-        case XML_ERROR_NONE:                              retVal = HXR_FAIL;                                  break;
-        case XML_ERROR_NO_MEMORY:                         retVal = HXR_OUTOFMEMORY;                           break;
-        case XML_ERROR_SYNTAX:                            retVal = HXR_XML_SYNTAX;                            break;
-        case XML_ERROR_NO_ELEMENTS:                       retVal = HXR_XML_NO_ELEMENTS;                       break;
-        case XML_ERROR_UNCLOSED_TOKEN:                    retVal = HXR_XML_UNCLOSED_TOKEN;                    break;
-        case XML_ERROR_PARTIAL_CHAR:                      retVal = HXR_XML_PARTIAL_CHAR;                      break;
-        case XML_ERROR_TAG_MISMATCH:                      retVal = HXR_XML_TAG_MISMATCH;                      break;
-        case XML_ERROR_DUPLICATE_ATTRIBUTE:               retVal = HXR_XML_DUPATTRIBUTE;                      break;
-        case XML_ERROR_JUNK_AFTER_DOC_ELEMENT:            retVal = HXR_XML_JUNK_AFTER_DOC_ELEMENT;            break;
-        case XML_ERROR_PARAM_ENTITY_REF:                  retVal = HXR_XML_PARAM_ENTITY_REF;                  break;
-        case XML_ERROR_UNDEFINED_ENTITY:                  retVal = HXR_XML_UNDEFINED_ENTITY;                  break;
-        case XML_ERROR_RECURSIVE_ENTITY_REF:              retVal = HXR_XML_RECURSIVE_ENTITY_REF;              break;
-        case XML_ERROR_ASYNC_ENTITY:                      retVal = HXR_XML_ASYNC_ENTITY;                      break;
-        case XML_ERROR_BAD_CHAR_REF:                      retVal = HXR_XML_BAD_CHAR_REF;                      break;
-        case XML_ERROR_BINARY_ENTITY_REF:                 retVal = HXR_XML_BINARY_ENTITY_REF;                 break;
-        case XML_ERROR_ATTRIBUTE_EXTERNAL_ENTITY_REF:     retVal = PNR_XML_ATTRIBUTE_EXTEHXAL_ENTITY_REF;     break;
-        case XML_ERROR_MISPLACED_XML_PI:                  retVal = HXR_XML_MISPLACED_XML_PI;                  break;
-        case XML_ERROR_UNKNOWN_ENCODING:                  retVal = HXR_XML_UNKNOWN_ENCODING;                  break;
-        case XML_ERROR_INCORRECT_ENCODING:                retVal = HXR_XML_INCORRECT_ENCODING;                break;
-        case XML_ERROR_UNCLOSED_CDATA_SECTION:            retVal = HXR_XML_UNCLOSED_CDATA_SECTION;            break;
-        case XML_ERROR_EXTERNAL_ENTITY_HANDLING:          retVal = PNR_XML_EXTEHXAL_ENTITY_HANDLING;          break;
-        case XML_ERROR_NOT_STANDALONE:                    retVal = HXR_XML_NOT_STANDALONE;                    break;
-        case XML_ERROR_INVALID_NAME:                      retVal = HXR_XML_INVALID_NAME;                      break;
-        case XML_ERROR_INVALID_CHAR_IN_DOC:               retVal = HXR_XML_INVALID_CHAR_IN_DOC;               break;
-        case XML_ERROR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT: retVal = HXR_XML_TWO_DASHES_NOT_ALLOWED_IN_COMMENT; break;
-        case XML_ERROR_INVALID_DECL:                      retVal = HXR_XML_INVALID_DECL;                      break;
-        case XML_ERROR_INVALID_PI:                        retVal = HXR_XML_INVALID_PI;                        break;
-        case XML_ERROR_INVALID_PI_TARGET:                 retVal = HXR_XML_INVALID_PI_TARGET;                 break;
-        case XML_ERROR_INVALID_CDATA:                     retVal = HXR_XML_INVALID_CDATA;                     break;
-        case XML_ERROR_NO_CLOSING_GT:                     retVal = HXR_XML_NO_CLOSING_GT;                     break;
-        case XML_ERROR_INVALID_HEX_CHAR_REF:              retVal = HXR_XML_INVALID_HEX_CHAR_REF;              break;
-        case XML_ERROR_INVALID_CHAR_REF:                  retVal = HXR_XML_INVALID_CHAR_REF;                  break;
-        case XML_ERROR_INVALID_REF:                       retVal = HXR_XML_INVALID_REF;                       break;
-        case XML_ERROR_MISSING_EQUALS:                    retVal = HXR_XML_MISSING_EQUALS;                    break;
-        case XML_ERROR_MISSING_QUOT_APOS:                 retVal = HXR_XML_MISSINGQUOTE;                      break;
-        case XML_ERROR_MISSING_REQ_SPACE:                 retVal = HXR_XML_MISSING_REQ_SPACE;                 break;
-        case XML_ERROR_LT_NOT_ALLOWED:                    retVal = HXR_XML_LT_NOT_ALLOWED;                    break;
-        case XML_ERROR_EXPECTED_GT:                       retVal = HXR_XML_EXPECTED_GT;                       break;
-        case XML_ERROR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT: retVal = HXR_XML_INVALID_GT_AFFT_2_RSQB_IN_CONTENT; break;
-        case XML_ERROR_INVALID_COMMENT:                   retVal = HXR_XML_INVALID_COMMENT;                   break;
-        default:                                          retVal = HXR_XML_GENERALERROR;                      break;
-    }
-
-    return retVal;
 }
 
 /************************************************************************
@@ -308,40 +162,61 @@ HXExpatXMLParser::InitNamespaceParser(
 {
     HX_LOG_BLOCK( "HXExpatXMLParser::InitNamespaceParser" );
 
-    HX_RESULT rc = HXR_OK;
-
-    // Save the response interface
-    HX_RELEASE(m_pResponse);
-    m_pResponse = pResponse;
-    HX_ADDREF(m_pResponse);
-    // Save the namespace response
-    HX_RELEASE(m_pNSResp);
-	m_pNSResp = pNSResp;
-    HX_ADDREF(m_pNSResp);
-    // Save the separation character
-    m_cSepChar = sepChar;
-    // Do we have an encoding?
-    const char* pszEncoding = (pEncoding ? pEncoding : "iso-8859-1");
-    // Get the string length of the encoding
-    INT32 lLen = (INT32) strlen(pszEncoding);
-    // Set the return value
-	rc = HXR_OUTOFMEMORY;
-    // Save the encoding
-    HX_VECTOR_DELETE(m_pszEncoding);
-    m_pszEncoding = new char [lLen + 1];
-    if (m_pszEncoding)
+    if (m_bInited)
     {
-        // Copy the string
-        strcpy(m_pszEncoding, pszEncoding);
-        // Clear the return value
-        rc = HXR_OK;
+	return HXR_UNEXPECTED;
+    }
+    HX_RESULT rc = HXR_OK;
+    if (pResponse)
+    {
+	m_pResponse = pResponse;
+	m_pResponse->AddRef();
     }
 
+    if (pNSResp)
+    {
+	m_pNSResp = pNSResp;
+	m_pNSResp->AddRef();
+    }
+
+    m_cSepChar = sepChar;
+    if (pEncoding)
+    {
+	m_pParser = XML_ParserCreateNS(pEncoding, sepChar);
+    }
+    else
+    {
+	/* use iso-8859-1 by default */
+	m_pParser = XML_ParserCreateNS("iso-8859-1", sepChar);
+    }
+
+    if (m_pParser == NULL)
+    {
+	rc = HXR_OUTOFMEMORY;
+    }
     if (SUCCEEDED(rc))
     {
-        rc = CreateAndInitNamespaceParser();
+	XML_SetUserData(m_pParser, this);
+	XML_SetElementHandler(m_pParser, ::handleStartElement, 
+	    ::handleEndElement);
+	XML_SetCharacterDataHandler(m_pParser, ::handleCharacterData);
+	XML_SetProcessingInstructionHandler(m_pParser, 
+	    ::handleProcessingInstruction);
+	XML_SetCommentHandler(m_pParser, ::handleComment);
+    
+	//XML_SetCdataSectionHandler(m_pParser, ::handleStartCdataSection,  
+	//    ::handleEndCdataSection);
+    
+	XML_SetCharacterDataHandler(m_pParser, ::handleCharacterData);
+	XML_SetUnparsedEntityDeclHandler(m_pParser, ::handleUnparsedEntityDecl);
+	XML_SetNotationDeclHandler(m_pParser, ::handleNotationDecl);
+	XML_SetDefaultHandler(m_pParser, ::handleDefault);
+
+	XML_SetNamespaceDeclHandler(m_pParser, ::handleStartNamespaceDecl,
+		::handleEndNamespaceDecl);
     }
 
+    m_bInited = TRUE;
     return rc;
 }
 
@@ -362,36 +237,50 @@ HXExpatXMLParser::Init(IHXXMLParserResponse* /*IN*/  pResponse,
 {
     HX_LOG_BLOCK( "HXExpatXMLParser::Init" );
 
-    HX_RESULT rc = HXR_OK;
-
-    // Save the response interface
-    HX_RELEASE(m_pResponse);
-    m_pResponse = pResponse;
-    HX_ADDREF(m_pResponse);
-
-    // Do we have an encoding?
-    const char* pszEncoding = (pEncoding ? pEncoding : "iso-8859-1");
-    // Get the string length of the encoding
-    INT32 lLen = (INT32) strlen(pszEncoding);
-    // Set the return value
-	rc = HXR_OUTOFMEMORY;
-    // Save the encoding
-    HX_VECTOR_DELETE(m_pszEncoding);
-    m_pszEncoding = new char [lLen + 1];
-    if (m_pszEncoding)
+    if (m_bInited)
     {
-        // Copy the string
-        strcpy(m_pszEncoding, pszEncoding);
-        // Clear the return value
-        rc = HXR_OK;
+	return HXR_UNEXPECTED;
+    }
+    HX_RESULT rc = HXR_OK;
+    if (pResponse)
+    {
+	m_pResponse = pResponse;
+	m_pResponse->AddRef();
     }
 
+    if (pEncoding)
+    {
+	m_pParser = XML_ParserCreate(pEncoding);
+    }
+    else
+    {
+	/* use iso-8859-1 by default */
+	m_pParser = XML_ParserCreate("iso-8859-1");
+    }
+
+    if (m_pParser == NULL)
+    {
+	rc = HXR_OUTOFMEMORY;
+    }
     if (SUCCEEDED(rc))
     {
-        // Create and initialize a new parser
-        rc = CreateAndInitParser();
+	XML_SetUserData(m_pParser, this);
+	XML_SetElementHandler(m_pParser, ::handleStartElement, 
+	    ::handleEndElement);
+	XML_SetCharacterDataHandler(m_pParser, ::handleCharacterData);
+	XML_SetProcessingInstructionHandler(m_pParser, 
+	    ::handleProcessingInstruction);
+	XML_SetCommentHandler(m_pParser, ::handleComment);
+    
+	//XML_SetCdataSectionHandler(m_pParser, ::handleStartCdataSection,  
+	//    ::handleEndCdataSection);
+    
+	XML_SetCharacterDataHandler(m_pParser, ::handleCharacterData);
+	XML_SetUnparsedEntityDeclHandler(m_pParser, ::handleUnparsedEntityDecl);
+	XML_SetNotationDeclHandler(m_pParser, ::handleNotationDecl);
+	XML_SetDefaultHandler(m_pParser, ::handleDefault);
     }
-
+    m_bInited = TRUE;
     return rc;
 }
 
@@ -401,9 +290,13 @@ HXExpatXMLParser::Close()
     HX_RELEASE(m_pResponse);
     HX_RELEASE(m_pNSResp);
     HX_RELEASE(m_pCurrentBuffer);
-    HX_VECTOR_DELETE(m_pszEncoding);
     m_ulCurrentOffset = 0;
-    FreeParser();
+    m_bInited = FALSE;
+    if (m_pParser)
+    {
+	XML_ParserFree(m_pParser);
+	m_pParser = NULL;
+    }
     return HXR_OK;
 }
 
@@ -414,18 +307,7 @@ HXExpatXMLParser::Parse(IHXBuffer*	/*IN*/	    pBuffer,
 {
     HX_LOG_BLOCK( "HXExpatXMLParser::Parse" );
 
-    HX_RESULT retVal = HXR_OK;
-
-    // If we have a parser and the last call to Parse() had
-    // an bIsFinal of TRUE, then we should re-create the expat
-    // parser object.
-    if (!m_pParser || m_bLastParseIsFinal)
-    {
-        // We don't have a parser yet, so create and initialize one.
-        // This will free any existing parser as well.
-        retVal = CreateAndInitParser();
-    }
-    if (SUCCEEDED(retVal))
+    if (m_pParser)
     {
 	if (m_pCurrentBuffer)
 	{
@@ -434,23 +316,107 @@ HXExpatXMLParser::Parse(IHXBuffer*	/*IN*/	    pBuffer,
 	}
 	m_pCurrentBuffer = pBuffer;
 	m_pCurrentBuffer->AddRef();
-        // Parse the buffer
-        int iRet = XML_Parse(m_pParser,
-                             (const XML_Char*) m_pCurrentBuffer->GetBuffer(),
-                             m_pCurrentBuffer->GetSize(),
-                             bIsFinal);
-        if (!iRet)
+	if (!XML_Parse(m_pParser, (const XML_Char*)m_pCurrentBuffer->GetBuffer(), 
+		m_pCurrentBuffer->GetSize(), bIsFinal))
 	{
-            // Get the error code
 	    XML_Error code = XML_GetErrorCode(m_pParser);
-            // Translate the error code to an HX_RESULT
-            retVal = TranslateExpatErrorCode(code);
+	    switch (code)
+	    {
+	    case XML_ERROR_NONE:
+		return HXR_FAIL;
+	    case XML_ERROR_NO_MEMORY:
+		return HXR_OUTOFMEMORY;
+	    case XML_ERROR_SYNTAX:
+		return HXR_XML_SYNTAX;
+	    case XML_ERROR_NO_ELEMENTS:
+		return HXR_XML_NO_ELEMENTS;
+// we removed this error in favor of more specific errors
+//	    case XML_ERROR_INVALID_TOKEN:
+//		return HXR_XML_INVALID_TOKEN;
+	    case XML_ERROR_UNCLOSED_TOKEN:
+		return HXR_XML_UNCLOSED_TOKEN;
+	    case XML_ERROR_PARTIAL_CHAR:
+		return HXR_XML_PARTIAL_CHAR;
+	    case XML_ERROR_TAG_MISMATCH:
+		return HXR_XML_TAG_MISMATCH;
+	    case XML_ERROR_DUPLICATE_ATTRIBUTE:
+		// HXR_XML_DUPLICATE_ATTRIBUTE;
+		return HXR_XML_DUPATTRIBUTE;
+	    case XML_ERROR_JUNK_AFTER_DOC_ELEMENT:
+		return HXR_XML_JUNK_AFTER_DOC_ELEMENT;
+	    case XML_ERROR_PARAM_ENTITY_REF:
+		return HXR_XML_PARAM_ENTITY_REF;
+	    case XML_ERROR_UNDEFINED_ENTITY:
+		return HXR_XML_UNDEFINED_ENTITY;
+	    case XML_ERROR_RECURSIVE_ENTITY_REF:
+		return HXR_XML_RECURSIVE_ENTITY_REF;
+	    case XML_ERROR_ASYNC_ENTITY:
+		return HXR_XML_ASYNC_ENTITY;
+	    case XML_ERROR_BAD_CHAR_REF:
+		return HXR_XML_BAD_CHAR_REF;
+	    case XML_ERROR_BINARY_ENTITY_REF:
+		return HXR_XML_BINARY_ENTITY_REF;
+	    case XML_ERROR_ATTRIBUTE_EXTERNAL_ENTITY_REF:
+		return PNR_XML_ATTRIBUTE_EXTEHXAL_ENTITY_REF;
+	    case XML_ERROR_MISPLACED_XML_PI:
+		return HXR_XML_MISPLACED_XML_PI;
+	    case XML_ERROR_UNKNOWN_ENCODING:
+		return HXR_XML_UNKNOWN_ENCODING;
+	    case XML_ERROR_INCORRECT_ENCODING:
+		return HXR_XML_INCORRECT_ENCODING;
+	    case XML_ERROR_UNCLOSED_CDATA_SECTION:
+		return HXR_XML_UNCLOSED_CDATA_SECTION;
+	    case XML_ERROR_EXTERNAL_ENTITY_HANDLING:
+		return PNR_XML_EXTEHXAL_ENTITY_HANDLING;
+	    case XML_ERROR_NOT_STANDALONE:
+		return HXR_XML_NOT_STANDALONE;
+            case XML_ERROR_INVALID_NAME:
+		return HXR_XML_INVALID_NAME;
+            case XML_ERROR_INVALID_CHAR_IN_DOC:
+		return HXR_XML_INVALID_CHAR_IN_DOC;
+            case XML_ERROR_TWO_DASHES_NOT_ALLOWED_IN_COMMENT:
+		return HXR_XML_TWO_DASHES_NOT_ALLOWED_IN_COMMENT;
+            case XML_ERROR_INVALID_DECL:
+		return HXR_XML_INVALID_DECL;
+            case XML_ERROR_INVALID_PI: 
+		return HXR_XML_INVALID_PI;
+            case XML_ERROR_INVALID_PI_TARGET: 
+		return HXR_XML_INVALID_PI_TARGET;
+            case XML_ERROR_INVALID_CDATA: 
+		return HXR_XML_INVALID_CDATA;
+            case XML_ERROR_NO_CLOSING_GT: 
+		return HXR_XML_NO_CLOSING_GT;
+            case XML_ERROR_INVALID_HEX_CHAR_REF: 
+		return HXR_XML_INVALID_HEX_CHAR_REF;
+            case XML_ERROR_INVALID_CHAR_REF: 
+		return HXR_XML_INVALID_CHAR_REF;
+            case XML_ERROR_INVALID_REF: 
+		return HXR_XML_INVALID_REF;
+            case XML_ERROR_MISSING_EQUALS: 
+		return HXR_XML_MISSING_EQUALS;
+            case XML_ERROR_MISSING_QUOT_APOS: 
+		// HXR_XML_MISSING_QUOT_APOS;
+		return HXR_XML_MISSINGQUOTE;
+            case XML_ERROR_MISSING_REQ_SPACE: 
+		return HXR_XML_MISSING_REQ_SPACE;
+            case XML_ERROR_LT_NOT_ALLOWED: 
+		return HXR_XML_LT_NOT_ALLOWED;
+            case XML_ERROR_EXPECTED_GT: 
+		return HXR_XML_EXPECTED_GT;
+            case XML_ERROR_INVALID_GT_AFFT_2_RSQB_IN_CONTENT: 
+		return HXR_XML_INVALID_GT_AFFT_2_RSQB_IN_CONTENT;
+            case XML_ERROR_INVALID_COMMENT: 
+		return HXR_XML_INVALID_COMMENT;
+	    default:
+		return HXR_XML_GENERALERROR;
+	    }
 	}
-        // Save the value of bIsFinal
-        m_bLastParseIsFinal = bIsFinal;
     }
-
-    return retVal;
+    else
+    {
+	return HXR_NOT_INITIALIZED;
+    }
+    return HXR_OK;
 }
 
 STDMETHODIMP

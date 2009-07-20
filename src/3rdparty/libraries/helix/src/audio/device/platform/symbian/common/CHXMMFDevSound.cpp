@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXMMFDevSound.cpp,v 1.3 2008/03/11 05:42:29 gahluwalia Exp $
+ * Source last modified: $Id: CHXMMFDevSound.cpp,v 1.2 2007/04/13 23:41:14 rrajesh Exp $
  * 
  * Copyright Notices: 
  *  
@@ -120,7 +120,7 @@ CHXMMFDevSound* CHXMMFDevSound::Get()
     
     if(pGM != NULL)
     {
-        pInstance = reinterpret_cast<CHXMMFDevSound**>(pGM->Get((const void*)SYMBIAN_GLOBAL_AUDIO_DEVSOUND_ID));
+        pInstance = reinterpret_cast<CHXMMFDevSound**>(pGM->Get((const *)SYMBIAN_GLOBAL_AUDIO_DEVSOUND_ID));
         if(pInstance != NULL)
         {
             pRet = *pInstance;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: ff_source.cpp,v 1.7 2007/08/18 00:21:12 dcollins Exp $ 
+ * Source last modified: $Id: ff_source.cpp,v 1.5 2004/07/31 15:17:41 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -60,6 +60,7 @@
 
 #include "srcerrs.h"
 #include "hxprot.h"
+//#include "rtspprot.h"
 
 #include "hxasm.h"
 
@@ -70,6 +71,8 @@
 #include "base_errmsg.h"
 
 #include "ff_source.h"
+
+extern BOOL g_bForceThreadSafePlugins;
 
 FileFormatSource::FileFormatSource(Process* proc, 
                                    IHXFileFormatObject* file_format,
@@ -107,6 +110,18 @@ FileFormatSource::FileFormatSource(Process* proc,
     }
 
     m_bwe_values = NULL;
+
+    IHXThreadSafeMethods* pThreadSafe;
+    if (HXR_OK == file_format->QueryInterface(IID_IHXThreadSafeMethods,
+             (void**)&pThreadSafe))
+    {
+        m_ulThreadSafeFlags = pThreadSafe->IsThreadSafe();
+        pThreadSafe->Release();
+    }
+    else
+    {
+        m_ulThreadSafeFlags = g_bForceThreadSafePlugins ? 0xffffffff : 0;
+    }
 }
 
 FileFormatSource::~FileFormatSource()
@@ -517,6 +532,12 @@ BOOL
 FileFormatSource::IsLive()
 {
     return FALSE;
+}
+
+UINT32
+FileFormatSource::IsThreadSafe()
+{
+    return m_ulThreadSafeFlags;
 }
 
 void

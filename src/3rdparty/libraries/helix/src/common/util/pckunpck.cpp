@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pckunpck.cpp,v 1.45 2009/05/20 13:39:49 ehyche Exp $
+ * Source last modified: $Id: pckunpck.cpp,v 1.35 2007/02/26 22:08:58 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -2504,19 +2504,6 @@ HX_RESULT UnpackUINT64LEInc(BYTE** ppBuf, UINT32* pulLen, UINT64* pullVal)
     return retVal;
 }
 
-HX_RESULT UnpackUINT24BE(BYTE* pBuf, UINT32 ulLen, UINT32* pulVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (pBuf && ulLen >= 3 && pulVal)
-    {
-        *pulVal = (pBuf[0] << 16) | (pBuf[1] << 8) | pBuf[2];
-        retVal = HXR_OK;
-    }
-
-    return retVal;
-}
-
 HX_RESULT UnpackUINT32BE(BYTE* pBuf, UINT32 ulLen, UINT32* pulVal)
 {
     HX_RESULT retVal = HXR_FAIL;
@@ -2684,50 +2671,6 @@ HX_RESULT UnpackUINT8Inc(BYTE** ppBuf, UINT32* pulLen, UINT8* pucVal)
     return retVal;
 }
 
-HX_RESULT UnpackVariableBEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulNumBytes, UINT32* pulVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (ppBuf && pulLen && pulVal && ulNumBytes >= 1 && ulNumBytes <= 4)
-    {
-        switch (ulNumBytes)
-        {
-            case 1:
-                {
-                    BYTE ucVal = 0;
-                    retVal = UnpackUINT8Inc(ppBuf, pulLen, &ucVal);
-                    if (SUCCEEDED(retVal))
-                    {
-                        *pulVal = ucVal;
-                    }
-                }
-                break;
-            case 2:
-                {
-                    UINT16 usVal = 0;
-                    retVal = UnpackUINT16BEInc(ppBuf, pulLen, &usVal);
-                    if (SUCCEEDED(retVal))
-                    {
-                        *pulVal = usVal;
-                    }
-                }
-                break;
-            case 3:
-                {
-                    retVal = UnpackUINT24BEInc(ppBuf, pulLen, pulVal);
-                }
-                break;
-            case 4:
-                {
-                    retVal = UnpackUINT32BEInc(ppBuf, pulLen, pulVal);
-                }
-                break;
-        }
-    }
-
-    return retVal;
-}
-
 HX_RESULT PackUINT8Inc(BYTE** ppBuf, UINT32* pulLen, BYTE ucVal)
 {
     HX_RESULT retVal = HXR_FAIL;
@@ -2808,38 +2751,6 @@ HX_RESULT PackUINT16LEInc(BYTE** ppBuf, UINT32* pulLen, UINT16 usVal)
     return retVal;
 }
 
-HX_RESULT PackUINT24BE(BYTE* pBuf, UINT32 ulLen, UINT32 ulVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (pBuf && ulLen >= 3)
-    {
-        pBuf[0] = (BYTE) ((ulVal & 0x00FF0000) >> 16);
-        pBuf[1] = (BYTE) ((ulVal & 0x0000FF00) >>  8);
-        pBuf[2] = (BYTE)  (ulVal & 0x000000FF);
-        retVal  = HXR_OK;
-    }
-
-    return retVal;
-}
-
-HX_RESULT PackUINT24BEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (ppBuf && pulLen)
-    {
-        retVal = PackUINT24BE(*ppBuf, *pulLen, ulVal);
-        if (SUCCEEDED(retVal))
-        {
-            *ppBuf  += 3;
-            *pulLen -= 3;
-        }
-    }
-
-    return retVal;
-}
-
 HX_RESULT PackUINT32BE(BYTE* pBuf, UINT32 ulLen, UINT32 ulVal)
 {
     HX_RESULT retVal = HXR_FAIL;
@@ -2906,26 +2817,6 @@ HX_RESULT PackUINT32LEInc(BYTE** ppBuf, UINT32* pulLen, UINT32 ulVal)
     return retVal;
 }
 
-HX_RESULT PackUINT64BE(BYTE* pBuf, UINT32 ulLen, UINT64 ulVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (pBuf && ulLen >= 8)
-    {
-        pBuf[0] = (BYTE) ((ulVal & HXULL(0xFF00000000000000)) >> 56);
-        pBuf[1] = (BYTE) ((ulVal & HXULL(0x00FF000000000000)) >> 48);
-        pBuf[2] = (BYTE) ((ulVal & HXULL(0x0000FF0000000000)) >> 40);
-        pBuf[3] = (BYTE) ((ulVal & HXULL(0x000000FF00000000)) >> 32);
-        pBuf[4] = (BYTE) ((ulVal & HXULL(0x00000000FF000000)) >> 24);
-        pBuf[5] = (BYTE) ((ulVal & HXULL(0x0000000000FF0000)) >> 16);
-        pBuf[6] = (BYTE) ((ulVal & HXULL(0x000000000000FF00)) >>  8);
-        pBuf[7] = (BYTE)  (ulVal & HXULL(0x00000000000000FF));        
-        retVal  = HXR_OK;
-    }
-
-    return retVal;
-}
-
 HX_RESULT UnpackDoubleBEInc(BYTE** ppBuf, UINT32* pulLen, double* pdVal)
 {
     HX_RESULT retVal = HXR_FAIL;
@@ -2948,38 +2839,6 @@ HX_RESULT UnpackDoubleBEInc(BYTE** ppBuf, UINT32* pulLen, double* pdVal)
         }
         // Cast the temp buffer to a double
         *pdVal = *((double*) &ucTmp[0]);
-        // Advance the buffer
-        *ppBuf  += 8;
-        *pulLen -= 8;
-        // Clear the return value
-        retVal = HXR_OK;
-    }
-
-    return retVal;
-}
-
-HX_RESULT PackDoubleBEInc(BYTE** ppBuf, UINT32* pulLen, double dVal)
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    if (ppBuf && *ppBuf && pulLen && *pulLen >= 8)
-    {
-        // Copy the double into a temporary buffer
-        unsigned char ucTmp[8];
-        memcpy(&ucTmp[0], &dVal, 8); /* Flawfinder: ignore */
-        // Are we little endian?
-        if (!TestBigEndian())
-        {
-            // Swap the 8 bytes
-            for (UINT32 i = 0; i < 4; i++)
-            {
-                BYTE ucT   = ucTmp[i];
-                ucTmp[i]   = ucTmp[7-i];
-                ucTmp[7-i] = ucT;
-            }
-        }
-        // Copy the temporary buffer to the output
-        memcpy(*ppBuf, &ucTmp[0], 8);
         // Advance the buffer
         *ppBuf  += 8;
         *pulLen -= 8;
@@ -3107,91 +2966,28 @@ CreateEventCCF(void** ppObject, IUnknown* pContext,
     return rc;
 }
 
-HX_RESULT
-CreateInstanceCCF(REFCLSID clsid, void** ppObject, IHXCommonClassFactory* pCCF)
-{
-    HX_RESULT hr = HXR_FAIL;
-
-    HX_ASSERT(NULL == *ppObject);
-    HX_ASSERT(pCCF);
-
-    if (pCCF)
-    {
-        hr = pCCF->CreateInstance(clsid, ppObject);
-        HX_ASSERT(NULL != *ppObject);
-    }
-
-    return hr;
-}
-
-HX_RESULT
-CreateInstanceCCF_QI(REFCLSID clsid, REFIID iid, void** ppItf, IHXCommonClassFactory* pCCF)
-{
-    HX_ASSERT(NULL == *ppItf);
-    HX_ASSERT(pCCF);
-
-    *ppItf = 0;
-    IUnknown* pObj = 0;
-    HX_RESULT hr = CreateInstanceCCF(clsid, (void**) &pObj, pCCF);
-
-    if (SUCCEEDED(hr))
-    {
-        HX_ASSERT(pObj);
-        hr = pObj->QueryInterface(iid, ppItf);
-        if( SUCCEEDED(hr))
-        {
-	    HX_ASSERT(NULL != *ppItf);
-        }
-    }
-    HX_RELEASE(pObj);
-    return hr;
-}
-
-HX_RESULT
+HX_RESULT 
 CreateInstanceCCF(REFCLSID clsid, void** ppObject, IUnknown* pContext)
 {
-    HX_RESULT hr = HXR_FAIL;
+     HX_RESULT hr = HXR_FAIL;
 
-    HX_ASSERT(NULL == *ppObject);
-    HX_ASSERT(pContext);
+     HX_ASSERT(NULL == *ppObject);
+     HX_ASSERT(pContext);
 
-    if (pContext)
-    {
+     if (pContext)
+     {
         IHXCommonClassFactory* pCCF = NULL;
         hr = pContext->QueryInterface(IID_IHXCommonClassFactory, (void**) &pCCF);
         HX_ASSERT(pCCF);
         if( SUCCEEDED(hr) )
         {
             hr = pCCF->CreateInstance(clsid, ppObject);
-            HX_ASSERT(NULL != *ppObject);
+	    HX_ASSERT(NULL != *ppObject);
         }
         HX_RELEASE(pCCF);
-    }
+     }
 
-    return hr;
-}
-
-HX_RESULT
-CreateInstanceCCF_QI(REFCLSID clsid, REFIID iid, void** ppItf, IUnknown* pContext)
-{
-    HX_ASSERT(NULL == *ppItf);
-    HX_ASSERT(pContext);
-
-    *ppItf = 0;
-    IUnknown* pObj = 0;
-    HX_RESULT hr = CreateInstanceCCF(clsid, (void**) &pObj, pContext);
-
-    if (SUCCEEDED(hr))
-    {
-        HX_ASSERT(pObj);
-        hr = pObj->QueryInterface(iid, ppItf);
-        if( SUCCEEDED(hr))
-        {
-	    HX_ASSERT(NULL != *ppItf);
-        }
-    }
-    HX_RELEASE(pObj);
-    return hr;
+     return hr;
 }
 
 HX_RESULT CatStringsCCF(REF(IHXBuffer*) rpOutStr, const char** ppszInStr,

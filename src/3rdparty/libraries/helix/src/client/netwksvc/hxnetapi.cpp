@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxnetapi.cpp,v 1.42 2007/07/06 21:58:22 jfinnecy Exp $
+ * Source last modified: $Id: hxnetapi.cpp,v 1.41 2006/11/07 14:13:03 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -647,7 +647,7 @@ HXTCPSocket::HXTCPSocket(IUnknown* pContext, HXNetworkServices* pNetworkServices
         // - checks the return code(errno) from write()
         //
         // for read(), it simply returns 0 when the connection is closed.
-        SIGNAL(SIGPIPE, SIG_IGN);
+        SIGNAL(SIGPIPE,SIG_IGN);
 #endif /* _UNIX  && HELIX_FEATURE_IGNORE_SIGPIPE */
 
     CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pMutex, m_pContext);  

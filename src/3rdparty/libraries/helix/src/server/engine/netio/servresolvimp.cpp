@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servresolvimp.cpp,v 1.2 2007/08/30 17:29:50 seansmith Exp $
+ * Source last modified: $Id: servresolvimp.cpp,v 1.1 2004/11/15 22:39:58 tmarshall Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -43,6 +43,7 @@
 #include "server_engine.h"
 #include "server_context.h"
 #include "hxnet.h"
+#include "hxservnet.h"
 #include "iresolv.h"
 #include "resolvcache.h"
 #include "servresolvimp.h"
@@ -51,6 +52,7 @@
 #include "resolve_proc.h"
 #include "dispatchq.h"
 
+#include "lbound_listenresp.h"
 #include "servbuffer.h"
 #include "hxsbuffer.h"
 

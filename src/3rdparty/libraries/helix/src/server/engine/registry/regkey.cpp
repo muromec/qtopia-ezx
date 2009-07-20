@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: regkey.cpp,v 1.4 2009/05/30 19:09:56 atin Exp $ 
+ * Source last modified: $Id: regkey.cpp,v 1.3 2003/08/22 22:40:17 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -37,6 +37,7 @@
 
 #include <string.h>
 #include "hxtypes.h"
+#include "mem_cache.h"
 #include "regkey.h"
 
 #include "hxheap.h"
@@ -45,8 +46,9 @@
 static char HX_THIS_FILE[] = __FILE__;
 #endif
 
-ServRegKey::ServRegKey(const char* pszKey, char chDelim)
-    : m_pszKey(0)
+ServRegKey::ServRegKey(const char* pszKey, RegistryMemCache* pMemCache, char chDelim)
+    : m_pRegMemCache(pMemCache)
+    , m_pszKey(0)
     , m_pSubStrs(0)
     , m_pCurrPtr(0)
     , m_nLevels(0)
@@ -93,8 +95,17 @@ ServRegKey::ServRegKey(const char* pszKey, char chDelim)
     }
     pTmpPtrs[m_nLevels] = m_pCurrPtr;
 
+    if (m_pRegMemCache)
+    {
+        //the 16's are to keep from fragmenting the memcache
+        m_pSubStrs = (char**)m_pRegMemCache->RegistryAllocator()->CacheNew(((m_nLevels + 1) * sizeof(char*) / 16 + 1) * 16);
+        m_pszKey = (char*)m_pRegMemCache->RegistryAllocator()->CacheNew((m_nSize / 16 + 1) * 16);
+    }
+    else
+    {
         m_pSubStrs = new char*[m_nLevels + 1];
         m_pszKey = new char[m_nSize];
+    }
     memcpy(m_pszKey, pszKey, m_nSize);
     m_pSubStrs[0] = m_pszKey;
 

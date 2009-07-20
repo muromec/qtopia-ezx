@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxhttp.cpp,v 1.9 2009/01/19 04:52:02 gahluwalia Exp $
+ * Source last modified: $Id: chxhttp.cpp,v 1.2 2005/06/15 02:40:23 rggammon Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,7 @@
 #include "ihxpckts.h"
 
 #include "chxhttp.h"
-#include "hxprdnld.h"
+
 
 #define NO_MAX_BUFFER_SIZE	0 // No maximum buffer size
 
@@ -175,8 +175,8 @@ CHXHttp::Destroy(THIS)
 }
 
 
-STDMETHODIMP_(HXBOOL) 
-CHXHttp::Initialize(IUnknown* pContext)
+STDMETHODIMP_(BOOL) 
+    CHXHttp::Initialize(IUnknown* pContext)
 {
     HX_RESULT res = HXR_FAIL;        
 
@@ -233,8 +233,8 @@ CHXHttp::Terminate()
 }
 
 
-STDMETHODIMP_(HXBOOL)
-CHXHttp::Get(const char* szURL)
+STDMETHODIMP_(BOOL)
+    CHXHttp::Get(const char* szURL)
 {
     HX_RESULT nRetVal;
     m_bIsHttpPost = FALSE;
@@ -505,7 +505,7 @@ CHXHttp::SetConnectionTimeout(UINT32 nSeconds)
 }
 
 void 
-CHXHttp::SendOnGetDone(HXBOOL bSuccess)
+CHXHttp::SendOnGetDone(BOOL bSuccess)
 {
     if (m_pIHttpResponse && !m_bGetDoneSent)
     {
@@ -598,12 +598,6 @@ CHXHttpFileResponse::~CHXHttpFileResponse()
 STDMETHODIMP
 CHXHttpFileResponse::InitDone(HX_RESULT status)
 {
-    if (FAILED(status))
-    {
-	m_pHttp->SendOnGetDone(FALSE);
-	return status;
-    }
-
     if(status == HXR_OK || status == HXR_RESOURCE_PARTIALCOPY)
     {
 	IHXHttpResponse2* pResponse2 = NULL;
@@ -692,16 +686,12 @@ CHXHttpFileResponse::InitDone(HX_RESULT status)
 	}
     }
     else if ( m_pHttp->m_statResult == HXR_FAIL &&
-              m_pHttp->m_nContentLength == 0)
+              m_pHttp->m_nContentLength == HX_UNKNOWN_FILE_SIZE )
     {
         m_pHttp->m_bChunkedResponse = TRUE;
 
         // Start reading
         result = m_pHttp->m_pFileObject->Read(m_pHttp->m_nTotalBytesToRead);        
-	if ( FAILED(result) )
-	{
-	    m_pHttp->SendOnGetDone(FALSE);
-	}
     }
     else // other failure
     {
@@ -733,19 +723,14 @@ CHXHttpFileResponse::ReadDone(HX_RESULT status, IHXBuffer* pBuffer)
 
         m_pHttp->m_nBytesWritten += pBuffer->GetSize();
         
-	if (m_pHttp->m_bChunkedResponse)
-        {
-            m_pHttp->m_pFileObject->Read(m_pHttp->m_nTotalBytesToRead);
-        }
-        else if (m_pHttp->m_nBytesWritten >= m_pHttp->m_nContentLength)
-        {
-            m_pHttp->m_pFileObject->Close();
-        }
+	if (!m_pHttp->m_bChunkedResponse &&
+            (m_pHttp->m_nBytesWritten >= m_pHttp->m_nTotalBytesToRead))
+	{
+	    m_pHttp->m_pFileObject->Close();
+	}
         else
         {
-            m_pHttp->m_nTotalBytesToRead = HX_MIN(m_pHttp->m_nContentLength-m_pHttp->m_nBytesWritten, 
-                                                  m_pHttp->m_nTotalBytesToRead);
-            m_pHttp->m_pFileObject->Read(m_pHttp->m_nTotalBytesToRead);
+            m_pHttp->m_pFileObject->Read(m_pHttp->m_nTotalBytesToRead - m_pHttp->m_nBytesWritten);
         }
     }
     else
@@ -787,10 +772,8 @@ CHXHttpFileResponse::StatDone(
     UINT32 ulMode)
 {
     m_pHttp->m_statResult = status;
-    if(SUCCEEDED(status))
-    {	
-        m_pHttp->m_nContentLength = ulSize;
-    }
+    m_pHttp->m_nContentLength = ulSize;
+
     return HXR_OK;
 }
 

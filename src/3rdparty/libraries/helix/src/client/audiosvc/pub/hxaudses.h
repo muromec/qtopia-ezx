@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxaudses.h,v 1.33 2009/05/01 14:09:36 sfu Exp $
+ * Source last modified: $Id: hxaudses.h,v 1.29 2007/02/23 20:31:27 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -99,10 +99,6 @@
 #  define CHECK_AUDIO_INTERVAL            60	// percentage of granularity    
 #endif
 
-#ifdef HELIX_CONFIG_SYMBIAN_PCM_PUSHDOWN_BYTES
-#  define MINIMUM_AUDIO_PUSHDOWN  200
-#  define TARGET_AUDIO_PUSHDOWN   1000
-#endif
 
 // foward decls.
 struct IHXCallback;
@@ -725,10 +721,6 @@ class   CHXAudioSession : public IHXAudioDeviceResponse,
     ULONG32             m_ulTargetPushdown;
     ULONG32             m_ulMinimumPushdown;
     void                UpdateMinimumPushdown();
-    
-    // Buffer list to hold the 'raw' pcm data buffers from stream
-    // in optimized mixing
-    CHXSimpleList*      m_pStreamBufferList;
 
 #if defined(HELIX_FEATURE_TIMELINE_WATCHER)
     //IHXTimelineManager support.

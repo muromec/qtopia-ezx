@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ngtfileobject.cpp,v 1.4 2007/08/18 00:03:26 dcollins Exp $
+ * Source last modified: $Id: ngtfileobject.cpp,v 1.2 2006/08/17 01:03:33 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -1040,6 +1040,10 @@ HX_RESULT CNGTFileObject::DelegatedQI(REFIID riid, void** ppvObj)
 	    return m_pFileObject->QueryInterface(riid, ppvObj);
 	}
 	else if (IsEqualIID(riid, IID_IHXFileMove))
+	{
+	    return m_pFileObject->QueryInterface(riid, ppvObj);
+	}
+	else if (IsEqualIID(riid, IID_IHXThreadSafeMethods))
 	{
 	    return m_pFileObject->QueryInterface(riid, ppvObj);
 	}

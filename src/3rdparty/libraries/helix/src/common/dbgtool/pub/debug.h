@@ -39,8 +39,6 @@ inline void dprintfInit(...) { /* compile out*/}
 #define D_PROF          0x00004000      /* profiling information */
 #define D_MSG           0x00008000      /* */
 #define D_REGISTRY      0x00010000      /* registry stuff */
-#define D_PLMINFO       0x00100000      /* Playlist Manger Info*/
-#define D_PLMERROR      0x00200000      /* Playlist Manger Error*/
 /*
  * Debug Function flags. Set in the same way as the general debug flag
  * at runtime.

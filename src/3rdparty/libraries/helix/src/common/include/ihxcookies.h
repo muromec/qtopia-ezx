@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ihxcookies.h,v 1.8 2008/08/04 17:55:04 ping Exp $
+ * Source last modified: $Id: ihxcookies.h,v 1.3 2004/07/09 18:20:48 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -49,13 +49,6 @@
 
 #ifndef _IHXCOOKIES_H_
 #define _IHXCOOKIES_H_
-
-#define HX_HELIX_COOKIES                0x00000000      // Helix Cookie DB
-#define HX_EXTERNAL_COOKIES_IE          0x00000001      // Internet Explorer
-#define HX_EXTERNAL_COOKIES_NS          0x00000002      // Netscape
-#define HX_EXTERNAL_COOKIES_FF_TEXT     0x00000004      // Firefox Text based(cookies.txt), FireFox 2.0 and below
-#define HX_EXTERNAL_COOKIES_FF_SQLITE   0x00000008      // Firefox SQLite based(cookies.sqlite), FireFox 3.0 and above
-#define HX_EXTERNAL_COOKIES_SF          0x000000010     // Safari
 
 /*
  * Forward declarations of some interfaces defined or used here-in.
@@ -177,45 +170,6 @@ DECLARE_INTERFACE_(IHXCookiesHelper, IUnknown)
     STDMETHOD(UnPack)		(THIS_
 				 IHXValues*	    pCookiesHeader,
 				 REF(IHXBuffer*)   pCookies) PURE;
-};
-
-/****************************************************************************
- * 
- *  Interface:
- *
- *	IHXCookies3
- *
- *  Purpose:
- *
- *	Interface the method SyncRMCookies from HXCookies
- *
- *  IID_IHXCookies3
- *
- *	{CBECD0D8-8F68-4f07-917C-B972E7FCF530}
- *
- */
-DEFINE_GUID(IID_IHXCookies3, 0xcbecd0d8, 0x8f68, 0x4f07, 0x91, 0x7c, 0xb9,
-				    0x72, 0xe7, 0xfc, 0xf5, 0x30);
-#undef  INTERFACE
-#define INTERFACE   IHXCookies3
-
-DECLARE_INTERFACE_(IHXCookies3, IUnknown)
-{
-    /*
-     * IUnknown methods
-     */
-    STDMETHOD(QueryInterface)	(THIS_
-				REFIID riid,
-				void** ppvObj) PURE;
-
-    STDMETHOD_(ULONG32,AddRef)	(THIS) PURE;
-
-    STDMETHOD_(ULONG32,Release)	(THIS) PURE;
-
-    /*
-     * IHXCookies3 methods
-     */
-    STDMETHOD(SyncRMCookies)	(THIS_ HXBOOL bSave) PURE;
 };
 
 #endif /* _IHXCOOKIES_H_ */

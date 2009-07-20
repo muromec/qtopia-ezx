@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cloak_common.cpp,v 1.14 2009/05/13 21:03:48 dcollins Exp $
+ * Source last modified: $Id: cloak_common.cpp,v 1.8 2005/07/23 01:58:27 darrick Exp $
  *
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  *
@@ -35,7 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "hlxclib/signal.h"
+#include <signal.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,13 +55,14 @@
 #include "debug.h"
 #include "client.h"
 #include "hxstrutl.h"
-#include "tsmap.h"
+#include "cloaked_guid_dict.h"
 #include "netbyte.h"
 #include "servbuffer.h"
 #include "hxnet.h"
 #include "servsockimp.h"
+#include "servlbsock.h"
 #include "hxprot.h"
-#include "rtspserv.h"
+#include "rtspprot.h"
 #include "http_demux.h"
 #include "cloak_common.h"
 #include "rn1cloak.h"
@@ -69,23 +70,23 @@
 
 CloakConn::CloakConn(void) 
 : m_nRefCount(0)
-, m_pRTSPServProt(NULL)
+, m_pRTSPProt(NULL)
 , m_pRTSPSvrProt(NULL)
 , m_pRefSock(NULL)
 , m_pGETHandler(NULL) 
 , m_ulCloakMode(0)
-, m_nProcNum(0)
+, m_iProcNum(0)
 {
-    m_pPOSTHandlersLock = HXCreateMutex();
+    m_pMutex = HXCreateMutex();
 }
 
 CloakConn::~CloakConn(void)
 {
-    HX_RELEASE(m_pRTSPServProt);
+    HX_RELEASE(m_pRTSPProt);
     HX_RELEASE(m_pGETHandler);
     HX_RELEASE(m_pRTSPSvrProt);
     HX_RELEASE(m_pRefSock);
-    HXDestroyMutex(m_pPOSTHandlersLock);
+    HXDestroyMutex(m_pMutex);
 }
 
 STDMETHODIMP
@@ -128,7 +129,7 @@ CloakConn::Release(void)
 STDMETHODIMP_(HXSockFamily)
 CloakConn::GetFamily(void)
 {
-    HX_ASSERT(m_pRTSPServProt);
+    HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return HX_SOCK_FAMILY_CLOAK;
 }
@@ -136,7 +137,7 @@ CloakConn::GetFamily(void)
 STDMETHODIMP_(HXSockType)
 CloakConn::GetType(void)
 {
-    HX_ASSERT(m_pRTSPServProt);
+    HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return m_pRefSock->GetType();
 }
@@ -144,7 +145,7 @@ CloakConn::GetType(void)
 STDMETHODIMP_(HXSockProtocol)
 CloakConn::GetProtocol(void)
 {
-    HX_ASSERT(m_pRTSPServProt);
+    HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return m_pRefSock->GetProtocol();
 }
@@ -173,7 +174,7 @@ CloakConn::SetAccessControl(IHXSocketAccessControl* pControl)
 STDMETHODIMP
 CloakConn::CreateSockAddr(IHXSockAddr** ppAddr)
 {
-    //HX_ASSERT(m_pRTSPServProt);
+    //HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return m_pRefSock->CreateSockAddr(ppAddr);
 }
@@ -199,7 +200,7 @@ CloakConn::ConnectToAny(UINT32 nVecLen, IHXSockAddr** ppAddrVec)
 STDMETHODIMP
 CloakConn::GetLocalAddr(IHXSockAddr** ppAddr)
 {
-    HX_ASSERT(m_pRTSPServProt);
+    HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return m_pRefSock->GetLocalAddr(ppAddr);
 }
@@ -207,7 +208,7 @@ CloakConn::GetLocalAddr(IHXSockAddr** ppAddr)
 STDMETHODIMP
 CloakConn::GetPeerAddr(IHXSockAddr** ppAddr)
 {
-    HX_ASSERT(m_pRTSPServProt);
+    HX_ASSERT(m_pRTSPProt);
     HX_ASSERT(m_pRefSock);
     return m_pRefSock->GetPeerAddr(ppAddr);
 }
@@ -369,7 +370,9 @@ CloakConn::WriteToV(UINT32 nVecLen, IHXBuffer** ppVec, IHXSockAddr* pAddr)
 void 
 CloakConn::SetCloakMode(UINT32 ulMode)
 {
+    HXMutexLock(m_pMutex);
     m_ulCloakMode = ulMode;
+    HXMutexUnlock(m_pMutex);
 }
 
 UINT32
@@ -381,55 +384,68 @@ CloakConn::GetCloakMode()
 HX_RESULT
 CloakConn::GetGETHandler(CBaseCloakGETHandler*& pGETHandler)
 {
-    HX_ADDREF(m_pGETHandler);
+    HXMutexLock(m_pMutex);
+
     pGETHandler = m_pGETHandler;
+    HX_ADDREF(pGETHandler);
+
+    HXMutexUnlock(m_pMutex);
     return HXR_OK;
 }
 
 HX_RESULT
 CloakConn::SetGETHandler(CBaseCloakGETHandler* pGETHandler)
 {
-    HX_ADDREF(pGETHandler);
-    HX_RELEASE(m_pGETHandler);
+    HXMutexLock(m_pMutex);
+
+    if (m_pGETHandler)
+    {
+        m_pGETHandler->Release();
+    }
+
     m_pGETHandler = pGETHandler;
+    HX_ADDREF(pGETHandler);
+
+    HXMutexUnlock(m_pMutex);
+
     return HXR_OK;
 }
 
 UINT32
 CloakConn::GetPOSTHandlerCount()
 {
-    HXMutexLock(m_pPOSTHandlersLock, TRUE);
+    HXMutexLock(m_pMutex);
     UINT32 ulCount = m_POSTHandlers.GetCount();
-    HXMutexUnlock(m_pPOSTHandlersLock);
+    HXMutexUnlock(m_pMutex);
     return ulCount;
 }
 
 HX_RESULT
 CloakConn::GetFirstPOSTHandler(CBaseCloakPOSTHandler*& pPOSTHandler)
 {
-    HXMutexLock(m_pPOSTHandlersLock, TRUE);
+    HXMutexLock(m_pMutex);
     pPOSTHandler = (CBaseCloakPOSTHandler *)m_POSTHandlers.GetHead();
     if (pPOSTHandler)
     {
         pPOSTHandler->AddRef();
     }
-    HXMutexUnlock(m_pPOSTHandlersLock);
+    HXMutexUnlock(m_pMutex);
     return HXR_OK;
 }
 
 HX_RESULT
 CloakConn::AddPOSTHandler(CBaseCloakPOSTHandler* pPOSTHandler)
 {
-    HXMutexLock(m_pPOSTHandlersLock, TRUE);
+    HXMutexLock(m_pMutex);
     m_POSTHandlers.AddTail((void *)pPOSTHandler);
-    HXMutexUnlock(m_pPOSTHandlersLock);
+    HXMutexUnlock(m_pMutex);
     return HXR_OK;
 }
 
 HX_RESULT
 CloakConn::RemovePOSTHandler(CBaseCloakPOSTHandler* pPOSTHandler)
 {
-    HXMutexLock(m_pPOSTHandlersLock, TRUE);
+    HXMutexLock(m_pMutex);
     LISTPOSITION pos = m_POSTHandlers.GetHeadPosition();
     if (pos)
     {
@@ -441,7 +457,7 @@ CloakConn::RemovePOSTHandler(CBaseCloakPOSTHandler* pPOSTHandler)
             {
                 m_POSTHandlers.RemoveAt(pos);
                 pTmp->Release();
-                HXMutexUnlock(m_pPOSTHandlersLock);
+                HXMutexUnlock(m_pMutex);
                 return HXR_OK;
             }
             if (pos)
@@ -450,14 +466,14 @@ CloakConn::RemovePOSTHandler(CBaseCloakPOSTHandler* pPOSTHandler)
             }
         }
     }
-    HXMutexUnlock(m_pPOSTHandlersLock);
+    HXMutexUnlock(m_pMutex);
     return HXR_FAIL;
 }
 
 HX_RESULT
 CloakConn::CloseAllPOSTHandlers()
 {
-    HXMutexLock(m_pPOSTHandlersLock, TRUE);
+    HXMutexLock(m_pMutex);
     LISTPOSITION pos = m_POSTHandlers.GetHeadPosition();
     CBaseCloakPOSTHandler* pPOSTHandler;
     if (pos)
@@ -473,7 +489,7 @@ CloakConn::CloseAllPOSTHandlers()
             pPOSTHandler->BeginClose();
         }
     }
-    HXMutexUnlock(m_pPOSTHandlersLock);
+    HXMutexUnlock(m_pMutex);
 
     return HXR_OK;
 }
@@ -482,43 +498,37 @@ void
 CloakConn::SetRefSocket(IHXSocket* pSock)
 {
     // Set reference socket for retrieving addresses, family info, etc..
-    HX_ADDREF(pSock);
-    IHXSocket* pOldSock = m_pRefSock;
+    HXMutexLock(m_pMutex);
+
+    HX_RELEASE(m_pRefSock);
     m_pRefSock = pSock;
-    HX_RELEASE(pOldSock);
+    HX_ADDREF(m_pRefSock);
+
+    HXMutexUnlock(m_pMutex);
 }
 
 void 
 CloakConn::OnGETRequest(CBaseCloakGETHandler* pGETHandler)
 {
     SetGETHandler(pGETHandler);
-    HX_ASSERT(!m_pRTSPServProt);
-    RTSPServerProtocol* pNewRTSPServProt = new RTSPServerProtocol();
-    pNewRTSPServProt->AddRef();
-    m_pRTSPServProt = pNewRTSPServProt;
+    HX_ASSERT(!m_pRTSPProt);
+    m_pRTSPProt = new RTSPProtocol();
+    m_pRTSPProt->AddRef();
 }
 
 void 
 CloakConn::GETChannelReady(Process* pProc)
 {
-    HX_ASSERT(m_pRTSPServProt);
-    if (m_pRTSPServProt)
-    {
-        m_pRTSPServProt->init(pProc, this);
-        m_pRTSPServProt->client()->m_bIsCloak = TRUE;
-    }
+    m_pRTSPProt->init(pProc, this);
+    m_pRTSPProt->client()->is_cloak = TRUE;
 }
 
 void
 CloakConn::OnGETWriteReady()
 {
-    HX_ASSERT(m_pRTSPServProt);
-    if (m_pRTSPServProt)
-    {
-        //XXXDPL - We're passing events straight through to RTSP stack! 
-        //Should we do event filtering here?
-        m_pRTSPSvrProt->EventPending(HX_SOCK_EVENT_WRITE, HXR_OK);
-    }
+    //XXXDPL - We're passing events straight through to RTSP stack! 
+    //Should we do event filtering here?
+    m_pRTSPSvrProt->EventPending(HX_SOCK_EVENT_WRITE, HXR_OK);
 }
 
 void

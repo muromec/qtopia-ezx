@@ -91,11 +91,6 @@ public:
 
     // CHXSingleBufferFileObject methods
     static HX_RESULT CreateFileObject(IHXBuffer* pBuffer, REF(IHXFileObject*) rpFileObject);
-
-    static HX_RESULT CreateFileObjectWithRequest(IHXBuffer* pBuffer, const char* pszURL, REF(IHXFileObject*) rpFileObject,
-						   IUnknown* pContext);
-    static HX_RESULT CreateLocalFileObject(const CHXString& pszURL, REF(IHXFileObject*) rpFileObject, IUnknown* pContext);
-
 protected:
     INT32            m_lRefCount;
     IHXBuffer*       m_pBuffer;

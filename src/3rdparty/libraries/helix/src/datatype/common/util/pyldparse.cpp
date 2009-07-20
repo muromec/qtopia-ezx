@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: pyldparse.cpp,v 1.5 2008/01/24 12:20:56 vkathuria Exp $
+ * Source last modified: $Id: pyldparse.cpp,v 1.3 2004/07/09 18:31:05 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -50,8 +50,8 @@
 #include "pyldparse.h"
 #include "char_stack.h"
 
-#include "hlxclib/stdlib.h"
-#include "hlxclib/string.h"
+#include <stdlib.h>
+#include <string.h>
 
 CPayloadParamParser::CPayloadParamParser() :
     m_pCCF(0),

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: flob_wrap_callbacks.h,v 1.3 2008/03/20 01:13:32 dcollins Exp $ 
+ * Source last modified: $Id: flob_wrap_callbacks.h,v 1.2 2003/01/23 23:42:56 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -374,15 +374,13 @@ class DoesExistCallback : public SimpleCallback
 public:
     DoesExistCallback(FileObjectWrapper* fow,
 		      const char* pPath) :
-	m_fow(fow)
+	m_fow(fow), m_pPath(pPath)
     {
 	m_fow->AddRef();
-        m_pPath = new_string(pPath);
     }
     ~DoesExistCallback()
     {
 	m_fow->Release();
-        HX_VECTOR_DELETE(m_pPath);
     }
     void func(Process*);
 

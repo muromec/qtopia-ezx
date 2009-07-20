@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: sinkctl.cpp,v 1.24 2007/10/22 21:08:20 ehyche Exp $
+ * Source last modified: $Id: sinkctl.cpp,v 1.22 2005/12/02 21:48:48 cdunn Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -172,7 +172,6 @@ CHXAdviseSinkControl::PlayerAdviseSink::~PlayerAdviseSink()
 CHXAdviseSinkControl::CHXAdviseSinkControl()
     : m_lRefCount(0) 
     , m_pInterruptState(NULL)
-    , m_pScheduler(NULL)
     , m_lPlaybackVelocity(HX_PLAYBACK_VELOCITY_NORMAL)
     , m_bKeyFrameMode(FALSE)
     , m_pOrigTime(NULL)
@@ -542,18 +541,6 @@ STDMETHODIMP_(UINT32) CHXAdviseSinkControl::GetWarpedTime(UINT32 ulOrigTime)
     return ulRet;
 }
 
-STDMETHODIMP CHXAdviseSinkControl::UpdateVelocity(INT32 lVelocity)
-{
-    CallAllAdviseSinks(HX_ADVISE_SINK_FLAG_UPDATEVELOCITY, (UINT32) lVelocity, 0, NULL);
-    return HXR_OK;
-}
-
-STDMETHODIMP CHXAdviseSinkControl::UpdateKeyFrameMode(HXBOOL bKeyFrameMode)
-{
-    CallAllAdviseSinks(HX_ADVISE_SINK_FLAG_UPDATEKEYFRAMEMODE, (UINT32) bKeyFrameMode, 0, NULL);
-    return HXR_OK;
-}
-
 // *** IUnknown methods ***
 
 /////////////////////////////////////////////////////////////////////////
@@ -572,7 +559,6 @@ STDMETHODIMP CHXAdviseSinkControl::QueryInterface(REFIID riid, void** ppvObj)
 #if defined(HELIX_FEATURE_PLAYBACK_VELOCITY)
             { GET_IIDHANDLE(IID_IHXPlaybackVelocity), (IHXPlaybackVelocity*)this },
             { GET_IIDHANDLE(IID_IHXPlaybackVelocityTimeRegulator), (IHXPlaybackVelocityTimeRegulator*)this },
-            { GET_IIDHANDLE(IID_IHXPlaybackVelocityResponse), (IHXPlaybackVelocityResponse*) this },
 #endif /* #if defined(HELIX_FEATURE_PLAYBACK_VELOCITY) */
             { GET_IIDHANDLE(IID_IUnknown), (IUnknown*)(IHXClientAdviseSink*)this },
         };
@@ -972,23 +958,6 @@ void CHXAdviseSinkControl::IssueAdviseSinkCall(IHXClientAdviseSink* pSink, UINT3
                 break;
             case HX_ADVISE_SINK_FLAG_ONCONTACTING:
                 pSink->OnContacting((const char*) pszArg3);
-                break;
-            case HX_ADVISE_SINK_FLAG_UPDATEVELOCITY:
-            case HX_ADVISE_SINK_FLAG_UPDATEKEYFRAMEMODE:
-                IHXPlaybackVelocityResponse* pResp = NULL;
-                pSink->QueryInterface(IID_IHXPlaybackVelocityResponse, (void**) &pResp);
-                if (pResp)
-                {
-                    if (ulType == HX_ADVISE_SINK_FLAG_UPDATEVELOCITY)
-                    {
-                        pResp->UpdateVelocity((INT32) ulArg1);
-                    }
-                    else
-                    {
-                        pResp->UpdateKeyFrameMode((HXBOOL) ulArg1);
-                    }
-                }
-                HX_RELEASE(pResp);
                 break;
         }
     }

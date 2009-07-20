@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxthreadedsocket.h,v 1.10 2008/12/02 13:50:21 gahluwalia Exp $ 
+ * Source last modified: $Id: hxthreadedsocket.h,v 1.8 2006/02/16 23:07:05 ping Exp $ 
  *   
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -69,9 +69,6 @@ class HXThreadedSocket
 , public IHXSocketResponse
 , public IHXCallback
 , public IHXInterruptSafe
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-, public IHXSecureSocket
-#endif
 {
 public:
     DECLARE_UNKNOWN(HXThreadedSocket)
@@ -81,14 +78,6 @@ public:
     HX_RESULT Create(IUnknown* pContext,
                      IHXSocket* pActualSock, 
                      IHXSocket*& pThreadedSock);
-
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-    static 
-    HX_RESULT CreateSecureSocket(IUnknown* pContext,
-                     IHXSecureSocket* pActualSock, 
-                     IHXSecureSocket*& pThreadedSock);
-    HX_RESULT DoConstructInit(IUnknown* pContext, IHXSecureSocket* pSock);
-#endif
 
 // IHXSocket
     STDMETHOD_(HXSockFamily,GetFamily)      (THIS);
@@ -139,15 +128,6 @@ public:
     STDMETHOD(WriteToV)             (THIS_ UINT32 nVecLen,
                                            IHXBuffer** ppBufVec,
                                            IHXSockAddr* pAddr);
-
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-//IHXSecureSocket
-    STDMETHOD(SetClientCertificate)(THIS_ IHXList* pCertChain, IHXBuffer* pPrvKey);
-    STDMETHOD(InitSSL)(THIS_ IHXCertificateManager* pContext);
-
-    STDMETHOD(SetSessionID)(THIS_ IHXBuffer* );
-    STDMETHOD(GetSessionID)(THIS_ IHXBuffer**);
-#endif
 
 // IHXMulticastSocket
     STDMETHOD(JoinGroup)            (THIS_ IHXSockAddr* pGroupAddr,
@@ -225,9 +205,7 @@ private:
     HXBOOL                  m_isResponseSafe;
 
     IHXMutex*               m_pSchedulerMutex;
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-    IHXSecureSocket*    m_pSecureSock;
-#endif
+
 };
 #endif //HXTHREADEDSOCKET_H__
 

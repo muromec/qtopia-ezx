@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: clientpq.cpp,v 1.12 2009/02/20 22:43:58 rkondru Exp $
+ * Source last modified: $Id: clientpq.cpp,v 1.8 2006/02/16 23:07:05 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,53 +57,32 @@
 #include "pckunpck.h"
 #include "clientpq.h"
 #include "hxthread.h"
-#include "hxthreadyield.h"
+
 #include "hxheap.h"
 #ifdef _DEBUG
 #undef HX_THIS_FILE		
 static const char HX_THIS_FILE[] = __FILE__;
 #endif
 
-
-ClientPQ::ClientPQ(IUnknown* pContext, CHXID* pIds, IHXMutex* pMutex)
+ClientPQ::ClientPQ(IUnknown* pContext, CHXID* pIds)
     : PQ(pIds),
       m_pFreeList(NULL),
       m_uNumFreeNodes(0),
       m_uNumNodesToCache(DEFAULT_NODE_CACHE_SIZE),
       m_pMutex(NULL)
 {
-    HX_ASSERT(((pIds && pMutex) || (!pIds && !pMutex)) && "Creating thread-unsafe ClientPQ");
-
-    if(pMutex)
-    {
-        // use externally provided mutex
-        m_pMutex = pMutex;
-        m_pMutex->AddRef();
-    }
-    else
-    {
-        // use private mutex
-        CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pMutex, pContext);  
-    }
+    CreateInstanceCCF(CLSID_IHXMutex, (void**)&m_pMutex, pContext);  
 }
 
 
 ClientPQ::~ClientPQ()
 {
-    // protect cleanup
-    m_pMutex->Lock();
-
-    // destruct base object under thread-safe lock
-    PQ::destruct();
-
     while(m_pFreeList)
     {
 	PQElem* pElem = m_pFreeList;
 	m_pFreeList = m_pFreeList->m_pNext;
 	delete pElem;
     }
-
-    m_pMutex->Unlock();
     HX_RELEASE(m_pMutex);
 }
 
@@ -135,7 +114,6 @@ int ClientPQ::execute(Timeval now)
         if (!pElemNext)
             break;
         pElem = pElemNext; 
-        YieldIfRequired(&m_lastTime);		
     }
 
     m_pMutex->Unlock();

@@ -51,8 +51,6 @@
 #include "rule2flg.h" // /For RuleToFlagMap (ASM-rule-to-flag map)
 #include "mp4tpyld.h"
 #include "concatpyld.h"
-#include "pcmpyld.h"
-#include "mp3pyld.h"
 #include "h264packetizer.h"
 
 #include "safestring.h"
@@ -217,40 +215,6 @@ HX_RESULT CQTPacketizerFactory::Construct(IHXPayloadFormatObject* &pPacketizer,
     switch (pTrackManager->GetFType())
     {
     case QT_FTYPE_QT:
-	switch (pTrackInfo->GetTrackType())
-	{
-        case QT_soun:
-            if ((HXR_OK == retVal) && !pPacketizer)
-            {
-                const char* pMimeType = pTrackInfo->GetMimeType();
-                if (pMimeType &&
-                    (!strcasecmp(pMimeType, "audio/X-HX-TWOS") ||
-                    !strcasecmp(pMimeType, "audio/X-HX-SOWT")||
-                    !strcasecmp(pMimeType, "audio/PCMA")||
-                    !strcasecmp(pMimeType, "audio/PCMU")))
-                {
-                    retVal = 
-                        HXConcatenatePCMPayloadFormat::CreateInstance(pPacketizer);
-                }
-                else if(!strcasecmp(pMimeType, "audio/MPEG-ELEMENTARY"))
-                {
-                    retVal = 
-                        HXConcatenateMP3PayloadFormat::CreateInstance(pPacketizer);                
-                }
-                else if (pMimeType &&
-		    (!strcasecmp(pMimeType, "audio/X-RN-3GPP-AMR") ||
-		     !strcasecmp(pMimeType, "audio/X-RN-3GPP-AMR-WB")))
-                {
-                    retVal = 
-		        HXConcatenatePayloadFormat::CreateInstance(pPacketizer);
-                }
-                else
-                {
-                    retVal = HXR_NO_DATA;
-                }
-            }
-	    break;
-	}
 	break;
     case QT_FTYPE_MP4:
 	switch (pTrackInfo->GetTrackType())

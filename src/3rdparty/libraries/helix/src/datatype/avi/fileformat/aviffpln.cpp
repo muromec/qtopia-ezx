@@ -18,7 +18,7 @@
  * contents of the file. 
  *   
  * Alternatively, the contents of this file may be used under the 
- * terms of the GNU General Public License Version 2 (the 
+ * terms of the GNU General Public License Version 2 or later (the 
  * "GPL") in which case the provisions of the GPL are applicable 
  * instead of those above. If you wish to allow use of your version of 
  * this file only under the terms of the GPL, and not to allow others  
@@ -72,7 +72,7 @@
 
 #ifdef _DEBUG
 #undef HX_THIS_FILE
-static const char HX_THIS_FILE[] = __FILE__;
+static char HX_THIS_FILE[] = __FILE__;
 #endif // _DEBUG
 
 #ifndef BI_RGB
@@ -125,6 +125,7 @@ static const char HX_THIS_FILE[] = __FILE__;
 #define LE16_TO_HOST(x) (x)
 #endif // NET_ENDIAN
 
+INT32 g_nRefCount_avif;
 
 /****************************************************************************
  *
@@ -171,16 +172,21 @@ HX_RESULT STDAPICALLTYPE CAVIFileFormat::HXCreateInstance
  *  then the pluginhandler can unload the DLL
  *
  */
+HX_RESULT CAVIFileFormat::CanUnload(void)
+{
+    HX_ASSERT(g_nRefCount_avif >= 0);
+    return(g_nRefCount_avif > 0 ? HXR_FAIL : HXR_OK);
+}
 
-const char* const CAVIFileFormat::zm_pDescription      = "RealNetworks AVI File Format Plugin";
-const char* const CAVIFileFormat::zm_pCopyright        = HXVER_COPYRIGHT;
-const char* const CAVIFileFormat::zm_pMoreInfoURL      = "http://www.real.com";
+const char* CAVIFileFormat::zm_pDescription      = "RealNetworks AVI File Format Plugin";
+const char* CAVIFileFormat::zm_pCopyright        = HXVER_COPYRIGHT;
+const char* CAVIFileFormat::zm_pMoreInfoURL      = "http://www.real.com";
 
-const char* const CAVIFileFormat::zm_pFileMimeTypes[]  = {"application/x-pn-avi-plugin", "video/x-msvideo", "video/avi", "video/msvideo", NULL};
-const char* const CAVIFileFormat::zm_pFileExtensions[] = {"avi", "divx", NULL};
-const char* const CAVIFileFormat::zm_pFileOpenNames[]  = {"AVI Files (*.avi)",
+const char* CAVIFileFormat::zm_pFileMimeTypes[]  = {"application/x-pn-avi-plugin", NULL};
+const char* CAVIFileFormat::zm_pFileExtensions[] = {"avi", NULL};
+const char* CAVIFileFormat::zm_pFileOpenNames[]  = {"AVI Files (*.avi)",
                                                     "DivX Files (*.divx)", NULL};
-const char* const CAVIFileFormat::zm_pPacketFormats[]  = {"rdt", "rtp", NULL};
+const char* CAVIFileFormat::zm_pPacketFormats[]  = {"rdt", "rtp", NULL};
 
 CAVIFileFormat::CAVIFileFormat()
     : m_bSeekPriming(FALSE)
@@ -202,6 +208,7 @@ CAVIFileFormat::CAVIFileFormat()
     , m_pszCopyright(NULL)
     , m_state(AS_InitPending)
 {
+    g_nRefCount_avif++; // DLL Ref Counting
 
 
 	// Header fields set to 0
@@ -295,9 +302,9 @@ STDMETHODIMP CAVIFileFormat::GetPluginInfo
 {
     bLoadMultiple = TRUE;   // Must be true for file formats.
 
-    pDescription    = (const char*) zm_pDescription;
-    pCopyright      = (const char*) zm_pCopyright;
-    pMoreInfoURL    = (const char*) zm_pMoreInfoURL;
+    pDescription    = zm_pDescription;
+    pCopyright      = zm_pCopyright;
+    pMoreInfoURL    = zm_pMoreInfoURL;
     ulVersionNumber = TARVER_ULONG32_VERSION;
 
     return HXR_OK;
@@ -307,6 +314,7 @@ STDMETHODIMP CAVIFileFormat::GetPluginInfo
 CAVIFileFormat::~CAVIFileFormat()
 {
     Close();
+    g_nRefCount_avif--; // DLL Ref Counting
     return;
 }
 
@@ -326,9 +334,9 @@ STDMETHODIMP CAVIFileFormat::GetFileFormatInfo
     REF(const char**) /*OUT*/ pFileOpenNames
 )
 {
-    pFileMimeTypes  = (const char**) zm_pFileMimeTypes;
-    pFileExtensions = (const char**) zm_pFileExtensions;
-    pFileOpenNames  = (const char**) zm_pFileOpenNames;
+    pFileMimeTypes  = zm_pFileMimeTypes;
+    pFileExtensions = zm_pFileExtensions;
+    pFileOpenNames  = zm_pFileOpenNames;
 
     return HXR_OK;
 }
@@ -438,8 +446,6 @@ STDMETHODIMP CAVIFileFormat::InitFileFormat
     IHXFileObject*     /*IN*/  pFile
 )
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIFileFormat[%p]::InitFileFormat() pRequest=%p pFormatResponse=%p pFile=%p", this, pRequest, pFormatResponse, pFile);
-
     m_pRequest    = pRequest;
     m_pFFResponse = pFormatResponse;
     m_pFile       = pFile;
@@ -479,7 +485,6 @@ STDMETHODIMP CAVIFileFormat::InitFileFormat
 
 STDMETHODIMP CAVIFileFormat::Close()
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIFileFormat[%p]::Close()",this);
     m_state = AS_Closed;
 
     HX_VECTOR_DELETE(m_pszTitle);
@@ -560,8 +565,6 @@ STDMETHODIMP CAVIFileFormat::GetFileHeader()
 STDMETHODIMP CAVIFileFormat::GetStreamHeader(UINT16 usStream)
 {
 
-    HXLOGL3(HXLOG_AVIX,"CAVIFileFormat[%p]::GetStreamHeader() on stream %i", this, usStream);
-
     HX_ASSERT(usStream <= m_header.ulStreams);
 
     // Note request:
@@ -635,8 +638,7 @@ STDMETHODIMP CAVIFileFormat::GetStreamHeader(UINT16 usStream)
 
 STDMETHODIMP CAVIFileFormat::GetPacket(UINT16 unStreamNumber)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::GetPacket() on stream %i", this, unStreamNumber);
-
+    HX_TRACE("CAVIFileFormat::GetPacket() on stream %i\n", unStreamNumber);
     HX_ASSERT(m_state >= AS_GetIndexFilePending);
     //HX_ASSERT(!m_bSeekPriming);
     if (m_state <= AS_IndexFileInit)
@@ -690,7 +692,7 @@ STDMETHODIMP CAVIFileFormat::GetPacket(UINT16 unStreamNumber)
  */
 STDMETHODIMP CAVIFileFormat::Seek(ULONG32 ulOffset)
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIFileFormat[%p]::Seek()\t%lu", this, ulOffset);
+    HX_TRACE("CAVIFileFormat::Seek()\t%lu\n", ulOffset);
 
     // We should handle seeks past end of stream by streaming all data
     // past and including the last keyframe
@@ -728,7 +730,7 @@ CAVIFileFormat::GetStatus
     REF(UINT16) ulPercentDone
 )
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::GetStatus() m_state=%d", this, m_state);
+    //HX_TRACE("CAVIFileFormat::GetStatus()\n");
     HX_RESULT hResult = HXR_OK;
 
 #if 0
@@ -779,8 +781,8 @@ CAVIFileFormat::GetSupportedPacketFormats
     REF(const char**) /*OUT*/ pPacketFormats
 )
 {
-    HXLOGL2(HXLOG_AVIX,"CAVIFileFormat[%p]::GetSupportedPacketFormats()", this);
-    pPacketFormats = (const char**) zm_pPacketFormats;
+    //HX_TRACE("CAVIFileFormat::GetSupportedPacketFormats()\n");
+    pPacketFormats = zm_pPacketFormats;
     return HXR_OK;
 }
 
@@ -797,7 +799,7 @@ CAVIFileFormat::SetPacketFormat
 )
 {
     #if 0
-    HXLOGL2(HXLOG_AVIX,"CAVIFileFormatp[%p]::SetPacketFormat()", this);
+    //HX_TRACE("CAVIFileFormat::SetPacketFormat()\n");
     if ( strcasecmp(pPacketFormat, "rtp") == 0 )
     {
         m_packetFormat = PFMT_RTP;
@@ -814,7 +816,7 @@ CAVIFileFormat::SetPacketFormat
 STDMETHODIMP
 CAVIFileFormat::RIFFOpenDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFOpenDone(%lx)",this,status);
+    //PN_TRACE("CAVIFileFormat::RIFFOpenDone(%lx)\n", status);
     HX_ASSERT(SUCCEEDED(status));
 
     if ( m_state != AS_OpenPending )
@@ -831,7 +833,7 @@ CAVIFileFormat::RIFFOpenDone(HX_RESULT status)
     }
 
     // Verify this is indeed an AVI file:
-    if (m_pGeneralReader->FileSubtype() != m_pGeneralReader->GetLong((UCHAR*) "AVI "))
+    if (m_pGeneralReader->FileSubtype() != HX_MAKE4CC('A', 'V', 'I', ' '))
     {
         m_pErrorMessages->Report(HXLOG_ERR, HXR_INVALID_FILE,
                                  0, (const char*) "The stream URL is not a valid AVI",
@@ -847,7 +849,7 @@ CAVIFileFormat::RIFFOpenDone(HX_RESULT status)
 STDMETHODIMP
 CAVIFileFormat::RIFFCloseDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFCloseDone(%lx)",this, status);
+    //HX_TRACE("CAVIFileFormat::RIFFCloseDone(%lx)\n", status);
     HX_ASSERT(SUCCEEDED(status));
     HX_ASSERT(m_state >= AS_GetIndexFilePending);
 
@@ -857,8 +859,8 @@ CAVIFileFormat::RIFFCloseDone(HX_RESULT status)
 STDMETHODIMP
 CAVIFileFormat::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFFindChunkDone(%lx, %lu)\tstate=%lu",
-             this, status, len, m_state);
+    //HX_TRACE("CAVIFileFormat::RIFFFindChunkDone(""%lx, %lu)\n\tstate=%lu\n",
+    //         status, len, m_state);
 
     switch (m_state)
     {
@@ -972,7 +974,7 @@ CAVIFileFormat::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
                         // We note the MOVI offset:
                         m_state = AS_INFOAscend;
                         m_ulMOVIOffset = m_pGeneralReader->GetOffset() - 4;
-                        HXLOGL4(HXLOG_AVIX,"movi offset:%lx", m_ulMOVIOffset);
+                        //HX_TRACE("movi offset:%lx\n", m_ulMOVIOffset);
                         m_pGeneralReader->Ascend();
                         break;
                     case AVI_INFO_CHUNK:
@@ -1022,7 +1024,7 @@ CAVIFileFormat::RIFFFindChunkDone(HX_RESULT status, UINT32 len)
 STDMETHODIMP
 CAVIFileFormat::RIFFDescendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFDescendDone(%lx)\tstate=%lu", this, status, m_state);
+    //HX_TRACE("CAVIFileFormat::RIFFDescendDone(%lx)\n\tstate=%lu\n", status, m_state);
     HX_ASSERT(SUCCEEDED(status));
 
     switch ( m_state )
@@ -1087,7 +1089,7 @@ CAVIFileFormat::RIFFDescendDone(HX_RESULT status)
 STDMETHODIMP
 CAVIFileFormat::RIFFAscendDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFAscendDone(%lx)\tstate=%lu", this, status, m_state);
+    //HX_TRACE("CAVIFileFormat::RIFFAscendDone(%lx)\n\tstate=%lu\n", status, m_state);
     HX_ASSERT(SUCCEEDED(status));
 
     switch ( m_state )
@@ -1140,7 +1142,7 @@ CAVIFileFormat::RIFFAscendDone(HX_RESULT status)
 STDMETHODIMP
 CAVIFileFormat::RIFFReadDone(HX_RESULT status, IHXBuffer* pBuffer)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFReadDone(%lx)\tstate=%lu", this, status, m_state);
+    //HX_TRACE("CAVIFileFormat::RIFFReadDone(%lx)\n\tstate=%lu\n", status, m_state);
     HX_ASSERT(SUCCEEDED(status));
 
     if (m_state < AS_AVIHRead ||
@@ -1235,7 +1237,7 @@ CAVIFileFormat::RIFFReadDone(HX_RESULT status, IHXBuffer* pBuffer)
 
 void CAVIFileFormat::SetInfo(IHXBuffer* pBuffer, UINT32 ulChunkType)
 {
-    HXLOGL3(HXLOG_AVIX,"CAVIFileFormat[%p]::SetInfo()", this, m_state);
+    //HX_TRACE("CAVIFileFormat::SetInfo()\n", m_state);
     if (!pBuffer)
     {
         HX_ASSERT(FALSE);
@@ -1250,19 +1252,19 @@ void CAVIFileFormat::SetInfo(IHXBuffer* pBuffer, UINT32 ulChunkType)
     switch (ulChunkType)
     {
         case AVI_TITLE_CHUNK:
-            m_pszTitle = new char[len+1];
+            m_pszTitle = new CHAR[len+1];
             memset(m_pszTitle, len+1, 0);
             strcpy(m_pszTitle, (const char*)buf);
             break;
 
         case AVI_AUTHOR_CHUNK:
-            m_pszAuthor = new char[len+1];
+            m_pszAuthor = new CHAR[len+1];
             memset(m_pszAuthor, len+1, 0);
             strcpy(m_pszAuthor, (const char*)buf);
             break;
 
         case AVI_COPYRIGHT_CHUNK:
-            m_pszCopyright = new char[len+1];
+            m_pszCopyright = new CHAR[len+1];
             memset(m_pszCopyright, len+1, 0);
             strcpy(m_pszCopyright, (const char*)buf);
             break;
@@ -1273,7 +1275,7 @@ void CAVIFileFormat::SetInfo(IHXBuffer* pBuffer, UINT32 ulChunkType)
 
 HX_RESULT CAVIFileFormat::SetHeader(IHXBuffer* pBuffer)
 {
-    HXLOGL3(HXLOG_AVIX,"CAVIFileFormat[%p]::SetHeader\tstate=%lu", this, m_state);
+    //HX_TRACE("CAVIFileFormat::SetHeader\n\tstate=%lu\n", m_state);
     HX_ASSERT_VALID_PTR(pBuffer);
 
     UINT32 len = pBuffer->GetSize();
@@ -1308,7 +1310,7 @@ HX_RESULT CAVIFileFormat::SetHeader(IHXBuffer* pBuffer)
 STDMETHODIMP
 CAVIFileFormat::RIFFSeekDone(HX_RESULT status)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFSeekDone(%lx)\tstate=%lu", this,status, m_state);
+    //HX_TRACE("CAVIFileFormat::RIFFSeekDone(%lx)\n\tstate=%lu\n", status, m_state);
     HX_ASSERT(FALSE);
 
     return HXR_UNEXPECTED;
@@ -1319,8 +1321,8 @@ CAVIFileFormat::RIFFGetChunkDone(HX_RESULT status,
                                  UINT32 ulChunkType,
                                  IHXBuffer* pBuffer)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::RIFFGetChunkDone(%lx, %lx)\tstate=%lu",
-       this, status, ulChunkType, m_state);
+//    HX_TRACE("CAVIFileFormat::RIFFGetChunkDone(%lx, %lx)\n\tstate=%lu\n",
+//       status, ulChunkType, m_state);
 //    HX_ASSERT(FALSE);
 //    return HXR_OK;
 
@@ -1351,7 +1353,7 @@ STDMETHODIMP
 CAVIFileFormat::FileObjectReady(HX_RESULT status,
                                 IUnknown* pObject)
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::FileObjectReady\tstate=%lu", this, m_state);
+    //HX_TRACE("CAVIFileFormat::FileObjectReady\n\tstate=%lu\n", m_state);
     HX_ASSERT(SUCCEEDED(status));
     HX_ASSERT_VALID_PTR(pObject);
     HX_ASSERT(m_state == AS_GetIndexFilePending || m_state == AS_GetStreamFilePending);
@@ -1496,7 +1498,7 @@ CAVIFileFormat::DirObjectReady(HX_RESULT status,
 
 void CAVIFileFormat::ScanState()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::ScanState\tstate=%lu", this, m_state);
+    //HX_TRACE("CAVIFileFormat::ScanState\n\tstate=%lu\n", m_state);
 
     if (m_state != AS_Ready)
     {
@@ -1559,7 +1561,13 @@ void CAVIFileFormat::ScanState()
                 IHXPacket* pPendingPacket = ((CAVIStream*) m_streamArray[lEarliestStream])->GetNextPacket();
                 HX_ASSERT(pPendingPacket);
 
-                HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::ScanState\tPacketReady, stream: %lu\ttimestamp: %lu", this, pPendingPacket->GetStreamNumber(), pPendingPacket->GetTime());
+                if (m_bSeekPriming)
+                {
+                    m_bSeekPriming = FALSE;
+                    HX_ASSERT(!pPendingPacket->GetASMRuleNumber());
+                }
+
+                HX_TRACE("CAVIFileFormat::ScanState\tPacketReady, stream: %lu\ttimestamp: %lu\n", pPendingPacket->GetStreamNumber(), pPendingPacket->GetTime());
                 // Warning: core call
                 m_pFFResponse->PacketReady(HXR_OK, pPendingPacket);
                 HX_RELEASE(pPendingPacket);
@@ -1684,7 +1692,6 @@ void CAVIFileFormat::ScanState()
     if (m_bSeekPriming)
     {
         m_pFFResponse->SeekDone(HXR_OK);
-        m_bSeekPriming = FALSE;
         return;
     }
 
@@ -1698,7 +1705,7 @@ void CAVIFileFormat::ScanState()
 
 IHXValues* CAVIFileFormat::GetHeader()
 {
-    HXLOGL3(HXLOG_AVIX,"CAVIFileFormat[%p]::GetHeader()", this,m_state);
+    //HX_TRACE("CAVIFileFormat::GetHeader()\n", m_state);
     HX_ASSERT(m_streamArray.GetSize() > 0);
     HX_ASSERT(m_header.ulStreams == m_streamArray.GetSize());
 
@@ -1727,27 +1734,27 @@ IHXValues* CAVIFileFormat::GetHeader()
         {
             pTitle->Set((const UCHAR*)m_pszTitle, strlen(m_pszTitle)+1);
             pHeader->SetPropertyBuffer("Title", pTitle);
-            HXLOGL3(HXLOG_AVIX,"\tTitle:\t%s", m_pszTitle);
+            //HX_TRACE("\tTitle:\t%s\n", m_pszTitle);
         }
 
         if ( m_pszAuthor )
         {
             pAuthor->Set((const UCHAR*)m_pszAuthor, strlen(m_pszAuthor)+1);
             pHeader->SetPropertyBuffer("Author", pAuthor);
-            HXLOGL3(HXLOG_AVIX,"\tAuthor:\t%s", m_pszAuthor);
+            //HX_TRACE("\tAuthor:\t%s\n", m_pszAuthor);
         }
 
         if ( m_pszCopyright )
         {
             pCopyright->Set((const UCHAR*)m_pszCopyright, strlen(m_pszCopyright)+1);
             pHeader->SetPropertyBuffer("Copyright", pCopyright);
-            HXLOGL3(HXLOG_AVIX,"\tCopyright:\t%s", m_pszCopyright);
+            //HX_TRACE("\tCopyright:\t%s\n", m_pszCopyright);
         }
     }
 
     // XXXKB Unconditionally enable recording?  Can this be improved??
     pHeader->SetPropertyULONG32("Flags", HX_SAVE_ENABLED);
-    HXLOGL3(HXLOG_AVIX,"\tFlags:\t%lu", HX_SAVE_ENABLED);
+    //HX_TRACE("\tFlags:\t%lu\n", HX_SAVE_ENABLED);
 
     // XXXKB Disable seeking if we have no index?
 
@@ -1761,7 +1768,7 @@ IHXValues* CAVIFileFormat::GetHeader()
 
 void CAVIFileFormat::IOEvent()
 {
-    HXLOGL4(HXLOG_AVIX,"CAVIFileFormat[%p]::IOEvent\tstate=%lu", this, m_state);
+    //HX_TRACE("CAVIFileFormat::IOEvent\n\tstate=%lu\n", m_state);
     HX_ASSERT(m_state == AS_IndexFileInit || m_state == AS_IOEvent ||
               m_state == AS_Closed);
 

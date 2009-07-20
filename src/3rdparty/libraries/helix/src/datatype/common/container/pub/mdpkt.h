@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mdpkt.h,v 1.8 2009/02/13 15:28:32 ehyche Exp $
+ * Source last modified: $Id: mdpkt.h,v 1.6 2005/04/27 13:57:38 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -251,8 +251,6 @@ public:
     {
 	return ((m_ulFlags & MDPCKT_USES_IHXBUFFER_FLAG) != 0);
     }
-
-    void* GetBuffer() { return m_pBuffer; }
 
     void SetSampleDesc(void* pSampleDesc)
     {

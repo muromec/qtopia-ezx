@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXBaseAudioSession.cpp,v 1.9 2008/10/19 05:13:09 gajia Exp $
+ * Source last modified: $Id: CHXBaseAudioSession.cpp,v 1.4 2007/05/02 16:25:47 praveenkumar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -425,10 +425,6 @@ TInt CHXBaseAudioSession::PauseAudio()
             // The device resets on pause.
             // Unplayed samples played count are claimed to be played.
             m_pStream->Stop();
-#ifdef HELIX_CONFIG_SYMBIAN_SAMPLESPLAYED
-            // updates latest samples stat
-            UpdateTimeSampleStats();
-#endif
         }
         else
         {
@@ -731,10 +727,6 @@ void CHXBaseAudioSession::Trans(CHXBaseAudioSession::State state)
 void CHXBaseAudioSession::InitPlayInitPendingState()
 {
     m_lastPlayError = KErrNone;
-#ifdef HELIX_CONFIG_SYMBIAN_SAMPLESPLAYED
-        RetrieveUnplayedSamplesFromPastQueue();
-        m_resetTriggerUnplayedCount = m_unplayedSampleCount;
-#endif
 }
 
 
@@ -744,6 +736,10 @@ void CHXBaseAudioSession::InitPausedState()
     if (m_deviceResetsOnPause)
     {
         PrepareForDeviceReset();
+#ifdef HELIX_CONFIG_SYMBIAN_SAMPLESPLAYED
+        RetrieveUnplayedSamplesFromPastQueue();
+        m_resetTriggerUnplayedCount = m_unplayedSampleCount;
+#endif
     }
 
 }
@@ -761,9 +757,9 @@ void CHXBaseAudioSession::RetrieveUnplayedSamplesFromPastQueue()
         //m_samplesWritten -= m_cbFrontBufferWritten/m_cbSample; 
         m_cbFrontBufferWritten = 0;
 
-        if(!m_pastBufferList.IsEmpty())
+        IHXBuffer* pBuf = (IHXBuffer*)m_pastBufferList.RemoveTail();
+        if( pBuf )
         {
-            IHXBuffer* pBuf = (IHXBuffer*)m_pastBufferList.RemoveTail();
             m_cbFrontBufferWritten =  pBuf->GetSize();
             m_cbPastBufferList -= m_cbFrontBufferWritten;
             m_bufferList.AddHead( pBuf );
@@ -773,7 +769,6 @@ void CHXBaseAudioSession::RetrieveUnplayedSamplesFromPastQueue()
         {
             //it might be an overkill, it should not reach here.
             //however, in case it happens, it is handled.
-            HXLOGL1(HXLOG_ADEV, "CHXBaseAudioSession::RetrieveUnplayedSamplesFromPastQueue ERROR: List Empty");
             break;
         }
     }
@@ -884,27 +879,6 @@ void CHXBaseAudioSession::DoPlayInit(HXBOOL setPriority)
     } // End of if (lRetval != KErrNone)
 }
 
-TInt CHXBaseAudioSession::SetSecureOutput(HXBOOL bSecureAudio)
-{
-	TInt hxr = HXR_OK;
-#if defined(HELIX_FEATURE_DRM_SECURE_OUTPUT)
-	CAudioOutput* pAudioOutput = NULL;
-	TRAPD(Err, pAudioOutput = CAudioOutput::NewL(*m_pStream));
-	if(Err == KErrNone)
-	{
-		TRAP(Err , pAudioOutput->SetSecureOutputL(bSecureAudio));
-		HXLOGL2(HXLOG_ADEV, "CHXBaseAudioSession::SetSecureOutput() SetSecureOutputL: lRetval = %s  bSecureAudio =%d", 
-				StringifyKErr(Err), bSecureAudio);
-	}
-	HX_DELETE(pAudioOutput);
-	if (Err != KErrNone)
-	{
-		hxr = KErrNotSupported;
-	}
-
-#endif //#if defined(HELIX_FEATURE_DRM_SECURE_OUTPUT)
-	return hxr;
-}
 
 // MDevSoundObserver
 void CHXBaseAudioSession::InitializeComplete(TInt aError)
@@ -920,7 +894,14 @@ void CHXBaseAudioSession::InitializeComplete(TInt aError)
         // Checking if audio output needs to be secured
         if ((aError == KErrNone) && (m_bSecureAudio))
         {
-			aError = SetSecureOutput(m_bSecureAudio);
+            CAudioOutput* pAudioOutput = NULL;
+            TRAP(aError, pAudioOutput = CAudioOutput::NewL(*m_pStream));
+            if(aError == KErrNone)
+            {
+                TRAP(aError , pAudioOutput->SetSecureOutputL(ETrue));
+                HXLOGL3(HXLOG_ADEV, "CHXBaseAudioSession::InitializeComplete() SetSecureOutputL: lRetval = %s", StringifyKErr(aError));
+            }
+            HX_DELETE(pAudioOutput);
         }
 #endif
 
@@ -943,10 +924,9 @@ void CHXBaseAudioSession::BufferToBeFilled(CMMFBuffer* aBuffer)
     case PLAYING:
         break;
     default:
-        // Ignore the Buffer as it is not valid in other states.
         HX_ASSERT(FALSE);
-        HXLOGL2(HXLOG_ADEV, "CHXBaseAudioSession::BufferToBeFilled(): WARNING unexpected state %s", StringifyState(m_state));
-        return;
+        HXLOGL3(HXLOG_ADEV, "CHXBaseAudioSession::BufferToBeFilled(): unexpected state %s", StringifyState(m_state));
+        break;
     }
     
     HX_ASSERT(aBuffer);
@@ -1274,17 +1254,8 @@ void CHXBaseAudioSession::UpdateUnplayedSampleCount()
     if (!m_sampleCountResetPending)
     {
         // keep track of samples that we wrote but haven't been played yet
-        if(m_samplesWritten >= m_lastSampleCount)
-        {
-            m_unplayedSampleCount = m_samplesWritten - m_lastSampleCount;
-        }
-        else
-        {
-            // This case is hit when pause/play is sent 
-            // continously without allowing the device to playback. Ignore the computation
-            HXLOGL1(HXLOG_ADEV, "CHXBaseAudioSession::UpdateUnplayedSampleCount(): WARNING state = %s written=%lu last=%lu unplayed=%lu",
-                                 StringifyState(m_state), m_samplesWritten, m_lastSampleCount, m_unplayedSampleCount);
-        }
+        HX_ASSERT(m_samplesWritten >= m_lastSampleCount);
+        m_unplayedSampleCount = m_samplesWritten - m_lastSampleCount;
     }
 
 #ifdef HELIX_CONFIG_SYMBIAN_SAMPLESPLAYED
@@ -1296,15 +1267,12 @@ void CHXBaseAudioSession::UpdateUnplayedSampleCount()
 
 void CHXBaseAudioSession::UpdateTimeSampleStats()
 {
-    if((PLAYING != m_state) && (PAUSED != m_state))
+    if (PLAYING != m_state)
     {
         // in case samples written increased since last check
         UpdateUnplayedSampleCount();
 
         // sample count is only reliable in PLAYING state; don't do anything else at this time
-        // However some DevSound versions might be able to report samples played during PAUSED state. 
-        // Hence relying on samplecount reset pending for PAUSED state handling.
-
         HXLOGL4(HXLOG_ADEV, "CHXBaseAudioSession::UpdateUnplayedSampleCount(): state = %s (no update)", StringifyState(m_state));
         return;
     }

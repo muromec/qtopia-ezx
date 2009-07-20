@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rlstate.cpp,v 1.10 2008/01/14 17:58:36 stanb Exp $
+ * Source last modified: $Id: rlstate.cpp,v 1.7 2005/03/14 19:36:39 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -90,15 +90,15 @@ CASMRuleState::CASMRuleState(UINT16 nNumRules, char* pRuleBook,
 			     UINT16 usBookSize)
 {
     m_nNumRules = nNumRules;
-    m_bNeedSwitchOff = new HXBOOL[nNumRules + 1];
-    m_bSubscribePending = new HXBOOL[nNumRules + 1];     
-    m_bSubscribed = new HXBOOL[nNumRules + 1];
-    m_bUnsubscribePending = new HXBOOL[nNumRules + 1];
-    m_lastASMFlagsForThisRule = new UINT8[nNumRules + 1];
-    m_OnDepends = new UINT16*[nNumRules + 1];
-    m_OffDepends = new UINT16*[nNumRules + 1];
+    m_bNeedSwitchOff = new HXBOOL[nNumRules];
+    m_bSubscribePending = new HXBOOL[nNumRules];     
+    m_bSubscribed = new HXBOOL[nNumRules];
+    m_bUnsubscribePending = new HXBOOL[nNumRules];
+    m_lastASMFlagsForThisRule = new UINT8[nNumRules];
+    m_OnDepends = new UINT16*[nNumRules];
+    m_OffDepends = new UINT16*[nNumRules];
 
-    for (UINT16 i = 0; i <= nNumRules; i++)
+    for (UINT16 i = 0; i < nNumRules; i++)
     {
 	m_bNeedSwitchOff[i] = FALSE;
 	m_bSubscribePending[i] = FALSE;
@@ -154,7 +154,7 @@ CASMRuleState::ParseRuleBookForDirectives(UINT16 num_rules,
     char* pOffset = pRuleBook;
     UINT16 idxCurrentRule = 0;
 
-    while(*pOffset != '\0' && ((UINT16)(pOffset - pRuleBook) < usBookSize) && idxCurrentRule < num_rules)
+    while(*pOffset != '\0' && ((UINT16)(pOffset - pRuleBook) < usBookSize))
     {
 	while(*pOffset != ';')
 	{

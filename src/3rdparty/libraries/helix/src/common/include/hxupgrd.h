@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxupgrd.h,v 1.7 2008/06/06 05:45:15 qluo Exp $
+ * Source last modified: $Id: hxupgrd.h,v 1.5 2005/03/14 19:27:09 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -86,8 +86,6 @@ typedef enum _HXUpgradeType
  
 DEFINE_GUID(IID_IHXUpgradeCollection, 
 	    0x00002500, 0x901, 0x11d1, 0x8b, 0x6, 0x0, 0xa0, 0x24, 0x40, 0x6d, 0x59);
-
-#define CLSID_IHXUpgradeCollection IID_IHXUpgradeCollection
 
 #undef  INTERFACE
 #define INTERFACE   IHXUpgradeCollection

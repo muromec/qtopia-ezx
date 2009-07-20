@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: unixff.h,v 1.9 2009/01/19 23:30:51 sfu Exp $
+ * Source last modified: $Id: unixff.h,v 1.7 2005/03/14 19:36:32 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -70,7 +70,7 @@
 
 #include <sys/types.h>
 
-#if (defined(_SOLARIS) || defined(_FREEBSD) || defined(_OPENBSD) || defined(_NETBSD) || defined(_OSF1) || defined(_VXWORKS) || defined(__QNXNTO__)) || defined (ANDROID)
+#if (defined(_SOLARIS) || defined(_FREEBSD) || defined(_OPENBSD) || defined(_NETBSD) || defined(_OSF1) || defined(_VXWORKS) || defined(__QNXNTO__)) 
 #include <dirent.h>
 #elif defined (__hpux)
 #include <sys/dirent.h>
@@ -102,7 +102,7 @@ protected:
 	// throw OS-specific directory and pattern-matching
 	// variables here!
 	DIR	 *	m_dirHandle;
-#if (!defined(_SOLARIS) && !defined(_FREEBSD) && !defined(_OPENBSD) && !defined(_NETBSD) && !defined(_HPUX) && !defined(_AIX) && !defined(_OSF1) && !defined(__QNXNTO__)) && !defined(ANDROID)
+#if (!defined(_SOLARIS) && !defined(_FREEBSD) && !defined(_OPENBSD) && !defined(_NETBSD) && !defined(_HPUX) && !defined(_AIX) && !defined(_OSF1) && !defined(__QNXNTO__))
         struct direct *m_dirEntry;
 #else
         struct dirent *m_dirEntry;

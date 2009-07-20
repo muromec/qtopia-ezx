@@ -10,41 +10,6 @@ maintainers prior to embarkation, and should be delivered to the current
 development branch for testing.
 ***
 
-Changes in Ribosome v 2.4.8
-===========================
-    Released: 16 July 2007
-    
-    * Fixed corrupted gethash.exe binary.
-    * SystemExits() now return codes other than 0 to the shell.
-    * new method in utils.py: globNoMetaPath() treats the meta characters
-      "[" and "]" in the path as text characters when globbing.
-    * branchlist.py uses new globNoMetaPath() when searching for BIFs - fixes
-      an issue when the source directory has meta chars in the path.
-    * fixed path determination issues in rebase_exe.py.
-    * testdriver_exe.py now reports errors and failures instead of just errors
-    * improved output display of testdriver for increased readability.
-    * default base dll address (0x60000000) can now be overriden in builds
-      descended from win32-msvc.cf through the umakefil, like so:
-        platform.link.args["base"] = "0x59000000"
-      
-    
-Changes in Ribosome v 2.4.7
-===========================
-    Released: 12 June 2007
-    
-    * Made "signability" of a build target a function of the BuildTarget class
-      (instead of only allowing DLL targets), and enabled signing for EXE
-      targets.
-    * Modified the *.cf files to write $(BUILD_ROOT) to Makefiles as part of
-      tool paths instead of evaluating BUILD_ROOT at the time of umake 
-      execution. This greatly improves the reusability of the makefiles in an 
-      archive rebuild scenario. This area still needs a significant amount of
-      work to fix all the places where paths are being hardcoded. (SDK paths, 
-      and the use of build.reg need to be addressed still.)
-    * Exceptions thrown by SystemExit() while in the threading engine will no
-      longer appear to Ribosome as generic build errors.
-      
-      
 Changes in Ribosome v 2.4.6
 ===========================
     Released: 30 April 2007
@@ -83,7 +48,8 @@ Changes in Ribosome v 2.4.6
         linux-lsb3.1-i486
         symbian-91-armv5-gcce
         symbian-91-armv5e
-        symbian-91-armv6        
+        symbian-91-armv6
+        
 
 
 Changes in Ribosome v 2.4.5

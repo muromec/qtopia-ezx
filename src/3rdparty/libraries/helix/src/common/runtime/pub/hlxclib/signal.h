@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: signal.h,v 1.6 2008/07/03 21:53:49 dcollins Exp $
+ * Source last modified: $Id: signal.h,v 1.3 2004/07/09 18:21:09 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,16 +57,10 @@
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
 
-#if !defined (_BREW) 
 #include <signal.h>
-#endif
 
 #ifdef LIMITS_UNDEF_WIN32
 #undef _WIN32
 #undef LIMITS_UNDEF_WIN32
 #endif /* LIMITS_UNDEF_WIN32 */
 #endif /* HLXSYS_SIG_H */
-
-#ifdef _LSB
-#define __sigset_t sigset_t
-#endif

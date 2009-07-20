@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtsptran.cpp,v 1.55 2008/05/06 15:43:19 anshuman Exp $
+ * Source last modified: $Id: rtsptran.cpp,v 1.53 2007/01/11 21:19:42 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -606,15 +606,12 @@ RTSPTransport::setFirstTimeStamp(UINT16 uStreamNumber, UINT32 ulTS,
 }
 
 void 
-RTSPTransport::setPlayRange(UINT32 ulFrom, UINT32 ulTo, HXBOOL bOnPauseResume)
+RTSPTransport::setPlayRange(UINT32 ulFrom, UINT32 ulTo)
 {
     // this is the Range values in PLAY request in RMA time (ms) called on PLAY 
     // request
-    if ((!bOnPauseResume) || (ulFrom != RTSP_PLAY_RANGE_BLANK))
-    {
     m_ulPlayRangeFrom = ulFrom; 
     m_ulPlayRangeTo = ulTo;
-    }
 
     HXLOGL3(HXLOG_RTSP, "RTSPTransport[%p]::setPlayRange(From=%lu, To=%lu)", 
 	    this, 
@@ -1928,18 +1925,14 @@ RTSPTransport::resumeBuffers()
 HX_RESULT
 RTSPTransport::setFirstSeqNum(UINT16 uStreamNumber, UINT16 uSeqNum, HXBOOL bOnPauseResume)
 {
-    RTSPStreamData* pStreamData = NULL;
+    RTSPStreamData* pStreamData;
 
-    HXLOGL3(HXLOG_RTSP, "RTSPTransport[%p]::setFirstSeqNum(uStreamNumber=%hu, uSeqNum=%hu, OnPauseResume=%c)",
+    HXLOGL3(HXLOG_RTSP, "RTSPTransport[%p]::setFirstSeqNum(uStreamNumber=%hu, uSeqNum=%hu)", 
 	    this, 
 	    uStreamNumber, 
-	    uSeqNum,
-	    bOnPauseResume ? 'T' : 'F');
+	    uSeqNum);
 
-    if (!bOnPauseResume)
-    {
     pStreamData = m_pStreamHandler->getStreamData(uStreamNumber);
-    }
 
     if(pStreamData)
     {

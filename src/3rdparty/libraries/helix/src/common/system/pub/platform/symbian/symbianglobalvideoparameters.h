@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbianglobalvideoparameters.h,v 1.8 2009/03/30 20:39:53 praveenkumar Exp $
+ * Source last modified: $Id: symbianglobalvideoparameters.h,v 1.5 2007/04/30 18:39:41 suramakr Exp $
  *
  * Copyright Notices:
  *
@@ -66,8 +66,6 @@
 #include "hxwintyp.h"           //HXxEvent
 #include "hxwin.h"              //IHXSite
 #include "symbian_gm_inst.h"
-#include "MMFScalingCustomCommandConstants.h"
-#include "platform.h"
 
 
 
@@ -105,13 +103,7 @@ public:
     HX_RESULT    SetFrameRect(HXxRect sValue);
     HXBOOL       IsDisplayRegionValid(void);
     HXBOOL       IsFrameRectValid(void);
-    HX_RESULT    GetScalingTypeValue(UINT32 &ulValue);
-    HX_RESULT    SetScalingTypeValue(UINT32 ulValue);
-#if defined(HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES)
-    HX_RESULT	 SetUseSurfaces();
-    HXBOOL		 GetUseSurfaces();
 
-#endif //HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES
 
 private:
     HXxRect               m_clipRect;
@@ -129,12 +121,7 @@ private:
     INT32                 m_lScreenNumber;
     HXBOOL                m_bScreenNumberSet;
 #endif  //SYMBIAN_ENABLE_MMF_MULTISCREEN_SUPPORT
-    UINT32                m_ulScalingTypeValue;
-#if defined(HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES)
-    HXBOOL 				  m_bUseSurfaces;
-	INT32                 m_ulDisplayIDArray[10]; //This will be removed, dont worry about magic number :) or use vector
-	INT32				  m_ulDisplayIDArrayIndex;
-#endif //HELIX_FEATURE_SYMBIAN_GRAPHICS_SURFACES
+
 };
 
 #endif SYMBIAN_VIDEO_PARAMETERS_H

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxbsrc.h,v 1.60 2007/10/18 15:54:17 yuryrp Exp $
+ * Source last modified: $Id: hxbsrc.h,v 1.55 2007/02/27 22:30:55 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -199,8 +199,6 @@ struct IHXDigitalRightsManager;
 
 #define RAM_MIMETYPE		"application/ram"
 
-#define MAX_INTERSTREAM_TIMESTAMP_JITTER    5000	// In milliseconds
-
 // XXXTW.	There is a copy of this in rpplmrg\rpplmgr.cpp.  Update both,
 // 			if either.
 enum PlayMode
@@ -329,7 +327,6 @@ public:
     UINT32			m_ulOriginalDuration;
     UINT32			m_ulOriginalDelay;
     UINT32			m_ulPrefetchDelay;
-    UINT32			m_ulMaxPreRoll; 
     UINT32			m_ulRegistryID;
     UINT32			m_ulMinAudioTurboPushDown;
     UINT32                      m_ulMinVideoTurboPushDown;
@@ -340,7 +337,6 @@ public:
     CHXSimpleList               m_PacketBufferList;
     HX_BITFIELD                 m_bContinueWithHeaders : 1;
     HX_BITFIELD			m_bHasSubordinateLifetime : 1;
-    HX_BITFIELD                 m_bRenderersControlBuffering : 1;
 
 protected:
     HX_BITFIELD			m_bDefaultAltURL : 1;
@@ -734,7 +730,6 @@ public:
 
     virtual HXBOOL	IsLocalSource()  {return TRUE;};
     virtual HXBOOL	IsPNAProtocol()  {return FALSE;};
-    virtual HXBOOL	IsNetworkAccess()  {return FALSE;};
     virtual HXBOOL	IsSimulatedNetworkPlayback()  {return FALSE;};
     
     virtual void	EventReady(CHXEvent* pEvent);
@@ -937,20 +932,13 @@ protected:
     HXBOOL		IsRARVSource(void);
     HXBOOL                IsRARVStream(IHXValues* pHeader);
 
-    virtual HX_RESULT   GetBufferingStatusFromRenderers(REF(UINT16)     rusStatusCode,
-                                                        REF(IHXBuffer*) rpStatusDesc,
-                                                        REF(UINT16)     rusPercentDone);
     virtual ULONG32     ComputeMaxLatencyThreshold(ULONG32 ulPrerollInMs, ULONG32 ulPostDecodeDelay);
     inline  HXBOOL	EnforceLiveLowLatency() 
                         {        
-#ifdef HELIX_FEATURE_DISABLE_LIVELOWLATENCY
-			    return FALSE;
-#else
                             // Latency check is only applicable to live, in addition, if 
                             // seek or pause is issued on SuperBuffer by the user, then latency
                             // check will no longer be enforced.
                             return (mLiveStream && !(m_bPlayFromRecordControl && m_bSeekedOrPaused))?TRUE:FALSE;
-#endif
                         };
 
 

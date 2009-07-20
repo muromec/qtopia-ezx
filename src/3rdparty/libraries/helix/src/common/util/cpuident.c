@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cpuident.c,v 1.19 2009/04/01 18:00:17 qluo Exp $
+ * Source last modified: $Id: cpuident.c,v 1.17 2005/04/28 23:40:17 ehyche Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -194,10 +194,6 @@ extern int cpu_id(void);
    */
 
 #include <signal.h>
-
-#ifdef ANDROID
-#include "sigcontext.h"
-#endif // ANDROID
 
 static void myHandler(int signal, struct sigcontext sc)
 {

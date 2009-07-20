@@ -51,7 +51,6 @@ _INTERFACE IHXValues;
 _INTERFACE IHXRateSelectionInfo;
 
 class Process;
-typedef struct _StreamAdaptationParams StreamAdaptationParams;
 
 /****************************************************************************
  * 
@@ -87,14 +86,12 @@ enum EHXSwitchableReason
     HX_SWI_INADEQUATE_CLIENT_CAPABILITIES=0, // Pre-decode buffer too small, etc.
     HX_SWI_INACTIVE_SWITCH_GROUP,	// Switch group was not selected
     HX_SWI_RATE_EXCLUDED_BY_CLIENT,	// Client has signalled that rate should be excluded
-    HX_SWI_RV_THINNING_STREAM,	// RealVideo thinning (key-frame only) stream is excluded
     HX_SWI_NUM_REASONS			// Must be the last enum
 };
 
 enum EHXSelectableReason
 {
     HX_SEL_INADEQUATE_CLIENT_CAPABILITIES=0, // Pre-decode buffer too small, etc.
-    HX_SEL_RV_THINNING_STREAM,	// RealVideo thinning (key-frame only) stream is excluded
     HX_SEL_NUM_REASONS			// Must be the last enum
 };
 
@@ -263,7 +260,6 @@ DECLARE_INTERFACE_(IHXRateDescEnumerator, IUnknown)
  *      If ulRate is 0, will shift to the next highest switchable rate.
  *    Downshift - Downshifts to switchable rate closest (lowest or equal) to ulRate.  
  *      If ulRate is 0, will shift to the next lowest switchable rate
- *    GetNextSwitchableRateDesc - Returns the next switchable stream
  *    
  *    SetStreamGroupRateDesc - Sets the stream group's current rate description.  Note that
  *      switchable/selected flags are not checked.
@@ -312,14 +308,10 @@ DECLARE_INTERFACE_(IHXUberStreamManager, IHXRateDescEnumerator)
     STDMETHOD(GetCurrentAggregateRateDesc)(THIS_ REF(IHXRateDescription*)pRateDesc) PURE;
     STDMETHOD(CommitInitialAggregateRateDesc) (THIS) PURE;
     STDMETHOD_(BOOL,IsInitalAggregateRateDescCommitted) (THIS) PURE;
-    STDMETHOD(UpshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated = FALSE) PURE;
-    STDMETHOD(DownshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp, BOOL bIsClientInitiated = FALSE) PURE;
-    STDMETHOD(GetLowestAvgRate)(THIS_ UINT32 ulStreamGroupNum, REF(UINT32) ulLowestAvgRate) PURE;
-    STDMETHOD(SetDownshiftOnFeedbackTimeoutFlag)(THIS_ BOOL bFlag) PURE;
+    STDMETHOD(UpshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp) PURE;
+    STDMETHOD(DownshiftAggregate)(THIS_ UINT32 ulRate, IHXRateDescResponse* pResp) PURE;
 
     /* Per-stream rate control */
-    STDMETHOD(SelectLogicalStream)(THIS_ UINT32 ulStreamGroupNum,
-                                         UINT32 ulLogicalStreamNum) PURE;
     STDMETHOD(SetStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, 
                                         UINT32 ulLogicalStreamNum, 
                                         IHXRateDescription* pRateDesc, 
@@ -327,17 +319,13 @@ DECLARE_INTERFACE_(IHXUberStreamManager, IHXRateDescEnumerator)
     STDMETHOD(GetCurrentStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, REF(IHXRateDescription*)pRateDesc) PURE;
     STDMETHOD(CommitInitialStreamGroupRateDesc) (THIS_ UINT32 ulStreamGroupNum) PURE;
     STDMETHOD_(BOOL,IsInitalStreamGroupRateDescCommitted) (THIS_ UINT32 ulStreamGroupNum) PURE;
-    STDMETHOD(GetNextSwitchableRateDesc)(THIS_ REF(IHXRateDescription*)pRateDesc) PURE;
-    STDMETHOD(GetNextSwitchableStreamGroupRateDesc)(THIS_ UINT32 ulStreamGroupNum, REF(IHXRateDescription*)pRateDesc) PURE;
 
     STDMETHOD(UpshiftStreamGroup)   (THIS_ UINT32 ulStreamGroupNum, 
                                     UINT32 ulRate, 
-                                    IHXStreamRateDescResponse* pResp,
-                                    BOOL bIsClientInitiated = FALSE) PURE;
+                                    IHXStreamRateDescResponse* pResp) PURE;
     STDMETHOD(DownshiftStreamGroup) (THIS_ UINT32 ulStreamGroupNum, 
                                     UINT32 ulRate, 
-                                    IHXStreamRateDescResponse* pResp,
-                                    BOOL bIsClientInitiated = FALSE) PURE;
+                                    IHXStreamRateDescResponse* pResp) PURE;
 
     STDMETHOD(SubscribeLogicalStreamRule)(THIS_ UINT32 ulLogicalStreamNum, 
                                         UINT32 ulRuleNum, 
@@ -345,7 +333,6 @@ DECLARE_INTERFACE_(IHXUberStreamManager, IHXRateDescEnumerator)
     STDMETHOD(UnsubscribeLogicalStreamRule)(THIS_ UINT32 ulLogicalStreamNum, 
                                         UINT32 ulRuleNum, 
                                         IHXStreamRateDescResponse* pResp) PURE;
-    STDMETHOD(DetermineSelectableStreams)(THIS_ const StreamAdaptationParams* pStreamAdaptationParams = NULL) PURE;
 };
 
 /****************************************************************************
@@ -405,7 +392,7 @@ HX_RESULT CreateUberStreamManager(IHXCommonClassFactory* pCCF, IHXUberStreamMana
  * 
  *  Methods:
  *  
- *    SetRateSelectionInfoObject - Provides rate selection info object to inputsource.
+ *    SetClientAverageBandwidth - Sets average bandwidth -- as reported by client
  * 
  *  // {280D65EA-7B81-42b0-AAC6-151A94E7BB2E}
  *
@@ -425,6 +412,7 @@ DECLARE_INTERFACE_(IHXUberStreamManagerConfig, IUnknown)
     STDMETHOD_(ULONG32,Release)	(THIS) PURE;
 
     /* IHXUberStreamManagerConfig methods */
+    STDMETHOD(SetClientAverageBandwidth) (THIS_ UINT32 ulAvgBandwidth) PURE;
     STDMETHOD(SetRateSelectionInfoObject) (THIS_ IHXRateSelectionInfo* pRateSelInfo) PURE;
 };
 

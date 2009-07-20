@@ -99,7 +99,6 @@ private:
     typedef enum
     {
 	PYID_X_HX_MP4_RAWAU,
-	PYID_X_HX_QT_RAWAU,		
 	PYID_MPEG4_SIMPLE_A2,
 	PYID_MP4A_LATM,
 	PYID_X_HX_AAC_GENERIC,

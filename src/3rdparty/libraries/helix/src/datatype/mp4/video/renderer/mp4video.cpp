@@ -70,9 +70,6 @@ const char* const CMP4VideoRenderer::zm_pStreamMimeTypes[] =
     "video/X-HX-AVC1",
     "video/X-HX-DIVX",
     "video/H264",
-	#ifdef HELIX_FEATURE_VIDEO_CODEC_VP6
-	"video/x-hx-flv",
-	#endif
     NULL
 };
 
@@ -98,17 +95,6 @@ CMP4VideoRenderer::~CMP4VideoRenderer()
     HX_DELETE(m_pOutputAllocator);
 
     HX_RELEASE(m_pMP4VideoFormat);
-}
-
-STDMETHODIMP CMP4VideoRenderer::EndStream()
-{
-    if (m_pActiveVideoPacket)
-    {
-        m_pActiveVideoPacket->Clear();
-        delete m_pActiveVideoPacket;
-        m_pActiveVideoPacket = NULL;
-    }
-    return CVideoRenderer::EndStream();
 }
 
 HX_RESULT STDAPICALLTYPE CMP4VideoRenderer::HXCreateInstance(IUnknown** ppIUnknown)

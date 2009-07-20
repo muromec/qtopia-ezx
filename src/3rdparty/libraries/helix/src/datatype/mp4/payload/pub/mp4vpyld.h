@@ -42,26 +42,16 @@
 #include "hxalloc.h"
 #include "tsconvrt.h"
 #include "mp4vpyif.h"
-#include "baseobj.h"
-#include "hxplugn.h"
-#include "hxplgns.h"
 
 /****************************************************************************
  *  MP4VPayloadFormat
  */
-class MP4VPayloadFormat : public IMP4VPayloadFormat,
-                          public IHXPlugin,
-                          public IHXPluginProperties,
-                          public CHXBaseCountingObject
-
+class MP4VPayloadFormat : public IMP4VPayloadFormat
 {
 public:
     MP4VPayloadFormat(CHXBufferMemoryAllocator* pAllocator = NULL);
     ~MP4VPayloadFormat();
     static HX_RESULT Build(REF(IMP4VPayloadFormat*) pFmt);
-    static HX_RESULT STDAPICALLTYPE HXCreateInstance(IUnknown** ppIUnknown);
-    static HX_RESULT STDAPICALLTYPE CanUnload(void);
-    static HX_RESULT STDAPICALLTYPE CanUnload2(void);
 
     // *** IUnknown methods ***
     STDMETHOD(QueryInterface)	(THIS_
@@ -69,28 +59,6 @@ public:
 				void** ppvObj);
     STDMETHOD_(ULONG32,AddRef)	(THIS);
     STDMETHOD_(ULONG32,Release)	(THIS);
- 
-    /*
-     *	IHXPlugin methods
-     */
- 
-    STDMETHOD(InitPlugin)  (THIS_
-                IUnknown*   /*IN*/  pContext);
-
-    STDMETHOD(GetPluginInfo)  (THIS_
-                REF(HXBOOL) bLoadMultiple,
-                REF(const char*) pDescription,
-                REF(const char*) pCopyright,
-                REF(const char*) pMoreInfoURL,
-                REF(ULONG32) ulVersionNumber
-                );
-  
-    /*
-     *	IHXPluginProperties
-     */
-    STDMETHOD(GetProperties)  (THIS_
-                REF(IHXValues*) pIHXValuesProperties
-                );		
 
     /*
      *	IHXPayloadFormatObject methods
@@ -115,9 +83,7 @@ public:
      */
     HX_RESULT CreateHXCodecPacket(ULONG32* &pHXCodecDataOut);
 
-    const char*       GetCodecId(void);
-    virtual HX_RESULT SetNextCodecId();
-    virtual void      ResetCodecId();
+    const char* GetCodecId(void) { return m_pCodecId; }
     ULONG32 GetBitstreamHeaderSize(void) { return m_ulBitstreamHeaderSize; }
     const UINT8* GetBitstreamHeader(void) { return m_pBitstreamHeader; }
     void SetAllocator(CHXBufferMemoryAllocator* pAllocator);
@@ -200,19 +166,10 @@ private:
     HXBOOL			m_bUsesRTPPackets;
     HXBOOL			m_bRTPPacketTested;
     HXBOOL			m_bPacketize;
-    UINT32                      m_ulCodecIDIndex;
-    const char**                m_ppszCodecID;
 
     PayloadID			m_PayloadID;
 
     CTSConverter		m_TSConverter;
-    IUnknown*		    m_pContext;
-
-    static const char* const    m_ppszMPEG4VideoCodecID[];
-    static const char* const    m_ppszAVCCodecID[];
-    static const char* const    zm_pDescription;
-    static const char* const    zm_pCopyright;
-    static const char* const    zm_pMoreInfoURL;
 };
 
 #endif	// _MP4VPYLD_H_

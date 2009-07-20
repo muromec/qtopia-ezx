@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: branchlist.py,v 1.22 2007/07/17 00:17:48 jfinnecy Exp $ 
+#  Source last modified: $Id: branchlist.py,v 1.21 2006/06/08 21:00:43 mserver Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -77,7 +77,6 @@ import time
 import chaingang
 import cvs
 import log
-import utils
 
 ## List of (name, path)
 ## where path may be a normal filesystem directory,
@@ -230,7 +229,7 @@ class PathList:
             local_path = self.paths[prefix]
             
             for ext in ext_list:
-                file_list = utils.globNoMetaPath(os.path.join(local_path, "*.%s" % ext))
+                file_list = glob.glob(os.path.join(local_path, "*.%s" % ext))
 
                 for file in file_list:
                     full_path=os.path.join(local_path, file)

@@ -113,145 +113,24 @@ DECLARE_INTERFACE_(IHXClientStatsTimerControl, IUnknown)
 };
 
 
-///////////////////////////////////////////////////////////////////////////////
-// ClipStats class
-///////////////////////////////////////////////////////////////////////////////
-
-class ClipStats : public IHXClipStats2
-{
-protected:
-
-    UINT32 m_RefCount;
-
-    IHXSessionStats* m_pSession;
-
-    UINT32 m_ulStatus;
-
-    IHXBuffer* m_pURL;
-    IHXBuffer* m_pLogURL;
-    IHXBuffer* m_pPlayerRequestedURL;
-    IHXBuffer* m_pAbsStartTime;
-
-    UINT64 m_ulBytesSent;
-    UINT32 m_ulSuccessfulResends;
-    UINT32 m_ulFailedResends;
-    UINT32 m_ulPacketsSent;
-    UINT32 m_ulPacketLoss;
-
-    UINT32 m_ulNPTStartTime;
-    UINT32 m_ulNPTEndTime;
-
-    UINT64 m_ulFileSize;
-    UINT32 m_ulDuration;
-    UINT32 m_ulSendingTime;
-    UINT32 m_ulPlayTime;
-    UINT32 m_ulAvgBitrate;
-
-    UINT32 m_ulSwitchCount;
-    UINT32 m_ulEstPlayerBufferUnderruns;
-
-    HXBOOL m_bEndFlag;
-    IHXBuffer* m_pOriginPlaylist;
-
-public:
-
-    ClipStats();
-    ~ClipStats();
-    
-// IUnknown methods.
-
-    STDMETHODIMP_(UINT32) AddRef();
-    STDMETHODIMP_(UINT32) Release();
-    STDMETHODIMP QueryInterface(REFIID riid, void** ppvObj);
-
-// IHXClipStats methods.
-
-    STDMETHODIMP_(IHXSessionStats*)GetSession();
-    STDMETHODIMP SetSession(IHXSessionStats* pSession);
-
-    STDMETHODIMP_(UINT32) GetStatus();
-    STDMETHODIMP SetStatus(UINT32 ulHTTPStatus);
-
-    STDMETHODIMP_(IHXBuffer*) GetURL();
-    STDMETHODIMP SetURL(IHXBuffer* pURL);
-
-    STDMETHODIMP_(IHXBuffer*) GetLogURL();
-    STDMETHODIMP SetLogURL(IHXBuffer* pLogURL);
-
-    STDMETHODIMP_(IHXBuffer*) GetPlayerRequestedURL();
-    STDMETHODIMP SetPlayerRequestedURL(IHXBuffer* pPlayerRequestedURL);
-
-    STDMETHODIMP_(UINT64) GetBytesSent();
-    STDMETHODIMP SetBytesSent(UINT64 ulBytesSent);
-
-    STDMETHODIMP_(UINT32) GetSuccessfulResends();
-    STDMETHODIMP SetSuccessfulResends(UINT32 ulSuccessfulResends);
-
-    STDMETHODIMP_(UINT32) GetFailedResends();
-    STDMETHODIMP SetFailedResends(UINT32 ulFailedResends);
-
-    STDMETHODIMP_(UINT32) GetPacketsSent();
-    STDMETHODIMP SetPacketsSent(UINT32 ulPacketsSent);
-
-    STDMETHODIMP_(UINT32) GetPacketLoss();
-    STDMETHODIMP SetPacketLoss(UINT32 ulPacketLoss);
-    
-    STDMETHODIMP_(UINT64) GetFileSize();
-    STDMETHODIMP SetFileSize(UINT64 ulFileSize);
-    
-    STDMETHODIMP_(IHXBuffer*) GetStartTime();
-    STDMETHODIMP SetStartTime(IHXBuffer* pStartTime);
-
-    STDMETHODIMP_(UINT32) GetNPTStartTime();
-    STDMETHODIMP SetNPTStartTime(UINT32 ulStartTime);
-
-    STDMETHODIMP_(UINT32) GetNPTEndTime(THIS);
-    STDMETHODIMP SetNPTEndTime(UINT32 ulEndTime);
-
-    STDMETHODIMP_(UINT32) GetDuration();
-    STDMETHODIMP SetDuration(UINT32 ulDuration);
-    
-    STDMETHODIMP_(UINT32) GetSendingTime();
-    STDMETHODIMP SetSendingTime(UINT32 ulSendingTime);
-
-    STDMETHODIMP_(UINT32) GetPlayTime();
-    STDMETHODIMP SetPlayTime(UINT32 ulPlayTime);
-
-    STDMETHODIMP_(UINT32) GetAvgBitrate();
-    STDMETHODIMP_(UINT32) GetSwitchCount();
-    STDMETHODIMP SetSwitchCount(UINT32 ulSwitchCount);
-
-    STDMETHODIMP SetAvgBitrate(UINT32 ulAvgBitrate);
-
-    STDMETHODIMP_(UINT32) GetEstPlayerBufferUnderruns();
-    STDMETHODIMP SetEstPlayerBufferUnderruns(UINT32 ulEstPlayerBufferUnderruns);
-
-    STDMETHODIMP_(BOOL) GetEndFlag();
-    STDMETHODIMP SetEndFlag(BOOL bEndFlag);
-
-    //IHXClipStats2
-    STDMETHODIMP_(IHXBuffer*) GetOriginPlaylist();
-    STDMETHODIMP SetOriginPlaylist(IHXBuffer* pOriginPlaylist);
-
-};
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // SessionStats class
 ///////////////////////////////////////////////////////////////////////////////
 
-class SessionStats : public IHXSessionStats4,
+class SessionStats : public IHXSessionStats2,
                      public IHXCheckRetainEntityForSetup
 {
+
 protected:
 
     UINT32 m_RefCount;
 
     IHXBuffer* m_pHost;
     IHXBuffer* m_pSessionStartTime;
-    UINT32 m_pSessionStartTicks;
     IHXBuffer* m_pURL;
+    IHXBuffer* m_pLogURL;
     IHXBuffer* m_pLogStats;
     IHXBuffer* m_pPlayerRequestedURL;
     IHXBuffer* m_pSalt;
@@ -264,8 +143,11 @@ protected:
 
     UINT32 m_ulID;
 
+    UINT64 m_ulFileSize;
+    UINT32 m_ulStatus;
     SessionStatsEndStatus m_ulEndStatus;
     UINT32 m_ulDuration;
+    UINT32 m_ulAvgBitrate;
     UINT32 m_ulSendingTime;
     UINT32 m_ulPlayTime;
     UINT32 m_ulPacketLoss;
@@ -273,7 +155,6 @@ protected:
 
     BOOL m_bIsMulticastUsed;
     BOOL m_bIsUDP;
-    BOOL m_bUseMDP;
     BOOL m_bIsRVStreamFound;
     BOOL m_bIsRAStreamFound;
     BOOL m_bIsREStreamFound;
@@ -292,13 +173,6 @@ protected:
     UINT32 m_ulPreDataTime;
     UINT32 m_ulPreDataBytes;
     UINT32 m_ulPrerollInMsec;
-    UINT32 m_ulSwitchCount;
-    UINT32 m_ulClipCount;
-
-    IHXBuffer* m_pSessionControlId;
-
-    IHXClipStats* m_pClip;
-
 public:
 
     SessionStats();
@@ -348,6 +222,7 @@ public:
     STDMETHODIMP_(IHXBuffer*) GetInterfaceAddr();
     STDMETHODIMP SetInterfaceAddr(IHXBuffer* pInterfaceAddr);
 
+    
     STDMETHODIMP_(UINT64) GetFileSize();
     STDMETHODIMP SetFileSize(UINT64 ulFileSize);
 
@@ -375,9 +250,6 @@ public:
     STDMETHODIMP_(BOOL) IsUDP();
     STDMETHODIMP SetUDP(BOOL bIsUDP);
 
-    STDMETHODIMP_(BOOL) IsUseMDP();
-    STDMETHODIMP SetUseMDP(BOOL bUseMDP);
-
     STDMETHODIMP_(BOOL) IsRVStreamFound();
     STDMETHODIMP SetRVStreamFound(BOOL bIsRVStreamFound);
 
@@ -389,6 +261,7 @@ public:
 
     STDMETHODIMP_(BOOL) IsRIStreamFound();
     STDMETHODIMP SetRIStreamFound(BOOL bIsRIStreamFound);
+
 
     STDMETHODIMP_(UINT16) GetXWapProfileStatus();
     STDMETHODIMP SetXWapProfileStatus(UINT16 unXWapProfileStatus);
@@ -432,27 +305,10 @@ public:
     STDMETHODIMP SetPreDataBytes(UINT32 ulPreDataBytes);
 
     STDMETHODIMP DumpStartupInfo();
-
 // IHXCheckRetainEntityForSetup methods.
 
     STDMETHODIMP_(BOOL) GetUpdateRegistryForLive();
     STDMETHODIMP SetUpdateRegistryForLive();
-
-// IHXSessionStats3 methods.
-
-    STDMETHODIMP_(IHXClipStats*)GetClip();
-    STDMETHODIMP SetClip(IHXClipStats* pClip);
-
-    STDMETHODIMP_(IHXBuffer*) GetSessionControlId();
-    STDMETHODIMP SetSessionControlId(IHXBuffer* pSessionControlId);
-
-// IHXSessionStats4 methods.
-
-    STDMETHODIMP_(UINT32) GetSwitchCount();
-    STDMETHODIMP SetSwitchCount(UINT32 ulSwitchCount);
-
-    STDMETHODIMP_(UINT32) GetClipCount();
-    STDMETHODIMP SetClipCount(UINT32 ulClipCount);
 };
 
 
@@ -680,10 +536,6 @@ public:
     HX_RESULT SessionDone(IHXClientStats* pClient, 
                           IHXSessionStats* pSession, 
                           Process* pProc);
-    HX_RESULT ClipDone(IHXClientStats* pClient,
-                       IHXSessionStats* pSession,
-                       IHXClipStats* pClip,
-                       Process* pProc);
 
     UINT32 GetClientCount();
 
@@ -692,7 +544,6 @@ public:
 
     HX_RESULT ScheduleSinkNotifications(IHXClientStats* pClient, 
                                      IHXSessionStats* pSession,
-                                        IHXClipStats* pClip,
                                      ClientStatsEvent nEvent,
                                      Process* pProc);
 };
@@ -801,9 +652,7 @@ protected:
 
     IHXClientStats* m_pClientStats;
     IHXSessionStats* m_pSessionStats;
-    IHXClipStats* m_pClipStats;
     IHXClientStatsSink* m_pSink;
-    IHXClientStatsSink2* m_pSink2;
     Process* m_pProc;
     ClientStatsEvent m_Event;
 
@@ -816,7 +665,6 @@ public:
     
     HX_RESULT Init(IHXClientStats* pClientStats, 
                    IHXSessionStats* pSessionStats,
-                   IHXClipStats* pClipStats,
                    IHXClientStatsSink* pSink,
                    Process* pProc,
                    ClientStatsEvent Event);

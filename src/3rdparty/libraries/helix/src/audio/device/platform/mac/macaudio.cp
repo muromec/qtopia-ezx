@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: macaudio.cp,v 1.10 2008/01/25 01:32:23 qluo Exp $
+ * Source last modified: $Id: macaudio.cp,v 1.8 2005/03/14 19:43:21 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -90,7 +90,7 @@ DeferredTaskUPP		CAudioOutMac::gDeferredTask = NewDeferredTaskProc(CAudioOutMac:
 HXMutex*		CAudioOutMac::zm_pMutex = NULL;
 #endif
 
-UINT32       gActiveAudioDeviceCount = 0;			    
+CAudioOutMac*       gActiveAudioDevice = NULL;			    
 
 
 #if defined( _CARBON ) || defined( _MAC_UNIX )
@@ -654,7 +654,7 @@ pascal void CAudioOutMac::DeferredTaskCallback(long param)
 	    }
 
 #endif
-	while (gActiveAudioDeviceCount &&
+	while (gActiveAudioDevice &&
 	       pAudioOut->m_pPendingCallbackList && 
 	      !pAudioOut->m_pPendingCallbackList->IsEmpty())
 	{
@@ -686,7 +686,7 @@ pascal void CAudioOutMac::DeferredTaskCallback(long param)
 	 * the embedded player and the core. We would have destructed the CMacAudio class
 	 * in this case.
 	 */ 
-	if (!gActiveAudioDeviceCount)
+	if (!gActiveAudioDevice)
 	{
 	    goto cleanup;
 	}
@@ -788,7 +788,7 @@ CAudioOutMac::CAudioOutMac ()
 	    HXMutex::MakeMutex(zm_pMutex);
 	}
 #endif
-    gActiveAudioDeviceCount++;
+    gActiveAudioDevice = this;
 } /* end CAudioOutMac */
 
 
@@ -882,7 +882,7 @@ CAudioOutMac::~CAudioOutMac ()
 	
 	HX_DELETE(m_pPendingCallbackList);
 	
-	gActiveAudioDeviceCount--;
+	gActiveAudioDevice = NULL;
 	
 	HX_RELEASE(m_pScheduler);
 	HX_RELEASE(m_pInterruptState);

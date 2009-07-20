@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mixengine.h,v 1.19 2009/05/01 17:32:06 sfu Exp $
+ * Source last modified: $Id: mixengine.h,v 1.16 2005/05/05 21:27:08 kross Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -59,7 +59,6 @@
 // on memory- and resource-constrained devices, use 16-bit processing
 #ifdef HELIX_FEATURE_16BIT_MIXENGINE
 typedef INT16 tAudioSample ;
-#define NBITS_PER_AUDIOSAMPLE 16
 
 #if defined(HELIX_FEATURE_GAINTOOL) || defined(HELIX_FEATURE_CROSSFADE)\
  || defined(HELIX_FEATURE_LIMITER)
@@ -68,9 +67,9 @@ typedef INT16 tAudioSample ;
 
 #else // all other platforms use 32-bit processing
 typedef INT32 tAudioSample ;
-#define NBITS_PER_AUDIOSAMPLE 32
 #endif
 
+#define NBITS_PER_AUDIOSAMPLE (sizeof(tAudioSample)<<3)
 
 // derive your class from this. This will be used as a callback to convert samples from
 // the renderer input queues into the HXAudioSvcMixEngine source buffer
@@ -94,19 +93,14 @@ protected:
     }
     static void cvt16(const void *in, tAudioSample* out, int nSamples)
     {
-#if NBITS_PER_AUDIOSAMPLE == 16
-        memcpy(out, in, nSamples * sizeof(tAudioSample));
-#else
         for (int i=0; i < nSamples; i++) out[i] = ((const INT16*)in)[i] << (NBITS_PER_AUDIOSAMPLE-16) ;
-#endif
     }
     static void cvt32(const void *in, tAudioSample* out, int nSamples)
     {
-#if NBITS_PER_AUDIOSAMPLE == 32
-        memcpy(out, in, nSamples * sizeof(tAudioSample));
-#else
-        for (int i=0; i < nSamples; i++) out[i] = (INT16)(((const INT32*)in)[i] >> (NBITS_PER_AUDIOSAMPLE-16)) ;
-#endif
+        if (NBITS_PER_AUDIOSAMPLE == 32)
+            memcpy(out, in, nSamples * sizeof(*out));
+        else
+            for (int i=0; i < nSamples; i++) out[i] = (INT16)(((const INT32*)in)[i] >> (NBITS_PER_AUDIOSAMPLE-16)) ;
     }
     static void silence(tAudioSample* out, int nSamples)
     {
@@ -162,21 +156,12 @@ public:
     // This will issue a series of Convert::ConvertIntoBuffer() callbacks,
     // and will return with a full buffer of resampled/channel converted/mixed data.
     HX_RESULT MixIntoBuffer(
-        void*          pPlayerBuf,
-        UINT32         ulBufSizeInBytes,
-        HXBOOL&        bIsMixBufferDirty,
-        HXBOOL&        bOptimizedMixing,
-	HXBOOL         bOpaqueStream = FALSE
+        void* pPlayerBuf,
+        UINT32 ulBufSizeInBytes,
+        HXBOOL&    bIsMixBufferDirty,
+	HXBOOL bOpaqueStream = FALSE
     ) ;
 
-    // old prototype for compatible with other usages
-    HX_RESULT MixIntoBuffer(
-        void*          pPlayerBuf,
-        UINT32         ulBufSizeInBytes,
-        HXBOOL&        bIsMixBufferDirty,
-        HXBOOL         bOpaqueStream = FALSE
-    ) ;
-    
     // guess what.
     enum eCrossfadeDirection
     {

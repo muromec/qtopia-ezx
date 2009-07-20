@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ciddefs.h,v 1.8 2009/06/01 18:45:54 sfu Exp $
+ * Source last modified: $Id: ciddefs.h,v 1.2 2004/07/09 18:36:01 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -90,22 +90,8 @@
 #define CID_IGOR        22  /* Intel i810 'Whitney' M/C interface   */
 #define CID_DVPF        23
 
-/* The CID_LIBVA could be useful for renderers using libva to take
- * advantage of H/W accerlate. Only a 4 byte libva surface ID is 
- * passed around with this kind of surface */
-#define CID_LIBVA       24  /* libva surface                        */
-
-/* Qualcomm YUV semi-planar format, V before U */
-#define CID_NV21        25 /* semi-planar YVU 4:2:0 */
-
-/* OpenMax decoded buffer type  
- * the data in the 'image' buffer are:
- * DWORD : omx image/video format, OMX_COLOR_FORMATTYPE
- * DWORD : OMX_BUFFERHEADERTYPE* pointer */
-#define CID_OMXV        26 
-
 /* the number of formats: */
-#define NFORMATS        (CID_OMXV  + 1)
+#define NFORMATS        (CID_DVPF+1)
 #endif
 
 

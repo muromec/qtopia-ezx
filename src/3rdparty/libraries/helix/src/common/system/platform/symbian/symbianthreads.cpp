@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbianthreads.cpp,v 1.22 2009/04/14 13:40:16 amsaleem Exp $
+ * Source last modified: $Id: symbianthreads.cpp,v 1.17 2006/06/21 06:34:30 pankajgupta Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -83,10 +83,21 @@ static const IHXMutex* const z_pMapLock = NULL; // Used by HXSymbianAsyncTimer
 //=======================================================================
 HXSymbianThread::HXSymbianThread()
     : m_pThread(NULL),
-      m_pmtxQue(NULL),
-      m_pSchedulerWait(NULL),
-      m_pActiveObj(NULL)
+      m_pSemMessageCount(NULL),
+      m_pmtxQue(NULL)
 {
+    TInt err;
+    m_pSemMessageCount = new RSemaphore();
+    HX_ASSERT( m_pSemMessageCount );
+    if( m_pSemMessageCount )
+    {
+        err = m_pSemMessageCount->CreateLocal(0);
+        if( KErrNone != err )
+        {
+            HX_DELETE( m_pSemMessageCount );
+        }
+    }
+
     HXMutex::MakeMutex( m_pmtxQue );
     HX_ASSERT( m_pmtxQue );
 }
@@ -98,6 +109,12 @@ HXSymbianThread::~HXSymbianThread()
     {
         HXThreadMessage* pTmp = (HXThreadMessage *)(m_messageQue.RemoveHead());
         HX_DELETE( pTmp );
+    }
+
+    if( m_pSemMessageCount)
+    {
+        m_pSemMessageCount->Close();
+        HX_DELETE( m_pSemMessageCount );
     }
 
     HX_DELETE( m_pmtxQue );
@@ -131,17 +148,16 @@ HX_RESULT HXSymbianThread::CreateThread( void*(pfExecFunc(void*)),
         }
         else
         {
-            //Each thread has to have a unique name. Using RThread ptr to generate it.
-            _LIT(KThreadBaseName, "HXThread");
-            TBuf<50> ThreadName(KThreadBaseName);
-            _LIT(KHexFormat, "_0x%x");
-            ThreadName.AppendFormat(KHexFormat, m_pThread);
+            //Each thread has to have a unique name. Oh bother.
+            //Lets just use the heap pointer.
+            char szBuff[20]; /* Flawfinder: ignore */
+            sprintf( szBuff, "%p", m_pThread ); /* Flawfinder: ignore */
+            TPtr ThreadName((unsigned short*)szBuff, strlen(szBuff), 20);
 
             st_execStruct* pstExecStruct = new st_execStruct;
             pstExecStruct->pfExecProc     = (TThreadFunction)pfExecFunc;
             pstExecStruct->pExecArg       = pArg;
             pstExecStruct->pGlobalManager = HXGlobalManInstance::GetInstance();
-            pstExecStruct->pOwner         = this;
 
             err = m_pThread->Create( ThreadName,
                                      _ThreadWrapper,
@@ -301,11 +317,8 @@ HX_RESULT HXSymbianThread::PostMessage(HXThreadMessage* pMsg, void* pWindowHandl
 
             //If we were empty the the GetMessage thread could have
             //been waiting on us to post. Signal it.
-            if( m_pThread && m_pActiveObj->IsActive())
-            {
-               TRequestStatus *pReqStatus = &(m_pActiveObj->Status());
-               m_pThread->RequestComplete(pReqStatus, KErrNone);
-            }
+            m_pSemMessageCount->Signal();
+
             m_pmtxQue->Unlock();
         }
     }
@@ -326,15 +339,12 @@ HX_RESULT HXSymbianThread::GetMessage( HXThreadMessage* pMsg,
     //We must pop the next message, COPY it into pMsg and delete our copy.
     if( pMsg != NULL )
     {
+        //Wait until there is a message.
+        m_pSemMessageCount->Wait();
+
+        //Protect the que.
         m_pmtxQue->Lock();
-        if (m_messageQue.IsEmpty())
-        {
-            m_pActiveObj->Status() = KRequestPending;
-            m_pActiveObj->Activate();
-            m_pmtxQue->Unlock();
-            m_pSchedulerWait->Start();
-            m_pmtxQue->Lock();
-        }
+
         //Sanity check.
         HX_ASSERT( !m_messageQue.IsEmpty() );
 
@@ -498,19 +508,6 @@ HX_RESULT HXSymbianThread::DispatchMessage(HXThreadMessage* pMsg)
     return HXR_FAIL;
 }
 
-void HXSymbianThread::ProcessRunL(TRequestStatus aStatus, TAny* pData)
-{
-    if (m_pSchedulerWait->IsStarted())
-    {
-       m_pSchedulerWait->AsyncStop();
-    }
-}
-
-void HXSymbianThread::ProcessDoCancel(TAny* pData)
-{
-    m_pActiveObj->Status() = KErrCancel;
-}
-
 TInt HXSymbianThread::_ThreadWrapper(TAny* pExecStruct)
 {
     TInt nRetVal = KErrNone;
@@ -527,14 +524,8 @@ TInt HXSymbianThread::_ThreadWrapper(TAny* pExecStruct)
     CActiveScheduler* pSched = new CActiveScheduler();
     CActiveScheduler::Install(pSched);
 
-    pstExec->pOwner->m_pSchedulerWait = new CActiveSchedulerWait;
-    pstExec->pOwner->m_pActiveObj = new CActiveObj(pstExec->pOwner);
-
     //Call the thread.
-    TRAP(nRetVal, nRetVal = pstExec->pfExecProc(pstExec->pExecArg));
-
-	HX_DELETE(pstExec->pOwner->m_pActiveObj);
-    HX_DELETE(pstExec->pOwner->m_pSchedulerWait);
+    nRetVal =  pstExec->pfExecProc(pstExec->pExecArg);
 
     CActiveScheduler::Install(0);
     HX_DELETE(pSched);
@@ -730,84 +721,6 @@ HX_RESULT HXSymbianMutex::Trylock()
     return res;
 }
 
-//=======================================================================
-//
-//                  HXSymbianSemaphore
-//                  ------------------
-// NOTE:- As m_nWaitCount is not protected with a lock, instance of this class
-//        has to be protected with a lock.
-//
-//=======================================================================
-HXSymbianSemaphore::HXSymbianSemaphore()
-: m_nCount(0)
-, m_pCondLock(NULL)
-{
-    m_pSemaphore = new RSemaphore();
-    HX_ASSERT(m_pSemaphore);
-
-    HXMutex* pTmp =  NULL;
-    HXMutex::MakeMutex(pTmp);
-    m_pCondLock = (HXSymbianMutex*)pTmp;
-    HX_ASSERT(m_pCondLock);
-}
-
-HXSymbianSemaphore::~HXSymbianSemaphore()
-{
-    m_pCondLock->Lock();
-    HX_DELETE(m_pSemaphore);
-    HX_DELETE(m_pCondLock);
-}
-
-INT32 HXSymbianSemaphore::CreateLocal(INT32 aCount,TOwnerType aType)
-{
-    m_pCondLock->Lock();
-    m_nCount = aCount;
-    INT32 nRet = m_pSemaphore->CreateLocal(aCount, aType);
-    m_pCondLock->Unlock();
-    return nRet;
-}
-
-void HXSymbianSemaphore::Wait()
-{
-    m_pCondLock->Lock();
-    m_nCount--;
-    if (m_nCount < 0)
-    {
-        m_pCondLock->Unlock();
-        m_pSemaphore->Wait();
-    }
-    else
-    {
-        m_pCondLock->Unlock();
-    }
-}
-
-void HXSymbianSemaphore::Signal(UINT32 uCount)
-{
-    m_pCondLock->Lock();
-    HX_ASSERT(uCount > 0);
-    while(uCount > 0)
-    {
-        m_pSemaphore->Signal();
-        uCount--;
-        m_nCount++;
-    }
-    m_pCondLock->Unlock();
-}
-
-INT32 HXSymbianSemaphore::GetCount() const
-{
-    m_pCondLock->Lock();
-    INT32 uCount = m_nCount;
-    m_pCondLock->Unlock();
-    return uCount;
-}
-
-void HXSymbianSemaphore::Close()
-{
-    m_pSemaphore->Close();
-}
-
 
 //=======================================================================
 //
@@ -830,7 +743,8 @@ HXSymbianEvent::HXSymbianEvent(const char* pEventName, HXBOOL bManualReset)
     //                    Once someone waits, only one thread wakes up
     //                    and the signal is reset.
     //
-    m_pCond = new HXSymbianSemaphore();
+
+    m_pCond = new RSemaphore();
     if( m_pCond )
     {
         m_pCond->CreateLocal(0);
@@ -848,7 +762,7 @@ HXSymbianEvent::~HXSymbianEvent()
 {
     if( m_pCond )
     {
-		m_pCond->Close();
+        m_pCond->Close();
         HX_DELETE( m_pCond );
     }
     HX_DELETE(m_pCondLock);
@@ -896,21 +810,48 @@ HX_RESULT HXSymbianEvent::ResetEvent()
 
 HX_RESULT HXSymbianEvent::SignalEvent()
 {
+
+	#if !defined(HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY)
     m_pCondLock->Lock();
 
     m_bEventIsSet = TRUE;
 
-   //There are one or more waiters...
-   if (m_bIsManualReset)
-   {
-       m_pCond->Signal(Abs(m_pCond->GetCount()));
-   }
-   else
-   {
-       m_pCond->Signal();
-   }
-   m_pCondLock->Unlock();
-   return HXR_OK;
+
+    //Get waiter count (if any)
+    int nCount = m_pCond->Count();
+
+
+    HX_ASSERT(nCount <= 0);
+
+    if (nCount < 0)
+    {
+        //There are one or more waiters...
+
+        if (m_bIsManualReset)
+    {
+        //Manual reset, wake up all threads. All waits become noops
+        //until the event is reset.
+
+        //XXXgfw symbian has no 'broadcast' kind of option. We can
+        //fake it by getting the sem count and calling signal that
+        //much.
+        m_pCond->Signal(Abs(nCount));
+    }
+    else
+    {
+            //Auto reset, wake up one waiter.
+        m_pCond->Signal();
+    }
+    }
+
+    m_pCondLock->Unlock();
+
+    #else
+	    HX_ASSERT("Not implemented. Fix me" == NULL );
+	#endif
+
+
+    return HXR_OK;
 }
 
 

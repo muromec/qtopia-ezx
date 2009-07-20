@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: servhttpmsg.cpp,v 1.4 2009/04/14 19:21:47 svaidhya Exp $
+ * Source last modified: $Id: servhttpmsg.cpp,v 1.2 2004/10/15 01:26:47 darrick Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -64,9 +64,6 @@ static HTTPError HTTPErrorTable[] =
     { "201", "Created" },
     { "202", "Accepted" },
     { "204", "No Content" },
-    { "273", "No Session" },
-    { "274", "Content Not Compatible" },
-    { "275", "Content Not Switchable" },
     { "301", "Moved Permanently" },
     { "302", "Moved Temporarily" },
     { "304", "Not Modified" },
@@ -75,7 +72,6 @@ static HTTPError HTTPErrorTable[] =
     { "403", "Forbidden" },
     { "404", "Not Found" },
     { "405", "Method Not Allowed" },
-    { "412", "Precondition Failed" },
     { "415", "Unsupported Media Type" },
     { "500", "Internal Server Error" },
     { "501", "Not Implemented" },

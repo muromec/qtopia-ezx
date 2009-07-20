@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: chxclientnetservices.h,v 1.8 2008/12/02 13:39:50 gahluwalia Exp $
+ * Source last modified: $Id: chxclientnetservices.h,v 1.7 2006/04/20 23:49:13 ping Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -96,29 +96,9 @@ protected:
                                          const HXSOCKET_CREATE_PARAMS* pParams = 0);
 };
 
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-UINT32  GenCRC(UINT8 *data, UINT32 len);
-class CHXSecureNetServices : public CHXClientNetServices
-,public IHXSecureNetServices
-{
-
-public:
-    CHXSecureNetServices();
-    virtual ~CHXSecureNetServices();
-    STDMETHOD_(ULONG32,AddRef)      (THIS);
-    STDMETHOD_(ULONG32,Release)     (THIS);
-    STDMETHOD(QueryInterface)       (THIS_ REFIID riid, void** ppvObj);
-    STDMETHOD(CreateSecureSocket)         (THIS_ IHXSecureSocket** ppSock);
-};
-#endif
 #if defined(THREADS_SUPPORTED)
 
-class CHXNetThreadClientNetServices :
-#ifdef HELIX_FEATURE_SECURE_SOCKET
- public CHXSecureNetServices
-#else
- public CHXClientNetServices
-#endif
+class CHXNetThreadClientNetServices : public CHXClientNetServices
 {
 public:
     CHXNetThreadClientNetServices();
@@ -129,9 +109,7 @@ public:
 
     //IHXNetServices
     STDMETHOD(CreateResolver)       (THIS_ IHXResolve** ppResolver);
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-    STDMETHOD(CreateSecureSocket)         (THIS_ IHXSecureSocket** ppSock);
-#endif
+
 protected:
     // helpers for CreateSocket()
     HX_RESULT CreateSocketHelper(IHXSocket** ppSock, 
@@ -145,8 +123,6 @@ private:
 };
 
 #endif
-
-
 
 CHXClientNetServices*   CreateClientNetServices(IUnknown* pContext);
 

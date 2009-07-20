@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsrc.cpp,v 1.136 2009/05/04 14:24:31 joaquincab Exp $
+ * Source last modified: $Id: hxsrc.cpp,v 1.119 2007/04/05 21:56:15 sfu Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -200,7 +200,6 @@ HXSource::HXSource() :
 	, m_bRestrictedLiveStream (FALSE)
 	, m_bNonSeekable(FALSE)
 	, m_bHasSubordinateLifetime(FALSE)
-        , m_bRenderersControlBuffering(FALSE)
 	, m_bSourceEnd (FALSE)
 	, m_bForcedSourceEnd(FALSE)
 	, m_bIsPreBufferingStarted(FALSE)
@@ -213,7 +212,6 @@ HXSource::HXSource() :
 	, m_uNumStreams (0)
 	, m_ulPreRollInMs (0)
 	, m_ulPreRoll (0)
-	, m_ulMaxPreRoll (0)
 	, m_ulMaxLatencyThreshold(0)
 	, m_ulAvgBandwidth (0)
 	, m_ulDuration (0)
@@ -505,13 +503,6 @@ STDMETHODIMP HXSource::QueryInterface(REFIID riid, void** ppvObj)
     {
         return HXR_OK;
     }
-#if defined(HELIX_FEATURE_DRM)
-    else if (m_pDRM &&
-        m_pDRM->QueryInterface(riid, ppvObj) == HXR_OK)
-    {
-        return HXR_OK;
-    }
-#endif /* HELIX_FEATURE_DRM */
 
     *ppvObj = NULL;
     return HXR_NOINTERFACE;
@@ -709,133 +700,6 @@ HXSource::IsRARVStream(IHXValues* pHeader)
     return bResult;
 }
 
-HX_RESULT HXSource::GetBufferingStatusFromRenderers(REF(UINT16)     rusStatusCode,
-                                                    REF(IHXBuffer*) rpStatusDesc,
-                                                    REF(UINT16)     rusPercentDone)
-{
-    HX_RESULT retVal = HXR_UNEXPECTED;
-
-    if (m_pSourceInfo && m_pSourceInfo->m_pRendererMap)
-    {
-        // Initialize to defaults
-        rusStatusCode  = HX_STATUS_READY;
-        rpStatusDesc   = NULL;
-        rusPercentDone = 0;
-        // Set up variables to track status across renderers
-        HXBOOL     bAtLeastOneRendererInitializing = FALSE;
-        HXBOOL     bAtLeastOneRendererContacting   = FALSE;
-        HXBOOL     bAtLeastOneRendererBuffering    = FALSE;
-        UINT16     usTotalPercentDone              = 0;
-        UINT16     usNumRenderers                  = 0;
-        // Now loop through all the renderers
-        CHXMapLongToObj::Iterator itrRend; 
-        for (itrRend =  m_pSourceInfo->m_pRendererMap->Begin();
-             itrRend != m_pSourceInfo->m_pRendererMap->End();
-             ++itrRend)
-        {
-            RendererInfo* pRendInfo = (RendererInfo*)(*itrRend);
-            if (pRendInfo &&
-                pRendInfo->m_pRendererPendingStatus &&
-                pRendInfo->m_bRendererDrivenBuffering)
-            {
-                // Get the status from this renderer
-                UINT16     usTmpStatusCode  = 0;
-                IHXBuffer* pTmpStatusDesc   = NULL;
-                UINT16     usTmpPercentDone = 0;
-                retVal = pRendInfo->m_pRendererPendingStatus->GetStatus(usTmpStatusCode,
-                                                                        pTmpStatusDesc,
-                                                                        usTmpPercentDone);
-                HX_RELEASE(pTmpStatusDesc);
-                if (SUCCEEDED(retVal))
-                {
-                    // Is this renderer initializing?
-                    if (usTmpStatusCode == HX_STATUS_INITIALIZING)
-                    {
-                        // This renderer is initializing, so set the flag
-                        bAtLeastOneRendererInitializing = TRUE;
-                    }
-                    else if (usTmpStatusCode == HX_STATUS_CONTACTING)
-                    {
-                        // This renderer is contacting, so set the flag
-                        bAtLeastOneRendererContacting = TRUE;
-                    }
-                    else if (usTmpStatusCode == HX_STATUS_BUFFERING)
-                    {
-                        // This renderer is buffering, so set the flag
-                        bAtLeastOneRendererBuffering = TRUE;
-                        // Add the percent done to the total percentage
-                        usTotalPercentDone += usTmpPercentDone;
-                        // Increment the number of renderers
-                        usNumRenderers++;
-                    }
-                    else if (usTmpStatusCode == HX_STATUS_READY)
-                    {
-                        // Add 100% to the total percent done
-                        usTotalPercentDone += 100;
-                        // Increment the number of renderers
-                        usNumRenderers++;
-                    }
-                }
-                else
-                {
-                    // A renderer returned failure, so break out
-                    break;
-                }
-            }
-            else
-            {
-                // One of the renderers does not support IHXPendingStatus,
-                // so we cannot get a status call across all renderers,
-                // so we should return failure
-                retVal = HXR_UNEXPECTED;
-                break;
-            }
-        } // for (itrRend = m_pRendererMap->Begin(); itrRend != m_pRendererMap->End(); ++itrRend)
-        if (SUCCEEDED(retVal))
-        {
-            // Do we have at least one renderer initializing?
-            if (bAtLeastOneRendererInitializing)
-            {
-                // We have at least one renderer initializing, so we
-                // will return an overall state of initializing.
-                rusStatusCode  = HX_STATUS_INITIALIZING;
-                rusPercentDone = 0;
-            }
-            else if (bAtLeastOneRendererContacting)
-            {
-                // We have at least one renderer contacting, so we
-                // will return an overall state of contacting.
-                rusStatusCode  = HX_STATUS_CONTACTING;
-                rusPercentDone = 0;
-            }
-            else if (bAtLeastOneRendererBuffering)
-            {
-                // All the renderer were either buffering or
-                // ready, but there was at least one that was
-                // still buffering, so we will return an
-                // overall state of buffering and calculate
-                // the overall percentage between them.
-                rusStatusCode  = HX_STATUS_BUFFERING;
-                // Divide the total percentage by the number of renderers
-                if (usNumRenderers)
-                {
-                    rusPercentDone = usTotalPercentDone / usNumRenderers;
-                }
-            }
-            else
-            {
-                // The only thing left is that all the renderers
-                // returned ready, so we will return an overall
-                // state of ready.
-                rusStatusCode  = HX_STATUS_READY;
-                rusPercentDone = 0;
-            }
-        }
-    }
-
-    return retVal;
-}
-
 HX_RESULT
 HXSource::IsFaststartPushdownFullfilled(REF(UINT16) uStatusCode,
                                         REF(UINT16) ulPercentDone)
@@ -936,10 +800,6 @@ HXSource::IsFaststartPushdownFullfilled(REF(UINT16) uStatusCode,
 			    this, 
 			    lDiff, 
 			    ulAudioPushDownThreshold);
-		    HXLOGL3(HXLOG_CORP, "(%p) AudioPushDown Satisfied: Have=%ld Needed=%lu", 
-			    this, 
-			    lDiff, 
-			    ulAudioPushDownThreshold);
 
                     break;
                 }
@@ -1006,11 +866,6 @@ HXSource::IsFaststartPushdownFullfilled(REF(UINT16) uStatusCode,
 			ulPushdownMS, 
 			ulVideoPushDownThreshold, 
 			ulNumFrames);
-		HXLOGL3(HXLOG_CORP, "(%p) VideoPushDown Satisfied: Have=%lu Needed=%lu QueuedFrames=%lu", 
-			this, 
-			ulPushdownMS, 
-			ulVideoPushDownThreshold, 
-			ulNumFrames);
 	    }
 	    else
 	    {
@@ -1030,13 +885,11 @@ HXSource::IsFaststartPushdownFullfilled(REF(UINT16) uStatusCode,
     {
 	m_pushDownStatus = (PushDownStatus)(m_pushDownStatus | PUSHDOWN_AUDIO_DONE);
         HXLOGL2(HXLOG_TRAN, "(%p) AudioPushDown Satisfied(no audio)", this);
-	HXLOGL3(HXLOG_CORP, "(%p) AudioPushDown Satisfied(no audio)", this);
     }
     if (bVideoPushdownCompletedOnGaugeAbsence && bAudioGaugeAvailable)
     {
 	m_pushDownStatus = (PushDownStatus)(m_pushDownStatus | PUSHDOWN_VIDEO_DONE);
 	HXLOGL2(HXLOG_TRAN, "(%p) VideoPushDown Satisfied(no video pushdown gauge)", this);
-	HXLOGL3(HXLOG_CORP, "(%p) VideoPushDown Satisfied(no video pushdown gauge)", this);
     }
 
     if (PUSHDOWN_ALL_DONE == m_pushDownStatus)
@@ -1048,7 +901,6 @@ HXSource::IsFaststartPushdownFullfilled(REF(UINT16) uStatusCode,
         m_uLastBuffering = 100;
         m_ulTurboStartActiveTime = HX_GET_TICKCOUNT();
         HXLOGL1(HXLOG_TRAN, "(%p) TURBO Started", this);
-	HXLOGL3(HXLOG_CORP, "(%p) TURBO Started", this);
     }
     else
     {
@@ -1758,7 +1610,7 @@ HX_RESULT HXSource::CopyMetaDataToRegistry(IHXValues* pHeader)
         if (HXR_OK == GetRequest(pRequest))
         {
             // get request headers
-            if ((HXR_OK == pRequest->GetRequestHeaders(pReqHeaders)) && pReqHeaders)
+            if (HXR_OK == pRequest->GetRequestHeaders(pReqHeaders))
             {
                 // look for the meta data properties
                 if (HXR_OK == pReqHeaders->GetPropertyCString("AcceptMetaInfo", pBuffer))
@@ -3735,14 +3587,6 @@ HXSource::SetMinimumPreroll()
                 pStreamInfo->m_pHeader->GetPropertyULONG32("PostDecodeDelay", 
                                                            ulPostDecodeDelay);
             }
-			
-			// Check if the preroll time is minor than the custom end time. 
-            if ( m_bCustomEndTime && (pStreamInfo->BufferingState().GetPreroll() > 
-                    pStreamInfo->m_ulDuration - pStreamInfo->m_ulTimeAfterSeek ))
-            {
-            	pStreamInfo->BufferingState().UpdatePreroll(pStreamInfo->m_ulDuration - 
-                    pStreamInfo->m_ulTimeAfterSeek);
-            }
         }
     }
     
@@ -3802,14 +3646,12 @@ HXSource::SendHeaderToRecordControl(HXBOOL bFileHeader, IHXValues* pHeader)
 HX_RESULT
 HXSource::ProcessFileHeader(void)
 {
-    HX_RESULT   hr=HXR_OK;
     UINT32      bNonSeekAble = 0;
     IHXBuffer*  pTitle = NULL;
     IHXBuffer*  pAuthor = NULL;
     IHXBuffer*  pCopyright = NULL;
     IHXBuffer*  pAbstract = NULL;
     IHXBuffer*  pDescription = NULL;
-    IHXBuffer*  pLicenseInfo = NULL;
     IHXBuffer*  pKeywords = NULL;
     IHXValues*  pValues = NULL;
     IHXValues*  pMetaInfo = NULL;
@@ -3863,54 +3705,6 @@ HXSource::ProcessFileHeader(void)
         }
     }
 
-#ifdef HELIX_FEATURE_DRM
-    // create a default empty LicenseInfo buffer
-    // certain TLC client expect LicenseInfo been always set
-    if (SUCCEEDED(CreateBufferCCF(pLicenseInfo, (IUnknown*)(IHXPlayer*)m_pPlayer)))
-    {
-        pLicenseInfo->Set((const UCHAR*)"", 1);
-    }
-
-    //let DRM update the LicenseInfo buffer
-    if (IsHelixDRMProtected() && m_pDRM)
-    {
-        m_pDRM->GetLicenseInfo(pLicenseInfo);
-    }
-#endif
-
-    if (m_pFileHeader)
-    {
-#if defined(HELIX_FEATURE_EMBEDDED_UI) && defined(HELIX_FEATURE_DRM)
-	// Send the file header and the DRM object
-	IHXEmbeddedUI* pEmbeddedUI=NULL;
-	if (m_pPlayer && SUCCEEDED(m_pPlayer->QueryInterface(IID_IHXEmbeddedUI, (void**) &pEmbeddedUI)))
-	{
-	    IUnknown* pUnknown=NULL;
-	    if (m_pDRM)
-	    {
-		m_pDRM->QueryInterface(IID_IUnknown, (void**) &pUnknown);
-	    }
-
-	    EmbeddedUIInfo* uiInfo = new EmbeddedUIInfo(m_pszURL, pUnknown, m_pFileHeader);
-	    pEmbeddedUI->SetEmbeddedUI(uiInfo);
-            HX_DELETE(uiInfo);
-	    HX_RELEASE(pUnknown);
-	}
-	HX_RELEASE(pEmbeddedUI);
-#else
-	IHXBuffer* pBuffer = NULL;
-	HXBOOL bEmbeddedUI= SUCCEEDED(m_pFileHeader->GetPropertyBuffer("DRM_UIDescription", pBuffer));
-	HX_RELEASE(pBuffer);
-
-	if (bEmbeddedUI)
-	{
-	    hr = HXR_FAIL;
-	    ReportError(hr);
-	}
-#endif // HELIX_FEATURE_EMBEDDED_UI
-    }
-
-    
 #if defined(HELIX_FEATURE_STATS) && defined(HELIX_FEATURE_REGISTRY)
     if (m_pStats)
     {
@@ -3952,7 +3746,7 @@ HXSource::ProcessFileHeader(void)
         m_pPlayer && m_pPlayer->GetMetaInfo())
     {
         if (pTitle || pAuthor || pCopyright ||
-            pDescription || pAbstract || pKeywords || pLicenseInfo)
+            pDescription || pAbstract || pKeywords)
         {
             IHXCommonClassFactory* pCCF = NULL;
 
@@ -3970,9 +3764,6 @@ HXSource::ProcessFileHeader(void)
                 if (pDescription)  pMetaInfo->SetPropertyBuffer("Description", pDescription);
                 if (pAbstract)     pMetaInfo->SetPropertyBuffer("Abstract", pAbstract);
                 if (pKeywords)     pMetaInfo->SetPropertyBuffer("Keywords", pKeywords);
-#ifdef HELIX_FEATURE_DRM
-                if (pLicenseInfo)  pMetaInfo->SetPropertyBuffer("LicenseInfo", pLicenseInfo);
-#endif
 
                 m_pPlayer->GetMetaInfo()->UpdateMetaInfo(pMetaInfo);
                 HX_RELEASE(pMetaInfo);
@@ -3992,7 +3783,7 @@ HXSource::ProcessFileHeader(void)
     HX_RELEASE(pKeywords);
     HX_RELEASE(pValues);
 
-    return hr;
+    return HXR_OK;
 }
 
 static HXBOOL GetHeaderBOOL(IHXValues* pHeader, const char* pKey)
@@ -4294,18 +4085,7 @@ UINT32
 HXSource::CalcEventTime(STREAM_INFO* pStreamInfo, UINT32 ulTime, 
                         HXBOOL bEnableLiveCheck, INT32 lVelocity)
 {
-    UINT32 ulEventTime = 0;
-
-    if (ulTime > m_ulStartTime)
-    {
-        ulEventTime = ulTime - m_ulStartTime;
-    }
-    else
-    {
-        ulEventTime = 0;
-    }
-
-    ulEventTime += m_ulDelay;
+    UINT32 ulEventTime = ulTime + m_ulDelay - m_ulStartTime;
 
     if (bEnableLiveCheck && (mLiveStream || m_bRestrictedLiveStream))
     {
@@ -4318,7 +4098,7 @@ HXSource::CalcEventTime(STREAM_INFO* pStreamInfo, UINT32 ulTime,
     // buffering interval ahead.
     if (lVelocity >= 0)
     {
-        ulEventTime = (ulEventTime > stream_ulBuffering ? (ulEventTime - stream_ulBuffering) : 0);
+        ulEventTime -= stream_ulBuffering;
     }
     else
     {

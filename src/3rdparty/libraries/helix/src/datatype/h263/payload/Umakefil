@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: Umakefil,v 1.7 2009/03/20 23:38:59 ebala Exp $
+# Source last modified: $Id: Umakefil,v 1.4 2005/11/23 19:33:11 rishimathew Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -76,13 +76,9 @@ if project.IsDefined("HELIX_FEATURE_H263_RFC2190"):
 if project.IsDefined("HELIX_FEATURE_H263_RFC2429"):
     project.AddSources("rfc2429hlpr.cpp")
 
-if project.IsDefined("HELIX_FEATURE_SERVER") or \
-   project.IsDefined("HELIX_FEATURE_MP4_FILEFORMAT_ALL") or \
-   project.IsDefined("HELIX_FEATURE_PRODUCER"):
+if project.IsDefined("HELIX_FEATURE_SERVER"):
     project.AddSources("h263pkt.cpp")
 
-
-                            
 LibraryTarget('h263pyldlib')
 
 DependTarget()

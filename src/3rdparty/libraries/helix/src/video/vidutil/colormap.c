@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: colormap.c,v 1.11 2009/05/06 05:55:13 eepaul Exp $
+ * Source last modified: $Id: colormap.c,v 1.8 2004/07/09 18:35:57 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -92,9 +92,6 @@
 #define BI_MCAM         MAKEFOURCC('M','C','A','M') /* ATI MPEG-2 M/C */
 #define BI_MCS3         MAKEFOURCC('M','C','S','3') /* S3 MPEG-2 M/C  */
 #define BI_IGOR         MAKEFOURCC('I','G','O','R') /* Intel i810 M/C */
-
-/* LIBVA */
-#define BI_LIBVA         MAKEFOURCC('L','B','V','A') /* using LibVa surface */
 
 /* RMA proprietary formats: */
 #ifndef HXCOLOR_RGB3_ID
@@ -173,8 +170,6 @@ static const CIDD ciddMCAM      = {_FOURCC,                    BI_MCAM,       12
 static const CIDD ciddMCS3      = {_FOURCC,                    BI_MCS3,       12, {       0,        0,        0}};
 static const CIDD ciddIGOR      = {_FOURCC,                    BI_IGOR,       12, {       0,        0,        0}};
 
-static const CIDD ciddLIBVA      = {_FOURCC,                    BI_LIBVA,       1, {       0,        0,        0}};
-
 /* non-standard descriptors we should support: */
 struct _stColors
 {
@@ -241,8 +236,7 @@ static const struct _stColorTable  ciddTbl[NFORMATS] = {
     {_BITMAP+_DIRECTDRAW+_MPEG, &ciddMCAM,      &ciddMCAM,      1}, /* CID_MCAM   */
     {_BITMAP+_DIRECTDRAW+_MPEG, &ciddMCS3,      &ciddMCS3,      1}, /* CID_MCS3   */
     {_BITMAP+_DIRECTDRAW+_MPEG, &ciddIGOR,      &ciddIGOR,      1}, /* CID_IGOR   */
-    {_BITMAP+_DIRECTDRAW+_YUV,  &ciddDVPF,      &ciddDVPF,      1}, /* CID_DVPF   */
-    {_BITMAP,                   &ciddLIBVA,     &ciddLIBVA,     1}  /* CID_LIBVA   */
+    {_BITMAP+_DIRECTDRAW+_YUV,  &ciddDVPF,      &ciddDVPF,      1}  /* CID_DVPF   */
 };
 
                                                  
@@ -519,39 +513,7 @@ int GetBitmapPitch (HXBitmapInfo* lpbi)
     return pitch;
 }
 
-/*
-* Get pitch of the bitmap image.
-* Use:
-*  int GetBitmapPitch2 (int cid, int biWidth);
-* Input:
-*  cid
-*  biWidth
-* Returns:
-*  !0 -- pitch of the bitmap image; <0 if bottom-up bitmap
-*  0 - unrecognized bitmap format
-*/
-int GetBitmapPitch2 (int cid, int biWidth)
-{
-	register int pitch;
-	
-	if (cid == CID_UNKNOWN || !(ciddTbl[cid].dwFlags & _BITMAP))
-		return 0;
 
-	if (cid == CID_XING)
-		return 768;
-
-	/* calculate image pitch: */
-	pitch = biWidth * ciddTbl[cid].nBPP;
-	if (ciddTbl[cid].dwFlags & (_RGB|_BGR))
-#if defined(_MACINTOSH) || defined(_UNIX)
-		pitch = ((pitch + 3) & ~3);
-#else
-		pitch = -((pitch + 3) & ~3);
-#endif
-
-	/* return pitch: */
-	return pitch;
-}
 
 /*
  * Get size of the bitmap image.

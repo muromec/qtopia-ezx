@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: buildtarget.py,v 1.3 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: buildtarget.py,v 1.2 2006/06/19 23:11:32 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -85,7 +85,7 @@ Current methods:
 import os
 
 import log
-log.debug( 'Imported: $Id: buildtarget.py,v 1.3 2007/06/13 01:12:50 jfinnecy Exp $' )
+log.debug( 'Imported: $Id: buildtarget.py,v 1.2 2006/06/19 23:11:32 jfinnecy Exp $' )
 
 import umake_lib
 
@@ -119,7 +119,6 @@ class BuildTarget:
         self.platform   = platform
         # Must set targetType in the subclasses below.
         self.targetType = ''
-        self.canSign = False
         log.trace( 'exit' )
         
     # Abstract methods. Must implement.
@@ -127,7 +126,7 @@ class BuildTarget:
         umake_lib.fatal( 'getOutputName() not implemented' )
 
     def getCleanFunction( self ):
-        umake_lib.fatal( 'getCleanFunction() not implemented' )                
+        umake_lib.fatal( '__getCleanFunction() not implemented' )                
 
     # Public methods.
     def getAllLine( self , objectDir , targets ):
@@ -138,9 +137,6 @@ class BuildTarget:
         
     def getTargetType( self ):
         return self.targetType
-        
-    def isSignable( self ):
-        return self.canSign
 
         
 class LibTarget( BuildTarget ):
@@ -161,7 +157,6 @@ class ExeTarget( BuildTarget ):
     def __init__( self , platform ):
         BuildTarget.__init__( self , platform )
         self.targetType = 'exe'
-        self.canSign = True
         
     def getCleanFunction( self ):
         return self.platform.link.CleanEXE
@@ -177,7 +172,6 @@ class DLLTarget( BuildTarget ):
     def __init__( self , platform ):
         BuildTarget.__init__( self , platform )
         self.targetType = 'dll'
-        self.canSign = True
         
     def getCleanFunction( self ):
         return self.platform.link.CleanDLL

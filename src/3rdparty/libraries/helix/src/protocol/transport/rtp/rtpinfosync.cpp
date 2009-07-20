@@ -55,17 +55,13 @@
 #include "bufnum.h"
 
 #include "ntptime.h"
-#include "tscalc.h"
+
 #include "hxtick.h"
 #include "rtppkt.h"
-#include "rtpwrap.h"
 #include "rtpinfosync.h"
 
 #if defined (_SYMBIAN)
 #include <netinet/in.h>
-#endif
-#if defined (_LSB)
-#include <arpa/inet.h>
 #endif
 
 /*
@@ -86,31 +82,26 @@
  */
 
 RTPInfoSynchData::RTPInfoSynchData() :
-    m_bHasSR(FALSE),
-    m_bHasPacket(FALSE),
-    m_ntpTimeFromSR(0, 0),
-    m_ulRTPTimeFromSR(0),
-    m_ulRTPPacketTime(0),
-    m_ulRTPStartTime(0),
-    m_ulRTPFrequency(1000)
+    m_bHasSR (FALSE),
+    m_lRTPtoNTPOffset (0),
+    m_ulRTPInfoTime (0),
+    m_bSynched (FALSE),
+    m_pTSConverter (NULL)
 {
 }
 
 RTPInfoSynchData::~RTPInfoSynchData()
 {
+    HX_DELETE(m_pTSConverter);
 }
 
 void
 RTPInfoSynchData::Reset()
 {
     m_bHasSR = FALSE;
-    m_bHasPacket = FALSE;
-    m_ntpTimeFromSR.m_ulSecond = 0;
-    m_ntpTimeFromSR.m_ulFraction = 0;
-    m_ulRTPTimeFromSR = 0;
-    m_ulRTPPacketTime = 0;
-    m_ulRTPStartTime = 0;
-    m_ulRTPFrequency = 1000;
+    m_bSynched = FALSE;
+    m_lRTPtoNTPOffset = 0;
+    m_ulRTPInfoTime = 0;
 }
 
 RTPInfoSynch::RTPInfoSynch() :
@@ -118,13 +109,9 @@ RTPInfoSynch::RTPInfoSynch() :
     m_pSynchData (NULL),
     m_unStreamCount (0),
     m_unSRCount (0),
-    m_unSynchStream (HX_INVALID_STREAM),
-    m_bNeedSyncStream (TRUE),
+    m_unSynchStream (0),
     m_bHaveAllSRs (FALSE),
-    m_bHaveAllPackets (FALSE),
-    m_unSyncPacketsReceived (0),
-    m_bRTPTimesGenerated (FALSE),
-    m_pResponse (NULL)
+    m_bRTPTimesGenerated (FALSE)
 {
 }
 
@@ -133,13 +120,33 @@ RTPInfoSynch::~RTPInfoSynch()
     Done();
 }
 
-UINT32
+STDMETHODIMP
+RTPInfoSynch::QueryInterface(REFIID riid, void** ppvObj)
+{
+    if (IsEqualIID(riid, IID_IUnknown))
+    {
+	AddRef();
+	*ppvObj = this;
+	return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXRTPInfoSynch))
+    {
+	AddRef();
+	*ppvObj = (IHXRTPInfoSynch*)this;
+	return HXR_OK;
+    }
+
+    *ppvObj = NULL;
+    return HXR_NOINTERFACE;
+}
+
+STDMETHODIMP_(UINT32)
 RTPInfoSynch::AddRef()
 {
     return InterlockedIncrement(&m_lRefCount);
 }
 
-UINT32
+STDMETHODIMP_(UINT32)
 RTPInfoSynch::Release()
 {
     if(InterlockedDecrement(&m_lRefCount) > 0)
@@ -150,43 +157,21 @@ RTPInfoSynch::Release()
     return 0;
 }
 
-HX_RESULT
-RTPInfoSynch::InitSynch(UINT16 unStreamCount, 
-                        IRTPSyncResponse* pResponse, 
-                        UINT16 unMasterStream)
+STDMETHODIMP
+RTPInfoSynch::InitSynch (UINT16 nStreamCount)
 {
-    Done();
+    m_unStreamCount = nStreamCount;
 
-    if (unStreamCount == 0)
-    {
-        return HXR_INVALID_PARAMETER;
-    }
-
-    m_unStreamCount = unStreamCount;
-    
-    m_pResponse = pResponse;
-    HX_ADDREF(m_pResponse);
-
-    m_pSynchData = new RTPInfoSynchData [unStreamCount];
-    if (unMasterStream != HX_INVALID_STREAM)
-    {
-        if (unMasterStream < m_unStreamCount)
-        {
-            m_unSynchStream = unMasterStream;
-            m_bNeedSyncStream = FALSE;
-        }
-        else
-        {
-            HX_VECTOR_DELETE(m_pSynchData);
-            return HXR_INVALID_PARAMETER;
-        }
-    }
+    HX_VECTOR_DELETE(m_pSynchData);
+    m_pSynchData = new RTPInfoSynchData [nStreamCount];
 
     return HXR_OK;
 }
 
 HX_RESULT
-RTPInfoSynch::SetTSFrequency(UINT32 ulRTPFrequency, UINT16 unStream)
+RTPInfoSynch::SetTSConverter(CHXTimestampConverter::
+			     ConversionFactors conversionFactors,
+			     UINT16 unStream)
 {
     if (!m_pSynchData)
     {
@@ -198,243 +183,235 @@ RTPInfoSynch::SetTSFrequency(UINT32 ulRTPFrequency, UINT16 unStream)
 	return HXR_INVALID_PARAMETER;
     }
 
-    m_pSynchData[unStream].m_ulRTPFrequency = ulRTPFrequency;
+    HX_DELETE(m_pSynchData [unStream].m_pTSConverter);
+
+    m_pSynchData [unStream].m_pTSConverter =
+	new CHXTimestampConverter(conversionFactors);
 
     return HXR_OK;
 }
 
-HX_RESULT 
-RTPInfoSynch::OnRTPPacket(IHXRTPPacket* pPacket, UINT16 unStream)
-{
-    if (!pPacket || unStream >= m_unStreamCount)
-    {
-	return HXR_INVALID_PARAMETER;
-    }
-    if (!m_pSynchData)
-    {
-	return HXR_NOT_INITIALIZED;
-    }
-    if (m_bRTPTimesGenerated)
-    {
-        // We are already synced!! Why are you sending packets?
-        HX_ASSERT(FALSE);
-        return HXR_OK;
-    }
 
-    if (!m_pSynchData[unStream].m_bHasPacket && 
-        (m_bNeedSyncStream || unStream == m_unSynchStream))
-    {
-        m_pSynchData[unStream].m_bHasPacket = TRUE;
-        m_pSynchData[unStream].m_ulRTPPacketTime = pPacket->GetRTPTime();
-        ++m_unSyncPacketsReceived;
-
-        if (m_unSynchStream == HX_INVALID_STREAM)
-        {
-            // If this is the first packet received (and no user-specified 
-            // master stream) then we will start by syncing to this stream
-            m_unSynchStream = unStream;
-        }
-
-        // Wait for a packet from each stream, unless master stream is 
-        // user-specified
-        if (m_unSyncPacketsReceived >= m_unStreamCount || !m_bNeedSyncStream)
-        {
-            m_bHaveAllPackets = TRUE;
-        }
-    }
-
-    if (m_bHaveAllPackets && (m_bHaveAllSRs || m_unStreamCount < 2))
-    {
-         // We have everything we need to calculate the sync offsets
-        CalculateSyncTimes();
-    }
-    // else we are still waiting for SRs and/or packets
-
-    return HXR_OK;
-}
-
-HX_RESULT 
-RTPInfoSynch::OnRTCPPacket(RTCPPacketBase* pPacket, UINT16 unStream)
-{
-    if (!m_pSynchData)
-    {
-	return HXR_NOT_INITIALIZED;
-    }
-    if (!pPacket || unStream >= m_unStreamCount)
-    {
-	return HXR_INVALID_PARAMETER;
-    }
-
-    if (!(pPacket->packet_type == RTCP_SR) || m_pSynchData[unStream].m_bHasSR)
-    {
-        // If it's not an SR or is on a stream we already got an SR for
-        // then we don't need to do anything with it
-        return HXR_OK;
-    }
-
-    m_pSynchData[unStream].m_ntpTimeFromSR.m_ulSecond = pPacket->ntp_sec;
-    m_pSynchData[unStream].m_ntpTimeFromSR.m_ulFraction = pPacket->ntp_frac;
-    m_pSynchData[unStream].m_ulRTPTimeFromSR = pPacket->rtp_ts;
-    m_pSynchData[unStream].m_bHasSR = TRUE;
-
-    m_bHaveAllSRs = (++m_unSRCount >= m_unStreamCount);
-
-    if (m_bHaveAllSRs && m_bHaveAllPackets)
-    {
-        // This was the last thing we needed, calculate sync times now!
-        CalculateSyncTimes();
-    }
-    // else we are still waiting for SRs and/or packets
-
-    return HXR_OK;
-}
-
-void
-RTPInfoSynch::CalculateSyncTimes()
-{
-    m_bRTPTimesGenerated = TRUE;
-
-    if (m_unStreamCount == 1)
-    {
-        // For single-stream case we just need the first packet timestamp!
-        m_pSynchData[0].m_ulRTPStartTime = m_pSynchData[0].m_ulRTPPacketTime;
-
-        if (m_pResponse)
-        {
-            m_pResponse->SyncDone();
-        }
-        return;
-    }
-
-    UINT16 i = 0;
-    UINT16 unInitStream = m_unSynchStream;
-    Timeval tvStrmOffset;
-    Timeval tvReSyncDiff = Timeval(0, 0);
-    INT32 lPktOffset = 0;
-
-    // Get the offset from the sync stream's SR to the first
-    // packet start time (packet_time - SR_time) (can be negative)
-    // Mind the units - calculate with sync stream's RTP timestamp
-    // rollover, then convert to Timeval for proper handling with
-    // other streams
-    INT32 lRTPSROffset = DiffTimeStamp(
-        m_pSynchData[unInitStream].m_ulRTPPacketTime, 
-        m_pSynchData[unInitStream].m_ulRTPTimeFromSR);
-    
-    Timeval tvSyncSROffset ((double)lRTPSROffset / 
-        (double)(m_pSynchData[unInitStream].m_ulRTPFrequency));
-
-    NTPTime ntpSyncTime = m_pSynchData[unInitStream].m_ntpTimeFromSR;
-
-    m_pSynchData[unInitStream].m_ulRTPStartTime = m_pSynchData[unInitStream].m_ulRTPPacketTime;
-
-    for (i = 0; i < m_unStreamCount; i++)
-    {
-        if (i != unInitStream)
-        {
-            // Get the offset from the stream SR to the packet start time. 
-            // Can be negative! But watch the NTP handling, as NTP
-            // is unsigned
-            // This is SyncSROffset - (StreamSR - SyncSR)
-            tvStrmOffset = tvSyncSROffset;
-            if (m_pSynchData[i].m_ntpTimeFromSR >= ntpSyncTime)
-            {
-                tvStrmOffset -= 
-                    (m_pSynchData[i].m_ntpTimeFromSR - ntpSyncTime).toTimeval();
-            }
-            else
-            {
-                tvStrmOffset += 
-                    (ntpSyncTime - m_pSynchData[i].m_ntpTimeFromSR).toTimeval();
-            }
-
-            // and now add this to the SR's RTP time (converted) to 
-            // get the (raw) stream time at the sync packet time
-            tvStrmOffset += (Timeval)(m_pSynchData[i].m_ulRTPTimeFromSR /
-                (double)(m_pSynchData[i].m_ulRTPFrequency));
-
-            // and convert back to RTP TS units
-            m_pSynchData[i].m_ulRTPStartTime = ConvertToTimestamp(tvStrmOffset,
-                (INT32)(m_pSynchData[i].m_ulRTPFrequency));
-
-            // Check if the first packet's time is earlier than start time;
-            // If so, then we'll need to re-adjust offsets
-            if (m_bNeedSyncStream)
-            {
-                lPktOffset = DiffTimeStamp(m_pSynchData[i].m_ulRTPPacketTime, 
-                                m_pSynchData[i].m_ulRTPStartTime);
-
-                if (lPktOffset < 0)
-                {
-                    // and check if this is the earliest one
-                    tvStrmOffset = (Timeval)((double)lPktOffset /
-                        (double)(m_pSynchData[i].m_ulRTPFrequency));
-
-                    if (tvStrmOffset > tvReSyncDiff)
-                    {
-                        tvReSyncDiff = tvStrmOffset;
-                        m_unSynchStream = i;
-                    }
-                }
-            }
-        }
-    }
-    
-    // Do we need to re-adjust our sync start point?
-    if (m_bNeedSyncStream && m_unSynchStream != unInitStream)
-    {
-        UINT32 ulRTPDiff;
-        for (i = 0; i < m_unStreamCount; i++)
-        {
-            if (i == m_unSynchStream)
-            {
-                m_pSynchData[i].m_ulRTPStartTime = 
-                    m_pSynchData[i].m_ulRTPPacketTime;
-            }
-            else
-            {
-                ulRTPDiff = ConvertToTimestamp(tvReSyncDiff, 
-                    (INT32)(m_pSynchData[i].m_ulRTPFrequency));
-
-                m_pSynchData[i].m_ulRTPStartTime += ulRTPDiff;
-            }
-        }
-    }
-
-    if (m_pResponse)
-    {
-        m_pResponse->SyncDone();
-    }
-}
-
-HX_RESULT
-RTPInfoSynch::GetRTPStartTime(UINT16 unStream, REF(UINT32) ulStartTime)
-{
-    if (unStream < m_unStreamCount)
-    {
-        if (m_bRTPTimesGenerated)
-        {
-            ulStartTime = m_pSynchData[unStream].m_ulRTPStartTime;
-            return HXR_OK;
-        }
-
-        return HXR_NOT_INITIALIZED;
-    }
-    
-    return HXR_INVALID_PARAMETER;
-}
-
-HX_RESULT
-RTPInfoSynch::Done ()
+STDMETHODIMP
+RTPInfoSynch::RTPSynch (UINT16 unMaster)
 {
     m_bHaveAllSRs = FALSE;
-    m_bHaveAllPackets = FALSE;
     m_unSRCount = 0;
-    m_unSyncPacketsReceived = 0;
+    m_unSynchStream = unMaster;
     m_bRTPTimesGenerated = FALSE;
 
+    for (UINT16 i = 0; i < m_unStreamCount; i++)
+    {
+	m_pSynchData [i].Reset();
+    }
+
+    return HXR_OK;
+}
+
+STDMETHODIMP
+RTPInfoSynch::IsStreamSynched (UINT16 unStream, REF(HXBOOL) bIsSynched)
+{
+    if (!m_pSynchData)
+    {
+	return HXR_NOT_INITIALIZED;
+    }
+
+    if (unStream >= m_unStreamCount)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    bIsSynched = (m_pSynchData [unStream].m_bSynched);
+    return HXR_OK;
+}
+
+STDMETHODIMP
+RTPInfoSynch::OnRTPPacket (IHXBuffer* pRTPPacket,
+			   UINT16 unStream,
+			   REF(HXBOOL) bSynched,
+			   REF(UINT32) ulSequenceNumber,
+			   REF(UINT32) ulTimestamp)
+{
+    if (!m_bHaveAllSRs)
+    {
+	bSynched = FALSE;
+	ulSequenceNumber = 0;
+	ulTimestamp = 0;
+	return HXR_OK;
+    }
+
+    if (!m_pSynchData)
+    {
+	return HXR_NOT_INITIALIZED;
+    }
+
+    if (!pRTPPacket)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    //Header offset plus RTP time field must at least be present:
+    if (pRTPPacket->GetSize() < 8)
+    {
+	HX_ASSERT(0);
+	return HXR_INVALID_PARAMETER;
+    }
+
+    BYTE* pByte = pRTPPacket->GetBuffer();
+
+    if (!pByte)
+    {
+	HX_ASSERT(0);
+	return HXR_INVALID_PARAMETER;
+    }
+
+    if (unStream >= m_unStreamCount)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    if (m_pSynchData [unStream].m_bSynched)
+    {
+	HX_ASSERT(0); //shouldn't happen
+	bSynched = TRUE;
+	ulTimestamp = m_pSynchData [unStream].m_ulRTPInfoTime;
+	ulSequenceNumber = ntohs(*(UINT16*)((pByte+2)));
+    }
+
+    UINT32 ulRTPTime = ntohl(*(unsigned int*)(pByte+4));
+
+    if (!m_bRTPTimesGenerated)
+    {
+	if (unStream != m_unSynchStream)
+	{
+	    bSynched = FALSE;
+	    ulSequenceNumber = 0;
+	    ulTimestamp = 0;
+	    return HXR_OK;
+	}
+
+        //First packet of of the synch stream is the reference:
+	m_pSynchData [unStream].m_ulRTPInfoTime = ulRTPTime;
+
+	//Convert RTP time from RTP units to milliseconds:
+	UINT32 ulRTPTimeHX =
+	  (m_pSynchData [unStream].m_pTSConverter) ?
+	  m_pSynchData [unStream].m_pTSConverter->
+	  rtp2hxa_raw(ulRTPTime)
+	  : ulRTPTime;
+
+	//Transform the RTP time from this packet to the corresponding NTP time in milliseconds:
+	UINT32 NTPMasterMSec = ulRTPTimeHX + m_pSynchData [unStream].m_lRTPtoNTPOffset;
+
+	//For each stream map the master NTP time to the stream's RTP time:
+	for (UINT16 i = 0; i < m_unStreamCount; i++)
+	{
+	    if (i != unStream)
+	    {
+		//convert NTP to RTP using the arithmetic negation of the RTP to NTP mapping:
+		UINT32 RTPMSec = NTPMasterMSec + -(m_pSynchData [i].m_lRTPtoNTPOffset);
+
+		//Convert mapped RTP from milliseconds to RTP time:
+		m_pSynchData [i].m_ulRTPInfoTime =
+		    (m_pSynchData [i].m_pTSConverter) ?
+		    m_pSynchData [i].m_pTSConverter->
+		    hxa2rtp_raw(RTPMSec)
+		    : RTPMSec;
+	    }
+	}
+
+	m_bRTPTimesGenerated = TRUE;
+    }
+    else if (m_pSynchData [unStream].m_ulRTPInfoTime > ulRTPTime)
+    {
+        // make sure the ts of the first packet is >= to rtptime in RTP-Info
+        // because some clients don't choke
+        bSynched = FALSE;
+        ulSequenceNumber = 0;
+        ulTimestamp = 0;
+        return HXR_OK;
+     }
+
+
+    bSynched = TRUE;
+    ulSequenceNumber = ntohs(*(UINT16*)(pByte+2));
+    ulTimestamp      = m_pSynchData [unStream].m_ulRTPInfoTime;
+    m_pSynchData [unStream].m_bSynched = TRUE;
+
+    return HXR_OK;
+}
+
+STDMETHODIMP
+RTPInfoSynch::OnRTCPPacket (IHXBuffer* pRTCPPacket,
+			    UINT16 unStream)
+{
+    if (m_bHaveAllSRs)
+    {
+	return HXR_OK;
+    }
+    if (!m_pSynchData)
+    {
+	return HXR_NOT_INITIALIZED;
+    }
+
+    if (unStream >= m_unStreamCount)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    if (m_pSynchData [unStream].m_bHasSR)
+    {
+	return HXR_OK;
+    }
+
+    if (pRTCPPacket->GetSize() < 20)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    BYTE* pcRTCP = pRTCPPacket->GetBuffer();
+
+    if (!pcRTCP)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    // make sure it's SR
+    if (RTCP_SR != *(pcRTCP+1))
+    {
+	return HXR_IGNORE;
+    }
+
+    //Compute the RTP to NTP mapping from the RTCP SR for this stream::
+    pcRTCP += 8;
+
+    NTPTime rtcpNTPTime;
+    UINT32 rtcpRTPTimeMSec = 0;
+
+    /* Truncate NTP time to 32 bits from 64 bits to make room for expansion to milliseconds*/
+    rtcpNTPTime.m_ulSecond = (ntohl(*(unsigned int*)(pcRTCP))) & 0x0000ffff;
+    rtcpNTPTime.m_ulFraction = (ntohl(*(unsigned int*)(pcRTCP+4))) & 0xffff0000;
+
+    rtcpRTPTimeMSec =
+	(m_pSynchData [unStream].m_pTSConverter) ?
+
+	m_pSynchData [unStream].m_pTSConverter->
+	rtp2hxa_raw(ntohl(*(unsigned int*)(pcRTCP+8))) :
+
+	ntohl(*(unsigned int*)(pcRTCP+8));
+
+    m_pSynchData [unStream].m_lRTPtoNTPOffset =
+      (INT32)(rtcpNTPTime.toMSec() - rtcpRTPTimeMSec);
+
+    m_pSynchData [unStream].m_bHasSR = TRUE;
+    m_bHaveAllSRs = (++m_unSRCount >= m_unStreamCount);
+    return HXR_OK;
+}
+
+STDMETHODIMP
+RTPInfoSynch::Done ()
+{
     HX_VECTOR_DELETE(m_pSynchData);
-    HX_RELEASE(m_pResponse);
 
     return HXR_OK;
 }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbianthreads.h,v 1.13 2009/04/14 13:41:41 amsaleem Exp $
+ * Source last modified: $Id: symbianthreads.h,v 1.10 2006/06/21 06:35:46 pankajgupta Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -53,7 +53,6 @@
 #include "hxthread.h"
 #include <e32std.h>
 #include <e32base.h>
-#include "CActiveObj.h"
 #include "hxslist.h" // for CHXSimpleList
 #include "hxmap.h"    //for CHXMapLongToObj
 
@@ -99,38 +98,6 @@ private:
 
 //=======================================================================
 //
-//                      HXSymbianSemaphore
-//                   ------------------
-// NOTE:- As m_nWaitCount is not protected with a lock, instance of this class
-//        has to be protected with a lock.
-//=======================================================================
-class HXSymbianSemaphore
-{
-public:
-
-    HXSymbianSemaphore();
-    virtual ~HXSymbianSemaphore();
-
-    INT32 CreateLocal(INT32 aCount, TOwnerType aType=EOwnerProcess);
-    void Wait();
-    void Signal(UINT32 uCount = 1);
-    INT32 GetCount() const;
-    void Close();
-
-private:
-
-    HXSymbianMutex* m_pCondLock;
-    RSemaphore *m_pSemaphore;
-    INT32 m_nCount;
-
-    //Protect unintentional ctors
-    HXSymbianSemaphore( const HXSymbianSemaphore& ); //copy ctor.
-    HXSymbianSemaphore& operator=(const HXSymbianSemaphore& ); //assignment oper.
-};
-
-
-//=======================================================================
-//
 //                      HXSymbianEvent
 //                   ------------------
 //
@@ -154,8 +121,8 @@ private:
     HXBOOL            m_bIsManualReset;
     HXBOOL            m_bEventIsSet;
     HXSymbianMutex* m_pCondLock;
-    HXSymbianSemaphore* m_pCond;
-
+    RSemaphore*     m_pCond;
+    
     //Protect unintentional ctors
     HXSymbianEvent( const HXSymbianEvent& ); //copy ctor.
     HXSymbianEvent& operator=(const HXSymbianEvent& ); //assignment oper.
@@ -168,7 +135,7 @@ private:
 //                   ------------------
 //
 //=======================================================================
-class HXSymbianThread : public HXThread, public CActiveCallBackHandler
+class HXSymbianThread : public HXThread
 {
   public:
     HXSymbianThread();
@@ -207,17 +174,11 @@ class HXSymbianThread : public HXThread, public CActiveCallBackHandler
 
 protected:
 
-    virtual void ProcessRunL(TRequestStatus aStatus, TAny* pData);
-    virtual void ProcessDoCancel(TAny* pData);
-
-protected:
-
     typedef struct _execStruct
     {
         TThreadFunction  pfExecProc; //point to thread proc
         void*            pExecArg;
         HXGlobalManager* pGlobalManager;
-        HXSymbianThread* pOwner;
     } st_execStruct;
     
     static TInt _ThreadWrapper(TAny* execStruct);
@@ -226,16 +187,13 @@ private:
 
     RThread*       m_pThread;
     CHXSimpleList  m_messageQue;      //Our Message Que.
-
-    //Used to make GetMessage to protect access to the que.
+    
+    //Used to make GetMessage blocking and to protect access to the que.
+    RSemaphore*    m_pSemMessageCount;  //our message counting semaphore
     HXMutex*       m_pmtxQue;
 
     //Request status used to join the thread.
     TRequestStatus m_reqStat;
-
-    // GetMessages uses it to for waiting
-    CActiveSchedulerWait* m_pSchedulerWait;
-    CActiveObj *m_pActiveObj;
 
     //Prevent unintentional ctors
     HXSymbianThread( const HXSymbianThread& ); //copy ctor

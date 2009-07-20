@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sbr.c,v 1.4 2008/01/15 21:20:31 ehyche Exp $ 
+ * Source last modified: $Id: sbr.c,v 1.3 2005/05/24 16:01:55 albertofloyd Exp $ 
  *   
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -48,11 +48,6 @@
 #else
 #include "hlxclib/stdlib.h"
 #endif
-#if defined(REAL_FORMAT_SDK)
-#include "rm_memory_shim.h"
-#define malloc hx_realformatsdk_malloc
-#define free   hx_realformatsdk_free
-#endif /* #if defined(REAL_FORMAT_SDK) */
 
 #include "sbr.h"
 

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsock.cpp,v 1.8 2007/10/26 13:33:47 anshuman Exp $
+ * Source last modified: $Id: hxsock.cpp,v 1.6 2005/03/14 19:36:36 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -158,7 +158,8 @@ HXBOOL CHXSock::LoadWinsock( void )
 	}
 
 #if defined(WIN32_PLATFORM_PSPC)
-	m_hLib = LoadLibrary( _T("WINSOCK.DLL") );
+	pcModule = "WINSOCK.DLL";
+	m_hLib = LoadLibrary( OS_STRING(pcModule) );
 #elif defined( _WIN32 )
 	// start using WinSock2.0 APIs
 	pcModule = "WS2_32.DLL";

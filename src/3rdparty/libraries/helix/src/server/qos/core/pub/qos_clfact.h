@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: qos_clfact.h,v 1.5 2007/07/30 06:16:17 hdeware Exp $ 
+ * Source last modified: $Id: qos_clfact.h,v 1.4 2004/07/08 22:07:28 ghori Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -62,7 +62,7 @@ public:
 
     // IHXQoSClassFactory methods    
     STDMETHOD(CreateInstance)		(THIS_
-                     IHXQoSSignalBus* pSignalBus,
+					 IHXQoSProfileConfigurator* pConfig,
 					 REFCLSID   /*IN*/  rclsid,
 					 void**	    /*OUT*/ ppUnknown); 
 

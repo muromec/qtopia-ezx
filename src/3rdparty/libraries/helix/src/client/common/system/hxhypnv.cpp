@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxhypnv.cpp,v 1.5 2008/08/15 17:53:54 ping Exp $
+ * Source last modified: $Id: hxhypnv.cpp,v 1.1 2007/04/14 04:37:59 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,7 +47,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-#include "hlxclib/stdio.h"
+#include <stdio.h>
 
 #include "hxtypes.h"
 #include "hxresult.h"
@@ -138,9 +138,7 @@ HXHyperNavigate::~HXHyperNavigate()
 #if (defined (_WINDOWS) || defined (_WIN32)) && !defined(_WINCE)
     DDEShutdown();
 #endif /*(defined (_WINDOWS) || defined (_WIN32)) && !defined(_WINCE)*/
-#if defined(_UNIX) && !defined(_MAC_UNIX)
-    ShutdownHurlListener();
-#endif // _UNIX && !_MAC_UNIX
+
     HX_RELEASE(m_pPreferences);
     HX_RELEASE(m_pContext);
     HX_VECTOR_DELETE(m_pLastURL);

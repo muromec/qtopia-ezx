@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: cookies.cpp,v 1.59 2008/11/03 18:45:43 ping Exp $
+ * Source last modified: $Id: cookies.cpp,v 1.37 2006/03/08 19:13:39 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -42,18 +42,17 @@
  * 
  * Technology Compatibility Kit Test Suite(s) Location:
  *    http://www.helixcommunity.org/content/tck
- *  
+ * 
+ * Contributor(s):
+ *                 Phil Dibowitz
+ * 
  * ***** END LICENSE BLOCK ***** */
 
 #include "hxcom.h"
 #include "hxtypes.h"
 #include "hlxclib/string.h"
+// #include "hlxclib/stdio.h"
 #include "safestring.h"
-
-#if defined(HELIX_FEATURE_SQLITE)
-// common/import/sqlite
-#include "sqlite3.h"
-#endif /* HELIX_FEATURE_SQLITE */
 
 #ifdef _MACINTOSH
 #ifdef _CARBON
@@ -81,15 +80,11 @@
 #include <wininet.h>
 #include "hlxclib/io.h"
 #include <shlobj.h>
-typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, HANDLE hToken, DWORD dwFlags, LPTSTR lpszPath);  
+typedef HXBOOL (HXEXPORT_PTR FPSHGetSpecialFolderPath) (HWND hwndOwner, LPTSTR lpszPath, int nFolder, HXBOOL fCreate);  
 #endif /* _WINDOWS */
 
 #if defined(_CARBON) || defined(_MAC_MACHO)
 #include "hxver.h" // for HXVER_SDK_PRODUCT
-#endif
-
-#if defined(_MAC_UNIX) && defined(HELIX_FEATURE_SAFARI_COOKIES)
-#include "platform/mac/WebKitPrefs.h"
 #endif
 
 #if defined(_CARBON)
@@ -102,9 +97,7 @@ typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, H
 #include "hxstrutl.h"
 #include "dbcs.h"
 #include "dllpath.h"
-#include "chxinifreader.h"
 #include "hxprefs.h"
-#include "hxprefutil.h"
 #include "hxthread.h"
 #include "ihxcookies.h"
 #include "cookhlpr.h"
@@ -114,7 +107,6 @@ typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, H
 #include "md5.h"
 #include "filespecutils.h"
 #include "pckunpck.h"
-#include "hxtlogutil.h"
 
 #ifdef _UNIX
 #include <sys/types.h>
@@ -125,8 +117,7 @@ typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, H
 #include <sys/file.h>
 #endif /* UNIX */
 
-#define IE_COOKIE_URLSTRING     "http://%s%s/"
-#define RM_COOKIE_CAPTION       "# Helix Cookie File\n# http://www.ietf.org/rfc/rfc2109.txt\n# This is a generated file!  Do not edit.\n\n"
+#define RM_COOKIE_CAPTION	"# Helix Cookie File\n# http://www.netscape.com/newsref/std/cookie_spec.html\n# This is a generated file!  Do not edit.\n\n"
 
 #if defined(_UNIX) && !defined(_MAC_UNIX)
 #  define RM_COOKIE_FILE_NAME "Cookies_6_0"
@@ -138,7 +129,7 @@ typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, H
 #if defined (_WINDOWS ) || defined (WIN32) || defined(_SYMBIAN)
 #define OS_SEPARATOR_CHAR	'\\'
 #define OS_SEPARATOR_STRING	"\\"
-#elif defined (_UNIX) || defined (_OPENWAVE) || defined (_BREW)
+#elif defined (_UNIX) || defined (_OPENWAVE)
 #define OS_SEPARATOR_CHAR	'/'
 #define OS_SEPARATOR_STRING	"/"
 #elif defined (_MACINTOSH)
@@ -149,22 +140,16 @@ typedef HRESULT (HXEXPORT_PTR FPSHGetFolderPath) (HWND hwndOwner, int nFolder, H
 HXCookies::HXCookies(IUnknown* pContext, HXBOOL bMemoryOnly)
 	: m_lRefCount(0)	
 	, m_pContext(NULL)
-        , m_ulExternalCookies(0xFF)
 	, m_bInitialized(FALSE)
 	, m_bSaveCookies(FALSE)
 	, m_bMemoryOnly(bMemoryOnly)
 	, m_pNSCookiesPath(NULL)
-        , m_pFFTextCookiesPath(NULL)
-        , m_pFFSQLiteCookiesPath(NULL)
-        , m_pFFProfilePath(NULL)
+        , m_pFFCookiesPath(NULL)
 	, m_pRMCookiesPath(NULL)
-	, m_lastRMCookiesFileModification(0)
-        , m_lastFFTextCookiesFileModification(0)
-        , m_lastFFSQLiteCookiesFileModification(0)
+	, m_lastModification(0)
 	, m_pNSCookies(NULL)
         , m_pFFCookies(NULL)
 	, m_pRMCookies(NULL)
-        , m_pSFCookies(NULL)
 	, m_pPreferences(NULL)
 	, m_pCookiesHelper(NULL)
 #ifdef _WINDOWS
@@ -195,8 +180,7 @@ HXCookies::QueryInterface(REFIID riid, void**ppvObj)
     {
 	{ GET_IIDHANDLE(IID_IUnknown), this },
 	{ GET_IIDHANDLE(IID_IHXCookies), (IHXCookies*) this },
-	{ GET_IIDHANDLE(IID_IHXCookies2), (IHXCookies2*) this },
-	{ GET_IIDHANDLE(IID_IHXCookies3), (IHXCookies3*) this }
+	{ GET_IIDHANDLE(IID_IHXCookies2), (IHXCookies2*) this }
     };	
 
     if (QIFind(qiList, QILISTSIZE(qiList), riid, ppvObj) == HXR_OK)
@@ -257,17 +241,8 @@ HXCookies::Initialize(void)
 
     if (m_pContext)
     {
-        UINT32      ulExternalCookies = 0xFF;
-
-        if (SUCCEEDED(ReadPrefUINT32(m_pContext, "ExternalCookies", ulExternalCookies)))
-        {
-            m_ulExternalCookies = ulExternalCookies;
-        }
-
-        m_pContext->QueryInterface(IID_IHXPreferences, (void**)&m_pPreferences);
         m_pContext->QueryInterface(IID_IHXCookiesHelper, (void**) &m_pCookiesHelper);
     }
-
     if (!m_pCookiesHelper)
     {
         HXCookiesHelper* pHelper = new HXCookiesHelper(m_pContext);
@@ -279,7 +254,30 @@ HXCookies::Initialize(void)
 
     if (!m_bMemoryOnly)
     {
-        PrepareCookies();
+#ifdef _WINDOWS
+        if (m_hLib = LoadLibrary(OS_STRING("wininet.dll")))
+	{
+       	    _pInternetSetCookie = (INTERNETSETCOOKIE)GetProcAddress(m_hLib, OS_STRING("InternetSetCookieA"));
+	    _pInternetGetCookie = (INTERNETGETCOOKIE)GetProcAddress(m_hLib, OS_STRING("InternetGetCookieA"));
+	}
+#endif /* _WINDOWS */
+
+        PrepareCookiesPath();
+
+        if (m_pNSCookiesPath)
+	{
+	    OpenCookies(m_pNSCookiesPath, FALSE, m_pNSCookies);
+	}
+
+        if (m_pFFCookiesPath)
+        {
+            OpenCookies(m_pFFCookiesPath, TRUE, m_pFFCookies);
+        }
+
+        if (m_pRMCookiesPath)
+	{
+	    OpenCookies(m_pRMCookiesPath, TRUE, m_pRMCookies);
+        }
     }
 
     m_bInitialized = TRUE;
@@ -301,17 +299,13 @@ HXCookies::Close(void)
     ResetCookies(m_pNSCookies);
     ResetCookies(m_pFFCookies);
     ResetCookies(m_pRMCookies);
-    ResetCookies(m_pSFCookies);
 
     HX_DELETE(m_pNSCookies);
     HX_DELETE(m_pFFCookies);
     HX_DELETE(m_pRMCookies);
-    HX_DELETE(m_pSFCookies);
 
     HX_VECTOR_DELETE(m_pNSCookiesPath);
-    HX_VECTOR_DELETE(m_pFFTextCookiesPath);
-    HX_VECTOR_DELETE(m_pFFSQLiteCookiesPath);
-    HX_VECTOR_DELETE(m_pFFProfilePath);
+    HX_VECTOR_DELETE(m_pFFCookiesPath);
     HX_VECTOR_DELETE(m_pRMCookiesPath);
 
     HX_RELEASE(m_pPreferences);
@@ -337,14 +331,13 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
     HX_RESULT	    hr = HXR_OK;
     int		    host_length = 0;
     int		    domain_length = 0;
-    char*           pPathNew = NULL;
     char*	    pURL = NULL;
     char*	    path_from_header = NULL;
     char*	    domain_from_header = NULL;
     char*	    name_from_header = NULL;
     char*	    cookie_from_header = NULL;
     char*	    dot = NULL;
-    char*           domain_from_header_without_leading_dot = NULL;
+    HXBOOL	    bIsDomain = FALSE;
     time_t	    expires=0;
     IHXBuffer*	    pBuffer = NULL;
     IHXValues*	    pValues = NULL;    
@@ -353,7 +346,7 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
     int		    path_length = 0;
 #endif
     
-    if (!IsCookieEnabled())
+if (!IsCookieEnabled())
     {
 	goto cleanup;
     }
@@ -413,29 +406,18 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
 	    goto cleanup;
 	}
 
-        // Trimming off the leading dot prior to checking domain for
-        // eligibility of setting cookies, i.e.
-        // foo.bar.com is allowed to set cookies for .foo.bar.com but NOT
-        // xxx.foo.bar.com
-        if (domain_from_header[0] == '.')
-        {
-            domain_from_header_without_leading_dot = &domain_from_header[1];
-        }
-        else
-        {
-            domain_from_header_without_leading_dot = domain_from_header;
-        }
-
-	domain_length = strlen(domain_from_header_without_leading_dot);
+	domain_length = strlen(domain_from_header);
 	host_length = strlen(pHost);
 
 	// check to see if the host is in the domain
 	if(domain_length > host_length || 
-	   strcasecmp(domain_from_header_without_leading_dot, &pHost[host_length-domain_length]))
+	   strcasecmp(domain_from_header, &pHost[host_length-domain_length]))
 	{
 	    hr = HXR_FAILED;		
 	    goto cleanup;
 	}
+
+	bIsDomain = TRUE;	
     }
     HX_RELEASE(pBuffer);
 
@@ -462,17 +444,13 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
         // strip down everything after the last slash
         // to get the path.
 	CHXString strPath = pPath;
-#if 0   // Disable it, this prevents the caller from passing
-        // "/foo" as pPath.
-        // It should be caller's responsibility to ensure pPath
-        // is properly formatted.
 	INT32 nIndex = strPath.ReverseFind('/');
 
 	if (nIndex != -1)
 	{
 	    strPath = strPath.Left(nIndex + 1);
 	}
-#endif
+
 	::StrAllocCopy(path_from_header, (char*) (const char*) strPath);
     }
 
@@ -502,7 +480,7 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
         pNewCookie->pPath = new CHXString(path_from_header);
         pNewCookie->pHost = new CHXString(domain_from_header);
         pNewCookie->expires = expires;
-        pNewCookie->bIsDomain = TRUE;
+        pNewCookie->bIsDomain = bIsDomain;
 	pNewCookie->bMemoryOnly = TRUE;
     }	
     else 
@@ -515,7 +493,7 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
         pNewCookie->pPath = new CHXString(path_from_header);
         pNewCookie->pHost = new CHXString(domain_from_header);
         pNewCookie->expires = expires;
-        pNewCookie->bIsDomain = TRUE;
+        pNewCookie->bIsDomain = bIsDomain;
 	pNewCookie->bMemoryOnly = TRUE;
 
 	if (!m_pRMCookies)
@@ -526,57 +504,33 @@ HXCookies::SetCookies(const char* pHost, const char* pPath, IHXBuffer* pCookies)
 	hr = AddCookie(pNewCookie, m_pRMCookies);
     }
 
-    HXLOGL2(HXLOG_COOK, "SetCookies:\n\t\t\t\tHost:%s\n\t\t\t\tPath:%s\n\t\t\t\tCookieName:%s\n\t\t\t\tCookieValue:%s\n\t\t\t\tExpires:%lu\n\t\t\t\tIsDomain:%lu\n\t\t\t\tMemoryOnly:%lu\n",
-                         (const char*)*(pNewCookie->pHost),
-                         (const char*)*(pNewCookie->pPath),
-                         (const char*)*(pNewCookie->pCookieName),
-                         (const char*)*(pNewCookie->pCookieValue),
-                         pNewCookie->expires,
-                         pNewCookie->bIsDomain,
-                         pNewCookie->bMemoryOnly);
-
 #ifdef _WINDOWS
-    if (HX_EXTERNAL_COOKIES_IE & m_ulExternalCookies)
+    if (!m_bMemoryOnly)
     {
-        if (!m_bMemoryOnly)
-        {
-            if (!_pInternetSetCookie)
-	    {
-	        goto cleanup;
-	    }
+        if (!_pInternetSetCookie)
+	{
+	    goto cleanup;
+	}
 
-	    host_length = strlen(pHost);
+	host_length = strlen(pHost);
 
-            FixPath(pPath, pPathNew);
-            if (pPathNew)
-            {
-	        path_length = strlen(pPathNew);
-            }
+	if (pPath)
+	{
+	    path_length = strlen(pPath);
+	}
 
-	    pURL = new char[host_length + path_length + strlen(IE_COOKIE_URLSTRING)];
-	    sprintf(pURL, IE_COOKIE_URLSTRING, pHost, pPathNew); /* Flawfinder: ignore */
+	pURL = new char[host_length + path_length + 8];
+	sprintf(pURL, "http://%s%s", pHost, pPath); /* Flawfinder: ignore */
 
-	    _pInternetSetCookie(pURL, NULL, (const char*)pCookies->GetBuffer());
-        }
+	_pInternetSetCookie(pURL, NULL, (const char*)pCookies->GetBuffer());
     }
 #endif /* _WINDOWS */
-    
-#if defined(_MAC_UNIX) && defined(HELIX_FEATURE_SAFARI_COOKIES)
-    if (HX_EXTERNAL_COOKIES_SF & m_ulExternalCookies)
-    {
-        if (!m_bMemoryOnly)
-        {
-            (void)SetWebKitCookieInformation(pNewCookie);
-        }
-    }
-#endif
 
 cleanup:
 
     HX_RELEASE(pBuffer);
     HX_RELEASE(pValues);
 
-    HX_VECTOR_DELETE(pPathNew);
     HX_VECTOR_DELETE(pURL);
     HX_VECTOR_DELETE(path_from_header);
     HX_VECTOR_DELETE(domain_from_header);
@@ -616,20 +570,18 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
     HX_RESULT	    hr = HXR_OK;
 #ifdef _WINDOWS
     char*	    cp = NULL;
-    char*	    pComma = NULL;
+	char*	    pComma = NULL;
     char*	    pEqualSign = NULL;
     int		    host_length = 0;
     int		    path_length = 0;
-    UINT32	    dwSize = 0;    
-    HXBOOL	    bAdded = FALSE;
-    CookieStruct*   pNewCookie = NULL;
+	UINT32	    dwSize = 0;    
+	HXBOOL	    bAdded = FALSE;
+	CookieStruct*   pNewCookie = NULL;
 #endif /* _WINDOWS */
 
-    char*           pPathWithSlash = NULL;
     char*	    pData = NULL;
     char*	    pURL = NULL;
     time_t	    cur_time = time(NULL);
-    UINT32          ulCookieType = 0;
     CookieStruct*   pTempCookie = NULL;
     CHXSimpleList*  pCookiesFound1 = NULL;
     CHXSimpleList*  pCookiesFound2 = NULL;
@@ -673,8 +625,6 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
 	goto cleanup;
     }
 
-    FixPath(pPath, pPathWithSlash);
-
     // return string to build    
     hr = CreateValuesCCF(pValues, m_pContext);
     if (HXR_OK != hr)
@@ -691,48 +641,22 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
     cHostCopy.MakeLower();
 
     // search for all cookies(Netscape/Firefox only for now)
-    for (l = 0; l < 4; l++)
+    for (l = 0; l < 3; l++)
     {
-        pCookiesList = NULL;
-
 	switch (l)
 	{
 	case 0:
-            ulCookieType = HX_HELIX_COOKIES;
 	    pCookiesList = m_pRMCookies;
 	    bIsPlayerCookieList = TRUE;
 	    break;
 	case 1:
-            ulCookieType = HX_EXTERNAL_COOKIES_NS;
-            if (HX_EXTERNAL_COOKIES_NS & m_ulExternalCookies)
-            {
-	        pCookiesList = m_pNSCookies;
-	        bIsPlayerCookieList = FALSE;
-            }
+	    pCookiesList = m_pNSCookies;
+	    bIsPlayerCookieList = FALSE;
 	    break;
-	case 2:            
-            if (HX_EXTERNAL_COOKIES_FF_TEXT & m_ulExternalCookies)
-            {
-                ulCookieType = HX_EXTERNAL_COOKIES_FF_TEXT;
-                SyncFFCookies(HX_EXTERNAL_COOKIES_FF_TEXT);
-	        pCookiesList = m_pFFCookies;
-	        bIsPlayerCookieList = FALSE;
-            }
-            if (HX_EXTERNAL_COOKIES_FF_SQLITE & m_ulExternalCookies)
-            {
-                ulCookieType = HX_EXTERNAL_COOKIES_FF_SQLITE;
-                SyncFFCookies(HX_EXTERNAL_COOKIES_FF_SQLITE);
-                pCookiesList = m_pFFCookies;
-                bIsPlayerCookieList = FALSE;
-            }
+	case 2:
+	    pCookiesList = m_pFFCookies;
+	    bIsPlayerCookieList = FALSE;
 	    break;
-        case 3:
-            if (HX_EXTERNAL_COOKIES_SF & m_ulExternalCookies)
-            {
-                pCookiesList = m_pSFCookies;
-                bIsPlayerCookieList = FALSE;
-            }
-            break;
 	default:
 	    break;
 	}
@@ -767,8 +691,7 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
 
 	    // shorter strings always come last so there can be no
 	    // ambiguity
-	    if (DoPathsMatch((const char*)(*pTempCookie->pPath), pPath) ||
-                DoPathsMatch((const char*)(*pTempCookie->pPath), pPathWithSlash))
+	    if(DoPathsMatch((const char*)(*pTempCookie->pPath), pPath))
 	    {
 		// check for expired cookies
 		if(pTempCookie->expires && (pTempCookie->expires < cur_time))
@@ -786,17 +709,6 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
 		{
 		    pCookiesFound1->AddTail(pTempCookie);
 		}
-
-                HXLOGL2(HXLOG_COOK, "%s:\n\t\t\t\tHost:%s\n\t\t\t\tPath:%s\n\t\t\t\tCookieName:%s\n\t\t\t\tCookieValue:%s\n\t\t\t\tExpires:%lu\n\t\t\t\tIsDomain:%lu\n\t\t\t\tMemoryOnly:%lu\n",
-                                    (HX_HELIX_COOKIES == ulCookieType)?"GetRMCookies":((HX_EXTERNAL_COOKIES_FF_TEXT == ulCookieType || HX_EXTERNAL_COOKIES_FF_SQLITE == ulCookieType)?"GetFFCookies":"GetUnknownCookies"),
-                                    (const char*)*(pTempCookie->pHost),
-                                    (const char*)*(pTempCookie->pPath),
-                                    (const char*)*(pTempCookie->pCookieName),
-                                    (const char*)*(pTempCookie->pCookieValue),
-                                    pTempCookie->expires,
-                                    pTempCookie->bIsDomain,
-                                    pTempCookie->bMemoryOnly);
-
 		if(bIsPlayerCookieList)
 		{
 		    if(!strPlayerCookies.IsEmpty())
@@ -816,154 +728,127 @@ HX_RESULT HXCookies::GetCookiesInternal(const char* pHost,
     }
 
 #ifdef _WINDOWS
-    if (HX_EXTERNAL_COOKIES_IE & m_ulExternalCookies)
+    if (!_pInternetGetCookie || m_bMemoryOnly)
     {
-        if (!_pInternetGetCookie || m_bMemoryOnly)
-        {
+	goto cleanup;
+    }
+
+    host_length = strlen(pHost);
+
+    if (pPath)
+    {
+	path_length = strlen(pPath);
+    }
+
+    pURL = new char[host_length + path_length + 8];
+    sprintf(pURL, "http://%s%s", pHost, pPath); /* Flawfinder: ignore */
+
+    if (_pInternetGetCookie(pURL, NULL, pData, &dwSize) && !pData && dwSize)
+    {
+	pData = new char[dwSize+1];
+
+	if (!_pInternetGetCookie(pURL, NULL, pData, &dwSize))
+	{
 	    goto cleanup;
-        }
+	}
 
-        host_length = strlen(pHost);
+	cp = pData;
 
-        if (pPathWithSlash)
-        {
-	    path_length = strlen(pPathWithSlash);
-        }
-
-        pURL = new char[host_length + path_length + strlen(IE_COOKIE_URLSTRING)];
-        sprintf(pURL, IE_COOKIE_URLSTRING, pHost, pPathWithSlash); /* Flawfinder: ignore */
-
-        if (_pInternetGetCookie(pURL, NULL, pData, &dwSize) && !pData && dwSize)
-        {
-	    pData = new char[dwSize+1];
-
-	    if (!_pInternetGetCookie(pURL, NULL, pData, &dwSize))
-	    {
-	        goto cleanup;
-	    }
-
-	    cp = pData;
-
-	    while (pComma = (char*) ::HXFindChar(cp, ';'))
-	    {
-	        *pComma = '\0';
-	        pComma++;
-
-	        if (pEqualSign = (char*) ::HXFindChar(cp, '='))
-	        {
-		    *pEqualSign = '\0';
-		    pEqualSign++;
-
-        	    pNewCookie = new CookieStruct;
-		    bAdded = FALSE;
-
-		    // copy
-		    pNewCookie->pCookieValue = new CHXString(pEqualSign);
-		    pNewCookie->pCookieName = new CHXString(cp);
-		    pNewCookie->pPath = new CHXString(pPathWithSlash);
-		    pNewCookie->pHost = new CHXString(pHost);
-		    pNewCookie->expires = 0;
-		    pNewCookie->bIsDomain = FALSE;
-		    pNewCookie->bMemoryOnly = FALSE;
-
-		    if(pNewCookie->pCookieName)
-		    {
-		        pNewCookie->pCookieName->TrimLeft();
-		        pNewCookie->pCookieName->TrimRight();
-		    }
-
-		    if (!WasCookieAdded(pCookiesFound1, pNewCookie))
-		    {
-		        if (!pCookiesFound2)
-		        {
-			    pCookiesFound2 = new CHXSimpleList();
-			    pCookiesFound2->AddTail(pNewCookie);
-			    bAdded = TRUE;
-		        }
-		        else if (!WasCookieAdded(pCookiesFound2, pNewCookie))
-		        {
-			    pCookiesFound2->AddTail(pNewCookie);
-			    bAdded = TRUE;
-		        }
-		    }
-    		
-                    if (bAdded)
-                    {
-                        HXLOGL2(HXLOG_COOK, "%s:\n\t\t\t\tHost:%s\n\t\t\t\tPath:%s\n\t\t\t\tCookieName:%s\n\t\t\t\tCookieValue:%s\n\t\t\t\tExpires:%lu\n\t\t\t\tIsDomain:%lu\n\t\t\t\tMemoryOnly:%lu\n",
-                                            "GetIECookies",
-                                            (const char*)*(pNewCookie->pHost),
-                                            (const char*)*(pNewCookie->pPath),
-                                            (const char*)*(pNewCookie->pCookieName),
-                                            (const char*)*(pNewCookie->pCookieValue),
-                                            pNewCookie->expires,
-                                            pNewCookie->bIsDomain,
-                                            pNewCookie->bMemoryOnly);
-                    }
-                    else
-		    {
-		        HX_DELETE(pNewCookie);
-		    }
-	        }
-
-	        cp = pComma;
-	    }
+	while (pComma = (char*) ::HXFindChar(cp, ';'))
+	{
+	    *pComma = '\0';
+	    pComma++;
 
 	    if (pEqualSign = (char*) ::HXFindChar(cp, '='))
 	    {
-	        *pEqualSign = '\0';
-	        pEqualSign++;
+		*pEqualSign = '\0';
+		pEqualSign++;
 
-	        pNewCookie = new CookieStruct;
-	        bAdded = FALSE;
+        	pNewCookie = new CookieStruct;
+		bAdded = FALSE;
 
-	        // copy
-	        pNewCookie->pCookieValue = new CHXString(pEqualSign);
-	        pNewCookie->pCookieName = new CHXString(cp);
-		pNewCookie->pPath = new CHXString(pPathWithSlash);
+		// copy
+		pNewCookie->pCookieValue = new CHXString(pEqualSign);
+		pNewCookie->pCookieName = new CHXString(cp);
+		pNewCookie->pPath = new CHXString(pPath);
 		pNewCookie->pHost = new CHXString(pHost);
-	        pNewCookie->expires = 0;
-	        pNewCookie->bIsDomain = FALSE;
-	        pNewCookie->bMemoryOnly = FALSE;
+		pNewCookie->expires = 0;
+		pNewCookie->bIsDomain = FALSE;
+		pNewCookie->bMemoryOnly = FALSE;
 
-	        if(pNewCookie->pCookieName)
-	        {
-	            pNewCookie->pCookieName->TrimLeft();
-	            pNewCookie->pCookieName->TrimRight();
-	        }
+		if(pNewCookie->pCookieName)
+		{
+		    pNewCookie->pCookieName->TrimLeft();
+		    pNewCookie->pCookieName->TrimRight();
+		}
 
-	        if (!WasCookieAdded(pCookiesFound1, pNewCookie))
-	        {
+		if (!WasCookieAdded(pCookiesFound1, pNewCookie))
+		{
 		    if (!pCookiesFound2)
 		    {
-		        pCookiesFound2 = new CHXSimpleList();
-		        pCookiesFound2->AddTail(pNewCookie);
-		        bAdded = TRUE;
+			pCookiesFound2 = new CHXSimpleList();
+			pCookiesFound2->AddTail(pNewCookie);
+			bAdded = TRUE;
 		    }
 		    else if (!WasCookieAdded(pCookiesFound2, pNewCookie))
 		    {
-		        pCookiesFound2->AddTail(pNewCookie);
-		        bAdded = TRUE;
+			pCookiesFound2->AddTail(pNewCookie);
+			bAdded = TRUE;
 		    }
-	        }
-
-                if (bAdded)
-                {
-                    HXLOGL2(HXLOG_COOK, "%s:\n\t\t\t\tHost:%s\n\t\t\t\tPath:%s\n\t\t\t\tCookieName:%s\n\t\t\t\tCookieValue:%s\n\t\t\t\tExpires:%lu\n\t\t\t\tIsDomain:%lu\n\t\t\t\tMemoryOnly:%lu\n",
-                                        "GetIECookies",
-                                        (const char*)*(pNewCookie->pHost),
-                                        (const char*)*(pNewCookie->pPath),
-                                        (const char*)*(pNewCookie->pCookieName),
-                                        (const char*)*(pNewCookie->pCookieValue),
-                                        pNewCookie->expires,
-                                        pNewCookie->bIsDomain,
-                                        pNewCookie->bMemoryOnly);
-                }
-                else
-	        {
+		}
+		
+		if (!bAdded)
+		{
 		    HX_DELETE(pNewCookie);
-	        }
+		}
 	    }
-        }
+
+	    cp = pComma;
+	}
+
+	if (pEqualSign = (char*) ::HXFindChar(cp, '='))
+	{
+	    *pEqualSign = '\0';
+	    pEqualSign++;
+
+	    pNewCookie = new CookieStruct;
+	    bAdded = FALSE;
+
+	    // copy
+	    pNewCookie->pCookieValue = new CHXString(pEqualSign);
+	    pNewCookie->pCookieName = new CHXString(cp);
+	    pNewCookie->pPath = NULL;
+	    pNewCookie->pHost = NULL;
+	    pNewCookie->expires = 0;
+	    pNewCookie->bIsDomain = FALSE;
+	    pNewCookie->bMemoryOnly = FALSE;
+
+	    if(pNewCookie->pCookieName)
+	    {
+	        pNewCookie->pCookieName->TrimLeft();
+	        pNewCookie->pCookieName->TrimRight();
+	    }
+
+	    if (!WasCookieAdded(pCookiesFound1, pNewCookie))
+	    {
+		if (!pCookiesFound2)
+		{
+		    pCookiesFound2 = new CHXSimpleList();
+		    pCookiesFound2->AddTail(pNewCookie);
+		    bAdded = TRUE;
+		}
+		else if (!WasCookieAdded(pCookiesFound2, pNewCookie))
+		{
+		    pCookiesFound2->AddTail(pNewCookie);
+		    bAdded = TRUE;
+		}
+	    }
+
+	    if (!bAdded)
+	    {
+		HX_DELETE(pNewCookie);
+	    }
+	}
     }
 #endif /* _WINDOWS */
 
@@ -1017,7 +902,7 @@ cleanup:
     {
 	CHXString str;
 	str.Format("Cookies requested, getting host: %s  path: %s  cookies: %s",
-			pHost, pPathWithSlash, 
+			pHost, pPath, 
 			strCookieReport.IsEmpty() ? "<no cookies>" : (const char *) strCookieReport);
 #if defined(_CARBON) || defined(_MAC_MACHO)
 	CFStringRef stringRef = ::CFStringCreateWithCString( kCFAllocatorDefault, (const char*) str, kCFStringEncodingUTF8 );
@@ -1038,7 +923,6 @@ cleanup:
     HX_DELETE(pCookiesFound2);
     HX_VECTOR_DELETE(pData);
     HX_VECTOR_DELETE(pURL);
-    HX_VECTOR_DELETE(pPathWithSlash);
 
     HX_RELEASE(pValues);
    
@@ -1046,55 +930,12 @@ cleanup:
 }
 
 HX_RESULT	    
-HXCookies::PrepareCookies(void)
-{
-    HX_RESULT   hr = HXR_OK;
-
-    hr = _prepareRMCookies();
-
-    if (HX_EXTERNAL_COOKIES_IE & m_ulExternalCookies)
-    {
-        _prepareIECookies();
-    }
-
-    if (HX_EXTERNAL_COOKIES_NS & m_ulExternalCookies)
-    {
-        _prepareNSCookies();
-    }
-
-    if (HX_EXTERNAL_COOKIES_FF_TEXT & m_ulExternalCookies)
-    {
-        _prepareFFTextCookies();
-    }
-
-    if (HX_EXTERNAL_COOKIES_FF_SQLITE & m_ulExternalCookies)
-    {
-        _prepareFFSQLiteCookies();
-    }
-
-    if (HX_EXTERNAL_COOKIES_SF & m_ulExternalCookies)
-    {
-        _prepareSFCookies();
-    }
-
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareRMCookies(void)
+HXCookies::PrepareCookiesPath(void)
 {
     HX_RESULT		hr = HXR_OK;
+#ifndef _VXWORKS
     const char*		pRMCookiesPath = NULL;
     IHXBuffer*		pBuffer = NULL;
-
-#if defined(_VXWORKS)
-    return hr;
-#endif /* _VXWORKS */
-
-    if (m_pRMCookiesPath)
-    {
-        return HXR_OK;
-    }
 
 #if !defined(_CARBON) && !defined(_MAC_MACHO) /* figured out every time at runtime on the Mac since paths are not stable between runs */
     if (m_pPreferences && (m_pPreferences->ReadPref("CookiesPath", pBuffer) == HXR_OK))
@@ -1105,7 +946,7 @@ HXCookies::_prepareRMCookies(void)
     HX_RELEASE(pBuffer);
 #endif
 
-    if (!m_pRMCookiesPath)
+    if( !m_pRMCookiesPath )
     {
 	if (m_pPreferences && (m_pPreferences->ReadPref("UserSDKDataPath", pBuffer) == HXR_OK))
 	{
@@ -1114,7 +955,7 @@ HXCookies::_prepareRMCookies(void)
 	else
 	{
 #if defined(_CARBON) || defined(_MAC_MACHO)
-	    CHXString strSDKPath = CHXFileSpecUtils::GetAppDataDir(HXVER_SDK_PRODUCT).GetPathName();
+		CHXString strSDKPath = CHXFileSpecUtils::GetAppDataDir(HXVER_SDK_PRODUCT).GetPathName();
 #elif defined(_UNIX)
 	    pRMCookiesPath = getenv("HOME");
 	    HX_ASSERT( pRMCookiesPath );	    
@@ -1123,8 +964,9 @@ HXCookies::_prepareRMCookies(void)
 #endif        
 	}
 	
-        if (pRMCookiesPath)
-        {        
+        if( pRMCookiesPath )
+        {
+        
             m_pRMCookiesPath = new char[strlen(pRMCookiesPath) + strlen(RM_COOKIE_FILE_NAME)+2];
 	    ::strcpy(m_pRMCookiesPath, pRMCookiesPath); /* Flawfinder: ignore */
 	    if (m_pRMCookiesPath[::strlen(m_pRMCookiesPath)-1] != OS_SEPARATOR_CHAR)
@@ -1145,55 +987,10 @@ HXCookies::_prepareRMCookies(void)
 		HX_RELEASE(pBuffer);
 	    }
         }
-    }
-
-    if (m_pRMCookiesPath)
-    {
-        hr = OpenCookies(m_pRMCookiesPath, TRUE, m_pRMCookies);
-        if (SUCCEEDED(hr))
-        {
-            UpdateModificationTime(m_pRMCookiesPath, m_lastRMCookiesFileModification);
-        }
-    }
-
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareIECookies(void)
-{
-    HX_RESULT   hr = HXR_FAIL;
+   }
+#endif
 
 #ifdef _WINDOWS
-    if (m_hLib)
-    {
-        if (_pInternetSetCookie && _pInternetGetCookie)
-        {
-            hr = HXR_OK;
-        }
-    }
-    else if (m_hLib = LoadLibrary(OS_STRING("wininet.dll")))
-    {
-       	_pInternetSetCookie = (INTERNETSETCOOKIE)GetProcAddress(m_hLib, OS_STRING("InternetSetCookieA"));
-	_pInternetGetCookie = (INTERNETGETCOOKIE)GetProcAddress(m_hLib, OS_STRING("InternetGetCookieA"));
-        hr = HXR_OK;
-    }
-#endif /* _WINDOWS */
-    
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareNSCookies(void)
-{
-    HX_RESULT   hr = HXR_FAIL;
-
-#ifdef _WINDOWS
-    if (m_pNSCookiesPath)
-    {
-        return HXR_OK;
-    }
-
     HKEY    hMainAppKey = NULL;
     HKEY    hBiffKey = NULL;
     HKEY    hUsersKey = NULL;
@@ -1280,6 +1077,8 @@ HXCookies::_prepareNSCookies(void)
 
 cleanup:
 
+    HX_RELEASE(pBuffer);
+
     if (hMainAppKey)
     {
 	RegCloseKey(hMainAppKey);
@@ -1308,202 +1107,9 @@ cleanup:
     HX_VECTOR_DELETE(pUser);
     HX_VECTOR_DELETE(pPath);
     HX_VECTOR_DELETE(pValue);    
-
-    if (m_pNSCookiesPath)
-    {
-        hr = OpenCookies(m_pNSCookiesPath, FALSE, m_pNSCookies);
-    }
 #endif /* _WINDOWS */
 
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareFFTextCookies(void)
-{
-    HX_RESULT   hr = HXR_FAIL;
-
-    if (!m_pFFProfilePath)
-    {
-        HX_ASSERT(!m_pFFTextCookiesPath);
-        hr = GetFFPaths(HX_EXTERNAL_COOKIES_FF_TEXT, m_pFFTextCookiesPath, m_pFFProfilePath);
-    }
-
-    if (_isFFCookiesEnabled(m_pFFProfilePath) && m_pFFTextCookiesPath)
-    {
-        hr = OpenCookies(m_pFFTextCookiesPath, FALSE, m_pFFCookies);
-        if (SUCCEEDED(hr))
-        {
-            UpdateModificationTime(m_pFFTextCookiesPath, m_lastFFTextCookiesFileModification);
-        }
-    }
-
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareFFSQLiteCookies()
-{
-    HX_RESULT   hr = HXR_FAIL;
-
-    if (!m_pFFProfilePath)
-    {
-        HX_ASSERT(!m_pFFSQLiteCookiesPath);
-        hr = GetFFPaths(HX_EXTERNAL_COOKIES_FF_SQLITE, m_pFFSQLiteCookiesPath, m_pFFProfilePath);
-    }
-
-    if (_isFFCookiesEnabled(m_pFFProfilePath) && m_pFFSQLiteCookiesPath)
-    {
-        hr = OpenCookiesSQLite(m_pFFSQLiteCookiesPath, m_pFFCookies);
-        if (SUCCEEDED(hr))
-        {
-            UpdateModificationTime(m_pFFSQLiteCookiesPath, m_lastFFSQLiteCookiesFileModification);
-        }
-    }
-
-    return hr;
-}
-
-HX_RESULT
-HXCookies::_prepareSFCookies(void)
-{
-#if defined(_MAC_UNIX) && defined(HELIX_FEATURE_SAFARI_COOKIES)
-    HX_RESULT retval = HXR_FAIL;
-    if (!m_pSFCookies)
-    {
-        m_pSFCookies = new CHXSimpleList();
-        void* pWebKitCookiesToken = InitializeWebKitCookies();
-        if (pWebKitCookiesToken)
-        {
-            int numberOfWebKitCookies = GetNumberOfWebKitCookies(pWebKitCookiesToken);
-            int whichCookie;
-            for (whichCookie = 0; whichCookie < numberOfWebKitCookies; whichCookie++)
-            {
-                CookieStruct* pNewCookie = new CookieStruct;
-                HX_RESULT getInformationResult = GetWebKitCookieInformation(pWebKitCookiesToken, whichCookie, pNewCookie);
-                if (SUCCEEDED(getInformationResult))
-                {
-                    m_pSFCookies->AddTail(pNewCookie);
-                }
-                else
-                {
-                    delete pNewCookie;
-                }
-            }
-            retval = HXR_OK;
-        }
-    }
-    return retval;
-#else
-    return HXR_NOTIMPL;
-#endif
-}
-
-HXBOOL
-HXCookies::_isFFCookiesEnabled(const char* pszPrefsPath)
-{
-    HXBOOL      bResult = TRUE;
-    char	szLineBuffer[LINE_BUFFER_SIZE] = {0}; /* Flawfinder: ignore */
-    UINT32	ulBytesRead = 0;
-    char*       result = NULL;
-    FILE*	fp = NULL;
-
-    if (pszPrefsPath)
-    {    
-        if (!(fp = fopen(pszPrefsPath, "r+b")))
-        {
-	    goto cleanup;
-        }
-
-        while (HXR_OK == FileReadLine(fp, &szLineBuffer[0], LINE_BUFFER_SIZE, &ulBytesRead))
-        {
-            result = strstr(szLineBuffer, "network.cookie.cookieBehavior");
-            if (result)
-            {
-                // 2 - don't use cookies
-                result = strchr(result, '2');
-                if (result)
-                {
-                    bResult = FALSE;
-                }
-                break;
-            }
-            ZeroInit(&szLineBuffer);
-        }
-    }
-
-cleanup:
-
-    return bResult;
-}
-
-HX_RESULT
-HXCookies::SyncFFCookies(UINT32 ulCookieType)
-{
-    HX_RESULT	    hr = HXR_OK;
-    CHXSimpleList*  pNewFFCookies = NULL;
-    CookieStruct*   pCookie = NULL;
-    HXBOOL          bCookieFileModified = FALSE;
-
-    if (!m_bInitialized)
-    {
-	hr = HXR_FAILED;
-	goto cleanup;
-    }
-
-    if (HX_EXTERNAL_COOKIES_FF_TEXT == ulCookieType)
-    {
-        bCookieFileModified = IsCookieFileModified(m_pFFTextCookiesPath, m_lastFFTextCookiesFileModification);
-        if (bCookieFileModified)
-        {
-	    if (HXR_OK == OpenCookies(m_pFFTextCookiesPath, FALSE, pNewFFCookies))
-	    {
-                UpdateModificationTime(m_pFFTextCookiesPath, m_lastFFTextCookiesFileModification);
-
-                ResetCookies(m_pFFCookies);
-	        HX_DELETE(m_pFFCookies);
-
-	        m_pFFCookies = pNewFFCookies;
-	    }	    	    
-        }
-    }
-    else if (HX_EXTERNAL_COOKIES_FF_SQLITE == ulCookieType)
-    {
-        bCookieFileModified = IsCookieFileModified(m_pFFSQLiteCookiesPath, m_lastFFSQLiteCookiesFileModification);
-        if (bCookieFileModified)
-        {
-            ResetCookies(m_pFFCookies);
-            HX_DELETE(m_pFFCookies);
-
-	    if (HXR_OK == OpenCookiesSQLite(m_pFFSQLiteCookiesPath, m_pFFCookies))
-	    {
-                UpdateModificationTime(m_pFFSQLiteCookiesPath, m_lastFFSQLiteCookiesFileModification);
-	    }	    	    
-        }
-    }
-
-cleanup:
-
-    return hr;
-}
-
-HX_RESULT
-HXCookies::GetFFPaths(UINT32 ulCookieType, char*& pszCookiesPath, char*& pszProfilePath)
-{
-    HX_RESULT   hr = HXR_FAIL;
-    char  szProfilesDirPath[_MAX_PATH] = {0};
-    char  szProfilesIniPath[_MAX_PATH] = {0};	
-    char  szIniSection[20] = {0};
-    char  szProfilePath[_MAX_PATH] = {0};
-    int   nCurProfile = 0;
-    HXBOOL bIsRelativePath = FALSE;
-	
-#if defined(_WINDOWS) && !defined(WINCE)
-    if (pszCookiesPath || pszProfilePath)
-    {
-        return HXR_INVALID_PARAMETER;
-    }
-
+#ifdef _WINDOWS
     // Grabbing Firefox Cookies Path. See http://www.mozilla.org/support/firefox/profile
     // for information on finding the path to profiles.ini on various platforms.
 
@@ -1512,205 +1118,134 @@ HXCookies::GetFFPaths(UINT32 ulCookieType, char*& pszCookiesPath, char*& pszProf
     // on Windows 95/98/Me, C:\WINDOWS\Application Data\Mozilla\Firefox\
     // on Linux, ~/.mozilla/firefox
     // on Mac OS X, ~/Library/Application Support/Firefox/
-    char  szAppDataPath[_MAX_PATH] = {0};
+
+    char* pAppDataPath       = NULL;
+    char* pFFProfilesDirPath = NULL;
+    char* pFFProfilesIniPath = NULL;
     HXBOOL bFoundAppDataDir  = FALSE;
     HINSTANCE hShell         = NULL;
     
-    FPSHGetFolderPath fpSHGetFolderPath = NULL;
+    FPSHGetSpecialFolderPath fpSHGetSpecialFolderPath = NULL;
+
+    pAppDataPath = new char[_MAX_PATH];
+
+    if (!pAppDataPath)
+    {
+        hr = HXR_OUTOFMEMORY;
+        goto ffcleanup;
+    }
 
     hShell = ::LoadLibrary(OS_STRING("shell32.dll"));
     if (hShell)
     {
-	fpSHGetFolderPath = (FPSHGetFolderPath) GetProcAddress(hShell,OS_STRING("SHGetFolderPathA"));
-        if (fpSHGetFolderPath)
+	fpSHGetSpecialFolderPath = (FPSHGetSpecialFolderPath) GetProcAddress(hShell,OS_STRING("SHGetSpecialFolderPath"));
+        if (fpSHGetSpecialFolderPath)
         {
             // SHGetSpecialFolderPath dox say buffer must be at least MAX_PATH in size.
-            bFoundAppDataDir = SUCCEEDED(fpSHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, &szAppDataPath[0]));
+            bFoundAppDataDir = fpSHGetSpecialFolderPath(NULL, pAppDataPath, CSIDL_APPDATA, FALSE);
         }
     }
 
     if (bFoundAppDataDir)
     {
-        SafeSprintf(szProfilesDirPath, _MAX_PATH, "%s\\Mozilla\\Firefox\\", szAppDataPath);
-        SafeSprintf(szProfilesIniPath, _MAX_PATH, "%sprofiles.ini", szProfilesDirPath);
+        // hmmm, this means that the env var exists! What if it doesn't?
+
+        pFFProfilesDirPath = new char[_MAX_PATH];
+        if (!pFFProfilesDirPath)
+        {
+            hr = HXR_OUTOFMEMORY;
+            goto ffcleanup;
+        }
+
+        pFFProfilesIniPath = new char[_MAX_PATH];
+        if (!pFFProfilesIniPath)
+        {
+            hr = HXR_OUTOFMEMORY;
+            goto ffcleanup;
+        }
+
+        SafeSprintf(pFFProfilesDirPath, _MAX_PATH, "%s\\Mozilla\\Firefox\\", pAppDataPath);
+        SafeSprintf(pFFProfilesIniPath, _MAX_PATH, "%sprofiles.ini", pFFProfilesDirPath);
     }
-    else
+
+    if (!pFFProfilesIniPath)
     {
         // the environment variable didn't exist; we're likely on Windows 95/98/ME, so
         // try the 95/98/ME path.
-        SafeSprintf(szProfilesIniPath, _MAX_PATH, "C:\\WINDOWS\\Application Data\\Mozilla\\Firefox\\profiles.ini");
+
+        pFFProfilesIniPath = new char[_MAX_PATH];
+        SafeSprintf(pFFProfilesIniPath, _MAX_PATH, "C:\\WINDOWS\\Application Data\\Mozilla\\Firefox\\profiles.ini");
     }
 
-    // Once we've found profiles.ini, iterate through [profile0]-[profileN] looking for
-    // the default profile. This will include the path to the profile directory, which
-    // will include a file cookies.txt.
-    DWORD bytesRead = 0;
-    do
+    if (pFFProfilesIniPath)
     {
-        DWORD profilepathSize = _MAX_PATH - 1;
-        SafeSprintf(szIniSection, 20, "profile%d", nCurProfile);
-        bytesRead = ::GetPrivateProfileString(szIniSection, "Path", NULL, szProfilePath, _MAX_PATH - 1, szProfilesIniPath);
-        if (bytesRead)
+        // Once we've found profiles.ini, iterate through [profile0]-[profileN] looking for
+        // the default profile. This will include the path to the profile directory, which
+        // will include a file cookies.txt.
+        char szIniSection[20];
+        char szProfilePath[_MAX_PATH];
+        int nCurProfile = 0;
+        DWORD bytesRead = 0;
+        do
         {
-            // see (1) whether this is the default and (2) whether it's a relative or absolute path
-            char defaultBuf[256];
-
-	    // "Default=1" is not set by FireFox(bug?) when there is only 1 profile 
-	    // so we look for both "Default=1" and "Name=default"
-            DWORD appBytesRead = ::GetPrivateProfileString(szIniSection, "Default", NULL, defaultBuf, 256, szProfilesIniPath);
-            if (!appBytesRead)
+            DWORD profilepathSize = _MAX_PATH - 1;
+            SafeSprintf(szIniSection, 20, "profile%d", nCurProfile);
+            bytesRead = ::GetPrivateProfileString(szIniSection, "Path", NULL, szProfilePath, _MAX_PATH - 1, pFFProfilesIniPath);
+            if (bytesRead)
             {
-    	        appBytesRead = ::GetPrivateProfileString(szIniSection, "Name", NULL, defaultBuf, 256, szProfilesIniPath);
-	    }
+                // see (1) whether this is the default and (2) whether it's a relative or absolute path
+                char defaultBuf[256];
 
-	    if (appBytesRead)
-	    {
-                if (!strcasecmp(defaultBuf, "1") || !strcasecmp(defaultBuf, "default"))
+		// "Default=1" is not set by FireFox(bug?) when there is only 1 profile 
+		// so we look for both "Default=1" and "Name=default"
+                DWORD appBytesRead = ::GetPrivateProfileString(szIniSection, "Default", NULL, defaultBuf, 256, pFFProfilesIniPath);
+                if (!appBytesRead)
+                 {
+		    appBytesRead = ::GetPrivateProfileString(szIniSection, "Name", NULL, defaultBuf, 256, pFFProfilesIniPath);
+		}
+
+		if (appBytesRead)
 		{
-                    // a ha! this is the default!
-                    char relativeBuf[256] = {0};
-                    DWORD relBytesRead = ::GetPrivateProfileString(szIniSection, "IsRelative", NULL, relativeBuf, 256, szProfilesIniPath);
-                    if (relBytesRead && !strcmp(relativeBuf, "1"))
-                    {
-                        bIsRelativePath = TRUE;
-                    }
+                    if (!strcasecmp(defaultBuf, "1") || !strcasecmp(defaultBuf, "default"))
+		    {
+                        // a ha! this is the default!
+                        char relativeBuf[256];
+                        HXBOOL bIsRelativePath = FALSE;
+                        DWORD relBytesRead = ::GetPrivateProfileString(szIniSection, "IsRelative", NULL, relativeBuf, 256, pFFProfilesIniPath);
+                        if (relBytesRead && !strcmp(relativeBuf, "1"))
+                        {
+                            bIsRelativePath = TRUE;
+                        }
 
-		    hr = HXR_OK;
-                    break; // done iterating through profile
+                        char szCookiePath[_MAX_PATH];
+
+                        if (bIsRelativePath)
+                        {
+                            SafeSprintf(szCookiePath, _MAX_PATH, "%s%s\\cookies.txt", pFFProfilesDirPath, szProfilePath);
+                        }
+                        else
+                        {
+                            SafeSprintf(szCookiePath, _MAX_PATH, "%s\\cookies.txt", szProfilePath);
+                        }
+
+                        m_pFFCookiesPath = new char[strlen(szCookiePath)+1];
+                        strcpy(m_pFFCookiesPath, szCookiePath); /* Flawfinder: ignore */
+                        break; // done iterating through profile
+                    }
                 }
             }
-        }
-        nCurProfile++;
-    } while (bytesRead);
-
-    if (hShell)
-    {
-        FreeLibrary(hShell);
+            nCurProfile++;
+        } while (bytesRead);
     }
-#elif defined (_MAC_UNIX)
-    CHXDirSpecifier prefsDir = CHXFileSpecUtils::MacFindFolder(kUserDomain, kApplicationSupportFolderType);
-    CHXDirSpecifier ffDir = prefsDir.SpecifyChildDirectory("Firefox");
-    if (CHXFileSpecUtils::DirectoryExists(ffDir))
-    {
-        SafeSprintf(szProfilesDirPath, _MAX_PATH, "%s/", (const char*)ffDir.GetPathName());
-	SafeSprintf(szProfilesIniPath, _MAX_PATH, "%s/profiles.ini", (const char*)ffDir.GetPathName());
- 
-	int nNameValue = 0;
-	CHXString* pPathValue = NULL;
-	CHXString* pNameValue = NULL;
-	CHXIniFileReader iniFileReader;
-		
-	if (iniFileReader.LoadFile(szProfilesIniPath))
-	{
-	    do
-	    {
-		SafeSprintf(szIniSection, 20, "Profile%d", nCurProfile);
-		
-		if (SUCCEEDED(iniFileReader.GetStrVal(szIniSection, "Path", pPathValue)))
-		{
-		    if (SUCCEEDED(iniFileReader.GetStrVal(szIniSection, "Name", pNameValue)) ||
-			SUCCEEDED(iniFileReader.GetIntVal(szIniSection, "Name", nNameValue)))
-		    {
-			if ((pNameValue && !strcasecmp(*pNameValue, "default")) || nNameValue)
-			{
-			    iniFileReader.GetIntVal(szIniSection, "IsRelative", bIsRelativePath);
-			}
-						
-			SafeSprintf(szProfilePath, _MAX_PATH, "%s", (const char*)*pPathValue); 
-			hr = HXR_OK;
-			break;
-		    }
-		}
-		else
-		{
-		    break;
-		}
-				
-		nCurProfile++;
-	    } while (TRUE);
-	}			
-    }
-#endif /* (_WINDOWS) && !(WINCE) */
 
-    if (SUCCEEDED(hr))
-    {
-	pszCookiesPath = new char[_MAX_PATH];
-        pszProfilePath = new char[_MAX_PATH];
-        memset(pszCookiesPath, 0, _MAX_PATH);
-        memset(pszProfilePath, 0, _MAX_PATH);
+ffcleanup:
+    HX_VECTOR_DELETE(pAppDataPath);
+    HX_VECTOR_DELETE(pFFProfilesIniPath);
+    HX_VECTOR_DELETE(pFFProfilesDirPath);
 
-        if (bIsRelativePath)
-        {
-	    if (HX_EXTERNAL_COOKIES_FF_TEXT == ulCookieType)
-            {
-		SafeSprintf(pszCookiesPath, _MAX_PATH, "%s%s/cookies.txt", szProfilesDirPath, szProfilePath);
-            }
-            else if (HX_EXTERNAL_COOKIES_FF_SQLITE == ulCookieType)
-            {
-		SafeSprintf(pszCookiesPath, _MAX_PATH, "%s%s/cookies.sqlite", szProfilesDirPath, szProfilePath);
-            }
-            else
-            {
-		HX_ASSERT(FALSE);
-            }
-            SafeSprintf(pszProfilePath, _MAX_PATH, "%s%s/prefs.js", szProfilesDirPath, szProfilePath);
-	}
-        else
-        {
-	    if (HX_EXTERNAL_COOKIES_FF_TEXT == ulCookieType)
-            {
-	        SafeSprintf(pszCookiesPath, _MAX_PATH, "%s/cookies.txt", szProfilePath);
-            }
-            else if (HX_EXTERNAL_COOKIES_FF_SQLITE == ulCookieType)
-            {
-		SafeSprintf(pszCookiesPath, _MAX_PATH, "%s/cookies.sqlite", szProfilePath);
-            }
-            else
-            {
-		HX_ASSERT(FALSE);
-            }
-            SafeSprintf(pszProfilePath, _MAX_PATH, "%s/prefs.js", szProfilePath);
-        }
-    }
+#endif
 
     return hr;
-}
-
-// prefix '/' to pPathIn if it's not present
-void
-HXCookies::FixPath(const char* pPathIn, char*& pPathOut)
-{
-    HXBOOL bPrefixSlash = FALSE;
-    UINT32 ulLen = 0;
-
-    pPathOut = NULL;
-
-    if (pPathIn)
-    {
-        if (*pPathIn != '/')
-        {
-            bPrefixSlash = TRUE;
-            ulLen = strlen(pPathIn)+2;
-        }
-        else
-        {
-            bPrefixSlash = FALSE;
-            ulLen = strlen(pPathIn)+1;
-        }
-
-        pPathOut = new char[ulLen];
-        if (pPathOut)
-        {
-            if (bPrefixSlash)
-            {
-                SafeSprintf(pPathOut, ulLen, "/%s", pPathIn);
-            }
-            else
-            {
-                SafeSprintf(pPathOut, ulLen, "%s", pPathIn);
-            }
-        }
-    }
 }
 
 void
@@ -2017,6 +1552,8 @@ HXCookies::OpenCookies(char* pCookieFile, HXBOOL bRMCookies, CHXSimpleList*& pCo
 	hr = AddCookie(pNewCookie, pCookiesList);
     }
 
+    UpdateModificationTime();
+
 cleanup:
 
 #if defined (_UNIX) && !defined(_SUN) && !defined(_HPUX) && !defined(_IRIX) && !defined(_AIX) && !defined(_OSF1)
@@ -2042,96 +1579,6 @@ cleanup:
     
     return hr;
 #endif /* _OPENWAVE */
-}
-
-int select_callback(void *p_data, int num_fields, char **p_fields, char **p_col_names) 
-{
-  HXCookies* pCookies = (HXCookies*)p_data;
-  if (pCookies)
-  {
-      pCookies->ProcessSelectResultPerRow(num_fields, p_fields, p_col_names);
-  }
-
-  return 0;
-}
-
-void
-HXCookies::ProcessSelectResultPerRow(int num_fields, char **p_fields, char **p_col_names)
-{
-    int i = 0;
-    CookieStruct* pNewCookie = new CookieStruct;
-
-    if (pNewCookie)
-    {
-        for (i = 0; i < num_fields; i++)
-        {
-            if (0 == strcasecmp(p_col_names[i], "name"))
-            {
-    	        pNewCookie->pCookieName = new CHXString(p_fields[i]);
-            }
-            else if (0 == strcasecmp(p_col_names[i], "value"))
-            {
-	        pNewCookie->pCookieValue = new CHXString(p_fields[i]);
-            }
-            else if (0 == strcasecmp(p_col_names[i], "host"))
-            {
-	        pNewCookie->pHost = new CHXString(p_fields[i]);
-            }
-            else if (0 == strcasecmp(p_col_names[i], "path"))
-            {
-	        pNewCookie->pPath = new CHXString(p_fields[i]);
-            }
-            else if (0 == strcasecmp(p_col_names[i], "expiry"))
-            {
-                pNewCookie->expires = atol(p_fields[i]);
-            }
-        }
-
-        pNewCookie->bIsDomain = TRUE;
-	pNewCookie->bMemoryOnly = FALSE;
-
-	if (!m_pFFCookies)
-	{
-	    m_pFFCookies = new CHXSimpleList();
-	}
-
-	AddCookie(pNewCookie, m_pFFCookies);
-    }
-}
-
-HX_RESULT
-HXCookies::OpenCookiesSQLite(char* pCookieFile, CHXSimpleList*& pCookiesList)
-{
-    HX_RESULT   rc = HXR_FAIL;
-
-#if defined(HELIX_FEATURE_SQLITE)
-    int         status = 0;
-    sqlite3*    pDB = NULL;
-
-    if (!pCookieFile)
-    {
-        rc = HXR_INVALID_PARAMETER;
-        goto exit;
-    }
-
-    status = sqlite3_open(pCookieFile, &pDB);
-    if (SQLITE_OK == status && pDB)
-    {
-        char *errmsg;
-
-        status = sqlite3_exec(pDB, "SELECT * FROM moz_cookies", select_callback, this, &errmsg);
-        if (SQLITE_OK == status)
-        {
-            rc = HXR_OK;
-        }
-
-        sqlite3_close(pDB);
-    }
-#endif /* HELIX_FEATURE_SQLITE */
-
-exit:
-
-    return rc;
 }
 
 HX_RESULT	
@@ -2246,7 +1693,7 @@ HXCookies::SaveCookies(void)
 	pTempCookie->bMemoryOnly = FALSE;
     }
 
-    UpdateModificationTime(m_pRMCookiesPath, m_lastRMCookiesFileModification);    
+    UpdateModificationTime();    
     m_bSaveCookies = FALSE;
 
 cleanup:
@@ -2378,7 +1825,6 @@ HXBOOL HXCookies::DoesDomainMatch(const char* szDomain, const char* szDomainToPa
     CHXString cHostCopy;
     CHXString cDomainCopy;
     CHXString cHostRight;
-    CHXString cDomainRight;
 
     if(!szDomain || !szDomainToParse || !strlen(szDomain) || !strlen(szDomainToParse))
     {
@@ -2390,42 +1836,25 @@ HXBOOL HXCookies::DoesDomainMatch(const char* szDomain, const char* szDomainToPa
     cDomainCopy.MakeLower();
 
     // Now we compare the domain (from the cookie itself) with
-    // the rightmost characters of the host. 
-    if (cDomainCopy.GetAt(0) != '.')
+    // the rightmost characters of the host. For instance,
+    // a domain of ".bar.com" would match with a host (passed in)
+    // of "foo.bar.com", "www.bar.com", etc. but would NOT match
+    // a host of "bar.com".
+    cHostRight = cHostCopy.Right(cDomainCopy.GetLength());
+    if (cHostRight != cDomainCopy)
     {
-        // exact match
-        if (cHostCopy == cDomainCopy)
-        {
-            bMatches = TRUE;
-            goto cleanup;
-        }
+        // no match
+        goto cleanup;
     }
-    else
+    else if (cDomainCopy.GetAt(0) != '.' && cHostCopy.GetLength() > cDomainCopy.GetLength() &&
+                 cHostCopy.GetAt(cHostCopy.GetLength() - cDomainCopy.GetLength() - 1) != '.')
     {
-        // excluding leading '.'
-        cDomainRight = cDomainCopy.Right(cDomainCopy.GetLength() - 1);
-        if (cHostCopy == cDomainRight)
-        {
-            bMatches = TRUE;
-            goto cleanup;
-        }
-
-        // allow partial match(right -> left)
-        // For instance, a domain of ".bar.com" would match with a host(passed in)
-        // of "foo.bar.com", "www.bar.com" and "bar.com" etc. but would NOT match
-        // a host of "foobar.com" or "foo.com"
-        cHostRight = cHostCopy.Right(cDomainCopy.GetLength());
-        if (cHostRight == cDomainCopy)
-        {
-            bMatches = TRUE;
-            goto cleanup;
-        }
-
-        bMatches = FALSE;
+       // no match
+        goto cleanup;
     }
+    bMatches = TRUE;
 
 cleanup:
-
     return bMatches;
 }
 
@@ -2446,13 +1875,6 @@ HXBOOL HXCookies::DoPathsMatch(const char* szCookiesPath, const char* szUrlPath)
         
     szCookiesPathPos = szCookiesPath;
     szUrlPathPos = szUrlPath;
-
-    // always matches root path
-    if (szCookiesPath &&
-        !strcasecmp(szCookiesPath, "/"))
-    {
-        return TRUE;
-    }
 
     // Skip past the leading /'s
     while(*szCookiesPathPos)
@@ -2506,7 +1928,8 @@ HXBOOL HXCookies::DoPathsMatch(const char* szCookiesPath, const char* szUrlPath)
     {
         bResult = TRUE;
     }
-                                          
+                                      
+    
     return bResult;
 }
 
@@ -2515,29 +1938,46 @@ HXBOOL
 HXCookies::IsCookieEnabled()
 {
     HXBOOL	bResult = TRUE;
+    IHXBuffer*	pBuffer = NULL;
 
-    ReadPrefBOOL(m_pContext, "CookiesEnabled", bResult);
-    
+    if (!m_pPreferences && m_pContext)
+    {
+	if (HXR_OK != m_pContext->QueryInterface(IID_IHXPreferences, (void**)&m_pPreferences))
+	{
+	    m_pPreferences = NULL;
+	}
+    }
+
+    if (m_pPreferences &&
+	m_pPreferences->ReadPref("CookiesEnabled", pBuffer) == HXR_OK)
+    {
+	if (strcmp((const char*)pBuffer->GetBuffer(), "0") == 0)
+	{
+	    bResult = FALSE;
+	}
+
+	HX_RELEASE(pBuffer);
+    } 
     return bResult;
 }
 
 void	    
-HXCookies::UpdateModificationTime(const char* pFile, time_t& lastModification)
+HXCookies::UpdateModificationTime(void)
 {
 #ifdef _OPENWAVE
     // XXXSAB implement this!!!
 #else
     struct stat status;
 
-    if (!pFile)
+    if (!m_pRMCookiesPath)
     {
 	goto cleanup;
     }
 
 #ifndef _VXWORKS
-    if (0 == stat(pFile, &status))
+    if (0 == stat(m_pRMCookiesPath, &status))
     {
-	lastModification = status.st_mtime;
+	m_lastModification = status.st_mtime;
     }
 #endif /* _VXWORKS */
 
@@ -2548,7 +1988,7 @@ cleanup:
 }
 
 HXBOOL	    
-HXCookies::IsCookieFileModified(const char* pFile, time_t lastModification)
+HXCookies::IsCookieFileModified(void)
 {
 #ifdef _OPENWAVE
     // XXXSAB implement this!!!
@@ -2557,14 +1997,14 @@ HXCookies::IsCookieFileModified(const char* pFile, time_t lastModification)
     HXBOOL	bResult = FALSE;
     struct stat	status;
 
-    if (!pFile)
+    if (!m_pRMCookiesPath)
     {
 	goto cleanup;
     }
 
 #ifndef _VXWORKS
-    if (0 == stat(pFile, &status) &&
-	status.st_mtime != lastModification)
+    if (0 == stat(m_pRMCookiesPath, &status) &&
+	status.st_mtime != m_lastModification)
     {
 	bResult = TRUE;
     }
@@ -2611,7 +2051,7 @@ cleanup:
     return hr;
 }
 
-STDMETHODIMP	
+HX_RESULT	
 HXCookies::SyncRMCookies(HXBOOL bSave)
 {
     HX_RESULT	    hr = HXR_OK;
@@ -2625,13 +2065,11 @@ HXCookies::SyncRMCookies(HXBOOL bSave)
 	goto cleanup;
     }
 
-    bCookieFileModified = IsCookieFileModified(m_pRMCookiesPath, m_lastRMCookiesFileModification);
+    bCookieFileModified = IsCookieFileModified();
     if (bCookieFileModified)
     {
 	if (HXR_OK == OpenCookies(m_pRMCookiesPath, TRUE, pNewRMCookies))
 	{
-            UpdateModificationTime(m_pRMCookiesPath, m_lastRMCookiesFileModification);
-
 	    if (m_bSaveCookies)
 	    {
 		MergeCookieList(m_pRMCookies, pNewRMCookies);
@@ -2735,20 +2173,19 @@ STDMETHODIMP HXCookies::GetExpiredCookies(const char* pHost,
 {
     HX_RESULT	    hr = HXR_OK;
 #ifdef _WINDOWS
-    char*	    cp = NULL;
+	char*	    cp = NULL;
     char*	    pComma = NULL;
     char*	    pEqualSign = NULL;
-    int		    host_length = 0;
+	int		    host_length = 0;
     int		    path_length = 0;
     HXBOOL	    bAdded = FALSE;
     UINT32	    dwSize = 0;    
     CookieStruct*   pNewCookie = NULL;
-    char*	    pURL = NULL;
+	char*	    pURL = NULL;
 #endif
     int	            l = 0;
-    char*	    pData = NULL;
-    char*           pPathNew = NULL;
-    int		    domain_length = 0;
+	char*	    pData = NULL;
+	int		    domain_length = 0;
     time_t	    cur_time = time(NULL);
     CookieStruct*   pTempCookie = NULL;
     CHXSimpleList*  pCookiesFound1 = NULL;
@@ -2884,14 +2321,13 @@ STDMETHODIMP HXCookies::GetExpiredCookies(const char* pHost,
 
     host_length = strlen(pHost);
 
-    FixPath(pPath, pPathNew);
-    if (pPathNew)
+    if (pPath)
     {
-	path_length = strlen(pPathNew);
+	path_length = strlen(pPath);
     }
 
-    pURL = new char[host_length + path_length + strlen(IE_COOKIE_URLSTRING)];
-    sprintf(pURL, IE_COOKIE_URLSTRING, pHost, pPathNew); /* Flawfinder: ignore */
+    pURL = new char[host_length + path_length + 8];
+    sprintf(pURL, "http://%s%s", pHost, pPath); /* Flawfinder: ignore */
 
     if (_pInternetGetCookie(pURL, NULL, pData, &dwSize) && !pData && dwSize)
     {
@@ -3032,7 +2468,6 @@ cleanup:
 
     HX_DELETE(pCookiesFound1);
     //HX_DELETE(pCookiesFound2);
-    HX_VECTOR_DELETE(pPathNew);
     HX_VECTOR_DELETE(pData);
 
 #ifdef _WINDOWS

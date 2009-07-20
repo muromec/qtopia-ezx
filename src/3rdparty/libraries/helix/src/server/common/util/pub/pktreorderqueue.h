@@ -38,12 +38,12 @@
 
 #include "seqno.h"
 #include "timeval.h"
-#include "hxdeque.h"
+class HX_deque;
 
 class CQueueEntry  : public IUnknown
 {
 public:
-    CQueueEntry(IHXServerPacketExt* pPacket = NULL, INT32 lInitialRefCount = 0);
+    CQueueEntry(INT32 lInitialRefCount = 0);
     virtual ~CQueueEntry();
     
     /*
@@ -54,25 +54,22 @@ public:
     STDMETHOD_(ULONG32,Release)	(THIS);
 
     INT32		m_lRefCount;
-    Timeval             m_tTime;
-    IHXServerPacketExt* m_pPacket;
+    Timeval		m_tTime;
     SequenceNumber	m_SequenceNumber;
 };
 
 inline
-CQueueEntry::CQueueEntry(IHXServerPacketExt* pPacket, INT32 lInitialRefCount)
+CQueueEntry::CQueueEntry(INT32 lInitialRefCount)
     : m_lRefCount(lInitialRefCount)
-    , m_pPacket(pPacket)
     , m_tTime(0.0)
     , m_SequenceNumber(0)
 {
-    HX_ADDREF(m_pPacket);
+    /* empty */
 }
-
 inline 
 CQueueEntry::~CQueueEntry()
 {
-    HX_RELEASE(m_pPacket);
+    /* empty */
 }
  
 inline STDMETHODIMP_(ULONG32)
@@ -114,24 +111,23 @@ public:
     CInorderPacketQueue();
     virtual ~CInorderPacketQueue();
 
-    inline UINT32   size();
-    inline HXBOOL   empty();
+    UINT32                  size();
+    BOOL                    empty();
 
-    void clear();
-    inline CQueueEntry*     peek_front();
-    inline CQueueEntry*     peek_back();
-    inline CQueueEntry*     peek(SequenceNumber& SeqNo);
-    inline CQueueEntry*     peek(UINT32 uIndex);
-    inline CQueueEntry*     pop_front();
-    HX_RESULT               add(CQueueEntry* pEntry, SequenceNumber& SeqNo);
+    virtual  void           clear();
+    virtual CQueueEntry*    peek_front();
+    virtual CQueueEntry*    peek(SequenceNumber& SeqNo);
+    virtual CQueueEntry*    peek(UINT32 uIndex);
+    virtual CQueueEntry*    pop_front();
+    virtual HX_RESULT       add(CQueueEntry* pEntry, SequenceNumber& SeqNo);
 
-    inline UINT32           GetFirstSequenceNumber();
+    UINT32                  GetFirstSequenceNumber() {return m_FirstSequenceNumber;}
     inline UINT32           GetPacketIndex(SequenceNumber& SeqNo);
-    inline void             ResetFirstSequenceNumber();
 
 protected:
     // must be implemented by a drived class
-    virtual CQueueEntry*    CreateLostPacket(SequenceNumber& SeqNo, Timeval& tv);
+    virtual CQueueEntry*    CreateLostPacket(SequenceNumber& SeqNo, Timeval& tvTime) = 0;
+
 
     HX_deque*               m_pPacketDeque;
     SequenceNumber          m_FirstSequenceNumber;
@@ -139,88 +135,9 @@ protected:
 };
 
 inline UINT32
-CInorderPacketQueue::GetFirstSequenceNumber()
-{
-    return m_FirstSequenceNumber;
-}
-
-inline UINT32
 CInorderPacketQueue::GetPacketIndex(SequenceNumber& SeqNo)
 {
     return(SeqNo - m_FirstSequenceNumber);
-}
-
-inline void 
-CInorderPacketQueue::ResetFirstSequenceNumber()
-{
-    m_bSetFirstSequenceNumber = FALSE;
-}
-
-inline UINT32
-CInorderPacketQueue::size()
-{
-    return (UINT32)m_pPacketDeque->size();
-}
-
-inline BOOL
-CInorderPacketQueue::empty()
-{
-    return m_pPacketDeque->empty();
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::peek_front()
-{
-    return !m_pPacketDeque->empty() ? (CQueueEntry*)m_pPacketDeque->front() : NULL;
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::peek_back()
-{
-    return !m_pPacketDeque->empty() ? (CQueueEntry*)m_pPacketDeque->back() : NULL;
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::peek(SequenceNumber& SeqNo)
-{
-    UINT32 index = GetPacketIndex(SeqNo);
-
-    if (index >= (UINT32)m_pPacketDeque->size())
-    {
-        return NULL;
-    }
-
-    return (CQueueEntry*)(*m_pPacketDeque)[index];
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::peek(UINT32 uIndex)
-{
-    if (uIndex >= (UINT32)m_pPacketDeque->size())
-    {
-        return NULL;
-    }
-
-    return (CQueueEntry*)(*m_pPacketDeque)[uIndex];
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::pop_front()
-{
-    m_FirstSequenceNumber++;
-    return !m_pPacketDeque->empty() ? (CQueueEntry*)m_pPacketDeque->pop_front() : NULL;
-}
-
-inline CQueueEntry*
-CInorderPacketQueue::CreateLostPacket(SequenceNumber& SeqNo, Timeval& tvTime)
-{
-    // we cheat and initialize the entry with RefCnt set to 1
-    CQueueEntry* pTmpEntry = new CQueueEntry(NULL, 1);
-    
-    pTmpEntry->m_SequenceNumber = SeqNo;
-    pTmpEntry->m_tTime = tvTime;
-
-    return pTmpEntry;
 }
 
 #endif /* _PKTREORDERQUEUE_H_ */

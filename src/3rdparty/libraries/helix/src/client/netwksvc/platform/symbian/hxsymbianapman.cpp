@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxsymbianapman.cpp,v 1.22 2008/05/08 19:14:11 shivnani Exp $
+ * Source last modified: $Id: hxsymbianapman.cpp,v 1.18 2007/05/02 16:28:27 praveenkumar Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -59,7 +59,6 @@
 #if defined(HELIX_FEATURE_SYMBIAN_MMF) && defined(HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY)
 #include <etelpckt.h>//just for error codes
 #include <gsmerror.h>//just for error codes
-#include <wlanerrorcodes.h> //just for error codes
 #endif
 
 const UINT32 DefaultNumOfRetries = 1; /* Number of connect retries before
@@ -557,7 +556,6 @@ HXSymbianAccessPointManager::StartConnection()
 void
 HXSymbianAccessPointManager::ConnectDone(TInt aoStatus)
 {
-    HXLOGL2(HXLOG_NETW, "HXSymbianAccessPointManager::ConnectDone aoStatus(%d)\n", aoStatus);
     HX_RESULT status = HXR_OK;
 
     if (aoStatus == KErrCancel)
@@ -572,13 +570,6 @@ HXSymbianAccessPointManager::ConnectDone(TInt aoStatus)
     {
         status = HXR_ACCESSPOINT_NOT_FOUND;
     }
-    #if defined(HELIX_FEATURE_SYMBIAN_MMF) && defined(HELIX_CONFIG_SYMBIAN_PLATFORM_SECURITY)
-    
-      else if(aoStatus ==  KErrWlanNetworkNotFound) 
-      { 
-       status = HXR_INVALID_ACCESSPOINT; 
-      } 
-	#endif  
     else if (aoStatus != KErrNone) // all other errors
     {
         if ( aoStatus == KErrGsmMMServiceOptionNotSubscribed         || // -4161
@@ -587,7 +578,6 @@ HXSymbianAccessPointManager::ConnectDone(TInt aoStatus)
              aoStatus == KErrGprsActivationRejected                  || // -4159
              aoStatus == KErrGprsRequestedServiceOptionNotSubscribed || // -4161
              aoStatus == KErrGprsServiceOptionTemporarilyOutOfOrder  || // -4162
-             aoStatus == KErrGprsServicesNotAllowed                  || // -4135
              aoStatus == KErrUmtsMaxNumOfContextExceededByPhone      || // -4178
              aoStatus == KErrUmtsMaxNumOfContextExceededByNetwork    || // -4179
              aoStatus == KErrPacketDataTsyMaxPdpContextsReached      || // -6000
@@ -605,32 +595,8 @@ HXSymbianAccessPointManager::ConnectDone(TInt aoStatus)
     else
     {
         ULONG32 ulAccessPointID = 0;
-		//get ActiveID from RConnection
-		//Not using GetActiveID as connection status is not yet updated to connected.
-		//Since  this callback method is invoked and no error is found it can be safely assumed to be in 
-		//connected state. State is updated at the end of this function
-		if(m_rconn.GetIntSetting(_L("IAP\\Id"), ulAccessPointID) != KErrNone)
-		{	
-			HXLOGL2(HXLOG_NETW, "HXSymbianAccessPointManager::ConnectDone"
-                " No Active IAP Id found in RConnection\n");
         if(m_pPreferredInfo &&
            m_pPreferredInfo->GetPropertyULONG32("ID", ulAccessPointID) == HXR_OK)
-			{
-				HXLOGL2(HXLOG_NETW, "HXSymbianAccessPointManager::ConnectDone No Preferred Access Point Found\n");
-				
-			    status = HXR_ACCESSPOINT_NOT_FOUND;    	 	
-			}
-		}
-		else //cant get active so fetch the preferred AP ID
-		{
-		
-			HXLOGL2(HXLOG_NETW, "HXSymbianAccessPointManager::ConnectDone"
-				" Active IAP Id (%d) found.  Updating as Preferred IAP Id\n", ulAccessPointID);
-			if(m_pPreferredInfo) 
-				m_pPreferredInfo->SetPropertyULONG32("ID", ulAccessPointID); //No error checks - failure ignored
-		}
-		//If non-zero Access point ID then proceed
-        if(ulAccessPointID)
         {
             // Start the bearer monitor.
             HX_DELETE(m_pMonitor);
@@ -740,8 +706,6 @@ HXSymbianAccessPointManager::GetPreferredID(REF(ULONG32) ulID)
     if (m_pPreferredInfo)
     {
     res = m_pPreferredInfo->GetPropertyULONG32("ID", ulID);
-	HXLOGL3(HXLOG_NETW, "HXSymbianAccessPointManager::GetPreferredID"
-		" Preferred IAP Id: %d\n", ulID);
     }
 
     return res;

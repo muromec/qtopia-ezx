@@ -62,7 +62,7 @@ class LinuxLinker(Linker2):
         
     def LinkDLL(self, target_path, objects, static_libs, dynamic_libs):
         cmd_list = []
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         
@@ -79,7 +79,7 @@ class LinuxLinker(Linker2):
         if project.BuildOption("debug") or not project.IsDefined('HELIX_CONFIG_USE_RLINK'):
             cmd = ""
         else:
-            cmd = "python %s -x '%s' " % (os.path.join("$(BUILD_ROOT)","bin","rlink.py"), self.xplatform)
+            cmd = "python %s -x '%s' " % (os.path.join(BUILD_ROOT,"bin","rlink.py"), self.xplatform)
 
         cmd = "%s%s -shared %s -o %s %s %s %s %s %s %s " % (
             cmd, 
@@ -107,7 +107,7 @@ class LinuxLinker(Linker2):
     def LinkEXE(self, target_path, objects, static_libs, dynamic_libs):
         cmd_list = []
 
-        armerge_cmd = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmp_path = self.armerge_tmp_path()
         libpath = self.armerge_lib_path()
         cmd = "python %s -a %s -d %s %s %s" % (armerge_cmd, self.get_ar_cmd(), tmp_path, libpath, static_libs)
@@ -116,7 +116,7 @@ class LinuxLinker(Linker2):
         if project.BuildOption("debug") or not project.IsDefined('HELIX_CONFIG_USE_RLINK'):
             cmd = ""
         else:
-            cmd = "python %s -x '%s' " % (os.path.join("$(BUILD_ROOT)","bin","rlink.py"), self.xplatform)
+            cmd = "python %s -x '%s' " % (os.path.join(BUILD_ROOT,"bin","rlink.py"), self.xplatform)
 
         cmd = "%s%s -o %s %s %s %s %s %s" % (
             cmd, 

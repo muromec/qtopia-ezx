@@ -38,20 +38,15 @@
 #include "mp4a-mux-cfg.h"
 
 #include "bitstream.h"
-#include "hxtlogutil.h"
 
 MP4AAudioSpec::MP4AAudioSpec() :
     m_pConfig(0),
     m_ulConfigSize(0),
-    m_bSBRPresent(FALSE),
-    m_bSBRFlagValue(FALSE),
     m_ulConfigBits(0)
 {}
 
 MP4AAudioSpec::MP4AAudioSpec(const MP4AAudioSpec& rhs) :
     m_pConfig(0),
-    m_bSBRPresent(FALSE),
-    m_bSBRFlagValue(FALSE),
     m_ulConfigSize(rhs.m_ulConfigSize)
 {
     if (m_ulConfigSize)
@@ -90,14 +85,11 @@ HXBOOL MP4AAudioSpec::Unpack(Bitstream& bs, ULONG32 nBits)
 {
     HXBOOL ret = FALSE;
     Bitstream bsTmp;
-    bsTmp.SetBuffer(bs.GetBuffer(), bs.GetBufSize());
+    bsTmp.SetBuffer(bs.GetBuffer());
+    bsTmp.SetBufSize(bs.GetBufSize());
 
-    UINT32 ulLeft = bsTmp.BitsLeft();
-    if (ulLeft >= nBits)	
-    {
-        bsTmp.GetBits(nBits);
-        ret = AudioSpecificConfigRead(bsTmp,nBits);
-    }	
+    bsTmp.GetBits(nBits);
+    ret = AudioSpecificConfigRead(bsTmp,nBits);
     if(ret)
     {
         // Since AudioSpecificCofig size should be in 
@@ -107,17 +99,11 @@ HXBOOL MP4AAudioSpec::Unpack(Bitstream& bs, ULONG32 nBits)
         {
             m_ulConfigBits += (8 - m_ulConfigBits%8);
         }
-        //do same for m_ulBaseConfigEnd
-        if(m_ulBaseConfigEnd%8 > 0)
-        {
-            m_ulBaseConfigEnd += (8 - m_ulBaseConfigEnd%8);
-        }
 
         m_ulConfigSize = m_ulConfigBits/8;
         delete [] m_pConfig;
         m_pConfig = new UINT8 [m_ulConfigSize];
-        ulLeft = bs.BitsLeft();
-        if (m_pConfig && ulLeft >= m_ulConfigBits)
+        if(m_pConfig)
         {
             bs.GetBits(m_ulConfigBits, m_pConfig);
         }
@@ -129,127 +115,64 @@ HXBOOL MP4AAudioSpec::Unpack(Bitstream& bs, ULONG32 nBits)
    
     return ret;
 }
-ULONG32 MP4AAudioSpec::GetBaseConfigSize()
-{
-    return (m_ulBaseConfigEnd/8);
-}
 
-HXBOOL MP4AAudioSpec::GetAudioObjectType(Bitstream& bs, ULONG32& AudioObjectType)
+ULONG32 MP4AAudioSpec::GetAudioObjectType(Bitstream& bs)
 {
-   HXBOOL failed = FALSE;
-   UINT32 ulLeft = bs.BitsLeft();
-   
-    if (ulLeft < 5)
-    {
-        return FALSE;
-    }
-    AudioObjectType = bs.GetBits(5);
+    ULONG32 AudioObjectType = bs.GetBits(5);
     m_ulConfigBits += 5;
 
     if(AudioObjectType == 31)
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 6)
-        {
-            return FALSE;      
-        }
         AudioObjectType = 32 + bs.GetBits(6);
         m_ulConfigBits += 6;    
     }
-    return !failed;
+    return AudioObjectType;
 }
-/* The SBR present flag is determined according to the syntax
- * given in ISO/IEC 14496-3 SP-1 (MPEG-4 Audio). See section 1.6 , 
- * specificaly see table 1.13 for audio specific bit pattern parsing.
- */
+
 HXBOOL MP4AAudioSpec::AudioSpecificConfigRead(Bitstream& bs, ULONG32 nBits)
 {
-    HXBOOL failed =FALSE;
     ULONG32 samplingFrequency = 0;
     HXBOOL bSBR = FALSE;
-    HXBOOL bPS = FALSE;
     ULONG32 AudioObjectType = 0;
     ULONG32 ExtnAudioObjectType = 0;
     m_ulConfigBits = 0;
 
-    if (!GetAudioObjectType(bs,AudioObjectType))
-    {
-        HXLOGL1(HXLOG_GENE, "Failed GetAudioObjectType()");
-        return FALSE;
-    }
-    UINT32 ulLeft = bs.BitsLeft();
-    if (ulLeft < 4)	
-    {
-         return FALSE;
-    }
+    AudioObjectType = GetAudioObjectType(bs);
 
     ULONG32 samplingFrequencyIndex = bs.GetBits(4);
     m_ulConfigBits += 4;
-	
+
     if(samplingFrequencyIndex == 0xf)
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 24)
-        {
-            return FALSE;
-        }
         // ESC, read sr from bitstream
         ULONG32 samplingFrequency = bs.GetBits(24);
         m_ulConfigBits += 24;
     }
-	
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 4) 	
-    {
-        return FALSE;
-    }
+
     ULONG32 channelConfiguration = bs.GetBits(4);
     m_ulConfigBits += 4;
 
-    if (AudioObjectType == 5 || AudioObjectType == 29)
+    bSBR = (AudioObjectType == 5) ;
+    if (bSBR)
     {
-        bSBR = TRUE;
-        ExtnAudioObjectType = 5;
-        if (AudioObjectType == 29)
-        {
-            bPS = TRUE;		
-        }
-        ulLeft = bs.BitsLeft();	
-        if (ulLeft < 4)
-        {
-            return FALSE;
-        }
-
+        ExtnAudioObjectType = AudioObjectType;
         ULONG32 extensionSamplingFrequencyIndex = bs.GetBits(4);
         m_ulConfigBits += 4;
 
         if(extensionSamplingFrequencyIndex == 0xf)
         {
             // ESC, read sr from bitstream
-            ulLeft = bs.BitsLeft();	
-            if (ulLeft < 24)
-            {
-                return FALSE;
-            }
-
             bs.GetBits(24);
             m_ulConfigBits += 24;
         }
-        if (!GetAudioObjectType(bs,AudioObjectType))
-        {
-            HXLOGL1(HXLOG_GENE, "Failed GetAudioObjectType()");
-            return FALSE;
-        }
+        AudioObjectType = GetAudioObjectType(bs);
     }
 
     switch (AudioObjectType)
     {
         case 1: case 2: case 4:
-            if (!GASpecificConfigRead(bs,
-                 samplingFrequency,channelConfiguration,AudioObjectType)) 
-            {
-                return FALSE;
-            }
+            GASpecificConfigRead(bs,
+            samplingFrequency,channelConfiguration,AudioObjectType) ;
             break ;
 
         default:
@@ -258,104 +181,47 @@ HXBOOL MP4AAudioSpec::AudioSpecificConfigRead(Bitstream& bs, ULONG32 nBits)
     }
 
     ULONG32 ulBitsLeft = bs.GetBufSize()*8 - m_ulConfigBits - nBits;
-    m_ulBaseConfigEnd =  m_ulConfigBits;
+    
     if (!bSBR && ulBitsLeft >= 16)
     // if SBR info has not been read before, but there are more bytes to follow...
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 11)
-        {
-            return FALSE;
-        }
         if (bs.GetBits(11) == 0x2b7)
         {
             m_ulConfigBits += 11;
-            if (!GetAudioObjectType(bs,ExtnAudioObjectType))
-            {
-                HXLOGL1(HXLOG_GENE, "Failed GetAudioObjectType()");
-                return FALSE;
-            }
+            ExtnAudioObjectType = GetAudioObjectType(bs);
             if (ExtnAudioObjectType == 5)
             {
-                ulLeft = bs.BitsLeft();
-                if (ulLeft < 1)	
-                {
-                    return FALSE;
-                }
                 bSBR = bs.GetBits(1);
                 m_ulConfigBits += 1;
                 if (bSBR)
                 {
-                    ulLeft = bs.BitsLeft();	
-                    if (ulLeft < 4)
-                    {
-                        return FALSE;
-                    }     
                     ULONG32 extensionSamplingFrequencyIndex = bs.GetBits(4);
                     m_ulConfigBits += 4;
                     if(extensionSamplingFrequencyIndex == 0xf)
                     {
-                        ulLeft = bs.BitsLeft();
-                        if (ulLeft < 24)
-                        {
-                            return FALSE;
-                        }
                         // ESC, read sr from bitstream
                         bs.GetBits(24);		
                         m_ulConfigBits += 24;
                     }
-                    
-                    ulBitsLeft = bs.GetBufSize()*8 - m_ulConfigBits - nBits;
-                    if (ulBitsLeft >= 12)
-                    {
-                        ulLeft = bs.BitsLeft();
-                        if (ulLeft < 11)
-                        {
-                            return FALSE;
-                        }
-                        if (bs.GetBits(11) == 0x548)
-                        {
-                            ulLeft = bs.BitsLeft();
-                            if (ulLeft < 1)
-                            {
-                                return FALSE;
-                            }          
-                            m_ulConfigBits += 11;
-                            bPS = bs.GetBits(1);
-                            m_ulConfigBits += 1;
-                        }
-                    }
-                    m_bSBRFlagValue = bSBR;
                 }
             }
         }
     }
 
-    return !failed ;
+    return TRUE ;
 }
 
-HXBOOL MP4AAudioSpec::GASpecificConfigRead(Bitstream& bs,
+void MP4AAudioSpec::GASpecificConfigRead(Bitstream& bs,
                                 UINT32 samplingFrequency,
                                 UINT32 ChannelConfiguration,
                                 UINT32 AudioObjectType)
 {
-    HXBOOL failed = FALSE;
     //Read FrameLengthFlag
-    UINT32 ulLeft = bs.BitsLeft();
-    if (ulLeft < 2)
-    {
-        return FALSE;
-    }
     bs.GetBits(1);
     m_ulConfigBits += 1;
     // Read DependsOnCoreCoder
     if (bs.GetBits(1))
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 14)
-        {
-            return FALSE;
-        }
         bs.GetBits(14);
         m_ulConfigBits += 15;
     }
@@ -363,29 +229,16 @@ HXBOOL MP4AAudioSpec::GASpecificConfigRead(Bitstream& bs,
         m_ulConfigBits += 1;
 
     // Read ExtensionFlag
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 1)	
-    {
-        return FALSE;
-    }
     ULONG32 extensionFlag = bs.GetBits(1);
     m_ulConfigBits += 1;
 
     if (ChannelConfiguration == 0)
     {
-        if (!PCERead(bs))
-        {
-            return FALSE;
-        }
+        PCERead(bs) ;
     }
 
     if((AudioObjectType == 6) || (AudioObjectType == 20))
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 3)
-        {
-            return FALSE;
-        }
         // Read layerNr;
         bs.GetBits(3);
         m_ulConfigBits += 3;
@@ -394,11 +247,6 @@ HXBOOL MP4AAudioSpec::GASpecificConfigRead(Bitstream& bs,
     {
         if (AudioObjectType == 22)
         {
-            ulLeft = bs.BitsLeft();
-            if (ulLeft < 16)
-            {
-                return FALSE;
-            }
             // Read numOfSubFrame, layer_length
             bs.GetBits(16);
             m_ulConfigBits += 16;
@@ -406,63 +254,25 @@ HXBOOL MP4AAudioSpec::GASpecificConfigRead(Bitstream& bs,
         if (AudioObjectType == 17 || AudioObjectType == 19 ||
             AudioObjectType == 20 || AudioObjectType == 23)
         {
-            ulLeft = bs.BitsLeft();
-            if (ulLeft < 3)
-            {
-                return FALSE;
-            }
-           
             // TRead aacSectionDataResilienceFlag, aacScalefactorDataResilienceFlag
             // and aacSpectralDataResilienceFlag;
             bs.GetBits(3);
             m_ulConfigBits += 3;
         }
         // Read extensionFlag3
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 1)
-        {
-            failed = TRUE;
-        }
         bs.GetBits(1);
-        m_ulConfigBits += 1;
-     }
-    return !failed;
-}
-
-HXBOOL MP4AAudioSpec::SBRPresent(UINT8* pConfig, UINT32 ulConfigSize, HXBOOL& bSBR)
-{
-    ULONG32 ulSamplingFrequency = 0;
-    ULONG32 ulAudioObjectType = 0;
-    ULONG32 ulExtnAudioObjectType = 0;
-    ULONG32 ulConfigBits = 0;
-    Bitstream bsAudio;
-    bsAudio.SetBuffer(pConfig, ulConfigSize);
-    bSBR = FALSE;
-    if(Unpack(bsAudio, 0))
-    {
-        if(m_bSBRPresent)
-        {
-            bSBR = m_bSBRFlagValue;
-            return TRUE;
-        }
+        m_ulConfigBits += 1;    
     }
-    return FALSE;
 }
 
-HXBOOL MP4AAudioSpec::PCERead(Bitstream& bs)
+void MP4AAudioSpec::PCERead(Bitstream& bs)
 {
-    HXBOOL failed = FALSE;
     UINT32 i ;
 
     // Read element_instance_tag, object_type, sampling_frequency_index
-    UINT32 ulLeft = bs.BitsLeft();
-    if (ulLeft < 32)
-    {
-        return FALSE;
-    }
     bs.GetBits(10);
     m_ulConfigBits += 10;
-	
+
     UINT32 num_front_channel_elements = bs.GetBits(4) ;
     UINT32 num_side_channel_elements = bs.GetBits(4) ;
     UINT32 num_back_channel_elements = bs.GetBits(4) ;
@@ -475,135 +285,67 @@ HXBOOL MP4AAudioSpec::PCERead(Bitstream& bs)
     m_ulConfigBits += 1;
     if (bs.GetBits(1))
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 4)
-        {
-            return FALSE;    
-        }
         // Read mono_mixdown_element_number
         bs.GetBits(4);
         m_ulConfigBits += 4;
-    } 
+    }
 
     // Read stereo_mixdown_present
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 1) 	
-    {
-        return FALSE;    
-    }
     if (bs.GetBits(1))
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 4)
-        {
-            return FALSE;    
-        }
         bs.GetBits(4);
         m_ulConfigBits += 4;
     }
     m_ulConfigBits += 1;
 
     // Read matrix_mixdown_idx_present
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 1) 	
-    {
-        return FALSE;
-    }
     if (bs.GetBits(1))
     {
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 3)
-        {
-            return FALSE;    
-        }
-        else
-        {
         // Read matrix_mixdown_idx, pseudo_surround_enable
-            bs.GetBits(3);
-            m_ulConfigBits += 3;
-        }
-    }		
+        bs.GetBits(3);
+        m_ulConfigBits += 3;
+    }
     m_ulConfigBits += 1;
+
     for ( i = 0; i < num_front_channel_elements; i++) {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 5)	
-     	 {
-     	     return FALSE;    
-     	 }	 
         bs.GetBits(5);
         m_ulConfigBits += 5;
     }
 
     for ( i = 0; i < num_side_channel_elements; i++) {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 5)	
-     	 {
-     	     return FALSE;    
-     	 }
         bs.GetBits(5);
         m_ulConfigBits += 5;
     }
 
     for ( i = 0; i < num_back_channel_elements; i++) {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 5)	
-     	 {
-     	     return FALSE;    
-     	 }
         bs.GetBits(5);
         m_ulConfigBits += 5;
     }
 
 
     for ( i = 0; i < num_lfe_channel_elements; i++)  {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 4)	
-     	 {
-     	     return FALSE;    
-     	 }   
         bs.GetBits(4);
         m_ulConfigBits += 4;
     }
     for ( i = 0; i < num_assoc_data_elements; i++)  {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 4)	
-     	 {
-     	     return FALSE;    
-     	 }
         bs.GetBits(4);
         m_ulConfigBits += 4;
     }
-    for ( i = 0;i < num_valid_cc_elements; i++)  {
-     	 ulLeft = bs.BitsLeft();
-     	 if (ulLeft < 5)	
-     	 {
-     	     return FALSE;    
-     	 }
-        bs.GetBits(5);
-        m_ulConfigBits += 5;
+    for ( i = 0; i < num_valid_cc_elements; i++)  {
+       bs.GetBits(5);
+       m_ulConfigBits += 5;
     }
 
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 8) 	
-    {
-        return FALSE;    
-    }
     UINT32 comment_field_bytes = bs.GetBits(8);
 
     if (comment_field_bytes)
     {
         for (i = 0 ; i < comment_field_bytes ; i++)
         {
-            ulLeft = bs.BitsLeft();
-            if (ulLeft < 8)
-            {
-                return FALSE;    
-            }
             bs.GetBits(8);
             m_ulConfigBits += 8;
         }
     }
-    return !failed;
 }
 
 MP4AStreamInfo::MP4AStreamInfo() :
@@ -637,27 +379,17 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
 {
     HXBOOL failed = FALSE;
     ULONG32 nBits= 0;
-    UINT32 ulLeft = 0;
+
     Reset();
 #if 1
     // This updates StreamMuxConfig to ISO/IEC draft 14496-3:2001
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 1)
-    {
-        return FALSE;
-    }
     ULONG32 ulAudioMuxVersion = bs.GetBits(1); // audioMuxVersion
     nBits++;
 
     // This updates StreamMuxConfig to ISO/IEC 14496-3:2001/Cor.2:2004(E), Table 1.21
     ULONG32 ulAudioMuxVersionA = 0;
     if (ulAudioMuxVersion == 1)
-    {  
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 1)
-        {
-            return FALSE;
-        }
+    {
         ulAudioMuxVersionA = bs.GetBits(1); // audioMuxVersionA
         nBits++;
     }
@@ -667,22 +399,13 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
         if (ulAudioMuxVersion == 1)
         {
             // this increments nBits
-            ULONG32 ulValue =0;
-            if (!LatmGetValue(bs, nBits, ulValue)) // TaraBufferFullness
-            {
-                return FALSE;
-            }
+            LatmGetValue(bs, nBits); // TaraBufferFullness
         }
-        ulLeft = bs.BitsLeft();
-        if (ulLeft < 11)
-        {
-            return FALSE;
-        }
+
         m_bAllSameTiming = (bs.GetBits(1) ? TRUE : FALSE);
         m_ulNumSubFrames = bs.GetBits(6) + 1; // 0-based (old version was not)
         m_ulNumPrograms  = bs.GetBits(4) + 1; // 0-based (old version was not)
         nBits += 11;
-        
         // Allocate arrays
         m_pLayerCounts   = new ULONG32[m_ulNumPrograms];
         m_ppStreamLookup = new ULONG32*[m_ulNumPrograms];
@@ -699,11 +422,6 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
             for (ulProg = 0; !failed && ulProg < m_ulNumPrograms; ulProg++)
             {
                 // Get the number of layers
-                ulLeft = bs.BitsLeft();
-                if (ulLeft < 3)
-                {
-                    return FALSE;  
-                }
                 ULONG32 ulNumLayers = bs.GetBits(3) + 1; // 0-based (old version was not)
                 nBits += 3;
                 // Allocate stream lookup array
@@ -721,16 +439,12 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
 
 	                streamInfo.SetProgram(ulProg);
 	                streamInfo.SetLayer(ulLay);
-	                if ((ulProg != 0) || (ulLay != 0))
-	                {
-                            ulLeft = bs.BitsLeft();
-                            if (ulLeft < 1)
-                            {
-                                return FALSE;    
-                            }
+
+                        if ((ulProg != 0) || (ulLay != 0))
+                        {
                             ulUseSameConfig = bs.GetBits(1);
                             nBits++;
-	                }
+                        }
 
 	                if (!ulUseSameConfig)
 	                {
@@ -738,10 +452,7 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
                             if (ulAudioMuxVersion == 1)
                             {
                                 // this increments nBits
-                                if (!LatmGetValue(bs, nBits, ulAscLen))
-                                {
-                                    return FALSE;
-                                }
+                                ulAscLen = LatmGetValue(bs, nBits);
                             }
 
                             if (!as.Unpack(bs, nBits)) //nBits bytes already read
@@ -755,32 +466,18 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
                             {
                                 // get fill bits
                                 ulAscLen -= ulAscBits;
-                                ulLeft = bs.BitsLeft();
-                                if (ulLeft < ulAscLen)
-                                {
-                                    return FALSE;
-                                }
                                 bs.GetBits(ulAscLen);
                                 nBits += ulAscLen;
                             }
 	                }
 
 	                streamInfo.SetAudioSpec(as);
-	                ulLeft = bs.BitsLeft();
-	                if (ulLeft < 3)	
-	                {
-	                    return FALSE;
-	                }
+
 	                streamInfo.SetLengthType(bs.GetBits(3));
 
 	                switch (streamInfo.GetLengthType())
                         {
                             case 0:
-                                ulLeft = bs.BitsLeft();	
-                                if (ulLeft < 8)	
-                                {
-                                    return FALSE;
-                                }
                                 bs.GetBits(8); // Buffer fullness
                                 if (!m_bAllSameTiming)
                                 {
@@ -790,30 +487,15 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
                                 }
 		                break;
                             case 1:
-                                ulLeft = bs.BitsLeft();
-                                if (ulLeft < 9)
-                                {
-                                    return FALSE;
-                                }
                                 streamInfo.SetFrameLength(bs.GetBits(9));
                                 break;
                             case 3:
                             case 4:
                             case 5:
-                                ulLeft = bs.BitsLeft();
-                                if (ulLeft < 6)
-                                {
-                                    return FALSE;
-                                }
                                 streamInfo.SetCELPIndex(bs.GetBits(6));
                                 break;
                             case 6 :
                             case 7 :
-                                ulLeft = bs.BitsLeft();
-                                if (ulLeft < 1)
-                                {
-                                    return FALSE;
-                                }
                                 streamInfo.SetHVXCIndex(bs.GetBits(1));
                                 break;
                             default:
@@ -832,22 +514,12 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
                 }
             }
             // Other data present
-            ulLeft = bs.BitsLeft();
-            if (ulLeft < 1)
-            {
-                return FALSE;
-            }
             if (bs.GetBits(1))
             {
                 UINT8 otherDataLenTemp = 0;
                 UINT32 otherDataLenBits = 0;
                 UINT8 otherDataLenEsc  = 0;
                 do {
-                    ulLeft = bs.BitsLeft();
-                    if (ulLeft < 9)
-                    {
-                        return FALSE;
-                    }			
                     otherDataLenBits *= 256;
                     otherDataLenEsc = (UINT8)bs.GetBits(1);
                     otherDataLenTemp = (UINT8)bs.GetBits(8);
@@ -855,18 +527,8 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
                 } while (otherDataLenEsc);
             }
             // Crc present
-            ulLeft = bs.BitsLeft();
-            if (ulLeft < 1)	
-            {
-                return FALSE;
-            }
             if (bs.GetBits(1))
             {
-                ulLeft = bs.BitsLeft();
-                if (ulLeft < 8)	
-                {
-                    return FALSE;
-                }
                 bs.GetBits(8);
             }
 
@@ -877,23 +539,13 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
         }
     }
 #else
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 1)
-    {
-        return FALSE;
-    }
     if (bs.GetBits(1))
 	m_bAllSameTiming = TRUE;
-	
-    ulLeft = bs.BitsLeft();
-    if (ulLeft < 7)
-    {
-        return FALSE;
-    }
+
     m_ulNumSubFrames = bs.GetBits(3);
     
     m_ulNumPrograms = bs.GetBits(4);
-  
+
     m_pLayerCounts = new ULONG32[m_ulNumPrograms];
     m_ppStreamLookup = new ULONG32*[m_ulNumPrograms];
 
@@ -902,13 +554,9 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
 	m_pLayerCounts[i] = 0;
 	m_ppStreamLookup[i] = 0;
     }
+
     for (ULONG32 prog = 0; !failed && (prog < m_ulNumPrograms) ; prog++)
     {
-	ulLeft = bs.BitsLeft();
-	if (ulLeft < 3)
-	{
-	    return FALSE;
-	}
 	ULONG32 ulNumLayers = bs.GetBits(3);
 	
 	MP4AAudioSpec as;
@@ -926,12 +574,8 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
 
 	    streamInfo.SetProgram(prog);
 	    streamInfo.SetLayer(lay);
-            ulLeft = bs.BitsLeft();
-	    if (ulLeft < 1)
-	    {
-	        return FALSE;
-	    }
-	    else if (((prog != 0) || (lay != 0)) &&
+
+	    if (((prog != 0) || (lay != 0)) &&
 		(bs.GetBits(1) != 0))
 		readAudioSpec = FALSE;
 
@@ -945,98 +589,58 @@ HXBOOL MP4AMuxConfig::Unpack(Bitstream& bs)
 	    }
 
 	    streamInfo.SetAudioSpec(as);
-           ulLeft = bs.BitsLeft();
-           if (ulLeft < 3)
-           {
-               return FALSE;
-           }
-           streamInfo.SetLengthType(bs.GetBits(3));
+
+	    streamInfo.SetLengthType(bs.GetBits(3));
 
 	    switch (streamInfo.GetLengthType()) {
 	    case 0 :
-		ulLeft = bs.BitsLeft();
-		if (ulLeft < 6)	
-		{
-		    return FALSE;
-		}
 		streamInfo.SetBlockDelay(bs.GetBits(5));
-		
+
 		if (bs.GetBits(1))
 		{
-		    ulLeft = bs.BitsLeft();
-		    if (ulLeft < 8)	
-		    {
-		        return FALSE;
-		    }
 		    streamInfo.SetFracDelayPresent(TRUE);
 		    streamInfo.SetFracDelay(bs.GetBits(8));
-		    }
+		}
 		break;
 
 	    case 1 :
-	        ulLeft = bs.BitsLeft();
-	        if (ulLeft < 9)
-	        {
-	            return FALSE;
-	        }
-	        streamInfo.SetFrameLength(bs.GetBits(9));
-	        break;
+		streamInfo.SetFrameLength(bs.GetBits(9));
+		break;
 
 	    case 3 :
 	    case 4 :
 	    case 5 :
-	        ulLeft = bs.BitsLeft();
-	        if (ulLeft < 6)	
-	        {
-	            return FALSE;      	        
-	        }
-	        streamInfo.SetCELPIndex(bs.GetBits(6));
-	        break;
+		streamInfo.SetCELPIndex(bs.GetBits(6));
+		break;
 
 	    case 6 :
 	    case 7 :
-	        ulLeft = bs.BitsLeft();
-	        if (ulLeft < 1)
-	        {
-	              return FALSE;
-	        }
-	        streamInfo.SetHVXCIndex(bs.GetBits(1));
+		streamInfo.SetHVXCIndex(bs.GetBits(1));
 		break;
 	    };
 
 	    AddStream(streamInfo);
 	}
- }
+    }
 #endif
 
     return !failed;
 }
 
-HXBOOL MP4AMuxConfig::LatmGetValue(Bitstream&bs, ULONG32& nBits, ULONG32& ulValue)
+ULONG32 MP4AMuxConfig::LatmGetValue(Bitstream&bs, ULONG32& nBits)
 {
-    HXBOOL failed = FALSE;
-    ulValue = 0;
-    UINT32 ulLeft =bs.BitsLeft();
-    if (ulLeft < 2)	
-    {
-        return FALSE;
-    }
+    ULONG32 ulValue = 0;
     ULONG32 ulBytesForValue = bs.GetBits(2);
     nBits += 2;
-  
+
     for (ULONG32 i=0; i<=ulBytesForValue; i++)
     {
         ulValue << 8;
-        ulLeft =bs.BitsLeft();
-        if (ulLeft < 8)
-        {
-            return FALSE;
-        }
         ulValue += bs.GetBits(8);
         nBits += 8;
     }
 
-    return !failed;
+    return ulValue;
 }
 
 void MP4AMuxConfig::Reset()

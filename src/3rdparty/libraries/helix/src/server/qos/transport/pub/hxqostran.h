@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: hxqostran.h,v 1.18 2008/03/24 06:59:36 manvendras Exp $ 
+ * Source last modified: $Id: hxqostran.h,v 1.13 2005/01/18 21:33:51 damonlan Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -43,9 +43,6 @@ typedef _INTERFACE IHXQoSSignalBus           IHXQoSSignalBus;
 typedef _INTERFACE IHXScheduler              IHXScheduler;
 typedef _INTERFACE IHXServerPacketSource     IHXServerPacketSource;
 typedef _INTERFACE IHXQoSRateShaper          IHXQoSRateShaper;
-typedef _INTERFACE IHXQoSProfileConfigurator IHXQoSProfileConfigurator;
-typedef _INTERFACE IHXPacketLossDiscriminationAlgorithm IHXPacketLossDiscriminationAlgorithm;
-typedef _INTERFACE IHXPacketLossDiscriminationAlgorithmResponse IHXPacketLossDiscriminationAlgorithmResponse;
 
 typedef UINT8 HX_QOS_CC_TYPE;
 
@@ -78,8 +75,7 @@ DECLARE_INTERFACE_(IHXQoSCongestionControl, IUnknown)
     STDMETHOD (Init)   (THIS_ IHXBuffer* pSessionId, 
 			UINT16             unStrmNumber,
 			UINT32 /* bytes */ ulMediaRate,
-			UINT32 /* bytes */ ulPacketSize,
-            BOOL bIsFCS) PURE;
+			UINT32 /* bytes */ ulPacketSize) PURE;
 };
 
 /*
@@ -112,13 +108,15 @@ DECLARE_INTERFACE_(IHXQoSCongestionEquation, IUnknown)
 			  double fRawLoss, 
 			  double fRawRTT) PURE;
 
+    STDMETHOD (FeedbackTimeout) (THIS) PURE;
+
     STDMETHOD (SetMediaRate) (THIS_ UINT32 ulMediaRate, BOOL bReferenceRate) PURE;
 
     STDMETHOD (SetMediaPacketSize) (THIS_ UINT32 ulMediaPacketSize) PURE;
 
-    STDMETHOD (GetRate) (THIS_ REF(UINT32) /* OUT */ ulRate) PURE;
+    STDMETHOD (SetMaximumRate) (THIS_ UINT32 ulMaxRate) PURE;
 
-    STDMETHOD (SetRate) (THIS_ REF(UINT32) ulRate) PURE;
+    STDMETHOD (GetRate) (THIS_ REF(UINT32) /* OUT */ ulRate) PURE;
 
     STDMETHOD (GetEquationType) (THIS_ REF(HX_QOS_CC_TYPE) /* OUT */ cType) PURE;
 };
@@ -183,102 +181,5 @@ DECLARE_INTERFACE_(IHXQoSRateShaper, IUnknown)
     STDMETHOD (GetMaxTokens)     (THIS_ REF(UINT32) /*OUT*/ ulMaxTokens) PURE;
 };
 
-/*
- * Packet Loss Discrimination Algorithm and Response APIs
- */
-
-enum PacketLossType {LDA_PLT_NONE, LDA_PLT_CONGESTION_LOSS, LDA_PLT_WIRELESS_LOSS};
-
-/*
- * IID_IHXPacketLossDiscriminationAlgorithm
- * {2A287694-EF37-4266-858F-E84FE3123456}
- */
-DEFINE_GUID(IID_IHXPacketLossDiscriminationAlgorithm,
-            0x2a287694, 0xef37, 0x4266, 0x85, 0x8f, 0xe8, 0x4f, 0xe3, 0x12, 0x34, 0x56);
-
-#undef  INTERFACE
-#define INTERFACE  IHXPacketLossDiscriminationAlgorithm
-DECLARE_INTERFACE_(IHXPacketLossDiscriminationAlgorithm, IUnknown)
-{
-    // IUnknown
-    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
-    STDMETHOD_(ULONG32,Release) (THIS) PURE;
-
-    // IHXPacketLossDiscriminationAlgorithm
-    STDMETHOD(Init)   		(THIS_
-				IHXQoSProfileConfigurator* pConfig,
-    				UINT16 unStreamNumber,
-    				UINT32 ulMediaRate) PURE;
-    /*
-     * Set the LDA response object
-     */
-    STDMETHOD(SetLDAResponse)   (THIS_
-				IHXPacketLossDiscriminationAlgorithmResponse* pPLDAResp) PURE;
-    /*
-     * calculate the packet loss type probability and return the packet
-     * loss type based on the RDT metrics info.
-     * since RDT doesn't have jitter information, only the RTT trend will
-     * be used to determine the packet loss 
-     * type. for the first stage of the implementation RDT will NOT have a
-     * LDA, until further research is done
-     * to determine the correctness of the RDT LDA.
-     * all params are input values
-     */
-    STDMETHOD_(enum PacketLossType, LostPackets)(THIS_
-				double fRTT,
-				double fLoss,
-				UINT32 ulPcktsLost,
-				double fRcvdRate,
-				UINT32 ulPcktsRcvd) PURE;
-    /*
-     * calculate the packet loss type probability and return the packet
-     * loss type based on the values from a RTP 
-     * receiver report.
-     * all params are input values
-     */
-    STDMETHOD_(enum PacketLossType, LostPackets)(THIS_
-				UINT32 ulRTT,
-				double fRTT,
-				UINT32 ulJitter,
-				UINT32 ulPktsLossFraction,
-				UINT32 ulPktsLost,
-				double fRcvdRate,
-				UINT32 ulPcktsRecvd) PURE; 
-    STDMETHOD_(void, SetMediaRate)(THIS_ UINT32 ulMediaRate) PURE;
-    /*
-     * Cleanup method to release circular reference to objects and for other
-     * cleanup before destruction.
-     */
-    STDMETHOD(Done)(THIS) PURE;
-};
-
-/*
- * IID_IHXPacketLossDiscriminationAlgorithmResponse
- * {2A287694-EF37-4266-858F-E84FE3654321}
- */
-DEFINE_GUID(IID_IHXPacketLossDiscriminationAlgorithmResponse,
-            0x2a287694, 0xef37, 0x4266, 0x85, 0x8f, 0xe8, 0x4f, 0xe3, 0x65, 0x43, 0x21);
-
-#undef  INTERFACE
-#define INTERFACE  IHXPacketLossDiscriminationAlgorithmResponse
-DECLARE_INTERFACE_(IHXPacketLossDiscriminationAlgorithmResponse, IUnknown)
-{
-    // IUnknown
-    STDMETHOD(QueryInterface)   (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)  (THIS) PURE;
-    STDMETHOD_(ULONG32,Release) (THIS) PURE;
-
-    // IHXPacketLossDiscriminationAlgorithmResponse
-    /*
-     * Set the LDA object
-     */
-    STDMETHOD(SetLossDiscriminationAlgorithm)(THIS_
-				IHXPacketLossDiscriminationAlgorithm* pLDA) PURE;
-    /* 
-     * sets the packet loss type in the response object.
-     */
-    STDMETHOD(SetPacketLossType)(THIS_ enum PacketLossType) PURE;
-};
 
 #endif /* _HX_QOS_TRAN_H_ */

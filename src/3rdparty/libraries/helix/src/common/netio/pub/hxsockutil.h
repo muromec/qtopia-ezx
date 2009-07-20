@@ -54,12 +54,6 @@ struct HXSockUtil // namespace
 
     static HX_RESULT GetIN4Address(IHXSockAddr* pAddr, REF(UINT32) rulAddr);
     static HX_RESULT GetIN4Port(IHXSockAddr* pAddr, REF(UINT16) rusPort);
-    
-    static HX_RESULT CreateAddrIN4(IHXNetServices* pNetServices,
-                     const struct sockaddr_in* psa, IHXSockAddr*& pAddrOut /*out*/);
-
-    static HX_RESULT CreateAddrIN6(IHXNetServices* pNetServices,
-                     const struct sockaddr_in6* psa,IHXSockAddr*& pAddrOut /*out*/);
 };
 #endif //HX_SOCKUTIL_H__
 

@@ -1,37 +1,37 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: RCSL 1.0/RPSL 1.0
- *
- * Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved.
- *
- * The contents of this file, and the files included with this file, are
- * subject to the current version of the RealNetworks Public Source License
- * Version 1.0 (the "RPSL") available at
- * http://www.helixcommunity.org/content/rpsl unless you have licensed
- * the file under the RealNetworks Community Source License Version 1.0
- * (the "RCSL") available at http://www.helixcommunity.org/content/rcsl,
- * in which case the RCSL will apply. You may also obtain the license terms
- * directly from RealNetworks.  You may not use this file except in
- * compliance with the RPSL or, if you have a valid RCSL with RealNetworks
- * applicable to this file, the RCSL.  Please see the applicable RPSL or
- * RCSL for the rights, obligations and limitations governing use of the
- * contents of the file.
- *
- * This file is part of the Helix DNA Technology. RealNetworks is the
- * developer of the Original Code and owns the copyrights in the portions
- * it created.
- *
- * This file, and the files included with this file, is distributed and made
- * available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
- * EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
- *
- * Technology Compatibility Kit Test Suite(s) Location:
- *    http://www.helixcommunity.org/content/tck
- *
- * Contributor(s):
- *
- * ***** END LICENSE BLOCK ***** */
+/* ***** BEGIN LICENSE BLOCK ***** 
+ * Version: RCSL 1.0/RPSL 1.0 
+ *  
+ * Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+ *      
+ * The contents of this file, and the files included with this file, are 
+ * subject to the current version of the RealNetworks Public Source License 
+ * Version 1.0 (the "RPSL") available at 
+ * http://www.helixcommunity.org/content/rpsl unless you have licensed 
+ * the file under the RealNetworks Community Source License Version 1.0 
+ * (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+ * in which case the RCSL will apply. You may also obtain the license terms 
+ * directly from RealNetworks.  You may not use this file except in 
+ * compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+ * applicable to this file, the RCSL.  Please see the applicable RPSL or 
+ * RCSL for the rights, obligations and limitations governing use of the 
+ * contents of the file.  
+ *  
+ * This file is part of the Helix DNA Technology. RealNetworks is the 
+ * developer of the Original Code and owns the copyrights in the portions 
+ * it created. 
+ *  
+ * This file, and the files included with this file, is distributed and made 
+ * available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+ * EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+ * FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+ * 
+ * Technology Compatibility Kit Test Suite(s) Location: 
+ *    http://www.helixcommunity.org/content/tck 
+ * 
+ * Contributor(s): 
+ *  
+ * ***** END LICENSE BLOCK ***** */ 
 
 /****************************************************************************
  *  Defines
@@ -47,11 +47,9 @@
 #include "qttrkmgr.h"
 #include "mp4desc.h"
 #include "hxstrutl.h"
-#include "iso639.h"
 
 #include "rtptypes.h"
 #include "rtsputil.h"
-#include "pckunpck.h"
 
 #ifndef QTCONFIG_SPEED_OVER_SIZE
 #include "qtatmmgs_inline.h"
@@ -98,11 +96,11 @@ HX_RESULT CQT_TrackEdit_Manager::Init(CQTAtom* pAtom,
 
     HX_ASSERT(ulMovieTimeScale);
     HX_ASSERT(ulMediaTimeScale);
-
+    
     m_ulMovieTimeScale = ulMovieTimeScale;
     m_ulMediaTimeScale = ulMediaTimeScale;
     m_ulNumEdits = 0;
-
+    
     HX_RELEASE(m_pEditListAtom);
 
     if (pAtom)
@@ -177,7 +175,7 @@ HXBOOL CQT_TrackEdit_Manager::SequenceToEdit(void)
 
 	if (m_ulCurrentEditIdx < m_ulNumEdits)
 	{
-	    if (m_ulCurrentInEditTime >= m_ulCurrentEditDuration)
+	    if (m_ulCurrentMediaStartTime != QT_EMPTY_EDIT)
 	    {
 		m_ulCurrentInEditTime -= m_ulCurrentEditDuration;
 	    }
@@ -215,7 +213,6 @@ CQT_SampleToChunk_Manager::CQT_SampleToChunk_Manager(void)
     , m_ulCurrentChunk(0)
     , m_ulNextEntryChunk(QT_NULL_CHUNK_NUM)
     , m_ulCurrentEntryIdx(0)
-    , m_ulNextEntryIdx(0)
     , m_ulSamplesPerChunk(QT_MAX_SAMPLES_PER_CHUNK)
     , m_ulSampleNumber(0)
     , m_ulSampleDescIdx(QT_BAD_IDX)
@@ -331,16 +328,38 @@ HXBOOL CQT_SampleToChunk_Manager::EstablishBySample(ULONG32 ulSampleNum)
 	    // Search Forward from the beginning
 	    m_ulSampleInChunkNum = ulSampleNum;
 	    m_ulCurrentEntryIdx = 0;
-            m_ulNextEntryIdx     = 0;
-            m_ulCurrentChunk     = GetFirstChunk(m_ulCurrentEntryIdx);
-            m_ulSamplesPerChunk  = GetSamplesPerChunk(m_ulCurrentEntryIdx);
-            m_ulSampleDescIdx    = GetSampleDescID(m_ulCurrentEntryIdx);
-            m_ulNextEntryChunk   = GetNextFirstChunk(m_ulCurrentEntryIdx, m_ulNextEntryIdx);
+	    m_ulCurrentChunk = m_pSampleToChunkAtom->Get_FirstChunk(0)
+#ifdef _STCO_ZERO_BASED_IQ
+			       + m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+			       ;
+	    m_ulSamplesPerChunk = m_pSampleToChunkAtom->Get_SamplesPerChunk(0);
+	    m_ulSampleDescIdx = m_pSampleToChunkAtom->Get_SampleDescID(0) - 1
+#ifdef _STCO_ZERO_BASED_IQ
+			        + m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+			       ;
+
+	    if (m_ulNumEntries > 1)
+	    {
+		m_ulNextEntryChunk = m_pSampleToChunkAtom->
+		    Get_FirstChunk(1)
+#ifdef _STCO_ZERO_BASED_IQ
+		    + m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+		    ;
+	    }
+	    else
+	    {
+		// No more chunk entries
+		m_ulNextEntryChunk = QT_NULL_CHUNK_NUM;
+	    }
+
 	    m_ulSampleNumber = ulSampleNum;
 
 	    return SequenceToChunk();
 	}
-    }
+    }	
     else
     {
 	m_ulSampleNumber = 0;
@@ -364,8 +383,8 @@ HXBOOL CQT_SampleToChunk_Manager::EstablishBySample(ULONG32 ulSampleNum)
  */
 #ifdef STCMGR_USE_MODULUS_SEQUENCING
 
-// This sequencing algorithm has better efficiency (than non-modulus
-// sequencing) on files containing many chunks per table entry and/or those
+// This sequencing algorithm has better efficiency (than non-modulus 
+// sequencing) on files containing many chunks per table entry and/or those 
 // whose progression through the table is irratic (has skipps).
 HXBOOL CQT_SampleToChunk_Manager::SequenceToChunk(void)
 {
@@ -396,18 +415,28 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceToChunk(void)
 					 m_ulCurrentChunk) *
 					m_ulSamplesPerChunk;
 		m_ulCurrentChunk = m_ulNextEntryChunk;
-                m_ulCurrentEntryIdx = m_ulNextEntryIdx;
+		m_ulCurrentEntryIdx++;
 		bEntryIdxChanged = TRUE;
 
-                m_ulSamplesPerChunk = GetSamplesPerChunk(m_ulCurrentEntryIdx);
-
-                m_ulNextEntryChunk = GetNextFirstChunk(m_ulCurrentEntryIdx, m_ulNextEntryIdx);
+		m_ulSamplesPerChunk = m_pSampleToChunkAtom->
+		    Get_SamplesPerChunk(m_ulCurrentEntryIdx);
+		
+		if ((m_ulCurrentEntryIdx + 1) < m_ulNumEntries)
+		{
+		    m_ulNextEntryChunk = m_pSampleToChunkAtom->
+			Get_FirstChunk(m_ulCurrentEntryIdx + 1);
+		}
+		else
+		{
+		    // No more chunk entries
+		    m_ulNextEntryChunk = QT_NULL_CHUNK_NUM;
+		}
 	    }
 	    else
 	    {
 		m_ulCurrentChunk = ulTargetChunk;
 		if (m_ulSamplesPerChunk != 0)
-		{
+		{  
 		    m_ulSampleInChunkNum = (m_ulSampleInChunkNum - 1) %
 					    m_ulSamplesPerChunk +
 					    1;
@@ -422,7 +451,12 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceToChunk(void)
 
 	if (bEntryIdxChanged)
 	{
-            m_ulSampleDescIdx = GetSampleDescID(m_ulCurrentEntryIdx);
+	    m_ulSampleDescIdx = m_pSampleToChunkAtom->
+		Get_SampleDescID(m_ulCurrentEntryIdx) - 1
+#ifdef _STCO_ZERO_BASED_IQ
+		+ m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+			       ;
 	}
     }
 
@@ -447,19 +481,31 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceToChunk(void)
 	{
 	    m_ulSampleInChunkNum = m_ulSampleInChunkNum - m_ulSamplesPerChunk;
 	    m_ulCurrentChunk++;
-
+	    
 	    if (m_ulCurrentChunk == m_ulNextEntryChunk)
 	    {
+		m_ulCurrentEntryIdx++;
 		bEntryIdxChanged = TRUE;
-                // Assign the current index to the next index
-                m_ulCurrentEntryIdx = m_ulNextEntryIdx;
-                // Get the new samples per chunk for the current entry
-                m_ulSamplesPerChunk = GetSamplesPerChunk(m_ulCurrentEntryIdx);
-                // Search for the next valid entry. This will update
-                // m_ulNextEntryChunk and m_ulNextEntryIdx
-                m_ulNextEntryChunk = GetNextFirstChunk(m_ulCurrentEntryIdx, m_ulNextEntryIdx);
+		
+		m_ulSamplesPerChunk = m_pSampleToChunkAtom->
+		    Get_SamplesPerChunk(m_ulCurrentEntryIdx);
+		
+		if ((m_ulCurrentEntryIdx + 1) < m_ulNumEntries)
+		{
+		    m_ulNextEntryChunk = m_pSampleToChunkAtom->
+			Get_FirstChunk(m_ulCurrentEntryIdx + 1)
+#ifdef _STCO_ZERO_BASED_IQ
+			+ m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+			;
+		}
+		else
+		{
+		    // No more chunk entries
+		    m_ulNextEntryChunk = QT_NULL_CHUNK_NUM;
+		}
 	    }
-	    else if ((m_ulSamplesPerChunk == 0) &&
+	    else if ((m_ulSamplesPerChunk == 0) && 
 		(m_ulNextEntryChunk == QT_NULL_CHUNK_NUM))
 	    {
 		return FALSE;
@@ -468,7 +514,12 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceToChunk(void)
 
 	if (bEntryIdxChanged)
 	{
-            m_ulSampleDescIdx = GetSampleDescID(m_ulCurrentEntryIdx);
+	    m_ulSampleDescIdx = m_pSampleToChunkAtom->
+		Get_SampleDescID(m_ulCurrentEntryIdx) - 1
+#ifdef _STCO_ZERO_BASED_IQ
+		+ m_ulChunkNumOffset
+#endif	// _STCO_ZERO_BASED_IQ
+		;
 	}
     }
 
@@ -489,13 +540,14 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceReverseToChunk(void)
     {
 	bEntryIdxChanged = FALSE;
 
-        ulEntryFirstChunk = GetFirstChunk(m_ulCurrentEntryIdx);
+	ulEntryFirstChunk = m_pSampleToChunkAtom->
+	    Get_FirstChunk(m_ulCurrentEntryIdx);
 
 	do
 	{
 	    m_ulSampleInChunkNum = m_ulSampleInChunkNum - m_ulSamplesPerChunk;
 	    m_ulCurrentChunk--;
-
+	    
 	    if (m_ulCurrentChunk < ulEntryFirstChunk)
 	    {
 		if (m_ulCurrentEntryIdx == 0)
@@ -503,171 +555,45 @@ HXBOOL CQT_SampleToChunk_Manager::SequenceReverseToChunk(void)
 		    return FALSE;
 		}
 
-                // Set the flag saying we need to reset our sample description
+		m_ulCurrentEntryIdx--;
 		bEntryIdxChanged = TRUE;
-                // Find the previous valid entry in the list
-                ULONG32 ulPrevEntryIdx = 0;
-                ulEntryFirstChunk = GetPrevFirstChunk(m_ulCurrentEntryIdx, ulPrevEntryIdx);
-                // Set the current entry index to the previous index
-                m_ulCurrentEntryIdx = ulPrevEntryIdx;
-                // Get the new samples per chunk
-                m_ulSamplesPerChunk = GetSamplesPerChunk(m_ulCurrentEntryIdx);
+		
+		m_ulSamplesPerChunk = m_pSampleToChunkAtom->
+		    Get_SamplesPerChunk(m_ulCurrentEntryIdx);
+		ulEntryFirstChunk = m_pSampleToChunkAtom->
+		    Get_FirstChunk(m_ulCurrentEntryIdx);
 	    }
 	} while (m_ulSampleInChunkNum > m_ulSamplesPerChunk);
 
 	if (bEntryIdxChanged)
 	{
-            m_ulSampleDescIdx = GetSampleDescID(m_ulCurrentEntryIdx);
-        }
-        // Reset the next entry FirstChunk and the next entry index
-        m_ulNextEntryChunk = GetNextFirstChunk(m_ulCurrentEntryIdx, m_ulNextEntryIdx);
-    }
-
-    return TRUE;
-}
-
-ULONG32 CQT_SampleToChunk_Manager::GetFirstChunk(ULONG32 i)
-{
-    ULONG32 ulRet = QT_NULL_CHUNK_NUM;
-
-    if (m_pSampleToChunkAtom && i < m_ulNumEntries)
-    {
-        ulRet = m_pSampleToChunkAtom->Get_FirstChunk(i)
+	    m_ulSampleDescIdx = m_pSampleToChunkAtom->
+		Get_SampleDescID(m_ulCurrentEntryIdx) - 1
 #ifdef _STCO_ZERO_BASED_IQ
 		+ m_ulChunkNumOffset
 #endif	// _STCO_ZERO_BASED_IQ
 		;
 	}
 
-    return ulRet;
-}
-
-ULONG32 CQT_SampleToChunk_Manager::GetSamplesPerChunk(ULONG32 i)
-{
-    ULONG32 ulRet = 0;
-
-    if (m_pSampleToChunkAtom && i < m_ulNumEntries)
-    {
-        ulRet = m_pSampleToChunkAtom->Get_SamplesPerChunk(i);
-    }
-
-    return ulRet;
-}
-
-ULONG32 CQT_SampleToChunk_Manager::GetSampleDescID(ULONG32 i)
+	if ((m_ulCurrentEntryIdx + 1) < m_ulNumEntries)
 	{
-    ULONG32 ulRet = QT_BAD_IDX;
-
-    if (m_pSampleToChunkAtom && i < m_ulNumEntries)
-    {
-        ULONG32 ulTmp = m_pSampleToChunkAtom->Get_SampleDescID(i);
-        if (ulTmp)
-        {
-            // Go to zero-based
-            ulTmp--;
+	    m_ulNextEntryChunk = m_pSampleToChunkAtom->
+		Get_FirstChunk(m_ulCurrentEntryIdx + 1)
 #ifdef _STCO_ZERO_BASED_IQ
-            ulTmp += m_ulChunkNumOffset;
+		+ m_ulChunkNumOffset
 #endif	// _STCO_ZERO_BASED_IQ
-            // Assign to out parameter
-            ulRet = ulTmp;
-        }
-    }
-
-    return ulRet;
-}
-
-ULONG32 CQT_SampleToChunk_Manager::GetNextFirstChunk(ULONG32 i, ULONG32& rulNextIdx)
-{
-    ULONG32 ulRet = QT_NULL_CHUNK_NUM;
-
-    if (m_pSampleToChunkAtom && i < m_ulNumEntries)
-    {
-        // Get the FirstChunk field of the current entry
-        ULONG32 ulCurFirstChunk = GetFirstChunk(i);
-        // Loop through the entries until we find an entry
-        // with a FirstChunk field that is greater than
-        // the current entry. Usually this is just the
-        // very next entry. However, in some .mp4 files,
-        // entries can be duplicated in the Sample-to-Chunk
-        // table. Although this seems strange, the MP4 file
-        // format spec does not specifically prohibit this.
-        ULONG32 j = 0;
-        for (j = i + 1; j < m_ulNumEntries; j++)
-        {
-            // Get the FirstChunk field for this entry
-            ULONG32 ulTmpFirstChunk = GetFirstChunk(j);
-            // Is this FirstChunk field greater than the current FirstChunk field
-            if (ulTmpFirstChunk > ulCurFirstChunk)
-            {
-                break;
-            }
-        }
-        // Did we successfully find a next FirstChunk field?
-        if (j < m_ulNumEntries)
-        {
-            // We did find a valid next FirstChunk field, so 
-            // set the return value to that FirstChunk field.
-            ulRet = GetFirstChunk(j);
-            // Set the out parameter to the index
-            rulNextIdx = j;
+		;
 	}
 	else
 	{
-            // We did NOT find a next FirstChunk, so by default
-            // the return value will still be QT_NULL_CHUNK_NUM. 
-            // We should set the out parameter to a default value.
-            rulNextIdx = m_ulNumEntries;
+	    // No more chunk entries
+	    m_ulNextEntryChunk = QT_NULL_CHUNK_NUM;
 	}
     }
 
-    return ulRet;
+    return TRUE;
 }
 
-ULONG32 CQT_SampleToChunk_Manager::GetPrevFirstChunk(ULONG32 i, ULONG32& rulPrevIdx)
-{
-    ULONG32 ulRet = QT_NULL_CHUNK_NUM;
-
-    if (m_pSampleToChunkAtom && i < m_ulNumEntries)
-    {
-        // Get the FirstChunk field of the current entry
-        ULONG32 ulCurFirstChunk = GetFirstChunk(i);
-        // Loop through the entries until we find an entry
-        // with a FirstChunk field that is less than
-        // the current entry. Usually this is just the
-        // previous entry. However, in some .mp4 files,
-        // entries can be duplicated in the Sample-to-Chunk
-        // table. Although this seems strange, the MP4 file
-        // format spec does not specifically prohibit this.
-        INT32 j = 0;
-        for (j = ((INT32) i) - 1; j >= 0; j--)
-        {
-            // Get the FirstChunk field for this entry
-            ULONG32 ulTmpFirstChunk = GetFirstChunk((ULONG32) j);
-            // Is this FirstChunk field less than the current FirstChunk field
-            if (ulTmpFirstChunk < ulCurFirstChunk)
-            {
-                break;
-            }
-        }
-        // Did we find an entry?
-        if (j >= 0)
-        {
-            // Set the return value to this FirstChunk value
-            ulRet = GetFirstChunk((ULONG32) j);
-            // Set the out parameter to this index value
-            rulPrevIdx = (ULONG32) j;
-        }
-        else
-        {
-            // We did not find an entry. The return value will
-            // remain as QT_NULL_CHUNK_NUM, but we should set
-            // the out parameter as well.
-            rulPrevIdx = 0;
-        }
-}
-
-    return ulRet;
-}
 
 #define INVALID_COMP_SAMPLE_NUM	    0xFFFFFFFF
 #define QT_INVALID_KEY_MEDIA_TIME   0xFFFFFFFF
@@ -721,7 +647,7 @@ HX_RESULT CQT_TimeToSample_Manager::Init(CQTAtom* pAtom)
     HX_RELEASE(m_pTimeToSampleAtom);
     HX_RELEASE(m_pCompOffsetAtom);
     HX_RELEASE(m_pSyncSampleAtom);
-
+    
     m_ulNumEntries = 0;
     m_ulCompSampleNumber = INVALID_COMP_SAMPLE_NUM;
 
@@ -812,7 +738,7 @@ HXBOOL CQT_TimeToSample_Manager::EstablishAtKeyByMediaTime(ULONG32 ulMediaTime)
 
 	bEstablished = (ulNumSyncEntries == 0);
 
-	for (ulSyncEntryIdx = m_ulCurrentSyncEntryIdx;
+	for (ulSyncEntryIdx = m_ulCurrentSyncEntryIdx; 
 	     ulSyncEntryIdx < ulNumSyncEntries;
 	     ulSyncEntryIdx++)
 	{
@@ -854,7 +780,7 @@ HXBOOL CQT_TimeToSample_Manager::EstablishByMediaTime(ULONG32 ulMediaTime)
     m_ulLastSyncTime = 0;
     m_ulCurrentSyncEntryIdx = 0;
     m_ulLastPreTargetSyncMediaTime = QT_INVALID_KEY_MEDIA_TIME;
-
+    
     if (m_ulNumEntries > 0)
     {
 	m_ulSampleNumber = 0;
@@ -961,7 +887,7 @@ HXBOOL CQT_TimeToSample_Manager::EstablishCompBySample(ULONG32 ulSampleNum)
 	    break;
 	}
     }
-
+	
     return bIsEstablished;
 }
 
@@ -1050,7 +976,7 @@ HX_RESULT CQT_SampleSize_Manager::Init(CQTAtom *pAtom)
 /****************************************************************************
  *  EstablishBySample
  */
-HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
+HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum, 
 					       ULONG32 ulChunkSampleNum,
 					       ULONG32 ulSamplesPerChunk)
 {
@@ -1071,7 +997,7 @@ HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
 	    m_ulChunkSize = ulSamplesPerChunk * m_ulGenericSize;
 	    return TRUE;
 	}
-
+	
 	ulChunkStartSampleNum = ulSampleNum - ulChunkSampleNum;
 	ulChunkEndSampleNum = ulChunkStartSampleNum + ulSamplesPerChunk;
 
@@ -1080,7 +1006,7 @@ HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
 	{
 	    // Convert to 0 based index for efficiency
 	    ulSampleNum--;
-
+	    
 	    if (m_ulChunkStartSampleNum == ulChunkStartSampleNum)
 	    {
 		if (m_ulSampleNum == ulSampleNum)   // m_ulSampleNum is 1 based
@@ -1098,11 +1024,11 @@ HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
 
 	    // Convert to 0 based index for efficiency
 	    ulChunkSampleNum--;
-
+	    
 	    m_ulSampleSize = m_pSampleSizeAtom->Get_SampleSize(ulSampleNum);
 	    m_ulChunkStartSampleNum = ulChunkStartSampleNum;
 	    m_ulSampleNum = ulSampleNum + 1;
-
+	    
 	    for (m_ulChunkSampleOffset = 0;
 		 ulChunkStartSampleNum < ulSampleNum;
 		 ulChunkStartSampleNum++)
@@ -1110,7 +1036,7 @@ HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
 		m_ulChunkSampleOffset += m_pSampleSizeAtom->
 		    Get_SampleSize(ulChunkStartSampleNum);
 	    }
-
+	
 	    /*** Not needed
 	    m_ulChunkSize = m_ulChunkSampleOffset;
 	    do
@@ -1119,7 +1045,7 @@ HXBOOL CQT_SampleSize_Manager::EstablishBySample(ULONG32 ulSampleNum,
 		    Get_SampleSize(ulChunkStartSampleNum++);
 	    } while (ulChunkStartSampleNum < ulChunkEndSampleNum);
 	    ***/
-
+	    
 	    return TRUE;
 	}
     }
@@ -1186,7 +1112,7 @@ HX_RESULT CQT_ChunkToOffset_Manager::Init(CQTAtom* pAtom)
 	retVal = HXR_FAIL;
 	HX_RELEASE(m_pChunkToOffsetAtom);
     }
-
+   
     return retVal;
 }
 
@@ -1272,7 +1198,7 @@ HX_RESULT CQT_SampleDescription_Manager::Init(CQTAtom* pAtom)
 
     retVal = EstablishByIdx(0) ? HXR_OK : HXR_FAIL;
 
-
+   
     return retVal;
 }
 
@@ -1303,7 +1229,7 @@ HXBOOL CQT_SampleDescription_Manager::ParseSampleDescription(void)
     {
 	// Extract Needed Tagged Entries
 	while ((pTaggedEntry = m_pSampleDescriptionAtom->
-	    Get_TaggedEntry((CQT_stsd_Atom::HintArrayEntry *) m_pSampleDesc,
+	    Get_TaggedEntry((CQT_stsd_Atom::HintArrayEntry *) m_pSampleDesc, 
 			    ulTaggedEntryIdx)) != NULL)
 	{
 	    switch (CQTAtom::GetUL32(pTaggedEntry->pTag))
@@ -1321,7 +1247,7 @@ HXBOOL CQT_SampleDescription_Manager::ParseSampleDescription(void)
 		// nothing to do
 		break;
 	    }
-
+	    
 	    ulTaggedEntryIdx++;
 	}
 	bSuccess = (m_ulRTPTimeScale > 0);
@@ -1395,7 +1321,7 @@ HX_RESULT CQT_DataReference_Manager::Init
     }
 
     retVal = EstablishByIdx(0) ? HXR_OK : HXR_FAIL;
-
+   
     return retVal;
 }
 
@@ -1411,13 +1337,13 @@ HXBOOL CQT_DataReference_Manager::ParseDataReference(void)
 
     pRefEntry = m_pDataReferenceAtom->GetRefEntry(m_ulDataRefIdx);
 
-    if (!m_pDataReferenceAtom->Get_RefFlags(pRefEntry) && m_pDataReferenceAtom->Get_RefType(pRefEntry) == QT_alis)
+    if (!m_pDataReferenceAtom->Get_RefFlags(pRefEntry))
     {
 	bSuccess = FALSE;
 
 #ifdef QTCONFIG_ALLOW_EXTERNAL_DATAREFS
-	/* handle Mac. Alias and form m_pDataRefName */
-	UINT8* pDataRef = (UINT8*)
+	/* handle Mac. Alias and form m_pDataRefName */			       		
+	UINT8* pDataRef = (UINT8*) 
 			  m_pDataReferenceAtom->Get_RefData(pRefEntry);
 	ULONG32 ulCurrentPos = pDataRef - m_pDataReferenceAtom->GetData();
 	ULONG32 ulDataRefLength = m_pDataReferenceAtom->GetDataSize();
@@ -1427,9 +1353,9 @@ HXBOOL CQT_DataReference_Manager::ParseDataReference(void)
 	if (ulDataRefLength > ulCurrentPos)
 	{
 	    ulDataRefLength -= ulCurrentPos;
-	    bSuccess = FindRelPath(pDataRef,
-				   ulDataRefLength,
-				   pRelPath,
+	    bSuccess = FindRelPath(pDataRef, 
+				   ulDataRefLength, 
+				   pRelPath, 
 				   ulPathLength);
 	}
 
@@ -1440,7 +1366,7 @@ HXBOOL CQT_DataReference_Manager::ParseDataReference(void)
 
 	    bSuccess = FALSE;
 	    if (SUCCEEDED(m_pClassFactory->CreateInstance(
-				CLSID_IHXBuffer,
+				CLSID_IHXBuffer, 
 				(void**) &m_pDataRefName)))
 	    {
 		if (m_pDataRefName->SetSize(ulPathLength + 1) == HXR_OK)
@@ -1477,9 +1403,9 @@ HXBOOL CQT_DataReference_Manager::ParseDataReference(void)
  *  FindRelPath
  */
 #ifdef QTCONFIG_ALLOW_EXTERNAL_DATAREFS
-HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
-					    ULONG32 ulDataLength,
-					    UINT8* &pRelPath,
+HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData, 
+					    ULONG32 ulDataLength, 
+					    UINT8* &pRelPath, 
 					    ULONG32 &ulPathLength)
 {
     UINT8* pCurrentPos;
@@ -1492,9 +1418,9 @@ HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
 
     pCurrentPos = pData + (sizeof(CQT_dref_Atom::DataRef) - 1);
 
-    bSuccess = (((ULONG32) (pCurrentPos -
-			    pData +
-			    sizeof(CQT_dref_Atom::ItemEntry) -
+    bSuccess = (((ULONG32) (pCurrentPos - 
+			    pData + 
+			    sizeof(CQT_dref_Atom::ItemEntry) - 
 			    1)) <= ulDataLength);
 
     if (bSuccess)
@@ -1507,7 +1433,7 @@ HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
 	// Make sure the path give is relative
 	bSuccess = ((lNLvlTo >= 0) && (lNLvlFrom >= 0));
     }
-
+  
     // Search for the absolute pathname marker
     if (bSuccess)
     {
@@ -1518,21 +1444,21 @@ HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
 	for (ulIdx = QT_ALIS_MAXCOUNT; ulIdx != 0; ulIdx--)
 	{
 	    pItem = (CQT_dref_Atom::ItemEntry*) pCurrentPos;
-
+	    
 	    if ((CQTAtom::GetI16(pItem->pType) == QT_ALIS_ABSPATH) ||
 		(CQTAtom::GetI16(pItem->pType) == QT_ALIS_END))
 	    {
 		bSuccess = (CQTAtom::GetI16(pItem->pType) == QT_ALIS_ABSPATH);
 		break;
 	    }
-
-	    pCurrentPos = pItem->pData +
+	    
+	    pCurrentPos = pItem->pData + 
 			  ((CQTAtom::GetI16(pItem->pSize) + 1) & ~1);
-
+	    
 	    bSuccess = (((ULONG32) (pCurrentPos - pData)) <= ulDataLength);
 	}
     }
-
+    
     if (bSuccess)
     {
 	// Strip off the absolute portions
@@ -1574,9 +1500,9 @@ HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
 /****************************************************************************
  *  FindRelPath
  */
-HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData,
-					    ULONG32 ulDataLength,
-					    UINT8* &pRelPath,
+HXBOOL CQT_DataReference_Manager::FindRelPath(UINT8* pData, 
+					    ULONG32 ulDataLength, 
+					    UINT8* &pRelPath, 
 					    ULONG32 &ulPathLength)
 {
     return FALSE;
@@ -1601,7 +1527,6 @@ CQT_TrackInfo_Manager::CQT_TrackInfo_Manager(void)
     , m_ulTrackSelectionMask(0)
     , m_ulAvgBitrate(0)
     , m_ulMaxBitrate(0)
-    , m_ulMaxRawBitrate(0)
     , m_ulBandwidth(0)
     , m_ulPreroll(0)
     , m_ulPredata(0)
@@ -1624,7 +1549,6 @@ CQT_TrackInfo_Manager::CQT_TrackInfo_Manager(void)
     , m_pNameAtom(NULL)
     , m_pSDPAtom(NULL)
     , m_pPayloadTypeAtom(NULL)
-    , m_ulAvgPacketSize(0)
 {
     ;
 }
@@ -1644,9 +1568,9 @@ HX_RESULT CQT_TrackInfo_Manager::Init(IUnknown* pContext,
 				      CQT_MovieInfo_Manager* pMovieInfo)
 {
     HX_RESULT retVal = HXR_OK;
-
+    
     Clear();
-
+    
     if (pAtom->GetType() != QT_trak)
     {
 	pAtom = NULL;
@@ -1674,7 +1598,7 @@ HX_RESULT CQT_TrackInfo_Manager::Init(IUnknown* pContext,
     {
 	CQT_tkhd_Atom* pTrackHeaderAtom = NULL;
 
-	pTrackHeaderAtom = (CQT_tkhd_Atom*)
+	pTrackHeaderAtom = (CQT_tkhd_Atom*) 
 			   pAtom->FindPresentChild(QT_tkhd);
 
 	if (pTrackHeaderAtom)
@@ -1721,11 +1645,11 @@ HX_RESULT CQT_TrackInfo_Manager::Init(IUnknown* pContext,
 	// Extract Track Selection Mask
 	if (pChildAtom)
 	{
-	    CQT_tsel_Atom* pTrackSelectionAtom =
+	    CQT_tsel_Atom* pTrackSelectionAtom = 
 		(CQT_tsel_Atom*) pChildAtom->FindPresentChild(QT_tsel);
 	    if (pTrackSelectionAtom)
 	    {
-		ULONG32 ulNumTrackSelAttr =
+		ULONG32 ulNumTrackSelAttr = 
 		    pTrackSelectionAtom->Get_NumEntries();
 
 		m_ulSwitchGroupId = pTrackSelectionAtom->Get_SwitchGroup();
@@ -1777,7 +1701,7 @@ HX_RESULT CQT_TrackInfo_Manager::Init(IUnknown* pContext,
             if (HXR_OK == retVal && m_pSDPAtom)
             {
                 retVal = CheckForcePacketization(m_pSDPAtom, pContext);
-            }
+            }				
 
 #ifdef _IGNORE_MP4_AUDIO
 	    if (pTrackManager->GetFType() == QT_FTYPE_MP4)
@@ -1827,14 +1751,14 @@ HX_RESULT CQT_TrackInfo_Manager::Init(IUnknown* pContext,
     {
 	retVal = HXR_FAIL;
     }
-
+   
     return retVal;
 }
 
 ULONG32 CQT_TrackInfo_Manager::GetNameLength(void)
 {
     ULONG32 ulSize = 0;
-
+    
     if (m_pNameAtom)
     {
 	ulSize = m_pNameAtom->GetDataSize();
@@ -1843,7 +1767,7 @@ ULONG32 CQT_TrackInfo_Manager::GetNameLength(void)
     {
 	ulSize = strlen(m_pName);
     }
-
+    
     return ulSize;
 }
 
@@ -1855,7 +1779,7 @@ const UINT8* CQT_TrackInfo_Manager::GetName(void)
 ULONG32 CQT_TrackInfo_Manager::GetSDPLength(void)
 {
     ULONG32 ulSize = 0;
-
+    
     if (m_pSDPAtom)
     {
 	ulSize = m_pSDPAtom->GetDataSize();
@@ -1864,7 +1788,7 @@ ULONG32 CQT_TrackInfo_Manager::GetSDPLength(void)
     {
 	ulSize = strlen(m_pSDP);
     }
-
+    
     return ulSize;
 }
 
@@ -1874,7 +1798,7 @@ const UINT8* CQT_TrackInfo_Manager::GetSDP(void)
 }
 
 ULONG32 CQT_TrackInfo_Manager::GetOpaqueDataLength(void)
-{
+{    
     return m_ulOpaqueDataSize;
 }
 
@@ -1936,7 +1860,6 @@ void CQT_TrackInfo_Manager::Clear(void)
     m_ulTrackHeight = 0;
     m_ulFrameWidth = 0;
     m_ulFrameHeight = 0;
-    m_ulAvgPacketSize = 0;
 
     m_ulTrackMatrixTransformX = m_ulTrackMatrixTransformY = 0;
     m_ulOpaqueDataSize = 0;
@@ -1996,9 +1919,9 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
     {
 	if (pSampleDescManager->GetNumEntries() == 1)
 	{
-	    CQT_stsd_Atom::ArrayEntry* pSampleDescEntry =
+	    CQT_stsd_Atom::ArrayEntry* pSampleDescEntry = 
 		pSampleDescManager->GetSampleDescEntry();
-	    ULONG32 ulSampleDescEntrySize =
+	    ULONG32 ulSampleDescEntrySize = 
 		CQTAtom::GetUL32(pSampleDescEntry->pSize);
 
 	    if (pTrackManager->GetFType() == QT_FTYPE_MP4)
@@ -2006,7 +1929,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		switch (pSampleDescManager->GetDataFormat())
 		{
 		case QT_mp4v:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::VideoMP4ArrayEntry))
 		    {
                         m_ulFrameWidth = CQTAtom::GetUI16((UINT8*)
@@ -2016,45 +1939,23 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
                            (((CQT_stsd_Atom::VideoMP4ArrayEntry*)
                            pSampleDescEntry)->pHeight));
 
-                UINT8* pExtnAtomsBuffer = ((UINT8*)(((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-                pSampleDescEntry)->pClutID)) + 2;
-
-                UINT32 ulExtnAtomsSize = ulSampleDescEntrySize -
-                (pExtnAtomsBuffer - ((UINT8*)pSampleDescEntry));
-
-                UINT32 ulSize = 0;
-                while(ulExtnAtomsSize >= ulSize + 8)
-                {
-					// 0x65736473 is the 'esds' atom type.
-					if (CQTAtom::GetUL32(pExtnAtomsBuffer + ulSize + 4) == 0x65736473)
-					{
-					   m_pOpaqueData = ((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-					   pSampleDescEntry)->pESDescriptor + ulSize;
-					   break;
-					}
-
-					// Getting next atom size and checking for infinite looping
-                   	UINT32 ulAtomSize = CQTAtom::GetUL32(pExtnAtomsBuffer + ulSize);
-                   	if ( ulAtomSize == 0 )
-						break;
-
-                   	ulSize += ulAtomSize;
-                }
+			m_pOpaqueData = ((CQT_stsd_Atom::VideoMP4ArrayEntry*) 
+			    pSampleDescEntry)->pESDescriptor;
 		    }
 		    break;
 		case QT_mp4a:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::AudioMP4ArrayEntry))
                     {
                         m_ulChannels = CQTAtom::GetUI16((UINT8*)
-                            (((CQT_stsd_Atom::AudioArrayEntry*)
+                            (((CQT_stsd_Atom::AudioArrayEntry*) 
 			    pSampleDescEntry)->pNumChannels));
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioMP4ArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioMP4ArrayEntry*) 
 			    pSampleDescEntry)->pESDescriptor;
 		    }
 		    break;
 		case QT_s263:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::VideoS263ArrayEntry))
 		    {
                         m_ulFrameWidth = CQTAtom::GetUI16((UINT8*)
@@ -2064,46 +1965,39 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
                            (((CQT_stsd_Atom::VideoS263ArrayEntry*)
                            pSampleDescEntry)->pHeight));
 
-			m_pOpaqueData = ((CQT_stsd_Atom::VideoS263ArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::VideoS263ArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
 		    }
 		    break;
 		case QT_avc1:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::VideoAVCArrayEntry))
 		    {
-                        m_ulFrameWidth = CQTAtom::GetUI16((UINT8*)
-                           (((CQT_stsd_Atom::VideoAVCArrayEntry*)
-                           pSampleDescEntry)->pWidth));
-                        m_ulFrameHeight = CQTAtom::GetUI16((UINT8*)
-                           (((CQT_stsd_Atom::VideoAVCArrayEntry*)
-                           pSampleDescEntry)->pHeight));
-			m_pOpaqueData = ((CQT_stsd_Atom::VideoAVCArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::VideoAVCArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
-			SkipToAvcC(m_pOpaqueData, ulSampleDescEntrySize);
 		    }
 		    break;
 		case QT_sqcp:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::AudioQCELPArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioQCELPArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioQCELPArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
 		    }
 		    break;
 		case QT_samr:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::AudioSAMRArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioSAMRArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioSAMRArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
 		    }
 		    break;
 		case QT_sawb:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::AudioSAWBArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioSAWBArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioSAWBArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
 		    }
 		    break;
@@ -2112,7 +2006,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		    m_ulNumSamplesInOpaqueData = 1;
 		    // /Use entire descEntry as opaque stream data; unpack it
 		    // in renderer:
-		    if (ulSampleDescEntrySize >=
+		    if (ulSampleDescEntrySize >= 
 			    sizeof(CQT_stsd_Atom::TextSampleEntry))
 		    {
 			CQT_stsd_Atom* pSampleDescAtom =
@@ -2128,10 +2022,10 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		    break;
 #endif	// QTCONFIG_TIMEDTEXT_PACKETIZER
 		case QT_alac:
-		    if (ulSampleDescEntrySize >
+		    if (ulSampleDescEntrySize > 
 			sizeof(CQT_stsd_Atom::AudioALACArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioALACArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioALACArrayEntry*) 
 			    pSampleDescEntry)->pDecoderSpecificInfo;
 		    }
 		    break;
@@ -2148,98 +2042,16 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		    if (ulSampleDescEntrySize >=
 			sizeof(CQT_stsd_Atom::VideoArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::VideoArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::VideoArrayEntry*) 
 			    pSampleDescEntry)->pVersion;
 		    }
-		    if (pSampleDescManager->GetDataFormat() == QT_mp4v)
-		    {
-		        if (ulSampleDescEntrySize > 
-		            sizeof(CQT_stsd_Atom::VideoMP4ArrayEntry))
-		        {
-		            m_ulFrameWidth = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-		                pSampleDescEntry)->pWidth));
-		            m_ulFrameHeight = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-		                pSampleDescEntry)->pHeight));
-
-		            m_pOpaqueData = ((CQT_stsd_Atom::VideoMP4ArrayEntry*) 
-		            pSampleDescEntry)->pESDescriptor;
-		        }
-		    }	
-		    else if (pSampleDescManager->GetDataFormat() == QT_SVQ1 || 
-				      pSampleDescManager->GetDataFormat() == QT_SVQ3 ||
-				      pSampleDescManager->GetDataFormat() == QT_dvcp)
-		    {
-		        //we currently don't have sorenson and dv codec, so these entries are just place fillers 
-		        //for now
-		        if (ulSampleDescEntrySize > 
-		            sizeof(CQT_stsd_Atom::VideoMP4ArrayEntry))
-		        {
-		            m_ulFrameWidth = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-		                pSampleDescEntry)->pWidth));
-		            m_ulFrameHeight = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::VideoMP4ArrayEntry*)
-		                pSampleDescEntry)->pHeight));
-
-		            m_pOpaqueData = ((CQT_stsd_Atom::VideoMP4ArrayEntry*) 
-		            pSampleDescEntry)->pESDescriptor;
-		        }
-		    }	
 		    break;
 		case QT_soun:
 		    if (ulSampleDescEntrySize >=
 			sizeof(CQT_stsd_Atom::AudioArrayEntry))
 		    {
-			m_pOpaqueData = ((CQT_stsd_Atom::AudioArrayEntry*)
+			m_pOpaqueData = ((CQT_stsd_Atom::AudioArrayEntry*) 
 			    pSampleDescEntry)->pVersion;
-		    }
-		    if (pSampleDescManager->GetDataFormat() == QT_mp4a)
-		    {
-		        UINT16 ulVersion = 0;
-		        UINT8* pVersion = ((CQT_stsd_Atom::AudioArrayEntry*) 
-			     pSampleDescEntry)->pVersion;
-		        if (pVersion)
-		        {
-		            UnpackUINT16BE(pVersion, 2, &ulVersion);
-		        }
-		        if (ulVersion == 0 && ulSampleDescEntrySize > sizeof(CQT_stsd_Atom::AudioMP4ArrayEntry))	
-		        {
-		            m_ulChannels = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::AudioArrayEntry*) 
-		                pSampleDescEntry)->pNumChannels));
-		            m_pOpaqueData = ((CQT_stsd_Atom::AudioMP4ArrayEntry*) 
-		                pSampleDescEntry)->pESDescriptor;		        	
-		        }
-		        else if (ulVersion == 1 && ulSampleDescEntrySize > sizeof(CQT_stsd_Atom::AudioQTMP4ArrayEntry))
-		        {
-		            m_ulChannels = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::AudioArrayEntry*) 
-		                pSampleDescEntry)->pNumChannels));
-		            m_pOpaqueData = ((CQT_stsd_Atom::AudioQTMP4ArrayEntry*) 
-		                pSampleDescEntry)->pESDescriptor;
-		        }
-		    }
-		    else if (pSampleDescManager->GetDataFormat() == QT_ms_U || 
-                      pSampleDescManager->GetDataFormat() == QT__mp3)
-		    {
-		        UINT16 ulVersion = 0;
-		        UINT8* pVersion = ((CQT_stsd_Atom::AudioArrayEntry*) 
-			     pSampleDescEntry)->pVersion;
-		        if (pVersion)
-		        {
-		            UnpackUINT16BE(pVersion, 2, &ulVersion);
-		        }
-			//we dont need to consider the pVersion for non-zero as of now;
-		        if (ulSampleDescEntrySize > sizeof(CQT_stsd_Atom::AudioMP4ArrayEntry))	
-		        {
-		            m_ulChannels = CQTAtom::GetUI16((UINT8*)
-		                (((CQT_stsd_Atom::AudioArrayEntry*) 
-		                pSampleDescEntry)->pNumChannels));
-		            m_pOpaqueData = ((CQT_stsd_Atom::AudioMP4ArrayEntry*) 
-		                pSampleDescEntry)->pESDescriptor;		        	
-		        }
 		    }
 		    break;
 		default:
@@ -2250,43 +2062,43 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 
 	    if (m_pOpaqueData)
 	    {
-		m_ulOpaqueDataSize = ulSampleDescEntrySize -
+		m_ulOpaqueDataSize = ulSampleDescEntrySize - 
 				     (m_pOpaqueData - ((UINT8*) pSampleDescEntry));
 
 #ifndef HELIX_FEATURE_3GPPCLIENT_ONLY
-		if ((pSampleDescManager->GetDataFormat() == QT_mp4v) ||
+		if ((pSampleDescManager->GetDataFormat() == QT_mp4v) || 
 		    (pSampleDescManager->GetDataFormat() == QT_mp4a))
 		{
 		    ES_Descriptor ESDesc;
 		    DecoderConfigDescriptor* pDCDesc = NULL;
 		    UINT8* pOpaqueData = m_pOpaqueData;
 		    ULONG32 ulOpaqueDataSize = m_ulOpaqueDataSize;
-
+		    
 		    retVal = ESDesc.Unpack(pOpaqueData, ulOpaqueDataSize);
-
+		    
 		    if (SUCCEEDED(retVal))
 		    {
 			retVal = HXR_FAIL;
 			pDCDesc = ESDesc.m_pDecConfigDescr;
-
+			
 			if (pDCDesc)
 			{
 			    m_ulAvgBitrate = pDCDesc->m_ulAvgBitrate;
-			    m_ulMaxRawBitrate = pDCDesc->m_ulMaxBitrate;
+			    m_ulMaxBitrate = pDCDesc->m_ulMaxBitrate;
 			    uProfileObjectIndication = pDCDesc->m_uObjectProfileIndication;
 			    uStreamType = pDCDesc->m_uStreamType;
 			    retVal = HXR_OK;
 			}
 		    }
-
+		    
 #ifdef _TINF_NO_MEDIA_SCALE_IQ
 		    if (SUCCEEDED(retVal) && pMovieInfo)
 		    {
 			// PacketVideo format records sample times in movie
 			// scale.  That format also has a flaw in ES_Descriptor
-			// that forces ES_Descriptor into the alternate
+			// that forces ES_Descriptor into the alternate 
 			// parsing mode which results in setting of the
-			// SIZE_HEADER_INCLUSIVE flag. Thus, the media time scale
+			// SIZE_HEADER_INCLUSIVE flag. Thus, the media time scale 
 			// is corrected based on this condition.
 			if (ESDesc.m_ulFlags &
 			    MP4BaseDescriptor::SIZE_HEADER_INCLUSIVE)
@@ -2296,61 +2108,14 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		    }
 #endif	// _TINF_NO_MEDIA_SCALE_IQ
 		}
-		else if (pTrackManager->GetFType() == QT_FTYPE_QT &&
-			   pSampleDescManager->GetDataFormat() == QT_avc1)
-		{
-		    if (ulSampleDescEntrySize > 
-			sizeof(CQT_stsd_Atom::VideoAVCArrayEntry))
-		    {
-		        m_pOpaqueData = ((CQT_stsd_Atom::VideoAVCArrayEntry*) 
-			    pSampleDescEntry)->pDecoderSpecificInfo;
-		    }			
-		    else 
-		    {
-		        retVal = HXR_FAIL;			
-		    }
-		}
-            else if (QT_twos == pSampleDescManager->GetDataFormat() || 
-			QT_sowt == pSampleDescManager->GetDataFormat() )
-            {
-                // Cycle through and combine these into one opaque blob for
-                // the stream header:
-                UINT32 ulNumEntries = pSampleDescManager->GetNumEntries();
-                CQT_stsd_Atom* pSampleDescAtom =
-                        pSampleDescManager->GetSampleDescriptionAtom();
-                if (pSampleDescAtom  &&  ulNumEntries)
-                {
-                    m_ulNumSamplesInOpaqueData = ulNumEntries;
-                    m_ulOpaqueDataSize = pSampleDescAtom->GetDataSize();
-                    m_pOpaqueData = pSampleDescAtom->GetData();
-                }
-            }
-            else if (pSampleDescManager->GetDataFormat() == QT_alaw ||
-                        pSampleDescManager->GetDataFormat() == QT_ulaw)
-            {
-                UINT32 ulNumEntries = pSampleDescManager->GetNumEntries();
-                UINT32 ulSampleSize = 0;
-                UINT32 ulSampleRate = 0;		
-                CQT_stsd_Atom* pSampleDescAtom =
-                        pSampleDescManager->GetSampleDescriptionAtom();
-                m_ulChannels = CQTAtom::GetUI16((UINT8*)
-                        (((CQT_stsd_Atom::AudioArrayEntry*) 
-                        pSampleDescEntry)->pNumChannels));
-                ulSampleSize = CQTAtom::GetUI16((UINT8*)
-                        (((CQT_stsd_Atom::AudioArrayEntry*) 
-                        pSampleDescEntry)->pSampleSize));
-                ulSampleRate = CQTAtom::GetUI16((UINT8*)
-                        (((CQT_stsd_Atom::AudioArrayEntry*) 
-                        pSampleDescEntry)->pSampleRate)) ;
-                m_ulAvgBitrate = m_ulChannels * ulSampleRate * ulSampleSize; 
-                if (pSampleDescAtom  &&  ulNumEntries)
-                {
-                    m_ulNumSamplesInOpaqueData = ulNumEntries;
-                    m_ulOpaqueDataSize = pSampleDescAtom->GetDataSize();
-                    m_pOpaqueData = pSampleDescAtom->GetData();
-                }	        	
-            }	
 #endif	// HELIX_FEATURE_3GPPCLIENT_ONLY
+	    }
+	    else
+	    {
+		if (retVal == HXR_OK)
+		{
+		    retVal = HXR_FAIL;
+		}
 	    }
 	}
 #ifdef QTCONFIG_TIMEDTEXT_PACKETIZER
@@ -2384,7 +2149,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 	{
 	    pMediaName = "X-RN-QT-RAWAU";
 	}
-
+	
 	switch (m_TrackType)
 	{
 	case QT_vide:
@@ -2396,22 +2161,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		pMediaName = "X-RN-MP4";
 		break;
 	    case QT_s263:
-	    case QT_h263:		
 		pMediaName = "X-RN-3GPP-H263";
-		break;
-	    case QT_MJPG:		
-	    case QT_jpeg:
-		pMediaName = "x-pn-jpeg-plugin";			
-		break;	
-	    case QT_SVQ1:			
-	    case QT_SVQ3:	
-		pMediaName = "X-HX-sorenson";	
-		break;
-	    case QT_mpg1:			
-		pMediaName = "vnd.rn-mpv";
-		break;
-	    case QT_dvcp:		
-		pMediaName = "X-HX-dvcp";
 		break;
 	    case QT_avc1:
 		pMediaName = "X-HX-AVC1";
@@ -2421,7 +2171,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		break;
 	    }
 	    break;
-
+	    
 	    case QT_soun:
 		pMediaType = "audio";
 		switch (pSampleDescManager->GetDataFormat())
@@ -2429,7 +2179,7 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 #ifndef HELIX_FEATURE_3GPPCLIENT_ONLY
 		case QT_mp4v:
 		case QT_mp4a:
-		    if ((uProfileObjectIndication == MP4OBJ_VISUAL_ISO_IEC_11172_3) || (uProfileObjectIndication == MP4OBJ_AUDIO_ISO_IEC_13818_3) &&
+		    if ((uProfileObjectIndication == MP4OBJ_VISUAL_ISO_IEC_11172_3) &&
 			(uStreamType == MP4STRM_AUDIO))
 		    {
 			pMediaName = "MPEG-ELEMENTARY";
@@ -2439,10 +2189,6 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		    }
 		    break;
 #endif	// HELIX_FEATURE_3GPPCLIENT_ONLY
-		case QT_ms_U:
-		case QT__mp3:
-		    pMediaName = "MPEG-ELEMENTARY";
-		    break;
 		case QT_samr:
 		    pMediaName = "X-RN-3GPP-AMR";
 		    break;
@@ -2455,36 +2201,24 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		case QT_sawb:
 		    pMediaName = "X-RN-3GPP-AMR-WB";
 		    break;
-		case QT_twos:
-		    pMediaName = "X-HX-TWOS";
-		    break;			
-		case QT_sowt:
-		    pMediaName = "X-HX-SOWT";
-		    break;
-		case QT_alaw:			
-		    pMediaName = "PCMA";
-		    break;
-		case QT_ulaw:			
-		    pMediaName = "PCMU";
-		    break;
 		default:
 		    // nothing to do
 		    break;
 		}
 		break;
-
+		
 #ifdef QTCONFIG_TIMEDTEXT_PACKETIZER
 		case QT_text:
 		    pMediaType = "video";
 		    pMediaName = "X-RN-3GPP-TEXT";
 		    break;
 #endif	// QTCONFIG_TIMEDTEXT_PACKETIZER
-
+		    
 		default:
 		    pMediaType = "application";
 		    break;
 	}
-
+	
 	m_ulPayloadType = RTP_PAYLOAD_DYNAMIC;
 
 #ifdef QTCONFIG_SERVER
@@ -2510,25 +2244,25 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 		m_ulPayloadType += ulActiveStreams;
 	    }
 	}
-
+	    
 
 	HX_VECTOR_DELETE(m_pSDP);
 	m_pSDP = new char [TRACK_SDP_CHUNK_SIZE];
 	retVal = HXR_OUTOFMEMORY;
-
+	
 	if (m_pSDP)
 	{
 	    char* pWriter;
 	    char* pWriterEnd = m_pSDP + TRACK_SDP_CHUNK_SIZE;
 	    retVal = HXR_OK;
-
+	    
 	    pWriter = m_pSDP;
-
+	    
 	    pWriter += SafeSprintf(pWriter, pWriterEnd - pWriter,
-				   "m=%s 0 RTP/AVP %d\r\n",
-				   pMediaType,
+				   "m=%s 0 RTP/AVP %d\r\n", 
+				   pMediaType, 
 				   m_ulPayloadType);
-
+	    
 	    pWriter += SafeSprintf(pWriter, pWriterEnd - pWriter,
 				   "a=rtpmap:%d %s/%d\r\n",
 				   m_ulPayloadType,
@@ -2540,16 +2274,6 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
 #endif	// QTCONFIG_SERVER
     }
 
-    switch (pSampleDescManager->GetDataFormat())
-    {
-        case QT_alaw:
-            m_ulPayloadType = 8;
-            break;
-        case QT_ulaw:
-            m_ulPayloadType = 0;			
-            break;
-    }
-	
     if ((retVal == HXR_OK) && pAtom)
     {
 	HX_ASSERT(pMediaType);
@@ -2574,30 +2298,6 @@ HX_RESULT CQT_TrackInfo_Manager::InitNonHinted(CQTAtom* pAtom,
     return retVal;
 }
 
-HX_RESULT CQT_TrackInfo_Manager::SkipToAvcC(UINT8*& pData, ULONG32 ulSize)
-{
-    HX_RESULT retVal = HXR_INVALID_PARAMETER;
-
-    while ( (ulSize >= 8) && (retVal != HXR_OK) )
-    {	
-	ULONG32 m_ulSize = CQTAtom::GetUL32(pData);
-	if ((m_ulSize >= 8) &&
-	    (ulSize >= m_ulSize) &&
-	    (*(pData + 4) == 'a') &&
-	    (*(pData + 5) == 'v') &&
-	    (*(pData + 6) == 'c') &&
-	    (*(pData + 7) == 'C'))
-	{
-	    retVal = HXR_OK;
-	} 
-	else 
-	{
-	    pData += m_ulSize;
-	    ulSize -= m_ulSize;
-	}
-    }
-    return retVal;
-}
 /****************************************************************************
  *  Movie Info Manager
  */
@@ -2609,7 +2309,7 @@ CQT_MovieInfo_Manager::CQT_MovieInfo_Manager(void)
     , m_ulMovieDuration(0)
     , m_pNameAtom(NULL)
 
-#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
     , m_pTitlAtom(NULL)
     , m_pAuthAtom(NULL)
     , m_pCprtAtom(NULL)
@@ -2621,13 +2321,10 @@ CQT_MovieInfo_Manager::CQT_MovieInfo_Manager(void)
     , m_pClsfAtom(NULL)
     , m_pKywdAtom(NULL)
     , m_pLociAtom(NULL)
-    , m_pAlbmAtom(NULL)
-    , m_pYrrcAtom(NULL)
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
-
+	
     , m_pRTPSDPAtom(NULL)
-    , m_pRefURL(NULL)
 {
     ;
 }
@@ -2641,7 +2338,7 @@ void CQT_MovieInfo_Manager::Clear()
 {
     HX_RELEASE(m_pNameAtom);
 
-#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
     HX_RELEASE(m_pTitlAtom);
     HX_RELEASE(m_pAuthAtom);
     HX_RELEASE(m_pCprtAtom);
@@ -2653,18 +2350,16 @@ void CQT_MovieInfo_Manager::Clear()
     HX_RELEASE(m_pClsfAtom);
     HX_RELEASE(m_pKywdAtom);
     HX_RELEASE(m_pLociAtom);
-    HX_RELEASE(m_pAlbmAtom);
-    HX_RELEASE(m_pYrrcAtom);
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
-    HX_VECTOR_DELETE(m_pRefURL);
+ 
     HX_RELEASE(m_pRTPSDPAtom);
 }
 
 /****************************************************************************
  *  Main Interface
  */
-HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
+HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom, 
 				      CQTTrackManager* pTrackManager)
 {
     HX_RESULT retVal;
@@ -2673,7 +2368,7 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
     m_ulMovieDuration = 0;
     HX_RELEASE(m_pNameAtom);
 
-#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
     HX_RELEASE(m_pTitlAtom);
     HX_RELEASE(m_pAuthAtom);
     HX_RELEASE(m_pCprtAtom);
@@ -2685,11 +2380,9 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
     HX_RELEASE(m_pClsfAtom);
     HX_RELEASE(m_pKywdAtom);
     HX_RELEASE(m_pLociAtom);
-    HX_RELEASE(m_pAlbmAtom);
-    HX_RELEASE(m_pYrrcAtom);
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
-
+    
     HX_RELEASE(m_pRTPSDPAtom);
 
     if (pAtom && (pAtom->GetType() != QT_moov))
@@ -2701,52 +2394,14 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
     {
 	CQT_mvhd_Atom *pMovieHeaderAtom = NULL;
 
-	pMovieHeaderAtom = (CQT_mvhd_Atom*)
+	pMovieHeaderAtom = (CQT_mvhd_Atom*) 
 			   pAtom->FindPresentChild(QT_mvhd);
 
-	CQT_rmra_Atom *pRmraHeaderAtom = NULL;
-	pRmraHeaderAtom = (CQT_rmra_Atom*)
-			   pAtom->FindPresentChild(QT_rmra);
 	if (pMovieHeaderAtom)
 	{
 	    m_ulMovieTimeScale = pMovieHeaderAtom->Get_TimeScale();
 	    m_ulMovieDuration = pMovieHeaderAtom->Get_Duration();
 	}
-	else if(pRmraHeaderAtom)
-	{
-            HX_RESULT retVal = HXR_FAIL;
-            CQT_rmda_Atom *pRmdaAtom = NULL;
-            pRmdaAtom =	(CQT_rmda_Atom*)pRmraHeaderAtom->FindPresentChild(QT_rmda);
-            if(pRmdaAtom)
-            {
-                CQT_rdrf_Atom *pRdrfAtom = NULL;
-                pRdrfAtom =	(CQT_rdrf_Atom*)pRmdaAtom->FindPresentChild(QT_rdrf);
-                if(pRdrfAtom)
-                {
-                    UINT8* data = pRdrfAtom->GetData();
-                    // Skipping Past Flags
-                    data += 4;
-                    ULONG32 RefType = CQTAtom::GetUL32(data);
-                    //For now we are supporting only Data Reference type 'url '
-                    if(RefType == QT_url)
-                    {
-                        retVal = HXR_OK;
-                        // Skip to Data Reference Size
-                        data += 4;
-                        ULONG32 Refurlsize = CQTAtom::GetUL32(data);
-                        // Skip to Reference URL
-                        data += 4;
-                        m_pRefURL = new char[Refurlsize+1];
-                        if(m_pRefURL)
-                        {
-                            memcpy(m_pRefURL,(const char *)data,Refurlsize);
-                            m_pRefURL[Refurlsize] = '\0';
-                        }
-                    }
-                }
-            }
-            return retVal;
-        }
 	else
 	{
 	    pAtom = NULL;
@@ -2766,7 +2421,7 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
 	    m_pNameAtom->AddRef();
 	}
 
-#if defined(HELIX_FEATURE_3GPP_METAINFO) || defined(HELIX_FEATURE_SERVER)
+#if (defined HELIX_FEATURE_3GPP_METAINFO || defined HELIX_FEATURE_SERVER)
         m_pTitlAtom = (CQT_titl_Atom*) pAtom->FindPresentChild(QT_titl);
         if (m_pTitlAtom)
         {
@@ -2827,18 +2482,6 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
         {
             m_pLociAtom->AddRef();
         }
-
-        m_pAlbmAtom = (CQT_albm_Atom*) pAtom->FindPresentChild(QT_albm);
-        if (m_pAlbmAtom)
-        {
-            m_pAlbmAtom->AddRef();
-        }
-
-        m_pYrrcAtom = (CQT_yrrc_Atom*) pAtom->FindPresentChild(QT_yrrc);
-        if (m_pYrrcAtom)
-        {
-            m_pYrrcAtom->AddRef();
-        }
 #endif // HELIX_FEATURE_3GPP_METAINFO
 #endif // HELIX_FEATURE_3GPP_METAINFO || HELIX_FEATURE_SERVER
 
@@ -2846,104 +2489,8 @@ HX_RESULT CQT_MovieInfo_Manager::Init(CQTAtom* pAtom,
     }
 
     ParseMovieHintInfo(pAtom);
-
+    
     retVal = m_ulMovieTimeScale ? HXR_OK : HXR_FAIL;
-
+   
     return retVal;
 }
-
-#ifdef HELIX_FEATURE_3GPP_METAINFO
-static void MergeLanguageEncoding(HXBOOL& bFound, HXBOOL& bAmbiguous, char lang[4], char out[3])
-{
-    if(!bAmbiguous)
-    {
-        CHXISO639LangCodeRegistry lcreg;
-        if(bFound)
-        {
-            if((lang[0] != out[0]) || (lang[1] != out[1]) || (lang[2] != out[2]))
-            {
-                bAmbiguous = TRUE;
-            }
-        }
-        else if(lcreg.IsValidLangCode(lang))
-        {
-            bFound = TRUE;
-            out[0] = lang[0];
-            out[1] = lang[1];
-            out[2] = lang[2];
-        }
-    }
-}
-
-HXBOOL CQT_MovieInfo_Manager::GetGlobalLanguageEncoding(char out[3])
-{
-    HXBOOL bFound = FALSE;
-    HXBOOL bAmbiguous = FALSE;
-    char lang[4] = { 0, 0, 0, 0 }; //keep 0-terminated
-
-    if(m_pTitlAtom)
-    {
-        m_pTitlAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pAuthAtom)
-    {
-        m_pAuthAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pCprtAtom)
-    {
-        m_pCprtAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pDscpAtom)
-    {
-        m_pDscpAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pPerfAtom)
-    {
-        m_pPerfAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pGnreAtom)
-    {
-        m_pGnreAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pRtngAtom)
-    {
-        m_pRtngAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pClsfAtom)
-    {
-        m_pClsfAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pKywdAtom)
-    {
-        m_pKywdAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pLociAtom)
-    {
-        m_pLociAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-    if(m_pAlbmAtom)
-    {
-        m_pAlbmAtom->GetLanguageEncoding(lang);
-        MergeLanguageEncoding(bFound, bAmbiguous, lang, out);
-    }
-
-    // undetermined?
-    if(bAmbiguous || !bFound)
-    {
-        out[0] = 'u';
-        out[1] = 'n';
-        out[2] = 'd';
-    }
-    return bFound;
-}
-#endif // HELIX_FEATURE_3GPP_METAINFO

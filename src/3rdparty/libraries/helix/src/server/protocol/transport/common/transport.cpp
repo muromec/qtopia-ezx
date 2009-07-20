@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: transport.cpp,v 1.11 2007/10/15 04:35:34 vijendrakumara Exp $
+ * Source last modified: $Id: transport.cpp,v 1.5 2007/03/30 19:08:39 tknox Exp $
  * 
  * Portions Copyright (c) 1995-2007 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -310,7 +310,6 @@ TransportStreamHandler::getResendBuffer(UINT16 streamNumber)
 Transport::Transport()
     : m_bHackedRecordFlag(FALSE)
     , m_pSessionStats(NULL)
-    , m_pClipStats(NULL)
     , m_pPlayerState(NULL)
     , m_pContext(NULL)
     , m_pCommonClassFactory(0)
@@ -355,15 +354,13 @@ Transport::Transport()
 #endif 
     , m_bIsAggregate(FALSE)
     , m_ulRefCount(0UL)
-    , m_eTransType(RTSP_TR_NONE)
 {
     m_ulStartTime = HX_GET_TICKCOUNT();
 }
 
 Transport::~Transport()
 {
-    DecrProtocolCount();
-	HX_RELEASE(m_pCommonClassFactory);
+    HX_RELEASE(m_pCommonClassFactory);
     HX_RELEASE(m_pScheduler);
     HX_RELEASE(m_pResp);
     HX_RELEASE(m_pRegistry);
@@ -379,7 +376,6 @@ Transport::~Transport()
     HX_RELEASE(m_pPacketFilter);
     HX_RELEASE(m_pContext);
     HX_RELEASE(m_pSessionStats);
-    HX_RELEASE(m_pClipStats);
 
     destroyABDPktInfo();
 
@@ -388,84 +384,6 @@ Transport::~Transport()
         delete (*i);
     }
 }
-
-HX_RESULT
-Transport::IncrProtocolCount()
-{
-    HX_RESULT hresult;
-    ServerInfoCounters protType;
-    IHXServerInfo* pServerInfo;
-    if (!m_pContext) return HXR_FAIL;
-    m_eTransType = tag();
-    GetProtocolType(&protType); 
-    hresult = m_pContext->QueryInterface(IID_IHXServerInfo, (void**)&pServerInfo);
-    if (SUCCEEDED(hresult) && pServerInfo)
-    {
-        if (protType != -1)
-        {
-            pServerInfo->IncrementServerInfoCounter(protType);
-        }
-        HX_RELEASE(pServerInfo);
-    }
-
-    return hresult;
-}
-
-HX_RESULT
-Transport::DecrProtocolCount()
-{
-    HX_RESULT hresult;
-    ServerInfoCounters protType;
-    IHXServerInfo* pServerInfo;
-    if (!m_pContext) return HXR_FAIL;
-    GetProtocolType(&protType); 
-    hresult = m_pContext->QueryInterface(IID_IHXServerInfo, (void**)&pServerInfo);
-    if (SUCCEEDED(hresult) && pServerInfo)
-    {
-        if (protType != -1)
-        {
-            pServerInfo->DecrementServerInfoCounter(protType);
-        }
-        HX_RELEASE(pServerInfo);
-    }
-    return hresult;
-}
-
-HX_RESULT
-Transport::GetProtocolType(ServerInfoCounters *protType)
-{
-    switch (m_eTransType)
-    {
-        case RTSP_TR_RDT_MCAST:
-        case RTSP_TR_TNG_MCAST:
-        case RTSP_TR_RTP_MCAST:
-        case RTSP_TR_BCNG_MCAST:
-               *protType = SIC_MULTICASTTRANSPORT_COUNT;
-               break;
-        case RTSP_TR_RDT_UDP:
-        case RTSP_TR_TNG_UDP:
-        case RTSP_TR_RTP_UDP:
-        case RTSP_TR_BCNG_UDP:
-                *protType = SIC_UDPTRANSPORT_COUNT;
-                break;
-        case RTSP_TR_RDT_TCP:
-        case RTSP_TR_TNG_TCP:
-        case RTSP_TR_RTP_TCP:
-        case RTSP_TR_RTCP:
-        case RTSP_TR_BCNG_TCP:
-                *protType = SIC_TCPTRANSPORT_COUNT;
-                break;
-        case RTSP_TR_NONE:
-        case RTSP_TR_NULLSET:
-               *protType = (ServerInfoCounters)-1;
-                break;
-        default:
-                *protType = (ServerInfoCounters)-1;
-                HX_ASSERT(0); // we missed a case
-    }
-    return HXR_OK;
-}
-
 
 STDMETHODIMP
 Transport::QueryInterface(REFIID riid, void** ppvObj)
@@ -526,7 +444,7 @@ Transport::addStreamInfo(RTSPStreamInfo* pStreamInfo, UINT32 ulBufferDepth)
             {
                 return;
             }
-            m_pStreamHandler->AddRef();
+	    m_pStreamHandler->AddRef();
 	}
 
 	CHXTimestampConverter*  pTSConverter = NULL;
@@ -579,29 +497,17 @@ void
 Transport::setFirstTimeStamp(UINT16 uStreamNumber, UINT32 ulTS, 
                                  HXBOOL bIsRaw)
 {
-    RTSPStreamData* pStreamData = NULL;
-    if (m_pStreamHandler)
-    {
-        pStreamData = m_pStreamHandler->getStreamData(uStreamNumber);
-    }
+    RTSPStreamData* pStreamData = 
+	m_pStreamHandler->getStreamData(uStreamNumber);
 
     if (pStreamData)
     {
-        if (pStreamData->m_pTSConverter)
-        {
-            if (bIsRaw)
-            {
-                //RTP Time
-                pStreamData->m_pTSConverter->setRTPAnchor(ulTS);
-            }
-            else
-            {
-                //HXA Time
-                pStreamData->m_pTSConverter->setHXAnchor(ulTS);
-            }
-        }
-
-        HX_DELETE(pStreamData->m_pTSOrderHack);
+	if (pStreamData->m_pTSConverter)
+	{
+	    pStreamData->m_pTSConverter->setHXAnchor(ulTS);
+	}
+	    	    
+	HX_DELETE(pStreamData->m_pTSOrderHack);
     }
 }
 
@@ -1346,26 +1252,4 @@ Transport::AddStreamNumber (UINT16 uStreamNumber)
     *pStreamNumber = uStreamNumber;
     m_StreamNumbers.AddTail(pStreamNumber);
 }
-
-void 
-Transport::SetSessionStatsObj(IHXSessionStats* pSessionStats)
-{ 
-    if (m_pSessionStats && pSessionStats == m_pSessionStats)
-	return;
-
-    HX_RELEASE(m_pSessionStats); 
-    m_pSessionStats = pSessionStats; 
-    m_pSessionStats->AddRef(); 
-
-    IHXSessionStats3* pSessionStats3 = NULL;
-    m_pSessionStats->QueryInterface(IID_IHXSessionStats3, (void**)&pSessionStats3);
-    
-    if(pSessionStats3)
-    {
-	HX_RELEASE(m_pClipStats);
-        m_pClipStats = pSessionStats3->GetClip();
-    }
-    HX_RELEASE(pSessionStats3);
-}
-
 

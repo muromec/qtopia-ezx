@@ -3,9 +3,6 @@
 
 class PacketFlowManager;
 
-#include "hxqossess.h"          // IHXQoSRateManager
-#include "hxpcktflwctrl.h"      // IHXPacketFlowControl
-
 class CCBRRateMgr : public IHXQoSRateManager,
                     public IHXPacketFlowControl
 {

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httpprot.cpp,v 1.58 2009/05/11 19:36:06 svaidhya Exp $
+ * Source last modified: $Id: httpprot.cpp,v 1.43 2006/11/23 13:44:06 srao Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -71,7 +71,6 @@
 #include "base_errmsg.h"
 #include "http.h"
 #include "http_demux.h"
-
 #include "httpprot.h"
 #include "httppars.h"
 #include "servhttpmsg.h"
@@ -81,15 +80,13 @@
 
 #include "hxclientprofile.h"
 #include "client_profile_mgr.h"
-#include "server_context.h"
 
 const int MAX_HTTP_MSG = 32768;
 
 // static defines
 
 HTTPProtocol::HTTPProtocol(void)
-    : HTTPBaseProtocol()
-    , m_nRefCount(0)
+    : m_nRefCount(0)
     , m_pDemux(NULL)
     , m_pPendingBuf(NULL)
     , m_pHTTP(NULL)
@@ -122,14 +119,27 @@ HTTPProtocol::~HTTPProtocol(void)
 STDMETHODIMP
 HTTPProtocol::QueryInterface(REFIID riid, void** ppvObj)
 {
-    if (IsEqualIID(riid, IID_IHXClientProfileManagerResponse))
+    if (IsEqualIID(riid, IID_IUnknown))
+    {
+        AddRef();
+        *ppvObj = (IUnknown*)(IHXHTTPDemuxResponse*)this;
+        return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXHTTPDemuxResponse))
+    {
+        AddRef();
+        *ppvObj = (IHXHTTPDemuxResponse*)this;
+        return HXR_OK;
+    }
+    else if (IsEqualIID(riid, IID_IHXClientProfileManagerResponse))
     {
         AddRef();
         *ppvObj = (IHXClientProfileManagerResponse*)this;
         return HXR_OK;
     }
 
-    return HTTPBaseProtocol::QueryInterface(riid, ppvObj);
+    *ppvObj = NULL;
+    return HXR_NOINTERFACE;
 }
 
 STDMETHODIMP_(UINT32)
@@ -182,13 +192,8 @@ HTTPProtocol::OnDispatch(void)
 
     m_pHTTP = new HTTP(pSock, this, pClient);
 
-    mime_type_dict = pClient->m_pProc->pc->mime_type_dict;
+    mime_type_dict = pClient->proc->pc->mime_type_dict;
 
-    //This has to be done only if client is NOT Proxy because if Proxy, pClient->m_pStats are
-    //not even created at this point and it doesn't make sense to call pClient->InitStats.
-    //For Proxy this is done in HttpBaseProtocol::init_stats.  
-    if (!pClient->m_bIsAProxy)
-    {
     IHXSockAddr* pLocalAddr = NULL;
     IHXSockAddr* pPeerAddr = NULL;
 
@@ -207,27 +212,20 @@ HTTPProtocol::OnDispatch(void)
 	pSock = NULL;
 	return;
     }
-    pClient->InitStats(pLocalAddr, pPeerAddr, FALSE);
+    pClient->init_stats(pLocalAddr, pPeerAddr, FALSE);
 
     HX_RELEASE(pPeerAddr);
     HX_RELEASE(pLocalAddr);
-    }   
 
-    m_pbwcBandwidthReporter = new BWCalculator(pClient->m_pProc, FALSE);
+    m_pbwcBandwidthReporter = new BWCalculator(pClient->proc, FALSE);
     m_pbwcBandwidthReporter->AddRef();
     m_pbwcBandwidthReporter->CommitPendingBandwidth();
 
-    IHXServerInfo* pServerInfo;
-    HX_RESULT hresult = pClient->m_pProc->pc->server_context->QueryInterface(IID_IHXServerInfo, (void**)&pServerInfo);
-    if (SUCCEEDED(hresult) && pServerInfo)
-    {
-        pServerInfo->IncrementServerInfoCounter(SIC_TCPTRANSPORT_COUNT);
-        HX_RELEASE(pServerInfo);
-    }
+    pClient->proc->pc->server_info->IncrementTCPTransportCount(pClient->proc);
     m_bNeedCountDecrement = TRUE;
 
     DPRINTF(0x04000000, ("%6.1lu: 2. HTTPProt for client(%p)\n",
-            pClient->m_ulConnId, pClient));
+            pClient->conn_id, pClient));
 
     HX_RELEASE(pSock);
     /*
@@ -321,24 +319,18 @@ HTTPProtocol::OnClosed(void)
         // ShutdownCallback::Func().
         if (m_bNeedCountDecrement)
         {
-            IHXServerInfo* pServerInfo;
-            HX_RESULT hresult = pClient->m_pProc->pc->server_context->QueryInterface(IID_IHXServerInfo, (void**)&pServerInfo);
-            if (SUCCEEDED(hresult) && pServerInfo)
-            {
-                pServerInfo->DecrementServerInfoCounter(SIC_TCPTRANSPORT_COUNT);
-                HX_RELEASE(pServerInfo);
-            }
+            pClient->proc->pc->server_info->DecrementTCPTransportCount(pClient->proc);
             m_bNeedCountDecrement = FALSE;
         }
         
-        if (pClient->m_bIsAProxy && pClient->m_pStats)
+        if (pClient->m_bIsAProxy)
         {
-            pClient->m_pProc->pc->client_stats_manager->RemoveClient(
-                        pClient->m_pStats->GetID(), pClient->m_pProc);
+            pClient->proc->pc->client_stats_manager->RemoveClient(
+                        pClient->m_pStats->GetID(), pClient->proc);
         }
 
         ShutdownCallback* pSCb = new ShutdownCallback(this);
-        pClient->m_pProc->pc->engine->schedule.enter(0.0, pSCb);
+        pClient->proc->pc->engine->schedule.enter(0.0, pSCb);
     }
 }
 
@@ -358,7 +350,7 @@ HTTPProtocol::PSSProfileReady(HX_RESULT ulStatus, IHXClientProfile* pInfo,
 
     HX_RESULT rc = HXR_OK;
 
-    HX_ASSERT(pClient && pClient->GetClientStats());
+    HX_ASSERT(pClient && pClient->get_client_stats());
     HX_ASSERT(m_pRequest);
 
     if (!pRequestURI || !pRequestHeaders)
@@ -367,7 +359,7 @@ HTTPProtocol::PSSProfileReady(HX_RESULT ulStatus, IHXClientProfile* pInfo,
     }
 
     UINT16 uProfileWarning;
-    IHXSessionStats* pStats = pClient->GetClientStats()->GetSession(1);
+    IHXSessionStats* pStats = pClient->get_client_stats()->GetSession(1);
 
     if (SUCCEEDED(ulStatus))
     {
@@ -388,14 +380,14 @@ HTTPProtocol::PSSProfileReady(HX_RESULT ulStatus, IHXClientProfile* pInfo,
             uProfileWarning = 200;
             if (ulStatus == HXR_PARSE_ERROR)
             {
-                ERRMSG(pClient->m_pProc->pc->error_handler,
-                "Error parsing profile for client (%d)\n", pClient->m_ulConnId);
+                ERRMSG(pClient->proc->pc->error_handler,
+                "Error parsing profile for client (%d)\n", pClient->conn_id);
             }
             else
             {
-                ERRMSG(pClient->m_pProc->pc->error_handler,
+                ERRMSG(pClient->proc->pc->error_handler,
                 "Error retrieving profile for client (%d)\n",
-                 pClient->m_ulConnId);
+                 pClient->conn_id);
             }
         }
     }
@@ -464,10 +456,6 @@ HTTPProtocol::statComplete(HX_RESULT status,
     {
         pMsg = makeResponseMessage("401");
         nStatus = 401;
-	/* mark this response type, 
-	   socket will be closed after sending this response
-	*/
-	m_pDemux->SetHTTPResponseCode(401);
     }
     else
     {
@@ -475,7 +463,7 @@ HTTPProtocol::statComplete(HX_RESULT status,
         nStatus = 200;
     }
 
-    IHXSessionStats* pSessionStats = pClient->GetClientStats()->
+    IHXSessionStats* pSessionStats = pClient->get_client_stats()->
                                      GetSession(1);
 
     UTCTimeRep timeNow;
@@ -515,7 +503,7 @@ HTTPProtocol::statComplete(HX_RESULT status,
                 else if (strcasecmp(pName, "Content-Type") == 0)
                 {
                     m_bContentTypeFound = TRUE;
-                    if (pClient->UseRegistryForStats())
+                    if (pClient->use_registry_for_stats())
                     {
                         SetMimeTypeInRegistry((const char*)pValue->GetBuffer());
                     }
@@ -547,7 +535,7 @@ HTTPProtocol::statComplete(HX_RESULT status,
         {
             DPRINTF(D_INFO, ("Content-Type: %s\n", pMimeType));
             pMsg->addHeader("Content-Type", pMimeType);
-            if (pClient->UseRegistryForStats())
+            if (pClient->use_registry_for_stats())
             {
                 SetMimeTypeInRegistry(pMimeType);
             }
@@ -563,11 +551,11 @@ HTTPProtocol::statComplete(HX_RESULT status,
         sprintf(lenStr, "%ld", ulSize);
         pMsg->addHeader("Content-Length", lenStr);
 
-        if (pClient->UseRegistryForStats())
+        if (pClient->use_registry_for_stats())
         {
             char str[512];
             sprintf(str, "%s.FileSize", m_pRegistryKey);
-            pClient->m_pProc->pc->registry->AddInt(str, ulSize, pClient->m_pProc);
+            pClient->proc->pc->registry->AddInt(str, ulSize, pClient->proc);
         }
 
         pSessionStats->SetFileSize(ulSize);
@@ -734,7 +722,7 @@ HTTPProtocol::sendResponse(HTTPResponseMessage* pMsg)
         if (m_pDemux)
         {
             DPRINTF(D_INFO, ("%lu: failed to send HTTP response message\n",
-                             m_pDemux->GetClient()->m_ulConnId));
+                             m_pDemux->GetClient()->conn_id));
         }
     }
     else
@@ -761,16 +749,16 @@ HTTPProtocol::Shutdown(HX_RESULT status)
         {
             if (m_bNeedCountDecrement)
             {
-                IHXServerInfo* pServerInfo;
-                HX_RESULT hresult = pClient->m_pProc->pc->server_context->QueryInterface(IID_IHXServerInfo, (void**)&pServerInfo);
-                if (SUCCEEDED(hresult) && pServerInfo)
-                {
-                    pServerInfo->DecrementServerInfoCounter(SIC_TCPTRANSPORT_COUNT);
-                    HX_RELEASE(pServerInfo);
-                }
+                pClient->proc->pc->server_info->DecrementTCPTransportCount(pClient->proc);
                 m_bNeedCountDecrement = FALSE;
             }
             pClient->OnClosed(status);
+        
+            if (pClient->m_bIsAProxy)
+            {
+                pClient->proc->pc->client_stats_manager->RemoveClient(
+                             pClient->m_pStats->GetID(), pClient->proc);
+            }
         }
 
         m_pDemux->Close(status);
@@ -789,8 +777,8 @@ HTTPProtocol::Shutdown(HX_RESULT status)
 #endif
         if (pClient->m_bIsAProxy)
         {
-            pClient->m_pProc->pc->client_stats_manager->RemoveClient(
-                        pClient->m_pStats->GetID(), pClient->m_pProc);
+            pClient->proc->pc->client_stats_manager->RemoveClient(
+                        pClient->m_pStats->GetID(), pClient->proc);
         }
         pClient->Release();
         pClient = NULL;
@@ -822,18 +810,14 @@ HTTPProtocol::SetStatus(UINT32 nStatus)
 {
     Client* pClient = m_pDemux->GetClient();
 
-    //socket closure can cause releasing of client object so check before access
-    if (pClient)
+    if (pClient && pClient->use_registry_for_stats())
     {
-        if(pClient->UseRegistryForStats())
-        {
-            SetStatusInRegistry(nStatus);
-        }
-
-        IHXSessionStats* pSessionStats = pClient->GetClientStats()->GetSession(1);
-        pSessionStats->SetStatus(nStatus);
-        HX_RELEASE(pSessionStats);
+        SetStatusInRegistry(nStatus);
     }
+
+    IHXSessionStats* pSessionStats = pClient->get_client_stats()->GetSession(1);
+    pSessionStats->SetStatus(nStatus);
+    HX_RELEASE(pSessionStats);
 }
 
 void
@@ -866,7 +850,7 @@ HTTPProtocol::sendData(IHXBuffer* pBuf)
                 if (pClient)
                 {
                     DPRINTF(D_INFO, ("%lu: failed to send HTTP message\n",
-                        pClient->m_ulConnId));
+                        pClient->conn_id));
                 }
             }
 #endif
@@ -886,10 +870,15 @@ HTTPProtocol::init_request(HTTPRequestMessage* pMsg)
                      pMsg->url(), pMsg->majorVersion(), pMsg->minorVersion()));
     URL url(pMsg->url(), strlen(pMsg->url()));
 
-    if (!pClient->GetClientStats())
+    if (!pClient->get_client_stats())
     {
         return -1;
     }
+
+    IHXSessionStats* pSessionStats = pClient->get_client_stats()->GetSession(1);
+    HX_ASSERT(pSessionStats);
+
+    char str[512];
 
     m_fileExt = url.ext;
     m_major_version = (UINT32)pMsg->majorVersion();
@@ -901,10 +890,15 @@ HTTPProtocol::init_request(HTTPRequestMessage* pMsg)
         // XXXJDG Need system wide URL parsing overhaul,
         // this still won't work right for certain query params.
         const char* szFullURL = pMsg->url();
+        UINT32 ulURLSize = strlen(szFullURL);
+        NEW_FAST_TEMP_STR(pDecURL, 1024, ulURLSize + 1);
+        DecodeURL((const BYTE*)szFullURL, ulURLSize, pDecURL);
 
         m_pRequest = new CHXRequest();
         m_pRequest->AddRef();
-        m_pRequest->SetURL(szFullURL);
+        m_pRequest->SetURL(pDecURL);
+
+        DELETE_FAST_TEMP_STR(pDecURL);
     }
 
     IHXValues* pRequestHeaders = new CHXHeader();
@@ -915,13 +909,209 @@ HTTPProtocol::init_request(HTTPRequestMessage* pMsg)
 
     HX_RESULT rc = HXR_OK;
 
-    hxreg = new HXRegistry(pClient->m_pProc->pc->registry, pClient->m_pProc);
+    hxreg = new HXRegistry(pClient->proc->pc->registry, pClient->proc);
     hxreg->AddRef();
 
 
-    HTTPBaseProtocol::init_request(pMsg->tag(), url.full, pClient, 
-                                   hxreg, m_pRegistryKey, pRequestHeaders);
+    IHXBuffer* pBuffer = new ServerBuffer(TRUE);
+    pBuffer->Set((BYTE*)url.full, strlen(url.full)+1);
 
+    if (pClient->use_registry_for_stats())
+    {
+        // Set URL value in Server Registry
+        sprintf(str, "%s.URL", m_pRegistryKey);
+        hxreg->AddStr(str, pBuffer);
+
+        sprintf(str, "%s.PlayerRequestedURL", m_pRegistryKey);
+        hxreg->AddStr(str, pBuffer);
+    }
+
+
+    pSessionStats->SetURL(pBuffer);
+    pSessionStats->SetPlayerRequestedURL(pBuffer);
+
+    HX_RELEASE(pBuffer);
+
+    // Set User-Agent value in Server Stats
+    IHXBuffer* pName = NULL;
+    IHXBuffer* pValue = NULL;
+    ServerRegistry* pRegistry = pClient->proc->pc->registry;
+
+    if(pClient->use_registry_for_stats())
+    {
+        pRegistry->GetPropName(pClient->GetRegId(ClientRegTree::CLIENT),
+            pName, pClient->proc);
+    }
+
+    // Set HTTP request method in stats.
+    const char *method = "";
+
+    switch(pMsg->tag())
+    {
+
+        case HTTPMessage::T_GET:
+        {
+            method = (const char*)"GET";
+        }
+        break;
+        case HTTPMessage::T_POST:
+        {
+            method = (const char*)"POST";
+        }
+        break;
+        case HTTPMessage::T_HEAD:
+        {
+            method = (const char*)"HEAD";
+        }
+        break;
+        default:
+        {
+        // Should have been caught earlier.
+            HX_ASSERT(0);
+        }
+        break;
+    }
+
+    pValue = new ServerBuffer(TRUE);
+
+    // If no/unknown method, don't put in anything.
+    if (pValue)
+    {
+        pValue->Set((UCHAR*)method, strlen(method) + 1);
+
+        if (pClient->use_registry_for_stats() && pName)
+        {
+            sprintf(str, "%-.400s.HTTP-Method", (const char*)pName->GetBuffer());
+            hxreg->AddStr(str, pValue);
+        }
+        pClient->get_client_stats()->SetRequestMethod(pValue);
+        HX_RELEASE(pValue);
+    }
+
+
+    if (HXR_OK == pRequestHeaders->GetPropertyCString("User-Agent",
+        pValue))
+    {
+        if (pClient->use_registry_for_stats() && pName)
+        {
+            sprintf(str, "%-.400s.User-Agent", (const char*)pName->GetBuffer());
+            hxreg->AddStr(str, pValue);
+        }
+        pClient->get_client_stats()->SetUserAgent(pValue);
+        HX_RELEASE(pValue);
+    }
+
+    if (pClient->proc->pc->config->GetInt(pClient->proc, "config.DisableClientGuid") == 1)
+    {
+            char str[64];
+            IHXBuffer* pGUID = new ServerBuffer(TRUE);
+            const char p0GUID[] = "00000000-0000-0000-0000-000000000000";
+            pGUID->Set((UINT8 *)p0GUID, sizeof(p0GUID));
+
+            if (pClient->use_registry_for_stats() && pName)
+            {
+                sprintf(str, "%-.400s.GUID", (const char*)pName->GetBuffer());
+                hxreg->AddStr(str, pGUID);
+            }
+            pClient->get_client_stats()->SetGUID(pGUID);
+            pGUID->Release();
+    }
+    else
+    {
+        if (HXR_OK == pRequestHeaders->GetPropertyCString("GUID", pValue))
+        {
+            if (pClient->use_registry_for_stats() && pName)
+            {
+                sprintf(str, "%-.400s.GUID", (const char*)pName->GetBuffer());
+                hxreg->AddStr(str, pValue);
+            }
+            pClient->get_client_stats()->SetGUID(pValue);
+            HX_RELEASE(pValue);
+        }
+    }
+
+    if (HXR_OK == pRequestHeaders->GetPropertyCString("ClientID", pValue))
+    {
+        if (pClient->use_registry_for_stats() && pName)
+        {
+            sprintf(str, "%-.400s.ClientID", (const char*)pName->GetBuffer());
+            hxreg->AddStr(str, pValue);
+        }
+        pClient->get_client_stats()->SetClientID(pValue);
+        HX_RELEASE(pValue);
+    }
+
+    if (HXR_OK == pRequestHeaders->GetPropertyCString("Host", pValue))
+    {
+        IHXBuffer* pHost = NULL;
+        UCHAR* pStart = pValue->GetBuffer();
+        UCHAR* pEnd = pStart;
+        UCHAR* pBuf = NULL;
+
+        pBuf = new UCHAR[pValue->GetSize()];
+
+        // Host may contain a port, so strip it off
+        while (*pEnd && *pEnd != ':')
+        {
+            pEnd++;
+        }
+        strncpy((char*)pBuf, (char*)pStart, pEnd - pStart);
+        pBuf[pEnd-pStart] = '\0';
+
+        pHost = new ServerBuffer(TRUE);
+        pHost->Set(pBuf, pEnd - pStart + 1);
+
+        if (pClient->use_registry_for_stats())
+        {
+            sprintf(str, "%s.Host", m_pRegistryKey);
+            hxreg->AddStr(str, pHost);
+        }
+        pSessionStats->SetHost(pHost);
+
+        HX_VECTOR_DELETE(pBuf);
+        HX_RELEASE(pHost);
+        HX_RELEASE(pValue);
+    }
+
+    HX_RELEASE(pName);
+
+    INT32 iPort = 0;
+    char pBuf[30];
+
+    pBuffer = pSessionStats->GetInterfaceAddr();
+    if(pBuffer)
+    {
+        pRequestHeaders->SetPropertyCString("PNMAddr", pBuffer);
+        HX_RELEASE(pBuffer);
+    }
+
+    hxreg->GetIntByName("config.RTSPPort", iPort);
+    pRequestHeaders->SetPropertyULONG32("RTSPPort", (ULONG32)iPort);
+
+    if (pClient->use_registry_for_stats())
+    {
+        pBuffer = new ServerBuffer(TRUE);
+        sprintf(pBuf, "%lu", pClient->get_registry_conn_id());
+        pBuffer->Set((UCHAR*)pBuf, strlen(pBuf) + 1);
+        pRequestHeaders->SetPropertyCString("ConnID", pBuffer);
+        HX_RELEASE(pBuffer);
+    }
+
+    pBuffer = new ServerBuffer(TRUE);
+    sprintf(pBuf, "%lu", pClient->get_client_stats_obj_id());
+    pBuffer->Set((UCHAR*)pBuf, strlen(pBuf) + 1);
+    pRequestHeaders->SetPropertyCString("ClientStatsObjId", pBuffer);
+    HX_RELEASE(pBuffer);
+
+    pBuffer = new ServerBuffer(TRUE);
+    pBuffer->Set((UCHAR*)"1", 2);
+    // For HTTP protocol, these are both the same for now.
+    pRequestHeaders->SetPropertyCString("SessionNumber", pBuffer);
+    pRequestHeaders->SetPropertyCString("SessionStatsObjId", pBuffer);
+    HX_RELEASE(pBuffer);
+
+
+    HX_RELEASE(pSessionStats);
     hxreg->Release();
 
     /*
@@ -972,7 +1162,7 @@ HTTPProtocol::init_request(HTTPRequestMessage* pMsg)
 
     if (HXR_OK != rc)
     {
-        ERRMSG(pClient->m_pProc->pc->error_handler,
+        ERRMSG(pClient->proc->pc->error_handler,
                "Unable to set request headers for HTTP protocol\n");
         return -1;
     }
@@ -1090,24 +1280,160 @@ HTTPProtocol::post(IHXBuffer* pBuf)
     return 0;
 }
 
+void
+HTTPProtocol::getRFC822Headers(HTTPMessage* pMsg, IHXValues* pRFC822Headers)
+{
+    MIMEHeader* pHeader = pMsg->getFirstHeader();
+
+    while (pHeader)
+    {
+        MIMEHeaderValue* pHeaderValue;
+
+        /*
+         * XXX...There is way too much memcpy() going on here
+         */
+
+        pHeaderValue = pHeader->getFirstHeaderValue();
+
+        CHXString HeaderString;
+
+        while (pHeaderValue)
+        {
+            CHXString TempString;
+
+            pHeaderValue->asString(TempString);
+            HeaderString += TempString;
+            pHeaderValue = pHeader->getNextHeaderValue();
+            if (pHeaderValue)
+            {
+                HeaderString += ", ";
+            }
+        }
+
+        IHXBuffer* pBuffer = new ServerBuffer(TRUE);
+        pBuffer->Set((const BYTE*)((const char*)HeaderString),
+                                   HeaderString.GetLength()+1);
+        pRFC822Headers->SetPropertyCString(pHeader->name(), pBuffer);
+        pBuffer->Release();
+
+        pHeader = pMsg->getNextHeader();
+    }
+}
+
 /*
- * This init_stats() function is the equivalent of the ClientSession
+ * This init_stats() function is the equivalent of the Player::Session
  * init_stats() call
  */
 void
 HTTPProtocol::init_stats()
 {
-    HTTPBaseProtocol::init_stats(m_pDemux, m_pRegistryKey, m_pQoSInfo);
+    Client* pClient = m_pDemux->GetClient();
+
+    if (pClient->use_registry_for_stats())
+    {
+        init_registry();
+    }
+
+    if (pClient->m_bIsAProxy)
+    {
+        ClientStats* pClientStats = new ClientStats(pClient->proc);
+        pClient->proc->pc->client_stats_manager->AddClient(pClientStats, pClient->proc);
+        pClient->m_pStats = pClientStats;
+        pClient->m_pStats->AddRef();
+        pClient->set_client_stats_obj_id(pClientStats->GetID());
+    }
+    else
+    {
+        pClient->update_protocol_statistics_info(PLAYER_CLIENT);
+    }
+
+
+    SessionStats* pSessionStats = new SessionStats();
+    pClient->get_client_stats()->AddSession(pSessionStats);
+    m_pQoSInfo = new HTTPQoSTranAdaptInfo();
+    m_pQoSInfo->AddRef();
+    pSessionStats->SetQoSTransportAdaptationInfo(
+        (IHXQoSTransportAdaptationInfo*)m_pQoSInfo);
+
+    // This should match
+    HX_ASSERT(pSessionStats->GetID() == 1);
+
+    IHXSocket* pSock = m_pDemux->GetSock();
+
+    IHXSockAddr* pLocalAddr = NULL;
+    IHXBuffer* pLocalAddrBuf = NULL;
+    pSock->GetLocalAddr(&pLocalAddr);
+    pLocalAddr->GetAddr(&pLocalAddrBuf);
+
+    pSessionStats->SetInterfaceAddr(pLocalAddrBuf);
+
+    HX_RELEASE(pLocalAddrBuf);
+    HX_RELEASE(pLocalAddr);
+
+    HX_RELEASE(pSock);
 
     // Read the max post data now
     // By checking at start up we get on-the-fly for free
-    Client* pClient = m_pDemux->GetClient();
 
     INT32 ulMax;
-    if (HXR_OK == pClient->m_pProc->pc->registry->GetInt("config.MaxPostDataLen",
-        &ulMax, pClient->m_pProc))
+    if (HXR_OK == pClient->proc->pc->registry->GetInt("config.MaxPostDataLen",
+        &ulMax, pClient->proc))
     {
         m_max_post_data = ulMax;
+    }
+}
+
+void
+HTTPProtocol::init_registry()
+{
+    Client* pClient = m_pDemux->GetClient();
+
+    UINT32 ulSessionRegID = pClient->GetRegId(ClientRegTree::CLIENT);
+    ServerRegistry* registry = pClient->proc->pc->registry;
+
+    if (!ulSessionRegID)
+    {
+        return;
+    }
+
+    if (pClient->GetRegId(ClientRegTree::SESSION))
+    {
+        INT32 pCount;
+        IHXBuffer* pName;
+
+        if (HXR_OK == registry->GetPropName(pClient->GetRegId(ClientRegTree::SESSION),
+                                            pName, pClient->proc) &&
+            HXR_OK == registry->GetInt(pClient->GetRegId(ClientRegTree::SESSION_COUNT),
+                                       &pCount, pClient->proc))
+        {
+            char str[512];
+
+            /*
+             * There is only one session for HTTP
+             */
+
+            ASSERT(pCount == 0);
+
+            m_pRegistryKey = new char[512];
+            sprintf(m_pRegistryKey, "%-.400s.1", (const char*)pName->GetBuffer());
+            registry->AddComp(m_pRegistryKey, pClient->proc);
+            registry->SetInt(pClient->GetRegId(ClientRegTree::SESSION_COUNT), 1,
+                             pClient->proc);
+            pName->Release();
+
+            /*
+             * There is only one stream and no transports
+             */
+
+            sprintf(str, "%s.StreamCount", m_pRegistryKey);
+            registry->AddInt(str, 1, pClient->proc);
+            sprintf(str, "%s.Stream", m_pRegistryKey);
+            registry->AddComp(str, pClient->proc);
+            sprintf(str, "%s.Stream.1", m_pRegistryKey);
+            registry->AddComp(str, pClient->proc);
+            sprintf(str, "%s.TransportCount", m_pRegistryKey);
+            registry->AddInt(str, 0, pClient->proc);
+        }
     }
 }
 
@@ -1116,7 +1442,7 @@ HTTPProtocol::SetMimeTypeInRegistry(const char* pMimeType)
 {
     Client* pClient = m_pDemux->GetClient();
 
-    if (!pClient->UseRegistryForStats())
+    if (!pClient->use_registry_for_stats())
     {
         return;
     }
@@ -1125,7 +1451,7 @@ HTTPProtocol::SetMimeTypeInRegistry(const char* pMimeType)
     IHXBuffer* pBuffer = new ServerBuffer(TRUE);
     pBuffer->Set((Byte*)pMimeType, strlen(pMimeType)+1);
     sprintf(str, "%s.Stream.1.MimeType", m_pRegistryKey);
-    pClient->m_pProc->pc->registry->AddStr(str, pBuffer, pClient->m_pProc);
+    pClient->proc->pc->registry->AddStr(str, pBuffer, pClient->proc);
     pBuffer->Release();
 }
 
@@ -1136,9 +1462,9 @@ HTTPProtocol::SetStatusInRegistry(const INT32 nStatus)
 
     char str[512];
     sprintf(str, "%s.Status", m_pRegistryKey);
-    if(!pClient->m_pProc->pc->registry->AddInt(str, nStatus, pClient->m_pProc))
+    if(!pClient->proc->pc->registry->AddInt(str, nStatus, pClient->proc))
     {
-        pClient->m_pProc->pc->registry->SetInt(str, nStatus, pClient->m_pProc);
+        pClient->proc->pc->registry->SetInt(str, nStatus, pClient->proc);
     }
 }
 
@@ -1146,15 +1472,15 @@ HX_RESULT
 HTTPProtocol::GetClientProfile()
 {
     Client* pClient = m_pDemux->GetClient();
-    Process* pProc = pClient->m_pProc;
+    Process* pProc = pClient->proc;
 
-    HX_ASSERT(pClient && pClient->GetClientStats());
+    HX_ASSERT(pClient && pClient->get_client_stats());
     HX_ASSERT(m_pRequest);
 
     HX_RESULT rc = HXR_OK;
     IHXClientProfile* pProfile = NULL;
     IHXBuffer* pURLBuff = new ServerBuffer(TRUE);
-    IHXSessionStats* pStats = pClient->GetClientStats()->GetSession(1);
+    IHXSessionStats* pStats = pClient->get_client_stats()->GetSession(1);
     HX_ASSERT(pStats);
 
     if(pURLBuff)
@@ -1185,4 +1511,15 @@ HTTPProtocol::GetClientProfile()
     return rc;
 }
 
+HTTPProtocol::ShutdownCallback::~ShutdownCallback()
+{
+    m_pHTTPP->Release();
+    m_pHTTPP = NULL;
+}
 
+STDMETHODIMP
+HTTPProtocol::ShutdownCallback::Func()
+{
+    m_pHTTPP->Shutdown(HXR_OK);
+    return HXR_OK;
+}

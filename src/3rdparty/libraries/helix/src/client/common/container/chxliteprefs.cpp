@@ -1,51 +1,3 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * 
- * Portions Copyright (c) 1995-2008 RealNetworks, Inc. All Rights Reserved.
- * 
- * The contents of this file, and the files included with this file,
- * are subject to the current version of the RealNetworks Public
- * Source License (the "RPSL") available at
- * http://www.helixcommunity.org/content/rpsl unless you have licensed
- * the file under the current version of the RealNetworks Community
- * Source License (the "RCSL") available at
- * http://www.helixcommunity.org/content/rcsl, in which case the RCSL
- * will apply. You may also obtain the license terms directly from
- * RealNetworks.  You may not use this file except in compliance with
- * the RPSL or, if you have a valid RCSL with RealNetworks applicable
- * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
- * the rights, obligations and limitations governing use of the
- * contents of the file.
- * 
- * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
- * "GPL") in which case the provisions of the GPL are applicable
- * instead of those above. If you wish to allow use of your version of
- * this file only under the terms of the GPL, and not to allow others
- * to use your version of this file under the terms of either the RPSL
- * or RCSL, indicate your decision by deleting the provisions above
- * and replace them with the notice and other provisions required by
- * the GPL. If you do not delete the provisions above, a recipient may
- * use your version of this file under the terms of any one of the
- * RPSL, the RCSL or the GPL.
- * 
- * This file is part of the Helix DNA Technology. RealNetworks is the
- * developer of the Original Code and owns the copyrights in the
- * portions it created.
- * 
- * This file, and the files included with this file, is distributed
- * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
- * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
- * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
- * ENJOYMENT OR NON-INFRINGEMENT.
- * 
- * Technology Compatibility Kit Test Suite(s) Location:
- *    http://www.helixcommunity.org/content/tck
- * 
- * Contributor(s):
- * 
- * ***** END LICENSE BLOCK ***** */
-
 #include "chxliteprefs.h"
 #include "hlxclib/fcntl.h"
 #include "chxdataf.h"
@@ -67,6 +19,25 @@ BEGIN_INTERFACE_LIST(CHXLitePrefs)
     INTERFACE_LIST_ENTRY_SIMPLE(IHXPreferences3)
     INTERFACE_LIST_ENTRY_SIMPLE(IHXContextUser)
 END_INTERFACE_LIST
+
+
+// for keeping track of a pref value
+class Pref
+{
+public:
+    Pref(const char* pStr): m_bChanged(FALSE), m_strValue(pStr){}
+
+    HXBOOL HasChanged() const { return m_bChanged;}
+    void SetChanged(HXBOOL bChanged) { m_bChanged = bChanged;}
+    void SetValue(const char* pStr) { m_strValue = pStr;}
+    
+    const char* Buffer() const { return m_strValue;}
+    UINT32 Size() const {return m_strValue.GetLength() + 1;}
+
+private:
+    HXBOOL    m_bChanged;
+    CHXString m_strValue;
+};
 
 
 
@@ -108,21 +79,7 @@ LitePrefs::FindNewOrAlteredPrefs(const CHXMapStringToOb& memPrefs,
         // transfer this pref if is new or altered
         if( pPref->HasChanged() || (0 != origPrefs.Lookup(pKey)) )
         {
-            if(pPref->ToBePersisted())
-            {
-                prefsOut.SetAt(pKey, pPref);
-            }
-            else
-            {
-                Pref* origPref = NULL;
-                // get origPref for the same key
-                if ( origPrefs.Lookup(pKey, (void*&)origPref))
-                {
-                   // save 
-                   Pref* outPref = new Pref(origPref->Buffer());
-                   prefsOut.SetAt(pKey, outPref);
-                }  
-            }
+            prefsOut.SetAt(pKey, pPref);
         }
     }
 }
@@ -270,8 +227,7 @@ HX_RESULT
 LitePrefs::StorePref(CHXMapStringToOb* pPrefs,
 	const char* pName,
 	const char* pValue,
-	HXBOOL bChanged,
-	HXBOOL bPersist)
+	HXBOOL bChanged)
 {
     Pref* pPref = NULL;
     if (pPrefs->Lookup(pName, (void*&)pPref))
@@ -291,7 +247,6 @@ LitePrefs::StorePref(CHXMapStringToOb* pPrefs,
     }
     
     pPref->SetChanged(bChanged);
-    pPref->SetPersistence(bPersist);
     return HXR_OK;
 }
 
@@ -337,7 +292,7 @@ LitePrefs::ParsePrefs(CHXDataFile* pFile,
                 // don't add this name value if name already exists in prefs
                 if(0 ==  pPrefs->Lookup(sName))
                 {
-                    HX_RESULT res = LitePrefs::StorePref(pPrefs, sName, sValue, FALSE, TRUE);
+                    HX_RESULT res = LitePrefs::StorePref(pPrefs, sName, sValue, FALSE);
                     if (FAILED(res))
                     {
                         return res;
@@ -400,15 +355,8 @@ LitePrefs::ParsePrefs(CHXDataFile* pFile,
 
                     default:
                     {
-                        if(isspace(*pos))
-                        {
-                            eState = eParsingWhiteSpace;
-                        }
-                        else
-                        {
-                            eState = eParsingName;
-                            sName = *pos; // don't lose this char
-                        }   
+                        eState = eParsingName;
+                        sName = *pos; // don't lose this char
                     }
                 }
                 ++pos;
@@ -623,26 +571,15 @@ CHXLitePrefs::WritePref(const char* pName, IHXBuffer* pValue)
 
     if (pName && pValue)
     {
-        m_pMutex->Lock();
-
-        if(m_bAutoCommit)
-        {  
-            res = LitePrefs::StorePref(&m_prefs, pName, (const char*)pValue->GetBuffer());
-        }
-        else
-        {
-            // trying to store non-persistent pref in memory...
-            res = LitePrefs::StorePref(&m_prefs, pName, (const char*)pValue->GetBuffer(), TRUE, m_bAutoCommit);
-        }    
-        
+	m_pMutex->Lock();
+	res = LitePrefs::StorePref(&m_prefs, pName, (const char*)pValue->GetBuffer());
         if(SUCCEEDED(res))
         {
             PossiblyCommitPrefChange();
         }
-        
         m_pMutex->Unlock();
     }
-    
+
     return res;
 }
 
@@ -772,4 +709,33 @@ CHXLitePrefs::Func()
 }
 #endif
 
+
+#ifdef _SYMBIAN
+CHXLitePrefsExt::CHXLitePrefsExt(const char *pRootPath, const char *pShadowPath):
+            CHXLitePrefs(pRootPath, pShadowPath)
+{
+    //empty
+}
+
+CHXLitePrefsExt::~CHXLitePrefsExt()
+{
+    //empty
+}
+
+STDMETHODIMP
+CHXLitePrefsExt::OpenPrefFile(const char * pPrefFile)
+{
+    HX_RESULT res = HXR_INVALID_PARAMETER;
+
+    if (pPrefFile)
+    {
+
+	    LitePrefs::ClearPrefs(&m_prefs);
+        CHXString strPath = pPrefFile;
+        res = LitePrefs::ReadPrefs(strPath, &m_prefs, m_strShadowPath, m_pFactory);
+    }
+
+    return res;
+}
+#endif
 

@@ -66,6 +66,7 @@
  *
  */
 class CAtomizer :   public IHXFileResponse,
+                    public IHXThreadSafeMethods,
 		    public IHXAtomizationCommander
 {
 public:
@@ -202,6 +203,15 @@ public:
     {
 	return ATMZR_CMD_LOAD;
     }
+
+   ///////////////////////////////////////////////////////////////////////////
+   //  Method:
+   //		IHXThreadSafeMethods::IsThreadSafe
+   //  Purpose:
+   //		This routine returns threadsafeness information about the file object
+   //		which is used by the server for improved performance.
+   //
+   STDMETHOD_(UINT32,IsThreadSafe) (THIS);
 
 private:
     typedef enum

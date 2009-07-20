@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http_demux.h,v 1.11 2007/05/11 05:53:02 dsingh Exp $
+ * Source last modified: $Id: http_demux.h,v 1.10 2006/10/03 23:19:07 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -131,7 +131,6 @@ DECLARE_INTERFACE_(IHXHTTPDemux, IUnknown)
     STDMETHOD(SendMessage)              (THIS_ HTTPMessage* pMsg) PURE;
     STDMETHOD(SendData)                 (THIS_ IHXBuffer* pBuf) PURE;
     STDMETHOD_(void, Close)             (THIS_ HX_RESULT status) PURE;
-    STDMETHOD_(void, SetHTTPResponseCode) (THIS_ UINT16 code) PURE;
 };
 
 class CHTTPDemux : public IHXSocketResponse,
@@ -159,7 +158,6 @@ public:
     STDMETHOD(SendMessage)              (THIS_ HTTPMessage* pMsg);
     STDMETHOD(SendData)                 (THIS_ IHXBuffer* pBuf);
     STDMETHOD_(void, Close)             (THIS_ HX_RESULT status);
-    STDMETHOD_(void, SetHTTPResponseCode)(THIS_ UINT16 code);
 
     // HXProtocol
     virtual void                init(Process* proc, IHXSocket* pSock);
@@ -171,7 +169,6 @@ private:
     void                        DetectHandler(HTTPMessage* pMsg);
     bool                        IsWMTHTTP(const char* pUrl, MIMEHeader* pUserAgentHdr);
     bool                        IsASXGen(const char* pUrl);
-    UINT16			m_uHTTPResponseCode;
 
 protected:
     INT32                       m_nRefCount;

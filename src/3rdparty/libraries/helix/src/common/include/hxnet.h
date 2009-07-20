@@ -37,8 +37,7 @@
 #define _HXNET_H
 
 #include "hxcom.h"
-#include "ihxpckts.h"
-#include "ihxlist.h"
+
 /*
  * This file defines the new Helix socket addressing API and synchronous
  * nonblocking networking API.  They are designed with the following goals:
@@ -456,12 +455,8 @@ typedef enum {
 /* This is the value for "don't linger" */
 #define LINGER_OFF (~0U)
 
-/* Socket options for IHXSocket::GetOption() and IHXSocket::SetOption() 
- * XXXTDM: Separate these like the real getsockopt/setsockopt? 
- *
- * NOTE: If any option is added to this enum, then it needs to be added to struct g_hxopttbl[]
- * in common/netio/platform/posix/netdrv.cpp as well to maintain the offsets 
- */
+/* Socket options for IHXSocket::GetOption() and IHXSocket::SetOption() */
+/* XXXTDM: Separate these like the real getsockopt/setsockopt? */
 typedef enum {
     HX_SOCKOPT_NONE,
 
@@ -492,8 +487,7 @@ typedef enum {
     HX_SOCKOPT_IN4_DROP_MEMBERSHIP,
     HX_SOCKOPT_IN4_MULTICAST_IF,
 
-    /* SOL_UDP */
-    HX_SOCKOPT_UDP_RCVBUF,
+    /* SOL_UDP (none) */
 
     /* SOL_TCP */
     HX_SOCKOPT_TCP_MAXSEG,
@@ -829,77 +823,6 @@ DECLARE_INTERFACE_(IHXNetServices2, IUnknown)
     STDMETHOD(Close)		    (THIS) PURE;
 };
 
-#ifdef HELIX_FEATURE_SECURE_SOCKET
-
-// {FC6621C4-441F-4404-83AD-07E479B0BBCB}
-DEFINE_GUID(IID_IHXCertificateManager, 
-0xfc6621c4, 0x441f, 0x4404, 0x83, 0xad, 0x7, 0xe4, 0x79, 0xb0, 0xbb, 0xcb);
-
-#undef INTERFACE
-#define INTERFACE IHXCertificateManager
-DECLARE_INTERFACE_(IHXCertificateManager, IUnknown)
-{
-    STDMETHOD(QueryInterface)       (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)      (THIS) PURE;
-    STDMETHOD_(ULONG32,Release)     (THIS) PURE;
-
-    /* Basic methods */
-	STDMETHOD(Initialize)(THIS) PURE;
-	STDMETHOD(VerifyCertificateChain)(THIS_ IHXList* pCerts, IHXBuffer*& pPublicKey) PURE;
-	STDMETHOD(AddCARoot)(THIS_ IHXBuffer* pCert) PURE;
-	STDMETHOD(AddCACRLChain)(THIS_ IHXList*) PURE;
-};
-#define CLSID_IHXCertificateManager IID_IHXCertificateManager
-
-// {B71C9A70-2731-44e4-B225-2A7A41234361}
-DEFINE_GUID(IID_IHXCertificateUser, 
-0xb71c9a70, 0x2731, 0x44e4, 0xb2, 0x25, 0x2a, 0x7a, 0x41, 0x23, 0x43, 0x61);
-
-#undef INTERFACE
-#define INTERFACE IHXCertificateUser
-DECLARE_INTERFACE_(IHXCertificateUser, IUnknown)
-{
-    STDMETHOD(QueryInterface)       (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)      (THIS) PURE;
-    STDMETHOD_(ULONG32,Release)     (THIS) PURE;
-    STDMETHOD(AddClientKey)(THIS_ IHXBuffer* pKey) PURE;
-    STDMETHOD(AddCertificate)(THIS_ IHXBuffer* pCert) PURE;
-};
-
-/******************************************************************************
- *
- * Secure Net Services
- *
- ******************************************************************************/
-DEFINE_GUID(IID_IHXSecureSocket, 0x4711296b, 0x94fd, 0x4a28, 0xb4, 0x4d, 0x67, 0xe7, 0xb8, 0xfd, 0x3f, 0x7f);
-#undef INTERFACE
-#define INTERFACE IHXSecureSocket
-DECLARE_INTERFACE_(IHXSecureSocket, IUnknown)
-{
-    STDMETHOD(QueryInterface)       (THIS_ REFIID riid, void** ppvObj) PURE;
-    STDMETHOD_(ULONG32,AddRef)      (THIS) PURE;
-    STDMETHOD_(ULONG32,Release)     (THIS) PURE;
-
-    /* Basic methods */
-    
-    STDMETHOD_(HX_RESULT,SetClientCertificate)(THIS_ IHXList* pCertChain, IHXBuffer* pPrvKey) PURE;
-    STDMETHOD_(HX_RESULT,InitSSL)(THIS_ IHXCertificateManager* pContext) PURE;
-
-    STDMETHOD_(HX_RESULT, SetSessionID)(THIS_ IHXBuffer* ) PURE;
-    STDMETHOD_(HX_RESULT, GetSessionID)(THIS_ IHXBuffer**) PURE;
-};
-
-DEFINE_GUID(IID_IHXSecureNetServices, 0xed1a738c, 0x1a76, 0x4ab7, 0x8f, 0x40, 0xdd, 0xbd, 0xa8, 0xa, 0xf1, 0xbc);
-
-#define CLSID_IHXSecureNetServices IID_IHXSecureNetServices
-
-#undef INTERFACE
-#define INTERFACE IHXSecureNetServices
-DECLARE_INTERFACE_(IHXSecureNetServices, IUnknown)
-{
-    STDMETHOD(CreateSecureSocket)         (THIS_ IHXSecureSocket** ppSock) PURE;
-};
-#endif
 // Define smart pointers
 #include "hxcomptr.h"
 DEFINE_SMART_PTR(IHXSockAddrNative)

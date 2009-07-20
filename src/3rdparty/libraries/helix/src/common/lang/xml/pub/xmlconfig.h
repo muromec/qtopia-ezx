@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: xmlconfig.h,v 1.9 2007/08/28 06:36:27 hdeware Exp $
+ * Source last modified: $Id: xmlconfig.h,v 1.6 2005/03/14 19:36:33 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -46,7 +46,7 @@
  * Contributor(s):
  * 
  * ***** END LICENSE BLOCK ***** */
-//   $Id: xmlconfig.h,v 1.9 2007/08/28 06:36:27 hdeware Exp $
+//   $Id: xmlconfig.h,v 1.6 2005/03/14 19:36:33 bobclark Exp $
 
 #ifndef _XMLCONFIG_H_
 #define _XMLCONFIG_H_
@@ -66,7 +66,6 @@ class HXRegistry;
 class CBigByteQueue;
 
 #define AL_TAGIFY 1
-#define MAX_REGISTRY_NAME   1024
 
 typedef enum
 {
@@ -296,7 +295,7 @@ public:
     XMLConfigList* m_pList;
 
     HX_RESULT Write(const char* name, const char* filename);
-    HX_RESULT Read(char* filename, char* pServRegKey, HXBOOL bIncludedFile = FALSE, HXBOOL bStuffRegistry = TRUE);
+    HX_RESULT Read(char* filename, char* pServRegKey, HXBOOL bIncludedFile = FALSE);
 //    STDMETHOD(Read) (THIS_ char* filename, char* pServRegKey, HXBOOL bIncludedFile = FALSE);
     HX_RESULT WriteToFile(const char* pKeyName, const char* pFilename);
     void _AddPropsToList(CHXSimpleList* pList, const char* pRoot, IHXRegistry2* pReg);
@@ -332,19 +331,15 @@ protected:
 
     HX_RESULT init(IHXRegistry2* pRegistry, IHXErrorMessages* pMessages, const char* szserverversion,
                    UINT32 dwMajor, UINT32 dwMinor);
-    void StuffRegistry(XMLConfigList* list);
-
-    //Writes out only the specified child key into the output file. Used for saving .UAS files.
-    HX_RESULT WriteToFile(const char* pKeyName, const char* pChildKeyName, const char* pFileName, HXBOOL bCreateFileIfNotFound);
 
 //Properties
     char* m_filename;
-    IHXRegistry2* m_pRegistry;
-    IHXErrorMessages* m_pMessages;
 
 
 private:
     INT32 m_lRefCount;
+    IHXRegistry2* m_pRegistry;
+    IHXErrorMessages* m_pMessages;
     char* m_szServerversion;
     UINT32 m_ulMajor;
     UINT32 m_ulMinor;
@@ -359,6 +354,7 @@ private:
     HXBOOL Expand(XMLTag*, CBigByteQueue* queue);
     void ExpandAttribute(XMLTag*, const char* attribute);
     void DumpList(XMLConfigList* list, int indent);
+    void StuffRegistry(XMLConfigList* list);
     XMLConfigVarType GetVarType(XMLConfigListNode* node);
 };
 

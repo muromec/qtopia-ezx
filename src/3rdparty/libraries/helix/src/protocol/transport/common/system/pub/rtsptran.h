@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtsptran.h,v 1.46 2008/05/06 15:44:01 anshuman Exp $
+ * Source last modified: $Id: rtsptran.h,v 1.44 2007/01/11 21:19:42 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -295,7 +295,7 @@ public:
 
     // only in RTPTransport...
     virtual void notifyRTPInfoProcessed (HXBOOL bOnPauseResume = FALSE) {}
-    virtual void  setPlayRange          (UINT32 ulFrom, UINT32 ulTo, HXBOOL bOnPauseResume = FALSE);
+    virtual void  setPlayRange          (UINT32 ulFrom, UINT32 ulTo);
     virtual HX_RESULT setFirstPlayTime  (Timeval* pTv) {return HXR_OK;};
     virtual void      OnPause  (Timeval* pTv) { };
     virtual void setLegacyRTPLive(void){};

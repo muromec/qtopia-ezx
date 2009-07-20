@@ -14,7 +14,7 @@
  *****************************************************************************/
  
 // System includes
-#include "hlxclib/ctype.h"
+#include <ctype.h>
 
 // Helix includes
 #include "hxstring.h"
@@ -171,7 +171,7 @@ CHXString HXEscapeUtil::UnEscape(const CHXString& escapedStr)
     return newStr.Finish();
 }
 
-static CHXString Escape(const CHXString& unescapedStr, const char* pExtra = 0, const HXBOOL doubleEscape = FALSE)
+static CHXString Escape(const CHXString& unescapedStr, const char* pExtra = 0)
 {
     int len = unescapedStr.GetLength();
     const char* pCur = unescapedStr;
@@ -181,7 +181,7 @@ static CHXString Escape(const CHXString& unescapedStr, const char* pExtra = 0, c
     while (len)
     {
 	if (IsSpecialChar(*pCur, pExtra) &&
-        (!IsEscaped(pCur,len) || doubleEscape))
+	    !IsEscaped(pCur,len))
 	{
 	    // Escape this character
 	    *newPath = '%';
@@ -320,9 +320,9 @@ CHXString HXEscapeUtil::EscapeQuery(const CHXString& unescapedQuery)
 }
 
 // escape everything but unreserved characters
-CHXString HXEscapeUtil::EscapeGeneric(const CHXString& unescapedQuery, const HXBOOL doubleEscape)
+CHXString HXEscapeUtil::EscapeGeneric(const CHXString& unescapedQuery)
 {
-    return Escape(unescapedQuery, NULL, doubleEscape);
+    return Escape(unescapedQuery);
 }
 
 // escape symbol by doubling, e.g., '%' -> '%%'
@@ -349,26 +349,3 @@ CHXString HXEscapeUtil::EscapeSymbol(const CHXString& in, char symbol)
     return out;
 }
 
-// escape string data to be legal XML element, currently '<' to '&lt' and '>' to '&gt'
-CHXString HXEscapeUtil::EscapeStringDataForXML(const CHXString& unescapedData)
-{
-    CHXString escapedData;
-
-    escapedData = unescapedData;
-    escapedData.FindAndReplace("<", "&lt;", TRUE);
-    escapedData.FindAndReplace(">", "&gt;", TRUE);
-
-    return escapedData;
-}
-
-// unescape data from XML element
-CHXString HXEscapeUtil::UnEscapeXMLStringData(const CHXString& escapedData)
-{
-    CHXString unescapedData;
-
-    unescapedData = escapedData;
-    unescapedData.FindAndReplace("&lt;", "<", TRUE);
-    unescapedData.FindAndReplace("&gt;", ">", TRUE);
-
-    return unescapedData;
-}

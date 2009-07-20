@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtptran.cpp,v 1.117 2008/06/26 18:32:14 ashkunar Exp $
+ * Source last modified: $Id: rtptran.cpp,v 1.110 2007/02/07 17:11:52 gashish Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -230,7 +230,6 @@ RTPBaseTransport::RTPBaseTransport(HXBOOL bIsSource)
     , m_cLSRWrite(0)
     , m_pQoSInfo(NULL)
     , m_bDone(FALSE)
-    , m_bFirstSeqNumLocked(FALSE)
 {
     m_wrapSequenceNumber = DEFAULT_WRAP_SEQ_NO;
 }
@@ -475,7 +474,7 @@ RTPBaseTransport::setFirstSeqNum(UINT16 uStreamNumber, UINT16 uSeqNum, HXBOOL bO
     // On client we allow setting of sequence number only once not to cause
     // havoc in transport buffer
 
-    
+    if (m_bIsSource || (!m_bSeqNoSet))
     {
         theErr = RTSPTransport::setFirstSeqNum(uStreamNumber, uSeqNum, bOnPauseResume);
 
@@ -485,18 +484,12 @@ RTPBaseTransport::setFirstSeqNum(UINT16 uStreamNumber, UINT16 uSeqNum, HXBOOL bO
 #endif  // RTP_MESSAGE_DEBUG
 
 	// In the client, we set for start of stream only if there are no more
-	// pipelined seeks outstanding.
-	if (m_bIsSource || (m_ulSeekCount <= 1))
+	// pipelined seeks outstanding an this is not a resume request.
+	if (m_bIsSource || ((!bOnPauseResume) && (m_ulSeekCount <= 1)))
 	{
 	    if (SUCCEEDED(theErr))
 	    {
 		m_bSeqNoSet = TRUE;
-		m_bAbortWaitForStartInfo = TRUE;
-		if (bOnPauseResume)
-		{
-			m_uFirstSeqNum = uSeqNum; 
-			m_bFirstSeqNumLocked = TRUE;        
-		}		
 	    }
 
 	    if (m_pReflectorInfo)
@@ -606,13 +599,13 @@ RTPBaseTransport::setFirstTimeStamp(UINT16 uStreamNumber, UINT32 ulTS,
                 SetFirstTSLive(pStreamData, ulTS, bIsRaw);
             }
         }
-        else if (bOnPauseResume || !m_bRTPTimeSet)
+        else if (!m_bRTPTimeSet)
         {
-	    // If there are outstanding pipelined seeks 
-	    // we do not set the start time as we wait
-	    // for the information provided by
+	    // If there are outstanding pipelined seeks or this is just a
+	    // resumption action, we do not set
+	    // the start time as we wait for the information provided by
 	    // the last pipelined seek.
-	    if (m_ulSeekCount > 1)
+	    if (bOnPauseResume || (m_ulSeekCount > 1))
 	    {
 		return;
 	    }
@@ -697,20 +690,16 @@ RTPBaseTransport::notifyRTPInfoProcessed(HXBOOL bOnPauseResume)
 }
 
 void
-RTPBaseTransport::setPlayRange(UINT32 ulFrom, UINT32 ulTo, HXBOOL bOnPauseResume)
+RTPBaseTransport::setPlayRange(UINT32 ulFrom, UINT32 ulTo)
 {
     // this is the Range values in PLAY request in RMA time (ms) called on PLAY
     // request
-    RTSPTransport::setPlayRange(ulFrom, ulTo, bOnPauseResume);
-    m_bWaitForStartInfo = TRUE;
-    m_bAbortWaitForStartInfo = FALSE;
-    m_bFirstSeqNumLocked = FALSE;
-
-if (!bOnPauseResume)	
-{
+    RTSPTransport::setPlayRange(ulFrom, ulTo);
 
     m_bSeqNoSet = FALSE;
     m_bRTPTimeSet = FALSE;
+    m_bWaitForStartInfo = TRUE;
+    m_bAbortWaitForStartInfo = FALSE;
     m_uFirstSeqNum = 0;
     m_ulFirstRTPTS = 0;
     m_bFirstSet = FALSE;
@@ -734,7 +723,6 @@ if (!bOnPauseResume)
     // re-start information (RTP-Info) arriving for the last
     // pipelined seek.
     m_ulSeekCount++;
-}
 
     HXLOGL3(HXLOG_RTSP, "RTPBaseTransport[%p]::setPlayRange(From=%lu To=%lu) SeekStarted: Strm=%u SeekCount=%lu", 
 	    this, 
@@ -1579,20 +1567,10 @@ RTPBaseTransport::_handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime)
     // stamps
     if (m_bWaitForStartInfo)
     {
-        if (m_bIsLive && m_bRTPTimeSet)
-        {
-            if (CompareRTPTimestamp(pkt.timestamp, m_lTimeOffsetRTP) < 0)
-            {
-               return HXR_OK;
-            }
-        }
         if (m_StartInfoWaitQueue.GetCount() == 0)
         {
             // First packet received
-            if (!m_bFirstSeqNumLocked)
-            {
             m_uFirstSeqNum = pkt.seq_no;
-            }
             m_ulFirstRTPTS = pkt.timestamp;
             // For Live stream, postpone identification of first packet until we get
             // a contiguous sequence (some servers have discontinuity on start
@@ -1612,10 +1590,7 @@ RTPBaseTransport::_handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime)
             // time is not wrapped before 0
             if (lSeqNumDelta < 0)
             {
-            	if (!m_bFirstSeqNumLocked)
-            	{
                 m_uFirstSeqNum = pkt.seq_no;
-            	}
             }
             else if (!m_bFirstSet)
             {
@@ -1623,10 +1598,7 @@ RTPBaseTransport::_handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime)
                 if (lSeqNumDelta > MAX_NUM_PACKETS_GAPPED_FOR_LIVE_START)
                 {
                     resetStartInfoWaitQueue();
-	            if (!m_bFirstSeqNumLocked)
-	            {
-                   	 m_uFirstSeqNum = pkt.seq_no;
-	            }
+                    m_uFirstSeqNum = pkt.seq_no;
                     m_ulFirstRTPTS = pkt.timestamp;
                 }
                 else
@@ -1667,8 +1639,17 @@ RTPBaseTransport::_handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime)
 	    }
 	}
 
-        if (m_bAbortWaitForStartInfo &&
-             ((!m_bIsLive) || (m_StartInfoWaitQueue.GetCount() >= MIN_NUM_PACKETS_SCANNED_FOR_LIVE_START)))
+        /* If start Info has been at least partially set or the wait has been
+           aborted for some reason (usually when we know it will not be set
+           through out-of band methods <-> RTP Info did not contain start Info
+           we need).
+           Also if starting seq. number is not explicitly communicated,
+           scan through few starting packets until we have a good starting
+           sequence number (contiguous) since some servers send lossy streams
+           in the beginning. */
+        if (m_bSeqNoSet ||
+            (m_bAbortWaitForStartInfo &&
+             ((!m_bIsLive) || (m_StartInfoWaitQueue.GetCount() >= MIN_NUM_PACKETS_SCANNED_FOR_LIVE_START))))
         {
             IHXBuffer* pStoredBuffer;
             if (m_ulPlayRangeFrom == RTSP_PLAY_RANGE_BLANK)
@@ -1687,36 +1668,11 @@ RTPBaseTransport::_handlePacket(IHXBuffer* pBuffer, HXBOOL bIsRealTime)
 
                 if (pStoredBuffer)
                 {
-                    RTPPacket pkt;
-                    if (pkt.unpack(pBuffer->GetBuffer(), pBuffer->GetSize()) == 0)
-                    {
-                        if (m_bFirstSeqNumLocked)
-                        {
-                            // If sequence  number is locked, we drop any packet that precedes the locked in sequence number
-                            LONG32 lSeqNumDelta = ((LONG32) (((UINT16) pkt.seq_no) - m_uFirstSeqNum));
-                            if (lSeqNumDelta  < 0)
-                            {
-                                HX_RELEASE(pStoredBuffer);
-                            }
-                        }
-
-                        if (pStoredBuffer && m_bIsLive && m_bRTPTimeSet)
-                        {
-                            if (CompareRTPTimestamp(pkt.timestamp, m_lTimeOffsetRTP) < 0)
-                            {
-                                HX_RELEASE(pStoredBuffer);
-                            }
-
-                        }
-                    }
-
-                    if (pStoredBuffer)
-                    {
-                        _handlePacket(pStoredBuffer, FALSE);
-                        pStoredBuffer->Release();
-                    }
+                    _handlePacket(pStoredBuffer, FALSE);
+                    pStoredBuffer->Release();
                 }
             }
+
 	    m_ulWaitQueueBytes = 0;
         }
 
@@ -1989,23 +1945,19 @@ RTPBaseTransport::handleRTCPSync(NTPTime ntpTime, ULONG32 ulRTPTime)
             else
             {
                 // This the first RTCP sync accross all streams, anchor sync
-                HXLOGL4(HXLOG_RTSP, "RTPBaseTransport[%p]::handleRTCPSync() RTCP-SYNC(Strm=%u): Distribute NTP-NPT Mapping NTPTime=%u NPTTime=%u", 
-                        this,
-                        m_streamNumber,
-                        ulNtpHX, ulHXTime);
-                        
-            	  if (m_bWeakStartSync && m_pSyncServer)
-                 {
+                if (m_pSyncServer)
+                {
 #ifdef RTP_MESSAGE_DEBUG
                     messageFormatDebugFileOut("RTCP-SYNC: Distribute NTP-NPT Mapping NTPTime=%u NPTTime=%u",
                                               ulNtpHX, ulHXTime);
 #endif  // RTP_MESSAGE_DEBUG
+		    HXLOGL4(HXLOG_RTSP, "RTPBaseTransport[%p]::handleRTCPSync() RTCP-SYNC(Strm=%u): Distribute NTP-NPT Mapping NTPTime=%u NPTTime=%u", 
+			    this,
+			    m_streamNumber,
+			    ulNtpHX, ulHXTime);
+
                     m_pSyncServer->DistributeSyncAnchor(ulHXTime, ulNtpHX);
-                 }
-		            else
-            		 {
-                		retVal = anchorSync(ulHXTime, ulNtpHX);
-            		 }           	 
+                }
             }
         }
     }
@@ -2190,27 +2142,6 @@ RTPBaseTransport::MBitRTPPktInfo(REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRule
     }
 }
 
-
-INT16
-RTPBaseTransport::CompareRTPTimestamp(ULONG32 x, ULONG32 y)
-{
-	ULONG32 min = y;
-
-	if ( (x <= y && y - x < ULONG32( 1 << 31 ) ) ||
-	     (x > y && x - y > ULONG32( 1 << 31 ) ) )
-	{
-	    min = x;
-	}
-
-    INT16 nResult = -1;
-	if ( x != min )
-	   nResult = 1;
-	else if ( x == y )
-	   nResult = 0;
-
-	return nResult;
-}
-
 void
 RTPBaseTransport::MBitASMRuleNo(REF(UINT8)bMBit, IHXPacket* pPkt, UINT16 unRuleNo)
 {
@@ -2382,7 +2313,6 @@ RTPUDPTransport::setPeerAddr(IHXSockAddr* pAddr)
     m_pPeerAddr = pAddr;
     m_pPeerAddr->AddRef();
 
-    m_pUDPSocket->ConnectToOne(m_pPeerAddr);
     UINT32 natTimeout = GetNATTimeout(m_pContext);
 
     if (!m_bIsSource && natTimeout)
@@ -3053,10 +2983,10 @@ RTCPBaseTransport::addStreamInfo (RTSPStreamInfo* pStreamInfo,
         ulRRBitRate = ((ulAvgBitRate / 80) * 3 +
                        ((ulAvgBitRate % 80) * 3) / 80); // 3.75%
     }
-    else if ((ulRRBitRate == 0) && (ulRSBitRate == 0))
+    else if (ulRRBitRate == 0)
     {
         // We have been told not
-        // to send RTCP reports 
+        // to send RTCP reports
         m_bSendRTCP = FALSE;
     }
 
@@ -4276,7 +4206,6 @@ RTCPUDPTransport::setPeerAddr(IHXSockAddr* pAddr)
 
     HXLOGL3(HXLOG_RTSP, "RTCPUDPTransport[%p]::setPeerAddr(): port = %u",this, m_pPeerAddr->GetPort());
 
-    m_pUDPSocket->ConnectToOne(m_pPeerAddr);
     UINT32 natTimeout = GetNATTimeout(m_pContext);
 
     if (!m_bIsSource && natTimeout)

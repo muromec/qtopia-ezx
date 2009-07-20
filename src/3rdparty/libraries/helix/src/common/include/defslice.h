@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: defslice.h,v 1.20 2009/03/10 18:00:05 dcollins Exp $
+ * Source last modified: $Id: defslice.h,v 1.13 2006/12/03 23:06:18 ehyche Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -84,7 +84,6 @@ const INT32     LICENSE_MMS_V_HTTP          = 0;
 const INT32     LICENSE_TCP_PREF_ENABLED    = 0;
 const INT32     LICENSE_HRA_ENABLED         = 0;
 const INT32     LICENSE_SNMP_ENABLED        = 0;
-const INT32     LICENSE_MDP_ENABLED         = 0;
 
 // Multicast Section
 const INT32     LICENSE_SCALABLE_MULTICAST  = 0;
@@ -131,7 +130,6 @@ const INT32     LICENSE_AUTH_PPV_ACCESS     = 0;
 const INT32     LICENSE_AUTH_PPV_PERMS      = 0;
 const INT32     LICENSE_AUTH_BASIC          = 1;
 const INT32     LICENSE_AUTH_MSQL           = 0;
-const INT32     LICENSE_AUTH_MYSQL          = 0;
 const INT32     LICENSE_AUTH_ODBC           = 0;
 
 // Splitting Section
@@ -178,13 +176,6 @@ const INT32	LICENSE_DATA_CONVERT_ENABLED	= 1;
 const INT32	LICENSE_CDIST_PUBLISHER		= 0;
 const INT32	LICENSE_CDIST_SUBSCRIBER	= 0;
 
-//Fast Channel Switching 
-const INT32     LICENSE_FCS_ENABLED             = 0;
-
-//server side playlist
-const INT32     LICENSE_SSPL_ENABLED             = 0;
-const INT32     LICENSE_SSPL_SEEK_ENABLED             = 0;
-const INT32     LICENSE_CONTENT_MGMT_ENABLED    =0;
 
 //
 // Registry path defines
@@ -208,7 +199,6 @@ const INT32     LICENSE_CONTENT_MGMT_ENABLED    =0;
 #define REGISTRY_TCP_PREF_ENABLED   "license.Summary.General.TCPPreference"
 #define REGISTRY_HRA_ENABLED        "license.Summary.General.HelixRateAdaptation"
 #define REGISTRY_SNMP_ENABLED       "license.Summary.General.SNMP"
-#define REGISTRY_MDP_ENABLED        "license.Summary.General.ServerSideRateAdaptation"
 
 // Multicast Section
 #define REGISTRY_SCALABLE_MULTICAST "license.Summary.Multicast.Scalable"
@@ -253,8 +243,7 @@ const INT32     LICENSE_CONTENT_MGMT_ENABLED    =0;
 #define REGISTRY_AUTH_PPV_ACCESS    "license.Summary.Authentication.Commerce.Access"
 #define REGISTRY_AUTH_PPV_PERMS     "license.Summary.Authentication.Commerce.Permissions"
 #define REGISTRY_AUTH_BASIC         "license.Summary.Authentication.Storage.Basic"
-#define REGISTRY_AUTH_MSQL          "license.Summary.Authentication.Storage.mSQL"
-#define REGISTRY_AUTH_MYSQL         "license.Summary.Authentication.Storage.MySQL"
+#define REGISTRY_AUTH_MSQL          "license.Summary.Authentication.Storage.Msql"
 #define REGISTRY_AUTH_ODBC          "license.Summary.Authentication.Storage.Odbc"
 #define REGISTRY_AUTH_CONN          "license.Summary.Authentication.Commerce.ClientConnections"
 
@@ -312,14 +301,6 @@ const INT32     LICENSE_CONTENT_MGMT_ENABLED    =0;
 // Content Distribution
 #define REGISTRY_CDIST_PUBLISHER	"license.Summary.ContentDistribution.Publisher"
 #define REGISTRY_CDIST_SUBSCRIBER	"license.Summary.ContentDistribution.Subscriber"
-
-// Fast Channel Switching
-#define REGISTRY_FCS_ENABLED           "license.Summary.FastChannelSwitching.Enabled"
-
-//Server side playlist
-#define REGISTRY_SSPL_ENABLED	        "license.Summary.DataTypes.HelixPlaylist.Enabled"
-#define REGISTRY_SSPL_SEEK_ENABLED	        "license.Summary.ServersidePlaylist.Enabled"
-#define REGISTRY_CONTENT_MGMT_ENABLED    "license.Summary.FileSystemControl.Enabled"
 
 // Templatized Logging
 #define REGISTRY_TEMPLATIZED_LOGGING_ENABLED "license.Summary.TemplateLogging.Enabled"

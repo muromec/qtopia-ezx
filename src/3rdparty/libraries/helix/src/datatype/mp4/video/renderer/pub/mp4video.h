@@ -68,8 +68,6 @@ public:
     static HX_RESULT STDAPICALLTYPE CanUnload(void);
     static HX_RESULT STDAPICALLTYPE CanUnload2(void);
 
-    STDMETHOD (EndStream)	(THIS);
-
     /*
      *	Constructor/Destructor
      */

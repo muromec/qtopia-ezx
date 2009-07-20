@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: h264pyld.cpp,v 1.12 2009/01/15 17:18:50 ehyche Exp $
+ * Source last modified: $Id: h264pyld.cpp,v 1.7 2007/01/11 16:31:00 aperiquet Exp $
  * 
  * Portions Copyright (c) 1995-2005 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -95,8 +95,7 @@
 #define FU_B			29
 #define INTERLEAVE_MODE 2
 #define AVC_DECODER_CONFIGURATION_RECORD_HEADER_SIZE 6
-
-const char* const H264PayloadFormat::m_ppszCodecId[] = {"AVC1", "AVCQ", NULL};
+const char* const H264PayloadFormat::m_pCodecId = "AVC1";
 
 /*****************************************************************************
 aligned(8) class AVCDecoderConfigurationRecord {
@@ -211,7 +210,6 @@ H264PayloadFormat::H264PayloadFormat(CHXBufferMemoryAllocator* pAllocator)
     , m_ulPrevDON(0)
     , m_ulSequenceNumber(0)
     , m_ulCodecDataSeqNumber(0)
-    , m_ulCodecIDIndex(0)
     , m_bFlushed(FALSE)
     , m_bUsesRTPPackets(FALSE)
     , m_bRTPPacketTested(FALSE)
@@ -795,36 +793,6 @@ HX_RESULT H264PayloadFormat::CreateHXCodecPacket(UINT32* &pHXCodecDataOut)
     return retVal;
 }
 
-const char* H264PayloadFormat::GetCodecId()
-{
-    return m_ppszCodecId[m_ulCodecIDIndex];
-}
-
-HX_RESULT H264PayloadFormat::SetNextCodecId()
-{
-    HX_RESULT retVal = HXR_FAIL;
-
-    // Is our current codec ID non-NULL?
-    if (m_ppszCodecId[m_ulCodecIDIndex])
-    {
-        // Advance the codec ID index
-        m_ulCodecIDIndex++;
-        // Now is our codec index non-NULL?
-        if (m_ppszCodecId[m_ulCodecIDIndex])
-        {
-            // If we have a non-NULL codec ID, then clear the return value
-            retVal = HXR_OK;
-        }
-    }
-
-    return retVal;
-}
-
-void H264PayloadFormat::ResetCodecId()
-{
-    m_ulCodecIDIndex = 0;
-}
-
 /******************************************************************************
 
   Returns one AU from m_OutputQueue
@@ -884,7 +852,7 @@ HX_RESULT H264PayloadFormat::ProducePackets(void)
         {
             retVal = DeinterleavePackets();
 
-            while(SUCCEEDED(retVal) && IsAUComplete())
+            while(IsAUComplete())
             {
                 retVal = ReapMediaPacket();
             }
@@ -1047,7 +1015,7 @@ HX_RESULT H264PayloadFormat::ParsePacket(IHXPacket* pPacket)
                             }
                             else
                             {
-								UINT32 ulNalSize = ((UINT16)pData[0]<<8) + pData[1];
+                                pNALUPacket->SetDataSize( ((UINT16)pData[0]<<8) + pData[1] ); 
                                 offset = 2;
                                 if (uPacketType == MTAP16)
                                 {
@@ -1074,7 +1042,6 @@ HX_RESULT H264PayloadFormat::ParsePacket(IHXPacket* pPacket)
                                 }
                                 pNALUPacket->ulTimeStamp = ulTimeStamp + ulTimeOffset;
                                 pNALUPacket->SetDataPtr(pData + offset); 
-                                pNALUPacket->SetDataSize(ulNalSize);
                                 m_pNALUPackets[m_ulNumNALUPackets++] = pNALUPacket;
                                 pData += pNALUPacket->GetDataSize() + offset;
                                 ulBuffSize -= pNALUPacket->GetDataSize() + offset;
@@ -1402,15 +1369,7 @@ HX_RESULT H264PayloadFormat::ReapMediaPacket(void)
         ulSize = pPacket->GetDataSize();
         ulNALCount = 1;
         ulCount--; //Deduct Head position from count
-        
-        UINT32 ulPrevDON = m_ulPrevDON;
-        UINT32 ulMissingCount = 0;
-        if ( (pPacket->usDON - ulPrevDON) > 1 )
-        {
-            ulMissingCount ++;
-        }
-        ulPrevDON = pPacket->usDON;
-     
+
         if((ulCount > 0) || (pPacket->usASMRule%2 == 1))
         {
             // Collect NAL Unit belongs to same AU.
@@ -1421,12 +1380,6 @@ HX_RESULT H264PayloadFormat::ReapMediaPacket(void)
                 ulSize += pNextPacket->GetDataSize();
                 ulCount--;
                 ulNALCount++;
-                if((pNextPacket->usDON - ulPrevDON) > 1)
-                {
-                    ulMissingCount++;
-                }
-                ulPrevDON = pNextPacket->usDON;
-                
                 if(pNextPacket->usASMRule%2 == 1)
                 {
                     break;
@@ -1445,7 +1398,7 @@ HX_RESULT H264PayloadFormat::ReapMediaPacket(void)
 
             pData = new UINT32[(sizeof(HXCODEC_DATA) +
                                 sizeof(HXCODEC_SEGMENTINFO) *
-                                                    ( ulMissingCount + ulNALCount )) / 4 + 1];
+                                        ulNALCount) / 4 + 1];
 
             if(!pData)
             {

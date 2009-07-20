@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: ctype.h,v 1.6 2008/01/18 09:17:27 vkathuria Exp $
+ * Source last modified: $Id: ctype.h,v 1.4 2004/07/09 18:21:09 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,80 +57,7 @@
 #endif /* _WIN32 */
 #endif /* _OPENWAVE_SIMULATOR */
 
-#ifndef _BREW
 #include <ctype.h>
-#endif
- 
-#if (defined(_WINDOWS) || defined(_OPENWAVE) || defined(_BREW)) && \
-    !defined(__cplusplus) && defined(_MSC_VER)
-#define HLX_INLINE __inline
-#else
-#define HLX_INLINE inline
-#endif
-
-#ifdef _BREW
- 
-HLX_INLINE int 
-isspace( int c )
-{
-    return ((c)==' ' || (c)=='\f' || (c)=='\n' || (c)=='\r' || (c)=='\t' || (c)=='\v');
-}
-
-HLX_INLINE int	
-islower ( int c )
-{
-    return ((c) >= 'a' && (c) <= 'z');
-}
-
-HLX_INLINE int
-isupper(int c )
-{
-    return ((c) >= 'A' && (c) <= 'Z');
-}
-
-HLX_INLINE int 
-isalpha ( int c )
-{
-    return (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'));
-}
-
-HLX_INLINE int 
-isdigit ( int c )
-{
-    return ((c) >= '0' && (c) <= '9');
-}
-
-HLX_INLINE int 
-isalnum ( int c )
-{
-    return (isdigit(c) || isalpha(c));
-}
-
-HLX_INLINE int 
-isxdigit ( int c )
-{
-    return (((c) >= '0' && (c) <= '9') || ((c) >= 'a' && (c) <= 'f') || ((c) >= 'A' && (c) <= 'F'));	
-}
-
-HLX_INLINE int 
-isascii ( int c )
-{
-    return ((c) >= 0x00 && (c) <= 0x7F);
-}
-
-HLX_INLINE int 
-iscntrl ( int c )
-{
-    return (((c > 0x00) && (c < 0x1F)) || (c == 0x7F) ? c: 0);
-}
-
-HLX_INLINE int 
-isprint ( int c )
-{
-    return (isalnum (c) || isspace(c));
-}
-
-#endif //_BREW
 
 #ifdef CTYPE_UNDEF_WIN32
 #undef _WIN32

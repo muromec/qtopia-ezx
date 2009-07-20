@@ -2,7 +2,7 @@
 #
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: symbian-armi.cf,v 1.8 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: symbian-armi.cf,v 1.7 2006/07/26 20:19:30 damann Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -164,7 +164,7 @@ class SymbianARMILinker(Linker2):
         # with the circular dependancies. After this armerge is run
         # use mergedlibpath instead of static_libs.
         #
-        armerge_cmd   = os.path.join("$(BUILD_ROOT)", "bin", "armerge.py")
+        armerge_cmd   = os.path.join(BUILD_ROOT, "bin", "armerge.py")
         tmpMergePath  = self.armerge_tmp_path()
         mergedLibPath = self.armerge_lib_path()
         cmd           = "python %s -d %s %s %s" % (armerge_cmd,
@@ -266,7 +266,7 @@ class SymbianARMILinker(Linker2):
                     GetSymbianLibPath("egcc.lib"),
                     GetSymbianLibPath("euser.lib")]
         cmd = "python %s ld %s" % (
-            os.path.join("$(BUILD_ROOT)","bin","rlink.py"),
+            os.path.join(BUILD_ROOT,"bin","rlink.py"),
             string.join(arg_list))
         cmd_list.append(cmd)
 
@@ -300,7 +300,7 @@ class SymbianARMILinker(Linker2):
                     GetSymbianLibPath("euser.lib")]
 
         cmd = "python %s ld %s" % (
-            os.path.join("$(BUILD_ROOT)","bin","rlink.py"),
+            os.path.join(BUILD_ROOT,"bin","rlink.py"),
             string.join(arg_list))
 
         cmd_list.append(cmd)

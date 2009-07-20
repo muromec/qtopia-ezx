@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: minifilesys.cpp,v 1.13 2008/03/11 05:41:01 gahluwalia Exp $
+ * Source last modified: $Id: minifilesys.cpp,v 1.9 2006/07/19 14:30:35 damann Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -70,7 +70,6 @@
 #include "../smplfsys.ver" /* version info */
 
 #include "debug.h"
-#include "hxerror.h"
 
 #define D_MINI_FS 0x1000000
 
@@ -93,7 +92,7 @@
  *    situation.
  *
  */
-STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppFileSystemObj)
+STDAPI HXEXPORT ENTRYPOINT(HXCREATEINSTANCE)(IUnknown** ppFileSystemObj)
 {
     DPRINTF(D_MINI_FS, ("smplfsys HXCREATEINSTANCE()\n"));
 
@@ -389,7 +388,7 @@ STDMETHODIMP CHXMiniFileSystem::QueryInterface(REFIID interfaceID,
     return ::QIFind(qiList, QILISTSIZE(qiList), interfaceID, ppInterfaceObj);
 }
 
-STDAPI ENTRYPOINTCALLTYPE ENTRYPOINT(CanUnload2)(void)
+STDAPI HXEXPORT ENTRYPOINT(CanUnload2)(void)
 {
     return (CHXBaseCountingObject::ObjectsActive() > 0 ? HXR_FAIL : HXR_OK);
 }

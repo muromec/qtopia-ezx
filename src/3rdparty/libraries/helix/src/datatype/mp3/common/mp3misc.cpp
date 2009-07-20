@@ -385,24 +385,12 @@ void CMp3Misc::GetId3v2Values(UINT8 *pBuf,
     UINT8* ppStrArr[5]  = {m_pTitle,     m_pArtist,    m_pAlbum,     m_pYear,      m_pGenre};
     UINT32 ulVer2Tag[5] = {MP3_TAG_TT2,  MP3_TAG_TP1,  MP3_TAG_TAL,  MP3_TAG_TYE,  MP3_TAG_TCO};
     UINT32 ulVer3Tag[5] = {MP3_TAG_TIT2, MP3_TAG_TPE1, MP3_TAG_TALB, MP3_TAG_TYER, MP3_TAG_TCON};
-    UINT32 ulVer4Tag[5] = {MP3_TAG_TIT2, MP3_TAG_TPE1, MP3_TAG_TALB, MP3_TAG_TDRC, MP3_TAG_TCON};
 
-    if (ulMinVer == 2 || ulMinVer == 3 || ulMinVer == 4)
+    if (ulMinVer == 2 || ulMinVer == 3)
     {
         // Get the tag lookup table
-        UINT32* pTag;
-        if (ulMinVer == 2)
-        {
-            pTag = &ulVer2Tag[0];
-        }
-        else if (ulMinVer == 3)
-        {
-            pTag = &ulVer3Tag[0];
-        }
-        else if (ulMinVer == 4)
-        {
-            pTag = &ulVer4Tag[0];
-        }
+        UINT32* pTag = (ulMinVer == 2 ? &ulVer2Tag[0] : &ulVer3Tag[0]);
+
         // a tag's size is given in a 4-byte field of the following form:
         // 0xxxxxxx0xxxxxxx0xxxxxxx0xxxxxxx where x is a value of 0 or 1
         // the 0's are there to avoid potential sync problems
@@ -432,13 +420,9 @@ void CMp3Misc::GetId3v2Values(UINT8 *pBuf,
                     {
                         GetId3v2_2Entry(pBuf, ppStrArr[i], count);
                     }
-                    else if (ulMinVer == 3)
+                    else
                     {
                         GetId3v2_3Entry(pBuf, ppStrArr[i], count);
-                    }
-                    else if (ulMinVer == 4)
-                    {
-                        GetId3v2_4Entry(pBuf, ppStrArr[i], count);
                     }
                     ulNotDone &= ~(1 << i);
                     break;
@@ -464,13 +448,6 @@ void CMp3Misc::GetId3v2_3Entry(UINT8 *pBuf,
 {
     // Data size is at byte 7 and includes the language encoding byte, so subtract one
     // Data starts at byte 10 with lang byte, which we ignore
-    GetId3v2_XEntry(pBuf, pEntry, count, 7, 11, 10);
-}
-
-void CMp3Misc::GetId3v2_4Entry(UINT8 *pBuf,
-                                 UINT8 *pEntry,
-                                 UINT32 &count)
-{
     GetId3v2_XEntry(pBuf, pEntry, count, 7, 11, 10);
 }
 

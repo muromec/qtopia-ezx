@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: packetreordershim.cpp,v 1.5 2009/04/07 19:19:31 jgordon Exp $ 
+ * Source last modified: $Id: packetreordershim.cpp,v 1.2 2004/12/01 21:04:54 hwatson Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,7 +41,7 @@
 #include "hxtypes.h"
 
 #include "hxbuffer.h"
-#include "hxdeque.h"
+#include "servlist.h"
 
 #include "hxccf.h"		//  IHXCommonClassFactory
 #include "hxengin.h"		//  IHXScheduler
@@ -49,7 +49,7 @@
 #include "sink.h"		//  IHXPSinkPackets
 #include "ihxpacketorderer.h"	//  IHXPacketOrderer
 
-#include "pktreorderqueue.h"
+#include "packetreorderqueue.h"
 #include "packetreordershim.h"
 
 static const UINT32 kDefaultPacketSendInterval = 200;
@@ -136,7 +136,7 @@ CPacketOrderShim::Initialize(
 
 	//  Set up for queuing packets by stream
 	m_ulStreamCount = ulStreamCount;
-	m_pqueueInOrderPacket = new CInorderPacketQueue[m_ulStreamCount];
+	m_pqueueInOrderPacket = new CInOrderPacketDeliveryQueue[m_ulStreamCount];
 	if(!m_pqueueInOrderPacket)
 	{
 	    res = HXR_OUTOFMEMORY;
@@ -383,18 +383,18 @@ CPacketOrderShim::PacketReady(HX_RESULT status, IHXPacket* pPacket)
 	//  Check to see if this is a low latency stream
 	if(m_bFirstPacket)
 	{
-	    IHXServerPacketExt* spServerPacketExt = NULL;
-	    res = pPacket->QueryInterface(IID_IHXServerPacketExt, (void**)&spServerPacketExt);
+	    IHXBroadcastDistPktExt* spBroadcastPacket = NULL;
+	    res = pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void**)&spBroadcastPacket);
 	    if(SUCCEEDED(res))
 	    {
-		m_bDelayForOrdering = spServerPacketExt->SupportsLowLatency();
+		m_bDelayForOrdering = spBroadcastPacket->SupportsLowLatency();
 
 #ifdef _LOG_PACKET_ORDERING
 		fprintf(m_hLogFile, "Delay Packets for Ordering = %d\n", m_bDelayForOrdering);
 		fflush(m_hLogFile);
 #endif	//  _LOG_PACKET_ORDERING
 
-		HX_RELEASE(spServerPacketExt);
+		HX_RELEASE(spBroadcastPacket);
 	    }
 
 	    m_bFirstPacket = FALSE;
@@ -420,11 +420,11 @@ CPacketOrderShim::DelayPacketForOrdering(IHXPacket* pPacket)
 
     //  Check to see that this packet is actually unordered before going 
     //  through the steps of ordering.
-    IHXServerPacketExt* spServerPacketExt = NULL;
-    res = pPacket->QueryInterface(IID_IHXServerPacketExt, (void**)&spServerPacketExt);
+    IHXBroadcastDistPktExt* spBroadcastPacket = NULL;
+    res = pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void**)&spBroadcastPacket);
     if(SUCCEEDED(res))
     {
-	CQueueEntry* pNewQueueEntry = new CQueueEntry(spServerPacketExt, 1);
+	InOrderPacketDeliveryEntry* pNewQueueEntry = new InOrderPacketDeliveryEntry(pPacket);
 	if(pNewQueueEntry)
 	{
 	    HXTimeval thxNow = m_pScheduler->GetCurrentSchedulerTime();
@@ -432,10 +432,10 @@ CPacketOrderShim::DelayPacketForOrdering(IHXPacket* pPacket)
 	    //  Entry Time is now
 	    pNewQueueEntry->m_tTime.tv_sec = thxNow.tv_sec;
 	    pNewQueueEntry->m_tTime.tv_usec = thxNow.tv_usec;
-	    pNewQueueEntry->m_SequenceNumber = spServerPacketExt->GetStreamSeqNo();
+	    pNewQueueEntry->m_SequenceNumber = spBroadcastPacket->GetStreamSeqNo();
 
 	    //  Add to queues on a per stream basis
-	    SequenceNumber nNewSeqNo = spServerPacketExt->GetStreamSeqNo();
+	    SequenceNumber nNewSeqNo = spBroadcastPacket->GetStreamSeqNo();
 	    res = m_pqueueInOrderPacket[pPacket->GetStreamNumber()].add(pNewQueueEntry, nNewSeqNo);
 
 #ifdef _LOG_PACKET_ORDERING
@@ -465,7 +465,7 @@ CPacketOrderShim::DelayPacketForOrdering(IHXPacket* pPacket)
 	    res = HXR_OUTOFMEMORY;
 	}
 
-	HX_RELEASE(spServerPacketExt);
+	HX_RELEASE(spBroadcastPacket);
     }
     else
     {
@@ -506,7 +506,7 @@ CPacketOrderShim::SendPacketsForStream(BOOL bSendAll, INT32 nStreamNumber)
     //  Aging is when we've come off the scheduler and the aged time is equal to or
     //  exceeds the aging time (e.g. the time we told the scheduler to fire on)
     BOOL bSentAllAged = FALSE;
-    CQueueEntry* pQueueEntry = m_pqueueInOrderPacket[nStreamNumber].peek_front();
+    InOrderPacketDeliveryEntry* pQueueEntry = m_pqueueInOrderPacket[nStreamNumber].peek_front();
     while(SUCCEEDED(res) && pQueueEntry && !bSentAllAged)
     {
 	Timeval tTimeAgedOnQueue = pQueueEntry->m_tTime;
@@ -571,7 +571,7 @@ CPacketOrderShim::SendPacketsForStream(BOOL bSendAll, INT32 nStreamNumber)
 }
 
 HX_RESULT
-CPacketOrderShim::CreateLostPacket(UINT32 ulStream, CQueueEntry* pQueueEntry)
+CPacketOrderShim::CreateLostPacket(UINT32 ulStream, InOrderPacketDeliveryEntry* pQueueEntry)
 {
     HX_RESULT res = HXR_OK;
 
@@ -585,8 +585,8 @@ CPacketOrderShim::CreateLostPacket(UINT32 ulStream, CQueueEntry* pQueueEntry)
 	res = m_pClassFactory->CreateInstance(CLSID_IHXPacket, (void **)&pQueueEntry->m_pPacket);
 	if(SUCCEEDED(res))
 	{
-	    IHXServerPacketExt* pPacketExt = NULL;
-	    res = pQueueEntry->m_pPacket->QueryInterface(IID_IHXServerPacketExt, (void **)&pPacketExt);
+	    IHXBroadcastDistPktExt* pPacketExt = NULL;
+	    res = pQueueEntry->m_pPacket->QueryInterface(IID_IHXBroadcastDistPktExt, (void **)&pPacketExt);
 	    if(SUCCEEDED(res))
 	    {
 		pPacketExt->SetSeqNo(0);

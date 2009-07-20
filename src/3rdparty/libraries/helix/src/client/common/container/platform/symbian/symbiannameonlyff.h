@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbiannameonlyff.h,v 1.3 2007/07/16 16:04:22 atewari Exp $
+ * Source last modified: $Id
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,8 +52,6 @@
 #define _SYMBIAN_NAMEONLYFF_H_
 
 #include "findfile.h"
-#include "hxslist.h"
-#include <f32file.h>
 
 // Forward declarations
 class CHXString;
@@ -104,28 +102,12 @@ private:
     IUnknown*		   m_pContext;  // Context stored for pref QI
     CHXString          m_ConfigFileName; // name of the config file.
     CHXDataFile*       m_pFile;     // to read m_ConfigFileName
-    CHXSimpleList      m_entries; // entries from all the matching files.
-    UINT32             m_idx; // index into entries list
-    TParse             m_parser; 
-    HBufC*             m_pPluginDLLFileName; // Contents of PluginDLLFileName 
-    TPtrC              m_ScanDir;  // Directory to Scan
-    TPtrC              m_FilePattern; //Filename Pattern to match
-    RFs                m_Fs; 
     ParsingState       m_State;
     char*              m_pBuffer;   // for reading file data
     char*              m_pPos;      // for parsing the data
     INT32              m_Count;     // for parsing
     CHXString          m_DllName;   // name of the Dll
 
-
-private: 
-
-	void ProcessFile(const TDesC& aFileName);
-    HX_RESULT ReadPatternFromPrefs(); //
-    void ResetList();
-
-    char* _FindFirst();
-    char* _FindNext(); 
 };
 
 #endif /* _SYMBIAN_NAMEONLYFF_H_ */

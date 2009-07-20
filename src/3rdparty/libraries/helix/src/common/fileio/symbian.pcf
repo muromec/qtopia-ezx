@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: symbian.pcf,v 1.14 2007/12/07 19:26:40 jwei Exp $
+# Source last modified: $Id: symbian.pcf,v 1.11 2006/09/19 23:52:24 gashish Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -68,7 +68,5 @@ if project.IsDefined('HELIX_FEATURE_MMF_DATASOURCE'):
 	project.AddSources('platform/symbian/hxdatasource_factory.cpp',
 	'platform/symbian/hxdatasource_ccontent.cpp',
 	'platform/symbian/hxdatasource_descriptor.cpp',
-	'platform/symbian/hxdatasourcemmfclip.cpp',
-	'platform/symbian/asynchronousmultireader.cpp',
-	'platform/symbian/HxMMDataSource.cpp')
+	'platform/symbian/hxdatasourcemmfclip.cpp')
 

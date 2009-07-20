@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxoptsc.h,v 1.10 2008/09/07 11:14:32 pbasic Exp $
+ * Source last modified: $Id: hxoptsc.h,v 1.8 2006/03/08 19:17:04 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -194,9 +194,8 @@ public:
 
 protected:
     LONG32	    m_lRefCount;
-    ClientPQ*       m_pPQ;
-    CHXID*          m_pID;
-    IHXMutex*       m_pPQMutex;
+    ClientPQ*		    m_pPQ;
+    CHXID*		    m_pID;
     IUnknown*	    m_pContext;
     IHXScheduler*  m_pScheduler;
 

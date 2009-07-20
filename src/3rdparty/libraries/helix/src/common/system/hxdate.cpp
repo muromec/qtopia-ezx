@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxdate.cpp,v 1.15 2008/01/18 07:35:17 vkathuria Exp $
+ * Source last modified: $Id: hxdate.cpp,v 1.13 2005/07/21 21:35:30 dcollins Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -67,10 +67,6 @@
 #else
 #include "hlxclib/sys/types.h"
 #include "hlxclib/sys/stat.h"
-#endif
-#if defined(_BREW)
-#include "hxassert.h"
-#include "hlxclib/ctype.h"
 #endif
 #if defined(_AIX)
 #include <ctype.h>
@@ -219,64 +215,6 @@ HX_GET_DATETIME(void)
 
 // unix code added here
 
-#elif defined(_BREW)
-HX_DATETIME 
-HX_GET_DATETIME(void)
-
-{
-    HX_DATETIME dt;
-    time_t t = GETTIMESECONDS();
-    JulianType jtcurrentDate = {0,};
-    GETJULIANDATE(t, &jtcurrentDate);
-
-    dt.second           = jtcurrentDate.wSecond;
-    dt.minute           = jtcurrentDate.wMinute;
-    dt.hour             = jtcurrentDate.wHour;
-    dt.dayofweek        = (jtcurrentDate.wWeekDay + 1) % 7;
-    //BREW: (0=Monday, 6=Sunday), Helix((0=Sunday, 6=Saturday)
-    dt.dayofmonth       = jtcurrentDate.wDay;
-    dt.month            = jtcurrentDate.wMonth;
-    dt.year             = jtcurrentDate.wYear;
-    dt.gmtDelta         = 0; // or something
-
-    dt.dayofyear = jtcurrentDate.wDay; // for current month
-    int i = 1;
-    while (i < dt.month)
-    {
-	switch(i)
-	{
-	    case 1: // jan, mar, may, july, aug, oct, dec
-	    case 3: 
-	    case 5: 
-	    case 7: 
-	    case 8: 
-	    case 10: 
-		    dt.dayofyear += 31;
-		    break;
-    	    case 2: 
-		    dt.dayofyear += 28;
-		    if (dt.year % 400 == 0 || (dt.year % 4 == 0 && dt.year % 100 != 0)) 
-		    {
-			dt.dayofyear++;
-		    }
-		    break;
-		    dt.dayofyear += 31;
-		    break;
-	    case 4: 
-	    case 6: 
-	    case 9: 
-	    case 11: 
-		    dt.dayofyear += 30;
-		    break;
-	    default:
-	    HX_ASSERT(0);
-	    break;
-	}
-	i++;
-    }
-
-    return dt;
-}
 #endif // _WIN32 
 
 //  Returns the number of the month given or -1 on error.

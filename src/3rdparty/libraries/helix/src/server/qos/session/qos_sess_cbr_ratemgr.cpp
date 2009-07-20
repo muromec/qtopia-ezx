@@ -10,7 +10,6 @@
 #include "asmrulep.h"
 #include "bwcalc.h"
 #include "pcktstrm.h"
-#include "mem_cache.h"
 #include "pcktflowmgr.h"
 #include "server_engine.h"
 #include "timeval.h"

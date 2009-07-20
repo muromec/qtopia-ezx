@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: server_request.h,v 1.6 2008/03/09 12:19:24 npatil Exp $ 
+ * Source last modified: $Id: server_request.h,v 1.4 2003/09/04 22:39:09 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,7 +41,6 @@
 #include "hxtypes.h"
 #include "hxcom.h"
 #include "hxfiles.h"
-#include "ihxurlparser.h"
 
 typedef enum
 {
@@ -54,8 +53,6 @@ class ServerRequest
 public:
     ServerRequest();
     virtual ~ServerRequest();
-
-    ServerRequest* Clone(IHXCommonClassFactory* pCCF);
 
     /*
      * The IHXRequest interface is implemented by the ServerRequestWrapper
@@ -131,19 +128,11 @@ public:
 	REF(IUnknown*) pIUnknownCurrentRequester
     );
 
-    /************************************************************************
-     *  Method:
-     *      IHXURLParser ::GetHXURL
-     *  Purpose:
-     *      Gets the IHXURL object 
-     */
-     STDMETHOD(GetHXURL)            (THIS_
-                                    REF(IHXURL*) pURL);
 private:
     IHXValues*	_GetRequestHeaders	(REQUEST_HEADER_TYPE HeaderType);
     IHXValues* _GetResponseHeaders	(REQUEST_HEADER_TYPE HeaderType);
     LONG32			m_lRefCount;
-    IHXURL*                     m_pURL;
+    char*			m_pURL;
     IHXValues*			m_pFSRequestHeaders;
     IHXValues*			m_pFSResponseHeaders;
     IHXValues*			m_pFFRequestHeaders;
@@ -155,7 +144,6 @@ private:
 class ServerRequestWrapper 
     : public IHXRequest
     , public IHXRequestContext
-    , public IHXURLParser
 {
 public:
     ServerRequestWrapper(REQUEST_HEADER_TYPE pHeaderType,
@@ -234,15 +222,6 @@ public:
     (
 	REF(IUnknown*) pIUnknownCurrentRequester
     );
-
-   /************************************************************************
-     *  Method:
-     *      IHXURLParser ::GetHXURL
-     *  Purpose:
-     *      Gets the IHXURL object 
-     */
-     STDMETHOD(GetHXURL)            (THIS_
-                                     REF(IHXURL*) pURL);
 
 private:
     LONG32			m_lRefCount;

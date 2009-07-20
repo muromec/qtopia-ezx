@@ -17,7 +17,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -52,11 +52,6 @@
 #include "hxmedpltfmloader.h"
 
 #include "hxheap.h"
-
-#if defined(HELIX_CONFIG_NOSTATICS)
-	#include "globals/hxglobals.h"
-#endif
-
 #ifdef _DEBUG
 #undef HX_THIS_FILE		
 static const char HX_THIS_FILE[] = __FILE__;
@@ -66,48 +61,11 @@ static const char HX_THIS_FILE[] = __FILE__;
 #error should not be included in build
 #endif
 
-#if defined(HELIX_CONFIG_NOSTATICS)
-
-// function used to register with global mgr
-// for deleting the loader
-void DeleteMediaPlatformLoader(void *pLoader)
-{
-    if(pLoader != NULL)
-    {
-        delete pLoader;
-    }
-}
-#endif
-
 CHXMediaPlatformLoader& 
 CHXMediaPlatformLoader::Loader()
 {
-#if !defined(HELIX_CONFIG_NOSTATICS)	
     static CHXMediaPlatformLoader instance;
     return instance;
-#else
-    static const UINT32 ulContext = 0;
-    CHXMediaPlatformLoader** ppLoader = NULL;
-    CHXMediaPlatformLoader* pRetInstance = NULL;
-
-    HXGlobalManager* pGM = HXGlobalManager::Instance();
-    if(pGM != NULL)
-    {
-        ppLoader = (CHXMediaPlatformLoader**) (pGM->Get((GlobalID)&ulContext));
-        if(ppLoader == NULL)
-        {
-            pRetInstance = new CHXMediaPlatformLoader();
-            pGM->Add( (GlobalID)&ulContext, (GlobalType)pRetInstance, &DeleteMediaPlatformLoader);
-        }
-        else
-        {
-            pRetInstance = *ppLoader;
-        }
-    }
-    
-    HX_ASSERT(pRetInstance);
-   return *pRetInstance;
-#endif    
 }
 
 CHXMediaPlatformLoader::CHXMediaPlatformLoader()

@@ -1,0 +1,83 @@
+# -*- python -*-
+# 
+# ***** BEGIN LICENSE BLOCK ***** 
+# Version: RCSL 1.0/RPSL 1.0 
+#  
+# Portions Copyright (c) 1995-2002 RealNetworks, Inc. All Rights Reserved. 
+#      
+# The contents of this file, and the files included with this file, are 
+# subject to the current version of the RealNetworks Public Source License 
+# Version 1.0 (the "RPSL") available at 
+# http://www.helixcommunity.org/content/rpsl unless you have licensed 
+# the file under the RealNetworks Community Source License Version 1.0 
+# (the "RCSL") available at http://www.helixcommunity.org/content/rcsl, 
+# in which case the RCSL will apply. You may also obtain the license terms 
+# directly from RealNetworks.  You may not use this file except in 
+# compliance with the RPSL or, if you have a valid RCSL with RealNetworks 
+# applicable to this file, the RCSL.  Please see the applicable RPSL or 
+# RCSL for the rights, obligations and limitations governing use of the 
+# contents of the file.  
+#  
+# This file is part of the Helix DNA Technology. RealNetworks is the 
+# developer of the Original Code and owns the copyrights in the portions 
+# it created. 
+#  
+# This file, and the files included with this file, is distributed and made 
+# available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER 
+# EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS ALL SUCH WARRANTIES, 
+# INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS 
+# FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT. 
+# 
+# Technology Compatibility Kit Test Suite(s) Location: 
+#    http://www.helixcommunity.org/content/tck 
+# 
+# Contributor(s): 
+#  
+# ***** END LICENSE BLOCK ***** 
+# 
+
+UmakefileVersion(2,2)
+
+project.AddModuleIncludes("common/include",
+              "common/container/pub",
+              "common/dbgtool/pub",
+              "common/system/pub",
+              "common/util/pub",
+              "client/common/system/pub",
+              "datatype/include",
+              "datatype/common/audrend/pub",
+              "datatype/common/container/pub",
+              "datatype/common/util/pub",
+              "datatype/common/include",
+              "datatype/mdf/audio/common/pub",
+              "datatype/mp4/common/pub",
+              "datatype/rm/include")
+
+project.ExportFunction("RACreateDecoderInstance",
+                       "const CLSID &clsid, IUnknown** ppUnknown")
+project.ExportFunction("RAOpenCodec2",
+                       "RACODEC* pCodecRef, const char* pCodecPath")
+project.ExportFunction("RACloseCodec",
+                       "RACODEC codecRef")
+project.ExportFunction("RAGetFlavorProperty",
+                       "RACODEC codecRef, UINT16 flvIndex, UINT16 propIndex, UINT16* pSize")
+project.ExportFunction("RAInitDecoder",
+                       "RACODEC codecRef, void* pParam")
+project.ExportFunction("RADecode",
+                       "RACODEC codecRef, Byte* in, UINT32 inLength, Byte* out, UINT32* pOutLength, UINT32 userData")
+project.ExportFunction("RAFlush",
+                       "RACODEC codecRef, Byte* outBuf, UINT32* pOutLength")
+project.ExportFunction("RAFreeDecoder",
+                       "RACODEC codecRef")
+project.ExportFunction("RASetComMode",
+                       "RACODEC codecRef")
+project.ExportFunction("RAGetGUID",
+                       "UCHAR* pGUID")
+project.ExportFunction("RAGetBackend",
+                       "RACODEC codecRef, void*** pFuncList")
+
+project.SetDLLTypeCodec()
+DLLTarget('arma')
+
+DependTarget()
+

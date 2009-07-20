@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: CHXSymbianAudioSession.h,v 1.2 2008/10/19 05:13:54 gajia Exp $
+ * Source last modified: $Id: CHXSymbianAudioSession.h,v 1.1 2007/04/03 18:24:49 rrajesh Exp $
  * 
  * Copyright Notices: 
  *  
@@ -116,8 +116,6 @@ public:
         CHXAudDevStatusObserver* pDevStatusObserver);
 
     virtual void CancelDeviceTakenNotification();
-
-	virtual TInt SetSecureOutput(HXBOOL bSecureAudio);
 
     // Override CHXBaseDevSoundObserver callbacks
     void InitializeComplete(TInt aError);

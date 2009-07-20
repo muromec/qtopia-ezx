@@ -1,6 +1,6 @@
 # -*- python -*-
 # ***** BEGIN LICENSE BLOCK *****  
-# Source last modified: $Id: Umakefil,v 1.25 2008/08/21 00:11:54 jzeng Exp $ 
+# Source last modified: $Id: Umakefil,v 1.14 2006/12/21 19:04:55 tknox Exp $ 
 #   
 # Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
 #       
@@ -33,7 +33,7 @@
 #    http://www.helixcommunity.org/content/tck  
 #  
 # Contributor(s):  
-#  
+#   
 # ***** END LICENSE BLOCK *****  
 
 UmakefileVersion(2,1)
@@ -52,7 +52,6 @@ project.AddModuleIncludes('common/include',
                           'protocol/transport/rtp/pub',
                           'protocol/transport/rtp',
                           'protocol/rtsp/pub',
-                          'protocol/http/pub',
                           'protocol/sdp/pub',
                           'server/common/netio/pub',
                           'server/common/struct/pub',
@@ -82,17 +81,11 @@ project.AddIncludes("../transport/rtp/pub")
 
 project.AddSources('nulltran.cpp',
 	           'rtspmsg2.cpp',
+		   'rtspprot.cpp',
 		   'rtspprot2.cpp',
-           'crtspbase.cpp',
 	           'rtspserv.cpp',
-               'rtspsession.cpp',
-                   'rtspsessmgr.cpp',
 	           'rtspstats.cpp',
                    'transportparams.cpp',
 		'chxrtcptransmapsocket.cpp')
 
-if project.IsDefined("HELIX_FEATURE_SERVER_FCS"):
-    project.AddModuleIncludes('server-restricted/protocol/http-ctrl/pub')
-    project.AddModuleIncludes('server-restricted/datatype/playlist/pub')
-    
 LibraryTarget('servrtsplib')

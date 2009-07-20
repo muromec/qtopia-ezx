@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: core_proc.h,v 1.12 2008/10/23 00:59:11 svaidhya Exp $
+ * Source last modified: $Id: core_proc.h,v 1.10 2005/01/25 22:55:21 jzeng Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -82,11 +82,7 @@ private:
                             Config* config,
                             ServerRegistry* registry,
                             int backlog);
-                        void InitHTTPControlPort(char* szConfigString,
-                                                  Process* proc,
-                                                  Config* config,
-                                                  ServerRegistry* registry,
-                                                  HXBOOL bShareSamePort);
+
 };
 
 class TimeZoneCheckCallback : public IHXCallback

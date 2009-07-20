@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
-* Source last modified: $Id: chxmedpltfmex.cpp,v 1.10 2009/03/31 18:25:44 tyeager Exp $
+* Source last modified: $Id: chxmedpltfmex.cpp,v 1.5 2007/04/17 23:44:44 milko Exp $
 * 
 * Portions Copyright (c) 1995-2006 RealNetworks, Inc. All Rights Reserved.
 * 
@@ -18,7 +18,7 @@
 * contents of the file.
 * 
 * Alternatively, the contents of this file may be used under the
-* terms of the GNU General Public License Version 2 (the
+* terms of the GNU General Public License Version 2 or later (the
 * "GPL") in which case the provisions of the GPL are applicable
 * instead of those above. If you wish to allow use of your version of
 * this file only under the terms of the GPL, and not to allow others
@@ -212,8 +212,7 @@ END_INTERFACE_LIST_BASE(CHXMediaPlatform)
 
 CHXMediaPlatformEx::CHXMediaPlatformEx (CHXMediaPlatformEx* pParent, CHXMediaPlatformEx* pRoot) :
     CHXMediaPlatform(pParent, pRoot),
-    m_TimerInterval (2000), // XXXHP - is this a good rate?
-    m_pTimerObserver (NULL)
+    m_TimerInterval (2000) // XXXHP - is this a good rate?
 {
     HXAutoLock lock( &m_DefaultHoldTimeLockKey );
 
@@ -716,13 +715,7 @@ CHXMediaPlatformEx::ObjectFromCLSIDPrivate(REFCLSID clsid,REF(IUnknown*)pObject,
 	if( ! objectAlreadyExists )
 	{
 	    // Construct object here, and add it to the cache.  
-	    // The 4th Parameter is passed as Context in RegisterContext when base CHXMediaPlatform
-	    // creates the cached object.  Some cached objects assume that the Context they're passed
-	    // will be nested at the same level at which they're cached (this level because objectCached==true).  
-	    // We must pass cached object the Unknown of this MediaPlatformEx, rather than the pContext 
-	    // parameter passed into this function from the MediaPlatform that began the creation 
-	    // process in CreateInstanceAggregatable or similar call.
-	    result = CHXMediaPlatform::ObjectFromCLSIDPrivate(clsid, pObject, pUnkOuter, GetUnknown());
+	    result = CHXMediaPlatform::ObjectFromCLSIDPrivate(clsid, pObject, pUnkOuter, pContext);
 
 	    if( SUCCEEDED( result ) )
 	    {
@@ -765,21 +758,7 @@ CHXMediaPlatformEx::CreateIntrinsicType( REFCLSID rclsid, REF(IUnknown*) pUnknow
 	CHXMediaPlatformEx* pChildMediaPlatform = new CHXMediaPlatformEx(this, (CHXMediaPlatformEx*)m_pRoot);
 	if(pChildMediaPlatform)
 	{
-            // Init() so that services such as Scheduler can be new-ed if the child MediaPlatform
-            // is created on a separate thread than its parent(root)
-            pChildMediaPlatform->Init(NULL);
 	    pChildMediaPlatform->SetupAggregation(pOuter, &pUnknown);
-
-            if (!m_pChildren)
-            {
-                m_pChildren = new CHXSimpleList();
-            }
-
-            if (m_pChildren)
-            {
-                pChildMediaPlatform->AddRef();
-                m_pChildren->AddTail(pChildMediaPlatform);
-            }
 	}
     }
     else if( IsEqualCLSID(rclsid, CLSID_HXGenericContext ) )

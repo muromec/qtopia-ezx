@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: http_demux.cpp,v 1.40 2009/05/26 23:34:38 atin Exp $
+ * Source last modified: $Id: http_demux.cpp,v 1.24 2006/11/23 13:44:06 srao Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -67,14 +67,6 @@
 #include "rn1cloak.h"
 #include "qtcloak.h"
 
-#if defined(HELIX_FEATURE_SERVER_CONTENT_MGMT)
-#include "httpcontentmgr.h"
-#endif
-
-#if defined(HELIX_FEATURE_SERVER_FCS)
-#include "fcsgethandler.h"
-#endif
-
 #if defined(HELIX_FEATURE_SERVER_WMT_MMS)
 #include "wmt_httpprot.h"
 #endif
@@ -82,14 +74,6 @@
 #ifdef HELIX_FEATURE_SERVER_CLOAKV2
 #include "rn1cloakfallback.h"
 #endif //defined HELIX_FEATURE_SERVER_CLOAKV2
-
-#if defined(HELIX_FEATURE_SERVER_SSPL)
-#include "ssplgethandler.h"
-#endif
-
-#if defined(HELIX_FEATURE_SERVER_FCS)
-#include "compatibility_handler.h"
-#endif
 
 const int MAX_HTTP_MSG = 32768;
 
@@ -103,24 +87,22 @@ CHTTPDemux::CHTTPDemux(void) :
     m_pSavedMessage(NULL),
     m_ReadState(DEMUX_READ_MSG),
     m_bClosed(FALSE),
-    m_uHTTPResponseCode(0),
     m_ulMsgLen(0)
 {
-	m_pParser = new HTTPParser;
+    m_pParser = new HTTPParser;
 }
 
 CHTTPDemux::~CHTTPDemux(void)
 {
     if (!m_bClosed)
     {
-        Process::get_proc()->pc->error_handler->Report(HXLOG_DEBUG, 0, 0,
+        m_proc->pc->error_handler->Report(HXLOG_DEBUG, 0, 0,
                 "CHTTPDemux deleted before closing!", 0);
     }
     Close(HXR_FAIL);
     HX_DELETE(m_pSavedMessage);
     HX_DELETE(m_pParser);
     HX_RELEASE(m_pSock);
-    HX_RELEASE(m_pFragBuf);
 }
 
 STDMETHODIMP
@@ -194,31 +176,6 @@ CHTTPDemux::EventPending(UINT32 uEvent, HX_RESULT status)
         {
             m_pResponse->OnWriteReady();
         }
-	/* If response was "401 UnAuthorized", do not wait furthur on this socket connection.
-	 * This may cause DoS attacks, many open connections for UnAuthorize
-	 * attempts may prevent legitimate connection to establish due to limited
-	 * number of open sockets.
-	 */
-        if(m_uHTTPResponseCode == 401)
-        {
-            m_uHTTPResponseCode = 0;
-            // Prevent premature destruction (before releasing member objects)
-            AddRef();
-
-            if (m_pResponse != NULL)
-            {
-                   m_pResponse->OnClosed();
-            }
-            if (m_pClient != NULL)
-            {
-                   m_pClient->OnClosed(HXR_OK);
-            }
-
-            HX_RELEASE(m_pResponse);
-            HX_RELEASE(m_pClient);
-            // Destructor call OK.
-            Release();
-        }
         break;
     case HX_SOCK_EVENT_CLOSE:
         // Prevent premature destruction (before releasing member objects)
@@ -256,6 +213,7 @@ CHTTPDemux::EventPending(UINT32 uEvent, HX_RESULT status)
                 HX_RELEASE(pBuf);
             }
         }
+
         break;
     default:
         HX_ASSERT(FALSE);
@@ -268,13 +226,6 @@ CHTTPDemux::GetProc(void)
 {
     return m_proc;
 }
-
-STDMETHODIMP_(void)
-CHTTPDemux::SetHTTPResponseCode(UINT16 code)
-{
-	m_uHTTPResponseCode = code;
-}
-
 
 STDMETHODIMP_(void)
 CHTTPDemux::SetProc(Process* proc)
@@ -295,7 +246,7 @@ CHTTPDemux::CreateClient(void)
     HX_ASSERT(m_pClient == NULL);
     m_pClient = new Client(m_proc);
     m_pClient->AddRef();
-    m_pClient->Init(HXPROT_HTTP, this);
+    m_pClient->init(HXPROT_HTTP, this);
     return HXR_OK;
 }
 
@@ -339,13 +290,6 @@ CHTTPDemux::Close(HX_RESULT status)
 	return;
     m_bClosed = TRUE;
 
-	
-    if (m_pResponse != NULL)
-    {
-        m_pResponse->OnClosed();
-        HX_RELEASE(m_pResponse);
-    }
-
     if (m_pClient != NULL)
     {
         m_pClient->OnClosed(status);
@@ -353,6 +297,8 @@ CHTTPDemux::Close(HX_RESULT status)
     }
 
     Done(status);
+
+    HX_RELEASE(m_pResponse);
 }
 
 void
@@ -614,24 +560,6 @@ CHTTPDemux::DetectHandler(HTTPMessage* pMsg)
     {
         HTTPRequestMessage* pReq = (HTTPRequestMessage*)pMsg;
         const char* pUrl = pReq->url();
-
-#if defined(HELIX_FEATURE_SERVER_FCS)
-        if (CompatibilityHandler::IsCompatibilityChkRequest(pUrl, tag, GetProc(), m_pSock) == TRUE)
-        {
-            m_pResponse = new CompatibilityHandler();
-            m_pResponse->AddRef();
-            return;
-        }
-#endif
-
-#if defined(HELIX_FEATURE_SERVER_CONTENT_MGMT)  
-        if (HTTPContentManager::IsHTTPContentManagerRequest(pUrl, tag, GetProc(), m_pSock) == TRUE)
-        {
-            m_pResponse = new HTTPContentManager();
-            m_pResponse->AddRef();
-            return;
-        }
-#endif
         if (strncmp(pUrl, "/SmpDsBhgRl", 11) == 0)
         {
             if (tag == HTTPMessage::T_GET)
@@ -646,26 +574,6 @@ CHTTPDemux::DetectHandler(HTTPMessage* pMsg)
             }
             return;
         }
-
-#if defined(HELIX_FEATURE_SERVER_SSPL)
-        if (SSPLGetHandler::IsSSPLRequest(pUrl, tag, GetProc(), m_pSock) == TRUE)
-        {
-            m_pResponse = new SSPLGetHandler();
-            m_pResponse->AddRef();
-            return;
-        }
-#endif
-
-#if defined(HELIX_FEATURE_SERVER_FCS)
-
-        if (FCSGETHandler::IsFCSRequest(pUrl, tag, GetProc(), m_pSock) == TRUE)
-        {
-            m_pResponse = new FCSGETHandler();
-            m_pResponse->AddRef();
-            return;
-        }
-
-#endif
 
 #ifdef HELIX_FEATURE_SERVER_CLOAKV2
 
@@ -760,9 +668,6 @@ CHTTPDemux::DetectHandler(HTTPMessage* pMsg)
 		}
 	    }
 	}
-
-    if (!HTTP::IsAccessAllowed((char*)pUrl, m_proc->pc->HTTP_deliver_paths))
-    {
 #if defined(HELIX_FEATURE_SERVER_WMT_MMS)
         if (IsWMTHTTP(pUrl, pUserAgentHdr))
         {
@@ -771,7 +676,6 @@ CHTTPDemux::DetectHandler(HTTPMessage* pMsg)
             return;
         }
 #endif
-    }
     }
     m_pResponse = new HTTPProtocol();
     m_pResponse->AddRef();
@@ -791,14 +695,10 @@ CHTTPDemux::IsWMTHTTP(const char* pUrl, MIMEHeader* pUserAgentHdr)
 
     const char szWMPlayer[] = "NSPlayer/";
     const char szWMServer[] = "NSServer/";
-    // For wm extension WMP sends "Windows-Media-Player/" as user-agent string
-    // if played using Open URL
-    const char szWMP[] = "Windows-Media-Player/";
 
     if (!IsASXGen(pUrl) &&
         (strncmp(pStr, szWMPlayer, 9) == 0 ||
-        strncmp(pStr, szWMServer, 9) == 0 ||
-        strncmp(pStr, szWMP, 21) == 0))
+        strncmp(pStr, szWMServer, 9) == 0))
     {
         return true;
     }

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: sysinfo.h,v 1.7 2008/07/25 16:52:38 dcollins Exp $ 
+ * Source last modified: $Id: sysinfo.h,v 1.6 2005/04/20 14:05:31 dcollins Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -52,12 +52,10 @@
 // Work with all versions of pdh.dll
 #ifdef PdhOpenQuery
 #undef PdhOpenQuery
-extern "C" long __stdcall
+extern "C" long __stdcall 
 PdhOpenQuery (LPCSTR  szD, DWORD  dw, HQUERY  *phQ);
 #endif /* PdhOpenQuery */
 #endif /* _WINDOWS */
-
-typedef UINT64 UsageCounter;
 
 class CSysInfo
 {
@@ -66,21 +64,21 @@ public:
     virtual ~CSysInfo();
 
     virtual UINT32 GetNumberofCPU       (void);
-    virtual HX_RESULT GetCPUUsage       (REF(INT32) lUserUsagePct, REF(INT32) lKernUsagePct, REF(INT32) lAggUsagePct);
+    virtual HX_RESULT GetCPUUsage       (REF(INT32) ulUserUsage, REF(INT32) ulKernUsage, REF(INT32) ulAggUsage);
     virtual HX_RESULT GetMemUsage       (REF(UINT32) ulMemUsage);
     virtual HX_RESULT InitCPUCalc       (void);
 
 protected:
     virtual HX_RESULT InitProcUsage     (void);
-    virtual HX_RESULT GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    virtual HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    virtual HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage);
+    virtual HX_RESULT GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage);
+    virtual HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage);
+    virtual HX_RESULT GetTotalCPUUsage  (UINT32* plUsage);
     char* SkipToken (const char* p);
 
     struct timeval      m_StartTime;
-    UsageCounter        m_uLastUserCPUUsage;
-    UsageCounter        m_uLastKernCPUUsage;
-    UsageCounter        m_uLastAggCPUUsage;
+    UINT32              m_ulLastUserCPUUsage;
+    UINT32              m_ulLastKernCPUUsage;
+    UINT32              m_ulLastAggCPUUsage;
 };
 
 
@@ -91,7 +89,7 @@ public:
     CWindowsSysInfo();
     ~CWindowsSysInfo();
 
-    HX_RESULT GetCPUUsage       (REF(INT32) lUserUsagePct, REF(INT32) lKernUsagePct, REF(INT32) lAggUsagePct);
+    HX_RESULT GetCPUUsage       (REF(INT32) ulUserUsage, REF(INT32) ulKernUsage, REF(INT32) ulAggUsage);
     UINT32 GetNumberofCPU       (void);
     HX_RESULT InitCPUCalc       (void);
     HX_RESULT GetMemUsage       (REF(UINT32) ulMemUsage);
@@ -119,9 +117,9 @@ public:
     HX_RESULT InitCPUCalc       (void);
 
 private:
-    HX_RESULT GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage);
+    HX_RESULT GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage);
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage);
+    HX_RESULT GetTotalCPUUsage  (UINT32* plUsage);
 
     kstat_ctl_t*        m_pkc;
 };
@@ -137,9 +135,9 @@ public:
     UINT32 GetNumberofCPU       (void);
 
 private:
-    HX_RESULT GetTotalProcUsage (UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage);
+    HX_RESULT GetTotalProcUsage (UINT32* plUserUsage, UINT32* plKernUsage);
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, UINT32* plKernUsage);
+    HX_RESULT GetTotalCPUUsage  (UINT32* plUsage);
 };
 
 
@@ -151,9 +149,9 @@ public:
     ~CBsdSysInfo();
 
 private:
-    HX_RESULT GetTotalProcUsage (UsageCounter* pUserUsage, ULONG64* pKernUsage);
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage);
+    HX_RESULT GetTotalProcUsage (UINT32* plUserUsage, ULONG32* plKernUsage);
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, ULONG32* plKernUsage);
+    HX_RESULT GetTotalCPUUsage  (UINT32* pUsage);
 };
 
 
@@ -165,11 +163,11 @@ public:
     ~CHPSysInfo();
  
     UINT32 GetNumberofCPU       (void);
-    HX_RESULT GetCPUUsage       (REF(INT32) lServerUsagePct, REF(INT32) lAggUsagePct);
+    HX_RESULT GetCPUUsage       (REF(INT32) ulServerUsage, REF(INT32) ulAggUsage);
 
 private:
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage);
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, ULONG32* plKernUsage);
+    HX_RESULT GetTotalCPUUsage  (UINT32* plUsage);
     HX_RESULT GetProcUsage      (UINT32 id, float* pfUsage);
 };
 
@@ -185,8 +183,8 @@ public:
 
 
 private:
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* pUsage)
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, ULONG32* plKernUsage)
+    HX_RESULT GetTotalCPUUsage  (UINT32* plUsage)
     HX_RESULT GetKernelValue    (unsigned long ulOffset, caddr_t pAddr, int nSize);
 
     unsigned long       m_ulSysinfoOffset;
@@ -204,8 +202,8 @@ public:
     GetNumberofCPU(void)
 
 private:
-    HX_RESULT GetProcUsageById  (UINT32 id, UsageCounter* pUserUsage, UsageCounter* pKernUsage);
-    HX_RESULT GetTotalCPUUsage  (UsageCounter* puUsage);
+    HX_RESULT GetProcUsageById  (UINT32 id, UINT32* plUserUsage, ULONG32* plKernUsage);
+    HX_RESULT GetTotalCPUUsage  (UINT32* pulUsage);
 
 };
 #endif

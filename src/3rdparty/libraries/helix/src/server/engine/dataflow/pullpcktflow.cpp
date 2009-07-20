@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: pullpcktflow.cpp,v 1.21 2007/08/18 00:21:12 dcollins Exp $
+ * Source last modified: $Id: pullpcktflow.cpp,v 1.19 2006/12/21 05:06:06 tknox Exp $
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -68,6 +68,7 @@
 #include "mem_cache.h"
 #include "hxpiids.h"
 #include "globals.h"
+#include "player.h"
 
 #include "servbuffer.h"
 #include "hxqossess.h"
@@ -118,6 +119,11 @@ PullPacketFlow::PullPacketFlow(Process* p,
     m_pTimeCallback = new (m_pProc->pc->mem_cache) PacketFlowTimeCallback();
     m_pTimeCallback->m_pFlow = this;
     m_pTimeCallback->AddRef();
+
+    if (pSourcePackets->IsThreadSafe() & HX_THREADSAFE_METHOD_FF_GETPACKET)
+        m_bThreadSafeGetPacket = TRUE;
+    else
+        m_bThreadSafeGetPacket = FALSE;
 
     // Create the Rate Manager Object
     CCBRRateMgr* pRateMgr = new CCBRRateMgr(p, unStreamCount, pFlowMgr);
@@ -559,7 +565,24 @@ PullPacketFlow::SendPacket()
     m_tLastSendTime = tNow;
 
     // Get the next packet from the same flow we just sent from
-    GetNextPacket(nBestStream);
+    if (!m_bThreadSafeGetPacket && !m_pProc->pc->engine->m_bMutexProtection)
+    {
+        // XXXSMP Can't get a lock? Schedule GNP
+        HXMutexLock(g_pServerMainLock);
+        m_pProc->pc->engine->m_bMutexProtection = TRUE;
+        m_bDidLock = TRUE;
+        GetNextPacket(nBestStream);
+        if (m_bDidLock)
+        {
+            m_pProc->pc->engine->m_bMutexProtection = FALSE;
+            HXMutexUnlock(g_pServerMainLock);
+            m_bDidLock = FALSE;
+        }
+    }
+    else
+    {
+        GetNextPacket(nBestStream);
+    }
 
     return FALSE;
 }

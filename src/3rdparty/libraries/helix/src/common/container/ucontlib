@@ -1,7 +1,7 @@
 # -*- python -*-
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: ucontlib,v 1.19 2007/08/20 18:11:04 dcollins Exp $
+# Source last modified: $Id: ucontlib,v 1.17 2007/04/16 14:29:01 ehyche Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -20,7 +20,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -81,7 +81,6 @@ project.AddSources("carray.cpp",
                    "chxmapptrtoptr.cpp",
                    "chxmapstringtoob.cpp",
                    "chxmaplongtoobj.cpp",
-                   "chxmapu64toobj.cpp",
                    "chxmapguidtoobj.cpp",
                    "chxmapstringtostring.cpp",
                    "stringtostringlistmap.cpp",

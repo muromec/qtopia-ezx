@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxcbobj.cpp,v 1.7 2007/10/04 15:28:54 ehyche Exp $
+ * Source last modified: $Id: hxcbobj.cpp,v 1.5 2004/07/09 18:23:51 hubbe Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -110,22 +110,9 @@ void CHXGenericCallback::ScheduleRelative(IHXScheduler* pScheduler, UINT32 ulMs)
 {
     if (pScheduler && !IsCallbackPending())
     {
-        // On some platforms, the callback that we are scheduling can
-        // get scheduled AND executed before RelativeEnter() returns.
-        // Therefore, we set m_PendingHandle to 0xFFFFFFFF before
-        // we call RelativeEnter().
-        m_PendingHandle = 0xFFFFFFFF;
-        // Schedule a callback and assign the handle to a local variable
+        // No callback currently scheduled, so schedule one
         CallbackHandle hCB = pScheduler->RelativeEnter(this, ulMs);
-        // If m_PendingHandle is 0, that means that the callback already
-        // got scheduled and executed before RelativeEnter() returned.
-        // In that case, we DON'T want to assign the return value
-        // of RelativeEnter() to m_PendingHandle, since that would indicate
-        // that there is a pending callback when there really isn't.
-        if (m_PendingHandle != 0)
-        {
-            m_PendingHandle = hCB;
-        }
+        CallbackScheduled(hCB);
     }
 }
 

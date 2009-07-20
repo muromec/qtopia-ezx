@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: _main.cpp,v 1.160 2009/05/20 20:29:26 dcollins Exp $
+ * Source last modified: $Id: _main.cpp,v 1.144 2007/03/05 23:24:05 atin Exp $
  *
  * Portions Copyright (c) 1995-2007 RealNetworks, Inc. All Rights Reserved.
  *
@@ -44,7 +44,6 @@
 #include "hlxclib/netdb.h"
 #include "hlxclib/sys/types.h"
 #include "hlxclib/sys/stat.h"
-#include "hlxclib/signal.h"
 
 #if !defined(_WIN32)
 
@@ -80,9 +79,7 @@ size_t get_base_of_stack(size_t sp);
 #include <sys/types.h>
 #include <linux/unistd.h>
 #include <errno.h>
-#ifndef _LSB
 pid_t gettid(void);
-#endif
 #endif // PTHREADS_SUPPORTED
 #endif // _LINUX
 
@@ -93,36 +90,20 @@ pid_t gettid(void);
 #include <process.h>
 #endif
 
-class Process;
-
 typedef enum { NO_FAULT, IN_FAULT_HANDLER, IN_FAULT_DOUBLE_FAULT_HANDLER} CrashStateType;
 
-#include "mutex.h"
-
-// thread local storage
+// thread local storage of procnum
 #ifdef _WIN32
-__declspec(thread) Process* g_pTLSProc = 0;
 __declspec(thread) int g_nTLSProcnum = -1;
 __declspec(thread) CrashStateType g_eTLSCrashState = NO_FAULT;
-__declspec(thread) HX_MUTEX g_pTLSBucketLock = 0;                 // Level 1
-__declspec(thread) HX_MUTEX g_pTLSFreeListLock = 0;               // Level 2
-__declspec(thread) HX_MUTEX g_pTLSSbrkLock = 0;                   // Level 3
 #elif ((defined _LINUX && LINUX_EPOLL_SUPPORT) || (defined _SOLARIS && defined DEV_POLL_SUPPORT)) && defined PTHREADS_SUPPORTED
-__thread Process* g_pTLSProc = 0;
 __thread int g_nTLSProcnum = -1;
 __thread CrashStateType g_eTLSCrashState = NO_FAULT;
 __thread UINT32 g_ulTLSNumTripleFaults = 0;
-__thread HX_MUTEX g_pTLSBucketLock = 0;                 // Level 1
-__thread HX_MUTEX g_pTLSFreeListLock = 0;               // Level 2
-__thread HX_MUTEX g_pTLSSbrkLock = 0;                   // Level 3
 #else
-Process* g_pTLSProc = 0;
 int g_nTLSProcnum = -1;
 CrashStateType g_eTLSCrashState = NO_FAULT;
 UINT32 g_ulTLSNumTripleFaults = 0;
-HX_MUTEX g_pTLSBucketLock = 0;                 // Level 1
-HX_MUTEX g_pTLSFreeListLock = 0;               // Level 2
-HX_MUTEX g_pTLSSbrkLock = 0;                   // Level 3
 #endif // _WIN32
 
 #define MAX_NUM_TRIPLE_FAULTS 10
@@ -137,6 +118,7 @@ HX_MUTEX g_pTLSSbrkLock = 0;                   // Level 3
 #include "proc.h"
 #include "shmem.h"
 #include "time.h"
+#include "mutex.h"
 #include "simple_callback.h"
 #include "dispatchq.h"
 #include "core_proc.h"
@@ -182,9 +164,7 @@ HX_MUTEX g_pTLSSbrkLock = 0;                   // Level 3
 #include "rtspstats.h"
 #include "sdpstats.h"
 #include "shutdown.h"
-#ifdef HELIX_FEATURE_SECURE_LICENSE
-#include "systeminfo.h"
-#endif
+#include "osdetect.h"
 
 #define SELF_DEFINE_RESTART_SIGNAL 255
 
@@ -193,7 +173,7 @@ UINT32 RSSManager::m_ulRSSReportInterval;
 BOOL RSSManager::m_bRSSReportEnabled;
 LogFileOutput* RSSManager::m_pOutput;
 
-#define HX_COPYRIGHT_INFO "(c) 1995-2009 RealNetworks, Inc. All rights reserved."
+#define HX_COPYRIGHT_INFO "(c) 1995-2007 RealNetworks, Inc. All rights reserved."
 
 #define MAX_STARTUPLOG_LEN 1024
 char g_szStartupLog[MAX_STARTUPLOG_LEN];
@@ -384,10 +364,6 @@ BOOL g_bUseDevPoll = TRUE;
 #endif // DEV_POLL_SUPPORT
 #ifdef LINUX_EPOLL_SUPPORT
 BOOL g_bUseEPoll = TRUE;
-#ifdef _LSB
-#include "hxepoll.h"
-HXEPoll g_ServerEPoll;
-#endif
 #endif // DEV_POLL_SUPPORT
 
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
@@ -395,7 +371,7 @@ HXEPoll g_ServerEPoll;
 #endif
 
 #ifdef PTHREADS_SUPPORTED
-pthread_t g_ControllerTid = (pthread_t)-1;
+pthread_t g_ControllerTid = -1;
 BOOL g_bUnixThreads = TRUE;
 #endif // PTHREADS_SUPPORTED
 
@@ -491,6 +467,10 @@ DispatchQueue*   g_dq;
 
 #ifdef _LINUX
     UINT32 g_ulLinuxNoSegvSyscall = 0;
+#ifndef __NR_get_segv_eip
+#define __NR_get_segv_eip 240
+#endif
+    _syscall1(int, get_segv_eip, void**, peip);
 #endif
 
 #if defined PTHREADS_SUPPORTED || defined _LINUX
@@ -510,7 +490,6 @@ UINT32 g_ulThreadStackSize = 1024 * 1024;
 #define FAST_MALLOC_ALL 1
 #endif // FAST_MALLOC_ALL
 
-BOOL g_bServerGoingDown = FALSE;
 BOOL g_bSlightAcceleration = FALSE;
 BOOL g_bNoCrashAvoidance = 0;
 BOOL g_bCrashAvoidancePrint = 0;
@@ -519,10 +498,10 @@ BOOL g_bNoClientValidation = 0;
 BOOL g_bReportRestart = 0;
 BOOL g_bFastMalloc = TRUE;
 BOOL g_bFastMallocAll = FAST_MALLOC_ALL;
+BOOL g_bForceThreadSafePlugins = FALSE;
 BOOL g_bSkipCPUTest = FALSE;
 BOOL g_bAllowCoreDump = FALSE;
 BOOL g_bShowDebugErrorMessages = FALSE;
-BOOL g_bVerboseSystemInfoMessages = FALSE;
 BOOL g_bDisableHeartbeat = FALSE;
 char* g_pHeartBeatIP = 0;
 BOOL g_bDisablePacketAggregation = FALSE;
@@ -574,6 +553,7 @@ BOOL*   g_bITimerAvailable = 0;
 UINT32* g_pNumCrashAvoids = 0;
 UINT32* g_pNumCrashAvoidsInWindow = 0;
 Timeval* g_pCrashAvoidWindowTime = 0;
+BOOL*   g_bLimitParallelism = 0;
 UINT32* g_pMemoryMappedDataSize = 0;
 UINT32* g_pAggregateTo = 0;
 UINT32* g_pAggregateHighest = 0;
@@ -622,7 +602,7 @@ UINT32* g_pSignalCount;
 #if defined __GNUC__
 
 #ifndef _SOLARIS
-#include <new>
+#include <new.h>
 #endif
 
 typedef void (*vfp)(void);
@@ -658,20 +638,11 @@ int* VOLATILE pMemreapProcInitMutex;
 // Add a plugin's description to this list to prevent the server
 // from starting without loading it
 const char* CoreTransferCallback::zm_pRequiredPlugins[] =
-                        {
-#ifdef HELIX_FEATURE_SECURE_LICENSE
-                         "RealNetworks Server Licensing Plugin",
-                         "RealNetworks Basic Allowance Plugin",
-#endif
-                         NULL};
+                        {NULL};
 
 // This checksum should be set to -5 times the number of Required Plugins
 // in the list, so that we can be sure no one hacked the server binary
-#ifdef HELIX_FEATURE_SECURE_LICENSE
-const INT16 CoreTransferCallback::zm_nReqPlugChecksum = -10;
-#else
 const INT16 CoreTransferCallback::zm_nReqPlugChecksum = 0;
-#endif
 
 extern char * VOLATILE * VOLATILE restartargv;
 extern char * VOLATILE * VOLATILE origargv;
@@ -1218,11 +1189,10 @@ PthreadEntryPoint(thread_args* ta)
     proc = new Process;
     proc->AssignProcessNumber(ta->process_number);
     ta->proc = proc;
-    g_pTLSProc = proc;
 
     RecordStackBottom(proc);
 
-#if defined(_LINUX) && !defined(_LSB)
+#ifdef _LINUX
     suprintf("Starting TID %lu/%d, procnum %d (%s)\n",
            pthread_self(), gettid(), proc->procnum(), ta->processname);
 #else
@@ -1234,7 +1204,7 @@ PthreadEntryPoint(thread_args* ta)
     AddToThreadList(pthread_self());
 #endif
 
-#if defined(_LINUX) && !defined(_LSB)
+#ifdef _LINUX
     AddToProcessList(gettid());
 #else
     AddToProcessList(pthread_self());
@@ -1361,7 +1331,6 @@ MakeProcess(const char* processname, SimpleCallback* cb,
                 suprintf ("Starting PID %d, procnum %d (%s)\n", getpid(),
                     process_number, processname);
             }
-	    g_pTLSProc = proc;
 
 #ifdef ENABLE_PROFILING
             ProfilingSetup();
@@ -1422,7 +1391,6 @@ DWORD WINAPI WIN32_ThreadStart(void* p)
     proc = new Process;
     proc->AssignProcessNumber(process_number);
     suprintf("Starting TID %d, procnum %d (%s)\n", GetCurrentThreadId(), proc->procnum(), ta->processname);
-    g_pTLSProc = proc;
 
     delete ta;
 
@@ -1807,20 +1775,22 @@ dump_info(BOOL bIsCrash, int ulCrashState, const char* pTraceStr, int code)
         };
         ptr = &(buffer[0]);
 
-        CA_PRINT(("\n"));
-        RSSLOG("\n");
+        CA_PRINT(("\n\n"));
+        RSSLOG("\n\n");
 
 #elif defined _LINUX || defined _SOLARIS || defined _AIX
         char* pTrace = get_trace_from_context(pSC);
-        CA_PRINT(("%s", pTrace));
-        RSSLOG(pTrace);
+        CA_PRINT(("\n%s\n\n", pTrace));
         RSSLOG("\n");
+        RSSLOG(pTrace);
+        RSSLOG("\n\n");
 
 #else
         char* pTrace = get_trace();
-        CA_PRINT(("%s\n", pTrace));
-        RSSLOG(pTrace);
+        CA_PRINT(("\n%s\n\n", pTrace));
         RSSLOG("\n");
+        RSSLOG(pTrace);
+        RSSLOG("\n\n");
 
 #endif
     }
@@ -1918,31 +1888,6 @@ dummy_call(DWORD code)
     g_got_dummy_call = 1;
 
     DieIfTooManyCAs();
-
-    /*
-     * release mem mgr locks if this thread is holding any
-     * 3 - deepest
-     * 2 - mid-level
-     * 1 - top-leveL
-     */
-    // Level# 3
-    if (g_pTLSSbrkLock)
-    {
-	HXMutexUnlock(g_pTLSSbrkLock);
-	g_pTLSSbrkLock = 0;
-    }
-    // Level# 2
-    if (g_pTLSFreeListLock)
-    {
-	HXMutexUnlock(g_pTLSFreeListLock);
-	g_pTLSFreeListLock = 0;
-    }
-    // Level# 1
-    if (g_pTLSBucketLock)
-    {
-	HXMutexUnlock(g_pTLSBucketLock);
-	g_pTLSBucketLock = 0;
-    }
 
     if (g_eTLSCrashState == NO_FAULT)
     {
@@ -2275,11 +2220,7 @@ dump_trace(int code)
 
         char *pTrace = get_trace();
 
-#if defined(_LSB)
-        CA_PRINT(("\n------------------------ %lu -------------------------\n", pthread_self()));
-#else
         CA_PRINT(("\n------------------------ %lu/%d -------------------------\n", pthread_self(), gettid()));
-#endif
         CA_PRINT(("%s", pTrace));
 
         // send signals to other threads created by controller for printing their stacks.
@@ -2320,11 +2261,7 @@ dump_trace(int code)
 #if defined PTHREADS_SUPPORTED && defined _LINUX
         char *pTrace = get_trace();
 
-#if defined(_LSB)
-        CA_PRINT(("\n------------------------ %lu -------------------------\n", pthread_self()));
-#else
         CA_PRINT(("\n------------------------ %lu/%d -------------------------\n", pthread_self(), gettid()));
-#endif
         CA_PRINT(("%s", pTrace));
 
 
@@ -2501,31 +2438,6 @@ server_fault(int code)
 #endif
 
     DieIfTooManyCAs();
-
-    /*
-     * release mem mgr locks if this thread is holding any
-     * 3 - deepest
-     * 2 - mid-level
-     * 1 - top-leveL
-     */
-    // Level# 3
-    if (g_pTLSSbrkLock)
-    {
-	HXMutexUnlock(g_pTLSSbrkLock);
-	g_pTLSSbrkLock = 0;
-    }
-    // Level# 2
-    if (g_pTLSFreeListLock)
-    {
-	HXMutexUnlock(g_pTLSFreeListLock);
-	g_pTLSFreeListLock = 0;
-    }
-    // Level# 1
-    if (g_pTLSBucketLock)
-    {
-	HXMutexUnlock(g_pTLSBucketLock);
-	g_pTLSBucketLock = 0;
-    }
 
     if (g_eTLSCrashState == NO_FAULT)
     {
@@ -2737,7 +2649,6 @@ RestartOnFault(BOOL bRestart)
 BOOL
 RestartOrKillServer()
 {
-    StopAliveChecker();
     // restart, unless no-auto-restart requested.
 
     if (g_bNoAutoRestart)
@@ -3263,26 +3174,36 @@ RSSCoreStatsReport::Report(IHXLogOutput *pOutput, BOOL bEchoToStdout,
     UINT32 ulMutexNetWriters = ServerInfo::CounterDifference(&m_ulLastMutexNetWriters, *g_pMutexNetWriters);
 
 
-    pBufPointer += sprintf(pBufPointer, "    Scheduler Items: %d (With Mutex), %d (Without Mutex)\n",
-                           ulSchedulerElems, ulISchedulerElems);
+    if (*g_bLimitParallelism)
+    {
+        pBufPointer += sprintf(pBufPointer, "    Scheduler Items: %d (With Mutex), %d (Without Mutex)\n",
+            ulSchedulerElems + ulISchedulerElems, 0);
+        pBufPointer += sprintf(pBufPointer, "    Network Items: Read %d Write %d | ThreadSafe Read 0 (0.00%%) | ThreadSafe Write 0 (0.00%%)\n",
+                ulTotalNetReaders, ulTotalNetWriters);
+    }
+    else
+    {
+        pBufPointer += sprintf(pBufPointer, "    Scheduler Items: %d (With Mutex), %d (Without Mutex)\n",
+                               ulSchedulerElems, ulISchedulerElems);
 
-    double fMutexReadPct = 0.0;
-    if (ulTotalNetReaders)
-    {
-        fMutexReadPct = 100.0 * ulMutexNetReaders /
-            (ulTotalNetReaders + ulMutexNetReaders);
+        double fMutexReadPct = 0.0;
+        if (ulTotalNetReaders)
+        {
+            fMutexReadPct = 100.0 * ulMutexNetReaders /
+                (ulTotalNetReaders + ulMutexNetReaders);
+        }
+        double fMutexWritePct = 0.0;
+        if (ulTotalNetWriters)
+        {
+            fMutexWritePct = 100.0 * ulMutexNetWriters /
+                (ulTotalNetWriters + ulMutexNetWriters);
+        }
+        pBufPointer += sprintf(pBufPointer, "    Network Items: Read %d (%0.2f%% With Mutex), Write %d (%0.2f%% With Mutex)\n",
+                ulTotalNetReaders,
+                fMutexReadPct,
+                ulTotalNetWriters,
+                fMutexWritePct);
     }
-    double fMutexWritePct = 0.0;
-    if (ulTotalNetWriters)
-    {
-        fMutexWritePct = 100.0 * ulMutexNetWriters /
-            (ulTotalNetWriters + ulMutexNetWriters);
-    }
-    pBufPointer += sprintf(pBufPointer, "    Network Items: Read %d (%0.2f%% With Mutex), Write %d (%0.2f%% With Mutex)\n",
-            ulTotalNetReaders,
-            fMutexReadPct,
-            ulTotalNetWriters,
-            fMutexWritePct);
 
     UINT32 ulIdlePPMs    = ServerInfo::CounterDifference(&m_ulLastIdlePPMs, *g_pIdlePPMs);
 
@@ -3529,7 +3450,7 @@ RSSCoreStatsReport::Report(IHXLogOutput *pOutput, BOOL bEchoToStdout,
 
     if (RSSManager::m_bRSSReportEnabled)
     {
-        suprintf("%s", buffer);
+        printf("%s", buffer);
         fflush(stdout);
     }
 
@@ -4596,7 +4517,6 @@ PrintUsage()
 "--ssa       --slight-send-acceleration\n"
 "--aco <n>   --alloc-coefficient <n>     Coefficient for heap polynomial\n"
 "--nfm       --no-fast-malloc            Disable per-thread memory cache\n"
-"--vsi       --verbose-system-info       Show verbose system info messages\n"
 #if FAST_MALLOC_ALL
 "--lfm       --limited-fast-malloc       Use less memory caching\n"
 #else
@@ -5042,7 +4962,8 @@ _main(int argc, char** argv)
         else if (!strcmp(*arg, "--force-threadsafe-plugins") ||
                  !strcmp(*arg, "--ftp"))
         {
-            suprintf("Option: Force ThreadSafe Plugins (obsolete)\n");
+            suprintf("Option: Force ThreadSafe Plugins\n");
+            g_bForceThreadSafePlugins = TRUE;
         }
         else if (!strcmp(*arg, "--skip-cpu-test") ||
                  !strcmp(*arg, "--sct"))
@@ -5061,12 +4982,6 @@ _main(int argc, char** argv)
         {
             suprintf("Option: Show Debug Messages\n");
             g_bShowDebugErrorMessages = TRUE;
-        }
-        else if (!strcmp(*arg, "--verbose-system-info") ||
-                 !strcmp(*arg, "--vsi"))
-        {
-            suprintf("Option: Verbose System Information\n");
-            g_bVerboseSystemInfoMessages = TRUE;
         }
         else if (!strcmp(*arg, "--disable-heart-beat") ||
                  !strcmp(*arg, "--dhb"))
@@ -5411,14 +5326,6 @@ _main(int argc, char** argv)
         }
     }
 
-#if defined(_LSB)
-    if (g_ServerEPoll.IsAvailable() == FALSE)
-    {
-        printf("NO EPOLL FOUND -- FORCING EPOLL OFF!\n");
-        g_bUseEPoll = 0;
-    }
-#endif
-
     if (g_bLeakCheck || g_bOgreDebug)
     {
         //Someday we'll make the leak-checker MemCache-aware, until then
@@ -5467,11 +5374,16 @@ _main(int argc, char** argv)
         terminate(1);
     }
 
-#ifdef HELIX_FEATURE_SECURE_LICENSE
-    SystemInfo* pSI = SystemInfo::Instance();
-    pSI->Dump(g_bVerboseSystemInfoMessages);
-    pSI->Release();
-#endif
+    fflush(0);
+    
+    //Detect and report the OS info
+    if (OSDetect(g_bUnsupportedOSFlag) == 0 && !g_bUnsupportedOSFlag)
+    {
+        printf("FATAL ERROR -- WRONG OS DETECTED, EXITING...\n\n");
+        fflush(0);
+        terminate(1);
+    }
+
 
     MonitorAliveChecker.Init();
     MonitorAliveChecker.SetBlocking(FALSE);
@@ -5704,7 +5616,7 @@ _main(int argc, char** argv)
 #endif
 
 #ifdef PTHREADS_SUPPORTED
-#if defined(_LINUX) && !defined(_LSB)
+#ifdef _LINUX
     suprintf("Starting PID %lu TID %lu/%d, procnum 0 (controller)\n",
            getpid(), pthread_self(), gettid());
 #else
@@ -5924,6 +5836,7 @@ _main(int argc, char** argv)
     g_pBroadcastDistPackets = new UINT32;
     g_pBroadcastPacketsDropped = new UINT32;
     g_pBroadcastPPMOverflows = new UINT32;
+    g_bLimitParallelism = new BOOL;
     g_pClientGUIDTable = new ClientGUIDTable;
     g_pMemoryMappedDataSize = new UINT32;
     g_bMmapGrowsDown = new BOOL;
@@ -6011,6 +5924,7 @@ _main(int argc, char** argv)
     *g_pBroadcastDistPackets = 0;
     *g_pBroadcastPacketsDropped = 0;
     *g_pBroadcastPPMOverflows = 0;
+    *g_bLimitParallelism = FALSE;
     *g_pMemoryMappedDataSize = 0;
     *g_bMmapGrowsDown = TRUE;
 
@@ -6127,7 +6041,6 @@ _main(int argc, char** argv)
 #ifdef _WIN32
     proc->AssignCurrentHandle();
 #endif // _WIN32
-    g_pTLSProc = proc;
 
     CoreProcessInitCallback* cb = new CoreProcessInitCallback;
     cb->argc                        = argc;

@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: h263pyld.cpp,v 1.10 2008/11/11 15:21:38 alokjain Exp $
+ * Source last modified: $Id: h263pyld.cpp,v 1.8 2005/03/14 19:24:47 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -360,61 +360,26 @@ static HX_RESULT GetH263FrameSize(int fmt, HXxSize &FrameDim)
 static HX_RESULT HandleH263Plus(Bitstream& bs, HXxSize &FrameDim)
 {
     HX_RESULT res = HXR_UNEXPECTED;
-    UINT32 ulLeft = bs.BitsLeft();
-    if (ulLeft < 3)	
-    {
-        return res;
-    }
+
     if (bs.GetBits(3) == 1) // UFEP
     {
-       ulLeft = bs.BitsLeft();
-       if (ulLeft < 3)	
-       {
-           return res;
-       }   
-       int fmt = bs.GetBits(3); // OPPTYPE (bits 1-3)
-       
+	int fmt = bs.GetBits(3); // OPPTYPE (bits 1-3)
+
 	if (fmt != 0x6)
 	    res = GetH263FrameSize(fmt, FrameDim);
 	else
 	{
 	    // This frame has custom dimensions
-	    ulLeft = bs.BitsLeft();
-	    if (ulLeft < 15)
-	    {
-	        return res;
-	    }
+
 	    bs.GetBits(11) ; // OPPTYPE (bits 4-14)
-	    
+
 	    if (bs.GetBits(4) == 0x8) // OPPTYPE (bits 15-18)
 	    {
-	        ulLeft = bs.BitsLeft();
-	        if (ulLeft < 9)	
-	        {
-	            return res;
-	        }
-	        bs.GetBits(6); // MPPTYPE (bits 1-6)
-	        if (bs.GetBits(3) == 0x1) // MPPTYPE (bits 7-9)
-	        {
-	           ulLeft = bs.BitsLeft();
-	           if (ulLeft < 1)
-	           {
-	               return res;           
-	           }
+		bs.GetBits(6); // MPPTYPE (bits 1-6)
+		if (bs.GetBits(3) == 0x1) // MPPTYPE (bits 7-9)
+		{
 		    if (bs.GetBits(1)) // CPM
-		    {
-		        ulLeft = bs.BitsLeft();
-		        if (ulLeft < 2)
-		        {
-		            return res;           
-		        }
-		        bs.GetBits(2); // PSBI
-		    }
-	           ulLeft = bs.BitsLeft();
-	           if (ulLeft < 14)
-	           {
-	               return res;           
-	           }
+			bs.GetBits(2); // PSBI
 
 		    bs.GetBits(4); // CPFMT (bits 1-4)
 
@@ -422,12 +387,6 @@ static HX_RESULT HandleH263Plus(Bitstream& bs, HXxSize &FrameDim)
 
 		    if (bs.GetBits(1)) // CPFMT (bit 14)
 		    {
-		        ulLeft = bs.BitsLeft();
-		        if (ulLeft < 9)
-		        {
-		            return res;           
-		        }
-
 			int phi = (bs.GetBits(9)) * 4;
 
 			if ((phi >= 1) && (phi <= 288))
@@ -452,44 +411,31 @@ HX_RESULT CH263PayloadFormat::GetFrameDimensions(IHXBuffer* pBuffer,
 
     HX_RESULT res = HXR_UNEXPECTED;
     Bitstream bs;
-    UINT32 ulLeft = 0;
+
     if (pBuffer->GetSize() >= 5)
     {
-	bs.SetBuffer(pBuffer->GetBuffer(), pBuffer->GetSize());
-	ulLeft = bs.BitsLeft();
-	if (ulLeft < 22)
-	{
-	    return res;
-	}
+	bs.SetBuffer(pBuffer->GetBuffer());
+
 	if (bs.GetBits(22) == 0x20) // Check PSC
 	{
-	     ulLeft = bs.BitsLeft();
-	     if (ulLeft < 10)
-	     {
-	         return res;
-	     }
-	     bs.GetBits(8); // Skip TR
-	     if (bs.GetBits(2) == 0x02) // PTYPE(bits 1 & 2)
-	     {
-	         ulLeft =bs.BitsLeft();
-	         if (ulLeft < 6)
-	         {
-	             return res;
-	         }
-	         bs.GetBits(3); // PTYPE(bits 3-5)
+	    bs.GetBits(8); // Skip TR
 
-	         int fmt = bs.GetBits(3); // Get Format
+	    if (bs.GetBits(2) == 0x02) // PTYPE(bits 1 & 2)
+	    {
+		bs.GetBits(3); // PTYPE(bits 3-5)
 
-	         if (fmt != 0x7)
-	         {
-	             res = GetH263FrameSize(fmt, FrameDim);
-	         }
-	         else if (pBuffer->GetSize() >= 13)
-	         {
+		int fmt = bs.GetBits(3); // Get Format
+
+		if (fmt != 0x7)
+		{
+		    res = GetH263FrameSize(fmt, FrameDim);
+		}
+		else if (pBuffer->GetSize() >= 13)
+		{
 		    // This has an extended PTYPE
 		    res = HandleH263Plus(bs, FrameDim);
-	         }
-	     }
+		}
+	    }
 	}
     }
 

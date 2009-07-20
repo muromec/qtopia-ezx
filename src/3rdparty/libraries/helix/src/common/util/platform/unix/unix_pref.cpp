@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: unix_pref.cpp,v 1.20 2008/10/24 06:51:22 vkathuria Exp $
+ * Source last modified: $Id: unix_pref.cpp,v 1.15 2007/01/10 06:38:04 lovish Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -130,7 +130,7 @@ static int CIPutenv(const char *pKey, REF(CHXSimpleList) rEnvList)
     return putenv(pNewVal);
 }
 
-static void CIUnsetEnv(const char *pKey, REF(CHXSimpleList) rEnvList)
+static void CIUnsetEnv(const char *pKey)
 {
     unsigned int keylen = strlen(pKey);
     char *pArr = new char[keylen + 2];
@@ -146,19 +146,6 @@ static void CIUnsetEnv(const char *pKey, REF(CHXSimpleList) rEnvList)
                 *ppEnv = *(ppEnv+1);
                 ppEnv++;
             }
-
-            CHXSimpleList::Iterator ndx = rEnvList.Begin();
-            for (; ndx != rEnvList.End(); ++ndx)
-            {
-                if(!strnicmp((const char*)(*ndx),pArr,strlen(pArr)))
-                {
-                	delete_string((char*)*ndx);
-                	rEnvList.RemoveAt(ndx);
-			break;					
-                }
-            }
-
-
             HX_VECTOR_DELETE(pArr);
             return;
         }
@@ -315,6 +302,16 @@ HX_RESULT CUnixPref::write_pref(const char* pPrefKey, IHXBuffer* pBuffer)
     CHXString key;
     ConstructPref(pPrefKey, key);
     key += "=";
+    char *pStringToBeDeleted = NULL;
+    
+    for (char ** ppEnv = environ ; *ppEnv ; ++ppEnv)
+    {
+	if (!strnicmp(*ppEnv, key, strlen(key)))
+	{
+	    pStringToBeDeleted = *ppEnv;
+	    break;
+	}
+    }
 
     if (pBuffer)
     {
@@ -326,9 +323,13 @@ HX_RESULT CUnixPref::write_pref(const char* pPrefKey, IHXBuffer* pBuffer)
     {
 	CHXString oldKey;
 	ConstructPref(pPrefKey, oldKey);
-	CIUnsetEnv(oldKey, m_EnvList);  
+	CIUnsetEnv(oldKey);  
     }
     
+    if (pStringToBeDeleted)
+    {
+	HX_VECTOR_DELETE(pStringToBeDeleted);
+    }
     return HXR_OK;
 }
     
@@ -463,50 +464,11 @@ CUnixPref::CUnixPref(
 // 	class destructor 
 CUnixPref::~CUnixPref (void)
 {
-     char *pStrToBeUnset = NULL;
-     char *pEquals = NULL;
-#ifdef _SUN
-     char *pCopyStrToBeUnset =NULL;
-#endif
     commit_prefs();
     while( !m_EnvList.IsEmpty() )
     {
-        pStrToBeUnset = (char *)(m_EnvList.RemoveHead());
-#ifdef _SUN
-	pCopyStrToBeUnset = new_string(pStrToBeUnset);
-	pEquals = strchr(pCopyStrToBeUnset, '=');
-#else
-	pEquals = strchr(pStrToBeUnset, '=');
-#endif
-        if (pEquals)
-          {
-            *pEquals = '\0';
-         }
-#ifdef _SUN
-	unsetenv(pCopyStrToBeUnset);
-	delete_string(pCopyStrToBeUnset);
-#else
-    char **ppEnv = NULL;
-    for (ppEnv = environ ; *ppEnv ; ++ppEnv)
-    {
-        if (strstr(*ppEnv, pStrToBeUnset))
-        {
-            unsetenv(pStrToBeUnset);
-            while (*ppEnv)
-            {
-                *ppEnv = *(ppEnv+1);
-                ppEnv++;
-            }
-            break;					
-        }
-    }
-#endif
-      delete_string(pStrToBeUnset);
-
-
+        delete_string((char *)(m_EnvList.RemoveHead()));
     }    
-
-
     HX_VECTOR_DELETE(m_pPath);
 }
 

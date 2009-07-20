@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: colorlib.h,v 1.8 2009/05/06 05:55:12 eepaul Exp $
+ * Source last modified: $Id: colorlib.h,v 1.5 2004/12/29 02:08:59 rascar Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -276,7 +276,6 @@ int RGB565toI420  (unsigned char *, int, int, int, int, int, int, int, unsigned 
 int RGB555toI420  (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 int RGB8toI420    (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 int ARGBtoYUVA    (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
-int RGB32toYUY2   (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 int BGR_32toI420  (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 int BGR24toI420   (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 
@@ -340,9 +339,6 @@ void oldI420toRGB32x2  (unsigned char *, unsigned char *, unsigned char *, int, 
 void oldI420toRGB24x2  (unsigned char *, unsigned char *, unsigned char *, int, unsigned char *, int, int, int);
 void oldI420toRGB565x2 (unsigned char *, unsigned char *, unsigned char *, int, unsigned char *, int, int, int);
 void oldI420toRGB555x2 (unsigned char *, unsigned char *, unsigned char *, int, unsigned char *, int, int, int);
-
-
-int LIBVAtoLIBVA (unsigned char *, int, int, int, int, int, int, int, unsigned char *, int, int, int, int, int, int, int);
 
 #ifdef __cplusplus
 }

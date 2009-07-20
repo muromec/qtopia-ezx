@@ -2,7 +2,7 @@
 #
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: symbian.cf,v 1.61 2007/08/09 01:56:41 atewari Exp $ 
+#  Source last modified: $Id: symbian.cf,v 1.58 2007/04/05 04:56:35 gahluwalia Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -593,13 +593,6 @@ class SymbianPkg:
             f.write("\"%s\" - \"%s\"%s\n" % (source, dest, args))
 
         f.close()
-
-    def GenerateUpgradePackage(self):
-        ''' write out the Package Upgrade file '''
-        self.name = "%s%s" % (self.name, "U")
-        self.type = "%s" % ("PU") 
-        self.Generate()
-
         
 
     def CreateMakefile(self, sisname = None):
@@ -612,7 +605,7 @@ class SymbianPkg:
 
         # output makefile instructions to build the .sis
         project.writeln("all: %s" % sisname)
-        if project.IsDefined("HELIX_FEATURE_SYMBIAN_MMF"):
+        if project.IsDefined("HELIX_CONFIG_SYMBIAN_MMF_ROM_ONLY"):
             project.writeln("\t %s" %   "copyDlls.bat" )
         project.writeln("\n")
 
@@ -714,7 +707,7 @@ class SymbianMakeDepend(MakeDepend):
         list.append("/m%s" % (project.makefile_name))
 
         cmd = "python %s %s %s %s %s" % (
-            os.path.join("$(BUILD_ROOT)", "bin", "mkdepend.py"), 
+            os.path.join(BUILD_ROOT, "bin", "mkdepend.py"), 
             string.join(list),
             platform.form_var("DEFINES"),
             platform.form_var("INCLUDES"),

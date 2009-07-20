@@ -507,11 +507,7 @@ HX_RESULT HXResolverTaskManager::GetInstance(HXTaskManager*& pTaskMgr, IUnknown*
         {
             HXLOGL3(HXLOG_NETW, "HXResolverTaskManager::GetInstance(): created instance %p", g_pTaskMgrInstance);
             g_pTaskMgrInstance->AddRef();
-#ifndef _WINCE			
             hr = g_pTaskMgrInstance->Init(pContext, RESOLVER_THREAD_POOL_COUNT);
-#else
-            hr = g_pTaskMgrInstance->Init(pContext,RESOLVER_THREAD_POOL_COUNT, THREAD_PRIORITY_NORMAL);
-#endif
             if (FAILED(hr))
             {
                 HX_ASSERT(false);

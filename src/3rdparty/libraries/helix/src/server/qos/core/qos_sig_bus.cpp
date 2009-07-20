@@ -1,39 +1,39 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: qos_sig_bus.cpp,v 1.28 2008/03/14 12:57:52 yphadke Exp $
- *
- * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
- *
- * The contents of this file, and the files included with this file,
- * are subject to the current version of the RealNetworks Public
- * Source License (the "RPSL") available at
- * http://www.helixcommunity.org/content/rpsl unless you have licensed
- * the file under the current version of the RealNetworks Community
- * Source License (the "RCSL") available at
- * http://www.helixcommunity.org/content/rcsl, in which case the RCSL
- * will apply. You may also obtain the license terms directly from
- * RealNetworks.  You may not use this file except in compliance with
- * the RPSL or, if you have a valid RCSL with RealNetworks applicable
- * to this file, the RCSL.  Please see the applicable RPSL or RCSL for
- * the rights, obligations and limitations governing use of the
- * contents of the file.
- *
- * This file is part of the Helix DNA Technology. RealNetworks is the
- * developer of the Original Code and owns the copyrights in the
- * portions it created.
- *
- * This file, and the files included with this file, is distributed
- * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY
- * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS
- * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET
- * ENJOYMENT OR NON-INFRINGEMENT.
- *
- * Technology Compatibility Kit Test Suite(s) Location:
- *    http://www.helixcommunity.org/content/tck
- *
- * Contributor(s):
- *
- * ***** END LICENSE BLOCK ***** */
+/* ***** BEGIN LICENSE BLOCK *****  
+ * Source last modified: $Id: qos_sig_bus.cpp,v 1.22 2006/04/12 20:34:26 dcollins Exp $ 
+ *   
+ * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
+ *       
+ * The contents of this file, and the files included with this file, 
+ * are subject to the current version of the RealNetworks Public 
+ * Source License (the "RPSL") available at 
+ * http://www.helixcommunity.org/content/rpsl unless you have licensed 
+ * the file under the current version of the RealNetworks Community 
+ * Source License (the "RCSL") available at 
+ * http://www.helixcommunity.org/content/rcsl, in which case the RCSL 
+ * will apply. You may also obtain the license terms directly from 
+ * RealNetworks.  You may not use this file except in compliance with 
+ * the RPSL or, if you have a valid RCSL with RealNetworks applicable 
+ * to this file, the RCSL.  Please see the applicable RPSL or RCSL for 
+ * the rights, obligations and limitations governing use of the 
+ * contents of the file. 
+ *   
+ * This file is part of the Helix DNA Technology. RealNetworks is the 
+ * developer of the Original Code and owns the copyrights in the 
+ * portions it created. 
+ *   
+ * This file, and the files included with this file, is distributed 
+ * and made available on an 'AS IS' basis, WITHOUT WARRANTY OF ANY 
+ * KIND, EITHER EXPRESS OR IMPLIED, AND REALNETWORKS HEREBY DISCLAIMS 
+ * ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES 
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET 
+ * ENJOYMENT OR NON-INFRINGEMENT. 
+ *  
+ * Technology Compatibility Kit Test Suite(s) Location:  
+ *    http://www.helixcommunity.org/content/tck  
+ *  
+ * Contributor(s):  
+ *   
+ * ***** END LICENSE BLOCK ***** */  
 #include "hxcom.h"
 #include "hxpiids.h"
 #include "ihxpckts.h"
@@ -45,7 +45,6 @@
 #include "servreg.h"
 #include "safestring.h"
 #include "proc.h"
-#include "server_context.h"
 
 #include "servlist.h"
 #include "mutex.h"
@@ -56,7 +55,8 @@
 QoSSignalBus::QoSSignalBus(Process* pProc) :
     m_lRefCount(0),
     m_pProc (pProc),
-    m_pQosProfConfigurator(NULL),
+    m_lConfigId (0),
+    m_pConfigName (NULL),
     m_pFilterTable(NULL),
     m_pTxRateRange(NULL),
     m_ulRRFrequency(0),
@@ -75,10 +75,9 @@ QoSSignalBus::QoSSignalBus(Process* pProc) :
     m_ulTotalDownshifts(0),
     m_ulASMSubscribes(0),
     m_ulASMUnsubscribes(0),
-    m_ulSuccessfulResends(0),
+    m_ulSuccessfulResends(0), 
     m_ulFailedResends(0)
 {
-    m_pProc->pc->server_context->QueryInterface(IID_IHXQoSProfileConfigurator, (void**)&m_pQosProfConfigurator);
 }
 
 QoSSignalBus::~QoSSignalBus()
@@ -86,10 +85,8 @@ QoSSignalBus::~QoSSignalBus()
     Close();
 
     HX_RELEASE(m_pTxRateRange);
-
-    HX_RELEASE(m_pQosProfConfigurator);
 }
-
+    
 /* IHXQoSSignalBus */
 STDMETHODIMP
 QoSSignalBus::Init(IHXBuffer* pSessionId)
@@ -100,7 +97,7 @@ QoSSignalBus::Init(IHXBuffer* pSessionId)
     }
 
     m_pFilterTable = new FilterTableNode*** [HX_QOS_SIGNAL_LAYER_COUNT+1];
-
+    
     for (UINT8 i = 0; i < HX_QOS_SIGNAL_LAYER_COUNT+1; i++)
     {
 	m_pFilterTable [i] = new FilterTableNode** [HX_QOS_SIGNAL_RELEVANCE_COUNT+1];
@@ -141,6 +138,7 @@ QoSSignalBus::Close()
     }
 
     HX_VECTOR_DELETE(m_pFilterTable);
+    HX_VECTOR_DELETE(m_pConfigName);
 
     return HXR_OK;
 }
@@ -157,22 +155,22 @@ QoSSignalBus::Send(IHXQoSSignal* pSignal)
     {
 	return HXR_NOT_INITIALIZED;
     }
-
+    
     HX_QOS_SIGNAL unId = 0;
 
     pSignal->GetId(unId);
 
     /* send to all interested sinks from most specific filter to least specific */
-    (m_pFilterTable
+    (m_pFilterTable 
      [((unId&HX_QOS_SIGNAL_LAYER_MASK)>>HX_QOS_SIGNAL_LAYER_OFFSET)]
      [((unId&HX_QOS_SIGNAL_RELEVANCE_MASK)>>HX_QOS_SIGNAL_RELEVANCE_OFFSET)]
      [(unId&HX_QOS_SIGNAL_ID_MASK)])->Signal(pSignal);
 
-    (m_pFilterTable
+    (m_pFilterTable 
      [((unId&HX_QOS_SIGNAL_LAYER_MASK)>>HX_QOS_SIGNAL_LAYER_OFFSET)]
      [((unId&HX_QOS_SIGNAL_RELEVANCE_MASK)>>HX_QOS_SIGNAL_RELEVANCE_OFFSET)][0])->Signal(pSignal);
 
-    (m_pFilterTable
+    (m_pFilterTable 
      [((unId&HX_QOS_SIGNAL_LAYER_MASK)>>HX_QOS_SIGNAL_LAYER_OFFSET)][0][0])->Signal(pSignal);
 
     return HXR_OK;
@@ -185,13 +183,13 @@ QoSSignalBus::AttachListener (HX_QOS_SIGNAL unId, IHXQoSSignalSink* pListener)
     {
 	return HXR_INVALID_PARAMETER;
     }
-
+    
     if (!m_pFilterTable)
     {
 	return HXR_NOT_INITIALIZED;
     }
 
-    ((FilterTableNode*)(m_pFilterTable
+    ((FilterTableNode*)(m_pFilterTable 
 			[((unId&HX_QOS_SIGNAL_LAYER_MASK)>>HX_QOS_SIGNAL_LAYER_OFFSET)]
 			[((unId&HX_QOS_SIGNAL_RELEVANCE_MASK)>>HX_QOS_SIGNAL_RELEVANCE_OFFSET)]
 			[(unId&HX_QOS_SIGNAL_ID_MASK)]))->Attach(pListener);
@@ -206,18 +204,98 @@ QoSSignalBus::DettachListener (HX_QOS_SIGNAL unId, IHXQoSSignalSink* pListener)
     {
 	return HXR_INVALID_PARAMETER;
     }
-
+    
     if (!m_pFilterTable)
     {
 	return HXR_NOT_INITIALIZED;
     }
 
-    (m_pFilterTable
+    (m_pFilterTable 
      [((unId&HX_QOS_SIGNAL_LAYER_MASK)>>HX_QOS_SIGNAL_LAYER_OFFSET)]
      [((unId&HX_QOS_SIGNAL_RELEVANCE_MASK)>>HX_QOS_SIGNAL_RELEVANCE_OFFSET)]
      [(unId&HX_QOS_SIGNAL_ID_MASK)])->Dettach(pListener);
 
     return HXR_OK;
+}
+
+/* IHXQoSProfileConfigurator */
+STDMETHODIMP
+QoSSignalBus::SetConfigId (INT32 lConfigId)
+{
+    if (!lConfigId)
+    {
+	return HXR_INVALID_PARAMETER;
+    }
+
+    m_lConfigId = lConfigId;
+    HX_DELETE(m_pConfigName);
+
+    IHXBuffer* pName = NULL;
+    HX_RESULT  hRes = HXR_FAIL;
+
+    if (SUCCEEDED(m_pProc->pc->registry->GetPropName(m_lConfigId, pName, m_pProc)))
+    {
+	m_pConfigName = new_string((const char*)pName->GetBuffer());
+	hRes = HXR_OK;
+    }
+
+    HX_RELEASE (pName);
+    return hRes;
+    
+}
+
+STDMETHODIMP
+QoSSignalBus::GetConfigId (REF(INT32) /*OUT*/ lConfigId)
+{
+    if (!m_lConfigId)
+    {
+	lConfigId = 0;
+	return HXR_NOT_INITIALIZED;
+    }
+
+    lConfigId = m_lConfigId;
+    return HXR_OK;
+}
+
+STDMETHODIMP 
+QoSSignalBus::GetConfigInt (const char* pName, REF(INT32) /*OUT*/ lValue)
+{
+    if (!m_pConfigName)
+    {
+	lValue = 0;
+	return HXR_NOT_INITIALIZED;
+    }
+    
+    HX_RESULT hRes = HXR_FAIL;
+    UINT32 ulLen = strlen(m_pConfigName) + strlen(pName) + 2;
+    char* pConfigName = new char [ulLen];
+    
+    SafeSprintf(pConfigName, ulLen, "%s.%s", m_pConfigName, pName);
+    hRes = m_pProc->pc->registry->GetInt(pConfigName, &lValue, m_pProc);
+    
+    HX_DELETE(pConfigName);
+    return hRes;
+} 
+
+STDMETHODIMP
+QoSSignalBus::GetConfigBuffer (const char* pItemName, REF(IHXBuffer*) /*OUT*/ pValue)
+{
+    if (!m_pConfigName)
+    {
+	pValue = 0;
+	return HXR_NOT_INITIALIZED;
+    }
+    
+    pValue = NULL;
+    HX_RESULT hRes = HXR_FAIL;
+    UINT32 ulLen = strlen(m_pConfigName) + strlen(pItemName) + 2;
+    char* pName = new char [ulLen];
+    
+    SafeSprintf(pName, ulLen, "%s.%s", m_pConfigName, pItemName);
+    hRes = m_pProc->pc->registry->GetStr(pName, pValue, m_pProc);
+
+    HX_DELETE(pName);
+    return hRes;
 }
 
 /* IUnknown */
@@ -256,19 +334,9 @@ QoSSignalBus::QueryInterface(REFIID riid, void** ppvObj)
     }
     else if(IsEqualIID(riid, IID_IHXQoSProfileConfigurator))
     {
-        //QoSSignalBus does not implement IHXQoSProfileConfigurator interface.
-        //Instead it encapsulates an instance of QoSProfileConfigurator which
-        //implements IHXQoSProfileConfigurator interface. This allows us in sharing
-        //one instance of IHXQoSProfileConfigurator between all QoS related classes
-        //for a single client connection. Currently all QoS related classes do QI on
-        //QoSSignalBus whenever they need a IHXQoSProfileConfigurator.
-        //This is a temporary fix. The real fix would be to remove all instances where
-        //QoSSignalBus is being QI'd for IHXQoSProfileConfigurator and implement a
-        //way in the context for getting IHXQoSProfileConfigurator for a particular
-        //client session.
-        *ppvObj = m_pQosProfConfigurator;
-        HX_ADDREF(m_pQosProfConfigurator);
-        return HXR_OK;
+	AddRef();
+	*ppvObj = (IHXQoSProfileConfigurator*)this;
+	return HXR_OK;
     }
 
     *ppvObj = NULL;
@@ -292,270 +360,270 @@ QoSSignalBus::Release()
     return 0;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetRRFrequency()
 {
     return m_ulRRFrequency;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetRRFrequency(UINT32 ulRRFrequency)
 {
     m_ulRRFrequency = ulRRFrequency;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetRTT()
 {
     return m_ulRTT;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetRTT(UINT32 ulRTT)
 {
     m_ulRTT = ulRTT;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetPacketLoss()
 {
     return m_ulPacketLoss;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetPacketLoss(UINT32 ulPacketLoss)
 {
     m_ulPacketLoss = ulPacketLoss;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetReceivedThroughput()
 {
     return m_ulReceivedThroughput;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetReceivedThroughput(UINT32 ulReceivedThroughput)
 {
     m_ulReceivedThroughput = ulReceivedThroughput;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetSuccessfulResends()
-{
-    return m_ulSuccessfulResends;
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetSuccessfulResends() 
+{ 
+    return m_ulSuccessfulResends; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetSuccessfulResends(UINT32 ulSuccessfulResends)
-{
-    m_ulSuccessfulResends = ulSuccessfulResends;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetSuccessfulResends(UINT32 ulSuccessfulResends) 
+{ 
+    m_ulSuccessfulResends = ulSuccessfulResends; 
+    return HXR_OK; 
 }
 
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetFailedResends()
-{
-    return m_ulFailedResends;
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetFailedResends() 
+{ 
+    return m_ulFailedResends; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetFailedResends(UINT32 ulFailedResends)
-{
-    m_ulFailedResends = ulFailedResends;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetFailedResends(UINT32 ulFailedResends) 
+{ 
+    m_ulFailedResends = ulFailedResends; 
+    return HXR_OK; 
 }
 
-STDMETHODIMP_(IHXBuffer*)
-QoSSignalBus::GetTxRateRange()
-{
+STDMETHODIMP_(IHXBuffer*) 
+QoSSignalBus::GetTxRateRange() 
+{ 
     if (m_pTxRateRange)
     {
         m_pTxRateRange->AddRef();
     }
-    return m_pTxRateRange;
+    return m_pTxRateRange; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetTxRateRange(IHXBuffer* pTxRateRange)
-{
+STDMETHODIMP 
+QoSSignalBus::SetTxRateRange(IHXBuffer* pTxRateRange) 
+{ 
     IHXBuffer* pTemp = m_pTxRateRange;
-    m_pTxRateRange = pTxRateRange;
+    m_pTxRateRange = pTxRateRange; 
     if (m_pTxRateRange)
     {
         m_pTxRateRange->AddRef();
     }
 
     HX_RELEASE(pTemp);
-    return HXR_OK;
+    return HXR_OK; 
 }
 
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetPacketsSent()
-{
-    return m_ulPacketsSent;
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetPacketsSent() 
+{ 
+    return m_ulPacketsSent; 
 }
 
 
 
 STDMETHODIMP
-QoSSignalBus::SetPacketsSent(UINT32 ulPacketsSent)
-{
-    m_ulPacketsSent = ulPacketsSent;
-    return HXR_OK;
+QoSSignalBus::SetPacketsSent(UINT32 ulPacketsSent) 
+{ 
+    m_ulPacketsSent = ulPacketsSent; 
+    return HXR_OK; 
 }
 
 
-STDMETHODIMP_(UINT64)
-QoSSignalBus::GetBytesSent()
-{
-    return m_ulBytesSent;
+STDMETHODIMP_(UINT64) 
+QoSSignalBus::GetBytesSent() 
+{ 
+    return m_ulBytesSent; 
 }
 
 
-STDMETHODIMP
-QoSSignalBus::SetBytesSent(UINT64 ulBytesSent)
-{
-    m_ulBytesSent = ulBytesSent;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetBytesSent(UINT64 ulBytesSent) 
+{ 
+    m_ulBytesSent = ulBytesSent; 
+    return HXR_OK; 
 }
 
 
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetEstimatedPlayerBufferUnderruns()
 {
     return m_ulEstimatedPlayerBufferUnderruns;
 }
 
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetEstimatedPlayerBufferUnderruns(UINT32 ulEstimatedPlayerBufferUnderruns)
 {
     m_ulEstimatedPlayerBufferUnderruns = ulEstimatedPlayerBufferUnderruns;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetEstimatedPlayerBufferOverruns()
 {
     return m_ulEstimatedPlayerBufferOverruns;
 }
 
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetEstimatedPlayerBufferOverruns(UINT32 ulEstimatedPlayerBufferOverruns)
 {
     m_ulEstimatedPlayerBufferOverruns = ulEstimatedPlayerBufferOverruns;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetBufferDepthTime()
 {
     return m_ulBufferDepthTime;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetBufferDepthTime(UINT32 ulBufferDepthTime)
 {
     m_ulBufferDepthTime = ulBufferDepthTime;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetBufferDepthBytes()
 {
     return m_ulBufferDepthBytes;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetBufferDepthBytes(UINT32 ulBufferDepthBytes)
 {
     m_ulBufferDepthBytes = ulBufferDepthBytes;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetTotalBitrateAdaptations()
 {
     return m_ulTotalBitrateAdaptations;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetTotalBitrateAdaptations(UINT32 ulTotalBitrateAdaptations)
 {
     m_ulTotalBitrateAdaptations = ulTotalBitrateAdaptations;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
+STDMETHODIMP_(UINT32) 
 QoSSignalBus::GetCurrentBitrate()
 {
     return m_ulCurrentBitrate;
 }
 
-STDMETHODIMP
+STDMETHODIMP 
 QoSSignalBus::SetCurrentBitrate(UINT32 ulCurrentBitrate)
 {
     m_ulCurrentBitrate = ulCurrentBitrate;
     return HXR_OK;
 }
 
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetTotalUpshifts()
-{
-    return m_ulTotalUpshifts;
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetTotalUpshifts() 
+{ 
+    return m_ulTotalUpshifts; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetTotalUpshifts(UINT32 ulTotalUpshifts)
-{
-    m_ulTotalUpshifts = ulTotalUpshifts;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetTotalUpshifts(UINT32 ulTotalUpshifts) 
+{ 
+    m_ulTotalUpshifts = ulTotalUpshifts; 
+    return HXR_OK; 
 }
 
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetTotalDownshifts()
-{
-    return m_ulTotalDownshifts;
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetTotalDownshifts() 
+{ 
+    return m_ulTotalDownshifts; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetTotalDownshifts(UINT32 ulTotalDownshifts)
-{
-    m_ulTotalDownshifts = ulTotalDownshifts;
-    return HXR_OK;
-}
-
-STDMETHODIMP_(UINT32)
-QoSSignalBus::GetASMSubscribes()
-{
-    return m_ulASMSubscribes;
-}
-
-STDMETHODIMP
-QoSSignalBus::SetASMSubscribes(UINT32 ulASMSubscribes)
-{
-    m_ulASMSubscribes = ulASMSubscribes;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetTotalDownshifts(UINT32 ulTotalDownshifts) 
+{ 
+    m_ulTotalDownshifts = ulTotalDownshifts; 
+    return HXR_OK; 
 }
 
 STDMETHODIMP_(UINT32)
-QoSSignalBus::GetASMUnsubscribes()
-{
-    return m_ulASMUnsubscribes;
+QoSSignalBus::GetASMSubscribes() 
+{ 
+    return m_ulASMSubscribes; 
 }
 
-STDMETHODIMP
-QoSSignalBus::SetASMUnsubscribes(UINT32 ulASMUnsubscribes)
-{
-    m_ulASMUnsubscribes = ulASMUnsubscribes;
-    return HXR_OK;
+STDMETHODIMP 
+QoSSignalBus::SetASMSubscribes(UINT32 ulASMSubscribes) 
+{ 
+    m_ulASMSubscribes = ulASMSubscribes; 
+    return HXR_OK; 
+}
+
+STDMETHODIMP_(UINT32) 
+QoSSignalBus::GetASMUnsubscribes() 
+{ 
+    return m_ulASMUnsubscribes; 
+}
+
+STDMETHODIMP 
+QoSSignalBus::SetASMUnsubscribes(UINT32 ulASMUnsubscribes) 
+{ 
+    m_ulASMUnsubscribes = ulASMUnsubscribes; 
+    return HXR_OK; 
 }
 
 
@@ -580,22 +648,23 @@ FilterTableNode::~FilterTableNode()
 
     HXMutexLock(m_NodeLock, TRUE);
     HXList_iterator j(&m_Sinks);
-
+    
     for (; *j != 0; ++j)
     {
 	pElem = (SinkListElem*)(*j);
-	m_Sinks.remove(pElem);
         HXMutexUnlock(m_NodeLock);
-    if (pElem && pElem->m_pSink)
+	if (pElem->m_pSink)
 	{
 	    pElem->m_pSink->ChannelClosed(m_pSessionId);
 	}
 
+        HXMutexLock(m_NodeLock, TRUE);
+	m_Sinks.remove(pElem);
 	HX_DELETE(pElem);
-	HXMutexLock(m_NodeLock, TRUE);
     }
-    HX_RELEASE(m_pSessionId);
     HXMutexUnlock(m_NodeLock);
+    
+    HX_RELEASE(m_pSessionId);
     HXDestroyMutex(m_NodeLock);
 }
 
@@ -603,10 +672,10 @@ void
 FilterTableNode::Signal(IHXQoSSignal* pSignal)
 {
     SinkListElem* pElem = NULL;
-
+ 
     HXMutexLock(m_NodeLock, TRUE);
     HXList_iterator j(&m_Sinks);
-
+    
     for (; *j != 0; ++j)
     {
 	pElem = (SinkListElem*)(*j);

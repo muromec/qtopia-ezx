@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: symbian_gm_inst.h,v 1.8 2008/05/28 22:46:16 ashkunar Exp $
+ * Source last modified: $Id: symbian_gm_inst.h,v 1.5 2007/04/03 18:17:44 rrajesh Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -57,8 +57,7 @@
 //The value below was picked beacuse it is not user accessable memory & is on an odd boundry.
 #define SYMBIAN_GLOBAL_VIDEO_PARAMETERS_ID 0x00000001
 #define SYMBIAN_GLOBAL_AUDIO_DEVSOUND_ID   0x00000003
-#define SYMBIAN_GLOBAL_LOGSYSTEM_ID        0x00000005
-#define SYMBIAN_GLOBAL_MEMORY_MONITOR_ID   0x00000007
+
 const int z_GlobalManTLSKey = 0x2c94f34d;
 
 class HXGlobalManager;

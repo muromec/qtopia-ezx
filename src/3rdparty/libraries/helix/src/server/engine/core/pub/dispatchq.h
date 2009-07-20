@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: dispatchq.h,v 1.6 2007/07/13 17:54:58 dcollins Exp $ 
+ * Source last modified: $Id: dispatchq.h,v 1.5 2006/03/16 22:42:55 atin Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -74,7 +74,6 @@ public:
     void		printCounters(Process* proc, char*& pBuf);
 #endif
 
-    int                 count(int procnum) { return size[procnum]; }
     BOOL		has_dispatchq(int procnum) { return m_bHasDQ[procnum]; }
 
 #if defined _LINUX && defined SHARED_FD_SUPPORT

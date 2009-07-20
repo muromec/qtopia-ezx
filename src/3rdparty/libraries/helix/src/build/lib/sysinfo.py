@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: sysinfo.py,v 1.102 2007/06/04 18:44:07 jfinnecy Exp $ 
+#  Source last modified: $Id: sysinfo.py,v 1.100 2007/04/04 13:48:49 jinuthomas Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -1206,6 +1206,16 @@ AddPlatform(Platform(
     family_list = ['unix', 'linux', 'linux2', 'linux-glibc-2.0',
                    'linux-arm',
                    'linux-2.2-libc6-armv4l-zaurus'] ))
+
+## import Qtopia platforms
+
+try:
+    import qtopiaplatforms
+    qtopiaplatforms.__dict__['AddPlatform'] = AddPlatform
+    qtopiaplatforms.__dict__['Platform'] = Platform
+    qtopiaplatforms.initialize()
+except ImportError:
+    pass
 
 ## returns the output of uname stripped
 def uname_output(options = ''):

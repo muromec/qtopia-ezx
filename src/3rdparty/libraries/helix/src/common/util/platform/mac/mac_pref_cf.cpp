@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: mac_pref_cf.cpp,v 1.16 2007/07/19 00:07:15 milko Exp $
+ * Source last modified: $Id: mac_pref_cf.cpp,v 1.14 2006/02/07 19:21:29 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -81,7 +81,6 @@ CMacPref::CMacPref(const char* pCompanyName, const char* pProductName, int nProd
 	m_pPrefFile = NULL;
 	m_strProductNamePrefix = pProductName;
 
-#if defined(HELIX_FEATURE_PREF_OVERLOADING)
 	// Added support for overloading the preference file name.
 	// If the HelixPreferenceFileID preferences exists in the main bundle's pref's, then use its value as the pref. filename.
 	CFStringRef helixPrefFileID = ( CFStringRef ) CFPreferencesCopyAppValue( CFSTR( "HelixPreferenceFileID" ), kCFPreferencesCurrentApplication );
@@ -116,7 +115,7 @@ CMacPref::CMacPref(const char* pCompanyName, const char* pProductName, int nProd
 		}
 		CFRelease( helixPrefFileID );
 	}
-#endif	// HELIX_FEATURE_PREF_OVERLOADING
+	else
 	{
 		strBundleID.Format("com.%s.%s", pCompanyName, pProductName);
 		cfsPrefsBundleName = strBundleID;

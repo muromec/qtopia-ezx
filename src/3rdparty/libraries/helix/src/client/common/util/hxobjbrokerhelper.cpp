@@ -17,7 +17,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -77,10 +77,9 @@ HX_RESULT CHXObjBrokerWrapper_::InitObjectBroker (IUnknown** const ppContext)
 
     HX_RESULT res = HXR_FAILED;
 
-    if (m_spGenericContext.IsValid())
+    if (m_pRootContext)
     {
-        m_spGenericContext.AsUnknown(ppContext);
-        res = HXR_OK;
+        res = m_pRootContext->QueryInterface(IID_IUnknown, (void**)ppContext);
     }
     else
     {
@@ -100,12 +99,12 @@ HX_RESULT CHXObjBrokerWrapper_::InitObjectBroker (IUnknown** const ppContext)
         SPIHXCommonClassFactory spCCF(spMediaPlatform.Ptr());
         if( spCCF.IsValid() )
         {
-            m_spGenericContext = SPIHXContext(spCCF.Ptr(), CLSID_HXGenericContext);
-	    if(m_spGenericContext.IsValid())
- 	    {
-	        res = m_spGenericContext->AddObjectToContext( CLSID_HXObjectManager );
-	        m_spGenericContext.AsUnknown(ppContext);
-            }
+	    SPIHXContext spContext(spCCF.Ptr(), CLSID_HXGenericContext);
+	    if(spContext.IsValid())
+	    {
+	        res = spContext->AddObjectToContext( CLSID_HXObjectManager );
+	        spContext.AsUnknown(ppContext);
+	    }
 
             if (SUCCEEDED(res))
             {
@@ -130,7 +129,6 @@ HX_RESULT CHXObjBrokerWrapper_::TerminateObjectBroker ()
     
         if (0 == m_ulRefCount)
         {
-            m_spGenericContext.Clear();
             HXApplicationClassFactory::Terminate();
 
             FPHXMEDIAPLATFORMCLOSE pCloseFunc = (FPHXMEDIAPLATFORMCLOSE) m_pLibObjBroker->getSymbol("HXMediaPlatformCloseEx");

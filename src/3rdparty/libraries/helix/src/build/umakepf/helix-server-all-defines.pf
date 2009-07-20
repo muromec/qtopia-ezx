@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: helix-server-all-defines.pf,v 1.31 2007/07/27 22:39:34 jgordon Exp $ 
+#  Source last modified: $Id: helix-server-all-defines.pf,v 1.29 2007/04/27 01:01:58 dcollins Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -97,8 +97,6 @@ project.AddDefines('HELIX_FEATURE_SERVER_RTSP_EVENTS')
 project.AddDefines('HELIX_FEATURE_HTTPFSYS_MEM_GROWTH_LIMIT')
 project.AddDefines('HELIX_FEATURE_LOGLEVEL_NONE') # client style logging OFF
 
-project.AddDefines('HELIX_FEATURE_SERVER_FCS')
-
 if 'win32' in sysinfo.family_list:
     project.AddDefines('HELIX_FEATURE_SERVER_PPVODBC')
 else:
@@ -106,7 +104,6 @@ else:
 
 if 'win32' in sysinfo.family_list:
     project.AddDefines("FD_SETSIZE=16384")
-    project.AddDefines('HELIX_FEATURE_SERVER_INSTALL_MSVC_LIBS')
 
 if 'linux-2.6-glibc23' in sysinfo.family_list:
     project.AddDefines("PTHREADS_SUPPORTED")

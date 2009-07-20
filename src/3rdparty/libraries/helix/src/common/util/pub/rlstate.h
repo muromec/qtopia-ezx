@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rlstate.h,v 1.6 2007/07/10 20:33:51 dcollins Exp $
+ * Source last modified: $Id: rlstate.h,v 1.4 2005/03/14 19:36:41 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -92,38 +92,16 @@ public:
     UINT16 GetNextPendingUnsubscribe();
 
     HXBOOL IsRuleSubscribed(UINT16 usRuleNum) 
-    {
-        HX_ASSERT(usRuleNum < m_nNumRules);
-        return m_bSubscribed[usRuleNum];
-    }
-
+	{return m_bSubscribed[usRuleNum];}
     HXBOOL IsUnsubscribePending(UINT16 usRuleNum)
-    {
-        HX_ASSERT(usRuleNum < m_nNumRules);
-        return m_bUnsubscribePending[usRuleNum];
-    }
-
+	{return m_bUnsubscribePending[usRuleNum];}
     HXBOOL IsSubscribePending(UINT16 usRuleNum)
-    {
-        HX_ASSERT(usRuleNum < m_nNumRules);
-        return m_bSubscribePending[usRuleNum];
-    }
-
+	{return m_bSubscribePending[usRuleNum];}
     void SetASMFlags(UINT16 usRuleNum, UINT8 asmFlags)
-    { 
-        m_lastASMFlagsForThisRule[usRuleNum] = asmFlags;
-    }
-
+	{m_lastASMFlagsForThisRule[usRuleNum] = asmFlags;}
     UINT8 GetASMFlags(UINT16 usRuleNum)
-    {
-        HX_ASSERT(usRuleNum < m_nNumRules);
-        return m_lastASMFlagsForThisRule[usRuleNum];
-    }
-
+	{return m_lastASMFlagsForThisRule[usRuleNum];}
     HXBOOL WaitForSwitchOff(UINT16 usRuleNum)
-    {
-        HX_ASSERT(usRuleNum < m_nNumRules);
-        return m_bNeedSwitchOff[usRuleNum];
-    }
+	{return m_bNeedSwitchOff[usRuleNum];}
 };
 #endif /* __RLSTATE_H__ */

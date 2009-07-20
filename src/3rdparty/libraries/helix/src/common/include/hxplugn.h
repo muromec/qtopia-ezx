@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: hxplugn.h,v 1.19 2009/05/08 03:53:15 jain_1982s Exp $
+ * Source last modified: $Id: hxplugn.h,v 1.15 2006/05/18 22:13:47 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -75,13 +75,10 @@ typedef _INTERFACE  IHXPreferences		    IHXPreferences;
 #define	PLUGIN_METAFILEFORMAT_TYPE  "PLUGIN_METAFILE_FORMAT"
 #define	PLUGIN_RENDERER_TYPE	    "PLUGIN_RENDERER"
 #define PLUGIN_DEPACKER_TYPE        "PLUGIN_DEPACKER"
-#define PLUGIN_PACKETIZER_TYPE     "PLUGIN_PACKETIZER"
-#define PLUGIN_PACKETIZER_MIME     "PacketizerMime"
 #define PLUGIN_REVERTER_TYPE	    "PLUGIN_REVERTER"
 #define PLUGIN_BROADCAST_TYPE	    "PLUGIN_BROADCAST"
 #define PLUGIN_STREAM_DESC_TYPE	    "PLUGIN_STREAM_DESC"
 #define PLUGIN_ALLOWANCE_TYPE	    "PLUGIN_ALLOWANCE"
-#define PLUGIN_LOG_OBSERVER_TYPE    "PLUGIN_LOG_OBSERVER"
 #define PLUGIN_PAC_TYPE		    "PLUGIN_PAC"
 #define PLUGIN_CLASS_FACTORY_TYPE   "PLUGIN_CLASS_FACT"
 #define PLUGIN_CLASS_AUTH_TYPE      "PLUGIN_AUTHENTICATOR"
@@ -119,7 +116,7 @@ typedef _INTERFACE  IHXPreferences		    IHXPreferences;
 #define PLUGIN_LOAD_AT_STARTUP      "LoadAtStartup"
 #define PLUGIN_MEDIA_PLATFORM       "MediaPlatform"
 #define PLUGIN_SCHEME_EXTENSION     "ClaimedSchemeExtensionPairs"
-#define PLUGIN_CLIENT_ENGINE        "ClientEngine"
+
 // 
 #define PLUGIN_GUID_RESPONSE	    "MainGuid"
 #define PLUGIN_FACTORY_GUIDS	    "" // These are comma delimited.

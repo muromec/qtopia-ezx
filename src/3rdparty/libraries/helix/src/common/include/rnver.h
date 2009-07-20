@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rnver.h,v 1.18 2009/03/10 19:24:54 jeffl Exp $
+ * Source last modified: $Id: rnver.h,v 1.15 2006/10/18 15:22:20 jwei Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -105,8 +105,8 @@
 
 #define         HXVER_COMMUNITY                 "RealNetworks"
 #define         HXVER_COMPANY                   "RealNetworks, Inc."
-#define         HXVER_COPYRIGHT                 "Copyright(c) RealNetworks, Inc. 1995-2008. All rights reserved. Source code for this program is available under the RealNetworks Public Source License. (http://www.helixcommunity.org)\0" 
-#define         HXVER_RN_COPYRIGHT              "Copyright(c) RealNetworks, Inc. 1995-2008, All rights reserved. (http://www.real.com)\0"
+#define         HXVER_COPYRIGHT                 "Copyright(c) RealNetworks, Inc. 1995-2006. All rights reserved. Source code for this program is available under the RealNetworks Public Source License. (http://www.helixcommunity.org)\0" 
+#define         HXVER_RN_COPYRIGHT              "Copyright(c) RealNetworks, Inc. 1995-2006, All rights reserved. (http://www.real.com)\0"
 #define         HXVER_TRADEMARKS                " " // the resource parsing code in client\xres does not handle empty values. Use space for empty.
 #define         HXVER_MOREINFO                  "http://www.helixcommunity.org\0" 
 #define         HXVER_PRODUCTNAME               " "
@@ -147,9 +147,5 @@
 #define         HELIX_PREF_COMPANY                             "RealNetworks"
 
 #define         TOOLS_TRADEMARKS "\0"
-
-#if defined(HELIX_CONFIG_GLOBALVERSION)
-#include "../../include/rnvercurrentproduct.h"
-#endif // defined(HELIX_CONFIG_GLOBALVERSION)
 
 #endif  //      !defined( RNVER_H )

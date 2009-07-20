@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: servpckts.h,v 1.16 2009/03/17 17:12:26 jzeng Exp $ 
+ * Source last modified: $Id: servpckts.h,v 1.9 2004/10/21 23:35:00 jc Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -41,17 +41,7 @@
 #include "hxmap.h"
 #include "ihxpckts.h"
 #include "basepkt.h"
-
-#define HX_SERVER_PACKET_CONST ((void**)0xffffd00d)
-
-typedef enum
-{
-    HX_PACKET_UNKNOWN,
-    HX_SERVER_RTP_PACKET,
-    HX_SERVER_PACKET,
-    HX_RTP_PACKET,
-    HX_PACKET
-} HXPacketType;
+#include "mem_cache.h"
 
 /////////////////////////////////////////////////////////////////////////
 //  ServerPacket
@@ -60,8 +50,9 @@ typedef enum
 //  The multiple inheritance of ServerRTPPacket would make the IHXPacket
 //  cast to ServerPacket (aka "travesty of justice") invalid.
 //
-class ServerPacket : public IHXServerPacketExt 
+class ServerPacket : public IHXRTPPacket
                    , public BasePacket
+                   , public IHXBroadcastDistPktExt
                    , public IHXRTPPacketInfo
 {
 public:
@@ -123,32 +114,7 @@ public:
                                  UINT16                 unASMRuleNumber);
 
     /*
-     *  IHXServerPacketExt methods
-     */
-    /* Set IHXPacket/IHXRTPPacket values individually */
-    STDMETHOD(SetDeliveryTime)          (THIS_ UINT32 ulTime);
-    STDMETHOD(SetRTPTime)               (THIS_ UINT32 ulTimeStamp);
-    STDMETHOD(SetBuffer)                (THIS_ IHXBuffer* pBuffer);
-    STDMETHOD(SetStreamNumber)          (THIS_ UINT16 unStreamNum);
-    STDMETHOD(SetASMFlags)              (THIS_ UINT8 uASMFlags);
-    STDMETHOD(SetASMRuleNumber)         (THIS_ UINT16 unRuleNum);
-    
-    /* New values (Get/Set) */
-    // TimeStamp in synced milliseconds units
-    STDMETHOD_(UINT32,GetMilliSecondTS) (THIS);
-    STDMETHOD(SetMilliSecondTS)         (THIS_ UINT32 ulTimeStamp);
-    
-    // TimeStamp in synced microseconds units
-    // NOT IMPLEMENTED
-    STDMETHOD_(UINT64,GetMicroSecondTS) (THIS);
-    STDMETHOD(SetMicroSecondTS)         (THIS_ UINT64 ullTimeStamp);
-                    
-    // to determine packet types without queryinterface
-    STDMETHOD_(BOOL, IsRTP)             (THIS);
-
-    /*
-     * IHXBroadcastDistPktExt methods, now included in IHXServerPacketExt.
-     * IHXBroadcastDistPktExt will be obsoleted.
+     * IHXBroadcastDistPktExt methods
      */
     STDMETHOD_(UINT32,GetSeqNo)         (THIS);
     STDMETHOD_(UINT32,GetStreamSeqNo)   (THIS);
@@ -167,28 +133,28 @@ public:
      * IHXRTPPacketInfo
      */
     STDMETHOD_(UINT8, GetVersion)   (THIS); 
-    STDMETHOD(GetPaddingBit)        (THIS_ REF(BOOL)bPadding); 
-    STDMETHOD(SetPaddingBit)        (THIS_ BOOL bPadding);
-    STDMETHOD(GetExtensionBit)      (THIS_ REF(BOOL)bExtension);
-    STDMETHOD(SetExtensionBit)      (THIS_ BOOL bExtension);
-    STDMETHOD(GetCSRCCount)         (THIS_ REF(UINT8)unCSRCCount);
-    STDMETHOD(SetCSRCCount)         (THIS_ UINT8 unCSRCCount);
-    STDMETHOD(GetMarkerBit)         (THIS_ REF(BOOL)bMarker); 
-    STDMETHOD(SetMarkerBit)         (THIS_ BOOL bMarker); 
-    STDMETHOD(GetPayloadType)       (THIS_ REF(UINT8)unPayloadType);
-    STDMETHOD(SetPayloadType)       (THIS_ UINT8 unPayloadType);
+    STDMETHOD(GetPaddingBit)	    (THIS_ REF(BOOL)bPadding); 
+    STDMETHOD(SetPaddingBit)	    (THIS_ BOOL bPadding);
+    STDMETHOD(GetExtensionBit)	    (THIS_ REF(BOOL)bExtension);
+    STDMETHOD(SetExtensionBit)	    (THIS_ BOOL bExtension);
+    STDMETHOD(GetCSRCCount)	    (THIS_ REF(UINT8)unCSRCCount);
+    STDMETHOD(SetCSRCCount)	    (THIS_ UINT8 unCSRCCount);
+    STDMETHOD(GetMarkerBit)	    (THIS_ REF(BOOL)bMarker); 
+    STDMETHOD(SetMarkerBit)	    (THIS_ BOOL bMarker); 
+    STDMETHOD(GetPayloadType)	    (THIS_ REF(UINT8)unPayloadType);
+    STDMETHOD(SetPayloadType)	    (THIS_ UINT8 unPayloadType);
     STDMETHOD(GetSequenceNumber)    (THIS_ REF(UINT16)unSeqNo);
     STDMETHOD(SetSequenceNumber)    (THIS_ UINT16 unSeqNo); 
-    STDMETHOD(GetTimeStamp)         (THIS_ REF(UINT32)ulTS); 
-    STDMETHOD(SetTimeStamp)         (THIS_ UINT32 ulTS); 
-    STDMETHOD(GetSSRC)              (THIS_ REF(UINT32)ulSSRC); 
-    STDMETHOD(SetSSRC)              (THIS_ UINT32 ulSSRC); 
-    STDMETHOD(GetCSRCList)          (THIS_ REF(const char*) pulCSRC);
-    STDMETHOD(SetCSRCList)          (THIS_ const char* pCSRCList, UINT32 ulSize);     
-    STDMETHOD(GetPadding)           (THIS_ REF(const char*) pPadding); 
-    STDMETHOD(SetPadding)           (THIS_ const char* pPadding, UINT32 ulSize); 
-    STDMETHOD(GetExtension)         (THIS_ REF(const char*) pExtension); 
-    STDMETHOD(SetExtension)         (THIS_ const char* pExtension, UINT32 ulSize); 
+    STDMETHOD(GetTimeStamp)	    (THIS_ REF(UINT32)ulTS); 
+    STDMETHOD(SetTimeStamp)	    (THIS_ UINT32 ulTS); 
+    STDMETHOD(GetSSRC)		    (THIS_ REF(UINT32)ulSSRC); 
+    STDMETHOD(SetSSRC)		    (THIS_ UINT32 ulSSRC); 
+    STDMETHOD(GetCSRCList)	    (THIS_ REF(const char*) pulCSRC);
+    STDMETHOD(SetCSRCList)	    (THIS_ const char* pCSRCList, UINT32 ulSize);     
+    STDMETHOD(GetPadding)	    (THIS_ REF(const char*) pPadding); 
+    STDMETHOD(SetPadding)	    (THIS_ const char* pPadding, UINT32 ulSize); 
+    STDMETHOD(GetExtension)	    (THIS_ REF(const char*) pExtension); 
+    STDMETHOD(SetExtension)	    (THIS_ const char* pExtension, UINT32 ulSize); 
      
     /*
      *  Misc. public methods
@@ -196,21 +162,21 @@ public:
     ServerPacket();
     ServerPacket(BOOL bAlreadyHasOneRef);
 
-    void                        SetMediaTimeInMs(UINT32 ulTS) { SetMilliSecondTS(ulTS); }
-    UINT32                      GetMediaTimeInMs(void) { return GetMilliSecondTS(); }
+    MEM_CACHE_MEM
 
-    void                        EnableIHXRTPPacketInfo(void) {m_bEnableIHXRTPPacketInfo = TRUE;}
+    void			SetMediaTimeInMs(UINT32 ulTS) {m_ulMediaTimeMs = ulTS;}
+    UINT32			GetMediaTimeInMs(void) { return m_ulMediaTimeMs; }
 
+    void			SetRuleNumber(UINT16 unRuleNumber) {m_unASMRuleNumber = unRuleNumber;}
+    void			EnableIHXRTPPacketInfo(void) {m_bEnableIHXRTPPacketInfo = TRUE;}
+    
     // Things Not Related to the IHXPacket or IHXRTPPacket Part
     virtual void                SetPacket(IHXPacket* pPacket);
-    virtual IHXPacket*          GetPacket();
-    virtual IHXPacket*          PeekPacket();
+    virtual IHXPacket*		GetPacket();
+    virtual IHXPacket*		PeekPacket();
     virtual UINT32              GetSize();
     virtual BOOL                IsTSD() { return m_bIsTSD; }
     virtual void                SetTSD(BOOL bTSD) { m_bIsTSD = bTSD; }
-    // copies data from pServerPacket packet to itself
-    // Needs to be updated while adding any new member
-    HX_RESULT                   SetData(ServerPacket* pServerPacket);
 
     UINT32                      m_uASMRuleNumber;
     Timeval                     m_tSendTime;
@@ -257,18 +223,16 @@ protected:
     UINT32                      m_ulSize;
     BOOL                        m_bIsTSD;
 
-    UINT32                      m_ulMediaTimeMs;
-    BOOL                        m_bIsRTP;
+    UINT32			m_ulMediaTimeMs;
 
     /*
      * IHXRTPPacketInfo
      */
-    BOOL                        m_bEnableIHXRTPPacketInfo;
-    BOOL                        m_bMBit;
+    BOOL			m_bEnableIHXRTPPacketInfo;
+    BOOL			m_bMBit;
 
     UINT16                      m_uRuleSeqNoArraySize;
     UINT16*                     m_pRuleSeqNoArray;
-    UINT32                      m_ulSSRC;
 };
 
 
@@ -319,57 +283,20 @@ public:
                                  UINT16                 unASMRuleNumber);
     
     /*
-     * IHXServerPacketExt methods
-     */
-    STDMETHOD(SetRTPTime)               (THIS_ UINT32 ulTimeStamp);
-
-    /*
-     *  IHXRTPPacketInfo methods
-     */    
-    STDMETHOD_(UINT8, GetVersion)   (THIS); 
-    STDMETHOD(GetPaddingBit)        (THIS_ REF(BOOL)bPadding); 
-    STDMETHOD(SetPaddingBit)        (THIS_ BOOL bPadding);
-    STDMETHOD(GetExtensionBit)      (THIS_ REF(BOOL)bExtension);
-    STDMETHOD(SetExtensionBit)      (THIS_ BOOL bExtension);
-    STDMETHOD(GetCSRCCount)         (THIS_ REF(UINT8)unCSRCCount);
-    STDMETHOD(SetCSRCCount)         (THIS_ UINT8 unCSRCCount);
-    STDMETHOD(GetMarkerBit)         (THIS_ REF(BOOL)bMarker); 
-    STDMETHOD(SetMarkerBit)         (THIS_ BOOL bMarker); 
-    STDMETHOD(GetPayloadType)       (THIS_ REF(UINT8)unPayloadType);
-    STDMETHOD(SetPayloadType)       (THIS_ UINT8 unPayloadType);
-    STDMETHOD(GetSequenceNumber)    (THIS_ REF(UINT16)unSeqNo);
-    STDMETHOD(SetSequenceNumber)    (THIS_ UINT16 unSeqNo); 
-    STDMETHOD(GetTimeStamp)         (THIS_ REF(UINT32)ulTS); 
-    STDMETHOD(SetTimeStamp)         (THIS_ UINT32 ulTS); 
-    STDMETHOD(GetSSRC)              (THIS_ REF(UINT32)ulSSRC); 
-    STDMETHOD(SetSSRC)              (THIS_ UINT32 ulSSRC); 
-    STDMETHOD(GetCSRCList)          (THIS_ REF(const char*) pulCSRC);
-    STDMETHOD(SetCSRCList)          (THIS_ const char* pCSRCList, UINT32 ulSize);     
-    STDMETHOD(GetPadding)           (THIS_ REF(const char*) pPadding); 
-    STDMETHOD(SetPadding)           (THIS_ const char* pPadding, UINT32 ulSize); 
-    STDMETHOD(GetExtension)         (THIS_ REF(const char*) pExtension); 
-    STDMETHOD(SetExtension)         (THIS_ const char* pExtension, UINT32 ulSize); 
-   
-    /*
      * Misc. public methods
      */
     ServerRTPPacket()
         : m_ulRTPTime(0)
     {
-        m_bIsRTP = TRUE;
     }
 
     ServerRTPPacket(BOOL bAlreadyHasOneRef)
         : ServerPacket(bAlreadyHasOneRef)
         , m_ulRTPTime(0)
     {
-        m_bIsRTP = TRUE;
     }
 
     virtual void SetPacket(IHXPacket* pPacket);
-    // copies data from pServerPacket packet to itself
-    // Needs to be updated while adding any new member
-    HX_RESULT SetData(ServerRTPPacket* pRTPPacket);
 
 protected:
     ~ServerRTPPacket()

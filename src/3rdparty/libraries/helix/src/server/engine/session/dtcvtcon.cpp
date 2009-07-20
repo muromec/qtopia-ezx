@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: dtcvtcon.cpp,v 1.6 2007/08/18 00:21:13 dcollins Exp $ 
+ * Source last modified: $Id: dtcvtcon.cpp,v 1.5 2006/10/11 03:03:18 tknox Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -70,6 +70,16 @@ DataConvertShim::DataConvertShim(IHXDataConvert* pConvert, Process* proc)
 {
     m_pConverter = pConvert;
     m_pConverter->AddRef();
+    IUnknown* pUnk = NULL;
+    if (HXR_OK == m_pConverter->QueryInterface(IID_IUnknown,
+		(void**)&pUnk))
+    {
+	InitTSOverlord(pUnk, proc);
+    }
+    else
+    {
+	InitTSOverlord(NULL, proc);
+    }
 }
 
 DataConvertShim::~DataConvertShim()
@@ -142,13 +152,17 @@ DataConvertShim::DataConvertInit(IUnknown* pContext)
 void
 DataConvertShim::ConvertFileHeader(IHXValues* pHeader)
 {
+    LockState lState = PreMethod(HX_THREADSAFE_METHOD_CONVERT_HEADERS);
     m_pConverter->ConvertFileHeader(pHeader);
+    PostMethod(lState);
 }
 
 void
 DataConvertShim::ConvertStreamHeader(IHXValues* pHeader)
 {
+    LockState lState = PreMethod(HX_THREADSAFE_METHOD_CONVERT_HEADERS);
     m_pConverter->ConvertStreamHeader(pHeader);
+    PostMethod(lState);
 }
 
 void
@@ -165,14 +179,19 @@ DataConvertShim::ConvertData(IHXPacket* pPacket)
     }
     else
     {
+	LockState lState = PreMethod(HX_THREADSAFE_METHOD_CONVERT_DATA);
 	m_pConverter->ConvertData(pPacket);
+	PostMethod(lState);
     }
 }
 
 void
 DataConvertShim::ControlBufferReady(IHXBuffer* pBuffer)
 {
+    LockState lState =
+	PreMethod(HX_THREADSAFE_METHOD_CONVERT_CTRL_BUFFER_READY);
     m_pConverter->ControlBufferReady(pBuffer);
+    PostMethod(lState);
 }
 
 void
@@ -259,8 +278,10 @@ STDMETHODIMP
 DataConvertShim::ConvertedFileHeaderReady(HX_RESULT status,
 					IHXValues* pFileHeader)
 {
+    LockState lState = PreMethod(0);
     HX_RESULT res = m_pControlResponse->ConvertedFileHeaderReady(status,
 	    pFileHeader);
+    PostMethod(lState);
     return res;
 }
 
@@ -268,8 +289,10 @@ STDMETHODIMP
 DataConvertShim::ConvertedStreamHeaderReady(HX_RESULT status,
 					IHXValues* pStreamHeader)
 {
+    LockState lState = PreMethod(0);
     HX_RESULT res = m_pControlResponse->ConvertedStreamHeaderReady(status,
 							    pStreamHeader);
+    PostMethod(lState);
     return res;
 }
 

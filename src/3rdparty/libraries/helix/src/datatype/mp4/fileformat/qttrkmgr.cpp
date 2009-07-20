@@ -99,6 +99,7 @@ HX_RESULT CQTTrackManager::ManageTracks(CQTAtom *pRootAtom)
     if ((m_pTrackAtomList == NULL) ||
 	(m_pHintTrackIdxList == NULL))
     {
+	HX_ASSERT(!"shouldn't happen");
 	return HXR_UNEXPECTED;
     }
 
@@ -128,6 +129,7 @@ HX_RESULT CQTTrackManager::ReadyTracks(HXBOOL bIgnoreHintTracks,
 	(m_pHintTrackIdxList == NULL) ||
 	(m_pTrackAtomList->GetCount() == 0))
     {
+	HX_ASSERT(!"shouldn't happen");
 	retVal = HXR_CORRUPT_FILE;
     }
 
@@ -1351,7 +1353,6 @@ void CQTTrackManager::AddTracks(CQTAtom *pRootAtom)
 		case QT_3gp6:
 		case QT_3gr6:
 		case QT_3gs6:
-		case QT_MSNV:    
 		    m_FType = QT_FTYPE_MP4;
 		    break;
 

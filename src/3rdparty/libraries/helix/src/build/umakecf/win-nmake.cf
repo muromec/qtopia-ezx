@@ -1,7 +1,7 @@
 # 
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: win-nmake.cf,v 1.9 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: win-nmake.cf,v 1.8 2006/07/06 19:28:06 jfinnecy Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -129,7 +129,7 @@ class WinMakeDepend(MakeDepend):
         list.append("/m%s" % (project.makefile_name))
 
         cmd = "python %s %s %s %s %s" % (
-            os.path.join("$(BUILD_ROOT)", "bin", "mkdepend.py"), 
+            os.path.join(BUILD_ROOT, "bin", "mkdepend.py"), 
             string.join(list),
             platform.form_var("DEFINES"),
             platform.form_var("INCLUDES"),

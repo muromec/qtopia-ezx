@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: socket.h,v 1.13 2008/07/03 21:53:49 dcollins Exp $
+ * Source last modified: $Id: socket.h,v 1.10 2004/09/28 01:57:31 acolwell Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -54,13 +54,6 @@
 
 #if defined(_FREEBSD) || defined(_OPENBSD) || defined(_NETBSD)
 #include <sys/types.h>
-#elif defined(_LSB)
-#include <arpa/inet.h>
-#define IN6_ARE_ADDR_EQUAL(a,b) \
-        ((((__const uint32_t *) (a))[0] == ((__const uint32_t *) (b))[0])     \
-         && (((__const uint32_t *) (a))[1] == ((__const uint32_t *) (b))[1])  \
-         && (((__const uint32_t *) (a))[2] == ((__const uint32_t *) (b))[2])  \
-         && (((__const uint32_t *) (a))[3] == ((__const uint32_t *) (b))[3]))
 #endif
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -72,8 +65,7 @@
 #include "platform/mac/macsockets.h" //for sockaddr_in
 #elif defined(_OPENWAVE)
 #include "platform/openwave/socketdefs.h"
-#elif _BREW
-#include "platform/brew/socketdefs.h"
+
 #elif defined(_WIN32)
 
 #include "hxtypes.h"

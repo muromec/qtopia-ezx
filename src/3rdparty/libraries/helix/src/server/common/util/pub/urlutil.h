@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****  
- * Source last modified: $Id: urlutil.h,v 1.6 2008/05/12 09:19:11 vijendrakumara Exp $ 
+ * Source last modified: $Id: urlutil.h,v 1.5 2004/07/09 19:14:47 jgordon Exp $ 
  *   
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.  
  *       
@@ -51,6 +51,5 @@ void        DecodeURL(const char* pEnc, char* szDec);
 // 3GPP compliant stream identifier functions (see 3GPP 26.234-550)
 BOOL        IsStreamId(const char* pBuf);
 BOOL        GetStreamId(const char* pBuf, UINT32* puStreamId);
-const char* GetPort(const char *host);
 
 #endif // _URLUTIL_H_

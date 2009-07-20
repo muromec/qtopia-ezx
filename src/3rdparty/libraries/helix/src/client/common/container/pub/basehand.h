@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: basehand.h,v 1.21 2008/02/26 05:06:18 lovish Exp $
+ * Source last modified: $Id: basehand.h,v 1.18 2007/04/17 23:44:43 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -100,13 +100,11 @@ typedef HX_RESULT (HXEXPORT_PTR FPCANUNLOAD2) ();
 
 class DLLAccess;
 class CFindFile;
-class CPluginEnumerator;
 
-class BaseHandler : public CUnknownIMP
-		  , public IHXPluginEnumerator
-	          , public IHXPlugin2Handler
-		  , public IHXPluginHandler3
-		  , public IHXPlugin2HandlerEnumeratorInterface
+class BaseHandler :	public CUnknownIMP,
+			public IHXPluginEnumerator,
+			public IHXPlugin2Handler,
+		    	public IHXPluginHandler3
 {
 
     class PluginMountPoint;
@@ -531,11 +529,6 @@ public:
     STDMETHOD (UnloadPackageByName) (const char* pName);
 
 
-     //IHXPlugin2HandlerEnumeratorInterface::GetNumPluginsSupporting
-    STDMETHOD(GetNumPluginsSupporting)      (THIS_ REFIID iid, REF(UINT32) nNumPlugins);
-    STDMETHOD(GetPluginIndexSupportingIID)  (THIS_ REFIID iid, UINT32 nPluginIndex, REF(UINT32) nIndexOut);
-    STDMETHOD(AddSupportedIID)              (THIS_ REFIID iid);
-
     //------------------------------------ Class Methods
 
     Errors		    Stat(const char* pszFilename, struct stat* pStatBuffer);
@@ -752,14 +745,6 @@ private:
 	DLLAccess*		m_pDLLAccess;
 	UINT32			m_nActiveReferences;
 	BaseHandler*		m_pBaseHandler;
-    };
-
-    class PluginSupportingGUID
-    {
-    public:
-	    CHXString			m_filename;
-	    UINT32			m_nIndexInDLL;
-	    PluginMountPoint*		m_pMountPoint;
     };
 
     class OtherDLL

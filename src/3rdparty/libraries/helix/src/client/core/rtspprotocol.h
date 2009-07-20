@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: rtspprotocol.h,v 1.24 2007/08/06 10:28:37 anshuman Exp $
+ * Source last modified: $Id: rtspprotocol.h,v 1.22 2007/01/11 19:53:31 milko Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -60,7 +60,6 @@ struct	IHXValues;
 class	CHXEvent;
 class	DataRevertController;
 class	RTSPClientProtocol;
-struct  HXEvent;
 
 class RTSPProtocol : public HXProtocol, 
 		     public IHXRTSPClientProtocolResponse,

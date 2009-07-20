@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dbcs.cpp,v 1.18 2008/03/25 19:46:19 praveenkumar Exp $
+ * Source last modified: $Id: dbcs.cpp,v 1.16 2005/03/14 19:36:39 bobclark Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -209,40 +209,6 @@ HXFindChar(const char* pStart, char CharToFind)
 			if(*pCurrent == CharToFind)
 			    return (char *)pCurrent;
 		pCurrent = pNext;
-	}
-
-	return NULL;
-}
-
-const char*
-HXFindCharN(const char* pStart, char CharToFind, size_t maxlen)
-{
-    size_t nByte;
-
-    if(!HXIsDBCSEnabled())
-    {
-        for(nByte = 0; nByte < maxlen && pStart[nByte] != '\0'; nByte++)
-        {
-            if(pStart[nByte] == CharToFind)
-            {
-                return (&pStart[nByte]);
-            }
-        }
-    }
-    else
-    {
-        for(nByte = 0; nByte < maxlen && pStart[nByte] != '\0'; nByte++)
-        {
-            // If lead byte, skip the next one
-            if(HXIsLeadByte(pStart[nByte]))
-            {
-                nByte++;
-            }
-            else if(pStart[nByte] == CharToFind)
-            {
-                return (&pStart[nByte]);
-            }
-        }
 	}
 
 	return NULL;

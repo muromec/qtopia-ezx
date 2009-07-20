@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: proc_container.cpp,v 1.37 2009/02/25 21:16:50 dcollins Exp $
+ * Source last modified: $Id: proc_container.cpp,v 1.31 2006/10/03 23:19:06 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -62,12 +62,12 @@
 #include "error_sink_handler.h"
 #include "iasyncio.h"
 #include "xmlconfig.h"
-#include "uasconfig.h"
 #include "mcast_ctrl.h"
 #include "hxmap.h"
 #include "bcastmgr.h"
 #include "altserverproxycfg.h"
 #include "altserverproxy.h"
+#include "dist_lic_requester.h"
 #include "server_prefs.h"
 #include "mutexlist.h"
 #include "hxqossig.h"
@@ -84,7 +84,7 @@
 #include "rssmgr.h"
 #include "namedlock.h"
 #include "resolve_proc.h"
-#include "tsmap.h"
+#include "cloaked_guid_dict.h"
 #ifdef HELIX_FEATURE_SERVER_WMT_MMS
 #include "mmsrsend.h"
 #endif
@@ -124,15 +124,15 @@ ProcessContainer::ProcessContainer(Process* proc)
     HTTP_postable_paths     = 0;
     mime_type_dict          = 0;
     cloaked_guid_dict       = 0;
-    fcs_session_map         = 0;
-    sspl_session_map        = 0;
     broadcast_manager       = 0;
     load_listen_mgr         = 0;
+    lbound_tcp_listenRTSPResponse =0;
     mcst_addr_pool          = 0;
     sap_mgr                 = 0;
     global_server_control   = 0;
     data_convert_con        = 0;
     alt_server_proxy_cfg_mgr = 0;
+    license_requester       = 0;
     client_stats_manager    = NULL;
     qos_prof_select         = 0;
     qos_bus_ctl             = 0;
@@ -200,14 +200,12 @@ ProcessContainer::Copy(ProcessContainer* pc)
 {
     license                 = pc->license;
     config                  = pc->config;
-    uasconfig               = pc->uasconfig;
     streamer_info           = pc->streamer_info;
     mime_type_dict          = pc->mime_type_dict;
     cloaked_guid_dict       = pc->cloaked_guid_dict;
-    fcs_session_map         = pc->fcs_session_map;
-    sspl_session_map        = pc->sspl_session_map;
     broadcast_manager       = pc->broadcast_manager;
     load_listen_mgr         = pc->load_listen_mgr;
+    lbound_tcp_listenRTSPResponse = pc->lbound_tcp_listenRTSPResponse;
     registry                = pc->registry;
     conn_id_table           = pc->conn_id_table;
     rdispatch               = pc->rdispatch;
@@ -231,6 +229,7 @@ ProcessContainer::Copy(ProcessContainer* pc)
     global_server_control   = pc->global_server_control;
     data_convert_con        = pc->data_convert_con;
     alt_server_proxy_cfg_mgr = pc->alt_server_proxy_cfg_mgr;
+    license_requester       = pc->license_requester;
     client_stats_manager    = pc->client_stats_manager;
     rtspstats_manager       = pc->rtspstats_manager;
     sdpstats_manager        = pc->sdpstats_manager;
@@ -251,7 +250,6 @@ ProcessContainer::Copy(ProcessContainer* pc)
 #endif
 
     config_file->AddRef();
-    uasconfig->AddRef();
     qos_prof_select->AddRef();
     qos_bus_ctl->AddRef();
     capex_static_cache->AddRef();

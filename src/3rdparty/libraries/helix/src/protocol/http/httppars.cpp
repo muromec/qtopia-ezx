@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: httppars.cpp,v 1.15 2008/08/18 21:53:19 ping Exp $
+ * Source last modified: $Id: httppars.cpp,v 1.12 2006/05/19 18:06:14 atin Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -187,50 +187,47 @@ HTTPParser::parseWWWAuthenticateHeaderValues(const char* pValue,
 	    authValues->AddRef();
 	}
 #endif
-        if (authValues)
+        authValues->SetPropertyULONG32("AuthType", HX_AUTH_DIGEST);
+        while(nextTok.hasValue())
         {
-            authValues->SetPropertyULONG32("AuthType", HX_AUTH_DIGEST);
-            while(nextTok.hasValue())
+            nextTok = scanner.nextToken("=,");
+            if(strcasecmp(nextTok.value(), "nonce") == 0)
             {
                 nextTok = scanner.nextToken("=,");
-                if(strcasecmp(nextTok.value(), "nonce") == 0)
-                {
-                    nextTok = scanner.nextToken("=,");
-		    IHXBuffer* pBuf = NULL;
-		    if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
-						        nextTok.value().GetLength()+1, m_pContext))
-		    {
-		        authValues->SetPropertyCString("Nonce", pBuf);
-		        HX_RELEASE(pBuf);
-		    }
-                }
-                else if(strcasecmp(nextTok.value(), "realm") == 0)
-                {
-                    nextTok = scanner.nextToken("=,");
-		    IHXBuffer* pBuf = NULL;
-		    if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
-						        nextTok.value().GetLength()+1, m_pContext))
-		    {
-		        authValues->SetPropertyCString("Realm", pBuf);
-		        HX_RELEASE(pBuf);
-		    }
-                }
-                else if(strcasecmp(nextTok.value(), "opaque") == 0)
-                {
-                    nextTok = scanner.nextToken("=,");
-		    IHXBuffer* pBuf = NULL;
-		    if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
-						        nextTok.value().GetLength()+1, m_pContext))
-		    {
-		        authValues->SetPropertyCString("Opaque", pBuf);
-		        HX_RELEASE(pBuf);
-		    }
-                }
+		IHXBuffer* pBuf = NULL;
+		if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
+						    nextTok.value().GetLength()+1, m_pContext))
+		{
+		    authValues->SetPropertyCString("Nonce", pBuf);
+		    HX_RELEASE(pBuf);
+		}
             }
-            pHeader->addHeaderValue
-                (new HTTPAuthentication(authValues));
-            authValues->Release();
+            else if(strcasecmp(nextTok.value(), "realm") == 0)
+            {
+                nextTok = scanner.nextToken("=,");
+		IHXBuffer* pBuf = NULL;
+		if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
+						    nextTok.value().GetLength()+1, m_pContext))
+		{
+		    authValues->SetPropertyCString("Realm", pBuf);
+		    HX_RELEASE(pBuf);
+		}
+            }
+            else if(strcasecmp(nextTok.value(), "opaque") == 0)
+            {
+                nextTok = scanner.nextToken("=,");
+		IHXBuffer* pBuf = NULL;
+		if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)(const char*)nextTok.value(),
+						    nextTok.value().GetLength()+1, m_pContext))
+		{
+		    authValues->SetPropertyCString("Opaque", pBuf);
+		    HX_RELEASE(pBuf);
+		}
+            }
         }
+        pHeader->addHeaderValue
+            (new HTTPAuthentication(authValues));
+        authValues->Release();
     }
     else if(strcasecmp(nextTok.value(), "Basic") == 0)
     {
@@ -246,43 +243,40 @@ HTTPParser::parseWWWAuthenticateHeaderValues(const char* pValue,
 	    authValues->AddRef();
 	}
 #endif
-        if (authValues)
+        authValues->SetPropertyULONG32("AuthType", HX_AUTH_BASIC);
+        while(nextTok.hasValue())
         {
-            authValues->SetPropertyULONG32("AuthType", HX_AUTH_BASIC);
-            while(nextTok.hasValue())
+            nextTok = scanner.nextToken("=,");
+            if(strcasecmp(nextTok.value(), "realm") == 0)
             {
                 nextTok = scanner.nextToken("=,");
-                if(strcasecmp(nextTok.value(), "realm") == 0)
+                char * realmstr = new char[strlen(nextTok.value()) + 1];
+                char* valstart, *valend;
+                valstart = (char*)strchr(nextTok.value(), '\"');
+                valend = (char*)strrchr(nextTok.value(), '\"');
+                if(valstart && valend && valstart != valend)
                 {
-                    nextTok = scanner.nextToken("=,");
-                    char * realmstr = new char[strlen(nextTok.value()) + 1];
-                    char* valstart, *valend;
-                    valstart = (char*)strchr(nextTok.value(), '\"');
-                    valend = (char*)strrchr(nextTok.value(), '\"');
-                    if(valstart && valend && valstart != valend)
-                    {
-                        valstart++;
-                        memcpy(realmstr, valstart, (size_t)(valend - valstart));
-                        realmstr[valend - valstart] = 0;
-                    }
-                    else
-                    {
-                        strcpy(realmstr, nextTok.value());
-                    }
-
-		    IHXBuffer* pBuf = NULL;
-		    if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)realmstr, 
-						        strlen(realmstr)+1, m_pContext))
-		    {
-		        authValues->SetPropertyCString("Realm", pBuf);
-		        HX_RELEASE(pBuf);
-		    }
-                    delete [] realmstr;
+                    valstart++;
+                    memcpy(realmstr, valstart, (size_t)(valend - valstart));
+                    realmstr[valend - valstart] = 0;
                 }
+                else
+                {
+                    strcpy(realmstr, nextTok.value());
+                }
+
+		IHXBuffer* pBuf = NULL;
+		if (HXR_OK == CreateAndSetBufferCCF(pBuf, (BYTE*)realmstr, 
+						    strlen(realmstr)+1, m_pContext))
+		{
+		    authValues->SetPropertyCString("Realm", pBuf);
+		    HX_RELEASE(pBuf);
+		}
+                delete [] realmstr;
             }
-            pHeader->addHeaderValue(new HTTPAuthentication(authValues));
-            authValues->Release();
         }
+        pHeader->addHeaderValue(new HTTPAuthentication(authValues));
+        authValues->Release();
     }
     else
     {
@@ -608,7 +602,7 @@ HTTPParser::parse(const char* pMsg, UINT32& nMsgLen)
  * HTTPMessage pointer.
  */
 HTTPMessage* 
-HTTPParser::parse(const char* pMsg, UINT32& nMsgLen, HXBOOL& bMessageTooLarge)
+HTTPParser::parse(const char* pMsg, UINT32& nMsgLen, BOOL& bMessageTooLarge)
 {
     if (nMsgLen > MAX_HTTP_MSG_SIZE)
     {

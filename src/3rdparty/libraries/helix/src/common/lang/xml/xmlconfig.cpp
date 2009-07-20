@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: xmlconfig.cpp,v 1.18 2008/01/23 06:07:35 npatil Exp $
+ * Source last modified: $Id: xmlconfig.cpp,v 1.12 2006/02/07 19:21:20 ping Exp $
  * 
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  * 
@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -48,7 +48,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-//  $Id: xmlconfig.cpp,v 1.18 2008/01/23 06:07:35 npatil Exp $
+//  $Id: xmlconfig.cpp,v 1.12 2006/02/07 19:21:20 ping Exp $
 
 #ifdef _UNIX 
 #include <sys/stat.h> 
@@ -65,10 +65,6 @@
 #include "hxerror.h"
 #include "xmlconfig.h"
 #include "errmsg_macros.h"
-
-#ifdef _WINCE
-#include "hlxclib/windows.h"
-#endif
 
 #define MAX_TAG_SIZE	32768
 #define MAX_ERROR_CHARS 20	// Number of chars to print if an error occurs
@@ -719,17 +715,13 @@ XMLConfig::StuffRegistry(XMLConfigList* list)
 //	pWinRegKey:  The Windows registry key to be filled in (can be
 //		  NULL if no registry writing is needed).
 //	pServRegKey: The Server registry key to be filled in.
-//  bStuffRegistry: Set bStuffRegistry parameter to FALSE if the 
-//      values read by the function should not be added into the registry.
-//      bStuffRegistry has a default value of TRUE.
 // 
 // Notes: the bIncludedFile is for internal recursive use only.  Do not 
 // set it when calling from outside this object.
 HX_RESULT
 XMLConfig::Read(char* filename, 
 		char* pServRegKey, 
-		HXBOOL  bIncludedFile,
-        HXBOOL bStuffRegistry)
+		HXBOOL  bIncludedFile)
 {
     HX_RESULT hResult = HXR_OK;
     FILE* fp=0;
@@ -758,12 +750,7 @@ XMLConfig::Read(char* filename,
 	m_pList->m_parentnode = new XMLConfigListNode;
 	m_pList->m_parentnode->m_name = new_string(pServRegKey);
 	m_pList->m_parentnode->m_parent = NULL;
-        m_pList->m_parentnode->m_type = CfgList;
-        m_pList->m_parentnode->m_pList = m_pList;
     }
-
-    //Remove all the elements in the stack. If not, the error in one file gets carried over to another.
-    while(m_pListStack.Pop());
 
     // read the config file into the byte queue
     INT32 nBufSize = 16384;
@@ -997,14 +984,8 @@ XMLConfig::Read(char* filename,
 
     if(hResult == HXR_OK && !bIncludedFile)
     {
-        //bStuffRegistry is set to FALSE when the values read are not 
-        //to be added into the registry and retained in the m_pList member variable.
-        //Reading .uas files (user agent settings) is one place where it is set to FALSE.
-        if(bStuffRegistry)
-        {
-            StuffRegistry(m_pList);
-            delete m_pList->m_parentnode;
-        }
+	StuffRegistry(m_pList);
+	delete m_pList->m_parentnode;
     }
 
     if (hResult == HXR_OK && !m_pListStack.IsEmpty())
@@ -1051,17 +1032,10 @@ XMLConfig::XMLConfigListNode::get_registry_name(INT32 vserver)
     }
 }
 
-HX_RESULT
-XMLConfig::WriteToFile(const char* pKeyName, const char* pFileName)
-{
-    HXBOOL bCreateFileIfNotFound = FALSE;
-    return WriteToFile(pKeyName, NULL, pFileName, bCreateFileIfNotFound);
-}
-
 ///XXXPM This func does not correctly handle the original file not
 ///being there.
 HX_RESULT
-XMLConfig::WriteToFile(const char* pKeyName, const char* pChildKeyName, const char* pFileName, HXBOOL bCreateFileIfNotFound)
+XMLConfig::WriteToFile(const char* pKeyName, const char* pFileName)
 {
     UINT32 ulListsToIgnore = 0;
     /*
@@ -1075,99 +1049,52 @@ XMLConfig::WriteToFile(const char* pKeyName, const char* pChildKeyName, const ch
     /*
      * Copy filename to filename.bak.
      */
-    char *pszBackupFileName = new char[strlen(pFileName) + strlen(".bak") + 1];
-    sprintf(pszBackupFileName, "%s.bak", pFileName); /* Flawfinder: ignore */
+    char *pNewFileName = new char[strlen(pFileName) + strlen(".bak") + 1];
+    sprintf(pNewFileName, "%s.bak", pFileName); /* Flawfinder: ignore */
     FILE* fpOld = fopen(pFileName, "r");
-    if (!fpOld && !bCreateFileIfNotFound )
+    FILE* fpNew = fopen(pNewFileName, "w");
+    if (!fpNew || !fpOld)
     {
-        HX_VECTOR_DELETE(pszBackupFileName);
-        return HXR_FAIL;
+	HX_VECTOR_DELETE(pNewFileName);
+	if (fpNew) fclose(fpNew);
+	if (fpOld) fclose(fpOld);
+	return HXR_FAIL;
     }
-
     INT32 nBufSize=16384;
     BYTE* pBuf = new BYTE[nBufSize];
-
-    //Do not create backup if the file does not exist.
-    //This happens when creating a new User Agent Settings file
-    //using Helix Server Admin GUI.
-    if (fpOld)
+    int iGot = 0;
+    while (!feof(fpOld))
     {
-        FILE* fpBackup = fopen(pszBackupFileName, "w");
-        if (!fpBackup)
-        {
-            //Failed to create a backup file.
-            HX_VECTOR_DELETE(pszBackupFileName);
-            fclose(fpOld);
-            return HXR_FAIL;
-        }
-        int iGot = 0;
-        while (!feof(fpOld))
-        {
-            iGot = fread(pBuf, sizeof(char), nBufSize, fpOld);
-            if (iGot)
-            {
-                fwrite(pBuf, sizeof(char), iGot, fpBackup);
-            }
-        }
-        fclose(fpOld);
-        fclose(fpBackup);
+	iGot = fread(pBuf, sizeof(char), nBufSize, fpOld);
+	if (iGot)
+	{
+	    fwrite(pBuf, sizeof(char), iGot, fpNew);
+	}
+    }
+    fclose(fpNew);
+    fclose(fpOld);
 
 #ifdef _UNIX
-        chmod(pszBackupFileName, 0700);
+    chmod(pNewFileName, 0700);
 #endif //UNIX
 
+    fpNew = fopen(pFileName, "w");
+    fpOld = fopen(pNewFileName, "r");
+    HX_VECTOR_DELETE(pNewFileName);
+    if (!fpNew || !fpOld)
+    {
+	if (fpNew) fclose(fpNew);
+	if (fpOld) fclose(fpOld);
+	return HXR_FAIL;
     }
 
-    CBigByteQueue queue(MAX_TAG_SIZE);
-    HX_RESULT hResult = HXR_OK;
+    int l;
     HXBOOL filedone = 0;
-
-    fpOld = fopen(pszBackupFileName, "r");
-
-    HX_VECTOR_DELETE(pszBackupFileName);
-
-    FILE* fpNew = fopen(pFileName, "w");
-    if (!fpNew)
-    {
-        return HXR_FAIL;
-    }
-
-    if (fpOld)
-    {
-        //Read from backup file.
-        while (!filedone && hResult == HXR_OK)
-        {
-            int l = fread(pBuf, 1, nBufSize, fpOld);
-            if (l > 0)
-            {
-                if (!queue.EnQueue(pBuf, l))
-                {
-                    if (!queue.Grow(l))
-                    {
-                        ERRMSG(m_pMessages,
-                            "error expanding data structure while parsing");
-                        hResult = HXR_FAIL;
-                    }
-                    if (!queue.EnQueue(pBuf, l))
-                    {
-                        ERRMSG(m_pMessages,
-                            "unknown error while parsing");
-                        hResult = HXR_FAIL;
-                    }
-                }
-            }
-            else
-            {
-                filedone = TRUE;
-            }
-        }
-        fclose(fpOld);
-        fpOld=0;
-    }
-
     XMLTag*   tag = 0;
     XMLTag*   wspacetag = 0;
+    CBigByteQueue queue(MAX_TAG_SIZE);
     XMLParser parser;
+    HX_RESULT hResult = HXR_OK;
 
     /*
      * Files are all aready.  Now we need to build our config levels list.
@@ -1179,29 +1106,36 @@ XMLConfig::WriteToFile(const char* pKeyName, const char* pChildKeyName, const ch
     CHXSimpleList* pNewList = new CHXSimpleList;
     IHXValues* pValues = 0;
 
-    if (pChildKeyName && pChildKeyName[0])
-    {
-        //Need to write only the given child key (i.e. pChildKeyName) 
-        //into the output file.
-		NEW_FAST_TEMP_STR(pPropName, MAX_REGISTRY_NAME, strlen(pKeyName) + strlen(pChildKeyName) + 2);
-        sprintf(pPropName, "%s.%s", pKeyName, pChildKeyName);
-        HXPropType propType = m_pRegistry->GetTypeByName(pPropName);
-		DELETE_FAST_TEMP_STR(pPropName);
-
-        XMLPropInfo* pInfo = new XMLPropInfo;
-        pInfo->m_pName = new char[strlen(pChildKeyName) + 1];
-        strcpy(pInfo->m_pName, pChildKeyName);
-        pInfo->m_Type = propType;
-        pNewList->AddHead((void*)pInfo);
-    }
-    else
-    {
-        //Need to write all keys under the pKeyName from registry.
-        _AddPropsToList(pNewList, pKeyName, m_pRegistry);
-    }
-
+    _AddPropsToList(pNewList, pKeyName, m_pRegistry);
     XMLConfigString curr_level;
     curr_level.AddLevel(pKeyName);
+
+    while (!filedone && hResult == HXR_OK)
+    {
+        l = fread(pBuf, 1, nBufSize, fpOld);
+        if (l > 0)
+        {
+            if (!queue.EnQueue(pBuf, l))
+            {
+                if (!queue.Grow(l))
+                {
+                    ERRMSG(m_pMessages,
+                           "error expanding data structure while parsing");
+                    hResult = HXR_FAIL;
+                }
+                if (!queue.EnQueue(pBuf, l))
+                {
+                    ERRMSG(m_pMessages,
+                           "unknown error while parsing");
+                    hResult = HXR_FAIL;
+                }
+            }
+        }
+        else
+        {
+            filedone = TRUE;
+        }
+    }
 
     UINT32 bytesUsed=0;
     UINT32 bytesAvail=0;
@@ -2055,7 +1989,7 @@ XMLConfig::ReconfigureFromReg(const char* pKeyname)
 	    }
 	    pc++;
 	}
-	ret = RegOpenKeyEx(HKEY_CLASSES_ROOT, OS_STRING(pRegBase), 0, KEY_READ, &hKey);
+	ret = RegOpenKeyEx(HKEY_CLASSES_ROOT, pRegBase, 0, KEY_READ, &hKey);
 	if (ret != ERROR_SUCCESS)
 	{
 	    //XXXPM fix this
@@ -2065,7 +1999,7 @@ XMLConfig::ReconfigureFromReg(const char* pKeyname)
 	ulBufLen = ulRealBufLen;
 	//XXXPM handle buffer too small
 	ret = RegEnumKeyEx(hKey, curr_index,
-	    OS_STRING(pRegBuf), &ulBufLen, 0, NULL, NULL, &msbs);
+	    pRegBuf, &ulBufLen, 0, NULL, NULL, &msbs);
 	curr_index++;
 	/*
 	 * If it is a composite...
@@ -2093,15 +2027,11 @@ XMLConfig::ReconfigureFromReg(const char* pKeyname)
 	    DWORD dwType;
 	    //XXXPM handle buffer too small
 
-#ifndef _WINCE
 	    ret = RegEnumValue(hKey, 0, pRegBuf2, &ulBufLen2, 0, &dwType, 
 		               (unsigned char*)pRegBuf3, &ulBufLen3);
-#else
-            ret = RegQueryValue(hKey, pRegBuf2, pRegBuf3, (long*)&ulBufLen3);
-#endif
 	    if (ret == ERROR_SUCCESS)
 	    {
-		value = OS_STRING(pRegBuf3);
+		value = pRegBuf3;
 		_ResetProp(&curr_level, value, m_pRegistry);
 		curr_level.RemoveLevel();
 		delete pNewList;

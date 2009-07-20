@@ -39,18 +39,54 @@
 #include "tconverter.h"
 #include "ntptime.h"
 
-/* Forward Declarations */
-class RTCPPacketBase;
+typedef _INTERFACE  IHXRTPInfoSynch	    IHXRTPInfoSynch;
 
-#define HX_INVALID_STREAM 0xFFFF
+/****************************************************************************
+ * 
+ *  Interface:
+ * 
+ *	IHXRTPInfoSynch
+ * 
+ *  Purpose:
+ * 
+ * 
+ *  IID_IHXRTPInfoSynch:
+ * 
+ *	{1D9DF3AD-7429-4efc-B54D-D67E256304C4}
+ * 
+ */
 
-class IRTPSyncResponse
+DEFINE_GUID(IID_IHXRTPInfoSynch, 
+	    0x1d9df3ad, 0x7429, 0x4efc, 0xb5, 0x4d, 0xd6, 0x7e, 0x25, 0x63, 0x4, 0xc4);
+
+#undef  INTERFACE
+#define INTERFACE   IHXRTPInfoSynch
+
+DECLARE_INTERFACE_(IHXRTPInfoSynch, IUnknown)
 {
-public:
-    STDMETHOD_(UINT32, AddRef)  (THIS) PURE;
-    STDMETHOD_(UINT32, Release) (THIS) PURE;
+    /*
+     * IUnknown Methods
+     */
+    STDMETHOD(QueryInterface)	(THIS_ REFIID riid, void** ppvObj) PURE;
+    STDMETHOD_(ULONG32,AddRef)	(THIS) PURE;
+    STDMETHOD_(ULONG32,Release)	(THIS) PURE;
 
-    STDMETHOD(SyncDone)         (THIS) PURE;
+    STDMETHOD(InitSynch)(THIS_ 
+			 UINT16 unStreamCount) PURE;
+    STDMETHOD(RTPSynch) (THIS_ UINT16 unMaster) PURE;
+    STDMETHOD(OnRTPPacket) (THIS_ IHXBuffer* pRTPPacket, 
+			    UINT16 unStream,
+			    REF(HXBOOL) bSynched,
+			    REF(UINT32) ulSequenceNumber,
+			    REF(UINT32) ulTimestamp) PURE;
+    STDMETHOD(OnRTCPPacket)(THIS_ IHXBuffer* pRTCPPacket, 
+			    UINT16 unStream) PURE;
+    STDMETHOD(SetTSConverter)(THIS_ 
+			      CHXTimestampConverter::ConversionFactors 
+			      conversionFactors,
+			      UINT16 unStream) PURE;
+    STDMETHOD(IsStreamSynched)(THIS_ UINT16 unStream, REF(HXBOOL) bIsSynched) PURE;
+    STDMETHOD(Done)     (THIS) PURE;
 };
 
 class RTPInfoSynchData
@@ -61,50 +97,52 @@ class RTPInfoSynchData
     
     void Reset();
 
-    HXBOOL  m_bHasSR;
-    HXBOOL  m_bHasPacket;
-    NTPTime m_ntpTimeFromSR;
-    UINT32  m_ulRTPTimeFromSR;
-    UINT32  m_ulRTPPacketTime;
-    UINT32  m_ulRTPStartTime;   // units: rtp time
-    UINT32  m_ulRTPFrequency;   // RTP timestamp frequency (per second)
+    HXBOOL    m_bHasSR;
+    INT32   m_lRTPtoNTPOffset; //units: msec ; additive conversion from RTP to NTP for this stream
+    UINT32  m_ulRTPInfoTime;   //units: rtp time ; time to be placed in rtp info field
+    HXBOOL    m_bSynched; 
+
+    CHXTimestampConverter* m_pTSConverter;
 };
 
-class RTPInfoSynch
+
+class RTPInfoSynch: public IHXRTPInfoSynch
 {
  public:
-    RTPInfoSynch();
-    ~RTPInfoSynch();
+    RTPInfoSynch			();
+    ~RTPInfoSynch			();
 
-    ULONG32 AddRef();
-    ULONG32 Release();
+    STDMETHOD(QueryInterface)           (THIS_
+                                        REFIID riid,
+                                        void** ppvObj);
+    STDMETHOD_(ULONG32,AddRef)      	(THIS);
+    STDMETHOD_(ULONG32,Release)     	(THIS);
 
-    HX_RESULT InitSynch(UINT16 unStreamCount, 
-                        IRTPSyncResponse* pResponse = NULL,
-                        UINT16 unMasterStream = HX_INVALID_STREAM);
-    HX_RESULT SetTSFrequency(UINT32 ulRTPFrequency, UINT16 unStream);
-    HX_RESULT Done();
     
-    HX_RESULT   OnRTPPacket   (IHXRTPPacket* pPacket, UINT16 unStream);
-    HX_RESULT   OnRTCPPacket  (RTCPPacketBase* pPacket, UINT16 unStream);
-    HX_RESULT   GetRTPStartTime(UINT16 unStream, REF(UINT32) ulStartTime);
-
-    inline HXBOOL IsSynced() { return m_bRTPTimesGenerated; }
+    STDMETHOD(InitSynch)(THIS_ 
+			 UINT16 unStreamCount);
+    STDMETHOD(RTPSynch) (THIS_ UINT16 unMaster);
+    STDMETHOD(OnRTPPacket) (THIS_ IHXBuffer* pRTPPacket, 
+			    UINT16 unStream,
+			    REF(HXBOOL) bSynched,
+			    REF(UINT32) ulSequenceNumber,
+			    REF(UINT32) ulTimestamp);
+    STDMETHOD(OnRTCPPacket)(THIS_ IHXBuffer* pRTCPPacket, UINT16 unStream);
+    STDMETHOD(SetTSConverter)(THIS_ 
+			      CHXTimestampConverter::ConversionFactors 
+			      conversionFactors,
+			      UINT16 unStream);
+    STDMETHOD(IsStreamSynched)(THIS_ UINT16 unStream, REF(HXBOOL) bIsSynched);
+    STDMETHOD(Done)     (THIS);
 
  private:
-    INT32	            m_lRefCount;
-    RTPInfoSynchData*       m_pSynchData;
-    UINT16                  m_unStreamCount;
-    UINT16                  m_unSRCount;
-    UINT16                  m_unSynchStream;
-    HXBOOL                  m_bNeedSyncStream;
-    HXBOOL                  m_bHaveAllSRs;
-    HXBOOL                  m_bHaveAllPackets;
-    UINT16                  m_unSyncPacketsReceived;
-    HXBOOL                  m_bRTPTimesGenerated;
-    IRTPSyncResponse*     m_pResponse;
-
-    void CalculateSyncTimes();
+    INT32	              m_lRefCount;
+    RTPInfoSynchData*         m_pSynchData;
+    UINT16                    m_unStreamCount;
+    UINT16                    m_unSRCount;
+    UINT16                    m_unSynchStream;
+    HXBOOL                      m_bHaveAllSRs;
+    HXBOOL                      m_bRTPTimesGenerated;
 };
 
 #endif /*_RTP_INFO_SYNC_H_ */

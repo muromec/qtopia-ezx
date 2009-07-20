@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: aliveprot.cpp,v 1.6 2008/07/28 22:56:06 dcollins Exp $
+ * Source last modified: $Id: aliveprot.cpp,v 1.5 2006/10/03 23:19:06 tknox Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -37,7 +37,6 @@
 
 #include "hxtypes.h"
 #include "hxcom.h"
-#include "hxerror.h"
 #include "ihxpckts.h"
 #include "hxnet.h"
 #include "hxprot.h"

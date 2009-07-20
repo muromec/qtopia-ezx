@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: access_ctrl.cpp,v 1.18 2009/03/06 20:41:43 atin Exp $
+ * Source last modified: $Id: access_ctrl.cpp,v 1.17 2005/04/08 21:21:49 seansmith Exp $
  *
  * Portions Copyright (c) 1995-2003 RealNetworks, Inc. All Rights Reserved.
  *
@@ -546,7 +546,7 @@ CServerAccessControl::AddressCheck(IHXSockAddr* pLocalAddr,
 
     if (pRule != NULL)
     {
-        hxr = (pRule->GetAccessType() == SAC_Allow) ? HXR_OK : HXR_SOCK_REFUSED;
+        hxr = (pRule->GetAccessType() == SAC_Allow) ? HXR_OK : HXR_FAIL;
     }
 
     return hxr;

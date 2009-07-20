@@ -1,6 +1,6 @@
 # 
 # ***** BEGIN LICENSE BLOCK *****
-# Source last modified: $Id: win32.pcf,v 1.12 2007/08/06 17:16:50 ping Exp $
+# Source last modified: $Id: win32.pcf,v 1.10 2006/10/06 20:42:58 ping Exp $
 # 
 # Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
 # 
@@ -19,7 +19,7 @@
 # contents of the file.
 # 
 # Alternatively, the contents of this file may be used under the
-# terms of the GNU General Public License Version 2 (the
+# terms of the GNU General Public License Version 2 or later (the
 # "GPL") in which case the provisions of the GPL are applicable
 # instead of those above. If you wish to allow use of your version of
 # this file only under the terms of the GPL, and not to allow others
@@ -55,8 +55,7 @@ project.AddSources("platform/win/winthrd.cpp",
                    "platform/win/wtime.cpp",
                    "platform/win/gettickcount.c",
                    "platform/win/codverify.cpp",
-                   "platform/win/set_debugger_thread_name.cpp",
-		   "platform/win/chxregman.cpp")
+                   "platform/win/set_debugger_thread_name.cpp")
 
 if not project.BuildOption('nodll') or project.IsDefined('HELIX_CONFIG_CONSOLIDATED_CORE'):
     project.AddSources("platform/win/win32_dll.cpp")

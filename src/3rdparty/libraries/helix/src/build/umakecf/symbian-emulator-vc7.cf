@@ -2,7 +2,7 @@
 #
 #  ***** BEGIN LICENSE BLOCK *****  
 #   
-#  Source last modified: $Id: symbian-emulator-vc7.cf,v 1.7 2007/06/13 01:12:50 jfinnecy Exp $ 
+#  Source last modified: $Id: symbian-emulator-vc7.cf,v 1.6 2006/07/26 20:19:50 damann Exp $ 
 #   
 #  Copyright Notices: 
 #   
@@ -303,7 +303,7 @@ class SymbianLinker(Linker2):
         arg_list.append(dynamic_libs)
         
         cmd = "python %s /LIBPATH:%s -basefile:%s -basedir:%s /base:0x60000000 %s" % (
-            os.path.join("$(BUILD_ROOT)","bin","pylink.py"),
+            os.path.join(BUILD_ROOT,"bin","pylink.py"),
             os.path.join(GetSDKPath('SYMBIANSDK'), epoclib),
             os.path.join(project.src_root_path,dbg,"rebase.lst"),
             project.module_directory(),

@@ -18,7 +18,7 @@
  * contents of the file.
  * 
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -47,7 +47,7 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-//  $Id: rn5auth.cpp,v 1.13 2008/10/17 22:49:14 dcollins Exp $
+//  $Id: rn5auth.cpp,v 1.11 2006/12/03 23:05:38 ehyche Exp $
 
 // Significant rewrite was done 12/29/99 by SSH.
  
@@ -596,21 +596,28 @@ CRN5Authenticator::_SendChallengeResponse()
 
 	str += "\"";
  
-        IHXValues* pHeader = new CHXHeader();
-        pHeader->AddRef();
+	IHXValues* pChallengeHeaders = _GetResponseHeaders();
+	if (!pChallengeHeaders)
+	{
+	    HX_ASSERT(0);
+	    return HXR_UNEXPECTED;
+	}
+	else
+	{
+	    if (m_bIsProxyAuthentication)
+	    {
+		_SetPropertyFromCharArray(pChallengeHeaders, "Proxy-Authenticate", 
+			(const char*) str);
+	    }
+	    else
+	    {
+		_SetPropertyFromCharArray(pChallengeHeaders, "WWW-Authenticate", 
+			(const char*) str);
+	    }
+	    HX_RELEASE(pChallengeHeaders);
+	}
 
-        if (m_bIsProxyAuthentication)
-        {
-            _SetPropertyFromCharArray(pHeader, "Proxy-Authenticate", (const char*) str);
-        }
-        else
-        {
-            _SetPropertyFromCharArray(pHeader, "WWW-Authenticate", (const char*) str);
-        }
-
-        m_pServerRequest->SetResponseHeaders(pHeader);
-        HX_RELEASE(pHeader);
-        HX_RELEASE(pSchedulerContext);
+	HX_RELEASE(pSchedulerContext);
     }
 
     m_pServerRespondee->ChallengeReady(HXR_OK, m_pServerRequest);

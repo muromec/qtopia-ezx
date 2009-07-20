@@ -39,18 +39,14 @@ UmakefileVersion(2,1)
 
 project.AddModuleIncludes("common/include",
 			  "common/log/logcommon/pub",
-			  "common/log/logobserverfile/pub",
                           "common/runtime/pub",
                           "common/util/pub",
                           "common/container/pub",
                           "common/dbgtool/pub",
                           "common/system/pub")
 
-if not project.IsDefined("HELIX_FEATURE_LOGLEVEL_NONE"):
-    project.AddSources("hxtlogutil.cpp",
-                       "hxloghelper.cpp",
-                       "hxlogsystemmanager.cpp")
-else:
-    project.AddSources("hxlogstub.cpp")
+project.AddDefines("LOGSYSTEMASDLL")
+
+project.AddSources("hxtlogutil.cpp")
 
 LibraryTarget("logutillib")

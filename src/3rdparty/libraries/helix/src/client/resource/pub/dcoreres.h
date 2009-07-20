@@ -1,5 +1,5 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Source last modified: $Id: dcoreres.h,v 1.11 2008/02/01 16:33:36 ehyche Exp $
+ * Source last modified: $Id: dcoreres.h,v 1.8 2005/11/01 00:02:28 rishimathew Exp $
  *
  * Portions Copyright (c) 1995-2004 RealNetworks, Inc. All Rights Reserved.
  *
@@ -18,7 +18,7 @@
  * contents of the file.
  *
  * Alternatively, the contents of this file may be used under the
- * terms of the GNU General Public License Version 2 (the
+ * terms of the GNU General Public License Version 2 or later (the
  * "GPL") in which case the provisions of the GPL are applicable
  * instead of those above. If you wish to allow use of your version of
  * this file only under the terms of the GPL, and not to allow others
@@ -187,9 +187,8 @@
 #define	IDS_ERR_PE_GATEWAY_TIMEOUT			HX_CORE_RES_INIT_ID + 133
 #define	IDS_ERR_PE_RTSP_VERSION_NOT_SUPPORTED		HX_CORE_RES_INIT_ID + 134
 #define	IDS_ERR_PE_OPTION_NOT_SUPPORTED			HX_CORE_RES_INIT_ID + 135
-#define IDS_ERR_FULL_DOWNLOAD_NEEDED                    HX_CORE_RES_INIT_ID + 136
-#define IDS_ERR_NOT_SUPPORTED_FOR_LINEAR_FILE_SYSTEMS   HX_CORE_RES_INIT_ID + 137
-#define IDS_ERR_RAVE_UI                                 HX_CORE_RES_INIT_ID + 138
+
+#define IDS_ERR_FULL_DOWNLOAD_NEEDED 	HX_CORE_RES_INIT_ID + 136
 
 #define IDS_STATUS_CONTACTING				HX_CORE_RES_INIT_ID + 200
 #endif /* _DCORERES_H_ */
